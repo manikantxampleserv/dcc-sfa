@@ -159,14 +159,10 @@ const CoolerInstallationsManagement: React.FC = () => {
 
   const getStatusColor = (status?: string | null) => {
     switch (status) {
-      case 'working':
+      case 'Installed':
         return 'success';
-      case 'maintenance':
-        return 'warning';
-      case 'broken':
-        return 'error';
-      case 'offline':
-        return 'default';
+      case 'Ready to Install':
+        return 'info';
       default:
         return 'default';
     }
@@ -457,10 +453,8 @@ const CoolerInstallationsManagement: React.FC = () => {
                       disableClearable
                     >
                       <MenuItem value="all">All Status</MenuItem>
-                      <MenuItem value="working">Working</MenuItem>
-                      <MenuItem value="maintenance">Maintenance</MenuItem>
-                      <MenuItem value="broken">Broken</MenuItem>
-                      <MenuItem value="offline">Offline</MenuItem>
+                      <MenuItem value="Ready to Install">Ready to Install</MenuItem>
+                      <MenuItem value="Installed">Installed</MenuItem>
                     </Select>
                     <UserSelect
                       label=""

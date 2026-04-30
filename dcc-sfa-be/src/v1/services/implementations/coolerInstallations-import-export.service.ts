@@ -188,13 +188,13 @@ export class CoolerInstallationsImportExportService extends ImportExportService<
       header: 'Status',
       width: 20,
       type: 'string',
-      defaultValue: 'working',
+      defaultValue: 'Ready to Install',
       validation: value =>
         !value ||
         value.length <= 20 ||
         'Status must be less than 20 characters',
       description:
-        'Cooler status (optional, max 20 chars, defaults to "working")',
+        'Cooler status (optional, max 20 chars, defaults to "Ready to Install")',
     },
     {
       key: 'temperature',
@@ -322,7 +322,7 @@ export class CoolerInstallationsImportExportService extends ImportExportService<
         install_date: '2024-01-15',
         last_service_date: '2024-06-15',
         next_service_due: '2024-12-15',
-        status: 'working',
+        status: 'Installed',
         temperature: 4.5,
         energy_rating: 'A++',
         warranty_expiry: '2026-01-15',
@@ -342,7 +342,7 @@ export class CoolerInstallationsImportExportService extends ImportExportService<
         install_date: '2024-02-20',
         last_service_date: '2024-07-20',
         next_service_due: '2025-01-20',
-        status: 'working',
+        status: 'Installed',
         temperature: 3.8,
         energy_rating: 'A+',
         warranty_expiry: '2026-02-20',
@@ -362,7 +362,7 @@ export class CoolerInstallationsImportExportService extends ImportExportService<
         install_date: '2024-03-10',
         last_service_date: '2024-08-10',
         next_service_due: '2025-02-10',
-        status: 'maintenance',
+        status: 'Ready to Install',
         temperature: 5.2,
         energy_rating: 'A',
         warranty_expiry: '2026-03-10',
@@ -400,7 +400,7 @@ export class CoolerInstallationsImportExportService extends ImportExportService<
       next_service_due: cooler.next_service_due
         ? new Date(cooler.next_service_due).toISOString().split('T')[0]
         : '',
-      status: cooler.status || 'working',
+      status: cooler.status || 'Ready to Install',
       temperature: cooler.temperature || '',
       energy_rating: cooler.energy_rating || '',
       warranty_expiry: cooler.warranty_expiry
@@ -522,7 +522,7 @@ export class CoolerInstallationsImportExportService extends ImportExportService<
       install_date: data.install_date || null,
       last_service_date: data.last_service_date || null,
       next_service_due: data.next_service_due || null,
-      status: data.status || 'working',
+      status: data.status || 'Ready to Install',
       temperature: data.temperature || null,
       energy_rating: data.energy_rating || null,
       warranty_expiry: data.warranty_expiry || null,
@@ -716,12 +716,10 @@ export class CoolerInstallationsImportExportService extends ImportExportService<
       });
 
       const statusCell = excelRow.getCell('status');
-      if (cooler.status === 'working') {
+      if (cooler.status === 'Installed') {
         statusCell.font = { color: { argb: 'FF008000' }, bold: true };
-      } else if (cooler.status === 'maintenance') {
-        statusCell.font = { color: { argb: 'FFFF8000' }, bold: true };
-      } else if (cooler.status === 'broken') {
-        statusCell.font = { color: { argb: 'FFFF0000' }, bold: true };
+      } else if (cooler.status === 'Ready to Install') {
+        statusCell.font = { color: { argb: 'FF0000FF' }, bold: true };
       }
     });
 

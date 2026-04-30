@@ -59,7 +59,7 @@ const ManageCoolerInstallation: React.FC<ManageCoolerInstallationProps> = ({
       next_service_due: selectedInstallation?.next_service_due
         ? formatForDateInput(selectedInstallation.next_service_due)
         : '',
-      status: selectedInstallation?.status || 'working',
+      status: selectedInstallation?.status || 'Ready to Install',
       temperature: selectedInstallation?.temperature || '',
       energy_rating: selectedInstallation?.energy_rating || '',
       warranty_expiry: selectedInstallation?.warranty_expiry
