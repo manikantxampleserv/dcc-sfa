@@ -356,7 +356,7 @@ const router = createBrowserRouter(
         {
           path: '/masters/asset-sub-types',
           element: (
-            <PermissionGuard module="asset-type" action="read">
+            <PermissionGuard module="asset-sub-types" action="read">
               <AssetSubTypesPage />
             </PermissionGuard>
           ),
@@ -452,7 +452,7 @@ const router = createBrowserRouter(
         {
           path: '/masters/sub-unit-of-measurement',
           element: (
-            <PermissionGuard module="unit-of-measurement" action="read">
+            <PermissionGuard module="subunit-of-measurement" action="read">
               <SubUnitOfMeasurementManagement />
             </PermissionGuard>
           ),
@@ -532,7 +532,7 @@ const router = createBrowserRouter(
         {
           path: '/masters/cooler-types',
           element: (
-            <PermissionGuard module="cooler-type" action="read">
+            <PermissionGuard module="asset-type" action="read">
               <CoolerTypesManagement />
             </PermissionGuard>
           ),
@@ -540,7 +540,7 @@ const router = createBrowserRouter(
         {
           path: '/masters/cooler-sub-types',
           element: (
-            <PermissionGuard module="cooler-sub-type" action="read">
+            <PermissionGuard module="asset-sub-types" action="read">
               <CoolerSubTypesManagement />
             </PermissionGuard>
           ),
@@ -548,7 +548,7 @@ const router = createBrowserRouter(
         {
           path: '/masters/price-lists',
           element: (
-            <PermissionGuard module="price-list" action="read">
+            <PermissionGuard module="pricelist" action="read">
               <PriceListsManagement />
             </PermissionGuard>
           ),
@@ -556,7 +556,7 @@ const router = createBrowserRouter(
         {
           path: '/masters/price-lists/:id',
           element: (
-            <PermissionGuard module="price-list" action="read">
+            <PermissionGuard module="pricelist" action="read">
               <PriceListDetail />
             </PermissionGuard>
           ),
@@ -580,7 +580,7 @@ const router = createBrowserRouter(
         {
           path: '/masters/updated-promotions',
           element: (
-            <PermissionGuard module="updated-promotion" action="read">
+            <PermissionGuard module="promotions" action="read">
               <UpdatedPromotionsManagement />
             </PermissionGuard>
           ),
@@ -588,7 +588,7 @@ const router = createBrowserRouter(
         {
           path: '/masters/updated-promotions/:id',
           element: (
-            <PermissionGuard module="updated-promotion" action="read">
+            <PermissionGuard module="promotions" action="read">
               <UpdatedPromotionDetail />
             </PermissionGuard>
           ),
@@ -981,7 +981,7 @@ const router = createBrowserRouter(
         {
           path: '/settings/email-templates',
           element: (
-            <PermissionGuard module="email-templates" action="read">
+            <PermissionGuard module="templates" action="read">
               <EmailTemplates />
             </PermissionGuard>
           ),
