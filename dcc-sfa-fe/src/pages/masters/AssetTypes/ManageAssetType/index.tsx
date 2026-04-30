@@ -64,7 +64,6 @@ const ManageAssetType: React.FC<ManageAssetTypeProps> = ({
         } else {
           await createAssetTypeMutation.mutateAsync(assetTypeData);
         }
-
         handleCancel();
       } catch (error) {
         console.error('Error saving asset type:', error);
@@ -138,7 +137,7 @@ const ManageAssetType: React.FC<ManageAssetTypeProps> = ({
               }
             >
               {createAssetTypeMutation.isPending ||
-              updateAssetTypeMutation.isPending
+                updateAssetTypeMutation.isPending
                 ? isEdit
                   ? 'Updating...'
                   : 'Creating...'

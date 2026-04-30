@@ -18,6 +18,16 @@ import Input from 'shared/Input';
 import Select from 'shared/Select';
 import UserSelect from 'shared/UserSelect';
 
+export const statusOptions = [
+  { value: 'Available', label: 'Available' },
+  { value: 'Installed', label: 'Installed' },
+  { value: 'Under Maintenance', label: 'Under Maintenance' },
+  { value: 'Under Investigation', label: 'Under Investigation' },
+  { value: 'Retired', label: 'Retired' },
+  { value: 'Lost', label: 'Lost' },
+  { value: 'Damaged', label: 'Damaged' },
+];
+
 interface ManageAssetMasterProps {
   selectedAsset?: AssetMaster | null;
   setSelectedAsset: (asset: AssetMaster | null) => void;
@@ -197,15 +207,6 @@ const ManageAssetMaster: React.FC<ManageAssetMasterProps> = ({
     }
   }, [formik.values.asset_type_id]);
 
-  const statusOptions = [
-    { value: 'Available', label: 'Available' },
-    { value: 'Installed', label: 'Installed' },
-    { value: 'Under Maintenance', label: 'Under Maintenance' },
-    { value: 'Under Investigation', label: 'Under Investigation' },
-    { value: 'Retired', label: 'Retired' },
-    { value: 'Lost', label: 'Lost' },
-    { value: 'Damaged', label: 'Damaged' },
-  ];
 
   return (
     <CustomDrawer
@@ -421,7 +422,7 @@ const ManageAssetMaster: React.FC<ManageAssetMasterProps> = ({
               }
             >
               {createAssetMasterMutation.isPending ||
-              updateAssetMasterMutation.isPending
+                updateAssetMasterMutation.isPending
                 ? isEdit
                   ? 'Updating...'
                   : 'Creating...'

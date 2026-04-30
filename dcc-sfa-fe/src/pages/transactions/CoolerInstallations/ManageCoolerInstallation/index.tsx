@@ -173,10 +173,8 @@ const ManageCoolerInstallation: React.FC<ManageCoolerInstallationProps> = ({
             />
 
             <Select name="status" label="Status" formik={formik}>
-              <MenuItem value="working">Working</MenuItem>
-              <MenuItem value="maintenance">Under Maintenance</MenuItem>
-              <MenuItem value="damaged">Damaged</MenuItem>
-              <MenuItem value="retired">Retired</MenuItem>
+              <MenuItem value="Ready to Install">Ready to Install</MenuItem>
+              <MenuItem value="Installed">Installed</MenuItem>
             </Select>
 
             <Input
@@ -270,7 +268,7 @@ const ManageCoolerInstallation: React.FC<ManageCoolerInstallationProps> = ({
               }
             >
               {createCoolerInstallationMutation.isPending ||
-              updateCoolerInstallationMutation.isPending
+                updateCoolerInstallationMutation.isPending
                 ? isEdit
                   ? 'Updating...'
                   : 'Creating...'
