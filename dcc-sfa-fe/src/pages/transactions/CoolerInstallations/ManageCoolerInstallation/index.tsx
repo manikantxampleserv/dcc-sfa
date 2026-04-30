@@ -124,7 +124,6 @@ const ManageCoolerInstallation: React.FC<ManageCoolerInstallationProps> = ({
     status: 'active',
   });
 
-  console.log(formik.values.asset_master_id);
 
   const assets = assetMasterData?.data || [];
   return (
