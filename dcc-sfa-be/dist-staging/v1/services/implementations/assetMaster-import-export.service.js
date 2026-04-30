@@ -25,6 +25,13 @@ class AssetMasterImportExportService extends import_export_service_1.ImportExpor
             description: 'Use the ID from this sheet in the Asset Type ID column',
         },
         {
+            masterTable: 'asset_sub_types',
+            masterKey: 'id',
+            masterDisplayFields: ['id', 'name', 'code', 'asset_type_id'],
+            sheetName: 'Ref - Asset Sub Types',
+            description: 'Use the ID from this sheet in the Asset Sub Type ID column',
+        },
+        {
             masterTable: 'brands',
             masterKey: 'id',
             masterDisplayFields: ['id', 'name', 'code'],

@@ -536,7 +536,7 @@ export default function Table<T extends Record<string, any>>(
             compact={compact}
             order={order}
             orderBy={orderBy ? String(orderBy) : ''}
-            onRequestSort={() => {}}
+            onRequestSort={() => { }}
             columns={columns}
             sortable={sortable}
           />
