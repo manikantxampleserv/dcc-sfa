@@ -97,8 +97,8 @@ exports.attendanceController = {
                             user_id: userId,
                             attendance_date: today,
                             punch_in_time: new Date(),
-                            punch_in_latitude: latitude,
-                            punch_in_longitude: longitude,
+                            punch_in_latitude: latitude !== undefined ? Number(latitude) : undefined,
+                            punch_in_longitude: longitude !== undefined ? Number(longitude) : undefined,
                             punch_in_address: address,
                             punch_in_device_info: deviceInfo
                                 ? JSON.stringify(deviceInfo)
@@ -129,8 +129,8 @@ exports.attendanceController = {
                         attendance_id: attendance.id,
                         action_type: 'punch_in',
                         action_time: new Date(),
-                        latitude: latitude,
-                        longitude: longitude,
+                        latitude: latitude !== undefined ? Number(latitude) : undefined,
+                        longitude: longitude !== undefined ? Number(longitude) : undefined,
                         address: address,
                         device_info: deviceInfo ? JSON.stringify(deviceInfo) : null,
                         photo_url: null,
@@ -143,7 +143,9 @@ exports.attendanceController = {
                         ip_address: req.ip || null,
                         user_agent: req.headers['user-agent'] || null,
                         app_version: deviceInfo?.appVersion || null,
-                        battery_level: deviceInfo?.batteryLevel || null,
+                        battery_level: deviceInfo?.batteryLevel !== undefined
+                            ? Number(deviceInfo.batteryLevel)
+                            : null,
                         network_type: deviceInfo?.networkType || null,
                         remarks: `Punched in at ${address || 'unknown location'}`,
                         is_active: 'Y',
@@ -171,9 +173,14 @@ exports.attendanceController = {
                 }
                 const punchInTime = new Date(existingAttendance.punch_in_time);
                 const punchOutTime = new Date();
-                const totalHours = Math.round(((punchOutTime.getTime() - punchInTime.getTime()) /
-                    (1000 * 60 * 60)) *
-                    100) / 100;
+                let calculatedHours = 0;
+                if (!isNaN(punchInTime.getTime())) {
+                    calculatedHours =
+                        Math.round(((punchOutTime.getTime() - punchInTime.getTime()) /
+                            (1000 * 60 * 60)) *
+                            100) / 100;
+                }
+                const totalHours = Math.min(Math.max(calculatedHours, 0), 999.99);
                 const oldData = {
                     punch_out_time: existingAttendance.punch_out_time,
                     total_hours: existingAttendance.total_hours,
@@ -184,8 +191,8 @@ exports.attendanceController = {
                     where: { id: existingAttendance.id },
                     data: {
                         punch_out_time: punchOutTime,
-                        punch_out_latitude: latitude,
-                        punch_out_longitude: longitude,
+                        punch_out_latitude: latitude !== undefined ? Number(latitude) : undefined,
+                        punch_out_longitude: longitude !== undefined ? Number(longitude) : undefined,
                         punch_out_address: address,
                         punch_out_device_info: deviceInfo
                             ? JSON.stringify(deviceInfo)
@@ -213,8 +220,8 @@ exports.attendanceController = {
                         attendance_id: attendance.id,
                         action_type: 'punch_out',
                         action_time: new Date(),
-                        latitude: latitude,
-                        longitude: longitude,
+                        latitude: latitude !== undefined ? Number(latitude) : undefined,
+                        longitude: longitude !== undefined ? Number(longitude) : undefined,
                         address: address,
                         device_info: deviceInfo ? JSON.stringify(deviceInfo) : null,
                         photo_url: null,
@@ -228,7 +235,9 @@ exports.attendanceController = {
                         ip_address: req.ip || null,
                         user_agent: req.headers['user-agent'] || null,
                         app_version: deviceInfo?.appVersion || null,
-                        battery_level: deviceInfo?.batteryLevel || null,
+                        battery_level: deviceInfo?.batteryLevel !== undefined
+                            ? Number(deviceInfo.batteryLevel)
+                            : null,
                         network_type: deviceInfo?.networkType || null,
                         remarks: `Punched out. Total hours: ${totalHours.toFixed(2)}`,
                         is_active: 'Y',
