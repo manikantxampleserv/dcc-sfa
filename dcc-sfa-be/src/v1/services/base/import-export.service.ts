@@ -241,48 +241,46 @@ export abstract class ImportExportService<T> {
         `generateTemplate: sheet='${config.sheetName}' rows=${masterData.length}`
       );
 
-      if (masterData.length > 0) {
-        const masterSheet = workbook.addWorksheet(config.sheetName);
+      const masterSheet = workbook.addWorksheet(config.sheetName);
 
-        const masterColumns = config.masterDisplayFields.map(field => ({
-          header: field
-            .replace(/_/g, ' ')
-            .replace(/\b\w/g, l => l.toUpperCase()),
-          key: field,
-          width: 20,
-        }));
+      const masterColumns = config.masterDisplayFields.map(field => ({
+        header: field
+          .replace(/_/g, ' ')
+          .replace(/\b\w/g, l => l.toUpperCase()),
+        key: field,
+        width: 20,
+      }));
 
-        masterSheet.columns = masterColumns;
+      masterSheet.columns = masterColumns;
 
-        const masterHeader = masterSheet.getRow(1);
-        masterHeader.font = { bold: true, color: { argb: 'FFFFFFFF' } };
-        masterHeader.fill = {
-          type: 'pattern',
-          pattern: 'solid',
-          fgColor: { argb: 'FF4472C4' },
-        };
-        masterHeader.alignment = { vertical: 'middle', horizontal: 'center' };
-        masterHeader.height = 25;
+      const masterHeader = masterSheet.getRow(1);
+      masterHeader.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+      masterHeader.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FF4472C4' },
+      };
+      masterHeader.alignment = { vertical: 'middle', horizontal: 'center' };
+      masterHeader.height = 25;
 
-        masterData.forEach((data, index) => {
-          const row = masterSheet.addRow(data);
-          row.eachCell(cell => {
-            cell.border = {
-              top: { style: 'thin' },
-              left: { style: 'thin' },
-              bottom: { style: 'thin' },
-              right: { style: 'thin' },
-            };
-          });
-          if (index % 2 === 0) {
-            row.fill = {
-              type: 'pattern',
-              pattern: 'solid',
-              fgColor: { argb: 'FFF2F2F2' },
-            };
-          }
+      masterData.forEach((data, index) => {
+        const row = masterSheet.addRow(data);
+        row.eachCell(cell => {
+          cell.border = {
+            top: { style: 'thin' },
+            left: { style: 'thin' },
+            bottom: { style: 'thin' },
+            right: { style: 'thin' },
+          };
         });
-      }
+        if (index % 2 === 0) {
+          row.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFF2F2F2' },
+          };
+        }
+      });
     }
 
     const instructionSheet = workbook.addWorksheet('Instructions');
