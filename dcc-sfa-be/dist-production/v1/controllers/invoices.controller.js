@@ -183,13 +183,11 @@ exports.invoicesController = {
                                 ? item.product_batches
                                 : JSON.parse(item.product_batches || '[]');
                             trackingNotes = `Batches: ${batchData.map((b) => b.batch_number || b.batch_lot_id).join(', ')}`;
-                            // If this is a direct invoice (not from order), deduct stock
                             if (data.invoice_method !== 'order') {
                                 for (const batch of batchData) {
                                     const rawBatchQty = Number(batch.quantity);
                                     const batchBaseQty = calculateUnitConversion(rawBatchQty, item.unit, conversionRate);
                                     if (batchBaseQty > 0) {
-                                        // Update van inventory
                                         const vanItem = await tx.van_inventory_items.findFirst({
                                             where: {
                                                 product_id: product?.id,
@@ -202,7 +200,6 @@ exports.invoicesController = {
                                                 data: { quantity: { decrement: batchBaseQty } },
                                             });
                                         }
-                                        // Update batch lot
                                         await tx.batch_lots.update({
                                             where: { id: batch.batch_lot_id },
                                             data: {
@@ -225,7 +222,6 @@ exports.invoicesController = {
                                         where: { id: serial.id },
                                         data: { status: 'sold', sold_date: new Date() },
                                     });
-                                    // Remove from van inventory
                                     await tx.van_inventory_items.deleteMany({
                                         where: {
                                             product_id: product?.id,
@@ -452,7 +448,6 @@ exports.invoicesController = {
                 return res.status(404).json({ message: 'Invoice not found' });
             }
             await prisma_client_1.default.$transaction(async (tx) => {
-                // Update invoice basic info
                 await tx.invoices.update({
                     where: { id: Number(id) },
                     data: {
@@ -498,13 +493,10 @@ exports.invoicesController = {
                         updatedate: new Date(),
                     },
                 });
-                // Sync items if provided
                 if (data.invoiceItems && Array.isArray(data.invoiceItems)) {
-                    // Delete old items
                     await tx.invoice_items.deleteMany({
                         where: { parent_id: Number(id) },
                     });
-                    // Create new items
                     if (data.invoiceItems.length > 0) {
                         const productIds = data.invoiceItems.map((item) => Number(item.product_id));
                         const products = await tx.products.findMany({

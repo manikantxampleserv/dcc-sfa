@@ -282,7 +282,6 @@ async function processOrderItems(tx, params) {
                 }
             }
             if (needsUpdate) {
-                // Crucial: originalItem.quantity is for CASE, originalItem.base_quantity is for PIECE
                 const originalDisplayQty = originalItem.unit === 'PIECE'
                     ? originalItem.base_quantity
                     : originalItem.quantity;
@@ -460,8 +459,6 @@ async function processOrderItems(tx, params) {
             where: { id: originalItem.id },
             data: {
                 unit,
-                // For PIECE: quantity col = 0, base_quantity col = raw piece count
-                // For CASE: quantity col = case count, base_quantity col = 0
                 quantity: unit === 'PIECE' ? 0 : parseInt(newItem.quantity),
                 base_quantity: unit === 'PIECE' ? parseInt(newItem.quantity) : 0,
                 conversion_factor: Number(newItem.conversion_factor) ||
@@ -492,10 +489,6 @@ async function processSingleItem(tx, params) {
         throw new Error(`Product ${item.product_id} not found`);
     }
     const trackingType = product.tracking_type?.toUpperCase() || 'NONE';
-    // quantity from frontend is always the display quantity:
-    //   - CASE unit  → number of cases
-    //   - PIECE unit → number of pieces
-    // parseInt is safe here because the frontend now sends the raw display value.
     const quantity = parseInt(item.quantity, 10);
     const unit = (item.unit || 'CASE').toUpperCase();
     const conversionFactor = Number(item.conversion_factor) || Number(item.conversion_rate) || 1;
@@ -505,8 +498,6 @@ async function processSingleItem(tx, params) {
         conversionFactor,
         trackingType,
     });
-    // processInventoryChange handles the PIECE→CASE math internally via
-    // calculateUnitConversion, so we always pass the raw display quantity.
     await processInventoryChange(tx, {
         product,
         trackingType,
@@ -519,9 +510,6 @@ async function processSingleItem(tx, params) {
         unit,
         conversionFactor,
     });
-    // Persist to order_items:
-    //   quantity     column = cases  (0 when unit is PIECE)
-    //   base_quantity column = pieces (0 when unit is CASE)
     await tx.order_items.create({
         data: {
             parent_id: order.id,
@@ -557,8 +545,6 @@ async function restoreInventoryForItem(tx, params) {
     const trackingType = product.tracking_type?.toUpperCase() || 'NONE';
     const unit = (item.unit || 'CASE').toUpperCase();
     const conversionFactor = Number(item.conversion_factor) || Number(product.conversion_factor) || 1;
-    // For PIECE items the stored display quantity lives in base_quantity;
-    // for CASE items it lives in quantity.
     const restoreQuantity = unit === 'PIECE' ? item.base_quantity || item.quantity : item.quantity;
     await processInventoryChange(tx, {
         product,
@@ -600,7 +586,6 @@ async function processInventoryChange(tx, params) {
             return true;
         });
         for (const batch of uniqueBatches) {
-            // batchQty is always in the same unit as the item (CASE or PIECE)
             const batchQty = parseInt(batch.quantity, 10);
             const batchLot = await tx.batch_lots.findUnique({
                 where: { id: batch.batch_lot_id },
@@ -609,7 +594,6 @@ async function processInventoryChange(tx, params) {
                 throw new Error(`Batch ${batch.batch_lot_id} not found`);
             }
             if (unit === 'PIECE') {
-                // calculateUnitConversion handles pieces ↔ cases arithmetic
                 const calc = (currentQty, currentBase) => calculateUnitConversion(currentQty, currentBase, conversionFactor, batchQty, 'PIECE', movementType);
                 const batchRes = calc(Number(batchLot.remaining_quantity) || 0, Number(batchLot.base_quantity) || 0);
                 await tx.batch_lots.update({
@@ -682,7 +666,6 @@ async function processInventoryChange(tx, params) {
                 }
             }
             else {
-                // CASE unit — straightforward add/subtract
                 const change = movementType === 'SALE' ? -batchQty : batchQty;
                 await tx.batch_lots.update({
                     where: { id: batch.batch_lot_id },
@@ -854,7 +837,6 @@ async function processInventoryChange(tx, params) {
         }
     }
     else {
-        // NONE tracking
         const qChange = movementType === 'SALE' ? -quantity : quantity;
         const vanItem = await tx.van_inventory_items.findFirst({
             where: {
