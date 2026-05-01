@@ -226,37 +226,37 @@ const PriceListsManagement: React.FC = () => {
     },
     ...(isUpdate || isDelete || isRead
       ? [
-          {
-            id: 'action',
-            label: 'Action',
-            sortable: false,
-            render: (_value: any, row: PriceList) => (
-              <div className="!flex !gap-2 justify-center !items-center">
-                <ActionButton
-                  onClick={() => navigate(`/masters/price-lists/${row.id}`)}
-                  tooltip={`View ${row.name} details`}
-                  icon={<Visibility fontSize="small" />}
-                  color="info"
+        {
+          id: 'action',
+          label: 'Action',
+          sortable: false,
+          render: (_value: any, row: PriceList) => (
+            <div className="!flex !gap-2 justify-center !items-center">
+              <ActionButton
+                onClick={() => navigate(`/masters/price-lists/${row.id}`)}
+                tooltip={`View ${row.name} details`}
+                icon={<Visibility fontSize="small" />}
+                color="info"
+              />
+              {isUpdate && (
+                <EditButton
+                  onClick={() => handleEditPriceList(row)}
+                  tooltip={`Edit ${row.name}`}
                 />
-                {isUpdate && (
-                  <EditButton
-                    onClick={() => handleEditPriceList(row)}
-                    tooltip={`Edit ${row.name}`}
-                  />
-                )}
+              )}
 
-                {isUpdate && (
-                  <DeleteButton
-                    onClick={() => handleDeletePriceList(row.id)}
-                    tooltip={`Delete ${row.name}`}
-                    itemName={row.name}
-                    confirmDelete={true}
-                  />
-                )}
-              </div>
-            ),
-          },
-        ]
+              {isUpdate && (
+                <DeleteButton
+                  onClick={() => handleDeletePriceList(row.id)}
+                  tooltip={`Delete ${row.name}`}
+                  itemName={row.name}
+                  confirmDelete={true}
+                />
+              )}
+            </div>
+          ),
+        },
+      ]
       : []),
   ];
 

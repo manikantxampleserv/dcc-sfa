@@ -115,6 +115,7 @@ const ManageCoolerInspection: React.FC<ManageCoolerInspectionProps> = ({
       open={drawerOpen}
       setOpen={handleCancel}
       title={isEdit ? 'Edit Cooler Inspection' : 'Create Cooler Inspection'}
+      size='large'
     >
       <Box className="!p-4">
         <form onSubmit={formik.handleSubmit} className="!space-y-6">
@@ -122,7 +123,7 @@ const ManageCoolerInspection: React.FC<ManageCoolerInspectionProps> = ({
             <Select name="cooler_id" label="Cooler" formik={formik} fullWidth>
               {coolers.map(cooler => (
                 <MenuItem key={cooler.id} value={cooler.id}>
-                  {cooler.code} - {cooler.brand} {cooler.model} (
+                  {cooler.code} (
                   {cooler.customer?.name})
                 </MenuItem>
               ))}
@@ -244,11 +245,10 @@ const ManageCoolerInspection: React.FC<ManageCoolerInspectionProps> = ({
             <Select name="visit_id" label="Visit" formik={formik}>
               {visits.map(visit => (
                 <MenuItem key={visit.id} value={visit.id}>
-                  {`Visit #${visit.id} - ${visit.customer?.name} (${
-                    visit.visit_date
-                      ? formatForDateInput(visit.visit_date)
-                      : 'No date'
-                  })`}
+                  {`Visit #${visit.id} - ${visit.customer?.name} (${visit.visit_date
+                    ? formatForDateInput(visit.visit_date)
+                    : 'No date'
+                    })`}
                 </MenuItem>
               ))}
             </Select>
@@ -318,7 +318,7 @@ const ManageCoolerInspection: React.FC<ManageCoolerInspectionProps> = ({
               }
             >
               {createCoolerInspectionMutation.isPending ||
-              updateCoolerInspectionMutation.isPending
+                updateCoolerInspectionMutation.isPending
                 ? isEdit
                   ? 'Updating...'
                   : 'Creating...'

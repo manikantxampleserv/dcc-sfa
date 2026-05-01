@@ -26,8 +26,11 @@ export interface CoolerInspection {
     code: string;
     brand?: string | null;
     model?: string | null;
-    serial_number?: string | null;
-    capacity?: number | null;
+    asset_master?: {
+      id: number;
+      name: string;
+      serial_number: string;
+    } | null;
     customer?: {
       id: number;
       name: string;

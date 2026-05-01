@@ -50,9 +50,22 @@ export interface CoolerInstallation {
   } | null;
   asset_master?: {
     id: number;
+    name: string;
     serial_number: string;
     current_status: string;
     current_location: string;
+    asset_type?: {
+      id: number;
+      name: string;
+    } | null;
+    asset_sub_type?: {
+      id: number;
+      name: string;
+    } | null;
+    brand?: {
+      id: number;
+      name: string;
+    } | null;
   } | null;
 }
 

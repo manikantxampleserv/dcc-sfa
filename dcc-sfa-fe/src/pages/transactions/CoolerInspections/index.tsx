@@ -143,8 +143,8 @@ const CoolerInspectionsManagement: React.FC = () => {
         actionRequired: actionFilter === 'all' ? undefined : actionFilter,
         inspector_id:
           inspectorFilter === 'all' ||
-          inspectorFilter === '' ||
-          !inspectorFilter
+            inspectorFilter === '' ||
+            !inspectorFilter
             ? undefined
             : Number(inspectorFilter),
       };
@@ -201,7 +201,7 @@ const CoolerInspectionsManagement: React.FC = () => {
           <Box>
             <Typography
               variant="body1"
-              className="!text-gray-900 !leading-tight"
+              className="!text-gray-900 !leading-tight !font-medium"
             >
               {row.cooler?.code || 'Unknown Cooler'}
             </Typography>
@@ -209,9 +209,7 @@ const CoolerInspectionsManagement: React.FC = () => {
               variant="caption"
               className="!text-gray-500 !text-xs !block !mt-0.5"
             >
-              {row.cooler?.brand && row.cooler?.model
-                ? `${row.cooler.brand} ${row.cooler.model}`
-                : 'Unknown Model'}
+              {row.cooler?.asset_master?.name}
             </Typography>
           </Box>
         </Box>
@@ -366,38 +364,38 @@ const CoolerInspectionsManagement: React.FC = () => {
     },
     ...(isRead || isUpdate || isDelete
       ? [
-          {
-            id: 'action',
-            label: 'Actions',
-            sortable: false,
-            render: (_value: any, row: CoolerInspection) => (
-              <div className="!flex !gap-2 !items-center">
-                {isRead && (
-                  <ActionButton
-                    onClick={() => handleViewInspection(row)}
-                    tooltip="View cooler inspection details"
-                    icon={<Visibility />}
-                    color="success"
-                  />
-                )}
-                {isUpdate && (
-                  <EditButton
-                    onClick={() => handleEditInspection(row)}
-                    tooltip={`Edit Inspection ${row.id}`}
-                  />
-                )}
-                {isDelete && (
-                  <DeleteButton
-                    onClick={() => handleDeleteInspection(row.id)}
-                    tooltip={`Delete Inspection ${row.id}`}
-                    itemName={`Inspection ${row.id}`}
-                    confirmDelete={true}
-                  />
-                )}
-              </div>
-            ),
-          },
-        ]
+        {
+          id: 'action',
+          label: 'Actions',
+          sortable: false,
+          render: (_value: any, row: CoolerInspection) => (
+            <div className="!flex !gap-2 !items-center">
+              {isRead && (
+                <ActionButton
+                  onClick={() => handleViewInspection(row)}
+                  tooltip="View cooler inspection details"
+                  icon={<Visibility />}
+                  color="success"
+                />
+              )}
+              {isUpdate && (
+                <EditButton
+                  onClick={() => handleEditInspection(row)}
+                  tooltip={`Edit Inspection ${row.id}`}
+                />
+              )}
+              {isDelete && (
+                <DeleteButton
+                  onClick={() => handleDeleteInspection(row.id)}
+                  tooltip={`Delete Inspection ${row.id}`}
+                  itemName={`Inspection ${row.id}`}
+                  confirmDelete={true}
+                />
+              )}
+            </div>
+          ),
+        },
+      ]
       : []),
   ];
 
@@ -542,6 +540,15 @@ const CoolerInspectionsManagement: React.FC = () => {
 
                 {isCreate && (
                   <>
+
+                    <Button
+                      variant="outlined"
+                      className="!capitalize"
+                      startIcon={<Upload />}
+                      onClick={() => setImportModalOpen(true)}
+                    >
+                      Import
+                    </Button>
                     <Button
                       variant="contained"
                       className="!capitalize"
@@ -550,14 +557,6 @@ const CoolerInspectionsManagement: React.FC = () => {
                       onClick={handleCreateInspection}
                     >
                       Create
-                    </Button>
-                    <Button
-                      variant="outlined"
-                      className="!capitalize"
-                      startIcon={<Upload />}
-                      onClick={() => setImportModalOpen(true)}
-                    >
-                      Import
                     </Button>
                   </>
                 )}

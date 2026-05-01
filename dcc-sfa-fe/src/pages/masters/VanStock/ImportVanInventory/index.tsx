@@ -114,10 +114,9 @@ const ImportVanInventory: React.FC<ImportVanInventoryProps> = ({
       open={drawerOpen}
       setOpen={handleCancel}
       title="Import Van Inventory"
-      size="large"
     >
-      <Box className="!p-5">
-        <form onSubmit={formik.handleSubmit} className="!space-y-6">
+      <Box className="!p-4">
+        <form onSubmit={formik.handleSubmit} className="!space-y-4">
           <Alert severity="info" className="!mb-4">
             <Typography variant="body2">
               Upload an Excel file to import multiple van inventory records.
@@ -326,7 +325,7 @@ const ImportVanInventory: React.FC<ImportVanInventoryProps> = ({
                 disabled={!uploadedFile || importDataMutation.isPending}
                 loading={importDataMutation.isPending}
               >
-                {importDataMutation.isPending ? 'Importing...' : 'Import Data'}
+                {importDataMutation.isPending ? 'Importing...' : 'Import'}
               </Button>
             )}
 

@@ -52,7 +52,7 @@ const AssetDetails: React.FC = () => {
     if (selectedImageIndex !== null && asset?.asset_master_image) {
       setSelectedImageIndex(
         (selectedImageIndex - 1 + asset.asset_master_image.length) %
-          asset.asset_master_image.length
+        asset.asset_master_image.length
       );
     }
   };
@@ -232,9 +232,8 @@ const AssetDetails: React.FC = () => {
           <div className="!bg-white !rounded-lg !shadow !border !border-gray-200 !p-6 !text-center !relative">
             <div className="absolute top-3 right-3">
               <div
-                className={`!w-2.5 !h-2.5 !rounded-full ${
-                  asset.is_active === 'Y' ? '!bg-green-400' : '!bg-gray-400'
-                }`}
+                className={`!w-2.5 !h-2.5 !rounded-full ${asset.is_active === 'Y' ? '!bg-green-400' : '!bg-gray-400'
+                  }`}
               ></div>
             </div>
 
@@ -459,26 +458,6 @@ const AssetDetails: React.FC = () => {
                   variant="caption"
                   className="!text-gray-500 !text-xs !uppercase !tracking-wide"
                 >
-                  Warranty Expiry
-                </Typography>
-                <div className="flex items-center gap-1">
-                  <Calendar className="w-3 h-3 text-gray-400" />
-                  <Typography
-                    variant="body2"
-                    className="!font-semibold !text-gray-900"
-                  >
-                    {asset.warranty_expiry
-                      ? formatDate(asset.warranty_expiry)
-                      : 'N/A'}
-                  </Typography>
-                </div>
-              </div>
-
-              <div className="!space-y-0.5">
-                <Typography
-                  variant="caption"
-                  className="!text-gray-500 !text-xs !uppercase !tracking-wide"
-                >
                   Installation Date
                 </Typography>
                 <div className="flex items-center gap-1">
@@ -509,6 +488,27 @@ const AssetDetails: React.FC = () => {
                   >
                     {asset.last_scanned_date
                       ? formatDate(asset.last_scanned_date)
+                      : asset.inspections?.length
+                        ? formatDate(asset.inspections[0].inspection_date)
+                        : 'N/A'}
+                  </Typography>
+                </div>
+              </div>
+              <div className="!space-y-0.5">
+                <Typography
+                  variant="caption"
+                  className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                >
+                  Last Scan By
+                </Typography>
+                <div className="flex items-center gap-1">
+                  <History className="w-3 h-3 text-gray-400" />
+                  <Typography
+                    variant="body2"
+                    className="!font-semibold !text-gray-900"
+                  >
+                    {asset.inspections?.length
+                      ? asset.inspections[asset.inspections.length - 1].inspected_by?.name
                       : 'N/A'}
                   </Typography>
                 </div>
@@ -624,7 +624,7 @@ const AssetDetails: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <InfoCard title="Maintenance History" icon={Wrench}>
           {asset.asset_maintenance_master &&
-          asset.asset_maintenance_master.length > 0 ? (
+            asset.asset_maintenance_master.length > 0 ? (
             <div className="!space-y-4">
               {asset.asset_maintenance_master.map((item: any) => (
                 <div
@@ -661,7 +661,7 @@ const AssetDetails: React.FC = () => {
 
         <InfoCard title="Movement History" icon={History}>
           {asset.asset_movement_assets_asset &&
-          asset.asset_movement_assets_asset.length > 0 ? (
+            asset.asset_movement_assets_asset.length > 0 ? (
             <div className="!space-y-4">
               {asset.asset_movement_assets_asset.map((item: any) => (
                 <div

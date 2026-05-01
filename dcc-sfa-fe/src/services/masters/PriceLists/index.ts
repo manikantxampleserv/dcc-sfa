@@ -28,6 +28,7 @@ interface PriceList {
   updatedby?: number | null;
   log_inst?: number | null;
   pricelist_item?: PriceListItem[];
+  items_count?: number;
   route_pricelist?: RoutePriceList[];
   pricelists_customer?: {
     id: number;

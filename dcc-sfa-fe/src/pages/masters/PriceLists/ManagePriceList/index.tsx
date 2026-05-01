@@ -85,19 +85,19 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
   const createPriceListMutation = useCreatePriceList();
   const updatePriceListMutation = useUpdatePriceList();
 
-  const { data: depotsResponse } = useDepots({ limit: 1000, isActive: 'Y' });
-  const { data: routesResponse } = useRoutes({ limit: 1000, status: 'active' });
+  const { data: depotsResponse } = useDepots({ limit: 1000, isActive: 'Y' }, { enabled: drawerOpen });
+  const { data: routesResponse } = useRoutes({ limit: 1000, status: 'active' }, { enabled: drawerOpen });
   const { data: categoriesResponse } = useCustomerCategories({
     limit: 1000,
     is_active: 'Y',
-  });
+  }, { enabled: drawerOpen });
   const { data: customersResponse } = useCustomers({
     limit: 1000,
     isActive: 'Y',
-  });
+  }, { enabled: drawerOpen });
   const { data: productsResponse, isLoading: isLoadingProducts } = useProducts({
     limit: 1000,
-  });
+  }, { enabled: drawerOpen });
 
   const depots = depotsResponse?.data || [];
   const routes = routesResponse?.data || [];
@@ -109,7 +109,7 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
     usePriceLists({
       limit: 1000,
       include_items: true,
-    });
+    }, { enabled: drawerOpen });
   const allPriceLists = allPriceListsResponse?.data || [];
 
   const handleCancel = () => {
@@ -375,215 +375,215 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
   const priceListItemsColumns: TableColumn<
     PriceListItemForm & { _index: number }
   >[] = [
-    {
-      id: 'sku',
-      label: 'SKU',
-      render: (_value, row) => {
-        const product = products.find(p => p.id === row.product_id);
-        return <span>{product?.code || '-'}</span>;
+      {
+        id: 'sku',
+        label: 'SKU',
+        render: (_value, row) => {
+          const product = products.find(p => p.id === row.product_id);
+          return <span>{product?.code || '-'}</span>;
+        },
       },
-    },
-    {
-      id: 'product_id',
-      label: 'Product',
-      render: (_value, row) => {
-        const product = products.find(p => p.id === row.product_id);
-        const name = product?.name || '-';
-        return (
-          <Tooltip title={name} arrow placement="top">
-            <div className="max-w-[240px] truncate cursor-help">{name}</div>
-          </Tooltip>
-        );
+      {
+        id: 'product_id',
+        label: 'Product',
+        render: (_value, row) => {
+          const product = products.find(p => p.id === row.product_id);
+          const name = product?.name || '-';
+          return (
+            <Tooltip title={name} arrow placement="top">
+              <div className="max-w-[240px] truncate cursor-help">{name}</div>
+            </Tooltip>
+          );
+        },
       },
-    },
-    {
-      id: 'base_price',
-      label: 'Base Price',
-      render: (_value, row) => {
-        const baseId = Number(formik.values.base_pricelist_id);
-        const base = allPriceLists.find((pl: any) => pl.id === baseId);
-        const baseItem = base?.pricelist_item?.find(
-          (bi: any) => bi.product_id === row.product_id
-        );
-        return <span>{baseItem?.unit_price || '-'}</span>;
+      {
+        id: 'base_price',
+        label: 'Base Price',
+        render: (_value, row) => {
+          const baseId = Number(formik.values.base_pricelist_id);
+          const base = allPriceLists.find((pl: any) => pl.id === baseId);
+          const baseItem = base?.pricelist_item?.find(
+            (bi: any) => bi.product_id === row.product_id
+          );
+          return <span>{baseItem?.unit_price || '-'}</span>;
+        },
       },
-    },
-    {
-      id: 'base_subunit',
-      label: 'Base Subunit Price',
-      render: (_value, row) => {
-        const baseId = Number(formik.values.base_pricelist_id);
-        const base = allPriceLists.find((pl: any) => pl.id === baseId);
-        const baseItem = base?.pricelist_item?.find(
-          (bi: any) => bi.product_id === row.product_id
-        );
-        return <span>{baseItem?.sub_unit_price || '-'}</span>;
+      {
+        id: 'base_subunit',
+        label: 'Base Subunit Price',
+        render: (_value, row) => {
+          const baseId = Number(formik.values.base_pricelist_id);
+          const base = allPriceLists.find((pl: any) => pl.id === baseId);
+          const baseItem = base?.pricelist_item?.find(
+            (bi: any) => bi.product_id === row.product_id
+          );
+          return <span>{baseItem?.sub_unit_price || '-'}</span>;
+        },
       },
-    },
-    {
-      id: 'unit_price',
-      label: 'Price',
-      render: (_value, row) => (
-        <Input
-          compact={true}
-          value={row.unit_price}
-          onChange={e =>
-            updatePriceListItem(row._index, 'unit_price', e.target.value)
-          }
-          placeholder="0.00"
-          type="number"
-          size="small"
-          className="!min-w-24"
-        />
-      ),
-    },
-    {
-      id: 'sub_unit_price',
-      label: 'Subunit Price',
-      render: (_value, row) => (
-        <Input
-          compact={true}
-          value={row.sub_unit_price}
-          onChange={e =>
-            updatePriceListItem(row._index, 'sub_unit_price', e.target.value)
-          }
-          placeholder="0.00"
-          type="number"
-          size="small"
-          className="!min-w-24"
-        />
-      ),
-    },
-    {
-      id: 'actions',
-      label: 'Action',
-      render: (_value, row) => (
-        <div className="flex gap-2">
-          <ActionButton
-            onClick={() =>
-              setShowSpecialForIndex(
-                showSpecialForIndex === row._index ? null : row._index
-              )
+      {
+        id: 'unit_price',
+        label: 'Price',
+        render: (_value, row) => (
+          <Input
+            compact={true}
+            value={row.unit_price}
+            onChange={e =>
+              updatePriceListItem(row._index, 'unit_price', e.target.value)
             }
+            placeholder="0.00"
+            type="number"
             size="small"
-            tooltip={
-              showSpecialForIndex === row._index
-                ? 'Hide Special Prices'
-                : 'Special Prices'
-            }
-            color={showSpecialForIndex === row._index ? 'primary' : 'info'}
-            icon={<MoreHoriz fontSize="small" />}
+            className="!min-w-24"
           />
-        </div>
-      ),
-    },
-  ];
+        ),
+      },
+      {
+        id: 'sub_unit_price',
+        label: 'Subunit Price',
+        render: (_value, row) => (
+          <Input
+            compact={true}
+            value={row.sub_unit_price}
+            onChange={e =>
+              updatePriceListItem(row._index, 'sub_unit_price', e.target.value)
+            }
+            placeholder="0.00"
+            type="number"
+            size="small"
+            className="!min-w-24"
+          />
+        ),
+      },
+      {
+        id: 'actions',
+        label: 'Action',
+        render: (_value, row) => (
+          <div className="flex gap-2">
+            <ActionButton
+              onClick={() =>
+                setShowSpecialForIndex(
+                  showSpecialForIndex === row._index ? null : row._index
+                )
+              }
+              size="small"
+              tooltip={
+                showSpecialForIndex === row._index
+                  ? 'Hide Special Prices'
+                  : 'Special Prices'
+              }
+              color={showSpecialForIndex === row._index ? 'primary' : 'info'}
+              icon={<MoreHoriz fontSize="small" />}
+            />
+          </div>
+        ),
+      },
+    ];
   const newPriceListItemsColumns: TableColumn<
     PriceListItemForm & { _index: number }
   >[] = [
-    {
-      id: 'sku',
-      label: 'SKU',
-      render: (_value, row) => {
-        const product = products.find(p => p.id === row.product_id);
-        return <span>{product?.code || '-'}</span>;
+      {
+        id: 'sku',
+        label: 'SKU',
+        render: (_value, row) => {
+          const product = products.find(p => p.id === row.product_id);
+          return <span>{product?.code || '-'}</span>;
+        },
       },
-    },
-    {
-      id: 'product_id',
-      label: 'Product',
-      render: (_value, row) => {
-        const product = products.find(p => p.id === row.product_id);
-        const name = product?.name || '-';
-        return (
-          <Tooltip title={name} arrow placement="top">
-            <div className="max-w-[240px] truncate cursor-help">{name}</div>
-          </Tooltip>
-        );
+      {
+        id: 'product_id',
+        label: 'Product',
+        render: (_value, row) => {
+          const product = products.find(p => p.id === row.product_id);
+          const name = product?.name || '-';
+          return (
+            <Tooltip title={name} arrow placement="top">
+              <div className="max-w-[240px] truncate cursor-help">{name}</div>
+            </Tooltip>
+          );
+        },
       },
-    },
-    {
-      id: 'base_price',
-      label: 'Base Price',
-      render: (_value, row) => {
-        const baseId = Number(formik.values.base_pricelist_id);
-        const base = allPriceLists.find((pl: any) => pl.id === baseId);
-        const baseItem = base?.pricelist_item?.find(
-          (bi: any) => bi.product_id === row.product_id
-        );
-        return <span>{baseItem?.unit_price || '-'}</span>;
+      {
+        id: 'base_price',
+        label: 'Base Price',
+        render: (_value, row) => {
+          const baseId = Number(formik.values.base_pricelist_id);
+          const base = allPriceLists.find((pl: any) => pl.id === baseId);
+          const baseItem = base?.pricelist_item?.find(
+            (bi: any) => bi.product_id === row.product_id
+          );
+          return <span>{baseItem?.unit_price || '-'}</span>;
+        },
       },
-    },
-    {
-      id: 'base_subunit',
-      label: 'Base Subunit Price',
-      render: (_value, row) => {
-        const baseId = Number(formik.values.base_pricelist_id);
-        const base = allPriceLists.find((pl: any) => pl.id === baseId);
-        const baseItem = base?.pricelist_item?.find(
-          (bi: any) => bi.product_id === row.product_id
-        );
-        return <span>{baseItem?.sub_unit_price || '-'}</span>;
+      {
+        id: 'base_subunit',
+        label: 'Base Subunit Price',
+        render: (_value, row) => {
+          const baseId = Number(formik.values.base_pricelist_id);
+          const base = allPriceLists.find((pl: any) => pl.id === baseId);
+          const baseItem = base?.pricelist_item?.find(
+            (bi: any) => bi.product_id === row.product_id
+          );
+          return <span>{baseItem?.sub_unit_price || '-'}</span>;
+        },
       },
-    },
-    {
-      id: 'unit_price',
-      label: 'Price',
-      render: (_value, row) => (
-        <Input
-          compact={true}
-          value={row.unit_price}
-          onChange={e =>
-            updateNewPriceListItem(row._index, 'unit_price', e.target.value)
-          }
-          placeholder="0.00"
-          type="number"
-          size="small"
-          className="!min-w-24"
-        />
-      ),
-    },
-    {
-      id: 'sub_unit_price',
-      label: 'Subunit Price',
-      render: (_value, row) => (
-        <Input
-          compact={true}
-          value={row.sub_unit_price}
-          onChange={e =>
-            updateNewPriceListItem(row._index, 'sub_unit_price', e.target.value)
-          }
-          placeholder="0.00"
-          type="number"
-          size="small"
-          className="!min-w-24"
-        />
-      ),
-    },
-    {
-      id: 'actions',
-      label: 'Action',
-      render: (_value, row) => (
-        <div className="flex gap-2">
-          <ActionButton
-            onClick={() =>
-              setShowSpecialForIndex(
-                showSpecialForIndex === row._index ? null : row._index
-              )
+      {
+        id: 'unit_price',
+        label: 'Price',
+        render: (_value, row) => (
+          <Input
+            compact={true}
+            value={row.unit_price}
+            onChange={e =>
+              updateNewPriceListItem(row._index, 'unit_price', e.target.value)
             }
+            placeholder="0.00"
+            type="number"
             size="small"
-            tooltip={
-              showSpecialForIndex === row._index
-                ? 'Hide Special Prices'
-                : 'Special Prices'
-            }
-            color={showSpecialForIndex === row._index ? 'primary' : 'info'}
-            icon={<MoreHoriz fontSize="small" />}
+            className="!min-w-24"
           />
-        </div>
-      ),
-    },
-  ];
+        ),
+      },
+      {
+        id: 'sub_unit_price',
+        label: 'Subunit Price',
+        render: (_value, row) => (
+          <Input
+            compact={true}
+            value={row.sub_unit_price}
+            onChange={e =>
+              updateNewPriceListItem(row._index, 'sub_unit_price', e.target.value)
+            }
+            placeholder="0.00"
+            type="number"
+            size="small"
+            className="!min-w-24"
+          />
+        ),
+      },
+      {
+        id: 'actions',
+        label: 'Action',
+        render: (_value, row) => (
+          <div className="flex gap-2">
+            <ActionButton
+              onClick={() =>
+                setShowSpecialForIndex(
+                  showSpecialForIndex === row._index ? null : row._index
+                )
+              }
+              size="small"
+              tooltip={
+                showSpecialForIndex === row._index
+                  ? 'Hide Special Prices'
+                  : 'Special Prices'
+              }
+              color={showSpecialForIndex === row._index ? 'primary' : 'info'}
+              icon={<MoreHoriz fontSize="small" />}
+            />
+          </div>
+        ),
+      },
+    ];
 
   const addSpecialPrice = (index: number) => {
     const updated = [...priceListItems];
@@ -1150,7 +1150,7 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
               }
             >
               {createPriceListMutation.isPending ||
-              updatePriceListMutation.isPending
+                updatePriceListMutation.isPending
                 ? isEdit
                   ? 'Updating...'
                   : 'Creating...'

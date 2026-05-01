@@ -59,8 +59,8 @@ const CoolerInstallationsManagement: React.FC = () => {
         operationalStatusFilter === 'all' ? undefined : operationalStatusFilter,
       technician_id:
         technicianFilter === 'all' ||
-        technicianFilter === '' ||
-        !technicianFilter
+          technicianFilter === '' ||
+          !technicianFilter
           ? undefined
           : Number(technicianFilter),
     },
@@ -142,8 +142,8 @@ const CoolerInstallationsManagement: React.FC = () => {
             : operationalStatusFilter,
         technician_id:
           technicianFilter === 'all' ||
-          technicianFilter === '' ||
-          !technicianFilter
+            technicianFilter === '' ||
+            !technicianFilter
             ? undefined
             : Number(technicianFilter),
       };
@@ -169,6 +169,33 @@ const CoolerInstallationsManagement: React.FC = () => {
   };
 
   const coolerInstallationColumns: TableColumn<CoolerInstallation>[] = [
+
+    {
+      id: 'asset_master',
+      label: 'Asset Info',
+      sortable: false,
+      render: (_value, row) => (
+        <Box className="flex items-center gap-1">
+          <Avatar className="!rounded !bg-blue-50 !text-blue-500">
+            <Package className="w-5 h-5" />
+          </Avatar>
+          <Box className="flex flex-col">
+            <Typography
+              variant="body1"
+              className="!text-gray-900 !leading-tight !font-medium"
+            >
+              {row.asset_master?.name || <span className='italic text-gray-400'>No asset name</span>}
+            </Typography>
+            <Typography
+              variant="caption"
+              className="!text-gray-500 !text-xs !block !mt-0.5"
+            >
+              {row.asset_master?.serial_number || <span className='italic text-gray-400'>No serial number</span>}
+            </Typography>
+          </Box>
+        </Box>
+      ),
+    },
     {
       id: 'customer',
       label: 'Customer',
@@ -198,35 +225,6 @@ const CoolerInstallationsManagement: React.FC = () => {
       ),
     },
     {
-      id: 'asset',
-      label: 'Cooler',
-      sortable: false,
-      render: (_value, row) => (
-        <Box className="flex items-center gap-1">
-          <Avatar className="!rounded !bg-primary-100 !text-primary-500">
-            <Package className="w-5 h-5" />
-          </Avatar>
-          <Box className="flex flex-col">
-            <Typography
-              variant="body1"
-              className="!text-gray-900 !leading-tight !font-medium"
-            >
-              {row.brand && row.model
-                ? `${row.brand} ${row.model}`
-                : row.asset_master?.serial_number || 'No Asset'}
-            </Typography>
-            <Typography
-              variant="caption"
-              className="!text-gray-500 !text-xs !block !mt-0.5"
-            >
-              {row.serial_number || row.code || 'No Serial'}
-            </Typography>
-          </Box>
-        </Box>
-      ),
-    },
-
-    {
       id: 'status',
       label: 'Status',
       render: (_value, row) => (
@@ -246,7 +244,7 @@ const CoolerInstallationsManagement: React.FC = () => {
         <Box className="flex items-center gap-1">
           <Thermometer className="w-3 h-3 text-gray-400" />
           <span className="text-xs">
-            {row.temperature ? `${row.temperature}°C` : 'N/A'}
+            {row.temperature ? `${row.temperature}°C` : <span className='italic text-gray-400'>No temp info</span>}
           </span>
         </Box>
       ),
@@ -310,9 +308,9 @@ const CoolerInstallationsManagement: React.FC = () => {
       render: (_value, row) => (
         <Box className="flex items-center gap-1">
           <Calendar className="w-3 h-3 text-gray-400" />
-          <span className="text-xs">
-            {row.next_service_due ? formatDate(row.next_service_due) : 'N/A'}
-          </span>
+          {row.next_service_due ? <span className="text-xs">
+            {formatDate(row.next_service_due)}
+          </span> : <span className='italic text-gray-400'>No service date</span>}
         </Box>
       ),
     },
@@ -331,38 +329,38 @@ const CoolerInstallationsManagement: React.FC = () => {
     },
     ...(isRead || isUpdate || isDelete
       ? [
-          {
-            id: 'action',
-            label: 'Actions',
-            sortable: false,
-            render: (_value: any, row: CoolerInstallation) => (
-              <div className="!flex !gap-2 !items-center">
-                {isRead && (
-                  <ActionButton
-                    onClick={() => handleViewInstallation(row)}
-                    tooltip="View cooler installation details"
-                    icon={<Visibility />}
-                    color="success"
-                  />
-                )}
-                {isUpdate && (
-                  <EditButton
-                    onClick={() => handleEditInstallation(row)}
-                    tooltip={`Edit Installation ${row.code}`}
-                  />
-                )}
-                {isDelete && (
-                  <DeleteButton
-                    onClick={() => handleDeleteInstallation(row.id)}
-                    tooltip={`Delete Installation ${row.code}`}
-                    itemName={`Installation ${row.code}`}
-                    confirmDelete={true}
-                  />
-                )}
-              </div>
-            ),
-          },
-        ]
+        {
+          id: 'action',
+          label: 'Actions',
+          sortable: false,
+          render: (_value: any, row: CoolerInstallation) => (
+            <div className="!flex !gap-2 !items-center">
+              {isRead && (
+                <ActionButton
+                  onClick={() => handleViewInstallation(row)}
+                  tooltip="View cooler installation details"
+                  icon={<Visibility />}
+                  color="success"
+                />
+              )}
+              {isUpdate && (
+                <EditButton
+                  onClick={() => handleEditInstallation(row)}
+                  tooltip={`Edit Installation ${row.code}`}
+                />
+              )}
+              {isDelete && (
+                <DeleteButton
+                  onClick={() => handleDeleteInstallation(row.id)}
+                  tooltip={`Delete Installation ${row.code}`}
+                  itemName={`Installation ${row.code}`}
+                  confirmDelete={true}
+                />
+              )}
+            </div>
+          ),
+        },
+      ]
       : []),
   ];
 
@@ -461,7 +459,7 @@ const CoolerInstallationsManagement: React.FC = () => {
                       placeholder="Select Technician"
                       value={
                         technicianFilter === 'all' ||
-                        technicianFilter === 'null'
+                          technicianFilter === 'null'
                           ? undefined
                           : technicianFilter
                       }

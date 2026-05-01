@@ -125,8 +125,6 @@ export const priceListsController = {
       let priceList;
       const isUpdate = !!data.id;
 
-      console.log('isUpdate:', isUpdate, 'data.id:', data.id);
-
       if (data.id) {
         priceList = await prisma.pricelists.update({
           where: { id: data.id },

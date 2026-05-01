@@ -51,6 +51,7 @@ interface CoolerInstallationSerialized {
   } | null;
   asset_master?: {
     id: number;
+    name?: string | null;
     serial_number?: string | null;
     current_status?: string | null;
     current_location?: string | null;
@@ -59,6 +60,10 @@ interface CoolerInstallationSerialized {
       name: string;
     } | null;
     asset_sub_type?: {
+      id: number;
+      name: string;
+    } | null;
+    brand?: {
       id: number;
       name: string;
     } | null;
@@ -76,6 +81,7 @@ const serializeCoolerInstallation = (
   const {
     asset_master_asset_types: asset_type,
     asset_master_asset_sub_types: asset_sub_type,
+    asset_master_brands: brand,
   } = asset_master || {};
 
   return {
@@ -118,6 +124,7 @@ const serializeCoolerInstallation = (
     asset_master: asset_master
       ? {
           id: asset_master.id,
+          name: asset_master?.name,
           serial_number: asset_master.serial_number,
           current_status: asset_master.current_status,
           current_location: asset_master.current_location,
@@ -127,6 +134,7 @@ const serializeCoolerInstallation = (
           asset_sub_type: asset_sub_type
             ? { id: asset_sub_type.id, name: asset_sub_type.name }
             : null,
+          brand: brand ? { id: brand.id, name: brand.name } : null,
         }
       : null,
   };
@@ -237,22 +245,36 @@ export const coolerInstallationsController = {
           cooler_asset_master: {
             select: {
               id: true,
+              name: true,
               serial_number: true,
               current_status: true,
               current_location: true,
+              asset_master_asset_types: true,
+              asset_master_asset_sub_types: true,
+              asset_master_brands: true,
             },
           },
         },
       });
 
-      if (cooler.asset_master_id && cooler.install_date) {
+      if (cooler.asset_master_id) {
         try {
           const customer = cooler.coolers_customers;
           const toLocation = customer
             ? `${customer.name} (${customer.code})`
             : 'Customer Location';
 
-          if (cooler.asset_master_id) {
+          if (cooler.status === 'Installed') {
+            await prisma.asset_master.update({
+              where: { id: cooler.asset_master_id },
+              data: {
+                current_location: toLocation,
+                current_status: 'Installed',
+                updatedate: new Date(),
+                updatedby: data.createdby ? Number(data.createdby) : 1,
+              },
+            });
+          } else if (cooler.install_date) {
             await prisma.asset_master.update({
               where: { id: cooler.asset_master_id },
               data: {
@@ -363,11 +385,13 @@ export const coolerInstallationsController = {
           cooler_asset_master: {
             select: {
               id: true,
+              name: true,
               serial_number: true,
               current_status: true,
               current_location: true,
               asset_master_asset_types: true,
               asset_master_asset_sub_types: true,
+              asset_master_brands: true,
             },
           },
         },
@@ -474,11 +498,13 @@ export const coolerInstallationsController = {
           cooler_asset_master: {
             select: {
               id: true,
+              name: true,
               serial_number: true,
               current_status: true,
               current_location: true,
               asset_master_asset_types: true,
               asset_master_asset_sub_types: true,
+              asset_master_brands: true,
             },
           },
         },
@@ -587,13 +613,38 @@ export const coolerInstallationsController = {
           cooler_asset_master: {
             select: {
               id: true,
+              name: true,
               serial_number: true,
               current_status: true,
               current_location: true,
+              asset_master_asset_types: true,
+              asset_master_asset_sub_types: true,
+              asset_master_brands: true,
             },
           },
         },
       });
+
+      if (cooler.asset_master_id && data.status === 'Installed') {
+        try {
+          const customer = cooler.coolers_customers;
+          const toLocation = customer
+            ? `${customer.name} (${customer.code})`
+            : 'Customer Location';
+
+          await prisma.asset_master.update({
+            where: { id: cooler.asset_master_id },
+            data: {
+              current_status: 'Installed',
+              current_location: toLocation,
+              updatedate: new Date(),
+              updatedby: req.body.updatedby ? Number(req.body.updatedby) : 1,
+            },
+          });
+        } catch (assetUpdateError) {
+          console.error('Error syncing asset master status:', assetUpdateError);
+        }
+      }
 
       res.json({
         message: 'Cooler installation updated successfully',
@@ -741,6 +792,9 @@ export const coolerInstallationsController = {
               serial_number: true,
               current_status: true,
               current_location: true,
+              asset_master_asset_types: true,
+              asset_master_asset_sub_types: true,
+              asset_master_brands: true,
             },
           },
         },

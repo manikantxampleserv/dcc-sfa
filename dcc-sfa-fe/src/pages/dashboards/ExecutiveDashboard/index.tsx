@@ -158,9 +158,9 @@ const ExecutiveDashboard: React.FC = () => {
       color: 'blue',
       progress: stats
         ? Math.min(
-            (stats.totalOrders.thisMonth / stats.totalOrders.value) * 100,
-            100
-          )
+          (stats.totalOrders.thisMonth / stats.totalOrders.value) * 100,
+          100
+        )
         : 0,
     },
     {
@@ -190,9 +190,9 @@ const ExecutiveDashboard: React.FC = () => {
       color: 'pink',
       progress: stats
         ? Math.min(
-            (stats.activeOutlets.thisMonth / stats.activeOutlets.value) * 100,
-            100
-          )
+          (stats.activeOutlets.thisMonth / stats.activeOutlets.value) * 100,
+          100
+        )
         : 0,
     },
   ];

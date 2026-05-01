@@ -618,7 +618,7 @@ export default function Table<T extends Record<string, any>>(
             <Box
               className={classNames(
                 '!p-3 flex gap-2',
-                filterColunm ? 'justify-between items-center' : 'items-start'
+                filterColunm ? 'justify-between items-start' : 'items-start'
               )}
             >
               {props.actions}{' '}

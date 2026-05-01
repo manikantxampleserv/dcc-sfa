@@ -15,6 +15,10 @@ export interface AssetSubType {
 }
 
 export interface AssetMaster {
+  inspections: {
+    inspected_by: { id: number; name: string; email: string } | null;
+    inspection_date?: string | null;
+  }[];
   asset_movement_assets_asset: AssetMovement[];
   last_scanned_date: any;
   installation_date: any;

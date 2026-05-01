@@ -131,10 +131,12 @@ const ManageCoolerInstallation: React.FC<ManageCoolerInstallationProps> = ({
       open={drawerOpen}
       setOpen={handleCancel}
       title={isEdit ? 'Edit Cooler Installation' : 'Create Cooler Installation'}
+      size='large'
     >
       <Box className="!p-6">
         <form onSubmit={formik.handleSubmit} className="!space-y-6">
           <Box className="!grid !grid-cols-1 md:!grid-cols-2 !gap-6">
+
             <Select
               name="asset_master_id"
               label="Cooler"
@@ -144,7 +146,7 @@ const ManageCoolerInstallation: React.FC<ManageCoolerInstallationProps> = ({
             >
               {assets.map((asset: AssetMaster) => (
                 <MenuItem key={asset.id} value={asset.id}>
-                  {asset.serial_number} - {asset.current_status}
+                  {asset.name} [{asset.serial_number}]
                 </MenuItem>
               ))}
             </Select>
