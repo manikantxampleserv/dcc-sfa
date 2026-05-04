@@ -13,7 +13,7 @@ import { usePermission } from 'hooks/usePermission';
 import { useDeleteUser, useUsers, type User } from 'hooks/useUsers';
 import { useExportToExcel } from 'hooks/useImportExport';
 import { UserCheck, UserPlus, Users as UsersIcon, UserX } from 'lucide-react';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DeleteButton, EditButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
@@ -25,6 +25,7 @@ import { PopConfirm } from 'shared/DeleteConfirmation';
 import { formatDate } from 'utils/dateUtils';
 import ManageUsers from './ManageUsers';
 import ImportUsers from './ImportUsers';
+import { useTour } from 'context/TourContext';
 
 const UsersManagement: React.FC = () => {
   const navigate = useNavigate();
@@ -36,6 +37,36 @@ const UsersManagement: React.FC = () => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [importModalOpen, setImportModalOpen] = useState(false);
   const { isCreate, isUpdate, isDelete, isRead } = usePermission('user');
+  const { setSteps, stopTour } = useTour();
+
+  useEffect(() => {
+    setSteps([
+      {
+        target: '#user-management-title',
+        content: 'This is the User Management page where you can manage all system users.',
+      },
+      {
+        target: '#stats-cards-container',
+        content: 'Quick overview of total, active, and inactive users.',
+      },
+      {
+        target: '#search-users-input',
+        content: 'Search for users by name, email, or employee code.',
+      },
+      {
+        target: '#status-filter-select',
+        content: 'Filter users by their active/inactive status.',
+      },
+      {
+        target: '#action-buttons-container',
+        content: 'Export data, import users from excel, or create a new user.',
+      },
+      {
+        target: '#users-table',
+        content: 'View and manage user details here. You can edit or delete users from the actions column.',
+      },
+    ]);
+  }, [setSteps]);
 
   const {
     data: usersResponse,
@@ -181,30 +212,30 @@ const UsersManagement: React.FC = () => {
     },
     ...(isUpdate || isDelete
       ? [
-          {
-            id: 'action',
-            label: 'Actions',
-            sortable: false,
-            render: (_value: any, row: User) => (
-              <div className="!flex !gap-2 !items-center">
-                {isUpdate && (
-                  <EditButton
-                    onClick={() => handleEditUser(row)}
-                    tooltip={`Edit ${row.name}`}
-                  />
-                )}
-                {isDelete && (
-                  <DeleteButton
-                    onClick={() => handleDeleteUser(row.id)}
-                    tooltip={`Delete ${row.name}`}
-                    itemName={row.name}
-                    confirmDelete={true}
-                  />
-                )}
-              </div>
-            ),
-          },
-        ]
+        {
+          id: 'action',
+          label: 'Actions',
+          sortable: false,
+          render: (_value: any, row: User) => (
+            <div className="!flex !gap-2 !items-center">
+              {isUpdate && (
+                <EditButton
+                  onClick={() => handleEditUser(row)}
+                  tooltip={`Edit ${row.name}`}
+                />
+              )}
+              {isDelete && (
+                <DeleteButton
+                  onClick={() => handleDeleteUser(row.id)}
+                  tooltip={`Delete ${row.name}`}
+                  itemName={row.name}
+                  confirmDelete={true}
+                />
+              )}
+            </div>
+          ),
+        },
+      ]
       : []),
   ];
 
@@ -212,14 +243,16 @@ const UsersManagement: React.FC = () => {
   const exportToExcelMutation = useExportToExcel();
 
   const handleCreateUser = useCallback(() => {
+    stopTour();
     setSelectedUser(null);
     setDrawerOpen(true);
-  }, []);
+  }, [stopTour]);
 
   const handleEditUser = useCallback((user: User) => {
+    stopTour();
     setSelectedUser(user);
     setDrawerOpen(true);
-  }, []);
+  }, [stopTour]);
 
   const handleDeleteUser = useCallback(
     (id: number) => {
@@ -265,7 +298,7 @@ const UsersManagement: React.FC = () => {
 
   return (
     <>
-      <Box className="!mb-3 !flex !justify-between !items-center">
+      <Box className="!mb-3 !flex !justify-between !items-center" id="user-management-title">
         <Box>
           <p className="!font-bold text-xl !text-gray-900">Users Management</p>
           <p className="!text-gray-500 text-sm">
@@ -274,7 +307,7 @@ const UsersManagement: React.FC = () => {
         </Box>
       </Box>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4" id="stats-cards-container">
         <StatsCard
           title="Total Users"
           value={usersResponse?.stats?.total_users || 0}
@@ -319,30 +352,34 @@ const UsersManagement: React.FC = () => {
           isRead || isCreate ? (
             <div className="flex justify-between w-full flex-wrap gap-2">
               <div className="flex items-center flex-wrap gap-2">
-                <SearchInput
-                  placeholder="Search Users"
-                  value={search}
-                  onChange={handleSearchChange}
-                  debounceMs={400}
-                  showClear={true}
-                  fullWidth={false}
-                  className="!min-w-80"
-                />
+                <div id="search-users-input">
+                  <SearchInput
+                    placeholder="Search Users"
+                    value={search}
+                    onChange={handleSearchChange}
+                    debounceMs={400}
+                    showClear={true}
+                    fullWidth={false}
+                    className="!min-w-80"
+                  />
+                </div>
                 {isRead && (
-                  <Select
-                    value={statusFilter}
-                    onChange={e => setStatusFilter(e.target.value)}
-                    size="small"
-                    disableClearable
-                  >
-                    <MenuItem value="all">All Status</MenuItem>
-                    <MenuItem value="active">Active</MenuItem>
-                    <MenuItem value="inactive">Inactive</MenuItem>
-                  </Select>
+                  <div id="status-filter-select">
+                    <Select
+                      value={statusFilter}
+                      onChange={e => setStatusFilter(e.target.value)}
+                      size="small"
+                      disableClearable
+                    >
+                      <MenuItem value="all">All Status</MenuItem>
+                      <MenuItem value="active">Active</MenuItem>
+                      <MenuItem value="inactive">Inactive</MenuItem>
+                    </Select>
+                  </div>
                 )}
               </div>
               {isCreate && (
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2" id="action-buttons-container">
                   {isRead && (
                     <PopConfirm
                       title="Export Users"
@@ -369,7 +406,10 @@ const UsersManagement: React.FC = () => {
                       variant="outlined"
                       className="!capitalize"
                       startIcon={<Upload />}
-                      onClick={() => setImportModalOpen(true)}
+                      onClick={() => {
+                        stopTour();
+                        setImportModalOpen(true);
+                      }}
                     >
                       Import
                     </Button>
@@ -398,6 +438,7 @@ const UsersManagement: React.FC = () => {
         rowsPerPage={limit}
         isPermission={isRead}
         onPageChange={handlePageChange}
+        id="users-table"
         emptyMessage={
           search
             ? `No users found matching "${search}"`

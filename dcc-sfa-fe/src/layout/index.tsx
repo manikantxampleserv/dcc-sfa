@@ -4,6 +4,8 @@ import Header from '../shared/Header';
 import Sidebar from '../shared/UpdatedSidebar';
 import BreadCrumbs from 'shared/BreadCrumbs';
 import { CurrencyProvider } from '../context/CurrencyContext';
+import { TourProvider } from '../context/TourContext';
+import JoyrideTour from 'shared/JoyrideTour';
 
 const Layout: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -70,22 +72,26 @@ const Layout: React.FC = () => {
 
   return (
     <CurrencyProvider>
-      <div className="flex h-screen bg-gray-50">
-        <Sidebar />
-        <div className="flex-1 flex flex-col overflow-hidden">
-          <Header sidebarOpen={sidebarOpen} toggleSidebar={toggleSidebar} />
-          <BreadCrumbs
-            id={location.pathname}
-            navItem={getNavItem()}
-            navLink={location.pathname}
-          />
-          <main ref={mainRef} className="flex-1 overflow-auto p-5">
-            <Outlet key={outletKey} />
-          </main>
+      <TourProvider>
+        <div className="flex h-screen bg-gray-50">
+          <Sidebar />
+          <div className="flex-1 flex flex-col overflow-hidden">
+            <Header sidebarOpen={sidebarOpen} toggleSidebar={toggleSidebar} />
+            <BreadCrumbs
+              id={location.pathname}
+              navItem={getNavItem()}
+              navLink={location.pathname}
+            />
+            <main ref={mainRef} className="flex-1 overflow-auto p-5">
+              <Outlet key={outletKey} />
+            </main>
+          </div>
+          <JoyrideTour />
         </div>
-      </div>
+      </TourProvider>
     </CurrencyProvider>
   );
 };
 
 export default Layout;
+

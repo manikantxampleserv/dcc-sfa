@@ -8,7 +8,7 @@ const paginate_1 = require("../../utils/paginate");
 const prisma_client_1 = __importDefault(require("../../configs/prisma.client"));
 const serializeCoolerInstallation = (cooler) => {
     const { coolers_customers: customer, users: technician, cooler_asset_master: asset_master, } = cooler;
-    const { asset_master_asset_types: asset_type, asset_master_asset_sub_types: asset_sub_type, } = asset_master || {};
+    const { asset_master_asset_types: asset_type, asset_master_asset_sub_types: asset_sub_type, asset_master_brands: brand, } = asset_master || {};
     return {
         id: cooler.id,
         customer_id: cooler.customer_id,
@@ -49,6 +49,7 @@ const serializeCoolerInstallation = (cooler) => {
         asset_master: asset_master
             ? {
                 id: asset_master.id,
+                name: asset_master?.name,
                 serial_number: asset_master.serial_number,
                 current_status: asset_master.current_status,
                 current_location: asset_master.current_location,
@@ -58,6 +59,7 @@ const serializeCoolerInstallation = (cooler) => {
                 asset_sub_type: asset_sub_type
                     ? { id: asset_sub_type.id, name: asset_sub_type.name }
                     : null,
+                brand: brand ? { id: brand.id, name: brand.name } : null,
             }
             : null,
     };
@@ -161,20 +163,35 @@ exports.coolerInstallationsController = {
                     cooler_asset_master: {
                         select: {
                             id: true,
+                            name: true,
                             serial_number: true,
                             current_status: true,
                             current_location: true,
+                            asset_master_asset_types: true,
+                            asset_master_asset_sub_types: true,
+                            asset_master_brands: true,
                         },
                     },
                 },
             });
-            if (cooler.asset_master_id && cooler.install_date) {
+            if (cooler.asset_master_id) {
                 try {
                     const customer = cooler.coolers_customers;
                     const toLocation = customer
                         ? `${customer.name} (${customer.code})`
                         : 'Customer Location';
-                    if (cooler.asset_master_id) {
+                    if (cooler.status === 'Installed') {
+                        await prisma_client_1.default.asset_master.update({
+                            where: { id: cooler.asset_master_id },
+                            data: {
+                                current_location: toLocation,
+                                current_status: 'Installed',
+                                updatedate: new Date(),
+                                updatedby: data.createdby ? Number(data.createdby) : 1,
+                            },
+                        });
+                    }
+                    else if (cooler.install_date) {
                         await prisma_client_1.default.asset_master.update({
                             where: { id: cooler.asset_master_id },
                             data: {
@@ -271,11 +288,13 @@ exports.coolerInstallationsController = {
                     cooler_asset_master: {
                         select: {
                             id: true,
+                            name: true,
                             serial_number: true,
                             current_status: true,
                             current_location: true,
                             asset_master_asset_types: true,
                             asset_master_asset_sub_types: true,
+                            asset_master_brands: true,
                         },
                     },
                 },
@@ -374,11 +393,13 @@ exports.coolerInstallationsController = {
                     cooler_asset_master: {
                         select: {
                             id: true,
+                            name: true,
                             serial_number: true,
                             current_status: true,
                             current_location: true,
                             asset_master_asset_types: true,
                             asset_master_asset_sub_types: true,
+                            asset_master_brands: true,
                         },
                     },
                 },
@@ -479,13 +500,37 @@ exports.coolerInstallationsController = {
                     cooler_asset_master: {
                         select: {
                             id: true,
+                            name: true,
                             serial_number: true,
                             current_status: true,
                             current_location: true,
+                            asset_master_asset_types: true,
+                            asset_master_asset_sub_types: true,
+                            asset_master_brands: true,
                         },
                     },
                 },
             });
+            if (cooler.asset_master_id && data.status === 'Installed') {
+                try {
+                    const customer = cooler.coolers_customers;
+                    const toLocation = customer
+                        ? `${customer.name} (${customer.code})`
+                        : 'Customer Location';
+                    await prisma_client_1.default.asset_master.update({
+                        where: { id: cooler.asset_master_id },
+                        data: {
+                            current_status: 'Installed',
+                            current_location: toLocation,
+                            updatedate: new Date(),
+                            updatedby: req.body.updatedby ? Number(req.body.updatedby) : 1,
+                        },
+                    });
+                }
+                catch (assetUpdateError) {
+                    console.error('Error syncing asset master status:', assetUpdateError);
+                }
+            }
             res.json({
                 message: 'Cooler installation updated successfully',
                 data: serializeCoolerInstallation(cooler),
@@ -616,6 +661,9 @@ exports.coolerInstallationsController = {
                             serial_number: true,
                             current_status: true,
                             current_location: true,
+                            asset_master_asset_types: true,
+                            asset_master_asset_sub_types: true,
+                            asset_master_brands: true,
                         },
                     },
                 },

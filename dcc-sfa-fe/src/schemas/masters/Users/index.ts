@@ -14,6 +14,7 @@ const validationSchema = Yup.object({
   ),
   employee_id: Yup.string()
     .required('User Code is required')
+    .matches(/^[a-zA-Z0-9]+$/, 'User Code must only contain letters and numbers')
     .max(50, 'User Code must not exceed 50 characters'),
   reporting_to: Yup.number().required('Reporting manager is required'),
   depot_ids: Yup.array()

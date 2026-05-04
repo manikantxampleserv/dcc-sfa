@@ -20,7 +20,7 @@ export declare class AssetMasterImportExportService extends ImportExportService<
     protected checkDuplicate(data: any, tx?: any): Promise<string | null>;
     protected validateForeignKeys(data: any, tx?: any): Promise<string | null>;
     private generateAssetCode;
-    protected prepareDataForImport(data: any, userId: number): Promise<any>;
+    protected prepareDataForImport(data: any, userId: number, tx?: any): Promise<any>;
     protected updateExisting(data: any, userId: number, tx?: any): Promise<any>;
 }
 //# sourceMappingURL=assetMaster-import-export.service.d.ts.map

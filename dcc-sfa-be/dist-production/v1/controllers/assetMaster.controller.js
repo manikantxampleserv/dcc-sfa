@@ -78,6 +78,15 @@ const serializeAssetMaster = (asset) => ({
             email: asset.asset_master_last_read.email,
         }
         : null,
+    // Include inspections with inspected_by info
+    inspections: asset.inspections?.map((ins) => ({
+        inspected_by: ins.users
+            ? { id: ins.users.id, name: ins.users.name, email: ins.users.email }
+            : null,
+        inspection_date: ins.inspection_date
+            ? ins.inspection_date.toISOString()
+            : null,
+    })) || [],
 });
 exports.assetMasterController = {
     async createAssetMaster(req, res) {
@@ -380,6 +389,13 @@ exports.assetMasterController = {
             });
             if (!asset)
                 return res.status(404).json({ message: 'Asset not found' });
+            const inspections = await prisma_client_1.default.cooler_inspections.findMany({
+                where: { coolers: { asset_master_id: Number(id) } },
+                include: {
+                    users: { select: { id: true, name: true, email: true } },
+                },
+            });
+            asset.inspections = inspections;
             res.json({
                 message: 'Asset fetched successfully',
                 data: serializeAssetMaster(asset),

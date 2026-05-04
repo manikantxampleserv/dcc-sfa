@@ -126,8 +126,8 @@ const Input: React.FC<InputProps> = ({
   const timeValue = useMemo(
     () =>
       currentValue &&
-      typeof currentValue === 'string' &&
-      currentValue.includes(':')
+        typeof currentValue === 'string' &&
+        currentValue.includes(':')
         ? dayjs(currentValue, 'HH:mm')
         : null,
     [currentValue]

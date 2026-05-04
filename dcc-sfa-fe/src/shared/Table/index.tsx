@@ -136,6 +136,8 @@ export interface TableProps<T = any> {
   tableId?: string;
   /** Unique identifier for this table (used for localStorage persistence) */
   filterColunm?: boolean;
+  /** Optional ID for DOM targeting (e.g., for guided tours) */
+  id?: string;
 }
 
 /** Sort order type with three states */
@@ -381,6 +383,7 @@ export default function Table<T extends Record<string, any>>(
     compact = false,
     tableId,
     filterColunm = true,
+    id,
   } = props;
 
   const [order, setOrder] = useState<Order>(initialOrder);
@@ -608,7 +611,7 @@ export default function Table<T extends Record<string, any>>(
   };
 
   return (
-    <Box className="!w-full">
+    <Box className="!w-full" id={id}>
       <Paper
         elevation={0}
         className="!bg-white !shadow-sm !rounded-lg !border !border-gray-100"

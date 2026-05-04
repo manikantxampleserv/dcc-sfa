@@ -244,9 +244,7 @@ export abstract class ImportExportService<T> {
       const masterSheet = workbook.addWorksheet(config.sheetName);
 
       const masterColumns = config.masterDisplayFields.map(field => ({
-        header: field
-          .replace(/_/g, ' ')
-          .replace(/\b\w/g, l => l.toUpperCase()),
+        header: field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
         key: field,
         width: 20,
       }));
@@ -647,7 +645,11 @@ export abstract class ImportExportService<T> {
               continue;
             }
 
-            const preparedData = await this.prepareDataForImport(row, userId);
+            const preparedData = await this.prepareDataForImport(
+              row,
+              userId,
+              tx
+            );
             const created = await (tx as any)[this.modelName].create({
               data: preparedData,
             });
@@ -675,7 +677,7 @@ export abstract class ImportExportService<T> {
             detailedErrors.length > 0 ? detailedErrors : undefined,
         };
       },
-      { timeout: 300000 }
+      { timeout: 600000 }
     );
 
     return results;
@@ -815,7 +817,8 @@ export abstract class ImportExportService<T> {
   ): Promise<string | null>;
   protected abstract prepareDataForImport(
     data: any,
-    userId: number
+    userId: number,
+    tx?: any
   ): Promise<any>;
   protected abstract updateExisting(
     data: any,

@@ -338,24 +338,10 @@ class AssetMasterImportExportService extends import_export_service_1.ImportExpor
     }
     async generateAssetCode(name) {
         const prefix = name.slice(0, 3).toUpperCase();
-        const lastAssetCode = await prisma_client_1.default.asset_master.findFirst({
-            orderBy: { id: 'desc' },
-            select: { code: true },
-        });
-        let newNumber = 1;
-        if (lastAssetCode && lastAssetCode.code) {
-            const match = lastAssetCode.code.match(/(\d+)$/);
-            if (match) {
-                newNumber = parseInt(match[1], 10) + 1;
-            }
-        }
-        return `${prefix}-${newNumber.toString().padStart(3, '0')}`;
+        const randomStr = Math.random().toString(36).substring(2, 8).toUpperCase();
+        return `${prefix}-${randomStr}`;
     }
-    async prepareDataForImport(data, userId) {
-        // Debug logging to identify the issue
-        console.log('DEBUG: prepareDataForImport received data:', data);
-        console.log('DEBUG: data.code value:', data.code);
-        console.log('DEBUG: typeof data.code:', typeof data.code);
+    async prepareDataForImport(data, userId, tx) {
         let assetCode = null;
         if (data.code && typeof data.code === 'string' && data.code.trim() !== '') {
             assetCode = data.code.trim();
@@ -391,9 +377,6 @@ class AssetMasterImportExportService extends import_export_service_1.ImportExpor
             ...baseData,
             ...relationshipData,
         };
-        console.log('DEBUG: finalData being returned:', finalData);
-        console.log('DEBUG: finalData.code value:', finalData.code);
-        console.log('DEBUG: typeof finalData.code:', typeof finalData.code);
         return finalData;
     }
     async updateExisting(data, userId, tx) {

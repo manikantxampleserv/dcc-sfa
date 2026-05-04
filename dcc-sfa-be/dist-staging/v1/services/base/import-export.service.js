@@ -221,9 +221,7 @@ class ImportExportService {
             console.log(`generateTemplate: sheet='${config.sheetName}' rows=${masterData.length}`);
             const masterSheet = workbook.addWorksheet(config.sheetName);
             const masterColumns = config.masterDisplayFields.map(field => ({
-                header: field
-                    .replace(/_/g, ' ')
-                    .replace(/\b\w/g, l => l.toUpperCase()),
+                header: field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
                 key: field,
                 width: 20,
             }));
@@ -565,7 +563,7 @@ class ImportExportService {
                         errors.push(`Row ${rowNum}: ${fkValidation}`);
                         continue;
                     }
-                    const preparedData = await this.prepareDataForImport(row, userId);
+                    const preparedData = await this.prepareDataForImport(row, userId, tx);
                     const created = await tx[this.modelName].create({
                         data: preparedData,
                     });
@@ -590,7 +588,7 @@ class ImportExportService {
                 data: importedData,
                 detailedErrors: detailedErrors.length > 0 ? detailedErrors : undefined,
             };
-        }, { timeout: 300000 });
+        }, { timeout: 600000 });
         return results;
     }
     async batchImport(data, userId, batchSize = 100, options = {}) {

@@ -31,7 +31,7 @@ export declare abstract class ImportExportService<T> {
     protected abstract transformDataForExport(data: any[]): Promise<any[]>;
     protected abstract checkDuplicate(data: any, tx?: any): Promise<string | null>;
     protected abstract validateForeignKeys(data: any, tx?: any): Promise<string | null>;
-    protected abstract prepareDataForImport(data: any, userId: number): Promise<any>;
+    protected abstract prepareDataForImport(data: any, userId: number, tx?: any): Promise<any>;
     protected abstract updateExisting(data: any, userId: number, tx?: any): Promise<any>;
 }
 //# sourceMappingURL=import-export.service.d.ts.map

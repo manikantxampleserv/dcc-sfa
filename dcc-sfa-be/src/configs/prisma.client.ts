@@ -75,7 +75,7 @@ const parseConnectionString = (connectionString: string): MssqlConfig => {
       enableArithAbort: true,
     },
     connectionTimeout: 30000,
-    requestTimeout: 60000,
+    requestTimeout: 6000000,
     pool: {
       max: 5,
       min: 1,

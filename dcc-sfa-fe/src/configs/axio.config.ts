@@ -33,7 +33,7 @@ const BASE_URL = import.meta.env?.VITE_API_BASE_URL;
 /**
  * Request timeout in milliseconds
  */
-const REQUEST_TIMEOUT = 300000;
+const REQUEST_TIMEOUT = 6000000;
 
 let isSessionExpiredHandled = false;
 
