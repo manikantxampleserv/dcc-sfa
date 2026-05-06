@@ -66,6 +66,13 @@ class RouteImportExportService extends import_export_service_1.ImportExportServi
             sheetName: 'Ref - Users',
             description: 'Use the ID from this sheet for route assignments',
         },
+        {
+            masterTable: 'route_type',
+            masterKey: 'id',
+            masterDisplayFields: ['id', 'name'],
+            sheetName: 'Ref - Route Types',
+            description: 'Use the ID from this sheet for route type references',
+        },
     ];
     async generateRoutesCode(name, useGlobalPrisma = false) {
         const prefix = name.slice(0, 3).toUpperCase();

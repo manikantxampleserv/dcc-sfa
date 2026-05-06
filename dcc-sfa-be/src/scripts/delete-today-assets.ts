@@ -7,15 +7,18 @@ async function main() {
   const tomorrow = new Date(today);
   tomorrow.setDate(tomorrow.getDate() + 1);
 
+  const dayAfterTomorrow = new Date(tomorrow);
+  dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 1);
+
   console.log(
-    `Searching for assets created between ${today.toISOString()} and ${tomorrow.toISOString()}`
+    `Searching for assets created between ${tomorrow.toISOString()} and ${dayAfterTomorrow.toISOString()}`
   );
 
   const assetsToDelete = await prisma.asset_master.findMany({
     where: {
       createdate: {
-        gte: today,
-        lt: tomorrow,
+        gte: tomorrow,
+        lt: dayAfterTomorrow,
       },
     },
     select: {
@@ -31,8 +34,8 @@ async function main() {
     const deleteResult = await prisma.asset_master.deleteMany({
       where: {
         createdate: {
-          gte: today,
-          lt: tomorrow,
+          gte: tomorrow,
+          lt: dayAfterTomorrow,
         },
       },
     });

@@ -277,7 +277,7 @@ const UserDetail: React.FC = () => {
             ></div>
           </div>
 
-          <div className="!relative !mb-4">
+          <div className="!relative !flex !items-center !justify-center !mb-4">
             <Avatar
               src={user.profile_image || undefined}
               className={classNames(
@@ -335,7 +335,7 @@ const UserDetail: React.FC = () => {
               </Typography>
             </div>
 
-           
+
           </div>
         </div>
         <InfoCard title="Role & Organization" icon={Security}>
@@ -541,13 +541,12 @@ const UserDetail: React.FC = () => {
                     >
                       <div className="!flex !items-start !gap-3">
                         <div
-                          className={`!flex-shrink-0 !w-10 !h-10 !rounded-lg !flex !items-center !justify-center ${
-                            log.action === 'CREATE'
-                              ? '!bg-green-100'
-                              : log.action === 'UPDATE'
-                                ? '!bg-blue-100'
-                                : '!bg-red-100'
-                          }`}
+                          className={`!flex-shrink-0 !w-10 !h-10 !rounded-lg !flex !items-center !justify-center ${log.action === 'CREATE'
+                            ? '!bg-green-100'
+                            : log.action === 'UPDATE'
+                              ? '!bg-blue-100'
+                              : '!bg-red-100'
+                            }`}
                         >
                           {getActionIcon()}
                         </div>

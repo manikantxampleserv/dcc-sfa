@@ -32,6 +32,13 @@ export class RouteImportExportService extends ImportExportService<routes> {
       sheetName: 'Ref - Users',
       description: 'Use the ID from this sheet for route assignments',
     },
+    {
+      masterTable: 'route_type' as any,
+      masterKey: 'id',
+      masterDisplayFields: ['id', 'name'],
+      sheetName: 'Ref - Route Types',
+      description: 'Use the ID from this sheet for route type references',
+    },
   ];
 
   private async generateRoutesCode(

@@ -1,10 +1,10 @@
-import { CloudUpload, TableChart, Download } from '@mui/icons-material';
+import { CloudUpload, Download, TableChart } from '@mui/icons-material';
 import { Alert, Box, LinearProgress, Typography } from '@mui/material';
 import { useFormik } from 'formik';
 import React, { useRef, useState } from 'react';
-import * as Yup from 'yup';
 import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
+import * as Yup from 'yup';
 import {
   useDownloadTemplate,
   useImportData,
@@ -28,9 +28,9 @@ const ImportAssetMaster: React.FC<ImportAssetMasterProps> = ({
   const [importResults, setImportResults] = useState<ImportResult | null>(null);
   const [step, setStep] = useState<'upload' | 'import' | 'results'>('upload');
 
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // API hooks
   const downloadTemplateMutation = useDownloadTemplate();
   const importDataMutation = useImportData({
     onSuccess: data => {
@@ -93,7 +93,6 @@ const ImportAssetMaster: React.FC<ImportAssetMasterProps> = ({
           updateExisting: false,
         },
       });
-      // Results are handled in the mutation onSuccess callback
     } catch (error) {
       console.error('Import failed:', error);
     }
@@ -107,6 +106,43 @@ const ImportAssetMaster: React.FC<ImportAssetMasterProps> = ({
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
+  };
+
+  const handleDownloadErrorLog = () => {
+    if (
+      !importResults ||
+      !importResults.errors ||
+      importResults.errors.length === 0
+    )
+      return;
+
+    let currentOffset = 0;
+    let lastRow = 0;
+    const fixedErrors = importResults.errors.map(err => {
+      const match = err.match(/^Row (\d+):/);
+      if (match) {
+        const row = parseInt(match[1]);
+        if (row < lastRow) {
+          currentOffset += 100;
+        }
+        lastRow = row;
+        const absoluteRow = row + currentOffset;
+        return err.replace(/^Row \d+:/, `Row ${absoluteRow}:`);
+      }
+      return err;
+    });
+
+    const errorText = fixedErrors.join('\n');
+    const blob = new Blob([errorText], { type: 'text/plain' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `import_errors_${uploadedFile?.name || 'log'
+      }_${Date.now()}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
   };
 
   return (
@@ -271,12 +307,23 @@ const ImportAssetMaster: React.FC<ImportAssetMasterProps> = ({
                     {importResults.errors &&
                       importResults.errors.length > 0 && (
                         <Box className="!mt-3">
-                          <Typography
-                            variant="subtitle2"
-                            className="!font-medium !mb-2 !text-red-700"
-                          >
-                            Import Errors ({importResults.errors.length}):
-                          </Typography>
+                          <div className='flex justify-between !mb-2 items-center'>
+                            <Typography
+                              variant="subtitle2"
+                              className="!font-medium !text-red-700"
+                            >
+                              Import Errors ({importResults.errors.length}):
+                            </Typography>
+                            <Button
+                              variant="outlined"
+                              color="error"
+                              size="small"
+                              startIcon={<Download />}
+                              onClick={handleDownloadErrorLog}
+                            >
+                              Download Error Log ({importResults.errors.length} errors)
+                            </Button>
+                          </div>
                           <Box className="!bg-red-50 !rounded-lg !max-h-32 !overflow-y-auto !p-2">
                             {importResults.errors
                               .slice(0, 10)
