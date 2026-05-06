@@ -1,10 +1,11 @@
-import { ImportExportService } from '../base/import-export.service';
 import { ColumnDefinition } from '../../../types/import-export.types';
+import { ImportExportService } from '../base/import-export.service';
 export declare class CustomersImportExportService extends ImportExportService<any> {
     protected modelName: "customers";
     protected displayName: string;
     protected uniqueFields: string[];
     protected searchFields: string[];
+    private validationCache;
     protected masterTableConfigs: {
         masterTable: any;
         masterKey: string;
@@ -12,7 +13,6 @@ export declare class CustomersImportExportService extends ImportExportService<an
         sheetName: string;
         description: string;
     }[];
-    private generateCustomerCode;
     protected columns: ColumnDefinition[];
     protected getSampleData(): Promise<any[]>;
     protected getColumnDescription(key: string): string;
@@ -20,7 +20,6 @@ export declare class CustomersImportExportService extends ImportExportService<an
     protected checkDuplicate(data: any, tx?: any): Promise<string | null>;
     protected validateForeignKeys(data: any, tx?: any): Promise<string | null>;
     protected prepareDataForImport(data: any, userId: number): Promise<any>;
-    importData(data: any[], userId: number, options?: any): Promise<any>;
     protected updateExisting(data: any, userId: number, tx?: any): Promise<any>;
     exportToExcel(options?: any): Promise<Buffer>;
 }

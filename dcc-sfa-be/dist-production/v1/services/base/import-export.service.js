@@ -218,7 +218,7 @@ class ImportExportService {
         });
         for (const config of this.masterTableConfigs) {
             const masterData = await this.getMasterTableData(config);
-            console.log(`generateTemplate: sheet='${config.sheetName}' rows=${masterData.length}`);
+            console.log(`[Template] ${this.displayName}: Generated sheet '${config.sheetName}' with ${masterData.length} reference records`);
             const masterSheet = workbook.addWorksheet(config.sheetName);
             const masterColumns = config.masterDisplayFields.map(field => ({
                 header: field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
@@ -520,12 +520,14 @@ class ImportExportService {
                                 message: duplicateCheck,
                                 action: 'skipped',
                             });
+                            console.log(`[Import] ${this.displayName}: Row ${rowNum} skipped (Duplicate)`);
                         }
                         else if (options.updateExisting) {
                             const updated = await this.updateExisting(row, userId, tx);
                             if (updated) {
                                 importedData.push(updated);
                                 success++;
+                                console.log(`[Import] ${this.displayName}: Row ${rowNum} updated successfully`);
                                 continue;
                             }
                             else {
@@ -535,6 +537,7 @@ class ImportExportService {
                                     message: 'Failed to update existing record',
                                     action: 'failed',
                                 });
+                                console.error(`[Import] ${this.displayName}: Row ${rowNum} failed to update existing record`);
                             }
                         }
                         else {
@@ -544,6 +547,7 @@ class ImportExportService {
                                 message: duplicateCheck,
                                 action: 'rejected',
                             });
+                            console.warn(`[Import] ${this.displayName}: Row ${rowNum} rejected (Duplicate - ${duplicateCheck})`);
                         }
                         if (rowErrors.errors.length > 0) {
                             detailedErrors.push(rowErrors);
@@ -561,6 +565,7 @@ class ImportExportService {
                         });
                         detailedErrors.push(rowErrors);
                         errors.push(`Row ${rowNum}: ${fkValidation}`);
+                        console.warn(`[Import] ${this.displayName}: Row ${rowNum} failed validation - ${fkValidation}`);
                         continue;
                     }
                     const preparedData = await this.prepareDataForImport(row, userId, tx);
@@ -569,6 +574,7 @@ class ImportExportService {
                     });
                     importedData.push(created);
                     success++;
+                    console.log(`[Import] ${this.displayName}: Row ${rowNum} imported successfully`);
                 }
                 catch (error) {
                     failed++;
@@ -579,6 +585,7 @@ class ImportExportService {
                     });
                     detailedErrors.push(rowErrors);
                     errors.push(`Row ${rowNum}: ${error.message}`);
+                    console.error(`[Import] ${this.displayName}: Row ${rowNum} failed - ${error.message}`);
                 }
             }
             return {
@@ -588,7 +595,7 @@ class ImportExportService {
                 data: importedData,
                 detailedErrors: detailedErrors.length > 0 ? detailedErrors : undefined,
             };
-        }, { timeout: 600000 });
+        }, { timeout: 600000, maxWait: 600000 });
         return results;
     }
     async batchImport(data, userId, batchSize = 100, options = {}) {
@@ -646,7 +653,6 @@ class ImportExportService {
                     orderBy: { id: 'asc' },
                     take: 200,
                 });
-                console.log(`getMasterTableData [${masterTable}]: ${result.length} rows (with is_active filter)`);
                 return result;
             }
             catch (e1) {
@@ -658,7 +664,6 @@ class ImportExportService {
                     orderBy: { id: 'asc' },
                     take: 200,
                 });
-                console.log(`getMasterTableData [${masterTable}]: ${result.length} rows (no filter fallback)`);
                 return result;
             }
             catch (e2) {

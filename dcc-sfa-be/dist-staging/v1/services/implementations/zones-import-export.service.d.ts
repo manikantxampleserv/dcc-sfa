@@ -12,6 +12,8 @@ export declare class ZonesImportExportService extends ImportExportService<any> {
         sheetName: string;
         description: string;
     }[];
+    private lastNumberCache;
+    private validationCache;
     private generateZoneCode;
     protected columns: ColumnDefinition[];
     protected getSampleData(): Promise<any[]>;
@@ -19,9 +21,7 @@ export declare class ZonesImportExportService extends ImportExportService<any> {
     protected transformDataForExport(data: any[]): Promise<any[]>;
     protected checkDuplicate(data: any, tx?: any): Promise<string | null>;
     protected validateForeignKeys(data: any, tx?: any): Promise<string | null>;
-    protected prepareDataForImport(data: any, userId: number): Promise<any>;
-    importData(data: any[], userId: number, options?: any): Promise<any>;
+    protected prepareDataForImport(data: any, userId: number, tx?: any): Promise<any>;
     protected updateExisting(data: any, userId: number, tx?: any): Promise<any>;
-    exportToExcel(options?: any): Promise<Buffer>;
 }
 //# sourceMappingURL=zones-import-export.service.d.ts.map

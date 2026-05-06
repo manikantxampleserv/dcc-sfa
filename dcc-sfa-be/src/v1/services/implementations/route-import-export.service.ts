@@ -41,38 +41,43 @@ export class RouteImportExportService extends ImportExportService<routes> {
     },
   ];
 
-  private async generateRoutesCode(
-    name: string,
-    useGlobalPrisma: boolean = false
-  ): Promise<string> {
+  private lastNumberCache: Map<string, number> = new Map();
+  private validationCache: Map<string, string | null> = new Map();
+
+  private async generateRoutesCode(name: string, tx?: any): Promise<string> {
     const prefix = name.slice(0, 3).toUpperCase();
+    const db = tx || prisma;
 
-    try {
-      const routes = await prisma.routes.findMany({
-        where: {
-          code: {
-            startsWith: prefix,
+    if (!this.lastNumberCache.has(prefix)) {
+      try {
+        const route = await db.routes.findFirst({
+          where: {
+            code: {
+              startsWith: prefix,
+            },
           },
-        },
-        select: { code: true },
-        orderBy: { id: 'desc' },
-        take: 1,
-      });
+          select: { code: true },
+          orderBy: { id: 'desc' },
+        });
 
-      let newNumber = 1;
-      if (routes.length > 0 && routes[0].code) {
-        const match = routes[0].code.match(/(\d+)$/);
-        if (match) {
-          newNumber = parseInt(match[1], 10) + 1;
+        let lastNum = 0;
+        if (route && route.code) {
+          const match = route.code.match(/(\d+)$/);
+          if (match) {
+            lastNum = parseInt(match[1], 10);
+          }
         }
+        this.lastNumberCache.set(prefix, lastNum);
+      } catch (error) {
+        const timestamp = Date.now().toString().slice(-3);
+        return `${prefix}${timestamp}`;
       }
-
-      const code = `${prefix}${newNumber.toString().padStart(3, '0')}`;
-      return code;
-    } catch (error) {
-      const timestamp = Date.now().toString().slice(-3);
-      return `${prefix}${timestamp}`;
     }
+
+    const nextNum = (this.lastNumberCache.get(prefix) || 0) + 1;
+    this.lastNumberCache.set(prefix, nextNum);
+
+    return `${prefix}${nextNum.toString().padStart(3, '0')}`;
   }
 
   protected columns: ColumnDefinition[] = [
@@ -360,44 +365,81 @@ export class RouteImportExportService extends ImportExportService<routes> {
   ): Promise<string | null> {
     const prismaClient = tx || prisma;
 
+    const checkCache = async (
+      type: string,
+      id: any,
+      validator: () => Promise<string | null>
+    ) => {
+      if (!id) return null;
+      const cacheKey = `${type}_${id}`;
+      if (this.validationCache.has(cacheKey)) {
+        return this.validationCache.get(cacheKey)!;
+      }
+      const result = await validator();
+      this.validationCache.set(cacheKey, result);
+      return result;
+    };
+
     if (data.parent_id) {
-      const zone = await prismaClient.zones.findUnique({
-        where: { id: data.parent_id },
+      const error = await checkCache('zone', data.parent_id, async () => {
+        const zone = await prismaClient.zones.findUnique({
+          where: { id: data.parent_id },
+        });
+        if (!zone) return `Zone with ID ${data.parent_id} does not exist`;
+        const isActive = zone.is_active || (zone as any).isactive;
+        if (isActive !== 'Y')
+          return `Zone with ID ${data.parent_id} is inactive`;
+        return null;
       });
-      if (!zone) return `Zone with ID ${data.parent_id} does not exist`;
-      const isActive = zone.is_active || (zone as any).isactive;
-      if (isActive !== 'Y') return `Zone with ID ${data.parent_id} is inactive`;
+      if (error) return error;
     }
 
     if (data.depot_id) {
-      const depot = await prismaClient.depots.findUnique({
-        where: { id: data.depot_id },
+      const error = await checkCache('depot', data.depot_id, async () => {
+        const depot = await prismaClient.depots.findUnique({
+          where: { id: data.depot_id },
+        });
+        if (!depot) return `Depot with ID ${data.depot_id} does not exist`;
+        const isActive = depot.is_active || (depot as any).isactive;
+        if (isActive !== 'Y')
+          return `Depot with ID ${data.depot_id} is inactive`;
+        return null;
       });
-      if (!depot) return `Depot with ID ${data.depot_id} does not exist`;
-      const isActive = depot.is_active || (depot as any).isactive;
-      if (isActive !== 'Y') return `Depot with ID ${data.depot_id} is inactive`;
+      if (error) return error;
     }
 
     if (data.route_type_id) {
-      const routeType = await prismaClient.route_type.findUnique({
-        where: { id: data.route_type_id },
-      });
-      if (!routeType)
-        return `Route Type with ID ${data.route_type_id} does not exist`;
-      const isActive = routeType.is_active || (routeType as any).isactive;
-      if (isActive !== 'Y')
-        return `Route Type with ID ${data.route_type_id} is inactive`;
+      const error = await checkCache(
+        'route_type',
+        data.route_type_id,
+        async () => {
+          const routeType = await prismaClient.route_type.findUnique({
+            where: { id: data.route_type_id },
+          });
+          if (!routeType)
+            return `Route Type with ID ${data.route_type_id} does not exist`;
+          const isActive = routeType.is_active || (routeType as any).isactive;
+          if (isActive !== 'Y')
+            return `Route Type with ID ${data.route_type_id} is inactive`;
+          return null;
+        }
+      );
+      if (error) return error;
     }
 
     if (data.salesperson_id) {
-      const salesperson = await prismaClient.users.findUnique({
-        where: { id: data.salesperson_id },
+      const error = await checkCache('user', data.salesperson_id, async () => {
+        const salesperson = await prismaClient.users.findUnique({
+          where: { id: data.salesperson_id },
+        });
+        if (!salesperson)
+          return `Salesperson with ID ${data.salesperson_id} does not exist`;
+        const isActive = salesperson.is_active || (salesperson as any).isactive;
+        if (isActive !== 'Y')
+          return `Salesperson with ID ${data.salesperson_id} is inactive`;
+        return null;
       });
-      if (!salesperson)
-        return `Salesperson with ID ${data.salesperson_id} does not exist`;
-      const isActive = salesperson.is_active || (salesperson as any).isactive;
-      if (isActive !== 'Y')
-        return `Salesperson with ID ${data.salesperson_id} is inactive`;
+      if (error) return error;
     }
 
     return null;
@@ -410,7 +452,7 @@ export class RouteImportExportService extends ImportExportService<routes> {
   ): Promise<any> {
     let routeCode = data.code;
     if (!routeCode || routeCode.trim() === '') {
-      routeCode = await this.generateRoutesCode(data.name, true);
+      routeCode = await this.generateRoutesCode(data.name, tx);
     }
 
     const preparedData: any = {

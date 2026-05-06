@@ -68,6 +68,109 @@ class ProductsImportExportService extends import_export_service_1.ImportExportSe
             description: 'Use the ID from this sheet in the Brand ID column',
         },
     ];
+    lastNumberCache = new Map();
+    validationCache = new Map();
+    async generateProductCode(name, tx) {
+        const prefix = name.slice(0, 3).toUpperCase();
+        const db = tx || prisma_client_1.default;
+        if (!this.lastNumberCache.has(prefix)) {
+            try {
+                const product = await db.products.findFirst({
+                    where: {
+                        code: {
+                            startsWith: prefix,
+                        },
+                    },
+                    select: { code: true },
+                    orderBy: { id: 'desc' },
+                });
+                let lastNum = 0;
+                if (product && product.code) {
+                    const match = product.code.match(/(\d+)$/);
+                    if (match) {
+                        lastNum = parseInt(match[1], 10);
+                    }
+                }
+                this.lastNumberCache.set(prefix, lastNum);
+            }
+            catch (error) {
+                const timestamp = Date.now().toString().slice(-3);
+                return `${prefix}${timestamp}`;
+            }
+        }
+        const nextNum = (this.lastNumberCache.get(prefix) || 0) + 1;
+        this.lastNumberCache.set(prefix, nextNum);
+        return `${prefix}${nextNum.toString().padStart(3, '0')}`;
+    }
+    async validateForeignKeys(data, tx) {
+        const prismaClient = tx || prisma_client_1.default;
+        const checkCache = async (type, id, validator) => {
+            if (!id)
+                return null;
+            const cacheKey = `${type}_${id}`;
+            if (this.validationCache.has(cacheKey)) {
+                return this.validationCache.get(cacheKey);
+            }
+            const result = await validator();
+            this.validationCache.set(cacheKey, result);
+            return result;
+        };
+        const fkValidations = [
+            { key: 'category_id', table: 'product_categories', label: 'Category' },
+            {
+                key: 'sub_category_id',
+                table: 'product_sub_categories',
+                label: 'Sub-category',
+            },
+            { key: 'brand_id', table: 'brands', label: 'Brand' },
+            {
+                key: 'unit_of_measurement',
+                table: 'unit_of_measurement',
+                label: 'Unit',
+            },
+            { key: 'route_type_id', table: 'route_type', label: 'Route type' },
+            {
+                key: 'outlet_group_id',
+                table: 'customer_groups',
+                label: 'Outlet group',
+            },
+            { key: 'product_type_id', table: 'product_type', label: 'Product type' },
+            {
+                key: 'product_target_group_id',
+                table: 'product_target_group',
+                label: 'Target group',
+            },
+            {
+                key: 'product_web_order_id',
+                table: 'product_web_order',
+                label: 'Web order',
+            },
+            { key: 'volume_id', table: 'product_volumes', label: 'Volume' },
+            { key: 'flavour_id', table: 'product_flavours', label: 'Flavour' },
+            {
+                key: 'shelf_life_id',
+                table: 'product_shelf_life',
+                label: 'Shelf life',
+            },
+            { key: 'subunit_id', table: 'subunits', label: 'Subunit' },
+            { key: 'tax_id', table: 'tax_master', label: 'Tax' },
+        ];
+        for (const fk of fkValidations) {
+            if (data[fk.key]) {
+                const error = await checkCache(fk.table, data[fk.key], async () => {
+                    const record = await prismaClient[fk.table].findUnique({
+                        where: { id: data[fk.key] },
+                    });
+                    if (!record)
+                        return `${fk.label} with ID "${data[fk.key]}" not found`;
+                    return null;
+                });
+                if (error)
+                    return error;
+            }
+        }
+        return null;
+    }
     columns = [
         {
             key: 'name',
@@ -777,202 +880,10 @@ class ProductsImportExportService extends import_export_service_1.ImportExportSe
         }
         return null;
     }
-    async transformDataForImport(data, userId) {
-        // Batch validate required fields for better performance
-        const requiredValidations = (await Promise.race([
-            Promise.all([
-                prisma_client_1.default.product_categories.findFirst({
-                    where: { id: data.category_id },
-                    select: { id: true },
-                }),
-                prisma_client_1.default.product_sub_categories.findFirst({
-                    where: { id: data.sub_category_id },
-                    select: { id: true },
-                }),
-                prisma_client_1.default.brands.findFirst({
-                    where: { id: data.brand_id },
-                    select: { id: true },
-                }),
-                prisma_client_1.default.unit_of_measurement.findFirst({
-                    where: { id: data.unit_of_measurement },
-                    select: { id: true },
-                }),
-            ]),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('Required fields validation timeout')), 8000)),
-        ]));
-        const [category, subCategory, brand, unit] = requiredValidations;
-        if (!category) {
-            throw new Error(`Category with ID "${data.category_id}" not found`);
-        }
-        if (!subCategory) {
-            throw new Error(`Sub-category with ID "${data.sub_category_id}" not found`);
-        }
-        if (!brand) {
-            throw new Error(`Brand with ID "${data.brand_id}" not found`);
-        }
-        if (!unit) {
-            throw new Error(`Unit of measurement with ID "${data.unit_of_measurement}" not found`);
-        }
-        if (data.route_type_id) {
-            const routeType = await prisma_client_1.default.route_type.findFirst({
-                where: { id: data.route_type_id },
-            });
-            if (!routeType) {
-                throw new Error(`Route type with ID "${data.route_type_id}" not found`);
-            }
-        }
-        if (data.outlet_group_id) {
-            const outletGroup = await prisma_client_1.default.customer_groups.findFirst({
-                where: { id: data.outlet_group_id },
-            });
-            if (!outletGroup) {
-                throw new Error(`Outlet group with ID "${data.outlet_group_id}" not found`);
-            }
-        }
-        if (data.product_type_id) {
-            const productType = await prisma_client_1.default.product_type.findFirst({
-                where: { id: data.product_type_id },
-            });
-            if (!productType) {
-                throw new Error(`Product type with ID "${data.product_type_id}" not found`);
-            }
-        }
-        if (data.product_target_group_id) {
-            const targetGroup = await prisma_client_1.default.product_target_group.findFirst({
-                where: { id: data.product_target_group_id },
-            });
-            if (!targetGroup) {
-                throw new Error(`Product target group with ID "${data.product_target_group_id}" not found`);
-            }
-        }
-        if (data.product_web_order_id) {
-            const webOrder = await prisma_client_1.default.product_web_order.findFirst({
-                where: { id: data.product_web_order_id },
-            });
-            if (!webOrder) {
-                throw new Error(`Product web order with ID "${data.product_web_order_id}" not found`);
-            }
-        }
-        // Batch validation queries for better performance
-        const validationPromises = [];
-        if (data.volume_id) {
-            validationPromises.push(prisma_client_1.default.product_volumes
-                .findFirst({
-                where: { id: data.volume_id },
-                select: { id: true },
-            })
-                .then(volume => {
-                if (!volume)
-                    throw new Error(`Volume with ID "${data.volume_id}" not found`);
-            }));
-        }
-        if (data.flavour_id) {
-            validationPromises.push(prisma_client_1.default.product_flavours
-                .findFirst({
-                where: { id: data.flavour_id },
-                select: { id: true },
-            })
-                .then(flavour => {
-                if (!flavour)
-                    throw new Error(`Flavour with ID "${data.flavour_id}" not found`);
-            }));
-        }
-        if (data.shelf_life_id) {
-            validationPromises.push(prisma_client_1.default.product_shelf_life
-                .findFirst({
-                where: { id: data.shelf_life_id },
-                select: { id: true },
-            })
-                .then(shelfLife => {
-                if (!shelfLife)
-                    throw new Error(`Shelf life with ID "${data.shelf_life_id}" not found`);
-            }));
-        }
-        if (data.subunit_id) {
-            validationPromises.push(prisma_client_1.default.subunits
-                .findFirst({
-                where: { id: data.subunit_id },
-                select: { id: true },
-            })
-                .then(subunit => {
-                if (!subunit)
-                    throw new Error(`Subunit with ID "${data.subunit_id}" not found`);
-            }));
-        }
-        if (data.tax_id) {
-            validationPromises.push(prisma_client_1.default.tax_master
-                .findFirst({
-                where: { id: data.tax_id },
-                select: { id: true },
-            })
-                .then(tax => {
-                if (!tax)
-                    throw new Error(`Tax master with ID "${data.tax_id}" not found`);
-            }));
-        }
-        // Execute all validations in parallel with timeout
-        if (validationPromises.length > 0) {
-            try {
-                await Promise.race([
-                    Promise.all(validationPromises),
-                    new Promise((_, reject) => setTimeout(() => reject(new Error('Validation timeout')), 10000)),
-                ]);
-            }
-            catch (error) {
-                throw error;
-            }
-        }
+    async prepareDataForImport(data, userId, tx) {
         let productCode = data.code && data.code.trim() !== '' ? data.code.trim() : null;
         if (!productCode) {
-            const prefix = data.name.slice(0, 3).toUpperCase();
-            try {
-                // Use a simple query with timeout instead of transaction
-                const lastProductPromise = prisma_client_1.default.products.findFirst({
-                    orderBy: { id: 'desc' },
-                    select: { code: true },
-                });
-                const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Query timeout')), 3000));
-                const lastProduct = (await Promise.race([
-                    lastProductPromise,
-                    timeoutPromise,
-                ]));
-                let newNumber = 1;
-                if (lastProduct && lastProduct.code) {
-                    const match = lastProduct.code.match(/(\d+)$/);
-                    if (match) {
-                        newNumber = parseInt(match[1], 10) + 1;
-                    }
-                }
-                // Generate unique code with retry logic
-                let attempts = 0;
-                while (attempts < 10) {
-                    productCode = `${prefix}${newNumber.toString().padStart(3, '0')}`;
-                    try {
-                        const existingCheckPromise = prisma_client_1.default.products.findUnique({
-                            where: { code: productCode },
-                            select: { id: true },
-                        });
-                        const checkTimeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Duplicate check timeout')), 1000));
-                        const existing = (await Promise.race([
-                            existingCheckPromise,
-                            checkTimeoutPromise,
-                        ]));
-                        if (!existing)
-                            break;
-                        newNumber++;
-                        attempts++;
-                    }
-                    catch (error) {
-                        // If check fails, continue with generated code
-                        break;
-                    }
-                }
-            }
-            catch (error) {
-                // Fallback to timestamp-based code if database query fails
-                const timestamp = Date.now().toString().slice(-4);
-                productCode = `${prefix}${timestamp}`;
-            }
+            productCode = await this.generateProductCode(data.name, tx);
         }
         return {
             name: data.name,
@@ -982,12 +893,12 @@ class ProductsImportExportService extends import_export_service_1.ImportExportSe
             sub_category_id: data.sub_category_id,
             brand_id: data.brand_id,
             unit_of_measurement: data.unit_of_measurement,
-            base_price: data.base_price || null,
-            tax_rate: data.tax_rate || null,
+            base_price: parseFloat(data.base_price) || 0,
+            tax_rate: parseFloat(data.tax_rate) || 0,
             is_active: data.is_active || 'Y',
             route_type_id: data.route_type_id || null,
             outlet_group_id: data.outlet_group_id || null,
-            tracking_type: data.tracking_type || null,
+            tracking_type: data.tracking_type || 'NONE',
             product_type_id: data.product_type_id || null,
             product_target_group_id: data.product_target_group_id || null,
             product_web_order_id: data.product_web_order_id || null,
@@ -996,124 +907,13 @@ class ProductsImportExportService extends import_export_service_1.ImportExportSe
             shelf_life_id: data.shelf_life_id || null,
             subunit_id: data.subunit_id || null,
             tax_id: data.tax_id || null,
-            vat_percentage: data.vat_percentage || null,
-            weight_in_grams: data.weight_in_grams || null,
-            volume_in_liters: data.volume_in_liters || null,
-            createdate: new Date(),
+            vat_percentage: parseFloat(data.vat_percentage) || 0,
+            weight_in_grams: parseFloat(data.weight_in_grams) || 0,
+            volume_in_liters: parseFloat(data.volume_in_liters) || 0,
             createdby: userId,
+            createdate: new Date(),
             log_inst: 1,
         };
-    }
-    async validateForeignKeys(data, tx) {
-        const errors = [];
-        const category = await prisma_client_1.default.product_categories.findFirst({
-            where: { id: data.category_id },
-        });
-        if (!category) {
-            errors.push(`Category with ID "${data.category_id}" not found`);
-        }
-        const subCategory = await prisma_client_1.default.product_sub_categories.findFirst({
-            where: { id: data.sub_category_id },
-        });
-        if (!subCategory) {
-            errors.push(`Sub-category with ID "${data.sub_category_id}" not found`);
-        }
-        const brand = await prisma_client_1.default.brands.findFirst({
-            where: { id: data.brand_id },
-        });
-        if (!brand) {
-            errors.push(`Brand with ID "${data.brand_id}" not found`);
-        }
-        const unit = await prisma_client_1.default.unit_of_measurement.findFirst({
-            where: { id: data.unit_of_measurement },
-        });
-        if (!unit) {
-            errors.push(`Unit of measurement with ID "${data.unit_of_measurement}" not found`);
-        }
-        if (data.route_type_id) {
-            const routeType = await prisma_client_1.default.route_type.findFirst({
-                where: { id: data.route_type_id },
-            });
-            if (!routeType) {
-                errors.push(`Route type with ID "${data.route_type_id}" not found`);
-            }
-        }
-        if (data.outlet_group_id) {
-            const outletGroup = await prisma_client_1.default.customer_groups.findFirst({
-                where: { id: data.outlet_group_id },
-            });
-            if (!outletGroup) {
-                errors.push(`Outlet group with ID "${data.outlet_group_id}" not found`);
-            }
-        }
-        if (data.product_type_id) {
-            const productType = await prisma_client_1.default.product_type.findFirst({
-                where: { id: data.product_type_id },
-            });
-            if (!productType) {
-                errors.push(`Product type with ID "${data.product_type_id}" not found`);
-            }
-        }
-        if (data.product_target_group_id) {
-            const targetGroup = await prisma_client_1.default.product_target_group.findFirst({
-                where: { id: data.product_target_group_id },
-            });
-            if (!targetGroup) {
-                errors.push(`Product target group with ID "${data.product_target_group_id}" not found`);
-            }
-        }
-        if (data.product_web_order_id) {
-            const webOrder = await prisma_client_1.default.product_web_order.findFirst({
-                where: { id: data.product_web_order_id },
-            });
-            if (!webOrder) {
-                errors.push(`Product web order with ID "${data.product_web_order_id}" not found`);
-            }
-        }
-        if (data.volume_id) {
-            const volume = await prisma_client_1.default.product_volumes.findFirst({
-                where: { id: data.volume_id },
-            });
-            if (!volume) {
-                errors.push(`Volume with ID "${data.volume_id}" not found`);
-            }
-        }
-        if (data.flavour_id) {
-            const flavour = await prisma_client_1.default.product_flavours.findFirst({
-                where: { id: data.flavour_id },
-            });
-            if (!flavour) {
-                errors.push(`Flavour with ID "${data.flavour_id}" not found`);
-            }
-        }
-        if (data.shelf_life_id) {
-            const shelfLife = await prisma_client_1.default.product_shelf_life.findFirst({
-                where: { id: data.shelf_life_id },
-            });
-            if (!shelfLife) {
-                errors.push(`Shelf life with ID "${data.shelf_life_id}" not found`);
-            }
-        }
-        if (data.subunit_id) {
-            const subunit = await prisma_client_1.default.subunits.findFirst({
-                where: { id: data.subunit_id },
-            });
-            if (!subunit) {
-                errors.push(`Subunit with ID "${data.subunit_id}" not found`);
-            }
-        }
-        if (data.tax_id) {
-            const tax = await prisma_client_1.default.tax_master.findFirst({
-                where: { id: data.tax_id },
-            });
-            if (!tax) {
-                errors.push(`Tax master with ID "${data.tax_id}" not found`);
-            }
-        }
-        return errors.length > 0 ? errors.join('; ') : null;
-    }
-    async prepareDataForImport(data, userId) {
-        return this.transformDataForImport(data, userId);
     }
     async updateExisting(data, userId, tx) {
         const model = tx ? tx.products : prisma_client_1.default.products;

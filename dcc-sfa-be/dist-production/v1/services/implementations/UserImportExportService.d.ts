@@ -5,6 +5,7 @@ export declare class UserImportExportService extends ImportExportService<any> {
     protected displayName: string;
     protected uniqueFields: string[];
     protected searchFields: string[];
+    private validationCache;
     protected masterTableConfigs: {
         masterTable: any;
         masterKey: string;
@@ -18,7 +19,7 @@ export declare class UserImportExportService extends ImportExportService<any> {
     protected transformDataForExport(data: any[]): Promise<any[]>;
     protected checkDuplicate(data: any, tx?: any): Promise<string | null>;
     protected validateForeignKeys(data: any, tx?: any): Promise<string | null>;
-    protected prepareDataForImport(data: any, userId: number): Promise<any>;
+    protected prepareDataForImport(data: any, userId: number, tx?: any): Promise<any>;
     protected updateExisting(data: any, userId: number, tx?: any): Promise<any>;
     exportToExcel(options?: any): Promise<Buffer>;
 }

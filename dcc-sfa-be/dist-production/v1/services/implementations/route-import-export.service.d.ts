@@ -13,6 +13,8 @@ export declare class RouteImportExportService extends ImportExportService<routes
         sheetName: string;
         description: string;
     }[];
+    private lastNumberCache;
+    private validationCache;
     private generateRoutesCode;
     protected columns: ColumnDefinition[];
     protected getColumnDescription(key: string): string;

@@ -43,13 +43,9 @@ const prisma_client_1 = __importDefault(require("../../../configs/prisma.client"
 class VisitsImportExportService extends import_export_service_1.ImportExportService {
     modelName = 'visits';
     displayName = 'Visits';
-    uniqueFields = ['customer_id', 'sales_person_id', 'visit_date'];
-    searchFields = [
-        'purpose',
-        'status',
-        'visit_notes',
-        'customer_feedback',
-    ];
+    uniqueFields = [];
+    searchFields = ['purpose', 'status', 'visit_notes', 'customer_feedback'];
+    validationCache = new Map();
     masterTableConfigs = [
         {
             masterTable: 'customers',
@@ -632,62 +628,68 @@ class VisitsImportExportService extends import_export_service_1.ImportExportServ
     }
     async validateForeignKeys(data, tx) {
         const prismaClient = tx || prisma_client_1.default;
+        const checkCache = async (type, id, validator) => {
+            if (!id)
+                return null;
+            const cacheKey = `${type}_${id}`;
+            if (this.validationCache.has(cacheKey)) {
+                return this.validationCache.get(cacheKey);
+            }
+            const result = await validator();
+            this.validationCache.set(cacheKey, result);
+            return result;
+        };
         if (data.customer_id) {
-            try {
+            const error = await checkCache('customer', data.customer_id, async () => {
                 const customer = await prismaClient.customers.findUnique({
                     where: { id: data.customer_id },
                 });
-                if (!customer) {
+                if (!customer)
                     return `Customer with ID ${data.customer_id} does not exist`;
-                }
-            }
-            catch (error) {
-                return `Invalid Customer ID ${data.customer_id}`;
-            }
+                return null;
+            });
+            if (error)
+                return error;
         }
         if (data.sales_person_id) {
-            try {
+            const error = await checkCache('salesperson', data.sales_person_id, async () => {
                 const salesperson = await prismaClient.users.findUnique({
                     where: { id: data.sales_person_id },
                 });
-                if (!salesperson) {
+                if (!salesperson)
                     return `Salesperson with ID ${data.sales_person_id} does not exist`;
-                }
-            }
-            catch (error) {
-                return `Invalid Salesperson ID ${data.sales_person_id}`;
-            }
+                return null;
+            });
+            if (error)
+                return error;
         }
         if (data.route_id) {
-            try {
+            const error = await checkCache('route', data.route_id, async () => {
                 const route = await prismaClient.routes.findUnique({
                     where: { id: data.route_id },
                 });
-                if (!route) {
+                if (!route)
                     return `Route with ID ${data.route_id} does not exist`;
-                }
-            }
-            catch (error) {
-                return `Invalid Route ID ${data.route_id}`;
-            }
+                return null;
+            });
+            if (error)
+                return error;
         }
-        // Validate zone exists
         if (data.zones_id) {
-            try {
+            const error = await checkCache('zone', data.zones_id, async () => {
                 const zone = await prismaClient.zones.findUnique({
                     where: { id: data.zones_id },
                 });
-                if (!zone) {
+                if (!zone)
                     return `Zone with ID ${data.zones_id} does not exist`;
-                }
-            }
-            catch (error) {
-                return `Invalid Zone ID ${data.zones_id}`;
-            }
+                return null;
+            });
+            if (error)
+                return error;
         }
         return null;
     }
-    async prepareDataForImport(data, userId) {
+    async prepareDataForImport(data, userId, tx) {
         const preparedData = {
             customer_id: data.customer_id,
             sales_person_id: data.sales_person_id,
@@ -731,74 +733,6 @@ class VisitsImportExportService extends import_export_service_1.ImportExportServ
             preparedData.amount_collected = new client_1.Prisma.Decimal(0);
         }
         return preparedData;
-    }
-    async importData(data, userId, options = {}) {
-        let success = 0;
-        let failed = 0;
-        const errors = [];
-        const importedData = [];
-        const detailedErrors = [];
-        for (const [index, row] of data.entries()) {
-            const rowNum = index + 2;
-            try {
-                const duplicateCheck = await this.checkDuplicate(row);
-                if (duplicateCheck) {
-                    if (options.skipDuplicates) {
-                        failed++;
-                        errors.push(`Row ${rowNum}: Skipped - ${duplicateCheck}`);
-                        continue;
-                    }
-                    else if (options.updateExisting) {
-                        const updated = await this.updateExisting(row, userId);
-                        if (updated) {
-                            importedData.push(updated);
-                            success++;
-                        }
-                        continue;
-                    }
-                    else {
-                        throw new Error(duplicateCheck);
-                    }
-                }
-                const fkValidation = await this.validateForeignKeys(row);
-                if (fkValidation) {
-                    throw new Error(fkValidation);
-                }
-                // Create visit
-                const preparedData = await this.prepareDataForImport(row, userId);
-                const created = await prisma_client_1.default.visits.create({
-                    data: preparedData,
-                });
-                importedData.push(created);
-                success++;
-            }
-            catch (error) {
-                failed++;
-                const errorMessage = error.message || 'Unknown error';
-                errors.push(`Row ${rowNum}: ${errorMessage}`);
-                detailedErrors.push({
-                    row: rowNum,
-                    errors: [
-                        {
-                            type: errorMessage.includes('does not exist')
-                                ? 'foreign_key'
-                                : errorMessage.includes('already exists')
-                                    ? 'duplicate'
-                                    : 'validation',
-                            message: errorMessage,
-                            action: 'rejected',
-                        },
-                    ],
-                });
-            }
-        }
-        return {
-            success,
-            failed,
-            errors,
-            data: importedData,
-            detailedErrors: detailedErrors.length > 0 ? detailedErrors : undefined,
-        };
     }
     async updateExisting(data, userId, tx) {
         const model = tx ? tx.visits : prisma_client_1.default.visits;

@@ -12,14 +12,16 @@ export declare class ProductsImportExportService extends ImportExportService<any
         sheetName: string;
         description: string;
     }[];
+    private lastNumberCache;
+    private validationCache;
+    private generateProductCode;
+    protected validateForeignKeys(data: any, tx?: any): Promise<string | null>;
     protected columns: ColumnDefinition[];
     protected getSampleData(): Promise<any[]>;
     protected getColumnDescription(): string;
     protected transformDataForExport(data: any[]): Promise<any[]>;
     protected checkDuplicate(data: any, tx?: any): Promise<string | null>;
-    protected transformDataForImport(data: any, userId: number): Promise<any>;
-    protected validateForeignKeys(data: any, tx?: any): Promise<string | null>;
-    protected prepareDataForImport(data: any, userId: number): Promise<any>;
+    protected prepareDataForImport(data: any, userId: number, tx?: any): Promise<any>;
     protected updateExisting(data: any, userId: number, tx?: any): Promise<any>;
     exportToExcel(options?: any): Promise<Buffer>;
 }

@@ -51,45 +51,33 @@ class OrdersImportExportService extends import_export_service_1.ImportExportServ
         'payment_method',
         'approval_status',
     ];
+    lastNumberCache = new Map();
+    validationCache = new Map();
     async generateOrderNumber(tx) {
-        try {
-            const client = tx || prisma_client_1.default;
-            const today = new Date();
-            const year = today.getFullYear();
-            const month = (today.getMonth() + 1).toString().padStart(2, '0');
-            const day = today.getDate().toString().padStart(2, '0');
-            const prefix = `ORD${year}${month}${day}`;
+        const client = tx || prisma_client_1.default;
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = (today.getMonth() + 1).toString().padStart(2, '0');
+        const day = today.getDate().toString().padStart(2, '0');
+        const prefix = `ORD${year}${month}${day}`;
+        if (!this.lastNumberCache.has(prefix)) {
             const lastOrder = await client.orders.findFirst({
-                where: {
-                    order_number: {
-                        startsWith: prefix,
-                    },
-                },
+                where: { order_number: { startsWith: prefix } },
                 orderBy: { id: 'desc' },
                 select: { order_number: true },
             });
-            let newNumber = 1;
+            let lastNum = 0;
             if (lastOrder && lastOrder.order_number) {
                 const match = lastOrder.order_number.match(/(\d+)$/);
                 if (match) {
-                    newNumber = parseInt(match[1], 10) + 1;
+                    lastNum = parseInt(match[1], 10);
                 }
             }
-            const orderNumber = `${prefix}${newNumber.toString().padStart(4, '0')}`;
-            const existingOrder = await client.orders.findFirst({
-                where: { order_number: orderNumber },
-            });
-            if (existingOrder) {
-                newNumber++;
-                return `${prefix}${newNumber.toString().padStart(4, '0')}`;
-            }
-            return orderNumber;
+            this.lastNumberCache.set(prefix, lastNum);
         }
-        catch (error) {
-            console.error('Error generating order number:', error);
-            const timestamp = Date.now().toString();
-            return `ORD${timestamp}`;
-        }
+        const nextNum = (this.lastNumberCache.get(prefix) || 0) + 1;
+        this.lastNumberCache.set(prefix, nextNum);
+        return `${prefix}${nextNum.toString().padStart(4, '0')}`;
     }
     columns = [
         {
@@ -579,62 +567,71 @@ class OrdersImportExportService extends import_export_service_1.ImportExportServ
     }
     async validateForeignKeys(data, tx) {
         const prismaClient = tx || prisma_client_1.default;
+        const checkCache = async (type, id, validator) => {
+            if (!id)
+                return null;
+            const cacheKey = `${type}_${id}`;
+            if (this.validationCache.has(cacheKey)) {
+                return this.validationCache.get(cacheKey);
+            }
+            const result = await validator();
+            this.validationCache.set(cacheKey, result);
+            return result;
+        };
         if (data.parent_id) {
-            try {
+            const error = await checkCache('customer', data.parent_id, async () => {
                 const customer = await prismaClient.customers.findUnique({
                     where: { id: data.parent_id },
                 });
-                if (!customer) {
+                if (!customer)
                     return `Customer with ID ${data.parent_id} does not exist`;
-                }
-            }
-            catch (error) {
-                return `Invalid Customer ID ${data.parent_id}`;
-            }
+                return null;
+            });
+            if (error)
+                return error;
         }
         if (data.salesperson_id) {
-            try {
+            const error = await checkCache('salesperson', data.salesperson_id, async () => {
                 const salesperson = await prismaClient.users.findUnique({
                     where: { id: data.salesperson_id },
                 });
-                if (!salesperson) {
+                if (!salesperson)
                     return `Salesperson with ID ${data.salesperson_id} does not exist`;
-                }
-            }
-            catch (error) {
-                return `Invalid Salesperson ID ${data.salesperson_id}`;
-            }
+                return null;
+            });
+            if (error)
+                return error;
         }
         if (data.approved_by) {
-            try {
+            const error = await checkCache('approver', data.approved_by, async () => {
                 const approver = await prismaClient.users.findUnique({
                     where: { id: data.approved_by },
                 });
-                if (!approver) {
+                if (!approver)
                     return `Approver with ID ${data.approved_by} does not exist`;
-                }
-            }
-            catch (error) {
-                return `Invalid Approver ID ${data.approved_by}`;
-            }
+                return null;
+            });
+            if (error)
+                return error;
         }
         if (data.currency_id) {
-            try {
+            const error = await checkCache('currency', data.currency_id, async () => {
                 const currency = await prismaClient.currencies.findUnique({
                     where: { id: data.currency_id },
                 });
-                if (!currency) {
+                if (!currency)
                     return `Currency with ID ${data.currency_id} does not exist`;
-                }
-            }
-            catch (error) {
-                return `Invalid Currency ID ${data.currency_id}`;
-            }
+                return null;
+            });
+            if (error)
+                return error;
         }
         return null;
     }
-    async prepareDataForImport(data, userId) {
+    async prepareDataForImport(data, userId, tx) {
+        const order_number = data.order_number || (await this.generateOrderNumber(tx));
         const preparedData = {
+            order_number,
             parent_id: data.parent_id,
             salesperson_id: data.salesperson_id,
             order_date: data.order_date || new Date(),
@@ -686,78 +683,6 @@ class OrdersImportExportService extends import_export_service_1.ImportExportServ
             preparedData.total_amount = new client_1.Prisma.Decimal(0);
         }
         return preparedData;
-    }
-    async importData(data, userId, options = {}) {
-        let success = 0;
-        let failed = 0;
-        const errors = [];
-        const importedData = [];
-        const detailedErrors = [];
-        for (const [index, row] of data.entries()) {
-            const rowNum = index + 2;
-            try {
-                const result = await prisma_client_1.default.$transaction(async (tx) => {
-                    const duplicateCheck = await this.checkDuplicate(row, tx);
-                    if (duplicateCheck) {
-                        if (options.skipDuplicates) {
-                            throw new Error(`Skipped - ${duplicateCheck}`);
-                        }
-                        else if (options.updateExisting) {
-                            return await this.updateExisting(row, userId, tx);
-                        }
-                        else {
-                            throw new Error(duplicateCheck);
-                        }
-                    }
-                    const fkValidation = await this.validateForeignKeys(row, tx);
-                    if (fkValidation) {
-                        throw new Error(fkValidation);
-                    }
-                    const preparedData = await this.prepareDataForImport(row, userId);
-                    if (!row.order_number) {
-                        const generatedOrderNumber = await this.generateOrderNumber(tx);
-                        preparedData.order_number = generatedOrderNumber;
-                    }
-                    else {
-                        preparedData.order_number = row.order_number;
-                    }
-                    const created = await tx.orders.create({
-                        data: preparedData,
-                    });
-                    return created;
-                });
-                if (result) {
-                    importedData.push(result);
-                    success++;
-                }
-            }
-            catch (error) {
-                failed++;
-                const errorMessage = error.message || 'Unknown error';
-                errors.push(`Row ${rowNum}: ${errorMessage}`);
-                detailedErrors.push({
-                    row: rowNum,
-                    errors: [
-                        {
-                            type: errorMessage.includes('does not exist')
-                                ? 'foreign_key'
-                                : errorMessage.includes('already exists')
-                                    ? 'duplicate'
-                                    : 'validation',
-                            message: errorMessage,
-                            action: 'rejected',
-                        },
-                    ],
-                });
-            }
-        }
-        return {
-            success,
-            failed,
-            errors,
-            data: importedData,
-            detailedErrors: detailedErrors.length > 0 ? detailedErrors : undefined,
-        };
     }
     async updateExisting(data, userId, tx) {
         const model = tx ? tx.orders : prisma_client_1.default.orders;

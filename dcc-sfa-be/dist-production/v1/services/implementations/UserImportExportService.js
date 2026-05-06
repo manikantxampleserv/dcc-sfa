@@ -45,6 +45,7 @@ class UserImportExportService extends import_export_service_1.ImportExportServic
     displayName = 'Users';
     uniqueFields = ['email', 'employee_id'];
     searchFields = ['name', 'email', 'employee_id', 'phone_number'];
+    validationCache = new Map();
     masterTableConfigs = [
         {
             masterTable: 'roles',
@@ -452,91 +453,80 @@ class UserImportExportService extends import_export_service_1.ImportExportServic
     }
     async validateForeignKeys(data, tx) {
         const prismaClient = tx || prisma_client_1.default;
+        const checkCache = async (type, id, validator) => {
+            if (!id)
+                return null;
+            const cacheKey = `${type}_${id}`;
+            if (this.validationCache.has(cacheKey)) {
+                return this.validationCache.get(cacheKey);
+            }
+            const result = await validator();
+            this.validationCache.set(cacheKey, result);
+            return result;
+        };
         if (data.role_id) {
-            try {
+            const error = await checkCache('role', data.role_id, async () => {
                 const role = await prismaClient.roles.findUnique({
                     where: { id: data.role_id },
                 });
-                if (!role) {
-                    const availableRoles = await prismaClient.roles.findMany({
-                        where: {
-                            OR: [{ isactive: 'Y' }, { is_active: 'Y' }],
-                        },
-                        select: { id: true, name: true },
-                        take: 10,
-                        orderBy: { id: 'asc' },
-                    });
-                    if (availableRoles.length === 0) {
-                        return `No active roles found in the system. Please create roles first.`;
-                    }
-                    const rolesList = availableRoles
-                        .map((r) => `${r.id} (${r.name})`)
-                        .join(', ');
-                    return `Role ID ${data.role_id} does not exist. Available role IDs: ${rolesList}`;
-                }
+                if (!role)
+                    return `Role ID ${data.role_id} does not exist`;
                 const isActive = role.isactive || role.is_active;
-                if (isActive !== 'Y') {
+                if (isActive !== 'Y')
                     return `Role with ID ${data.role_id} is inactive`;
-                }
-            }
-            catch (error) {
-                return `Invalid Role ID ${data.role_id}`;
-            }
+                return null;
+            });
+            if (error)
+                return error;
         }
         if (data.depot_id) {
-            try {
+            const error = await checkCache('depot', data.depot_id, async () => {
                 const depot = await prismaClient.depots.findUnique({
                     where: { id: data.depot_id },
                 });
-                if (!depot) {
+                if (!depot)
                     return `Depot with ID ${data.depot_id} does not exist`;
-                }
                 const isActive = depot.isactive || depot.is_active;
-                if (isActive !== 'Y') {
+                if (isActive !== 'Y')
                     return `Depot with ID ${data.depot_id} is inactive`;
-                }
-            }
-            catch (error) {
-                return `Invalid Depot ID ${data.depot_id}`;
-            }
+                return null;
+            });
+            if (error)
+                return error;
         }
         if (data.parent_id) {
-            try {
+            const error = await checkCache('company', data.parent_id, async () => {
                 const company = await prismaClient.companies.findUnique({
                     where: { id: data.parent_id },
                 });
-                if (!company) {
+                if (!company)
                     return `Company with ID ${data.parent_id} does not exist`;
-                }
                 const isActive = company.isactive || company.is_active;
-                if (isActive !== 'Y') {
+                if (isActive !== 'Y')
                     return `Company with ID ${data.parent_id} is inactive`;
-                }
-            }
-            catch (error) {
-                return `Invalid Company ID ${data.parent_id}`;
-            }
+                return null;
+            });
+            if (error)
+                return error;
         }
         if (data.reporting_to) {
-            try {
+            const error = await checkCache('manager', data.reporting_to, async () => {
                 const manager = await prismaClient.users.findUnique({
                     where: { id: data.reporting_to },
                 });
-                if (!manager) {
+                if (!manager)
                     return `Reporting Manager with ID ${data.reporting_to} does not exist`;
-                }
                 const isActive = manager.is_active || manager.isactive;
-                if (isActive !== 'Y') {
+                if (isActive !== 'Y')
                     return `Reporting Manager with ID ${data.reporting_to} is inactive`;
-                }
-            }
-            catch (error) {
-                return `Invalid Reporting Manager ID ${data.reporting_to}`;
-            }
+                return null;
+            });
+            if (error)
+                return error;
         }
         return null;
     }
-    async prepareDataForImport(data, userId) {
+    async prepareDataForImport(data, userId, tx) {
         const password = data.password || 'Welcome@123';
         const hashedPassword = await bcrypt_1.default.hash(password, 10);
         return {

@@ -1,37 +1,4 @@
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -74,43 +41,37 @@ class PromotionsImportExportService extends import_export_service_1.ImportExport
             description: 'Use the ID from this sheet for customer type references',
         },
     ];
+    lastNumberCache = new Map();
+    validationCache = new Map();
     async generatePromotionCode(name, tx) {
-        try {
-            const client = tx || prisma_client_1.default;
-            const prefix = name
-                .slice(0, 3)
-                .toUpperCase()
-                .replace(/[^A-Z]/g, 'X');
-            const lastPromotion = await client.promotions.findFirst({
-                orderBy: { id: 'desc' },
-                select: { code: true },
-            });
-            let newNumber = 1;
-            if (lastPromotion && lastPromotion.code) {
-                const match = lastPromotion.code.match(/(\d+)$/);
-                if (match) {
-                    newNumber = parseInt(match[1], 10) + 1;
+        const prefix = name
+            .slice(0, 3)
+            .toUpperCase()
+            .replace(/[^A-Z]/g, 'X');
+        const db = tx || prisma_client_1.default;
+        if (!this.lastNumberCache.has(prefix)) {
+            try {
+                const lastPromotion = await db.promotions.findFirst({
+                    where: { code: { startsWith: prefix } },
+                    orderBy: { id: 'desc' },
+                    select: { code: true },
+                });
+                let lastNum = 0;
+                if (lastPromotion && lastPromotion.code) {
+                    const match = lastPromotion.code.match(/(\d+)$/);
+                    if (match) {
+                        lastNum = parseInt(match[1], 10);
+                    }
                 }
+                this.lastNumberCache.set(prefix, lastNum);
             }
-            const code = `${prefix}${newNumber.toString().padStart(4, '0')}`;
-            const existingCode = await client.promotions.findFirst({
-                where: { code: code },
-            });
-            if (existingCode) {
-                newNumber++;
-                return `${prefix}${newNumber.toString().padStart(4, '0')}`;
+            catch (error) {
+                return `${prefix}${Date.now().toString().slice(-4)}`;
             }
-            return code;
         }
-        catch (error) {
-            console.error('Error generating promotion code:', error);
-            const prefix = name
-                .slice(0, 3)
-                .toUpperCase()
-                .replace(/[^A-Z]/g, 'X');
-            const timestamp = Date.now().toString().slice(-6);
-            return `${prefix}${timestamp}`;
-        }
+        const nextNum = (this.lastNumberCache.get(prefix) || 0) + 1;
+        this.lastNumberCache.set(prefix, nextNum);
+        return `${prefix}${nextNum.toString().padStart(4, '0')}`;
     }
     columns = [
         {
@@ -137,35 +98,23 @@ class PromotionsImportExportService extends import_export_service_1.ImportExport
             validation: value => {
                 if (!value)
                     return 'Promotion type is required';
-                if (value.length > 30)
-                    return 'Promotion type must be less than 30 characters';
                 const validTypes = [
-                    'discount',
-                    'bogo',
-                    'bundle',
-                    'cashback',
-                    'seasonal',
-                    'clearance',
-                    'loyalty',
-                    'referral',
-                    'volume',
-                    'flash_sale',
+                    'discount', 'bogo', 'bundle', 'cashback', 'seasonal',
+                    'clearance', 'loyalty', 'referral', 'volume', 'flash_sale',
                 ];
                 return (validTypes.includes(value.toLowerCase()) ||
                     `Promotion type should be one of: ${validTypes.join(', ')}`);
             },
             transform: value => (value ? value.toLowerCase() : null),
-            description: 'Type of promotion: discount, bogo, bundle, cashback, seasonal, clearance, loyalty, referral, volume, flash_sale (required)',
+            description: 'Type of promotion (required)',
         },
         {
             key: 'description',
             header: 'Description',
             width: 50,
             type: 'string',
-            validation: value => !value ||
-                value.length <= 2000 ||
-                'Description must be less than 2000 characters',
-            description: 'Detailed description of the promotion (optional, max 2000 chars)',
+            validation: value => !value || value.length <= 2000 || 'Description too long',
+            description: 'Detailed description (optional)',
         },
         {
             key: 'start_date',
@@ -177,11 +126,11 @@ class PromotionsImportExportService extends import_export_service_1.ImportExport
                 if (!value)
                     return 'Start date is required';
                 if (isNaN(Date.parse(value)))
-                    return 'Invalid date format (use YYYY-MM-DD)';
+                    return 'Invalid date format';
                 return true;
             },
             transform: value => new Date(value),
-            description: 'Promotion start date (required, YYYY-MM-DD)',
+            description: 'Promotion start date (required)',
         },
         {
             key: 'end_date',
@@ -193,25 +142,17 @@ class PromotionsImportExportService extends import_export_service_1.ImportExport
                 if (!value)
                     return 'End date is required';
                 if (isNaN(Date.parse(value)))
-                    return 'Invalid date format (use YYYY-MM-DD)';
+                    return 'Invalid date format';
                 return true;
             },
             transform: value => new Date(value),
-            description: 'Promotion end date (required, YYYY-MM-DD)',
+            description: 'Promotion end date (required)',
         },
         {
             key: 'depot_id',
             header: 'Depot ID',
             width: 15,
             type: 'number',
-            validation: value => {
-                if (!value)
-                    return true;
-                const id = parseInt(value);
-                if (isNaN(id) || id <= 0)
-                    return 'Depot ID must be a positive number';
-                return true;
-            },
             transform: value => (value ? parseInt(value) : null),
             description: 'ID of the depot (optional)',
         },
@@ -220,14 +161,6 @@ class PromotionsImportExportService extends import_export_service_1.ImportExport
             header: 'Zone ID',
             width: 15,
             type: 'number',
-            validation: value => {
-                if (!value)
-                    return true;
-                const id = parseInt(value);
-                if (isNaN(id) || id <= 0)
-                    return 'Zone ID must be a positive number';
-                return true;
-            },
             transform: value => (value ? parseInt(value) : null),
             description: 'ID of the zone (optional)',
         },
@@ -242,27 +175,11 @@ class PromotionsImportExportService extends import_export_service_1.ImportExport
                 return ['Y', 'N'].includes(upperValue) || 'Must be Y or N';
             },
             transform: value => (value ? value.toString().toUpperCase() : 'Y'),
-            description: 'Active status - Y for Yes, N for No (defaults to Y)',
+            description: 'Active status (Y/N)',
         },
     ];
     async getSampleData() {
-        // Fetch actual IDs from database to ensure validity
-        const depots = await prisma_client_1.default.depots.findMany({
-            take: 2,
-            select: { id: true, name: true },
-            orderBy: { id: 'asc' },
-        });
-        const zones = await prisma_client_1.default.zones.findMany({
-            take: 2,
-            select: { id: true, name: true },
-            orderBy: { id: 'asc' },
-        });
-        const depotIds = depots.map(d => d.id);
-        const zoneIds = zones.map(z => z.id);
-        const depotId1 = depotIds[0] || null;
-        const depotId2 = depotIds[1] || null;
-        const zoneId1 = zoneIds[0] || null;
-        const zoneId2 = zoneIds[1] || null;
+        const depot = await prisma_client_1.default.depots.findFirst({ select: { id: true } });
         return [
             {
                 name: 'New Year Sale 2024',
@@ -270,38 +187,7 @@ class PromotionsImportExportService extends import_export_service_1.ImportExport
                 description: 'Special discount for New Year celebration',
                 start_date: '2024-01-01',
                 end_date: '2024-01-31',
-                depot_id: depotId1,
-                zone_id: zoneId1,
-                is_active: 'Y',
-            },
-            {
-                name: 'Buy One Get One Free',
-                type: 'bogo',
-                description: 'Purchase one product and get another free',
-                start_date: '2024-02-01',
-                end_date: '2024-02-28',
-                depot_id: depotId2,
-                zone_id: zoneId2,
-                is_active: 'Y',
-            },
-            {
-                name: 'Summer Flash Sale',
-                type: 'flash_sale',
-                description: '24-hour flash sale with up to 50% discount',
-                start_date: '2024-06-15',
-                end_date: '2024-06-16',
-                depot_id: null,
-                zone_id: null,
-                is_active: 'Y',
-            },
-            {
-                name: 'Volume Discount Program',
-                type: 'volume',
-                description: 'Bulk purchase discount for corporate clients',
-                start_date: '2024-03-01',
-                end_date: '2024-12-31',
-                depot_id: depotId1,
-                zone_id: null,
+                depot_id: depot?.id || 1,
                 is_active: 'Y',
             },
         ];
@@ -316,420 +202,97 @@ class PromotionsImportExportService extends import_export_service_1.ImportExport
             code: promo.code,
             type: promo.type,
             description: promo.description || '',
-            start_date: promo.start_date
-                ? new Date(promo.start_date).toISOString().split('T')[0]
-                : '',
-            end_date: promo.end_date
-                ? new Date(promo.end_date).toISOString().split('T')[0]
-                : '',
+            start_date: promo.start_date?.toISOString().split('T')[0] || '',
+            end_date: promo.end_date?.toISOString().split('T')[0] || '',
             depot_id: promo.depot_id || '',
-            depot_name: promo.promotion_depots?.name || '',
             zone_id: promo.zone_id || '',
-            zone_name: promo.promotion_zones?.name || '',
             is_active: promo.is_active || 'Y',
-            created_date: promo.createdate
-                ? new Date(promo.createdate).toISOString().split('T')[0]
-                : '',
+            created_date: promo.createdate?.toISOString().split('T')[0] || '',
             created_by: promo.createdby || '',
-            updated_date: promo.updatedate
-                ? new Date(promo.updatedate).toISOString().split('T')[0]
-                : '',
+            updated_date: promo.updatedate?.toISOString().split('T')[0] || '',
             updated_by: promo.updatedby || '',
         }));
     }
     async checkDuplicate(data, tx) {
         const model = tx ? tx.promotions : prisma_client_1.default.promotions;
-        if (data.name && data.start_date && data.end_date) {
-            const startDate = new Date(data.start_date);
-            const endDate = new Date(data.end_date);
-            const allPromotions = await model.findMany({
-                select: {
-                    id: true,
-                    name: true,
-                    start_date: true,
-                    end_date: true,
-                },
-            });
-            const existingPromo = allPromotions.find((p) => p.name.toLowerCase() === data.name.toLowerCase() &&
-                new Date(p.start_date) <= endDate &&
-                new Date(p.end_date) >= startDate);
-            if (existingPromo) {
-                return `Promotion with name "${data.name}" already exists with overlapping dates`;
-            }
+        if (!data.name || !data.start_date || !data.end_date)
+            return null;
+        const startDate = new Date(data.start_date);
+        const endDate = new Date(data.end_date);
+        // Optimized overlapping check
+        const existingPromo = await model.findFirst({
+            where: {
+                name: { equals: data.name },
+                OR: [
+                    { start_date: { lte: endDate }, end_date: { gte: startDate } }
+                ]
+            },
+            select: { id: true }
+        });
+        if (existingPromo) {
+            return `Promotion "${data.name}" already exists with overlapping dates`;
         }
         return null;
     }
     async validateForeignKeys(data, tx) {
         const prismaClient = tx || prisma_client_1.default;
+        const checkCache = async (type, id, validator) => {
+            if (!id)
+                return null;
+            const cacheKey = `${type}_${id}`;
+            if (this.validationCache.has(cacheKey))
+                return this.validationCache.get(cacheKey);
+            const result = await validator();
+            this.validationCache.set(cacheKey, result);
+            return result;
+        };
         if (data.depot_id) {
-            try {
-                const depot = await prismaClient.depots.findUnique({
-                    where: { id: data.depot_id },
-                });
-                if (!depot) {
-                    return `Depot with ID ${data.depot_id} does not exist`;
-                }
-            }
-            catch (error) {
-                return `Invalid Depot ID ${data.depot_id}`;
-            }
+            const error = await checkCache('depot', data.depot_id, async () => {
+                const depot = await prismaClient.depots.findUnique({ where: { id: data.depot_id } });
+                return depot ? null : `Depot ID ${data.depot_id} not found`;
+            });
+            if (error)
+                return error;
         }
         if (data.zone_id) {
-            try {
-                const zone = await prismaClient.zones.findUnique({
-                    where: { id: data.zone_id },
-                });
-                if (!zone) {
-                    return `Zone with ID ${data.zone_id} does not exist`;
-                }
-            }
-            catch (error) {
-                return `Invalid Zone ID ${data.zone_id}`;
-            }
+            const error = await checkCache('zone', data.zone_id, async () => {
+                const zone = await prismaClient.zones.findUnique({ where: { id: data.zone_id } });
+                return zone ? null : `Zone ID ${data.zone_id} not found`;
+            });
+            if (error)
+                return error;
         }
-        if (data.start_date && data.end_date) {
-            const startDate = new Date(data.start_date);
-            const endDate = new Date(data.end_date);
-            if (endDate < startDate) {
-                return 'End date cannot be before start date';
-            }
+        if (data.start_date && data.end_date && new Date(data.end_date) < new Date(data.start_date)) {
+            return 'End date cannot be before start date';
         }
         return null;
     }
-    async prepareDataForImport(data, userId) {
+    async prepareDataForImport(data, userId, tx) {
+        const code = data.code || await this.generatePromotionCode(data.name, tx);
         return {
-            name: data.name,
-            type: data.type,
-            description: data.description || null,
-            start_date: data.start_date,
-            end_date: data.end_date,
-            depot_id: data.depot_id || null,
-            zone_id: data.zone_id || null,
-            is_active: data.is_active || 'Y',
+            ...data,
+            code,
             createdby: userId,
             createdate: new Date(),
             log_inst: 1,
         };
     }
-    async importData(data, userId, options = {}) {
-        let success = 0;
-        let failed = 0;
-        const errors = [];
-        const importedData = [];
-        const detailedErrors = [];
-        for (const [index, row] of data.entries()) {
-            const rowNum = index + 2;
-            try {
-                const duplicateCheck = await this.checkDuplicate(row);
-                if (duplicateCheck) {
-                    if (options.skipDuplicates) {
-                        failed++;
-                        errors.push(`Row ${rowNum}: Skipped - ${duplicateCheck}`);
-                        continue;
-                    }
-                    else if (options.updateExisting) {
-                        const updated = await this.updateExisting(row, userId);
-                        if (updated) {
-                            importedData.push(updated);
-                            success++;
-                        }
-                        continue;
-                    }
-                    else {
-                        throw new Error(duplicateCheck);
-                    }
-                }
-                const fkValidation = await this.validateForeignKeys(row);
-                if (fkValidation) {
-                    throw new Error(fkValidation);
-                }
-                const preparedData = await this.prepareDataForImport(row, userId);
-                const generatedCode = await this.generatePromotionCode(row.name);
-                preparedData.code = generatedCode;
-                const created = await prisma_client_1.default.promotions.create({
-                    data: preparedData,
-                });
-                importedData.push(created);
-                success++;
-            }
-            catch (error) {
-                failed++;
-                const errorMessage = error.message || 'Unknown error';
-                errors.push(`Row ${rowNum}: ${errorMessage}`);
-                detailedErrors.push({
-                    row: rowNum,
-                    errors: [
-                        {
-                            type: errorMessage.includes('does not exist')
-                                ? 'foreign_key'
-                                : errorMessage.includes('already exists')
-                                    ? 'duplicate'
-                                    : 'validation',
-                            message: errorMessage,
-                            action: 'rejected',
-                        },
-                    ],
-                });
-            }
-        }
-        return {
-            success,
-            failed,
-            errors,
-            data: importedData,
-            detailedErrors: detailedErrors.length > 0 ? detailedErrors : undefined,
-        };
-    }
     async updateExisting(data, userId, tx) {
         const model = tx ? tx.promotions : prisma_client_1.default.promotions;
-        const allPromotions = await model.findMany({
-            select: {
-                id: true,
-                name: true,
-                type: true,
-                description: true,
-                start_date: true,
-                end_date: true,
-                depot_id: true,
-                zone_id: true,
-                is_active: true,
-            },
+        const existing = await model.findFirst({
+            where: { name: { equals: data.name } },
+            orderBy: { id: 'desc' }
         });
-        const existing = allPromotions.find((p) => p.name.toLowerCase() === data.name.toLowerCase());
         if (!existing)
             return null;
-        const updateData = {
-            name: data.name,
-            type: data.type || existing.type,
-            description: data.description !== undefined
-                ? data.description
-                : existing.description,
-            start_date: data.start_date || existing.start_date,
-            end_date: data.end_date || existing.end_date,
-            depot_id: data.depot_id !== undefined ? data.depot_id : existing.depot_id,
-            zone_id: data.zone_id !== undefined ? data.zone_id : existing.zone_id,
-            is_active: data.is_active || existing.is_active,
-            updatedby: userId,
-            updatedate: new Date(),
-        };
         return await model.update({
             where: { id: existing.id },
-            data: updateData,
-        });
-    }
-    async exportToExcel(options = {}) {
-        const query = {
-            where: options.filters,
-            orderBy: options.orderBy || { start_date: 'desc' },
-            include: {
-                promotion_depots: {
-                    select: {
-                        name: true,
-                        code: true,
-                    },
-                },
-                promotion_zones: {
-                    select: {
-                        name: true,
-                        code: true,
-                    },
-                },
-                _count: {
-                    select: {
-                        promotion_customer_types_promotions: true,
-                        promotion_parameters_promotions: true,
-                        products_promotion_products: true,
-                    },
-                },
+            data: {
+                ...data,
+                updatedby: userId,
+                updatedate: new Date(),
             },
-        };
-        if (options.limit)
-            query.take = options.limit;
-        const data = await this.getModel().findMany(query);
-        const ExcelJS = await Promise.resolve().then(() => __importStar(require('exceljs')));
-        const workbook = new ExcelJS.Workbook();
-        const worksheet = workbook.addWorksheet(this.displayName);
-        const exportColumns = [
-            { header: 'Promotion ID', key: 'id', width: 12 },
-            ...this.columns,
-            { header: 'Depot Name', key: 'depot_name', width: 25 },
-            { header: 'Zone Name', key: 'zone_name', width: 25 },
-            {
-                header: 'Customer Types Count',
-                key: 'customer_types_count',
-                width: 20,
-            },
-            { header: 'Parameters Count', key: 'parameters_count', width: 18 },
-            { header: 'Products Count', key: 'products_count', width: 15 },
-            { header: 'Created Date', key: 'created_date', width: 20 },
-            { header: 'Created By', key: 'created_by', width: 15 },
-            { header: 'Updated Date', key: 'updated_date', width: 20 },
-            { header: 'Updated By', key: 'updated_by', width: 15 },
-        ];
-        worksheet.columns = exportColumns.map(col => ({
-            header: col.header,
-            key: col.key,
-            width: col.width || 20,
-        }));
-        const headerRow = worksheet.getRow(1);
-        headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
-        headerRow.fill = {
-            type: 'pattern',
-            pattern: 'solid',
-            fgColor: { argb: 'FF4472C4' },
-        };
-        headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
-        headerRow.height = 25;
-        const exportData = await this.transformDataForExport(data);
-        let totalPromotions = 0;
-        let activePromotions = 0;
-        let inactivePromotions = 0;
-        let ongoingPromotions = 0;
-        let upcomingPromotions = 0;
-        let expiredPromotions = 0;
-        const typeCount = {};
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        exportData.forEach((row, index) => {
-            const promo = data[index];
-            row.id = promo.id;
-            row.depot_name = promo.promotion_depots?.name || '';
-            row.zone_name = promo.promotion_zones?.name || '';
-            row.customer_types_count =
-                promo._count?.promotion_customer_types_promotions || 0;
-            row.parameters_count = promo._count?.promotion_parameters_promotions || 0;
-            row.products_count = promo._count?.products_promotion_products || 0;
-            totalPromotions++;
-            if (promo.is_active === 'Y')
-                activePromotions++;
-            if (promo.is_active === 'N')
-                inactivePromotions++;
-            // Check if ongoing, upcoming, or expired
-            const startDate = new Date(promo.start_date);
-            const endDate = new Date(promo.end_date);
-            startDate.setHours(0, 0, 0, 0);
-            endDate.setHours(0, 0, 0, 0);
-            if (startDate <= today && endDate >= today) {
-                ongoingPromotions++;
-            }
-            else if (startDate > today) {
-                upcomingPromotions++;
-            }
-            else if (endDate < today) {
-                expiredPromotions++;
-            }
-            // Count by type
-            if (promo.type) {
-                typeCount[promo.type] = (typeCount[promo.type] || 0) + 1;
-            }
-            const excelRow = worksheet.addRow(row);
-            // Alternate row colors
-            if (index % 2 === 0) {
-                excelRow.fill = {
-                    type: 'pattern',
-                    pattern: 'solid',
-                    fgColor: { argb: 'FFF2F2F2' },
-                };
-            }
-            // Add borders
-            excelRow.eachCell((cell) => {
-                cell.border = {
-                    top: { style: 'thin' },
-                    left: { style: 'thin' },
-                    bottom: { style: 'thin' },
-                    right: { style: 'thin' },
-                };
-            });
-            // Highlight inactive promotions
-            if (promo.is_active === 'N') {
-                excelRow.getCell('is_active').font = {
-                    color: { argb: 'FFFF0000' },
-                    bold: true,
-                };
-            }
-            // Highlight ongoing promotions
-            if (startDate <= today && endDate >= today) {
-                excelRow.getCell('start_date').font = {
-                    color: { argb: 'FF008000' },
-                    bold: true,
-                };
-                excelRow.getCell('end_date').font = {
-                    color: { argb: 'FF008000' },
-                    bold: true,
-                };
-            }
-            // Highlight expired promotions
-            if (endDate < today) {
-                excelRow.getCell('end_date').font = {
-                    color: { argb: 'FFFF0000' },
-                    bold: true,
-                };
-            }
-            // Highlight upcoming promotions
-            if (startDate > today) {
-                excelRow.getCell('start_date').font = {
-                    color: { argb: 'FF0000FF' },
-                    bold: true,
-                };
-            }
         });
-        // Add filters
-        if (data.length > 0) {
-            worksheet.autoFilter = {
-                from: 'A1',
-                to: `${String.fromCharCode(64 + exportColumns.length)}${data.length + 1}`,
-            };
-        }
-        // Freeze header row
-        worksheet.views = [{ state: 'frozen', ySplit: 1 }];
-        // Add summary sheet
-        const summarySheet = workbook.addWorksheet('Summary');
-        summarySheet.columns = [
-            { header: 'Metric', key: 'metric', width: 35 },
-            { header: 'Value', key: 'value', width: 20 },
-        ];
-        const summaryHeaderRow = summarySheet.getRow(1);
-        summaryHeaderRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
-        summaryHeaderRow.fill = {
-            type: 'pattern',
-            pattern: 'solid',
-            fgColor: { argb: 'FF4472C4' },
-        };
-        // Add summary data
-        summarySheet.addRow({ metric: 'Total Promotions', value: totalPromotions });
-        summarySheet.addRow({
-            metric: 'Active Promotions',
-            value: activePromotions,
-        });
-        summarySheet.addRow({
-            metric: 'Inactive Promotions',
-            value: inactivePromotions,
-        });
-        summarySheet.addRow({ metric: '', value: '' });
-        summarySheet.addRow({
-            metric: 'Ongoing Promotions',
-            value: ongoingPromotions,
-        });
-        summarySheet.addRow({
-            metric: 'Upcoming Promotions',
-            value: upcomingPromotions,
-        });
-        summarySheet.addRow({
-            metric: 'Expired Promotions',
-            value: expiredPromotions,
-        });
-        summarySheet.addRow({ metric: '', value: '' });
-        summarySheet.addRow({ metric: 'Promotion Type Breakdown', value: '' });
-        Object.keys(typeCount)
-            .sort((a, b) => typeCount[b] - typeCount[a])
-            .forEach(type => {
-            summarySheet.addRow({
-                metric: `  ${type.charAt(0).toUpperCase() + type.slice(1)}`,
-                value: typeCount[type],
-            });
-        });
-        const buffer = await workbook.xlsx.writeBuffer();
-        return Buffer.from(buffer);
     }
 }
 exports.PromotionsImportExportService = PromotionsImportExportService;

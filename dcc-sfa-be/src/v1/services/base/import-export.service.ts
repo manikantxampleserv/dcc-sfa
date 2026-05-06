@@ -238,7 +238,7 @@ export abstract class ImportExportService<T> {
     for (const config of this.masterTableConfigs) {
       const masterData = await this.getMasterTableData(config);
       console.log(
-        `generateTemplate: sheet='${config.sheetName}' rows=${masterData.length}`
+        `[Template] ${this.displayName}: Generated sheet '${config.sheetName}' with ${masterData.length} reference records`
       );
 
       const masterSheet = workbook.addWorksheet(config.sheetName);
@@ -602,11 +602,17 @@ export abstract class ImportExportService<T> {
                   message: duplicateCheck,
                   action: 'skipped',
                 });
+                console.log(
+                  `[Import] ${this.displayName}: Row ${rowNum} skipped (Duplicate)`
+                );
               } else if (options.updateExisting) {
                 const updated = await this.updateExisting(row, userId, tx);
                 if (updated) {
                   importedData.push(updated);
                   success++;
+                  console.log(
+                    `[Import] ${this.displayName}: Row ${rowNum} updated successfully`
+                  );
                   continue;
                 } else {
                   failed++;
@@ -615,6 +621,9 @@ export abstract class ImportExportService<T> {
                     message: 'Failed to update existing record',
                     action: 'failed',
                   });
+                  console.error(
+                    `[Import] ${this.displayName}: Row ${rowNum} failed to update existing record`
+                  );
                 }
               } else {
                 failed++;
@@ -623,6 +632,9 @@ export abstract class ImportExportService<T> {
                   message: duplicateCheck,
                   action: 'rejected',
                 });
+                console.warn(
+                  `[Import] ${this.displayName}: Row ${rowNum} rejected (Duplicate - ${duplicateCheck})`
+                );
               }
 
               if (rowErrors.errors.length > 0) {
@@ -642,6 +654,9 @@ export abstract class ImportExportService<T> {
               });
               detailedErrors.push(rowErrors);
               errors.push(`Row ${rowNum}: ${fkValidation}`);
+              console.warn(
+                `[Import] ${this.displayName}: Row ${rowNum} failed validation - ${fkValidation}`
+              );
               continue;
             }
 
@@ -656,6 +671,9 @@ export abstract class ImportExportService<T> {
 
             importedData.push(created);
             success++;
+            console.log(
+              `[Import] ${this.displayName}: Row ${rowNum} imported successfully`
+            );
           } catch (error: any) {
             failed++;
             rowErrors.errors.push({
@@ -665,6 +683,9 @@ export abstract class ImportExportService<T> {
             });
             detailedErrors.push(rowErrors);
             errors.push(`Row ${rowNum}: ${error.message}`);
+            console.error(
+              `[Import] ${this.displayName}: Row ${rowNum} failed - ${error.message}`
+            );
           }
         }
 
@@ -677,7 +698,7 @@ export abstract class ImportExportService<T> {
             detailedErrors.length > 0 ? detailedErrors : undefined,
         };
       },
-      { timeout: 600000 }
+      { timeout: 600000, maxWait: 600000 }
     );
 
     return results;
@@ -767,9 +788,6 @@ export abstract class ImportExportService<T> {
           orderBy: { id: 'asc' },
           take: 200,
         });
-        console.log(
-          `getMasterTableData [${masterTable}]: ${result.length} rows (with is_active filter)`
-        );
         return result;
       } catch (e1) {
         console.warn(
@@ -784,9 +802,6 @@ export abstract class ImportExportService<T> {
           orderBy: { id: 'asc' },
           take: 200,
         });
-        console.log(
-          `getMasterTableData [${masterTable}]: ${result.length} rows (no filter fallback)`
-        );
         return result;
       } catch (e2) {
         console.warn(
