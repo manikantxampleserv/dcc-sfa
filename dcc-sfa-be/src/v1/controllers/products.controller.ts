@@ -525,6 +525,22 @@ export const productsController = {
         }
       }
 
+      if (data.subunit_id !== undefined && data.subunit_id !== null) {
+        const subunitExists = await prisma.subunits.findFirst({
+          where: {
+            id: Number(data.subunit_id || undefined),
+            is_active: 'Y',
+          },
+        });
+
+        if (!subunitExists) {
+          return res.status(400).json({
+            message:
+              'Invalid subunit. The specified subunit does not exist or is inactive.',
+          });
+        }
+      }
+
       const result = await prisma.$transaction(async tx => {
         const product = await tx.products.create({
           data: {
@@ -784,7 +800,7 @@ export const productsController = {
         updateData.subunit_id !== undefined &&
         updateData.subunit_id !== null
       ) {
-        const subunitExists = await prisma.unit_of_measurement.findFirst({
+        const subunitExists = await prisma.subunits.findFirst({
           where: {
             id: Number(updateData.subunit_id || undefined),
             is_active: 'Y',
