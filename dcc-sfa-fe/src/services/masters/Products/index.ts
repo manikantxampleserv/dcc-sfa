@@ -70,6 +70,7 @@ interface Product {
 
 interface ManageProductPayload {
   name: string;
+  code?: string;
   description?: string;
   category_id: number;
   sub_category_id: number;
@@ -96,6 +97,7 @@ interface ManageProductPayload {
 
 interface UpdateProductPayload {
   name?: string;
+  code?: string;
   description?: string;
   category_id?: number;
   sub_category_id?: number;

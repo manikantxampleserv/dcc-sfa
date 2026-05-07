@@ -180,6 +180,7 @@ const ManageProduct: React.FC<ManageProductProps> = ({
   const formik = useFormik({
     initialValues: {
       name: selectedProduct?.name || '',
+      code: selectedProduct?.code || '',
       description: selectedProduct?.description || '',
       category_id: selectedProduct?.category_id || '',
       sub_category_id: selectedProduct?.sub_category_id || '',
@@ -213,6 +214,7 @@ const ManageProduct: React.FC<ManageProductProps> = ({
       try {
         const productData = {
           name: values.name,
+          code: values.code || undefined,
           description: values.description,
           category_id: Number(values.category_id),
           sub_category_id: Number(values.sub_category_id),
@@ -314,6 +316,13 @@ const ManageProduct: React.FC<ManageProductProps> = ({
               placeholder="Enter product name"
               formik={formik}
               required
+            />
+
+            <Input
+              name="code"
+              label="Product Code"
+              placeholder="Enter product code (optional)"
+              formik={formik}
             />
 
             <ProductCategorySelect

@@ -33,7 +33,12 @@ const productInclude = {
 const generateProductsCode = async (name) => {
     const prefix = name.slice(0, 3).toUpperCase();
     const lastProduct = await prisma_client_1.default.products.findFirst({
-        orderBy: { id: 'desc' },
+        where: {
+            code: {
+                startsWith: prefix,
+            },
+        },
+        orderBy: { code: 'desc' },
         select: { code: true },
     });
     let newNumber = 1;

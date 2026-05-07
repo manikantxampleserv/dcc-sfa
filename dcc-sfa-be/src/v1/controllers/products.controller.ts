@@ -111,7 +111,12 @@ const generateProductsCode = async (name: string) => {
   const prefix = name.slice(0, 3).toUpperCase();
 
   const lastProduct = await prisma.products.findFirst({
-    orderBy: { id: 'desc' },
+    where: {
+      code: {
+        startsWith: prefix,
+      },
+    },
+    orderBy: { code: 'desc' },
     select: { code: true },
   });
 

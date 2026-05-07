@@ -6,6 +6,7 @@ export const productValidationSchema = yup.object().shape({
     .required('Product name is required')
     .min(1, 'Product name must be at least 1 character')
     .max(255, 'Product name must be at most 255 characters'),
+  code: yup.string().max(50, 'Code cannot exceed 50 characters').nullable(),
   description: yup
     .string()
     .max(1000, 'Description cannot exceed 1000 characters')
