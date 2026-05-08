@@ -765,7 +765,6 @@ export const productsController = {
       const { code, batch_lots, subunit_id, ...restData } = req.body;
       const batchLots: BatchLotInput[] = batch_lots || [];
 
-      // Validation for tracking_type === 'NONE'
       if (restData.tracking_type === 'NONE' && batchLots.length > 0) {
         return res.status(400).json({
           message:
