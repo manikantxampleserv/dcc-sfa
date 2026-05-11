@@ -315,31 +315,45 @@ const serializeProduct = (product: any): ProductSerialized => ({
     : null,
 });
 
-async function createDefaultInventoryStock(
-  tx: any,
-  productId: number,
-  locationId: number | null,
-  userId: number
-): Promise<void> {
-  const finalLocationId = locationId || 1;
+// async function createDefaultInventoryStock(
+//   tx: any,
+//   productId: number,
+//   locationId: number | null,
+//   userId: number
+// ): Promise<void> {
+//   if (!locationId) {
+//     // Find a valid depot if no locationId is provided
+//     const firstDepot = await tx.depots.findFirst({
+//       where: { is_active: 'Y' },
+//       select: { id: true },
+//     });
 
-  await tx.inventory_stock.create({
-    data: {
-      product_id: productId,
-      location_id: finalLocationId,
-      current_stock: 0,
-      reserved_stock: 0,
-      available_stock: 0,
-      minimum_stock: 0,
-      maximum_stock: 0,
-      batch_id: null,
-      is_active: 'Y',
-      createdate: new Date(),
-      createdby: userId,
-      log_inst: 1,
-    },
-  });
-}
+//     if (!firstDepot) {
+//       // If no active depot exists, skip inventory stock creation
+//       console.log('No active depot found, skipping inventory stock creation');
+//       return;
+//     }
+
+//     locationId = firstDepot.id;
+//   }
+
+//   await tx.inventory_stock.create({
+//     data: {
+//       product_id: productId,
+//       location_id: locationId,
+//       current_stock: 0,
+//       reserved_stock: 0,
+//       available_stock: 0,
+//       minimum_stock: 0,
+//       maximum_stock: 0,
+//       batch_id: null,
+//       is_active: 'Y',
+//       createdate: new Date(),
+//       createdby: userId,
+//       log_inst: 1,
+//     },
+//   });
+// }
 
 export const productsController = {
   // async createProduct(req: Request, res: Response) {
@@ -525,22 +539,6 @@ export const productsController = {
         }
       }
 
-      if (data.subunit_id !== undefined && data.subunit_id !== null) {
-        const subunitExists = await prisma.subunits.findFirst({
-          where: {
-            id: Number(data.subunit_id || undefined),
-            is_active: 'Y',
-          },
-        });
-
-        if (!subunitExists) {
-          return res.status(400).json({
-            message:
-              'Invalid subunit. The specified subunit does not exist or is inactive.',
-          });
-        }
-      }
-
       const result = await prisma.$transaction(async tx => {
         const product = await tx.products.create({
           data: {
@@ -590,14 +588,14 @@ export const productsController = {
           }
         }
 
-        if (product.tracking_type === 'none') {
-          await createDefaultInventoryStock(
-            tx,
-            product.id,
-            data.location_id || null,
-            userId
-          );
-        }
+        // if (product.tracking_type === 'none') {
+        //   await createDefaultInventoryStock(
+        //     tx,
+        //     product.id,
+        //     data.location_id || null,
+        //     userId
+        //   );
+        // }
 
         return product;
       });
@@ -792,25 +790,6 @@ export const productsController = {
           return res
             .status(400)
             .json({ message: 'Product code already exists' });
-        }
-      }
-
-      if (
-        updateData.subunit_id !== undefined &&
-        updateData.subunit_id !== null
-      ) {
-        const subunitExists = await prisma.subunits.findFirst({
-          where: {
-            id: Number(updateData.subunit_id || undefined),
-            is_active: 'Y',
-          },
-        });
-
-        if (!subunitExists) {
-          return res.status(400).json({
-            message:
-              'Invalid subunit. The specified subunit does not exist or is inactive.',
-          });
         }
       }
 
