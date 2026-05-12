@@ -1,1 +1,0 @@
-{"version":3,"file":"districts.controller.d.ts","sourceRoot":"","sources":["../../../src/v1/controllers/districts.controller.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,OAAO,EAAE,QAAQ,EAAE,MAAM,SAAS,CAAC;AAkF5C,eAAO,MAAM,mBAAmB;yBACH,GAAG,OAAO,GAAG;yBA0Db,GAAG,OAAO,GAAG;0BAoFZ,OAAO,OAAO,QAAQ;yBAqCvB,GAAG,OAAO,GAAG;yBA8Eb,OAAO,OAAO,QAAQ;CAyClD,CAAC"}
