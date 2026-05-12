@@ -23,7 +23,6 @@ export const executiveDashboardController = {
       const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
 
       const user: any = req.user;
-      const depotFilter = user?.depot_id ? { depot_id: user.depot_id } : {};
       const zoneFilter = user?.zone_id ? { zones_id: user.zone_id } : {};
 
       const totalCustomers = await prisma.customers.count({
@@ -50,7 +49,6 @@ export const executiveDashboardController = {
       const totalOrders = await prisma.orders.count({
         where: { is_active: 'Y' },
       });
-      console.log(totalOrders);
 
       const ordersThisMonth = await prisma.orders.count({
         where: { is_active: 'Y', order_date: { gte: startOfMonth } },

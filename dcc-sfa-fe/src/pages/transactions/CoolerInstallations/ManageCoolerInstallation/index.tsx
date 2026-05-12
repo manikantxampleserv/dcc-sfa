@@ -120,7 +120,7 @@ const ManageCoolerInstallation: React.FC<ManageCoolerInstallationProps> = ({
 
   const { data: assetMasterData } = useAssetMaster({
     page: 1,
-    limit: 1000,
+    limit: 1000000,
     status: 'active',
   });
 

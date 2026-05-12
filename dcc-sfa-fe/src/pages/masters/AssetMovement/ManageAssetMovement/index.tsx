@@ -53,7 +53,7 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
 
   const { data: assetsResponse } = useAssetMaster({
     page: 1,
-    limit: 1000,
+    limit: 1000000,
     status: 'active',
   });
   const assets: AssetMaster[] = assetsResponse?.data || [];
@@ -388,9 +388,8 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
                           <div
                             {...provided.droppableProps}
                             ref={provided.innerRef}
-                            className={`!h-full !p-2 !overflow-y-auto ${
-                              snapshot.isDraggingOver ? '!bg-blue-50' : ''
-                            }`}
+                            className={`!h-full !p-2 !overflow-y-auto ${snapshot.isDraggingOver ? '!bg-blue-50' : ''
+                              }`}
                             style={{
                               transition: 'background-color 0.2s ease',
                             }}
@@ -456,9 +455,8 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
                           <div
                             {...provided.droppableProps}
                             ref={provided.innerRef}
-                            className={`!h-full !p-2 !overflow-y-auto ${
-                              snapshot.isDraggingOver ? '!bg-green-50' : ''
-                            }`}
+                            className={`!h-full !p-2 !overflow-y-auto ${snapshot.isDraggingOver ? '!bg-green-50' : ''
+                              }`}
                             style={{
                               transition: 'background-color 0.2s ease',
                             }}
@@ -546,7 +544,7 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
               }
             >
               {createAssetMovementMutation.isPending ||
-              updateAssetMovementMutation.isPending
+                updateAssetMovementMutation.isPending
                 ? isEdit
                   ? 'Updating...'
                   : 'Creating...'

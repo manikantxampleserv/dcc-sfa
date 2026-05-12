@@ -33,7 +33,7 @@ const ManageAssetMaintenance: React.FC<ManageAssetMaintenanceProps> = ({
 
   const { data: assetsResponse } = useAssetMaster({
     page: 1,
-    limit: 1000,
+    limit: 1000000,
     status: 'active',
   });
   const assets = assetsResponse?.data || [];
@@ -203,7 +203,7 @@ const ManageAssetMaintenance: React.FC<ManageAssetMaintenanceProps> = ({
               }
             >
               {createAssetMaintenanceMutation.isPending ||
-              updateAssetMaintenanceMutation.isPending
+                updateAssetMaintenanceMutation.isPending
                 ? isEdit
                   ? 'Updating...'
                   : 'Creating...'
