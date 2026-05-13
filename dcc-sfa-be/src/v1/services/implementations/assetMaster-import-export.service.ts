@@ -29,10 +29,10 @@ export class AssetMasterImportExportService extends ImportExportService<any> {
       description: 'Use the ID from this sheet in the Asset Sub Type ID column',
     },
     {
-      masterTable: 'brands' as any,
+      masterTable: 'asset_brands' as any,
       masterKey: 'id',
-      masterDisplayFields: ['id', 'name', 'code'],
-      sheetName: 'Ref - Brands',
+      masterDisplayFields: ['id', 'name'],
+      sheetName: 'Ref - Asset Brands',
       description: 'Use the ID from this sheet in the Brand ID column',
     },
     {
@@ -58,6 +58,21 @@ export class AssetMasterImportExportService extends ImportExportService<any> {
     },
   ];
   protected columns: ColumnDefinition[] = [
+    {
+      key: 'serial_number',
+      header: 'Serial Number',
+      width: 25,
+      required: true,
+      type: 'string',
+      validation: value => {
+        if (!value || value.length < 1) return 'Serial number is required';
+        if (value.length > 100)
+          return 'Serial number must be less than 100 characters';
+        return true;
+      },
+      transform: value => value.toString().toUpperCase().trim(),
+      description: 'Unique serial number (required, max 100 chars)',
+    },
     {
       key: 'name',
       header: 'Asset Name',
@@ -88,8 +103,7 @@ export class AssetMasterImportExportService extends ImportExportService<any> {
         return true;
       },
       transform: value => (value && value.trim() !== '' ? value.trim() : null),
-      description:
-        'Asset code (optional, max 255 chars, auto-generated if empty)',
+      description: 'Asset code (optional, defaults to Serial Number if empty)',
     },
     {
       key: 'asset_type_id',
@@ -126,22 +140,21 @@ export class AssetMasterImportExportService extends ImportExportService<any> {
       description: 'Name of asset sub type (export only)',
     },
     {
-      key: 'serial_number',
-      header: 'Serial Number',
-      width: 25,
-      required: true,
+      key: 'asset_brand_id',
+      header: 'Brand ID',
+      width: 15,
+      required: false,
+      type: 'number',
+      transform: value => (value ? parseInt(value) : null),
+      description: 'ID of asset brand (optional)',
+    },
+    {
+      key: 'asset_brand_name',
+      header: 'Brand Name',
+      width: 20,
+      required: false,
       type: 'string',
-      validation: value => {
-        if (!value || value.length < 1) return 'Serial number is required';
-        if (value.length > 100)
-          return 'Serial number must be less than 100 characters';
-        if (!/^[A-Za-z0-9\-_]+$/.test(value))
-          return 'Serial number can only contain letters, numbers, hyphens, and underscores';
-        return true;
-      },
-      transform: value => value.toUpperCase().trim(),
-      description:
-        'Unique serial number (required, max 100 chars, alphanumeric)',
+      description: 'Name of asset brand (export only)',
     },
     {
       key: 'purchase_date',
@@ -220,50 +233,33 @@ export class AssetMasterImportExportService extends ImportExportService<any> {
   ];
 
   protected async getSampleData(): Promise<any[]> {
+    const assetType = await prisma.asset_types.findFirst({
+      where: { is_active: 'Y' },
+    });
+    const assetSubType = await prisma.asset_sub_types.findFirst({
+      where: { is_active: 'Y' },
+    });
+
+    const assetBrand = await prisma.asset_brands.findFirst({
+      where: { is_active: 'Y' },
+    });
+
     return [
       {
         name: 'Small Display Cooler',
         code: 'COOLER-SM-001',
-        asset_type_id: 1,
-        asset_type_name: 'Cooler',
-        asset_sub_type_id: 1,
-        asset_sub_type_name: 'Small Cooler',
+        asset_type_id: assetType?.id || 1,
+        asset_type_name: assetType?.name || 'Cooler',
+        asset_sub_type_id: assetSubType?.id || 1,
+        asset_sub_type_name: assetSubType?.name || 'Small Cooler',
+        asset_brand_id: assetBrand?.id || 1,
+        asset_brand_name: assetBrand?.name || 'Samsung',
         serial_number: 'COOLER-001-2024',
         purchase_date: '2024-01-15',
         warranty_expiry: '2026-01-15',
         current_location: 'Main Warehouse - Section A',
         current_status: 'Available',
         assigned_to: 'Warehouse Team',
-        is_active: 'Y',
-      },
-      {
-        name: 'Large Storage Fridge',
-        code: 'FRIDGE-LG-002',
-        asset_type_id: 2,
-        asset_type_name: 'Fridge',
-        asset_sub_type_id: 3,
-        asset_sub_type_name: 'Large Fridge',
-        serial_number: 'FRIDGE-002-2024',
-        purchase_date: '2024-02-20',
-        warranty_expiry: '2027-02-20',
-        current_location: 'Store #001 - Downtown',
-        current_status: 'In Use',
-        assigned_to: 'Store Manager',
-        is_active: 'Y',
-      },
-      {
-        name: 'Medium Display Cooler',
-        code: 'COOLER-MD-003',
-        asset_type_id: 1,
-        asset_type_name: 'Cooler',
-        asset_sub_type_id: 2,
-        asset_sub_type_name: 'Medium Cooler',
-        serial_number: 'COOLER-003-2023',
-        purchase_date: '2023-12-10',
-        warranty_expiry: '2025-12-10',
-        current_location: 'Maintenance Workshop',
-        current_status: 'Under Maintenance',
-        assigned_to: 'Maintenance Team',
         is_active: 'Y',
       },
     ];
@@ -280,6 +276,7 @@ export class AssetMasterImportExportService extends ImportExportService<any> {
       include: {
         asset_master_asset_types: true,
         asset_master_asset_sub_types: true,
+        asset_master_brands: true,
       },
     };
     return super.exportToExcel(exportOptions);
@@ -293,6 +290,8 @@ export class AssetMasterImportExportService extends ImportExportService<any> {
       asset_type_name: asset.asset_master_asset_types?.name || '',
       asset_sub_type_id: asset.asset_sub_type_id || '',
       asset_sub_type_name: asset.asset_master_asset_sub_types?.name || '',
+      asset_brand_id: asset.asset_brand_id || '',
+      asset_brand_name: asset.asset_master_brands?.name || '',
       serial_number: asset.serial_number,
       purchase_date: asset.purchase_date
         ? asset.purchase_date.toISOString().split('T')[0]
@@ -314,12 +313,12 @@ export class AssetMasterImportExportService extends ImportExportService<any> {
   protected async checkDuplicate(data: any, tx?: any): Promise<string | null> {
     const model = tx ? tx.asset_master : prisma.asset_master;
 
-    const existingSerial = await model.findFirst({
+    const existing = await model.findFirst({
       where: { serial_number: data.serial_number },
     });
 
-    if (existingSerial) {
-      return `Asset with serial number ${data.serial_number} already exists`;
+    if (existing) {
+      return `Asset with serial number ${data.serial_number} already exists (${existing.name})`;
     }
 
     return null;
@@ -351,13 +350,16 @@ export class AssetMasterImportExportService extends ImportExportService<any> {
       }
     }
 
-    return null;
-  }
+    if (data.asset_brand_id) {
+      const brand = await prismaClient.asset_brands.findUnique({
+        where: { id: data.asset_brand_id },
+      });
+      if (!brand) {
+        return `Brand with ID ${data.asset_brand_id} does not exist`;
+      }
+    }
 
-  private async generateAssetCode(name: string): Promise<string> {
-    const prefix = name.slice(0, 3).toUpperCase();
-    const randomStr = Math.random().toString(36).substring(2, 8).toUpperCase();
-    return `${prefix}-${randomStr}`;
+    return null;
   }
 
   protected async prepareDataForImport(
@@ -369,7 +371,7 @@ export class AssetMasterImportExportService extends ImportExportService<any> {
     if (data.code && typeof data.code === 'string' && data.code.trim() !== '') {
       assetCode = data.code.trim();
     } else {
-      assetCode = await this.generateAssetCode(data.name);
+      assetCode = data.serial_number;
     }
 
     const baseData = {
@@ -399,6 +401,12 @@ export class AssetMasterImportExportService extends ImportExportService<any> {
       };
     }
 
+    if (data.asset_brand_id) {
+      relationshipData.asset_master_brands = {
+        connect: { id: data.asset_brand_id },
+      };
+    }
+
     const finalData = {
       ...baseData,
       ...relationshipData,
@@ -416,15 +424,44 @@ export class AssetMasterImportExportService extends ImportExportService<any> {
 
     const existing = await model.findFirst({
       where: { serial_number: data.serial_number },
+      select: { id: true, name: true, serial_number: true },
     });
 
     if (!existing) return null;
 
-    const updateData = {
-      ...data,
+    const updateData: any = {
+      name: data.name,
+      code: data.code || undefined,
+      purchase_date:
+        data.purchase_date !== undefined ? data.purchase_date : undefined,
+      warranty_expiry:
+        data.warranty_expiry !== undefined ? data.warranty_expiry : undefined,
+      current_location:
+        data.current_location !== undefined ? data.current_location : undefined,
+      current_status: data.current_status || undefined,
+      assigned_to: data.assigned_to || undefined,
+      is_active: data.is_active || undefined,
       updatedby: userId,
       updatedate: new Date(),
     };
+
+    if (data.asset_type_id) {
+      updateData.asset_master_asset_types = {
+        connect: { id: data.asset_type_id },
+      };
+    }
+
+    if (data.asset_sub_type_id) {
+      updateData.asset_master_asset_sub_types = {
+        connect: { id: data.asset_sub_type_id },
+      };
+    }
+
+    if (data.asset_brand_id) {
+      updateData.asset_master_brands = {
+        connect: { id: data.asset_brand_id },
+      };
+    }
 
     return await model.update({
       where: { id: existing.id },

@@ -10,11 +10,16 @@ import {
 } from '@mui/material';
 import classNames from 'classnames';
 import { usePermission } from 'hooks/usePermission';
-import { useDeleteUser, useUsers, type User } from 'hooks/useUsers';
+import { useDeleteUser, useUsers, useUsersDropdown, type User } from 'hooks/useUsers';
 import { useExportToExcel } from 'hooks/useImportExport';
+import { useRolesDropdown } from 'hooks/useRoles';
+import { useDepots } from 'hooks/useDepots';
 import { UserCheck, UserPlus, Users as UsersIcon, UserX } from 'lucide-react';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import type { Depot } from 'services/masters/Depots';
+import type { RoleDropdown } from 'services/masters/Roles';
+import type { UserDropdown } from 'services/masters/Users';
 import { DeleteButton, EditButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
 import SearchInput from 'shared/SearchInput';
@@ -31,6 +36,9 @@ const UsersManagement: React.FC = () => {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [roleFilter, setRoleFilter] = useState('all');
+  const [depotFilter, setDepotFilter] = useState('all');
+  const [managerFilter, setManagerFilter] = useState('all');
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -68,6 +76,14 @@ const UsersManagement: React.FC = () => {
     ]);
   }, [setSteps]);
 
+  const { data: rolesResponse } = useRolesDropdown({ enabled: isRead });
+  const { data: depotsResponse } = useDepots({ isActive: 'Y', limit: 1000 }, { enabled: isRead });
+  const { data: managersResponse } = useUsersDropdown({}, { enabled: isRead });
+
+  const roles = rolesResponse?.data || [];
+  const depots = depotsResponse?.data || [];
+  const managers = managersResponse?.data || [];
+
   const {
     data: usersResponse,
     isFetching,
@@ -85,6 +101,9 @@ const UsersManagement: React.FC = () => {
             : statusFilter === 'inactive'
               ? 'N'
               : undefined,
+      role_id: roleFilter === 'all' ? undefined : Number(roleFilter),
+      depot_id: depotFilter === 'all' ? undefined : Number(depotFilter),
+      reporting_to: managerFilter === 'all' ? undefined : Number(managerFilter),
     },
     {
       enabled: isRead,
@@ -278,6 +297,10 @@ const UsersManagement: React.FC = () => {
             : statusFilter === 'active'
               ? 'Y'
               : 'N',
+        role_id: roleFilter === 'all' ? undefined : Number(roleFilter),
+        depot_id: depotFilter === 'all' ? undefined : Number(depotFilter),
+        reporting_to:
+          managerFilter === 'all' ? undefined : Number(managerFilter),
       };
 
       await exportToExcelMutation.mutateAsync({
@@ -287,7 +310,14 @@ const UsersManagement: React.FC = () => {
     } catch (error) {
       console.error('Error exporting users:', error);
     }
-  }, [exportToExcelMutation, search, statusFilter]);
+  }, [
+    exportToExcelMutation,
+    search,
+    statusFilter,
+    roleFilter,
+    depotFilter,
+    managerFilter,
+  ]);
 
   const handleRowClick = useCallback(
     (user: User) => {
@@ -360,20 +390,83 @@ const UsersManagement: React.FC = () => {
                     debounceMs={400}
                     showClear={true}
                     fullWidth={false}
-                    className="!min-w-80"
+                    className="!min-w-40"
                   />
                 </div>
                 {isRead && (
-                  <div id="status-filter-select">
+                  <div className="flex items-center flex-wrap gap-2">
+                    <div id="status-filter-select">
+                      <Select
+                        value={statusFilter}
+                        onChange={e => {
+                          setStatusFilter(e.target.value);
+                          setPage(1);
+                        }}
+                        size="small"
+                        disableClearable
+                        className="!min-w-40"
+                      >
+                        <MenuItem value="all">All Status</MenuItem>
+                        <MenuItem value="active">Active</MenuItem>
+                        <MenuItem value="inactive">Inactive</MenuItem>
+                      </Select>
+                    </div>
                     <Select
-                      value={statusFilter}
-                      onChange={e => setStatusFilter(e.target.value)}
+                      value={roleFilter}
+                      onChange={e => {
+                        setRoleFilter(e.target.value);
+                        setPage(1);
+                      }}
                       size="small"
+                      placeholder="Filter by Role"
                       disableClearable
+                      className="!min-w-64"
                     >
-                      <MenuItem value="all">All Status</MenuItem>
-                      <MenuItem value="active">Active</MenuItem>
-                      <MenuItem value="inactive">Inactive</MenuItem>
+                      <MenuItem value="all">All Roles</MenuItem>
+                      {roles.map((role: RoleDropdown) => (
+                        <MenuItem key={role.id} value={role.id.toString()}>
+                          {role.name}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                    <Select
+                      value={depotFilter}
+                      onChange={e => {
+                        setDepotFilter(e.target.value);
+                        setPage(1);
+                      }}
+                      size="small"
+                      placeholder="Filter by Depot"
+                      disableClearable
+                      className="!min-w-40"
+                    >
+                      <MenuItem value="all">All Depots</MenuItem>
+                      {depots.map((depot: Depot) => (
+                        <MenuItem key={depot.id} value={depot.id.toString()}>
+                          {depot.name}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                    <Select
+                      value={managerFilter}
+                      onChange={e => {
+                        setManagerFilter(e.target.value);
+                        setPage(1);
+                      }}
+                      size="small"
+                      placeholder="Filter by Manager"
+                      disableClearable
+                      className="!min-w-52"
+                    >
+                      <MenuItem value="all">All Managers</MenuItem>
+                      {managers.map((manager: UserDropdown) => (
+                        <MenuItem
+                          key={manager.id}
+                          value={manager.id.toString()}
+                        >
+                          {manager.name}
+                        </MenuItem>
+                      ))}
                     </Select>
                   </div>
                 )}

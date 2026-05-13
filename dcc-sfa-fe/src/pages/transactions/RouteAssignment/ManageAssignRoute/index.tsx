@@ -4,13 +4,17 @@ import {
   Droppable,
   type DropResult,
 } from '@hello-pangea/dnd';
-import { Avatar, Box, Typography } from '@mui/material';
+import { Avatar, Box, MenuItem, Typography } from '@mui/material';
+import { useDepots } from 'hooks/useDepots';
 import type { Route, RouteAssignment } from 'hooks/useRoutes';
+import { useZones } from 'hooks/useZones';
 import { GripVertical, Route as RouteIcon } from 'lucide-react';
 import React, { useCallback, useMemo, useState } from 'react';
+import type { Depot } from 'services/masters/Depots';
 import Button from 'shared/Button';
 import Drawer from 'shared/Drawer';
 import SearchInput from 'shared/SearchInput';
+import Select from 'shared/Select';
 
 interface ManageAssignRouteProps {
   open: boolean;
@@ -34,6 +38,27 @@ const ManageAssignRoute: React.FC<ManageAssignRouteProps> = ({
   loading,
 }) => {
   const [availableSearch, setAvailableSearch] = useState('');
+  const [selectedDepot, setSelectedDepot] = useState('');
+  const [selectedZone, setSelectedZone] = useState('');
+
+  React.useEffect(() => {
+    if (!selectedDepot) {
+      setSelectedZone('');
+    }
+  }, [selectedDepot]);
+
+  const { data: depotsResponse } = useDepots({ isActive: 'Y', limit: 1000 });
+  const depots = depotsResponse?.data || [];
+
+  const { data: zonesResponse } = useZones(
+    {
+      isActive: 'Y',
+      limit: 1000,
+      parent_id: selectedDepot ? Number(selectedDepot) : undefined,
+    },
+    { enabled: !!selectedDepot }
+  );
+  const zones = zonesResponse?.data || [];
 
   const routeMap = useMemo(
     () => new Map(routes.map(route => [route.id, route])),
@@ -51,12 +76,18 @@ const ManageAssignRoute: React.FC<ManageAssignRouteProps> = ({
     const searchLower = availableSearch.trim().toLowerCase();
     return routes.filter(route => {
       if (assignedIds.has(route.id)) return false;
+
+      if (selectedDepot && route.depot_id !== Number(selectedDepot))
+        return false;
+      if (selectedZone && route.parent_id !== Number(selectedZone))
+        return false;
+
       if (!searchLower) return true;
       const name = route.name?.toLowerCase() || '';
       const code = route.code?.toLowerCase() || '';
       return name.includes(searchLower) || code.includes(searchLower);
     });
-  }, [availableSearch, routes, selectedRouteIds]);
+  }, [availableSearch, routes, selectedRouteIds, selectedDepot, selectedZone]);
 
   const handleDragEnd = useCallback(
     (result: DropResult) => {
@@ -148,7 +179,43 @@ const ManageAssignRoute: React.FC<ManageAssignRouteProps> = ({
                 <p className="!text-gray-500 !text-xs !block !mt-1">
                   Drag routes from the left panel to assign
                 </p>
-                <Box className="!mt-2">
+                <Box className="!mt-2 !flex !flex-col !gap-2">
+                  <div className="!flex !gap-2">
+                    <Select
+                      value={selectedDepot || ''}
+                      onChange={e => {
+                        const val = e.target.value;
+                        setSelectedDepot(val);
+                        if (!val) setSelectedZone('');
+                      }}
+                      placeholder="Filter by Depot"
+                      className="!w-full"
+                      disableClearable={false}
+                    >
+                      {depots.map((depot: Depot) => (
+                        <MenuItem key={depot.id} value={depot.id.toString()}>
+                          {depot.name} ({depot.code})
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </div>
+                  <div className="w-1/2">
+                    <Select
+                      key={`zone-filter-drawer-${selectedDepot}`}
+                      value={selectedZone || ''}
+                      onChange={e => setSelectedZone(e.target.value)}
+                      placeholder="Filter by Zone"
+                      className="!w-full"
+                      disableClearable={false}
+                      disabled={!selectedDepot}
+                    >
+                      {zones.map((zone: any) => (
+                        <MenuItem key={zone.id} value={zone.id.toString()}>
+                          {zone.name} ({zone.code})
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </div>
                   <SearchInput
                     placeholder="Search Routes..."
                     value={availableSearch}
@@ -163,9 +230,8 @@ const ManageAssignRoute: React.FC<ManageAssignRouteProps> = ({
                     <div
                       {...provided.droppableProps}
                       ref={provided.innerRef}
-                      className={`!h-full !p-2 !overflow-y-auto ${
-                        snapshot.isDraggingOver ? '!bg-blue-50' : ''
-                      }`}
+                      className={`!h-full !p-2 !overflow-y-auto ${snapshot.isDraggingOver ? '!bg-blue-50' : ''
+                        }`}
                       style={{
                         transition: 'background-color 0.2s ease',
                       }}
@@ -229,9 +295,8 @@ const ManageAssignRoute: React.FC<ManageAssignRouteProps> = ({
                     <div
                       {...provided.droppableProps}
                       ref={provided.innerRef}
-                      className={`!h-full !p-2 !overflow-y-auto ${
-                        snapshot.isDraggingOver ? '!bg-green-50' : ''
-                      }`}
+                      className={`!h-full !p-2 !overflow-y-auto ${snapshot.isDraggingOver ? '!bg-green-50' : ''
+                        }`}
                       style={{
                         transition: 'background-color 0.2s ease',
                       }}

@@ -42,6 +42,20 @@ export abstract class ImportExportService<T> {
     return this.searchFields;
   }
 
+  protected translatePrismaError(error: any): string {
+    if (error.code === 'P2025') {
+      return 'Related record not found (Asset Type, Category, Zone, etc.). Please check if the IDs or codes in your Excel exist in the system.';
+    }
+    if (error.code === 'P2002') {
+      const target = error.meta?.target;
+      return `A record with this ${Array.isArray(target) ? target.join(', ') : target || 'unique value'} already exists.`;
+    }
+    if (error.message && error.message.includes('Foreign key constraint failed')) {
+      return 'Referenced record not found. Please ensure all related IDs (like Zone ID, Type ID, etc.) are valid.';
+    }
+    return error.message;
+  }
+
   async parseExcelFile(buffer: Buffer): Promise<ParseResultWithErrors> {
     const errorHandler = new ImportExportErrorHandler(this.columns);
     const validData: any[] = [];
@@ -676,13 +690,14 @@ export abstract class ImportExportService<T> {
             );
           } catch (error: any) {
             failed++;
+            const readableError = this.translatePrismaError(error);
             rowErrors.errors.push({
               type: 'system',
-              message: error.message,
+              message: readableError,
               action: 'failed',
             });
             detailedErrors.push(rowErrors);
-            errors.push(`Row ${rowNum}: ${error.message}`);
+            errors.push(`Row ${rowNum}: ${readableError}`);
             console.error(
               `[Import] ${this.displayName}: Row ${rowNum} failed - ${error.message}`
             );
