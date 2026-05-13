@@ -651,7 +651,6 @@ class ImportExportService {
                     select: selectFields,
                     where: whereClause,
                     orderBy: { id: 'asc' },
-                    take: 200,
                 });
                 return result;
             }
@@ -662,7 +661,6 @@ class ImportExportService {
                 const result = await model.findMany({
                     select: selectFields,
                     orderBy: { id: 'asc' },
-                    take: 200,
                 });
                 return result;
             }

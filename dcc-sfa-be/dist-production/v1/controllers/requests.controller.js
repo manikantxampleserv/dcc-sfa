@@ -1134,38 +1134,70 @@ exports.requestsController = {
             });
             if (result.status === 'fully_approved' && 'request' in result) {
                 if (result.request.request_type === 'LOCATION_RESET') {
-                    const customer = await getCustomerDetails(result.request.reference_id);
-                    const requestData = JSON.parse(result.request.request_data || '{}');
-                    const template = await (0, emailTemplates_1.generateEmailContent)(templateKeyMap_1.default.locationResetApproved, {
-                        requester_name: result.request.sfa_d_requests_requester.name,
-                        customer_name: customer?.name || 'N/A',
-                        customer_code: customer?.code || 'N/A',
-                        new_latitude: requestData.latitude,
-                        new_longitude: requestData.longitude,
-                        approver_name: req.user?.name || 'System',
-                        approval_date: new Date().toLocaleDateString(),
-                        company_name: process.env.COMPANY_NAME || 'SFA System',
-                    });
-                    await (0, mailer_1.sendEmail)({
-                        to: result.request.sfa_d_requests_requester.email,
-                        subject: template.subject,
-                        html: template.body,
-                        createdby: userId,
-                        log_inst: 1,
-                    });
+                    try {
+                        const requesterEmail = result.request.sfa_d_requests_requester?.email;
+                        if (requesterEmail) {
+                            const customer = await getCustomerDetails(result.request.reference_id);
+                            const requestData = JSON.parse(result.request.request_data || '{}');
+                            const template = await (0, emailTemplates_1.generateEmailContent)(templateKeyMap_1.default.locationResetApproved, {
+                                requester_name: result.request.sfa_d_requests_requester?.name || 'Employee',
+                                customer_name: customer?.name || 'N/A',
+                                customer_code: customer?.code || 'N/A',
+                                new_latitude: requestData.latitude,
+                                new_longitude: requestData.longitude,
+                                approver_name: req.user?.name || 'System',
+                                approval_date: new Date().toLocaleDateString(),
+                                company_name: process.env.COMPANY_NAME || 'SFA System',
+                            });
+                            await (0, mailer_1.sendEmail)({
+                                to: requesterEmail,
+                                subject: template.subject,
+                                html: template.body,
+                                createdby: userId,
+                                log_inst: 1,
+                            });
+                        }
+                        else {
+                            console.warn('Requester email is missing, skipping location reset approval email');
+                        }
+                    }
+                    catch (emailError) {
+                        console.error('Error sending location reset approval email:', emailError);
+                    }
                 }
-                const template = await (0, emailTemplates_1.generateEmailContent)(templateKeyMap_1.default.requestAccepted, {
-                    employee_name: result.request.sfa_d_requests_requester.name,
-                    request_type: formatRequestType(result.request.request_type),
-                    company_name: 'SFA System',
-                });
-                await (0, mailer_1.sendEmail)({
-                    to: result.request.sfa_d_requests_requester.email,
-                    subject: template.subject,
-                    html: template.body,
-                    createdby: userId,
-                    log_inst: 1,
-                });
+                if (result.request.request_type === 'ASSET_MOVEMENT_APPROVAL' &&
+                    result.request.reference_id) {
+                    try {
+                        await (0, approvalWorkflow_helper_1.generateContractOnApproval)(result.request.reference_id);
+                    }
+                    catch (contractError) {
+                        console.error('Error generating contract after approval:', contractError);
+                    }
+                }
+                try {
+                    const requesterEmail = result.request.sfa_d_requests_requester?.email;
+                    if (requesterEmail) {
+                        const template = await (0, emailTemplates_1.generateEmailContent)(templateKeyMap_1.default.requestAccepted, {
+                            employee_name: result.request.sfa_d_requests_requester?.name || 'Employee',
+                            request_type: formatRequestType(result.request.request_type),
+                            company_name: 'SFA System',
+                        });
+                        console.log('Sending approval email to:', requesterEmail);
+                        await (0, mailer_1.sendEmail)({
+                            to: requesterEmail,
+                            subject: template.subject,
+                            html: template.body,
+                            createdby: userId,
+                            log_inst: 1,
+                        });
+                    }
+                    else {
+                        console.warn('Requester email is missing, skipping approval email');
+                    }
+                }
+                catch (emailError) {
+                    console.error('Error sending approval email:', emailError);
+                }
                 return res.status(200).json({
                     message: 'Request approved successfully.',
                 });
@@ -1250,38 +1282,6 @@ exports.requestsController = {
                         createdby: userId,
                         log_inst: 1,
                     });
-                }
-            }
-            if (result.status === 'fully_approved' &&
-                'request' in result &&
-                result.request.request_type === 'ASSET_MOVEMENT_APPROVAL' &&
-                result.request.reference_id) {
-                const template = await (0, emailTemplates_1.generateEmailContent)(templateKeyMap_1.default.requestRejected, {
-                    employee_name: result.request.sfa_d_requests_requester.name,
-                    request_type: formatRequestType(result.request.request_type),
-                    remarks: remarks || 'No reason provided',
-                    company_name: 'SFA System',
-                });
-                await (0, mailer_1.sendEmail)({
-                    to: result.request.sfa_d_requests_requester.email,
-                    subject: template.subject,
-                    html: template.body,
-                    createdby: userId,
-                    log_inst: 1,
-                });
-                return res.status(200).json({
-                    message: 'Request rejected successfully',
-                });
-            }
-            if (result.status === 'fully_approved' &&
-                'request' in result &&
-                result.request.request_type === 'ASSET_MOVEMENT_APPROVAL' &&
-                result.request.reference_id) {
-                try {
-                    await (0, approvalWorkflow_helper_1.generateContractOnApproval)(result.request.reference_id);
-                }
-                catch (contractError) {
-                    console.error('Error generating contract after approval:', contractError);
                 }
             }
             if (result.status === 'rejected' && 'request' in result) {
