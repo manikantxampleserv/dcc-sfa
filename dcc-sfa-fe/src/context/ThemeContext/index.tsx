@@ -85,7 +85,7 @@ const ThemeContext = ({ children }: { children: React.ReactNode }) => {
       MuiChip: {
         styleOverrides: {
           root: {
-            borderRadius: '6px',
+            borderRadius: '4px',
             fontWeight: 500,
             fontSize: '0.75rem',
             height: 'auto',

@@ -5,12 +5,11 @@ import {
   useUpdateCoolerInstallation,
   type CoolerInstallation,
 } from 'hooks/useCoolerInstallations';
-import { useAssetMaster } from 'hooks/useAssetMaster';
-import type { AssetMaster } from 'services/masters/AssetMaster';
 import React from 'react';
 import { coolerInstallationValidationSchema } from 'schemas/coolerInstallation.schema';
 import Button from 'shared/Button';
 import CustomerSelect from 'shared/CustomerSelect';
+import AssetSelect from 'shared/AssetSelect';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
 import Select from 'shared/Select';
@@ -118,14 +117,6 @@ const ManageCoolerInstallation: React.FC<ManageCoolerInstallationProps> = ({
     },
   });
 
-  const { data: assetMasterData } = useAssetMaster({
-    page: 1,
-    limit: 1000000,
-    status: 'active',
-  });
-
-
-  const assets = assetMasterData?.data || [];
   return (
     <CustomDrawer
       open={drawerOpen}
@@ -137,19 +128,13 @@ const ManageCoolerInstallation: React.FC<ManageCoolerInstallationProps> = ({
         <form onSubmit={formik.handleSubmit} className="!space-y-6">
           <Box className="!grid !grid-cols-1 md:!grid-cols-2 !gap-6">
 
-            <Select
+            <AssetSelect
               name="asset_master_id"
               label="Cooler"
               formik={formik}
               required
               placeholder="Select Cooler"
-            >
-              {assets.map((asset: AssetMaster) => (
-                <MenuItem key={asset.id} value={asset.id}>
-                  {asset.name} [{asset.serial_number}]
-                </MenuItem>
-              ))}
-            </Select>
+            />
 
             <CustomerSelect
               name="customer_id"

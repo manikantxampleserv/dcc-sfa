@@ -786,7 +786,6 @@ export abstract class ImportExportService<T> {
           select: selectFields,
           where: whereClause,
           orderBy: { id: 'asc' },
-          take: 200,
         });
         return result;
       } catch (e1) {
@@ -800,7 +799,6 @@ export abstract class ImportExportService<T> {
         const result = await model.findMany({
           select: selectFields,
           orderBy: { id: 'asc' },
-          take: 200,
         });
         return result;
       } catch (e2) {

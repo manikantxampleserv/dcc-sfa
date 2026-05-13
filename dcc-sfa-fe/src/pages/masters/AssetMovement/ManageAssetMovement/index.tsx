@@ -42,6 +42,8 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
   const isEdit = !!selectedMovement;
   const [selectedAssetIds, setSelectedAssetIds] = useState<number[]>([]);
   const [availableSearch, setAvailableSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [displayedAssets, setDisplayedAssets] = useState<AssetMaster[]>([]);
 
   useEffect(() => {
     if (selectedMovement?.asset_ids) {
@@ -51,45 +53,87 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
     }
   }, [selectedMovement]);
 
-  const { data: assetsResponse } = useAssetMaster({
-    page: 1,
-    limit: 1000000,
+  useEffect(() => {
+    setPage(1);
+    setDisplayedAssets([]);
+  }, [availableSearch]);
+
+  const [knownAssetsMap, setKnownAssetsMap] = useState<Map<number, AssetMaster>>(new Map());
+
+  const { data: assetsResponse, isFetching } = useAssetMaster({
+    page,
+    limit: 100,
     status: 'active',
+    search: availableSearch,
   });
+
   const assets: AssetMaster[] = assetsResponse?.data || [];
+
+  useEffect(() => {
+    if (assets.length > 0) {
+      if (page === 1) {
+        setDisplayedAssets(assets);
+      } else {
+        setDisplayedAssets(prev => {
+          const newAssets = assets.filter(a => !prev.some(p => p.id === a.id));
+          return [...prev, ...newAssets];
+        });
+      }
+    } else if (page === 1) {
+      setDisplayedAssets([]);
+    }
+  }, [assets, page]);
+
+  useEffect(() => {
+    setKnownAssetsMap(prev => {
+      const newMap = new Map(prev);
+      displayedAssets.forEach(asset => newMap.set(asset.id, asset));
+
+      if (selectedMovement?.asset_movement_assets) {
+        selectedMovement.asset_movement_assets.forEach((item: any) => {
+          if (item.asset) {
+            newMap.set(item.asset.id, item.asset);
+          } else if (item.asset_master) {
+            newMap.set(item.asset_master.id, item.asset_master);
+          }
+        });
+      }
+      return newMap;
+    });
+  }, [displayedAssets, selectedMovement]);
 
   const createAssetMovementMutation = useCreateAssetMovement();
   const updateAssetMovementMutation = useUpdateAssetMovement();
 
-  const assetMap = useMemo(
-    () => new Map(assets.map((asset: AssetMaster) => [asset.id, asset])),
-    [assets]
-  );
-
   const selectedAssets = useMemo(
     () =>
       selectedAssetIds
-        .map(id => assetMap.get(id))
+        .map(
+          id =>
+            knownAssetsMap.get(id) ||
+            ({ id, name: `Loading Asset ${id}...` } as any)
+        )
         .filter(Boolean) as AssetMaster[],
-    [assetMap, selectedAssetIds]
+    [knownAssetsMap, selectedAssetIds]
   );
 
   const availableAssets = useMemo(() => {
     const selectedIds = new Set(selectedAssetIds);
-    const searchLower = availableSearch.trim().toLowerCase();
-    return assets.filter(asset => {
-      if (selectedIds.has(asset.id)) return false;
-      if (!searchLower) return true;
-      const name = asset.name?.toLowerCase() || '';
-      const serial = asset.serial_number?.toLowerCase() || '';
-      const type = asset.asset_master_asset_types?.name?.toLowerCase() || '';
-      return (
-        name.includes(searchLower) ||
-        serial.includes(searchLower) ||
-        type.includes(searchLower)
-      );
-    });
-  }, [availableSearch, assets, selectedAssetIds]);
+    return displayedAssets.filter(asset => !selectedIds.has(asset.id));
+  }, [displayedAssets, selectedAssetIds]);
+
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLDivElement;
+    if (
+      target.scrollHeight - target.scrollTop <= target.clientHeight + 50 &&
+      !isFetching &&
+      assetsResponse?.meta?.page &&
+      assetsResponse?.meta?.totalPages &&
+      assetsResponse.meta.page < assetsResponse.meta.totalPages
+    ) {
+      setPage(p => p + 1);
+    }
+  };
 
   const handleCancel = () => {
     setSelectedMovement(null);
@@ -368,7 +412,7 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
                         variant="subtitle1"
                         className="!font-semibold !text-blue-600"
                       >
-                        Available Assets ({availableAssets.length})
+                        Available Assets ({assetsResponse?.meta?.total || availableAssets.length})
                       </Typography>
                       <p className="!text-gray-500 !text-xs !block !mt-1">
                         Drag assets from the left panel to select
@@ -388,6 +432,7 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
                           <div
                             {...provided.droppableProps}
                             ref={provided.innerRef}
+                            onScroll={handleScroll}
                             className={`!h-full !p-2 !overflow-y-auto ${snapshot.isDraggingOver ? '!bg-blue-50' : ''
                               }`}
                             style={{
