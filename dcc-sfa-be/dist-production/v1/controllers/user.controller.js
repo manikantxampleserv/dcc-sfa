@@ -297,7 +297,7 @@ exports.userController = {
     async getUsers(req, res) {
         try {
             const { page = '1', limit = '10', search = '', isActive, role_id, depot_id, // Keep for filtering
-            zone_id, } = req.query;
+            zone_id, reporting_to, } = req.query;
             const page_num = parseInt(page, 10);
             const limit_num = parseInt(limit, 10);
             const searchLower = search.toLowerCase();
@@ -332,6 +332,7 @@ exports.userController = {
                     },
                 }),
                 ...(zone_id && { zone_id: Number(zone_id) }),
+                ...(reporting_to && { reporting_to: Number(reporting_to) }),
             };
             const { data, pagination } = await (0, paginate_1.paginate)({
                 model: prisma_client_1.default.users,

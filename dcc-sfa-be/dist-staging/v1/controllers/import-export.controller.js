@@ -56,7 +56,9 @@ exports.importExportController = {
     async importData(req, res, next) {
         try {
             const { table } = req.params;
-            const { batchSize = 100, skipDuplicates = false, updateExisting = false, } = req.body;
+            const batchSize = req.body.batchSize ? parseInt(req.body.batchSize) : 100;
+            const skipDuplicates = req.body.skipDuplicates === true || req.body.skipDuplicates === 'true';
+            const updateExisting = req.body.updateExisting === true || req.body.updateExisting === 'true';
             const service = import_export_factory_service_1.ImportExportFactory.getService(table);
             if (!service) {
                 return res.status(400).json({
