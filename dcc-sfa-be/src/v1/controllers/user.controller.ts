@@ -543,6 +543,16 @@ export const userController = {
               email: true,
             },
           },
+          other_users: {
+            where: { is_active: 'Y' },
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              employee_id: true,
+              profile_image: true,
+            },
+          },
         },
       });
 
@@ -569,9 +579,41 @@ export const userController = {
         },
       });
 
-      const serializedUser = serializeUser(user,true,true);
+      // Calculate subordinate count
+      const subordinateCount = await prisma.users.count({
+        where: { reporting_to: id, is_active: 'Y' },
+      });
+
+      // Calculate manager team count (colleagues)
+      let managerTeamCount = 0;
+      if (user.reporting_to) {
+        managerTeamCount = await prisma.users.count({
+          where: { reporting_to: Number(user.reporting_to), is_active: 'Y' },
+        });
+      }
+
+      // Fetch manager's team members
+      let managerTeamMembers: any[] = [];
+      if (user.reporting_to) {
+        managerTeamMembers = await prisma.users.findMany({
+          where: { reporting_to: Number(user.reporting_to), is_active: 'Y' },
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            employee_id: true,
+            profile_image: true,
+          },
+        });
+      }
+
+      const serializedUser = serializeUser(user, true, true);
       const responseData = {
         ...serializedUser,
+        subordinates: user.other_users || [],
+        manager_team_members: managerTeamMembers,
+        subordinate_count: subordinateCount,
+        manager_team_count: managerTeamCount,
         recent_activities: {
           audit_logs: recentAuditLogs.map(log => ({
             id: log.id,

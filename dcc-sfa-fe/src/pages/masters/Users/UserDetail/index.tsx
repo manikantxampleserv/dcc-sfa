@@ -10,6 +10,7 @@ import {
   Delete,
   Computer,
   Language,
+  Group,
 } from '@mui/icons-material';
 import { Alert, Avatar, Chip, Skeleton, Typography, Box } from '@mui/material';
 import classNames from 'classnames';
@@ -363,7 +364,10 @@ const UserDetail: React.FC = () => {
                 {user.reporting_manager?.name || 'Not assigned'}
               </Typography>
             </div>
-            <div className="!space-y-0.5">
+
+
+
+            <div className="!space-y-0.5 col-span-2">
               <Typography
                 variant="caption"
                 className="!text-gray-500 !text-xs !uppercase !tracking-wide"
@@ -392,6 +396,53 @@ const UserDetail: React.FC = () => {
             </div>
           </div>
         </InfoCard>
+
+        {user.reporting_manager && user.manager_team_members && user.manager_team_members.length > 0 && (
+          <InfoCard title={`Team`} icon={Group}>
+            <div className="flex flex-col gap-3">
+              {[...user.manager_team_members]
+                .filter((member) => member.id !== user.id)
+                .sort((a, b) => a.name.localeCompare(b.name))
+                .map((member) => (
+                  <div key={member.id} className="flex items-center gap-3 p-2 bg-gray-50 rounded-lg border border-gray-100">
+                    <Avatar src={member.profile_image || undefined} className="!w-10 !h-10 !bg-primary-100 !text-primary-700 !rounded">
+                      {getInitials(member.name)}
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <Typography variant="body2" className="!font-bold !text-gray-900 truncate">
+                        {member.name} {member.id === user.id && <span className="text-primary-500 text-[10px] uppercase ml-1">(M)</span>}
+                      </Typography>
+                      <Typography variant="caption" className="!text-gray-500 block">
+                        {member.employee_id || 'No ID'}
+                      </Typography>
+                    </div>
+                  </div>
+                ))}
+            </div>
+          </InfoCard>
+        )}
+
+        {user.subordinates && user.subordinates.length > 0 && (
+          <InfoCard title={`Direct Reports (${user.subordinate_count})`} icon={Person}>
+            <div className="flex flex-col gap-3">
+              {user.subordinates.map((sub) => (
+                <div key={sub.id} className="flex items-center gap-3 p-2 bg-gray-50 rounded-lg border border-gray-100">
+                  <Avatar src={sub.profile_image || undefined} className="!w-8 !h-8 !bg-green-100 !text-green-700 !text-xs">
+                    {getInitials(sub.name)}
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <Typography variant="body2" className="!font-bold !text-gray-900 truncate">
+                      {sub.name}
+                    </Typography>
+                    <Typography variant="caption" className="!text-gray-500 block">
+                      {sub.employee_id || 'No ID'}
+                    </Typography>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </InfoCard>
+        )}
       </div>
 
       <div className="lg:!col-span-8 flex flex-col gap-5">
