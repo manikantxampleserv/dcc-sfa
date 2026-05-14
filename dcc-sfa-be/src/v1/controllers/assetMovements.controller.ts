@@ -330,15 +330,15 @@ export const assetMovementsController = {
           updatedby: req.user?.id || 1,
         };
 
-        if (toDepotId) {
-          assetUpdateData.depot_id = toDepotId;
-          assetUpdateData.outlet_id = null;
-        }
+        // if (toDepotId) {
+        //   assetUpdateData.depot_id = toDepotId;
+        //   assetUpdateData.outlet_id = null;
+        // }
 
-        if (toCustomerId) {
-          assetUpdateData.outlet_id = toCustomerId;
-          assetUpdateData.depot_id = null;
-        }
+        // if (toCustomerId) {
+        //   assetUpdateData.outlet_id = toCustomerId;
+        //   assetUpdateData.depot_id = null;
+        // }
 
         if (isDepotToOutletMovement) {
           assetUpdateData.installation_date = new Date();
@@ -359,6 +359,7 @@ export const assetMovementsController = {
       }
 
       setTimeout(async () => {
+        // TODO: LATER I WILL DO THIS
         try {
           await createRequest({
             requester_id: data.performed_by,
