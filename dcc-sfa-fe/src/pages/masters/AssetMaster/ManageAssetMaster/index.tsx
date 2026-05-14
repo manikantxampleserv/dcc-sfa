@@ -16,7 +16,7 @@ import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
 import Select from 'shared/Select';
-import UserSelect from 'shared/UserSelect';
+import DepotSelect from 'shared/DepotSelect';
 
 export const statusOptions = [
   { value: 'Available', label: 'Available' },
@@ -77,7 +77,7 @@ const ManageAssetMaster: React.FC<ManageAssetMasterProps> = ({
         : null,
       warranty_period: '1',
       current_status: selectedAsset?.current_status || 'Available',
-      assigned_to: selectedAsset?.assigned_to || '',
+      depot_id: selectedAsset?.depot_id || '',
       is_active: selectedAsset?.is_active || 'Y',
     },
     validationSchema: assetMasterValidationSchema,
@@ -96,7 +96,7 @@ const ManageAssetMaster: React.FC<ManageAssetMasterProps> = ({
           purchase_date: values.purchase_date || null,
           warranty_expiry: values.warranty_expiry || null,
           current_status: values.current_status || null,
-          assigned_to: values.assigned_to || null,
+          depot_id: values.depot_id ? Number(values.depot_id) : null,
         };
 
         if (isEdit && selectedAsset) {
@@ -288,11 +288,11 @@ const ManageAssetMaster: React.FC<ManageAssetMasterProps> = ({
               ))}
             </Select>
 
-            <UserSelect
-              name="assigned_to"
-              label="Assigned To"
+            <DepotSelect
+              name="depot_id"
+              label="Depot"
               formik={formik}
-              placeholder="Search user..."
+              placeholder="Select depot"
             />
 
             <ActiveInactiveField

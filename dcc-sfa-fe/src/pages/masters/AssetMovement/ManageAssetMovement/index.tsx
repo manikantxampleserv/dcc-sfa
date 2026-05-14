@@ -4,7 +4,7 @@ import {
   Droppable,
   type DropResult,
 } from '@hello-pangea/dnd';
-import { Box, MenuItem, Typography, Avatar } from '@mui/material';
+import { Box, MenuItem, Typography, Avatar, Skeleton } from '@mui/material';
 import { useFormik } from 'formik';
 import { useAssetMaster, type AssetMaster } from 'hooks/useAssetMaster';
 import {
@@ -45,95 +45,8 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
   const [page, setPage] = useState(1);
   const [displayedAssets, setDisplayedAssets] = useState<AssetMaster[]>([]);
 
-  useEffect(() => {
-    if (selectedMovement?.asset_ids) {
-      setSelectedAssetIds(selectedMovement.asset_ids);
-    } else {
-      setSelectedAssetIds([]);
-    }
-  }, [selectedMovement]);
-
-  useEffect(() => {
-    setPage(1);
-    setDisplayedAssets([]);
-  }, [availableSearch]);
-
-  const [knownAssetsMap, setKnownAssetsMap] = useState<Map<number, AssetMaster>>(new Map());
-
-  const { data: assetsResponse, isFetching } = useAssetMaster({
-    page,
-    limit: 100,
-    status: 'active',
-    search: availableSearch,
-  });
-
-  const assets: AssetMaster[] = assetsResponse?.data || [];
-
-  useEffect(() => {
-    if (assets.length > 0) {
-      if (page === 1) {
-        setDisplayedAssets(assets);
-      } else {
-        setDisplayedAssets(prev => {
-          const newAssets = assets.filter(a => !prev.some(p => p.id === a.id));
-          return [...prev, ...newAssets];
-        });
-      }
-    } else if (page === 1) {
-      setDisplayedAssets([]);
-    }
-  }, [assets, page]);
-
-  useEffect(() => {
-    setKnownAssetsMap(prev => {
-      const newMap = new Map(prev);
-      displayedAssets.forEach(asset => newMap.set(asset.id, asset));
-
-      if (selectedMovement?.asset_movement_assets) {
-        selectedMovement.asset_movement_assets.forEach((item: any) => {
-          if (item.asset) {
-            newMap.set(item.asset.id, item.asset);
-          } else if (item.asset_master) {
-            newMap.set(item.asset_master.id, item.asset_master);
-          }
-        });
-      }
-      return newMap;
-    });
-  }, [displayedAssets, selectedMovement]);
-
   const createAssetMovementMutation = useCreateAssetMovement();
   const updateAssetMovementMutation = useUpdateAssetMovement();
-
-  const selectedAssets = useMemo(
-    () =>
-      selectedAssetIds
-        .map(
-          id =>
-            knownAssetsMap.get(id) ||
-            ({ id, name: `Loading Asset ${id}...` } as any)
-        )
-        .filter(Boolean) as AssetMaster[],
-    [knownAssetsMap, selectedAssetIds]
-  );
-
-  const availableAssets = useMemo(() => {
-    const selectedIds = new Set(selectedAssetIds);
-    return displayedAssets.filter(asset => !selectedIds.has(asset.id));
-  }, [displayedAssets, selectedAssetIds]);
-
-  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    const target = e.target as HTMLDivElement;
-    if (
-      target.scrollHeight - target.scrollTop <= target.clientHeight + 50 &&
-      !isFetching &&
-      assetsResponse?.meta?.page &&
-      assetsResponse?.meta?.totalPages &&
-      assetsResponse.meta.page < assetsResponse.meta.totalPages
-    ) {
-      setPage(p => p + 1);
-    }
-  };
 
   const handleCancel = () => {
     setSelectedMovement(null);
@@ -142,53 +55,6 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
     setAvailableSearch('');
     formik.resetForm();
   };
-
-  const handleDragEnd = useCallback(
-    (result: DropResult) => {
-      const { destination, source, draggableId } = result;
-      if (!destination) return;
-
-      if (
-        destination.droppableId === source.droppableId &&
-        destination.index === source.index
-      ) {
-        return;
-      }
-
-      const assetId = parseInt(draggableId, 10);
-      if (Number.isNaN(assetId)) return;
-
-      if (
-        source.droppableId === 'available-assets' &&
-        destination.droppableId === 'selected-assets'
-      ) {
-        if (selectedAssetIds.includes(assetId)) return;
-        const updated = Array.from(selectedAssetIds);
-        updated.splice(destination.index, 0, assetId);
-        setSelectedAssetIds(updated);
-        return;
-      }
-
-      if (
-        source.droppableId === 'selected-assets' &&
-        destination.droppableId === 'available-assets'
-      ) {
-        setSelectedAssetIds(selectedAssetIds.filter(id => id !== assetId));
-        return;
-      }
-
-      if (
-        source.droppableId === 'selected-assets' &&
-        destination.droppableId === 'selected-assets'
-      ) {
-        const updated = Array.from(selectedAssetIds);
-        const [moved] = updated.splice(source.index, 1);
-        updated.splice(destination.index, 0, moved);
-        setSelectedAssetIds(updated);
-      }
-    },
-    [selectedAssetIds, setSelectedAssetIds]
-  );
 
   const handleDirectionChange = (fieldName: string, value: string) => {
     formik.setFieldValue(fieldName, value);
@@ -266,6 +132,148 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
     },
   });
 
+  const handleDragEnd = useCallback(
+    (result: DropResult) => {
+      const { destination, source, draggableId } = result;
+      if (!destination) return;
+
+      if (
+        destination.droppableId === source.droppableId &&
+        destination.index === source.index
+      ) {
+        return;
+      }
+
+      const assetId = parseInt(draggableId, 10);
+      if (Number.isNaN(assetId)) return;
+
+      if (
+        source.droppableId === 'available-assets' &&
+        destination.droppableId === 'selected-assets'
+      ) {
+        if (selectedAssetIds.includes(assetId)) return;
+        const updated = Array.from(selectedAssetIds);
+        updated.splice(destination.index, 0, assetId);
+        setSelectedAssetIds(updated);
+        return;
+      }
+
+      if (
+        source.droppableId === 'selected-assets' &&
+        destination.droppableId === 'available-assets'
+      ) {
+        setSelectedAssetIds(selectedAssetIds.filter(id => id !== assetId));
+        return;
+      }
+
+      if (
+        source.droppableId === 'selected-assets' &&
+        destination.droppableId === 'selected-assets'
+      ) {
+        const updated = Array.from(selectedAssetIds);
+        const [moved] = updated.splice(source.index, 1);
+        updated.splice(destination.index, 0, moved);
+        setSelectedAssetIds(updated);
+      }
+    },
+    [selectedAssetIds, setSelectedAssetIds]
+  );
+
+  useEffect(() => {
+    if (selectedMovement?.asset_ids) {
+      setSelectedAssetIds(selectedMovement.asset_ids);
+    } else {
+      setSelectedAssetIds([]);
+    }
+  }, [selectedMovement]);
+
+  useEffect(() => {
+    setPage(1);
+    setDisplayedAssets([]);
+  }, [availableSearch, formik.values.from_direction, formik.values.from_depot, formik.values.from_outlet]);
+
+  const [knownAssetsMap, setKnownAssetsMap] = useState<Map<number, AssetMaster>>(new Map());
+
+  const { data: assetsResponse, isFetching } = useAssetMaster({
+    page,
+    limit: 100,
+    status: 'active',
+    search: availableSearch,
+    depot_id:
+      formik.values.from_direction === 'depot' && formik.values.from_depot
+        ? Number(formik.values.from_depot)
+        : undefined,
+    outlet_id:
+      formik.values.from_direction === 'outlet' && formik.values.from_outlet
+        ? Number(formik.values.from_outlet)
+        : undefined,
+  });
+
+  const assets: AssetMaster[] = assetsResponse?.data || [];
+
+  useEffect(() => {
+    if (assets.length > 0) {
+      if (page === 1) {
+        setDisplayedAssets(assets);
+      } else {
+        setDisplayedAssets(prev => {
+          const newAssets = assets.filter(a => !prev.some(p => p.id === a.id));
+          return [...prev, ...newAssets];
+        });
+      }
+    } else if (page === 1) {
+      setDisplayedAssets([]);
+    }
+  }, [assets, page]);
+
+  useEffect(() => {
+    setKnownAssetsMap(prev => {
+      const newMap = new Map(prev);
+      displayedAssets.forEach(asset => newMap.set(asset.id, asset));
+
+      if (selectedMovement?.asset_movement_assets) {
+        selectedMovement.asset_movement_assets.forEach((item: any) => {
+          if (item.asset) {
+            newMap.set(item.asset.id, item.asset);
+          } else if (item.asset_master) {
+            newMap.set(item.asset_master.id, item.asset_master);
+          }
+        });
+      }
+      return newMap;
+    });
+  }, [displayedAssets, selectedMovement]);
+
+  const selectedAssets = useMemo(
+    () =>
+      selectedAssetIds
+        .map(
+          id =>
+            knownAssetsMap.get(id) ||
+            ({ id, name: `Loading Asset ${id}...` } as any)
+        )
+        .filter(Boolean) as AssetMaster[],
+    [knownAssetsMap, selectedAssetIds]
+  );
+
+  const availableAssets = useMemo(() => {
+    const selectedIds = new Set(selectedAssetIds);
+    return displayedAssets.filter(asset => !selectedIds.has(asset.id));
+  }, [displayedAssets, selectedAssetIds]);
+
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLDivElement;
+    if (
+      target.scrollHeight - target.scrollTop <= target.clientHeight + 50 &&
+      !isFetching &&
+      assetsResponse?.meta?.page &&
+      assetsResponse?.meta?.totalPages &&
+      assetsResponse.meta.page < assetsResponse.meta.totalPages
+    ) {
+      setPage(p => p + 1);
+    }
+  };
+
   // Update formik asset_ids when selectedAssetIds changes
   useEffect(() => {
     formik.setFieldValue('asset_ids', selectedAssetIds);
@@ -279,6 +287,17 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
     { value: 'disposal', label: 'Disposal' },
     { value: 'return', label: 'Return' },
   ];
+
+  const AssetCardSkeleton = () => (
+    <Box className="!flex !items-center !gap-3 !p-2 !pr-3 !bg-white !border !border-gray-200 !rounded-lg !mb-2">
+      <GripVertical className="!w-5 !h-5 !text-gray-400 !cursor-grab !flex-shrink-0" />
+      <Skeleton variant="circular" width={36} height={36} className="!flex-shrink-0" />
+      <Box className="!flex-1">
+        <Skeleton variant="text" width="60%" />
+        <Skeleton variant="text" width="40%" />
+      </Box>
+    </Box>
+  );
 
   const AssetCard = ({ asset }: { asset: AssetMaster; showIndex?: number }) => (
     <div className="!flex !items-center !gap-3 !p-2 !pr-3 !bg-white !border !border-gray-200 !rounded-lg !mb-2 hover:!border-blue-300 hover:!shadow-md">
@@ -439,7 +458,11 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
                               transition: 'background-color 0.2s ease',
                             }}
                           >
-                            {availableAssets.length > 0 ? (
+                            {isFetching && page === 1 ? (
+                              Array.from({ length: 5 }).map((_, i) => (
+                                <AssetCardSkeleton key={i} />
+                              ))
+                            ) : availableAssets.length > 0 ? (
                               availableAssets.map(
                                 (asset: AssetMaster, index: number) => (
                                   <Draggable
@@ -473,6 +496,11 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
                                     ? 'No assets found'
                                     : 'All assets are selected'}
                                 </Typography>
+                              </Box>
+                            )}
+                            {isFetching && page > 1 && (
+                              <Box className="!py-2">
+                                <AssetCardSkeleton />
                               </Box>
                             )}
                             {provided.placeholder}

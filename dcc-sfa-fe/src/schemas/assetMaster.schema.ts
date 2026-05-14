@@ -132,13 +132,25 @@ export const assetMasterValidationSchema = Yup.object({
       'Invalid status selected'
     ),
 
-  assigned_to: Yup.string()
-    .nullable()
-    .max(100, 'Assigned to must not exceed 100 characters'),
 
   warranty_period: Yup.string()
     .oneOf(['1', '2', '3', '4', '5'], 'Invalid warranty period selected')
     .default('1'),
+
+  depot_id: Yup.number()
+    .nullable()
+    .positive('Depot must be valid')
+    .transform((value, originalValue) => {
+      if (
+        originalValue === '' ||
+        originalValue === null ||
+        originalValue === undefined ||
+        originalValue === 0
+      ) {
+        return null;
+      }
+      return value;
+    }),
 
   is_active: Yup.string()
     .oneOf(['Y', 'N'], 'Status must be Y or N')

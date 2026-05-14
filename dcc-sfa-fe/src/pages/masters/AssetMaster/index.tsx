@@ -1,22 +1,24 @@
 import { Add, Block, CheckCircle, Download, Upload } from '@mui/icons-material';
 import { Alert, Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
+import {
+  useAssetMaster,
+  useDeleteAssetMaster,
+  type AssetMaster,
+} from 'hooks/useAssetMaster';
 import { useExportToExcel } from 'hooks/useImportExport';
 import { usePermission } from 'hooks/usePermission';
 import {
-  useDeleteAssetMaster,
-  useAssetMaster,
-  type AssetMaster,
-} from 'hooks/useAssetMaster';
-import {
-  Package,
-  MapPin,
-  User,
   Calendar,
+  Home,
+  MapPin,
+  Package,
   Settings,
-  Wrench,
+  Store,
   Tag,
+  Wrench
 } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { DeleteButton, EditButton, ViewButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
 import { PopConfirm } from 'shared/DeleteConfirmation';
@@ -24,7 +26,6 @@ import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
-import { useNavigate } from 'react-router-dom';
 import { formatDate } from 'utils/dateUtils';
 import ImportAssetMaster from './ImportAssetMaster';
 import ManageAssetMaster from './ManageAssetMaster';
@@ -211,6 +212,34 @@ const AssetMasterManagement: React.FC = () => {
       ),
     },
     {
+      id: 'asset_master_depot',
+      label: 'Depot',
+      render: value => (
+        <Box className="flex items-center gap-1">
+          <Home className="w-3 h-3 text-gray-400" />
+          <span className="text-xs">
+            {value?.name || (
+              <span className="italic text-gray-400">No depot</span>
+            )}
+          </span>
+        </Box>
+      ),
+    },
+    {
+      id: 'asset_master_outlet',
+      label: 'Outlet',
+      render: value => (
+        <Box className="flex items-center gap-1">
+          <Store className="w-3 h-3 text-gray-400" />
+          <span className="text-xs">
+            {value?.name || (
+              <span className="italic text-gray-400">No outlet</span>
+            )}
+          </span>
+        </Box>
+      ),
+    },
+    {
       id: 'current_location',
       label: 'Location',
       render: (_value, row) => (
@@ -233,20 +262,6 @@ const AssetMasterManagement: React.FC = () => {
           color={getStatusColor(row.current_status || 'Available')}
           size="small"
         />
-      ),
-    },
-    {
-      id: 'assigned_to',
-      label: 'Assigned To',
-      render: (_value, row) => (
-        <Box className="flex items-center gap-1">
-          <User className="w-3 h-3 text-gray-400" />
-          <span className="text-xs">
-            {row.assigned_to || (
-              <span className="italic text-gray-400">Not assigned</span>
-            )}
-          </span>
-        </Box>
       ),
     },
     {

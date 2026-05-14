@@ -47,7 +47,7 @@ export class AssetMasterImportExportService extends ImportExportService<any> {
       masterKey: 'id',
       masterDisplayFields: ['id', 'name', 'code'],
       sheetName: 'Ref - Depots',
-      description: 'Use the ID from this sheet in the Current Location column',
+      description: 'Use the ID from this sheet in the Depot ID column',
     },
     {
       masterTable: 'customers' as any,
@@ -72,6 +72,38 @@ export class AssetMasterImportExportService extends ImportExportService<any> {
       },
       transform: value => value.toString().toUpperCase().trim(),
       description: 'Unique serial number (required, max 100 chars)',
+    },
+    {
+      key: 'barcode',
+      header: 'Barcode',
+      width: 20,
+      required: false,
+      type: 'string',
+      validation: value => {
+        if (value && value.length > 255)
+          return 'Barcode must be less than 255 characters';
+        return true;
+      },
+      transform: value => value?.toString().trim() || null,
+      description: 'Asset barcode (optional)',
+    },
+    {
+      key: 'depot_id',
+      header: 'Depot ID',
+      width: 15,
+      required: false,
+      type: 'number',
+      transform: value => (value ? parseInt(value) : null),
+      description: 'ID of the depot (optional)',
+    },
+    {
+      key: 'outlet_id',
+      header: 'Outlet ID',
+      width: 15,
+      required: false,
+      type: 'number',
+      transform: value => (value ? parseInt(value) : null),
+      description: 'ID of the outlet/customer (optional)',
     },
     {
       key: 'name',
@@ -255,6 +287,9 @@ export class AssetMasterImportExportService extends ImportExportService<any> {
         asset_brand_id: assetBrand?.id || 1,
         asset_brand_name: assetBrand?.name || 'Samsung',
         serial_number: 'COOLER-001-2024',
+        barcode: 'BC123456789',
+        depot_id: 1,
+        outlet_id: null,
         purchase_date: '2024-01-15',
         warranty_expiry: '2026-01-15',
         current_location: 'Main Warehouse - Section A',
@@ -277,6 +312,8 @@ export class AssetMasterImportExportService extends ImportExportService<any> {
         asset_master_asset_types: true,
         asset_master_asset_sub_types: true,
         asset_master_brands: true,
+        asset_master_depot: true,
+        asset_master_outlet: true,
       },
     };
     return super.exportToExcel(exportOptions);
@@ -293,6 +330,11 @@ export class AssetMasterImportExportService extends ImportExportService<any> {
       asset_brand_id: asset.asset_brand_id || '',
       asset_brand_name: asset.asset_master_brands?.name || '',
       serial_number: asset.serial_number,
+      barcode: asset.barcode || '',
+      depot_id: asset.depot_id || '',
+      depot_name: asset.asset_master_depot?.name || '',
+      outlet_id: asset.outlet_id || '',
+      outlet_name: asset.asset_master_outlet?.name || '',
       purchase_date: asset.purchase_date
         ? asset.purchase_date.toISOString().split('T')[0]
         : '',
@@ -359,6 +401,24 @@ export class AssetMasterImportExportService extends ImportExportService<any> {
       }
     }
 
+    if (data.depot_id) {
+      const depot = await prismaClient.depots.findUnique({
+        where: { id: data.depot_id },
+      });
+      if (!depot) {
+        return `Depot with ID ${data.depot_id} does not exist`;
+      }
+    }
+
+    if (data.outlet_id) {
+      const outlet = await prismaClient.customers.findUnique({
+        where: { id: data.outlet_id },
+      });
+      if (!outlet) {
+        return `Outlet with ID ${data.outlet_id} does not exist`;
+      }
+    }
+
     return null;
   }
 
@@ -378,6 +438,7 @@ export class AssetMasterImportExportService extends ImportExportService<any> {
       name: data.name,
       code: assetCode,
       serial_number: data.serial_number,
+      barcode: data.barcode || null,
       purchase_date: data.purchase_date || null,
       warranty_expiry: data.warranty_expiry || null,
       current_location: data.current_location || null,
@@ -407,6 +468,18 @@ export class AssetMasterImportExportService extends ImportExportService<any> {
       };
     }
 
+    if (data.depot_id) {
+      relationshipData.asset_master_depot = {
+        connect: { id: data.depot_id },
+      };
+    }
+
+    if (data.outlet_id) {
+      relationshipData.asset_master_outlet = {
+        connect: { id: data.outlet_id },
+      };
+    }
+
     const finalData = {
       ...baseData,
       ...relationshipData,
@@ -432,6 +505,7 @@ export class AssetMasterImportExportService extends ImportExportService<any> {
     const updateData: any = {
       name: data.name,
       code: data.code || undefined,
+      barcode: data.barcode !== undefined ? data.barcode : undefined,
       purchase_date:
         data.purchase_date !== undefined ? data.purchase_date : undefined,
       warranty_expiry:
@@ -460,6 +534,18 @@ export class AssetMasterImportExportService extends ImportExportService<any> {
     if (data.asset_brand_id) {
       updateData.asset_master_brands = {
         connect: { id: data.asset_brand_id },
+      };
+    }
+
+    if (data.depot_id) {
+      updateData.asset_master_depot = {
+        connect: { id: data.depot_id },
+      };
+    }
+
+    if (data.outlet_id) {
+      updateData.asset_master_outlet = {
+        connect: { id: data.outlet_id },
       };
     }
 

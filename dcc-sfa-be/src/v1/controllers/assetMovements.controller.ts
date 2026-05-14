@@ -323,55 +323,41 @@ export const assetMovementsController = {
       const isDepotToOutletMovement =
         fromDirection === 'depot' && toDirection === 'outlet';
 
-      if (isDepotToOutletMovement) {
-        try {
-          await prisma.asset_master.updateMany({
-            where: {
-              id: { in: assetIds },
-            },
-            data: {
-              installation_date: new Date(),
-              // last_scanned_date: new Date(),
-              // last_read_by: req.user?.id || 1,
-              updatedate: new Date(),
-              updatedby: req.user?.id || 1,
-            },
-          });
-          console.log(
-            `Installation dates updated for ${assetIds.length} assets in depot-to-outlet movement`
-          );
-        } catch (updateError) {
-          console.error('Error updating installation dates:', updateError);
-        }
-      }
-      setTimeout(async () => {
-        try {
-          await createAssetMovementApprovalWorkflow(
-            assetMovement.id,
-            `AMV-${assetMovement.id.toString().padStart(5, '0')}`,
-            data.performed_by,
-            data.priority || 'medium',
-            {
-              asset_ids: assetIds,
-              from_direction: data.from_direction,
-              to_direction: data.to_direction,
-              from_depot_id: fromDepotId,
-              from_customer_id: fromCustomerId,
-              to_depot_id: toDepotId,
-              to_customer_id: toCustomerId,
-              movement_type: data.movement_type,
-              movement_date: data.movement_date,
-              notes: data.notes,
-            },
-            req.user?.id || 1
-          );
-          console.log(
-            `Approval workflow created for asset movement: AMV-${assetMovement.id.toString().padStart(5, '0')}`
-          );
-        } catch (workflowError) {
-          console.error('Error creating approval workflow:', workflowError);
+      try {
+        const assetUpdateData: any = {
+          current_status: assetStatusUpdate,
+          updatedate: new Date(),
+          updatedby: req.user?.id || 1,
+        };
+
+        if (toDepotId) {
+          assetUpdateData.depot_id = toDepotId;
+          assetUpdateData.outlet_id = null;
         }
 
+        if (toCustomerId) {
+          assetUpdateData.outlet_id = toCustomerId;
+        }
+
+        if (isDepotToOutletMovement) {
+          assetUpdateData.installation_date = new Date();
+        }
+
+        await prisma.asset_master.updateMany({
+          where: {
+            id: { in: assetIds },
+          },
+          data: assetUpdateData,
+        });
+
+        console.log(
+          `Asset Master records updated for ${assetIds.length} assets during movement`
+        );
+      } catch (updateError) {
+        console.error('Error updating asset master records:', updateError);
+      }
+
+      setTimeout(async () => {
         try {
           await createRequest({
             requester_id: data.performed_by,

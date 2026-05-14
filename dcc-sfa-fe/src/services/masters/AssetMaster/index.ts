@@ -36,7 +36,7 @@ export interface AssetMaster {
   warranty_expiry?: string | null;
   current_location?: string | null;
   current_status?: string | null;
-  assigned_to?: string | null;
+  depot_id?: number | null;
   is_active: string;
   createdate?: string | null;
   createdby: number;
@@ -50,6 +50,16 @@ export interface AssetMaster {
   asset_master_asset_types?: AssetType;
   asset_master_asset_sub_types?: AssetSubType;
   asset_brand?: {
+    id: number;
+    name: string;
+    code: string;
+  };
+  asset_master_depot?: {
+    id: number;
+    name: string;
+    code: string;
+  };
+  asset_master_outlet?: {
     id: number;
     name: string;
     code: string;
@@ -138,7 +148,7 @@ export interface CreateAssetMasterPayload {
   name: string;
   asset_type_id: number;
   asset_sub_type_id?: number | null;
-  brand_id?: number | null;
+  asset_brand_id?: number | null;
   serial_number: string;
   barcode?: string | null;
   nfc_tag_code?: string | null;
@@ -146,7 +156,7 @@ export interface CreateAssetMasterPayload {
   warranty_expiry?: string | null;
   current_location?: string | null;
   current_status?: string | null;
-  assigned_to?: string | null;
+  depot_id?: number | null;
   is_active?: string;
 }
 
@@ -154,7 +164,7 @@ export interface UpdateAssetMasterPayload {
   name?: string;
   asset_type_id?: number;
   asset_sub_type_id?: number | null;
-  brand_id?: number | null;
+  asset_brand_id?: number | null;
   serial_number?: string;
   barcode?: string | null;
   nfc_tag_code?: string | null;
@@ -162,7 +172,7 @@ export interface UpdateAssetMasterPayload {
   warranty_expiry?: string | null;
   current_location?: string | null;
   current_status?: string | null;
-  assigned_to?: string | null;
+  depot_id?: number | null;
   is_active?: string;
 }
 
@@ -171,6 +181,8 @@ export interface AssetMasterQueryParams {
   limit?: number;
   search?: string;
   status?: string;
+  depot_id?: number;
+  outlet_id?: number;
 }
 
 export interface AssetMasterStats {

@@ -254,6 +254,7 @@ model depots {
   user_depot                   users[]
   van_inventory_depot          van_inventory[]         @relation("VanInventoryDepot")
   zone_depots                  zones[]
+  asset_master_depot           asset_master[]
 }
 
 model api_tokens {
@@ -361,6 +362,8 @@ model asset_master {
   barcode                      String?
   nfc_tag                      String?
   brand_id                     Int?
+  depot_id                     Int?
+  outlet_id                    Int?
   brand                        String?                 @db.VarChar(255)
   asset_brand_id               Int?
   installation_date            DateTime?               @db.Date
@@ -372,10 +375,12 @@ model asset_master {
   asset_master_asset_sub_types asset_sub_types?        @relation(fields: [asset_sub_type_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   asset_master_asset_types     asset_types             @relation(fields: [asset_type_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   asset_master_brand           brands?                 @relation(fields: [brand_id], references: [id], onDelete: Cascade)
-  asset_master_last_read       users?                  @relation(fields: [last_read_by], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  asset_master_last_read       users?                  @relation(fields: [last_read_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
   asset_movement_assets_asset  asset_movement_assets[]
   asset_master_warranty_claims asset_warranty_claims[]
   cooler_asset_master          coolers[]
+  asset_master_depot           depots?                 @relation(fields: [depot_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  asset_master_outlet          customers?              @relation(fields: [outlet_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }
 
 model asset_sub_types {
@@ -986,6 +991,7 @@ model customers {
   survey_response_customer               survey_responses[]              @relation("SurveyRresponsesCustomer")
   visit_customers                        visits[]
   warranty_claims_customers              warranty_claims[]
+  asset_master_outlet                    asset_master[]
 }
 
 model customer_image {

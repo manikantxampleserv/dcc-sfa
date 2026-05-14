@@ -105,7 +105,7 @@ export const approvalWorkflowSetupController = {
         data: serializedData,
       });
 
-      console.log(` Created ${result.count} approval workflows`);
+      console.log(`Created ${result.count} approval workflows`);
 
       const createdWorkflows = await prisma.approval_work_flow.findMany({
         where: {
