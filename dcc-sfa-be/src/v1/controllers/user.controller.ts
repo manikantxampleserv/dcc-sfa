@@ -343,6 +343,7 @@ export const userController = {
         role_id,
         depot_id, // Keep for filtering
         zone_id,
+        reporting_to,
       } = req.query;
 
       const page_num = parseInt(page as string, 10);
@@ -380,6 +381,7 @@ export const userController = {
           },
         }),
         ...(zone_id && { zone_id: Number(zone_id) }),
+        ...(reporting_to && { reporting_to: Number(reporting_to) }),
       };
 
       const { data, pagination } = await paginate({

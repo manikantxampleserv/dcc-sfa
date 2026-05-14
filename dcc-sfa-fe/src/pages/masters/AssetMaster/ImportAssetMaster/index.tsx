@@ -50,6 +50,7 @@ const ImportAssetMaster: React.FC<ImportAssetMasterProps> = ({
   const formik = useFormik({
     initialValues: {
       file: null,
+      updateExisting: true,
     },
     validationSchema: importValidationSchema,
     onSubmit: async () => {
@@ -90,7 +91,7 @@ const ImportAssetMaster: React.FC<ImportAssetMasterProps> = ({
         options: {
           batchSize: 100,
           skipDuplicates: false,
-          updateExisting: false,
+          updateExisting: formik.values.updateExisting,
         },
       });
     } catch (error) {
@@ -184,6 +185,33 @@ const ImportAssetMaster: React.FC<ImportAssetMasterProps> = ({
                 Download
               </Button>
             </Box>
+          </Box>
+
+          {/* Import Options Section */}
+          <Box className="!p-4 !border !border-gray-200 !rounded-lg">
+            <Typography variant="subtitle1" className="!font-medium !mb-3">
+              Import Options
+            </Typography>
+            <Box className="!flex !items-center !gap-2">
+              <input
+                type="checkbox"
+                id="updateExisting"
+                name="updateExisting"
+                checked={formik.values.updateExisting}
+                onChange={(e) => formik.setFieldValue('updateExisting', e.target.checked)}
+                className="!w-4 !h-4 !cursor-pointer"
+              />
+              <label
+                htmlFor="updateExisting"
+                className="!text-sm !text-gray-700 !cursor-pointer"
+              >
+                Update existing records if serial number matches
+              </label>
+            </Box>
+            <Typography variant="caption" className="!text-gray-500 !block !mt-1">
+              If checked, existing assets with the same serial number will be
+              updated instead of showing an error.
+            </Typography>
           </Box>
 
           {/* Upload Section */}

@@ -12,6 +12,7 @@ export declare abstract class ImportExportService<T> {
     getDisplayName(): string;
     getColumns(): ColumnDefinition[];
     getSearchFields(): string[];
+    protected translatePrismaError(error: any): string;
     parseExcelFile(buffer: Buffer): Promise<ParseResultWithErrors>;
     generateTemplate(): Promise<Buffer>;
     exportToExcel(options?: ExportOptions): Promise<Buffer>;

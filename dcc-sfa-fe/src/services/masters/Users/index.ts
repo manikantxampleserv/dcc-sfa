@@ -113,6 +113,7 @@ interface GetUsersParams {
   role_id?: number;
   depot_id?: number;
   zone_id?: number;
+  reporting_to?: number;
 }
 
 interface UpdateProfilePayload {

@@ -446,6 +446,8 @@ export class CustomersImportExportService extends ImportExportService<any> {
       short_name: customer.short_name || '',
       code: customer.code,
       zones_id: customer.zones_id || '',
+      depot_id: customer.depot_id || '',
+      customer_category_id: customer.customer_category_id || '',
       customer_type_id: customer.customer_type_id || '',
       customer_channel_id: customer.customer_channel_id || '',
       type: customer.type || '',
@@ -487,17 +489,21 @@ export class CustomersImportExportService extends ImportExportService<any> {
   protected async checkDuplicate(data: any, tx?: any): Promise<string | null> {
     const model = tx ? tx.customers : prisma.customers;
 
-    if (data.name && data.city) {
-      const existingNameCity = await model.findFirst({
-        where: {
-          name: data.name,
-          city: data.city,
-        },
-      });
+    // We only need to find IF it exists to trigger the base class's duplicate handling
+    const existing = await model.findFirst({
+      where: {
+        OR: [
+          ...(data.code ? [{ code: data.code }] : []),
+          {
+            name: data.name,
+            city: data.city || undefined,
+          },
+        ],
+      },
+    });
 
-      if (existingNameCity) {
-        return `Customer with name "${data.name}" already exists in city "${data.city}"`;
-      }
+    if (existing) {
+      return `Duplicate record found (Code: ${existing.code || 'N/A'}, Name: ${existing.name})`;
     }
 
     return null;
@@ -586,6 +592,8 @@ export class CustomersImportExportService extends ImportExportService<any> {
       short_name: data.short_name || null,
       code: data.code,
       zones_id: data.zones_id || null,
+      depot_id: data.depot_id || null,
+      customer_category_id: data.customer_category_id || null,
       customer_type_id: data.customer_type_id || null,
       customer_channel_id: data.customer_channel_id || null,
       type: data.type || null,
@@ -636,20 +644,35 @@ export class CustomersImportExportService extends ImportExportService<any> {
   ): Promise<any> {
     const model = tx ? tx.customers : prisma.customers;
 
+    // Use exactly the same logic as checkDuplicate to find the record
     const existing = await model.findFirst({
       where: {
-        name: data.name,
-        city: data.city || undefined,
+        OR: [
+          ...(data.code ? [{ code: data.code }] : []),
+          {
+            name: data.name,
+            city: data.city || undefined,
+          },
+        ],
       },
+      select: { id: true, code: true, name: true, short_name: true }, // Keep it light
     });
 
-    if (!existing) return null;
+    if (!existing) {
+      console.warn(`[Import] updateExisting: Record not found for ${data.code || data.name}`);
+      return null;
+    }
 
     const updateData: any = {
       name: data.name,
       short_name:
         data.short_name !== undefined ? data.short_name : existing.short_name,
       zones_id: data.zones_id !== undefined ? data.zones_id : existing.zones_id,
+      depot_id: data.depot_id !== undefined ? data.depot_id : existing.depot_id,
+      customer_category_id:
+        data.customer_category_id !== undefined
+          ? data.customer_category_id
+          : existing.customer_category_id,
       customer_type_id:
         data.customer_type_id !== undefined
           ? data.customer_type_id
@@ -733,6 +756,18 @@ export class CustomersImportExportService extends ImportExportService<any> {
             code: true,
           },
         },
+        customer_depot: {
+          select: {
+            name: true,
+            code: true,
+          },
+        },
+        customer_category_customer: {
+          select: {
+            category_name: true,
+            category_code: true,
+          },
+        },
         customer_type_customer: {
           select: {
             type_name: true,
@@ -785,6 +820,8 @@ export class CustomersImportExportService extends ImportExportService<any> {
       { header: 'Customer Code', key: 'code', width: 20 },
       ...this.columns,
       { header: 'Zone Name', key: 'zone_name', width: 25 },
+      { header: 'Depot Name', key: 'depot_name', width: 25 },
+      { header: 'Category Name', key: 'category_name', width: 25 },
       { header: 'Customer Type Name', key: 'customer_type_name', width: 25 },
       {
         header: 'Customer Channel Name',
@@ -827,6 +864,9 @@ export class CustomersImportExportService extends ImportExportService<any> {
       const customer = data[index] as any;
 
       row.zone_name = customer.customer_zones?.name || '';
+      row.depot_name = customer.customer_depot?.name || '';
+      row.category_name =
+        customer.customer_category_customer?.category_name || '';
       row.customer_type_name = customer.customer_type_customer?.type_name || '';
       row.customer_channel_name =
         customer.customer_channel_customer?.channel_name || '';

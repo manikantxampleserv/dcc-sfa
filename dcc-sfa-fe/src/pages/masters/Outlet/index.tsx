@@ -237,6 +237,30 @@ const OutletsManagement: React.FC = () => {
         ),
     },
     {
+      id: 'depot',
+      label: 'Depot',
+      render: value =>
+        value ? (
+          <Typography variant="body2" className="!text-gray-700">
+            {value?.name || 'N/A'}
+          </Typography>
+        ) : (
+          <span className="italic text-gray-400 text-xs">No Depot</span>
+        ),
+    },
+    {
+      id: 'customer_zones',
+      label: 'Zone',
+      render: value =>
+        value ? (
+          <Typography variant="body2" className="!text-gray-700">
+            {value?.name || 'N/A'}
+          </Typography>
+        ) : (
+          <span className="italic text-gray-400 text-xs">No Zone</span>
+        ),
+    },
+    {
       id: 'email',
       label: 'Email',
       render: value => (

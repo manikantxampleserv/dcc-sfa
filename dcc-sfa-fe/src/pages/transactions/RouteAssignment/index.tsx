@@ -17,6 +17,7 @@ import {
   useSetRouteAssignments,
   type RouteAssignment,
 } from 'hooks/useRoutes';
+import { useZones } from 'hooks/useZones';
 import { RouteIcon } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -34,14 +35,31 @@ const RouteAssignmentManagement: React.FC = () => {
   const [page, setPage] = useState(1);
   const [limit] = useState(12);
   const [selectedDepot, setSelectedDepot] = useState('');
+  const [selectedZone, setSelectedZone] = useState('');
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<RouteAssignment | null>(
     null
   );
   const [selectedRouteIds, setSelectedRouteIds] = useState<number[]>([]);
 
+  React.useEffect(() => {
+    if (!selectedDepot) {
+      setSelectedZone('');
+    }
+  }, [selectedDepot]);
+
   const { data: depotsResponse } = useDepots({ isActive: 'Y', limit: 1000 });
   const depots = depotsResponse?.data || [];
+
+  const { data: zonesResponse } = useZones(
+    {
+      isActive: 'Y',
+      limit: 1000,
+      parent_id: selectedDepot ? Number(selectedDepot) : undefined,
+    },
+    { enabled: !!selectedDepot }
+  );
+  const zones = zonesResponse?.data || [];
 
   const { data: assignmentsResponse, isFetching } = useRouteAssignments(
     {
@@ -49,6 +67,7 @@ const RouteAssignmentManagement: React.FC = () => {
       limit,
       search,
       depot_id: selectedDepot ? Number(selectedDepot) : undefined,
+      zone_id: selectedZone ? Number(selectedZone) : undefined,
     },
     { enabled: isRead }
   );
@@ -244,18 +263,39 @@ const RouteAssignmentManagement: React.FC = () => {
               className="!w-80"
             />
             <Select
-              value={selectedDepot}
+              value={selectedDepot || ''}
               onChange={e => {
-                setSelectedDepot(e.target.value);
+                const val = e.target.value;
+                setSelectedDepot(val);
+                if (!val) setSelectedZone('');
                 setPage(1);
               }}
               placeholder="Filter by Depot"
-              className="!w-96"
+              className="!w-64"
               disableClearable={false}
             >
               {depots.map((depot: Depot) => (
                 <MenuItem key={depot.id} value={depot.id.toString()}>
                   {depot.name} ({depot.code})
+                </MenuItem>
+              ))}
+            </Select>
+
+            <Select
+              key={`zone-filter-${selectedDepot}`}
+              value={selectedZone || ''}
+              onChange={e => {
+                setSelectedZone(e.target.value);
+                setPage(1);
+              }}
+              placeholder="Filter by Zone"
+              className="!w-64"
+              disableClearable={false}
+              disabled={!selectedDepot}
+            >
+              {zones.map((zone: any) => (
+                <MenuItem key={zone.id} value={zone.id.toString()}>
+                  {zone.name} ({zone.code})
                 </MenuItem>
               ))}
             </Select>
