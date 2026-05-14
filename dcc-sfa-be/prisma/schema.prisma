@@ -443,6 +443,7 @@ model asset_movements {
   asset_movements_performed_by       users                      @relation(fields: [performed_by], references: [id], onDelete: Cascade, onUpdate: NoAction)
   asset_movement_to_customer         customers?                 @relation("AssetMovementToCustomer", fields: [to_customer_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   asset_movement_to_depot            depots?                    @relation("AssetMovementToDepot", fields: [to_depot_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  cooler_asset_movememt              coolers[]
 }
 
 model asset_movement_contracts {
@@ -639,39 +640,41 @@ model cooler_inspections {
 }
 
 model coolers {
-  id                   Int                  @id(map: "PK__coolers__3213E83F0B07C525") @default(autoincrement())
-  customer_id          Int
-  code                 String               @unique(map: "UQ__coolers__357D4CF99C89ACE1") @db.NVarChar(50)
-  asset_master_id      Int?
-  brand                String?              @db.NVarChar(100)
-  model                String?              @db.NVarChar(100)
-  serial_number        String?              @db.NVarChar(100)
-  capacity             Int?
-  install_date         DateTime?
-  last_service_date    DateTime?
-  next_service_due     DateTime?
-  cooler_type_id       Int?
-  cooler_sub_type_id   Int?
-  status               String?              @default("working", map: "DF__coolers__status__2E70E1FD") @db.NVarChar(20)
-  temperature          Decimal?             @db.Decimal(5, 2)
-  energy_rating        String?              @db.NVarChar(10)
-  warranty_expiry      DateTime?
-  maintenance_contract String?              @db.NVarChar(100)
-  technician_id        Int?
-  last_scanned_date    DateTime?
-  approval_status      String?              @default("pending") @db.NVarChar(20)
-  is_active            String               @default("Y", map: "DF__coolers__is_acti__2F650636") @db.Char(1)
-  createdate           DateTime?            @default(now(), map: "DF__coolers__created__30592A6F") @db.DateTime
-  createdby            Int
-  updatedate           DateTime?            @db.DateTime
-  updatedby            Int?
-  log_inst             Int?
-  cooler_inspections   cooler_inspections[]
-  cooler_asset_master  asset_master?        @relation(fields: [asset_master_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  cooler_sub_types     cooler_sub_types?    @relation(fields: [cooler_sub_type_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  cooler_types         cooler_types?        @relation(fields: [cooler_type_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  coolers_customers    customers            @relation(fields: [customer_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  users                users?               @relation(fields: [technician_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK__coolers__technic__324172E1")
+  id                    Int                  @id(map: "PK__coolers__3213E83F0B07C525") @default(autoincrement())
+  customer_id           Int
+  code                  String               @unique(map: "UQ__coolers__357D4CF99C89ACE1") @db.NVarChar(50)
+  asset_master_id       Int?
+  asset_movement_id     Int?
+  brand                 String?              @db.NVarChar(100)
+  model                 String?              @db.NVarChar(100)
+  serial_number         String?              @db.NVarChar(100)
+  capacity              Int?
+  install_date          DateTime?
+  last_service_date     DateTime?
+  next_service_due      DateTime?
+  cooler_type_id        Int?
+  cooler_sub_type_id    Int?
+  status                String?              @default("working", map: "DF__coolers__status__2E70E1FD") @db.NVarChar(20)
+  temperature           Decimal?             @db.Decimal(5, 2)
+  energy_rating         String?              @db.NVarChar(10)
+  warranty_expiry       DateTime?
+  maintenance_contract  String?              @db.NVarChar(100)
+  technician_id         Int?
+  last_scanned_date     DateTime?
+  approval_status       String?              @default("pending") @db.NVarChar(20)
+  is_active             String               @default("Y", map: "DF__coolers__is_acti__2F650636") @db.Char(1)
+  createdate            DateTime?            @default(now(), map: "DF__coolers__created__30592A6F") @db.DateTime
+  createdby             Int
+  updatedate            DateTime?            @db.DateTime
+  updatedby             Int?
+  log_inst              Int?
+  cooler_inspections    cooler_inspections[]
+  cooler_asset_master   asset_master?        @relation(fields: [asset_master_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  cooler_sub_types      cooler_sub_types?    @relation(fields: [cooler_sub_type_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  cooler_types          cooler_types?        @relation(fields: [cooler_type_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  coolers_customers     customers            @relation(fields: [customer_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users                 users?               @relation(fields: [technician_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK__coolers__technic__324172E1")
+  cooler_asset_movememt asset_movements?     @relation(fields: [asset_movement_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
 model credit_note_items {
