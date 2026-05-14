@@ -1954,10 +1954,6 @@ export const requestsController = {
 
       const result = await prisma.$transaction(
         async tx => {
-          // =====================================================
-          // GET REQUEST
-          // =====================================================
-
           const request = await tx.sfa_d_requests.findUnique({
             where: {
               id: Number(request_id),
@@ -1977,10 +1973,6 @@ export const requestsController = {
           if (!request) {
             throw new Error('Request not found');
           }
-
-          // =====================================================
-          // GET APPROVAL
-          // =====================================================
 
           const currentApproval = await tx.sfa_d_request_approvals.findUnique({
             where: {
@@ -2005,10 +1997,6 @@ export const requestsController = {
           if (currentApproval.status !== 'P') {
             throw new Error('This approval has already been processed');
           }
-
-          // =====================================================
-          // SEQUENCE VALIDATION
-          // =====================================================
 
           if (action === 'A' && currentApproval.sequence > 1) {
             const previousApprovals = await tx.sfa_d_request_approvals.findMany(
@@ -2038,10 +2026,6 @@ export const requestsController = {
             }
           }
 
-          // =====================================================
-          // UPDATE CURRENT APPROVAL
-          // =====================================================
-
           await tx.sfa_d_request_approvals.update({
             where: {
               id: Number(approval_id),
@@ -2060,10 +2044,6 @@ export const requestsController = {
             },
           });
 
-          // =====================================================
-          // REJECTION FLOW
-          // =====================================================
-
           if (action === 'R') {
             await tx.sfa_d_requests.update({
               where: {
@@ -2080,10 +2060,6 @@ export const requestsController = {
                 updatedate: new Date(),
               },
             });
-
-            // ================================================
-            // REJECT ASSET MOVEMENT
-            // ================================================
 
             if (
               request.request_type === 'ASSET_MOVEMENT_APPROVAL' &&
@@ -2102,10 +2078,6 @@ export const requestsController = {
                   updatedate: new Date(),
                 },
               });
-
-              // ============================================
-              // REJECT LINKED COOLER
-              // ============================================
 
               const linkedCooler = await tx.coolers.findFirst({
                 where: {
@@ -2140,10 +2112,6 @@ export const requestsController = {
             };
           }
 
-          // =====================================================
-          // CHECK NEXT APPROVER
-          // =====================================================
-
           const nextApprover = await tx.sfa_d_request_approvals.findFirst({
             where: {
               request_id: Number(request_id),
@@ -2166,10 +2134,6 @@ export const requestsController = {
             },
           });
 
-          // =====================================================
-          // NEXT LEVEL
-          // =====================================================
-
           if (nextApprover) {
             return {
               status: 'next_level',
@@ -2179,10 +2143,6 @@ export const requestsController = {
               nextApprover,
             };
           }
-
-          // =====================================================
-          // FINAL APPROVAL
-          // =====================================================
 
           await tx.sfa_d_requests.update({
             where: {
@@ -2199,10 +2159,6 @@ export const requestsController = {
               updatedate: new Date(),
             },
           });
-
-          // =====================================================
-          // ASSET MOVEMENT APPROVAL FLOW
-          // =====================================================
 
           if (
             request.request_type === 'ASSET_MOVEMENT_APPROVAL' &&
@@ -2223,10 +2179,6 @@ export const requestsController = {
             });
 
             if (assetMovement) {
-              // ============================================
-              // APPROVE MOVEMENT
-              // ============================================
-
               await tx.asset_movements.update({
                 where: {
                   id: request.reference_id,
@@ -2244,10 +2196,6 @@ export const requestsController = {
                   updatedate: new Date(),
                 },
               });
-
-              // ============================================
-              // APPROVE LINKED COOLER
-              // ============================================
 
               const linkedCooler = await tx.coolers.findFirst({
                 where: {
@@ -2272,10 +2220,6 @@ export const requestsController = {
 
                 console.log(`Cooler installation ${linkedCooler.id} approved`);
               }
-
-              // ============================================
-              // DETERMINE ASSET STATUS
-              // ============================================
 
               let assetStatusUpdate = '';
 
@@ -2304,10 +2248,6 @@ export const requestsController = {
                 default:
                   assetStatusUpdate = 'Available';
               }
-
-              // ============================================
-              // UPDATE ASSET MASTER
-              // ============================================
 
               const toDirection = assetMovement.to_direction || '';
 
@@ -2389,11 +2329,25 @@ export const requestsController = {
         }
       );
 
-      // =====================================================
-      // EMAILS
-      // =====================================================
-
       if (result.status === 'fully_approved' && 'request' in result) {
+        if (
+          result.request.request_type === 'ASSET_MOVEMENT_APPROVAL' &&
+          result.request.reference_id
+        ) {
+          try {
+            await generateContractOnApproval(result.request.reference_id);
+
+            console.log(
+              `Contract generated for asset movement ${result.request.reference_id}`
+            );
+          } catch (contractError) {
+            console.error(
+              'Error generating contract after approval:',
+              contractError
+            );
+          }
+        }
+
         const requesterEmail = result.request.sfa_d_requests_requester?.email;
 
         if (requesterEmail) {
