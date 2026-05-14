@@ -1080,8 +1080,869 @@ export const requestsController = {
     }
   },
 
+  // async takeActionOnRequest(req: Request, res: Response) {
+  //   const { request_id, approval_id, action, remarks } = req.body;
+  //   const userId = req.user?.id || 1;
+
+  //   try {
+  //     if (!['A', 'R'].includes(action)) {
+  //       return res.status(400).json({
+  //         message: 'Invalid action. Must be A (Approve) or R (Reject)',
+  //       });
+  //     }
+
+  //     const result = await prisma.$transaction(
+  //       async tx => {
+  //         const request = await tx.sfa_d_requests.findUnique({
+  //           where: { id: Number(request_id) },
+  //           include: {
+  //             sfa_d_requests_requester: {
+  //               select: { id: true, name: true, email: true },
+  //             },
+  //           },
+  //         });
+
+  //         if (!request) {
+  //           throw new Error('Request not found');
+  //         }
+
+  //         const currentApproval = await tx.sfa_d_request_approvals.findUnique({
+  //           where: { id: Number(approval_id) },
+  //           include: {
+  //             sfa_d_requests_approvals_approver: {
+  //               select: { id: true, name: true, email: true },
+  //             },
+  //           },
+  //         });
+
+  //         if (!currentApproval) {
+  //           throw new Error('Approval not found');
+  //         }
+
+  //         if (currentApproval.status !== 'P') {
+  //           throw new Error('This approval has already been processed');
+  //         }
+
+  //         if (action === 'A' && currentApproval.sequence > 1) {
+  //           const previousApprovals = await tx.sfa_d_request_approvals.findMany(
+  //             {
+  //               where: {
+  //                 request_id: Number(request_id),
+  //                 sequence: {
+  //                   lt: currentApproval.sequence,
+  //                 },
+  //               },
+  //               orderBy: { sequence: 'asc' },
+  //             }
+  //           );
+
+  //           const notApproved = previousApprovals.find(
+  //             approval => approval.status !== 'A'
+  //           );
+
+  //           if (notApproved) {
+  //             throw new Error(
+  //               `Cannot approve. Sequence ${notApproved.sequence} must be approved first`
+  //             );
+  //           }
+  //         }
+
+  //         await tx.sfa_d_request_approvals.update({
+  //           where: { id: Number(approval_id) },
+  //           data: {
+  //             status: action,
+  //             remarks,
+  //             action_at: new Date(),
+  //             updatedby: userId,
+  //             updatedate: new Date(),
+  //           },
+  //         });
+
+  //         if (action === 'R') {
+  //           await tx.sfa_d_requests.update({
+  //             where: { id: Number(request_id) },
+  //             data: {
+  //               status: 'R',
+  //               overall_status: 'REJECTED',
+  //               updatedby: userId,
+  //               updatedate: new Date(),
+  //             },
+  //           });
+
+  //           if (
+  //             request.request_type === 'ORDER_APPROVAL' &&
+  //             request.reference_id
+  //           ) {
+  //             await tx.orders.update({
+  //               where: { id: request.reference_id },
+  //               data: {
+  //                 approval_status: 'rejected',
+  //                 status: 'rejected',
+  //                 updatedby: userId,
+  //                 updatedate: new Date(),
+  //               },
+  //             });
+  //             console.log(
+  //               `Order ${request.reference_id} status updated to REJECTED`
+  //             );
+  //           }
+
+  //           if (
+  //             request.request_type === 'ASSET_MOVEMENT_APPROVAL' &&
+  //             request.reference_id
+  //           ) {
+  //             // =====================================================
+  //             // GET ASSET MOVEMENT
+  //             // =====================================================
+
+  //             const assetMovement = await tx.asset_movements.findUnique({
+  //               where: {
+  //                 id: request.reference_id,
+  //               },
+
+  //               include: {
+  //                 asset_movement_assets: {
+  //                   select: {
+  //                     asset_id: true,
+  //                   },
+  //                 },
+  //               },
+  //             });
+
+  //             if (assetMovement) {
+  //               // =====================================================
+  //               // APPROVE ASSET MOVEMENT
+  //               // =====================================================
+
+  //               await tx.asset_movements.update({
+  //                 where: {
+  //                   id: request.reference_id,
+  //                 },
+
+  //                 data: {
+  //                   approval_status: 'A',
+
+  //                   approved_by: userId,
+
+  //                   approved_at: new Date(),
+
+  //                   updatedby: userId,
+
+  //                   updatedate: new Date(),
+  //                 },
+  //               });
+
+  //               console.log(`Asset movement ${request.reference_id} approved`);
+
+  //               // =====================================================
+  //               // UPDATE LINKED COOLER
+  //               // =====================================================
+
+  //               const linkedCooler = await tx.coolers.findFirst({
+  //                 where: {
+  //                   asset_movement_id: request.reference_id,
+  //                 },
+  //               });
+
+  //               if (linkedCooler) {
+  //                 await tx.coolers.update({
+  //                   where: {
+  //                     id: linkedCooler.id,
+  //                   },
+
+  //                   data: {
+  //                     approval_status: 'A',
+
+  //                     updatedby: userId,
+
+  //                     updatedate: new Date(),
+  //                   },
+  //                 });
+
+  //                 console.log(
+  //                   `Cooler installation ${linkedCooler.id} approved via asset movement ${request.reference_id}`
+  //                 );
+  //               }
+
+  //               // =====================================================
+  //               // DETERMINE ASSET STATUS
+  //               // =====================================================
+
+  //               let assetStatusUpdate = '';
+
+  //               switch (assetMovement.movement_type?.toLowerCase()) {
+  //                 case 'transfer':
+  //                   assetStatusUpdate = 'Available';
+  //                   break;
+
+  //                 case 'installation':
+  //                   assetStatusUpdate = 'Installed';
+  //                   break;
+
+  //                 case 'disposal':
+  //                   assetStatusUpdate = 'Retired';
+  //                   break;
+
+  //                 case 'maintenance':
+  //                 case 'repair':
+  //                   assetStatusUpdate = 'Under Maintenance';
+  //                   break;
+
+  //                 case 'return':
+  //                   assetStatusUpdate = 'Available';
+  //                   break;
+
+  //                 default:
+  //                   assetStatusUpdate = 'Available';
+  //               }
+
+  //               // =====================================================
+  //               // UPDATE ASSET MASTER
+  //               // =====================================================
+
+  //               const toDirection = assetMovement.to_direction || '';
+
+  //               const toDepotId = assetMovement.to_depot_id;
+
+  //               const toCustomerId = assetMovement.to_customer_id;
+
+  //               await tx.asset_master.updateMany({
+  //                 where: {
+  //                   id: {
+  //                     in: assetMovement.asset_movement_assets.map(
+  //                       (aa: any) => aa.asset_id
+  //                     ),
+  //                   },
+  //                 },
+
+  //                 data: {
+  //                   current_location: `${toDirection} (${toDepotId || toCustomerId})`,
+
+  //                   current_status: assetStatusUpdate,
+
+  //                   updatedate: new Date(),
+
+  //                   updatedby: userId,
+  //                 },
+  //               });
+
+  //               console.log(
+  //                 `Asset master updated for movement ${request.reference_id}`
+  //               );
+
+  //               // =====================================================
+  //               // CREATE MAINTENANCE RECORDS IF REQUIRED
+  //               // =====================================================
+
+  //               if (
+  //                 assetMovement.movement_type?.toLowerCase() ===
+  //                   'maintenance' ||
+  //                 assetMovement.movement_type?.toLowerCase() === 'repair'
+  //               ) {
+  //                 try {
+  //                   await tx.asset_maintenance.createMany({
+  //                     data: assetMovement.asset_movement_assets.map(
+  //                       (aa: any) => ({
+  //                         asset_id: aa.asset_id,
+
+  //                         maintenance_date:
+  //                           assetMovement.movement_date || new Date(),
+
+  //                         issue_reported:
+  //                           assetMovement.notes ||
+  //                           `${assetMovement.movement_type} movement`,
+
+  //                         action_taken: `Asset moved from ${assetMovement.from_direction} to ${toDirection}`,
+
+  //                         remarks: `Movement type: ${assetMovement.movement_type}`,
+
+  //                         createdby: userId,
+
+  //                         createdate: new Date(),
+
+  //                         technician_id: assetMovement.performed_by,
+
+  //                         log_inst: 1,
+  //                       })
+  //                     ),
+  //                   });
+
+  //                   console.log(
+  //                     `Maintenance records created for movement ${request.reference_id}`
+  //                   );
+  //                 } catch (maintenanceError) {
+  //                   console.error(
+  //                     'Error creating maintenance records:',
+  //                     maintenanceError
+  //                   );
+  //                 }
+  //               }
+  //             }
+  //           }
+
+  //           if (
+  //             request.request_type === 'ASSET_MASTER_APPROVAL' &&
+  //             request.reference_id
+  //           ) {
+  //             const requestData = JSON.parse(request.request_data || '{}');
+
+  //             await tx.asset_master.update({
+  //               where: {
+  //                 id: request.reference_id,
+  //               },
+  //               data: {
+  //                 current_status: requestData.previous_status || null,
+
+  //                 updatedby: userId,
+  //                 updatedate: new Date(),
+  //               },
+  //             });
+
+  //             console.log(
+  //               `Asset master ${request.reference_id} reverted after rejection`
+  //             );
+  //           }
+
+  //           return { status: 'rejected', request };
+  //         }
+
+  //         const nextApprover = await tx.sfa_d_request_approvals.findFirst({
+  //           where: {
+  //             request_id: Number(request_id),
+  //             status: 'P',
+  //           },
+  //           orderBy: { sequence: 'asc' },
+  //           include: {
+  //             sfa_d_requests_approvals_approver: {
+  //               select: { id: true, name: true, email: true },
+  //             },
+  //           },
+  //         });
+
+  //         if (
+  //           request.request_type === 'LOCATION_RESET' &&
+  //           request.reference_id &&
+  //           action === 'A'
+  //         ) {
+  //           const requestData = JSON.parse(request.request_data || '{}');
+  //           const updateData: any = { updatedate: new Date() };
+
+  //           if (requestData.latitude !== undefined) {
+  //             updateData.latitude = requestData.latitude;
+  //           }
+
+  //           if (requestData.longitude !== undefined) {
+  //             updateData.longitude = requestData.longitude;
+  //           }
+
+  //           await tx.customers.update({
+  //             where: { id: request.reference_id },
+  //             data: updateData,
+  //           });
+
+  //           console.log(
+  //             `Customer ${request.reference_id} location updated successfully`
+  //           );
+  //         }
+
+  //         if (!nextApprover) {
+  //           await tx.sfa_d_requests.update({
+  //             where: { id: Number(request_id) },
+  //             data: {
+  //               status: 'A',
+  //               overall_status: 'APPROVED',
+  //               updatedby: userId,
+  //               updatedate: new Date(),
+  //             },
+  //           });
+
+  //           if (
+  //             request.request_type === 'ORDER_APPROVAL' &&
+  //             request.reference_id
+  //           ) {
+  //             await tx.orders.update({
+  //               where: { id: request.reference_id },
+  //               data: {
+  //                 approval_status: 'A',
+  //                 status: 'confirmed',
+  //                 approved_by: userId,
+  //                 approved_at: new Date(),
+  //                 updatedby: userId,
+  //                 updatedate: new Date(),
+  //               },
+  //             });
+  //           }
+
+  //           if (
+  //             request.request_type === 'ASSET_MOVEMENT_APPROVAL' &&
+  //             request.reference_id
+  //           ) {
+  //             const assetMovement = await tx.asset_movements.findUnique({
+  //               where: { id: request.reference_id },
+  //               include: {
+  //                 asset_movement_assets: {
+  //                   select: { asset_id: true },
+  //                 },
+  //               },
+  //             });
+
+  //             if (assetMovement) {
+  //               await tx.asset_movements.update({
+  //                 where: { id: request.reference_id },
+  //                 data: {
+  //                   approval_status: 'A',
+  //                   approved_by: userId,
+  //                   approved_at: new Date(),
+  //                   updatedby: userId,
+  //                   updatedate: new Date(),
+  //                 },
+  //               });
+
+  //               let assetStatusUpdate = '';
+  //               switch (assetMovement.movement_type?.toLowerCase()) {
+  //                 case 'transfer':
+  //                   assetStatusUpdate = 'Available';
+  //                   break;
+  //                 case 'installation':
+  //                   assetStatusUpdate = 'Installed';
+  //                   break;
+  //                 case 'disposal':
+  //                   assetStatusUpdate = 'Retired';
+  //                   break;
+  //                 case 'maintenance':
+  //                 case 'repair':
+  //                   assetStatusUpdate = 'Under Maintenance';
+  //                   break;
+  //                 case 'return':
+  //                   assetStatusUpdate = 'Available';
+  //                   break;
+  //                 default:
+  //                   assetStatusUpdate = 'Available';
+  //               }
+
+  //               const toDirection = assetMovement.to_direction || '';
+  //               const toDepotId = assetMovement.to_depot_id;
+  //               const toCustomerId = assetMovement.to_customer_id;
+
+  //               await tx.asset_master.updateMany({
+  //                 where: {
+  //                   id: {
+  //                     in: assetMovement.asset_movement_assets.map(
+  //                       (aa: any) => aa.asset_id
+  //                     ),
+  //                   },
+  //                 },
+  //                 data: {
+  //                   current_location: `${toDirection} (${toDepotId || toCustomerId})`,
+  //                   current_status: assetStatusUpdate,
+  //                   updatedate: new Date(),
+  //                   updatedby: userId,
+  //                 },
+  //               });
+
+  //               if (
+  //                 assetMovement.movement_type?.toLowerCase() ===
+  //                   'maintenance' ||
+  //                 assetMovement.movement_type?.toLowerCase() === 'repair'
+  //               ) {
+  //                 try {
+  //                   await tx.asset_maintenance.createMany({
+  //                     data: assetMovement.asset_movement_assets.map(
+  //                       (aa: any) => ({
+  //                         asset_id: aa.asset_id,
+  //                         maintenance_date:
+  //                           assetMovement.movement_date || new Date(),
+  //                         issue_reported:
+  //                           assetMovement.notes ||
+  //                           `${assetMovement.movement_type} movement`,
+  //                         action_taken: `Asset moved from ${assetMovement.from_direction} to ${toDirection}`,
+  //                         remarks: `Movement type: ${assetMovement.movement_type}`,
+  //                         createdby: userId,
+  //                         createdate: new Date(),
+  //                         technician_id: assetMovement.performed_by,
+  //                         log_inst: 1,
+  //                       })
+  //                     ),
+  //                   });
+  //                   console.log(
+  //                     `Maintenance records created for approved asset movement: ${request.reference_id}`
+  //                   );
+  //                 } catch (maintenanceError) {
+  //                   console.error(
+  //                     'Error creating maintenance records on approval:',
+  //                     maintenanceError
+  //                   );
+  //                 }
+  //               }
+  //             }
+  //           }
+
+  //           if (
+  //             request.request_type === 'CUSTOMER_CREATION' &&
+  //             action === 'A'
+  //           ) {
+  //             const requestData = JSON.parse(request.request_data || '{}');
+  //             const customerData = requestData.customer_data;
+  //             const customerImages = requestData.customer_images || [];
+
+  //             const { platform_type, ...customerDataWithoutPlatform } =
+  //               customerData;
+
+  //             const createdCustomer = await tx.customers.create({
+  //               data: customerDataWithoutPlatform,
+  //             });
+
+  //             if (customerImages.length > 0) {
+  //               await tx.customer_image.createMany({
+  //                 data: customerImages.map((img: any) => ({
+  //                   ...img,
+  //                   customer_id: createdCustomer.id,
+  //                 })),
+  //               });
+  //             }
+
+  //             console.log(
+  //               `Customer created successfully: ${createdCustomer.code} (ID: ${createdCustomer.id})`
+  //             );
+  //           }
+
+  //           if (
+  //             request.request_type === 'ASSET_MASTER_APPROVAL' &&
+  //             request.reference_id
+  //           ) {
+  //             const requestData = JSON.parse(request.request_data || '{}');
+
+  //             await tx.asset_master.update({
+  //               where: {
+  //                 id: request.reference_id,
+  //               },
+  //               data: {
+  //                 depot_id: requestData.depot_id
+  //                   ? Number(requestData.depot_id)
+  //                   : null,
+
+  //                 outlet_id: requestData.customer_id
+  //                   ? Number(requestData.customer_id)
+  //                   : null,
+
+  //                 current_status: requestData.requested_status || null,
+
+  //                 updatedby: userId,
+  //                 updatedate: new Date(),
+  //               },
+  //             });
+
+  //             console.log(
+  //               `Asset master ${request.reference_id} updated after approval`
+  //             );
+  //           }
+
+  //           return { status: 'fully_approved', request };
+  //         }
+
+  //         return { status: 'next_level', request, nextApprover };
+  //       },
+  //       {
+  //         maxWait: 10000,
+  //         timeout: 20000,
+  //       }
+  //     );
+  //     if (result.status === 'fully_approved' && 'request' in result) {
+  //       if (result.request.request_type === 'LOCATION_RESET') {
+  //         try {
+  //           const requesterEmail =
+  //             result.request.sfa_d_requests_requester?.email;
+
+  //           if (requesterEmail) {
+  //             const customer = await getCustomerDetails(
+  //               result.request.reference_id!
+  //             );
+  //             const requestData = JSON.parse(
+  //               result.request.request_data || '{}'
+  //             );
+
+  //             const template = await generateEmailContent(
+  //               templateKeyMap.locationResetApproved,
+  //               {
+  //                 requester_name:
+  //                   result.request.sfa_d_requests_requester?.name || 'Employee',
+  //                 customer_name: customer?.name || 'N/A',
+  //                 customer_code: customer?.code || 'N/A',
+  //                 new_latitude: requestData.latitude,
+  //                 new_longitude: requestData.longitude,
+  //                 approver_name: req.user?.name || 'System',
+  //                 approval_date: new Date().toLocaleDateString(),
+  //                 company_name: process.env.COMPANY_NAME || 'SFA System',
+  //               }
+  //             );
+
+  //             await sendEmail({
+  //               to: requesterEmail,
+  //               subject: template.subject,
+  //               html: template.body,
+  //               createdby: userId,
+  //               log_inst: 1,
+  //             });
+  //           } else {
+  //             console.warn(
+  //               'Requester email is missing, skipping location reset approval email'
+  //             );
+  //           }
+  //         } catch (emailError) {
+  //           console.error(
+  //             'Error sending location reset approval email:',
+  //             emailError
+  //           );
+  //         }
+  //       }
+
+  //       if (
+  //         result.request.request_type === 'ASSET_MOVEMENT_APPROVAL' &&
+  //         result.request.reference_id
+  //       ) {
+  //         try {
+  //           await generateContractOnApproval(result.request.reference_id);
+  //         } catch (contractError) {
+  //           console.error(
+  //             'Error generating contract after approval:',
+  //             contractError
+  //           );
+  //         }
+  //       }
+
+  //       try {
+  //         const requesterEmail = result.request.sfa_d_requests_requester?.email;
+
+  //         if (requesterEmail) {
+  //           const template = await generateEmailContent(
+  //             templateKeyMap.requestAccepted,
+  //             {
+  //               employee_name:
+  //                 result.request.sfa_d_requests_requester?.name || 'Employee',
+  //               request_type: formatRequestType(result.request.request_type),
+  //               company_name: 'SFA System',
+  //             }
+  //           );
+
+  //           console.log('Sending approval email to:', requesterEmail);
+
+  //           await sendEmail({
+  //             to: requesterEmail,
+  //             subject: template.subject,
+  //             html: template.body,
+  //             createdby: userId,
+  //             log_inst: 1,
+  //           });
+  //         } else {
+  //           console.warn('Requester email is missing, skipping approval email');
+  //         }
+  //       } catch (emailError) {
+  //         console.error('Error sending approval email:', emailError);
+  //       }
+
+  //       return res.status(200).json({
+  //         message: 'Request approved successfully.',
+  //       });
+  //     }
+  //     if (result.status === 'rejected' && 'request' in result) {
+  //       if (result.request.request_type === 'LOCATION_RESET') {
+  //         const customer = await getCustomerDetails(
+  //           result.request.reference_id!
+  //         );
+  //         const requestData = JSON.parse(result.request.request_data || '{}');
+
+  //         const template = await generateEmailContent(
+  //           templateKeyMap.locationResetRejected,
+  //           {
+  //             requester_name: result.request.sfa_d_requests_requester.name,
+  //             customer_name: customer?.name || 'N/A',
+  //             customer_code: customer?.code || 'N/A',
+  //             new_latitude: requestData.latitude,
+  //             new_longitude: requestData.longitude,
+  //             approver_name: req.user?.name || 'System',
+  //             rejection_date: new Date().toLocaleDateString(),
+  //             rejection_reason: remarks || 'No reason provided',
+  //             company_name: process.env.COMPANY_NAME || 'SFA System',
+  //           }
+  //         );
+
+  //         await sendEmail({
+  //           to: result.request.sfa_d_requests_requester.email,
+  //           subject: template.subject,
+  //           html: template.body,
+  //           createdby: userId,
+  //           log_inst: 1,
+  //         });
+  //       }
+  //     }
+
+  //     if (result.request.request_type === 'CUSTOMER_CREATION') {
+  //       const requestData = JSON.parse(result.request.request_data || '{}');
+  //       const customerData = requestData.customer_data;
+
+  //       if (action === 'A') {
+  //         // ✅ FETCH THE ACTUAL CREATED CUSTOMER
+  //         const createdCustomer = await prisma.customers.findFirst({
+  //           where: { code: customerData.code },
+  //           select: {
+  //             id: true,
+  //             name: true,
+  //             code: true,
+  //             email: true,
+  //             phone_number: true,
+  //           },
+  //         });
+
+  //         const template = await generateEmailContent(
+  //           templateKeyMap.customerCreationApproved,
+  //           {
+  //             requester_name: result.request.sfa_d_requests_requester.name,
+  //             customer_name: createdCustomer?.name || customerData.name,
+  //             customer_code: createdCustomer?.code || customerData.code,
+  //             customer_email: createdCustomer?.email || customerData.email,
+  //             customer_phone:
+  //               createdCustomer?.phone_number || customerData.phone_number,
+  //             platform_type: requestData.platform_type,
+  //             approver_name: req.user?.name || 'System',
+  //             approval_date: new Date().toLocaleDateString(),
+  //             company_name: process.env.COMPANY_NAME || 'SFA System',
+  //             request_id: result.request.id,
+  //           }
+  //         );
+
+  //         await sendEmail({
+  //           to: result.request.sfa_d_requests_requester.email,
+  //           subject: template.subject,
+  //           html: template.body,
+  //           createdby: userId,
+  //           log_inst: 1,
+  //         });
+  //       } else if (action === 'R') {
+  //         const template = await generateEmailContent(
+  //           templateKeyMap.customerCreationRejected,
+  //           {
+  //             requester_name: result.request.sfa_d_requests_requester.name,
+  //             customer_name: customerData.name,
+  //             customer_code: customerData.code,
+  //             customer_email: customerData.email,
+  //             customer_phone: customerData.phone_number,
+  //             platform_type: requestData.platform_type,
+  //             approver_name: req.user?.name || 'System',
+  //             rejection_date: new Date().toLocaleDateString(),
+  //             rejection_reason: remarks || 'Customer creation request rejected',
+  //             company_name: process.env.COMPANY_NAME || 'SFA System',
+  //             request_id: result.request.id,
+  //           }
+  //         );
+
+  //         await sendEmail({
+  //           to: result.request.sfa_d_requests_requester.email,
+  //           subject: template.subject,
+  //           html: template.body,
+  //           createdby: userId,
+  //           log_inst: 1,
+  //         });
+  //       }
+  //     }
+
+  //     if (result.status === 'rejected' && 'request' in result) {
+  //       const template = await generateEmailContent(
+  //         templateKeyMap.requestRejected,
+  //         {
+  //           employee_name: result.request.sfa_d_requests_requester.name,
+  //           request_type: formatRequestType(result.request.request_type),
+  //           remarks: remarks || 'No reason provided',
+  //           company_name: 'SFA System',
+  //         }
+  //       );
+
+  //       await sendEmail({
+  //         to: result.request.sfa_d_requests_requester.email,
+  //         subject: template.subject,
+  //         html: template.body,
+  //         createdby: userId,
+  //         log_inst: 1,
+  //       });
+
+  //       return res.status(200).json({
+  //         message: 'Request rejected successfully',
+  //       });
+  //     }
+
+  //     if (result.status === 'fully_approved' && 'request' in result) {
+  //       const template = await generateEmailContent(
+  //         templateKeyMap.requestAccepted,
+  //         {
+  //           employee_name: result.request.sfa_d_requests_requester.name,
+  //           request_type: formatRequestType(result.request.request_type),
+  //           company_name: 'SFA System',
+  //         }
+  //       );
+
+  //       await sendEmail({
+  //         to: result.request.sfa_d_requests_requester.email,
+  //         subject: template.subject,
+  //         html: template.body,
+  //         createdby: userId,
+  //         log_inst: 1,
+  //       });
+
+  //       return res.status(200).json({
+  //         message: 'Request approved successfully.',
+  //       });
+  //     }
+
+  //     if (
+  //       result.status === 'next_level' &&
+  //       'request' in result &&
+  //       result.nextApprover
+  //     ) {
+  //       const template = await generateEmailContent(
+  //         templateKeyMap.notifyNextApprover,
+  //         {
+  //           approver_name:
+  //             result.nextApprover.sfa_d_requests_approvals_approver.name,
+  //           previous_approver: 'Previous Approver',
+  //           request_type: formatRequestType(result.request.request_type),
+  //           action: 'approved',
+  //           company_name: 'SFA System',
+  //         }
+  //       );
+
+  //       await sendEmail({
+  //         to: result.nextApprover.sfa_d_requests_approvals_approver.email,
+  //         subject: template.subject,
+  //         html: template.body,
+  //         createdby: userId,
+  //         log_inst: 1,
+  //       });
+
+  //       return res.status(200).json({
+  //         message: 'Request approved and escalated to next approver',
+  //       });
+  //     }
+
+  //     res.status(200).json({
+  //       message: 'Action processed successfully',
+  //     });
+  //   } catch (error: any) {
+  //     console.error('Take Action Error:', error);
+  //     if (error.message.includes('Cannot approve')) {
+  //       return res.status(400).json({
+  //         message: error.message,
+  //       });
+  //     }
+
+  //     res.status(500).json({
+  //       message: 'Failed to process action',
+  //       error: error.message,
+  //     });
+  //   }
+  // },
+
   async takeActionOnRequest(req: Request, res: Response) {
     const { request_id, approval_id, action, remarks } = req.body;
+
     const userId = req.user?.id || 1;
 
     try {
@@ -1093,11 +1954,22 @@ export const requestsController = {
 
       const result = await prisma.$transaction(
         async tx => {
+          // =====================================================
+          // GET REQUEST
+          // =====================================================
+
           const request = await tx.sfa_d_requests.findUnique({
-            where: { id: Number(request_id) },
+            where: {
+              id: Number(request_id),
+            },
+
             include: {
               sfa_d_requests_requester: {
-                select: { id: true, name: true, email: true },
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                },
               },
             },
           });
@@ -1106,11 +1978,22 @@ export const requestsController = {
             throw new Error('Request not found');
           }
 
+          // =====================================================
+          // GET APPROVAL
+          // =====================================================
+
           const currentApproval = await tx.sfa_d_request_approvals.findUnique({
-            where: { id: Number(approval_id) },
+            where: {
+              id: Number(approval_id),
+            },
+
             include: {
               sfa_d_requests_approvals_approver: {
-                select: { id: true, name: true, email: true },
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                },
               },
             },
           });
@@ -1123,16 +2006,24 @@ export const requestsController = {
             throw new Error('This approval has already been processed');
           }
 
+          // =====================================================
+          // SEQUENCE VALIDATION
+          // =====================================================
+
           if (action === 'A' && currentApproval.sequence > 1) {
             const previousApprovals = await tx.sfa_d_request_approvals.findMany(
               {
                 where: {
                   request_id: Number(request_id),
+
                   sequence: {
                     lt: currentApproval.sequence,
                   },
                 },
-                orderBy: { sequence: 'asc' },
+
+                orderBy: {
+                  sequence: 'asc',
+                },
               }
             );
 
@@ -1147,663 +2038,427 @@ export const requestsController = {
             }
           }
 
+          // =====================================================
+          // UPDATE CURRENT APPROVAL
+          // =====================================================
+
           await tx.sfa_d_request_approvals.update({
-            where: { id: Number(approval_id) },
+            where: {
+              id: Number(approval_id),
+            },
+
             data: {
               status: action,
+
               remarks,
+
               action_at: new Date(),
+
               updatedby: userId,
+
               updatedate: new Date(),
             },
           });
 
+          // =====================================================
+          // REJECTION FLOW
+          // =====================================================
+
           if (action === 'R') {
             await tx.sfa_d_requests.update({
-              where: { id: Number(request_id) },
+              where: {
+                id: Number(request_id),
+              },
+
               data: {
                 status: 'R',
+
                 overall_status: 'REJECTED',
+
                 updatedby: userId,
+
                 updatedate: new Date(),
               },
             });
 
-            if (
-              request.request_type === 'ORDER_APPROVAL' &&
-              request.reference_id
-            ) {
-              await tx.orders.update({
-                where: { id: request.reference_id },
-                data: {
-                  approval_status: 'rejected',
-                  status: 'rejected',
-                  updatedby: userId,
-                  updatedate: new Date(),
-                },
-              });
-              console.log(
-                `Order ${request.reference_id} status updated to REJECTED`
-              );
-            }
+            // ================================================
+            // REJECT ASSET MOVEMENT
+            // ================================================
 
             if (
               request.request_type === 'ASSET_MOVEMENT_APPROVAL' &&
               request.reference_id
             ) {
               await tx.asset_movements.update({
-                where: { id: request.reference_id },
-                data: {
-                  approval_status: 'R',
-                  updatedby: userId,
-                  updatedate: new Date(),
-                },
-              });
-              console.log(
-                `Asset Movement ${request.reference_id} status updated to REJECTED`
-              );
-            }
-
-            if (
-              request.request_type === 'ASSET_MASTER_APPROVAL' &&
-              request.reference_id
-            ) {
-              const requestData = JSON.parse(request.request_data || '{}');
-
-              await tx.asset_master.update({
                 where: {
                   id: request.reference_id,
                 },
-                data: {
-                  current_status: requestData.previous_status || null,
 
-                  updatedby: userId,
-                  updatedate: new Date(),
-                },
-              });
-
-              console.log(
-                `Asset master ${request.reference_id} reverted after rejection`
-              );
-            }
-
-            if (
-              request.request_type === 'COOLER_INSTALLATION_APPROVAL' &&
-              request.reference_id
-            ) {
-              await tx.coolers.update({
-                where: {
-                  id: request.reference_id,
-                },
                 data: {
                   approval_status: 'R',
+
                   updatedby: userId,
+
                   updatedate: new Date(),
                 },
               });
 
-              console.log(
-                `Cooler installation ${request.reference_id} rejected`
-              );
+              // ============================================
+              // REJECT LINKED COOLER
+              // ============================================
+
+              const linkedCooler = await tx.coolers.findFirst({
+                where: {
+                  asset_movement_id: request.reference_id,
+                },
+              });
+
+              if (linkedCooler) {
+                await tx.coolers.update({
+                  where: {
+                    id: linkedCooler.id,
+                  },
+
+                  data: {
+                    approval_status: 'R',
+
+                    updatedby: userId,
+
+                    updatedate: new Date(),
+                  },
+                });
+
+                console.log(`Cooler installation ${linkedCooler.id} rejected`);
+              }
+
+              console.log(`Asset movement ${request.reference_id} rejected`);
             }
-            return { status: 'rejected', request };
+
+            return {
+              status: 'rejected',
+              request,
+            };
           }
+
+          // =====================================================
+          // CHECK NEXT APPROVER
+          // =====================================================
 
           const nextApprover = await tx.sfa_d_request_approvals.findFirst({
             where: {
               request_id: Number(request_id),
+
               status: 'P',
             },
-            orderBy: { sequence: 'asc' },
+
+            orderBy: {
+              sequence: 'asc',
+            },
+
             include: {
               sfa_d_requests_approvals_approver: {
-                select: { id: true, name: true, email: true },
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                },
               },
             },
           });
 
-          if (
-            request.request_type === 'LOCATION_RESET' &&
-            request.reference_id &&
-            action === 'A'
-          ) {
-            const requestData = JSON.parse(request.request_data || '{}');
-            const updateData: any = { updatedate: new Date() };
+          // =====================================================
+          // NEXT LEVEL
+          // =====================================================
 
-            if (requestData.latitude !== undefined) {
-              updateData.latitude = requestData.latitude;
-            }
+          if (nextApprover) {
+            return {
+              status: 'next_level',
 
-            if (requestData.longitude !== undefined) {
-              updateData.longitude = requestData.longitude;
-            }
+              request,
 
-            await tx.customers.update({
-              where: { id: request.reference_id },
-              data: updateData,
-            });
-
-            console.log(
-              `Customer ${request.reference_id} location updated successfully`
-            );
+              nextApprover,
+            };
           }
 
-          if (!nextApprover) {
-            await tx.sfa_d_requests.update({
-              where: { id: Number(request_id) },
-              data: {
-                status: 'A',
-                overall_status: 'APPROVED',
-                updatedby: userId,
-                updatedate: new Date(),
+          // =====================================================
+          // FINAL APPROVAL
+          // =====================================================
+
+          await tx.sfa_d_requests.update({
+            where: {
+              id: Number(request_id),
+            },
+
+            data: {
+              status: 'A',
+
+              overall_status: 'APPROVED',
+
+              updatedby: userId,
+
+              updatedate: new Date(),
+            },
+          });
+
+          // =====================================================
+          // ASSET MOVEMENT APPROVAL FLOW
+          // =====================================================
+
+          if (
+            request.request_type === 'ASSET_MOVEMENT_APPROVAL' &&
+            request.reference_id
+          ) {
+            const assetMovement = await tx.asset_movements.findUnique({
+              where: {
+                id: request.reference_id,
+              },
+
+              include: {
+                asset_movement_assets: {
+                  select: {
+                    asset_id: true,
+                  },
+                },
               },
             });
 
-            if (
-              request.request_type === 'ORDER_APPROVAL' &&
-              request.reference_id
-            ) {
-              await tx.orders.update({
-                where: { id: request.reference_id },
-                data: {
-                  approval_status: 'A',
-                  status: 'confirmed',
-                  approved_by: userId,
-                  approved_at: new Date(),
-                  updatedby: userId,
-                  updatedate: new Date(),
-                },
-              });
-            }
+            if (assetMovement) {
+              // ============================================
+              // APPROVE MOVEMENT
+              // ============================================
 
-            if (
-              request.request_type === 'ASSET_MOVEMENT_APPROVAL' &&
-              request.reference_id
-            ) {
-              const assetMovement = await tx.asset_movements.findUnique({
-                where: { id: request.reference_id },
-                include: {
-                  asset_movement_assets: {
-                    select: { asset_id: true },
-                  },
-                },
-              });
-
-              if (assetMovement) {
-                await tx.asset_movements.update({
-                  where: { id: request.reference_id },
-                  data: {
-                    approval_status: 'A',
-                    approved_by: userId,
-                    approved_at: new Date(),
-                    updatedby: userId,
-                    updatedate: new Date(),
-                  },
-                });
-
-                let assetStatusUpdate = '';
-                switch (assetMovement.movement_type?.toLowerCase()) {
-                  case 'transfer':
-                    assetStatusUpdate = 'Available';
-                    break;
-                  case 'installation':
-                    assetStatusUpdate = 'Installed';
-                    break;
-                  case 'disposal':
-                    assetStatusUpdate = 'Retired';
-                    break;
-                  case 'maintenance':
-                  case 'repair':
-                    assetStatusUpdate = 'Under Maintenance';
-                    break;
-                  case 'return':
-                    assetStatusUpdate = 'Available';
-                    break;
-                  default:
-                    assetStatusUpdate = 'Available';
-                }
-
-                const toDirection = assetMovement.to_direction || '';
-                const toDepotId = assetMovement.to_depot_id;
-                const toCustomerId = assetMovement.to_customer_id;
-
-                await tx.asset_master.updateMany({
-                  where: {
-                    id: {
-                      in: assetMovement.asset_movement_assets.map(
-                        (aa: any) => aa.asset_id
-                      ),
-                    },
-                  },
-                  data: {
-                    current_location: `${toDirection} (${toDepotId || toCustomerId})`,
-                    current_status: assetStatusUpdate,
-                    updatedate: new Date(),
-                    updatedby: userId,
-                  },
-                });
-
-                if (
-                  assetMovement.movement_type?.toLowerCase() ===
-                    'maintenance' ||
-                  assetMovement.movement_type?.toLowerCase() === 'repair'
-                ) {
-                  try {
-                    await tx.asset_maintenance.createMany({
-                      data: assetMovement.asset_movement_assets.map(
-                        (aa: any) => ({
-                          asset_id: aa.asset_id,
-                          maintenance_date:
-                            assetMovement.movement_date || new Date(),
-                          issue_reported:
-                            assetMovement.notes ||
-                            `${assetMovement.movement_type} movement`,
-                          action_taken: `Asset moved from ${assetMovement.from_direction} to ${toDirection}`,
-                          remarks: `Movement type: ${assetMovement.movement_type}`,
-                          createdby: userId,
-                          createdate: new Date(),
-                          technician_id: assetMovement.performed_by,
-                          log_inst: 1,
-                        })
-                      ),
-                    });
-                    console.log(
-                      `Maintenance records created for approved asset movement: ${request.reference_id}`
-                    );
-                  } catch (maintenanceError) {
-                    console.error(
-                      'Error creating maintenance records on approval:',
-                      maintenanceError
-                    );
-                  }
-                }
-              }
-            }
-
-            if (
-              request.request_type === 'CUSTOMER_CREATION' &&
-              action === 'A'
-            ) {
-              const requestData = JSON.parse(request.request_data || '{}');
-              const customerData = requestData.customer_data;
-              const customerImages = requestData.customer_images || [];
-
-              const { platform_type, ...customerDataWithoutPlatform } =
-                customerData;
-
-              const createdCustomer = await tx.customers.create({
-                data: customerDataWithoutPlatform,
-              });
-
-              if (customerImages.length > 0) {
-                await tx.customer_image.createMany({
-                  data: customerImages.map((img: any) => ({
-                    ...img,
-                    customer_id: createdCustomer.id,
-                  })),
-                });
-              }
-
-              console.log(
-                `Customer created successfully: ${createdCustomer.code} (ID: ${createdCustomer.id})`
-              );
-            }
-
-            if (
-              request.request_type === 'ASSET_MASTER_APPROVAL' &&
-              request.reference_id
-            ) {
-              const requestData = JSON.parse(request.request_data || '{}');
-
-              await tx.asset_master.update({
+              await tx.asset_movements.update({
                 where: {
                   id: request.reference_id,
                 },
+
                 data: {
-                  depot_id: requestData.depot_id
-                    ? Number(requestData.depot_id)
-                    : null,
+                  approval_status: 'A',
 
-                  outlet_id: requestData.customer_id
-                    ? Number(requestData.customer_id)
-                    : null,
+                  approved_by: userId,
 
-                  current_status: requestData.requested_status || null,
+                  approved_at: new Date(),
 
                   updatedby: userId,
+
                   updatedate: new Date(),
                 },
               });
 
-              console.log(
-                `Asset master ${request.reference_id} updated after approval`
-              );
-            }
+              // ============================================
+              // APPROVE LINKED COOLER
+              // ============================================
 
-            if (
-              request.request_type === 'COOLER_INSTALLATION_APPROVAL' &&
-              request.reference_id
-            ) {
-              const cooler = await tx.coolers.findUnique({
-                where: { id: request.reference_id },
-                include: {
-                  coolers_customers: true,
-                  cooler_asset_master: true,
+              const linkedCooler = await tx.coolers.findFirst({
+                where: {
+                  asset_movement_id: request.reference_id,
                 },
               });
 
-              if (cooler && cooler.asset_master_id) {
-                // update cooler approval
+              if (linkedCooler) {
                 await tx.coolers.update({
-                  where: { id: cooler.id },
+                  where: {
+                    id: linkedCooler.id,
+                  },
+
                   data: {
                     approval_status: 'A',
+
                     updatedby: userId,
+
                     updatedate: new Date(),
                   },
                 });
 
-                const movement = await tx.asset_movements.create({
-                  data: {
-                    movement_type: 'installation',
-                    movement_date: new Date(),
-                    performed_by: userId,
-                    createdby: userId,
-                    createdate: new Date(),
+                console.log(`Cooler installation ${linkedCooler.id} approved`);
+              }
 
-                    from_direction:
-                      cooler.cooler_asset_master?.current_location ||
-                      'Warehouse',
+              // ============================================
+              // DETERMINE ASSET STATUS
+              // ============================================
 
-                    to_direction: cooler.coolers_customers
-                      ? `${cooler.coolers_customers.name} (${cooler.coolers_customers.code})`
-                      : 'Customer Location',
+              let assetStatusUpdate = '';
 
-                    to_customer_id: cooler.customer_id,
+              switch (assetMovement.movement_type?.toLowerCase()) {
+                case 'transfer':
+                  assetStatusUpdate = 'Available';
+                  break;
 
-                    approval_status: 'A',
-                    approved_at: new Date(),
-                    approved_by: userId,
+                case 'installation':
+                  assetStatusUpdate = 'Installed';
+                  break;
 
-                    notes: `Cooler installation approved for ${cooler.code}`,
+                case 'maintenance':
+                case 'repair':
+                  assetStatusUpdate = 'Under Maintenance';
+                  break;
+
+                case 'disposal':
+                  assetStatusUpdate = 'Retired';
+                  break;
+
+                case 'return':
+                  assetStatusUpdate = 'Available';
+                  break;
+
+                default:
+                  assetStatusUpdate = 'Available';
+              }
+
+              // ============================================
+              // UPDATE ASSET MASTER
+              // ============================================
+
+              const toDirection = assetMovement.to_direction || '';
+
+              const toDepotId = assetMovement.to_depot_id;
+
+              const toCustomerId = assetMovement.to_customer_id;
+
+              await tx.asset_master.updateMany({
+                where: {
+                  id: {
+                    in: assetMovement.asset_movement_assets.map(
+                      (aa: any) => aa.asset_id
+                    ),
                   },
-                });
+                },
 
-                await tx.asset_movement_assets.create({
-                  data: {
-                    movement_id: movement.id,
-                    asset_id: cooler.asset_master_id,
-                    createdby: userId,
-                    createdate: new Date(),
-                    log_inst: 1,
-                  },
-                });
+                data: {
+                  current_location: `${toDirection} (${toDepotId || toCustomerId})`,
 
-                await tx.asset_master.update({
-                  where: { id: cooler.asset_master_id },
-                  data: {
-                    current_status: 'Installed',
-                    current_location: cooler.coolers_customers
-                      ? `${cooler.coolers_customers.name} (${cooler.coolers_customers.code})`
-                      : 'Customer Location',
-                    updatedby: userId,
-                    updatedate: new Date(),
-                  },
-                });
+                  current_status: assetStatusUpdate,
+
+                  updatedate: new Date(),
+
+                  updatedby: userId,
+                },
+              });
+
+              if (
+                assetMovement.movement_type?.toLowerCase() === 'maintenance' ||
+                assetMovement.movement_type?.toLowerCase() === 'repair'
+              ) {
+                try {
+                  await tx.asset_maintenance.createMany({
+                    data: assetMovement.asset_movement_assets.map(
+                      (aa: any) => ({
+                        asset_id: aa.asset_id,
+
+                        maintenance_date:
+                          assetMovement.movement_date || new Date(),
+
+                        issue_reported:
+                          assetMovement.notes ||
+                          `${assetMovement.movement_type} movement`,
+
+                        action_taken: `Asset moved from ${assetMovement.from_direction} to ${toDirection}`,
+
+                        remarks: `Movement type: ${assetMovement.movement_type}`,
+
+                        createdby: userId,
+
+                        createdate: new Date(),
+
+                        technician_id: assetMovement.performed_by,
+
+                        log_inst: 1,
+                      })
+                    ),
+                  });
+                } catch (maintenanceError) {
+                  console.error(
+                    'Error creating maintenance records:',
+                    maintenanceError
+                  );
+                }
               }
             }
-            return { status: 'fully_approved', request };
           }
 
-          return { status: 'next_level', request, nextApprover };
+          return {
+            status: 'fully_approved',
+
+            request,
+          };
         },
         {
           maxWait: 10000,
+
           timeout: 20000,
         }
       );
+
+      // =====================================================
+      // EMAILS
+      // =====================================================
+
       if (result.status === 'fully_approved' && 'request' in result) {
-        if (result.request.request_type === 'LOCATION_RESET') {
-          try {
-            const requesterEmail =
-              result.request.sfa_d_requests_requester?.email;
+        const requesterEmail = result.request.sfa_d_requests_requester?.email;
 
-            if (requesterEmail) {
-              const customer = await getCustomerDetails(
-                result.request.reference_id!
-              );
-              const requestData = JSON.parse(
-                result.request.request_data || '{}'
-              );
+        if (requesterEmail) {
+          const template = await generateEmailContent(
+            templateKeyMap.requestAccepted,
+            {
+              employee_name:
+                result.request.sfa_d_requests_requester?.name || 'Employee',
 
-              const template = await generateEmailContent(
-                templateKeyMap.locationResetApproved,
-                {
-                  requester_name:
-                    result.request.sfa_d_requests_requester?.name || 'Employee',
-                  customer_name: customer?.name || 'N/A',
-                  customer_code: customer?.code || 'N/A',
-                  new_latitude: requestData.latitude,
-                  new_longitude: requestData.longitude,
-                  approver_name: req.user?.name || 'System',
-                  approval_date: new Date().toLocaleDateString(),
-                  company_name: process.env.COMPANY_NAME || 'SFA System',
-                }
-              );
+              request_type: formatRequestType(result.request.request_type),
 
-              await sendEmail({
-                to: requesterEmail,
-                subject: template.subject,
-                html: template.body,
-                createdby: userId,
-                log_inst: 1,
-              });
-            } else {
-              console.warn(
-                'Requester email is missing, skipping location reset approval email'
-              );
+              company_name: 'SFA System',
             }
-          } catch (emailError) {
-            console.error(
-              'Error sending location reset approval email:',
-              emailError
-            );
-          }
-        }
+          );
 
-        if (
-          result.request.request_type === 'ASSET_MOVEMENT_APPROVAL' &&
-          result.request.reference_id
-        ) {
-          try {
-            await generateContractOnApproval(result.request.reference_id);
-          } catch (contractError) {
-            console.error(
-              'Error generating contract after approval:',
-              contractError
-            );
-          }
-        }
+          await sendEmail({
+            to: requesterEmail,
 
-        try {
-          const requesterEmail = result.request.sfa_d_requests_requester?.email;
+            subject: template.subject,
 
-          if (requesterEmail) {
-            const template = await generateEmailContent(
-              templateKeyMap.requestAccepted,
-              {
-                employee_name:
-                  result.request.sfa_d_requests_requester?.name || 'Employee',
-                request_type: formatRequestType(result.request.request_type),
-                company_name: 'SFA System',
-              }
-            );
+            html: template.body,
 
-            console.log('Sending approval email to:', requesterEmail);
+            createdby: userId,
 
-            await sendEmail({
-              to: requesterEmail,
-              subject: template.subject,
-              html: template.body,
-              createdby: userId,
-              log_inst: 1,
-            });
-          } else {
-            console.warn('Requester email is missing, skipping approval email');
-          }
-        } catch (emailError) {
-          console.error('Error sending approval email:', emailError);
+            log_inst: 1,
+          });
         }
 
         return res.status(200).json({
           message: 'Request approved successfully.',
         });
       }
-      if (result.status === 'rejected' && 'request' in result) {
-        if (result.request.request_type === 'LOCATION_RESET') {
-          const customer = await getCustomerDetails(
-            result.request.reference_id!
-          );
-          const requestData = JSON.parse(result.request.request_data || '{}');
 
+      if (result.status === 'rejected' && 'request' in result) {
+        const requesterEmail = result.request.sfa_d_requests_requester?.email;
+
+        if (requesterEmail) {
           const template = await generateEmailContent(
-            templateKeyMap.locationResetRejected,
+            templateKeyMap.requestRejected,
             {
-              requester_name: result.request.sfa_d_requests_requester.name,
-              customer_name: customer?.name || 'N/A',
-              customer_code: customer?.code || 'N/A',
-              new_latitude: requestData.latitude,
-              new_longitude: requestData.longitude,
-              approver_name: req.user?.name || 'System',
-              rejection_date: new Date().toLocaleDateString(),
-              rejection_reason: remarks || 'No reason provided',
-              company_name: process.env.COMPANY_NAME || 'SFA System',
+              employee_name: result.request.sfa_d_requests_requester.name,
+
+              request_type: formatRequestType(result.request.request_type),
+
+              remarks: remarks || 'No reason provided',
+
+              company_name: 'SFA System',
             }
           );
 
           await sendEmail({
-            to: result.request.sfa_d_requests_requester.email,
+            to: requesterEmail,
+
             subject: template.subject,
+
             html: template.body,
+
             createdby: userId,
+
             log_inst: 1,
           });
         }
-      }
-
-      if (result.request.request_type === 'CUSTOMER_CREATION') {
-        const requestData = JSON.parse(result.request.request_data || '{}');
-        const customerData = requestData.customer_data;
-
-        if (action === 'A') {
-          // ✅ FETCH THE ACTUAL CREATED CUSTOMER
-          const createdCustomer = await prisma.customers.findFirst({
-            where: { code: customerData.code },
-            select: {
-              id: true,
-              name: true,
-              code: true,
-              email: true,
-              phone_number: true,
-            },
-          });
-
-          const template = await generateEmailContent(
-            templateKeyMap.customerCreationApproved,
-            {
-              requester_name: result.request.sfa_d_requests_requester.name,
-              customer_name: createdCustomer?.name || customerData.name,
-              customer_code: createdCustomer?.code || customerData.code,
-              customer_email: createdCustomer?.email || customerData.email,
-              customer_phone:
-                createdCustomer?.phone_number || customerData.phone_number,
-              platform_type: requestData.platform_type,
-              approver_name: req.user?.name || 'System',
-              approval_date: new Date().toLocaleDateString(),
-              company_name: process.env.COMPANY_NAME || 'SFA System',
-              request_id: result.request.id,
-            }
-          );
-
-          await sendEmail({
-            to: result.request.sfa_d_requests_requester.email,
-            subject: template.subject,
-            html: template.body,
-            createdby: userId,
-            log_inst: 1,
-          });
-        } else if (action === 'R') {
-          const template = await generateEmailContent(
-            templateKeyMap.customerCreationRejected,
-            {
-              requester_name: result.request.sfa_d_requests_requester.name,
-              customer_name: customerData.name,
-              customer_code: customerData.code,
-              customer_email: customerData.email,
-              customer_phone: customerData.phone_number,
-              platform_type: requestData.platform_type,
-              approver_name: req.user?.name || 'System',
-              rejection_date: new Date().toLocaleDateString(),
-              rejection_reason: remarks || 'Customer creation request rejected',
-              company_name: process.env.COMPANY_NAME || 'SFA System',
-              request_id: result.request.id,
-            }
-          );
-
-          await sendEmail({
-            to: result.request.sfa_d_requests_requester.email,
-            subject: template.subject,
-            html: template.body,
-            createdby: userId,
-            log_inst: 1,
-          });
-        }
-      }
-
-      if (result.status === 'rejected' && 'request' in result) {
-        const template = await generateEmailContent(
-          templateKeyMap.requestRejected,
-          {
-            employee_name: result.request.sfa_d_requests_requester.name,
-            request_type: formatRequestType(result.request.request_type),
-            remarks: remarks || 'No reason provided',
-            company_name: 'SFA System',
-          }
-        );
-
-        await sendEmail({
-          to: result.request.sfa_d_requests_requester.email,
-          subject: template.subject,
-          html: template.body,
-          createdby: userId,
-          log_inst: 1,
-        });
 
         return res.status(200).json({
           message: 'Request rejected successfully',
-        });
-      }
-
-      if (result.status === 'fully_approved' && 'request' in result) {
-        const template = await generateEmailContent(
-          templateKeyMap.requestAccepted,
-          {
-            employee_name: result.request.sfa_d_requests_requester.name,
-            request_type: formatRequestType(result.request.request_type),
-            company_name: 'SFA System',
-          }
-        );
-
-        await sendEmail({
-          to: result.request.sfa_d_requests_requester.email,
-          subject: template.subject,
-          html: template.body,
-          createdby: userId,
-          log_inst: 1,
-        });
-
-        return res.status(200).json({
-          message: 'Request approved successfully.',
         });
       }
 
@@ -1817,18 +2472,26 @@ export const requestsController = {
           {
             approver_name:
               result.nextApprover.sfa_d_requests_approvals_approver.name,
+
             previous_approver: 'Previous Approver',
+
             request_type: formatRequestType(result.request.request_type),
+
             action: 'approved',
+
             company_name: 'SFA System',
           }
         );
 
         await sendEmail({
           to: result.nextApprover.sfa_d_requests_approvals_approver.email,
+
           subject: template.subject,
+
           html: template.body,
+
           createdby: userId,
+
           log_inst: 1,
         });
 
@@ -1837,24 +2500,25 @@ export const requestsController = {
         });
       }
 
-      res.status(200).json({
+      return res.status(200).json({
         message: 'Action processed successfully',
       });
     } catch (error: any) {
       console.error('Take Action Error:', error);
+
       if (error.message.includes('Cannot approve')) {
         return res.status(400).json({
           message: error.message,
         });
       }
 
-      res.status(500).json({
+      return res.status(500).json({
         message: 'Failed to process action',
+
         error: error.message,
       });
     }
   },
-
   async getRequestsByUsers(req: Request, res: Response) {
     try {
       const userId = req.user?.id;
