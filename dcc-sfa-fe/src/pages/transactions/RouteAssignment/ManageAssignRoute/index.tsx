@@ -166,6 +166,40 @@ const ManageAssignRoute: React.FC<ManageAssignRouteProps> = ({
       size="large"
     >
       <Box className="!p-4 select-none">
+        <div className='grid grid-cols-2 gap-3 pb-3'>
+          <Select
+            value={selectedDepot || ''}
+            onChange={e => {
+              const val = e.target.value;
+              setSelectedDepot(val);
+              if (!val) setSelectedZone('');
+            }}
+            placeholder="Filter by Depot"
+            className="!w-full"
+            disableClearable={false}
+          >
+            {depots.map((depot: Depot) => (
+              <MenuItem key={depot.id} value={depot.id.toString()}>
+                {depot.name} ({depot.code})
+              </MenuItem>
+            ))}
+          </Select>
+          <Select
+            key={`zone-filter-drawer-${selectedDepot}`}
+            value={selectedZone || ''}
+            onChange={e => setSelectedZone(e.target.value)}
+            placeholder="Filter by Zone"
+            className="!w-full"
+            disableClearable={false}
+            disabled={!selectedDepot}
+          >
+            {zones.map((zone: any) => (
+              <MenuItem key={zone.id} value={zone.id.toString()}>
+                {zone.name} ({zone.code})
+              </MenuItem>
+            ))}
+          </Select>
+        </div>
         <DragDropContext onDragEnd={handleDragEnd}>
           <div className="!grid !grid-cols-2 !gap-4 !h-[520px]">
             <Box className="!border !border-gray-200 !rounded-t-lg !flex !flex-col !overflow-hidden">
@@ -180,42 +214,7 @@ const ManageAssignRoute: React.FC<ManageAssignRouteProps> = ({
                   Drag routes from the left panel to assign
                 </p>
                 <Box className="!mt-2 !flex !flex-col !gap-2">
-                  <div className="!flex !gap-2">
-                    <Select
-                      value={selectedDepot || ''}
-                      onChange={e => {
-                        const val = e.target.value;
-                        setSelectedDepot(val);
-                        if (!val) setSelectedZone('');
-                      }}
-                      placeholder="Filter by Depot"
-                      className="!w-full"
-                      disableClearable={false}
-                    >
-                      {depots.map((depot: Depot) => (
-                        <MenuItem key={depot.id} value={depot.id.toString()}>
-                          {depot.name} ({depot.code})
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </div>
-                  <div className="w-1/2">
-                    <Select
-                      key={`zone-filter-drawer-${selectedDepot}`}
-                      value={selectedZone || ''}
-                      onChange={e => setSelectedZone(e.target.value)}
-                      placeholder="Filter by Zone"
-                      className="!w-full"
-                      disableClearable={false}
-                      disabled={!selectedDepot}
-                    >
-                      {zones.map((zone: any) => (
-                        <MenuItem key={zone.id} value={zone.id.toString()}>
-                          {zone.name} ({zone.code})
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </div>
+
                   <SearchInput
                     placeholder="Search Routes..."
                     value={availableSearch}

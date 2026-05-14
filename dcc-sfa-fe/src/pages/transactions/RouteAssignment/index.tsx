@@ -315,7 +315,7 @@ const RouteAssignmentManagement: React.FC = () => {
                   <Avatar
                     src={user.profile_image || 'mkx'}
                     alt={user.name}
-                    className="!bg-blue-100 !text-blue-600"
+                    className="!bg-blue-100 !rounded !text-blue-600"
                   >
                     {user.name?.charAt(0).toUpperCase()}
                   </Avatar>
@@ -330,10 +330,13 @@ const RouteAssignmentManagement: React.FC = () => {
                       variant="caption"
                       className="!text-gray-500 !truncate"
                     >
-                      {user.email}
+                      {user.email || user.depot_id}
                     </Typography>
                   </div>
                 </div>
+
+              </div>
+              <div className="px-4 flex justify-between items-center pb-4">
                 <div className="flex items-center gap-2">
                   <Button
                     size="small"
@@ -354,13 +357,19 @@ const RouteAssignmentManagement: React.FC = () => {
                     </Button>
                   )}
                 </div>
-              </div>
-              <div className="px-4 flex justify-between items-center pb-4">
-                <Typography variant="body2" className="!text-gray-500">
-                  Assigned Routes: {user.assigned_routes_count || 0}
-                </Typography>
                 <Box className="!mt-2">
-                  <AvatarGroup max={10} spacing="small" className="!text-xs">
+                  <AvatarGroup
+                    max={5}
+                    spacing="small"
+                    className="!text-xs"
+                    sx={{
+                      '& .MuiAvatar-root': {
+                        width: 32,
+                        height: 32,
+                        fontSize: '0.75rem',
+                      },
+                    }}
+                  >
                     {user.assigned_routes.map(route => (
                       <Tooltip
                         key={`${user.id}-${route.id}`}
@@ -368,7 +377,7 @@ const RouteAssignmentManagement: React.FC = () => {
                         arrow
                         placement="top"
                       >
-                        <Avatar className="!bg-primary-100 !text-primary-600 !w-6 !h-6 !text-[10px]">
+                        <Avatar className="!bg-primary-100 !text-primary-600 !w-8 !h-8 !text-xs">
                           {(route.name || route.code || 'R')
                             .charAt(0)
                             .toUpperCase()}
@@ -391,10 +400,12 @@ const RouteAssignmentManagement: React.FC = () => {
       )}
 
       {isRead && !isFetching && assignments.length > 0 && totalPages > 1 && (
-        <div className="flex justify-center mt-6">
+        <div className="flex justify-end mt-4">
           <Pagination
             count={totalPages}
             page={page}
+            variant='outlined'
+            shape='rounded'
             onChange={(_, newPage) => setPage(newPage)}
             color="primary"
             showFirstButton

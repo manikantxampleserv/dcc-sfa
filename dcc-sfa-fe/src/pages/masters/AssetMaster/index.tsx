@@ -8,7 +8,6 @@ import {
 import { useExportToExcel } from 'hooks/useImportExport';
 import { usePermission } from 'hooks/usePermission';
 import {
-  Calendar,
   Home,
   MapPin,
   Package,
@@ -26,7 +25,6 @@ import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
-import { formatDate } from 'utils/dateUtils';
 import ImportAssetMaster from './ImportAssetMaster';
 import ManageAssetMaster from './ManageAssetMaster';
 
@@ -171,15 +169,33 @@ const AssetMasterManagement: React.FC = () => {
     },
     {
       id: 'asset_master_asset_types',
-      label: 'Asset Type',
-      render: value => (
-        <Box className="flex items-center gap-1">
-          <Settings className="w-3 h-3 text-gray-400" />
-          <span className="text-xs">
-            {value?.name || (
-              <span className="italic text-gray-400">Not specified</span>
-            )}
-          </span>
+      label: 'Type / Sub Type',
+      render: (_value, row) => (
+        <Box className='flex items-center gap-2'>
+
+          <Avatar
+            alt={row.asset_master_asset_types?.name}
+            className="!rounded !bg-primary-100 !text-primary-500"
+          >
+            <Settings className="w-5 h-5" />
+          </Avatar>
+          <Box>
+            <Typography
+              variant="body1"
+              className="!text-gray-900 !leading-tight"
+            >
+              {row.asset_master_asset_types?.name || (
+                <span className="italic text-gray-400">Not specified</span>
+              )}
+            </Typography>
+            <Typography
+              variant="caption"
+              className="!text-gray-500 !text-xs !block !mt-0.5"
+            >
+              {row?.asset_master_asset_sub_types?.name}
+            </Typography>
+          </Box>
+
         </Box>
       ),
     },
@@ -198,60 +214,30 @@ const AssetMasterManagement: React.FC = () => {
       ),
     },
     {
-      id: 'asset_master_asset_sub_types',
-      label: 'Asset Sub Type',
-      render: value => (
-        <Box className="flex items-center gap-1">
-          <Wrench className="w-3 h-3 text-gray-400" />
-          <span className="text-xs">
-            {value?.name || (
-              <span className="italic text-gray-400">No sub type</span>
-            )}
-          </span>
-        </Box>
-      ),
-    },
-    {
-      id: 'asset_master_depot',
-      label: 'Depot',
-      render: value => (
-        <Box className="flex items-center gap-1">
-          <Home className="w-3 h-3 text-gray-400" />
-          <span className="text-xs">
-            {value?.name || (
-              <span className="italic text-gray-400">No depot</span>
-            )}
-          </span>
-        </Box>
-      ),
-    },
-    {
-      id: 'asset_master_outlet',
-      label: 'Outlet',
-      render: value => (
-        <Box className="flex items-center gap-1">
-          <Store className="w-3 h-3 text-gray-400" />
-          <span className="text-xs">
-            {value?.name || (
-              <span className="italic text-gray-400">No outlet</span>
-            )}
-          </span>
-        </Box>
-      ),
-    },
-    {
       id: 'current_location',
       label: 'Location',
-      render: (_value, row) => (
-        <Box className="flex items-center gap-1">
-          <MapPin className="w-3 h-3 text-gray-400" />
-          <span className="text-xs">
-            {row.current_location || (
-              <span className="italic text-gray-400">No location</span>
-            )}
-          </span>
-        </Box>
-      ),
+      render: (_value, row) => {
+        const locationName =
+          row.asset_master_depot?.name ||
+          row.asset_master_outlet?.name ||
+          row.current_location;
+        const Icon = row.asset_master_depot
+          ? Home
+          : row.asset_master_outlet
+            ? Store
+            : MapPin;
+
+        return (
+          <Box className="flex items-center gap-1">
+            <Icon className="w-3 h-3 text-gray-400" />
+            <span className="text-xs">
+              {locationName || (
+                <span className="italic text-gray-400">No location</span>
+              )}
+            </span>
+          </Box>
+        );
+      },
     },
     {
       id: 'current_status',
@@ -262,22 +248,6 @@ const AssetMasterManagement: React.FC = () => {
           color={getStatusColor(row.current_status || 'Available')}
           size="small"
         />
-      ),
-    },
-    {
-      id: 'warranty_expiry',
-      label: 'Warranty',
-      render: (_value, row) => (
-        <Box className="flex items-center gap-1">
-          <Calendar className="w-3 h-3 text-gray-400" />
-          <span className="text-xs">
-            {row.warranty_expiry ? (
-              formatDate(row.warranty_expiry)
-            ) : (
-              <span className="italic text-gray-400">No warranty</span>
-            )}
-          </span>
-        </Box>
       ),
     },
     {

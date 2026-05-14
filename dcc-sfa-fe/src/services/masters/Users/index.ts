@@ -65,6 +65,22 @@ interface User {
   } | null;
   permissions?: string[];
   recent_activities?: RecentActivity;
+  subordinate_count?: number;
+  manager_team_count?: number;
+  subordinates?: Array<{
+    id: number;
+    name: string;
+    email: string;
+    employee_id: string | null;
+    profile_image: string | null;
+  }>;
+  manager_team_members?: Array<{
+    id: number;
+    name: string;
+    email: string;
+    employee_id: string | null;
+    profile_image: string | null;
+  }>;
 }
 
 interface ManageUserPayload {

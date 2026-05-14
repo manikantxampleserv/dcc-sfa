@@ -230,17 +230,12 @@ export const routesController = {
           { is_active: 'Y' },
           {
             user_role: {
-              name: {
-                notIn: [
-                  'admin',
-                  'Admin',
-                  'ADMIN',
-                  'subadmin',
-                  'Sub Admin',
-                  'superadmin',
-                  'Super Admin',
-                ],
-              },
+              OR: [
+                { name: { contains: 'Salesman' } },
+                { name: { contains: 'Salesperson' } },
+                { role_key: { contains: 'salesman' } },
+                { role_key: { contains: 'salesperson' } },
+              ],
             },
           },
         ],
@@ -335,6 +330,7 @@ export const routesController = {
         id: u.id,
         name: u.name,
         email: u.email,
+        code: u.employee,
         profile_image: u.profile_image,
         depot_id: u.depot_id,
         zone_id: u.zone_id,
@@ -351,8 +347,6 @@ export const routesController = {
         where: userFilters,
       });
 
-      // Stats should ideally reflect the filtered view or the global view?
-      // Usually, stats cards at the top are global or reflect the main filters.
       const totalRoutes = await prisma.routes.count({
         where: {
           is_active: 'Y',
