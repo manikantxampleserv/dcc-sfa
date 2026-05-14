@@ -337,6 +337,7 @@ export const assetMovementsController = {
 
         if (toCustomerId) {
           assetUpdateData.outlet_id = toCustomerId;
+          assetUpdateData.depot_id = null;
         }
 
         if (isDepotToOutletMovement) {
