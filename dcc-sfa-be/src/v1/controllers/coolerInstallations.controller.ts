@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { paginate } from '../../utils/paginate';
 import prisma from '../../configs/prisma.client';
+import { createRequest } from './requests.controller';
 
 interface CoolerInstallationSerialized {
   id: number;
@@ -26,6 +27,7 @@ interface CoolerInstallationSerialized {
   is_active: string;
   createdate?: string | null;
   createdby: number;
+  approval_status?: string | null;
   updatedate?: string | null;
   updatedby?: number | null;
   customer?: {
@@ -110,6 +112,8 @@ const serializeCoolerInstallation = (
     createdby: cooler.createdby,
     updatedate: cooler.updatedate?.toISOString(),
     updatedby: cooler.updatedby,
+    approval_status: cooler.approval_status,
+
     customer: customer
       ? { id: customer.id, name: customer.name, code: customer.code }
       : null,
@@ -141,17 +145,181 @@ const serializeCoolerInstallation = (
 };
 
 export const coolerInstallationsController = {
+  // async createCoolerInstallation(req: Request, res: Response) {
+  //   try {
+  //     const data = req.body;
+  //     if (!data.customer_id) {
+  //       return res.status(400).json({ message: 'Customer ID is required' });
+  //     }
+
+  //     const generateCode = async (): Promise<string> => {
+  //       const prefix = 'COOL';
+  //       const count = await prisma.coolers.count();
+  //       const timestamp = Date.now().toString().slice(-6);
+  //       return `${prefix}-${String(count + 1).padStart(4, '0')}-${timestamp}`;
+  //     };
+
+  //     let coolerCode: string;
+
+  //     if (data.code && data.code.trim() !== '') {
+  //       coolerCode = data.code.trim();
+
+  //       const existingCooler = await prisma.coolers.findUnique({
+  //         where: { code: coolerCode },
+  //       });
+
+  //       if (existingCooler) {
+  //         return res
+  //           .status(400)
+  //           .json({ message: 'Cooler code already exists' });
+  //       }
+  //     } else {
+  //       coolerCode = await generateCode();
+  //       let attempts = 0;
+
+  //       while (attempts < 10) {
+  //         const existing = await prisma.coolers.findUnique({
+  //           where: { code: coolerCode },
+  //         });
+  //         if (!existing) break;
+  //         coolerCode = await generateCode();
+  //         attempts++;
+  //       }
+
+  //       if (attempts >= 10) {
+  //         return res
+  //           .status(500)
+  //           .json({ message: 'Unable to generate unique cooler code' });
+  //       }
+  //     }
+
+  //     const cooler = await prisma.coolers.create({
+  //       data: {
+  //         ...data,
+  //         code: coolerCode,
+  //         createdby: data.createdby ? Number(data.createdby) : 1,
+  //         log_inst: data.log_inst || 1,
+  //         createdate: new Date(),
+  //         install_date: data.install_date
+  //           ? new Date(data.install_date)
+  //           : undefined,
+  //         last_service_date: data.last_service_date
+  //           ? new Date(data.last_service_date)
+  //           : undefined,
+  //         next_service_due: data.next_service_due
+  //           ? new Date(data.next_service_due)
+  //           : undefined,
+  //         warranty_expiry: data.warranty_expiry
+  //           ? new Date(data.warranty_expiry)
+  //           : undefined,
+  //         last_scanned_date: data.last_scanned_date
+  //           ? new Date(data.last_scanned_date)
+  //           : undefined,
+  //       },
+  //       include: {
+  //         coolers_customers: {
+  //           select: {
+  //             id: true,
+  //             name: true,
+  //             code: true,
+  //           },
+  //         },
+  //         users: {
+  //           select: {
+  //             id: true,
+  //             name: true,
+  //             email: true,
+  //             profile_image: true,
+  //           },
+  //         },
+  //         cooler_types: {
+  //           select: {
+  //             id: true,
+  //             name: true,
+  //             code: true,
+  //           },
+  //         },
+  //         cooler_sub_types: {
+  //           select: {
+  //             id: true,
+  //             name: true,
+  //             code: true,
+  //           },
+  //         },
+  //         cooler_asset_master: {
+  //           select: {
+  //             id: true,
+  //             name: true,
+  //             serial_number: true,
+  //             current_status: true,
+  //             current_location: true,
+  //             asset_master_asset_types: true,
+  //             asset_master_asset_sub_types: true,
+  //             asset_master_brands: true,
+  //           },
+  //         },
+  //       },
+  //     });
+
+  //     if (cooler.asset_master_id) {
+  //       try {
+  //         const customer = cooler.coolers_customers;
+  //         const toLocation = customer
+  //           ? `${customer.name} (${customer.code})`
+  //           : 'Customer Location';
+
+  //         if (cooler.status === 'Installed') {
+  //           await prisma.asset_master.update({
+  //             where: { id: cooler.asset_master_id },
+  //             data: {
+  //               current_location: toLocation,
+  //               current_status: 'Installed',
+  //               updatedate: new Date(),
+  //               updatedby: data.createdby ? Number(data.createdby) : 1,
+  //             },
+  //           });
+  //         } else if (cooler.install_date) {
+  //           await prisma.asset_master.update({
+  //             where: { id: cooler.asset_master_id },
+  //             data: {
+  //               current_location: toLocation,
+  //               current_status: 'In Use',
+  //               updatedate: new Date(),
+  //               updatedby: data.createdby ? Number(data.createdby) : 1,
+  //             },
+  //           });
+  //         }
+  //       } catch (movementError) {
+  //         console.error('Error creating asset movement:', movementError);
+  //       }
+  //     }
+
+  //     res.status(201).json({
+  //       message: 'Cooler installation created successfully',
+  //       data: serializeCoolerInstallation(cooler),
+  //     });
+  //   } catch (error: any) {
+  //     console.error('Create Cooler Installation Error:', error);
+  //     res.status(500).json({ message: error.message });
+  //   }
+  // },
+
   async createCoolerInstallation(req: Request, res: Response) {
     try {
       const data = req.body;
+      const userId = req.user?.id || 1;
+
       if (!data.customer_id) {
-        return res.status(400).json({ message: 'Customer ID is required' });
+        return res.status(400).json({
+          message: 'Customer ID is required',
+        });
       }
 
       const generateCode = async (): Promise<string> => {
         const prefix = 'COOL';
         const count = await prisma.coolers.count();
         const timestamp = Date.now().toString().slice(-6);
+
         return `${prefix}-${String(count + 1).padStart(4, '0')}-${timestamp}`;
       };
 
@@ -165,53 +333,68 @@ export const coolerInstallationsController = {
         });
 
         if (existingCooler) {
-          return res
-            .status(400)
-            .json({ message: 'Cooler code already exists' });
+          return res.status(400).json({
+            message: 'Cooler code already exists',
+          });
         }
       } else {
         coolerCode = await generateCode();
+
         let attempts = 0;
 
         while (attempts < 10) {
           const existing = await prisma.coolers.findUnique({
             where: { code: coolerCode },
           });
+
           if (!existing) break;
+
           coolerCode = await generateCode();
           attempts++;
         }
 
         if (attempts >= 10) {
-          return res
-            .status(500)
-            .json({ message: 'Unable to generate unique cooler code' });
+          return res.status(500).json({
+            message: 'Unable to generate unique cooler code',
+          });
         }
       }
 
       const cooler = await prisma.coolers.create({
         data: {
           ...data,
+
           code: coolerCode,
-          createdby: data.createdby ? Number(data.createdby) : 1,
+
+          approval_status: 'P',
+
+          createdby: data.createdby ? Number(data.createdby) : userId,
+
           log_inst: data.log_inst || 1,
+
           createdate: new Date(),
+
           install_date: data.install_date
             ? new Date(data.install_date)
             : undefined,
+
           last_service_date: data.last_service_date
             ? new Date(data.last_service_date)
             : undefined,
+
           next_service_due: data.next_service_due
             ? new Date(data.next_service_due)
             : undefined,
+
           warranty_expiry: data.warranty_expiry
             ? new Date(data.warranty_expiry)
             : undefined,
+
           last_scanned_date: data.last_scanned_date
             ? new Date(data.last_scanned_date)
             : undefined,
         },
+
         include: {
           coolers_customers: {
             select: {
@@ -220,6 +403,7 @@ export const coolerInstallationsController = {
               code: true,
             },
           },
+
           users: {
             select: {
               id: true,
@@ -228,6 +412,7 @@ export const coolerInstallationsController = {
               profile_image: true,
             },
           },
+
           cooler_types: {
             select: {
               id: true,
@@ -235,6 +420,7 @@ export const coolerInstallationsController = {
               code: true,
             },
           },
+
           cooler_sub_types: {
             select: {
               id: true,
@@ -242,6 +428,7 @@ export const coolerInstallationsController = {
               code: true,
             },
           },
+
           cooler_asset_master: {
             select: {
               id: true,
@@ -257,49 +444,55 @@ export const coolerInstallationsController = {
         },
       });
 
-      if (cooler.asset_master_id) {
-        try {
-          const customer = cooler.coolers_customers;
-          const toLocation = customer
-            ? `${customer.name} (${customer.code})`
-            : 'Customer Location';
+      try {
+        const requestPayload = {
+          requester_id: userId,
 
-          if (cooler.status === 'Installed') {
-            await prisma.asset_master.update({
-              where: { id: cooler.asset_master_id },
-              data: {
-                current_location: toLocation,
-                current_status: 'Installed',
-                updatedate: new Date(),
-                updatedby: data.createdby ? Number(data.createdby) : 1,
-              },
-            });
-          } else if (cooler.install_date) {
-            await prisma.asset_master.update({
-              where: { id: cooler.asset_master_id },
-              data: {
-                current_location: toLocation,
-                current_status: 'In Use',
-                updatedate: new Date(),
-                updatedby: data.createdby ? Number(data.createdby) : 1,
-              },
-            });
-          }
-        } catch (movementError) {
-          console.error('Error creating asset movement:', movementError);
-        }
+          request_type: 'COOLER_INSTALLATION_APPROVAL',
+
+          reference_id: cooler.id,
+
+          request_data: JSON.stringify({
+            cooler_id: cooler.id,
+            cooler_code: cooler.code,
+            customer_id: cooler.customer_id,
+            asset_master_id: cooler.asset_master_id,
+            install_date: cooler.install_date,
+            status: cooler.status,
+          }),
+
+          createdby: userId,
+
+          log_inst: 1,
+        };
+
+        await createRequest(requestPayload);
+
+        console.log(
+          `Approval request created for cooler installation ${cooler.id}`
+        );
+      } catch (approvalError) {
+        console.error('Error creating approval workflow:', approvalError);
+
+        return res.status(500).json({
+          message: 'Cooler created but approval workflow creation failed',
+        });
       }
 
-      res.status(201).json({
-        message: 'Cooler installation created successfully',
+      return res.status(201).json({
+        message:
+          'Cooler installation created and sent for approval successfully',
+
         data: serializeCoolerInstallation(cooler),
       });
     } catch (error: any) {
       console.error('Create Cooler Installation Error:', error);
-      res.status(500).json({ message: error.message });
+
+      return res.status(500).json({
+        message: error.message,
+      });
     }
   },
-
   async getCoolerInstallations(req: Request, res: Response) {
     try {
       const {

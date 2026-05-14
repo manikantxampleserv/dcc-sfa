@@ -659,6 +659,7 @@ model coolers {
   maintenance_contract String?              @db.NVarChar(100)
   technician_id        Int?
   last_scanned_date    DateTime?
+  approval_status      String?              @default("pending") @db.NVarChar(20)
   is_active            String               @default("Y", map: "DF__coolers__is_acti__2F650636") @db.Char(1)
   createdate           DateTime?            @default(now(), map: "DF__coolers__created__30592A6F") @db.DateTime
   createdby            Int

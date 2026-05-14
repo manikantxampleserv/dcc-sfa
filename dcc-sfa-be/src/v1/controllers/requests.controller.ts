@@ -200,6 +200,20 @@ async function getWorkflowForRequest(
   }
 }
 
+export async function hasApprovalWorkflow(
+  request_type: string,
+  zone_id: number | null,
+  depot_id: number | null
+) {
+  const { workflow } = await getWorkflowForRequest(
+    request_type,
+    zone_id,
+    depot_id
+  );
+
+  return workflow && workflow.length > 0;
+}
+
 function replaceVariables(template: string, data: Record<string, any>): string {
   if (!template) {
     console.log(' Empty template provided');
@@ -1190,6 +1204,48 @@ export const requestsController = {
               );
             }
 
+            if (
+              request.request_type === 'ASSET_MASTER_APPROVAL' &&
+              request.reference_id
+            ) {
+              const requestData = JSON.parse(request.request_data || '{}');
+
+              await tx.asset_master.update({
+                where: {
+                  id: request.reference_id,
+                },
+                data: {
+                  current_status: requestData.previous_status || null,
+
+                  updatedby: userId,
+                  updatedate: new Date(),
+                },
+              });
+
+              console.log(
+                `Asset master ${request.reference_id} reverted after rejection`
+              );
+            }
+
+            if (
+              request.request_type === 'COOLER_INSTALLATION_APPROVAL' &&
+              request.reference_id
+            ) {
+              await tx.coolers.update({
+                where: {
+                  id: request.reference_id,
+                },
+                data: {
+                  approval_status: 'R',
+                  updatedby: userId,
+                  updatedate: new Date(),
+                },
+              });
+
+              console.log(
+                `Cooler installation ${request.reference_id} rejected`
+              );
+            }
             return { status: 'rejected', request };
           }
 
@@ -1250,7 +1306,7 @@ export const requestsController = {
               await tx.orders.update({
                 where: { id: request.reference_id },
                 data: {
-                  approval_status: 'approved',
+                  approval_status: 'A',
                   status: 'confirmed',
                   approved_by: userId,
                   approved_at: new Date(),
@@ -1393,6 +1449,109 @@ export const requestsController = {
               );
             }
 
+            if (
+              request.request_type === 'ASSET_MASTER_APPROVAL' &&
+              request.reference_id
+            ) {
+              const requestData = JSON.parse(request.request_data || '{}');
+
+              await tx.asset_master.update({
+                where: {
+                  id: request.reference_id,
+                },
+                data: {
+                  depot_id: requestData.depot_id
+                    ? Number(requestData.depot_id)
+                    : null,
+
+                  outlet_id: requestData.customer_id
+                    ? Number(requestData.customer_id)
+                    : null,
+
+                  current_status: requestData.requested_status || null,
+
+                  updatedby: userId,
+                  updatedate: new Date(),
+                },
+              });
+
+              console.log(
+                `Asset master ${request.reference_id} updated after approval`
+              );
+            }
+
+            if (
+              request.request_type === 'COOLER_INSTALLATION_APPROVAL' &&
+              request.reference_id
+            ) {
+              const cooler = await tx.coolers.findUnique({
+                where: { id: request.reference_id },
+                include: {
+                  coolers_customers: true,
+                  cooler_asset_master: true,
+                },
+              });
+
+              if (cooler && cooler.asset_master_id) {
+                // update cooler approval
+                await tx.coolers.update({
+                  where: { id: cooler.id },
+                  data: {
+                    approval_status: 'A',
+                    updatedby: userId,
+                    updatedate: new Date(),
+                  },
+                });
+
+                const movement = await tx.asset_movements.create({
+                  data: {
+                    movement_type: 'installation',
+                    movement_date: new Date(),
+                    performed_by: userId,
+                    createdby: userId,
+                    createdate: new Date(),
+
+                    from_direction:
+                      cooler.cooler_asset_master?.current_location ||
+                      'Warehouse',
+
+                    to_direction: cooler.coolers_customers
+                      ? `${cooler.coolers_customers.name} (${cooler.coolers_customers.code})`
+                      : 'Customer Location',
+
+                    to_customer_id: cooler.customer_id,
+
+                    approval_status: 'A',
+                    approved_at: new Date(),
+                    approved_by: userId,
+
+                    notes: `Cooler installation approved for ${cooler.code}`,
+                  },
+                });
+
+                await tx.asset_movement_assets.create({
+                  data: {
+                    movement_id: movement.id,
+                    asset_id: cooler.asset_master_id,
+                    createdby: userId,
+                    createdate: new Date(),
+                    log_inst: 1,
+                  },
+                });
+
+                await tx.asset_master.update({
+                  where: { id: cooler.asset_master_id },
+                  data: {
+                    current_status: 'Installed',
+                    current_location: cooler.coolers_customers
+                      ? `${cooler.coolers_customers.name} (${cooler.coolers_customers.code})`
+                      : 'Customer Location',
+                    updatedby: userId,
+                    updatedate: new Date(),
+                  },
+                });
+              }
+            }
             return { status: 'fully_approved', request };
           }
 
