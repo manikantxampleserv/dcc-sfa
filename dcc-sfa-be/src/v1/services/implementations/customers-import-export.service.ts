@@ -207,8 +207,7 @@ export class CustomersImportExportService extends ImportExportService<any> {
         if (!value) return true;
         if (value.length > 20)
           return 'Phone number must be less than 20 characters';
-        const phoneRegex =
-          /^[\d\s\-\+ext.]+$/i;
+        const phoneRegex = /^[\d\s\-\+ext.]+$/i;
         return phoneRegex.test(value) || 'Invalid phone number format';
       },
       description: 'Contact phone number (optional, max 20 chars)',
@@ -441,6 +440,8 @@ export class CustomersImportExportService extends ImportExportService<any> {
 
   protected async transformDataForExport(data: any[]): Promise<any[]> {
     return data.map(customer => ({
+      id: customer.id,
+
       name: customer.name,
       short_name: customer.short_name || '',
       code: customer.code,
@@ -525,11 +526,51 @@ export class CustomersImportExportService extends ImportExportService<any> {
     };
 
     const validations = [
-      data.zones_id && checkForeignKey('Zone', data.zones_id, async () => !!(await prismaClient.zones.findUnique({ where: { id: data.zones_id } }))),
-      data.customer_type_id && checkForeignKey('Customer Type', data.customer_type_id, async () => !!(await prismaClient.customer_type.findUnique({ where: { id: data.customer_type_id } }))),
-      data.customer_channel_id && checkForeignKey('Customer Channel', data.customer_channel_id, async () => !!(await prismaClient.customer_channel.findUnique({ where: { id: data.customer_channel_id } }))),
-      data.route_id && checkForeignKey('Route', data.route_id, async () => !!(await prismaClient.routes.findUnique({ where: { id: data.route_id } }))),
-      data.salesperson_id && checkForeignKey('Salesperson', data.salesperson_id, async () => !!(await prismaClient.users.findUnique({ where: { id: data.salesperson_id } })))
+      data.zones_id &&
+        checkForeignKey(
+          'Zone',
+          data.zones_id,
+          async () =>
+            !!(await prismaClient.zones.findUnique({
+              where: { id: data.zones_id },
+            }))
+        ),
+      data.customer_type_id &&
+        checkForeignKey(
+          'Customer Type',
+          data.customer_type_id,
+          async () =>
+            !!(await prismaClient.customer_type.findUnique({
+              where: { id: data.customer_type_id },
+            }))
+        ),
+      data.customer_channel_id &&
+        checkForeignKey(
+          'Customer Channel',
+          data.customer_channel_id,
+          async () =>
+            !!(await prismaClient.customer_channel.findUnique({
+              where: { id: data.customer_channel_id },
+            }))
+        ),
+      data.route_id &&
+        checkForeignKey(
+          'Route',
+          data.route_id,
+          async () =>
+            !!(await prismaClient.routes.findUnique({
+              where: { id: data.route_id },
+            }))
+        ),
+      data.salesperson_id &&
+        checkForeignKey(
+          'Salesperson',
+          data.salesperson_id,
+          async () =>
+            !!(await prismaClient.users.findUnique({
+              where: { id: data.salesperson_id },
+            }))
+        ),
     ];
 
     const results = await Promise.all(validations);
@@ -740,6 +781,7 @@ export class CustomersImportExportService extends ImportExportService<any> {
     const worksheet = workbook.addWorksheet(this.displayName);
 
     const exportColumns = [
+      { header: 'ID', key: 'id', width: 12 },
       { header: 'Customer Code', key: 'code', width: 20 },
       ...this.columns,
       { header: 'Zone Name', key: 'zone_name', width: 25 },

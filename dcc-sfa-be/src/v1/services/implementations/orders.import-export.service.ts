@@ -566,20 +566,26 @@ export class OrdersImportExportService extends ImportExportService<any> {
         const customer = await prismaClient.customers.findUnique({
           where: { id: data.parent_id },
         });
-        if (!customer) return `Customer with ID ${data.parent_id} does not exist`;
+        if (!customer)
+          return `Customer with ID ${data.parent_id} does not exist`;
         return null;
       });
       if (error) return error;
     }
 
     if (data.salesperson_id) {
-      const error = await checkCache('salesperson', data.salesperson_id, async () => {
-        const salesperson = await prismaClient.users.findUnique({
-          where: { id: data.salesperson_id },
-        });
-        if (!salesperson) return `Salesperson with ID ${data.salesperson_id} does not exist`;
-        return null;
-      });
+      const error = await checkCache(
+        'salesperson',
+        data.salesperson_id,
+        async () => {
+          const salesperson = await prismaClient.users.findUnique({
+            where: { id: data.salesperson_id },
+          });
+          if (!salesperson)
+            return `Salesperson with ID ${data.salesperson_id} does not exist`;
+          return null;
+        }
+      );
       if (error) return error;
     }
 
@@ -588,7 +594,8 @@ export class OrdersImportExportService extends ImportExportService<any> {
         const approver = await prismaClient.users.findUnique({
           where: { id: data.approved_by },
         });
-        if (!approver) return `Approver with ID ${data.approved_by} does not exist`;
+        if (!approver)
+          return `Approver with ID ${data.approved_by} does not exist`;
         return null;
       });
       if (error) return error;
@@ -599,7 +606,8 @@ export class OrdersImportExportService extends ImportExportService<any> {
         const currency = await prismaClient.currencies.findUnique({
           where: { id: data.currency_id },
         });
-        if (!currency) return `Currency with ID ${data.currency_id} does not exist`;
+        if (!currency)
+          return `Currency with ID ${data.currency_id} does not exist`;
         return null;
       });
       if (error) return error;
@@ -613,7 +621,8 @@ export class OrdersImportExportService extends ImportExportService<any> {
     userId: number,
     tx?: any
   ): Promise<any> {
-    const order_number = data.order_number || (await this.generateOrderNumber(tx));
+    const order_number =
+      data.order_number || (await this.generateOrderNumber(tx));
     const preparedData: any = {
       order_number,
       parent_id: data.parent_id,
@@ -669,8 +678,6 @@ export class OrdersImportExportService extends ImportExportService<any> {
 
     return preparedData;
   }
-
-
 
   protected async updateExisting(
     data: any,
@@ -807,6 +814,7 @@ export class OrdersImportExportService extends ImportExportService<any> {
     const worksheet = workbook.addWorksheet(this.displayName);
 
     const exportColumns = [
+      { header: 'ID', key: 'id', width: 12 },
       { header: 'Order Number', key: 'order_number', width: 20 },
       ...this.columns,
       { header: 'Customer Name', key: 'customer_name', width: 25 },

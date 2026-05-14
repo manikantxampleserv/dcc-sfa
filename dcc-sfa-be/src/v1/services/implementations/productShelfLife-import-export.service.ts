@@ -156,6 +156,8 @@ export class ProductShelfLifeImportExportService extends ImportExportService<any
 
     const exportColumns = [
       ...this.columns,
+      { header: 'ID', key: 'id', width: 12 },
+
       { header: 'Created Date', key: 'created_date', width: 15 },
       { header: 'Created By', key: 'created_by', width: 15 },
       { header: 'Updated Date', key: 'updated_date', width: 15 },
