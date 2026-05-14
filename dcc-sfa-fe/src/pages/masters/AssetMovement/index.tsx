@@ -144,7 +144,7 @@ const AssetMovementManagement: React.FC = () => {
 
   const assetMovementColumns: TableColumn<AssetMovement>[] = [
     {
-      id: 'asset_info',
+      id: 'id',
       label: 'Asset Info',
       render: (_value, row) => (
         <Box className="!flex !gap-2 !items-center">
@@ -169,7 +169,7 @@ const AssetMovementManagement: React.FC = () => {
       ),
     },
     {
-      id: 'movement_details',
+      id: 'asset_movement_from_depot.name',
       label: 'Movement Details',
       render: (_value, row) => (
         <Box className="flex items-center gap-2">

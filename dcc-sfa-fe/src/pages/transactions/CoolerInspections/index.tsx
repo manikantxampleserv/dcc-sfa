@@ -489,7 +489,7 @@ const CoolerInspectionsManagement: React.FC = () => {
                     <Select
                       value={actionFilter}
                       onChange={e => setActionFilter(e.target.value)}
-                      className="!w-40"
+                      className="!w-52"
                       disableClearable
                     >
                       <MenuItem value="all">All Action</MenuItem>

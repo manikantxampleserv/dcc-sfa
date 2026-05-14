@@ -134,6 +134,7 @@ const ManageCoolerInstallation: React.FC<ManageCoolerInstallationProps> = ({
               formik={formik}
               required
               placeholder="Select Cooler"
+              nameToSearch={selectedInstallation?.asset_master?.name || ''}
             />
 
             <CustomerSelect
@@ -141,6 +142,7 @@ const ManageCoolerInstallation: React.FC<ManageCoolerInstallationProps> = ({
               label="Outlet"
               formik={formik}
               required
+              nameToSearch={selectedInstallation?.customer?.name}
             />
 
             <Input
@@ -204,6 +206,7 @@ const ManageCoolerInstallation: React.FC<ManageCoolerInstallationProps> = ({
               label="Technician"
               formik={formik}
               placeholder="Search technician..."
+              nameToSearch={selectedInstallation?.technician?.name}
             />
 
             <Input

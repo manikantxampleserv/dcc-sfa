@@ -315,6 +315,24 @@ const CoolerInstallationsManagement: React.FC = () => {
       ),
     },
     {
+      id: 'approval_status',
+      label: 'Approval Status',
+      render: (_value, row) => {
+        const status = (row.approval_status || 'P');
+        const label = status === 'A' ? 'Approved' : status === 'R' ? 'Rejected' : 'Pending';
+        const color =
+          label === 'Approved' ? 'success' : label === 'Rejected' ? 'error' : 'warning';
+
+        return (
+          <Chip
+            label={label}
+            size="small"
+            color={color as any}
+          />
+        );
+      },
+    },
+    {
       id: 'is_active',
       label: 'Active Status',
       render: (_value, row) => (

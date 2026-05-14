@@ -13,6 +13,7 @@ export interface CoolerInstallation {
   install_date?: string | null;
   last_service_date?: string | null;
   next_service_due?: string | null;
+  approval_status?: 'A' | 'R' | 'P';
   cooler_type_id?: number | null;
   cooler_sub_type_id?: number | null;
   status?: string | null;

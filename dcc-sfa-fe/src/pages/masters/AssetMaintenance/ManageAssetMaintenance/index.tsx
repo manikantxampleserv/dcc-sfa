@@ -100,6 +100,7 @@ const ManageAssetMaintenance: React.FC<ManageAssetMaintenanceProps> = ({
               label="Asset"
               formik={formik}
               required
+              nameToSearch={selectedMaintenance?.asset_maintenance_master?.name}
             />
 
             <UserSelect

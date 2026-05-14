@@ -103,13 +103,12 @@ const CustomerSelect: React.FC<CustomerSelectProps> = ({
     })
   );
 
-  // Initialize selected customer from search results - FIXED to prevent loops
   useEffect(() => {
     if (isInitializingRef.current) return;
 
     if (
       normalizedValue &&
-      !selectedCustomerData &&
+      (!selectedCustomerData || selectedCustomerData.id.toString() !== normalizedValue) &&
       !isFetching &&
       searchResults.length > 0
     ) {
@@ -119,17 +118,16 @@ const CustomerSelect: React.FC<CustomerSelectProps> = ({
       if (found) {
         isInitializingRef.current = true;
         setSelectedCustomerData(found);
-        if (!inputValue) {
+        if (!inputValue || inputValue !== found.name) {
           setInputValue(found.name);
         }
         setHasInitialized(true);
-        // Reset the flag after a short delay
         setTimeout(() => {
           isInitializingRef.current = false;
         }, 100);
       }
     }
-  }, [normalizedValue, isFetching, searchResults.length]);
+  }, [normalizedValue, isFetching, searchResults, selectedCustomerData, inputValue]);
 
   // Get selected customer from state or search results
   const selectedCustomer = React.useMemo(() => {
@@ -152,7 +150,13 @@ const CustomerSelect: React.FC<CustomerSelectProps> = ({
 
   // Reset when value is cleared - SIMPLIFIED to prevent loops
   useEffect(() => {
-    if (!normalizedValue && (selectedCustomerData || inputValue)) {
+    if (!normalizedValue) {
+      if (selectedCustomerData || inputValue || hasInitialized) {
+        setInputValue('');
+        setSelectedCustomerData(null);
+        setHasInitialized(false);
+      }
+    } else if (selectedCustomerData && selectedCustomerData.id.toString() !== normalizedValue) {
       setInputValue('');
       setSelectedCustomerData(null);
       setHasInitialized(false);

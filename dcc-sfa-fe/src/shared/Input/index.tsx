@@ -190,7 +190,6 @@ const Input: React.FC<InputProps> = ({
         '& .MuiInputLabel-shrink': {
           transform: 'translate(14px, -8px) scale(0.75)',
         },
-        // Targeting DatePicker sections container from inspector
         '& .MuiPickersInputBase-sectionsContainer': {
           padding: '0 !important',
           paddingTop: '1px !important',

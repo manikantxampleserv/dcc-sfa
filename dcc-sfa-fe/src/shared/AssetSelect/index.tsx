@@ -110,7 +110,7 @@ const AssetSelect: React.FC<AssetSelectProps> = ({
 
     if (
       normalizedValue &&
-      !selectedAssetData &&
+      (!selectedAssetData || selectedAssetData.id.toString() !== normalizedValue) &&
       !loading &&
       searchResults.length > 0
     ) {
@@ -120,7 +120,7 @@ const AssetSelect: React.FC<AssetSelectProps> = ({
       if (found) {
         isInitializingRef.current = true;
         setSelectedAssetData(found);
-        if (!inputValue) {
+        if (!inputValue || inputValue !== found.name) {
           setInputValue(found.name);
         }
         setHasInitialized(true);
@@ -129,7 +129,7 @@ const AssetSelect: React.FC<AssetSelectProps> = ({
         }, 100);
       }
     }
-  }, [normalizedValue, isFetching, searchResults.length]);
+  }, [normalizedValue, loading, searchResults, selectedAssetData, inputValue]);
 
   const selectedAsset = React.useMemo(() => {
     if (!normalizedValue) return null;
@@ -150,7 +150,15 @@ const AssetSelect: React.FC<AssetSelectProps> = ({
   }, [normalizedValue, searchResults, selectedAssetData]);
 
   useEffect(() => {
-    if (!normalizedValue && (selectedAssetData || inputValue)) {
+    if (!normalizedValue) {
+      if (selectedAssetData || inputValue || hasInitialized) {
+        setInputValue('');
+        setSelectedAssetData(null);
+        setHasInitialized(false);
+      }
+    } else if (selectedAssetData && selectedAssetData.id.toString() !== normalizedValue) {
+      // If the ID changed externally (e.g. form re-initialization), reset local state
+      // to allow the initialization effect to fetch and set the new asset name.
       setInputValue('');
       setSelectedAssetData(null);
       setHasInitialized(false);
