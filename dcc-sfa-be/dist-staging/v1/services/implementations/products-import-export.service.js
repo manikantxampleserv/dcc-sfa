@@ -979,6 +979,7 @@ class ProductsImportExportService extends import_export_service_1.ImportExportSe
         const worksheet = workbook.addWorksheet(this.displayName);
         const exportColumns = [
             ...this.columns,
+            { header: 'ID', key: 'id', width: 12 },
             { header: 'Created Date', key: 'createdate', width: 20 },
             { header: 'Created By', key: 'createdby', width: 15 },
             { header: 'Updated Date', key: 'updatedate', width: 20 },

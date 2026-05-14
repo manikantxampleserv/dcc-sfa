@@ -409,6 +409,7 @@ class StockTransferRequestsImportExportService extends import_export_service_1.I
         const worksheet = workbook.addWorksheet(this.displayName);
         const exportColumns = [
             ...this.columns,
+            { header: 'ID', key: 'id', width: 12 },
             { header: 'Requested By Name', key: 'requested_by_name', width: 25 },
             { header: 'Approved By Name', key: 'approved_by_name', width: 25 },
             { header: 'Source Name', key: 'source_name', width: 25 },

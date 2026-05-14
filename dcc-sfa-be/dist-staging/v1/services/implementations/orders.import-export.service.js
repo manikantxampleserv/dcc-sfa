@@ -794,6 +794,7 @@ class OrdersImportExportService extends import_export_service_1.ImportExportServ
         const workbook = new ExcelJS.Workbook();
         const worksheet = workbook.addWorksheet(this.displayName);
         const exportColumns = [
+            { header: 'ID', key: 'id', width: 12 },
             { header: 'Order Number', key: 'order_number', width: 20 },
             ...this.columns,
             { header: 'Customer Name', key: 'customer_name', width: 25 },

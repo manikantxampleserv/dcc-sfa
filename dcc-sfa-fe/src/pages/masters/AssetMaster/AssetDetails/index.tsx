@@ -428,7 +428,10 @@ const AssetDetails: React.FC = () => {
                     variant="body2"
                     className="!font-semibold !text-gray-900"
                   >
-                    {asset.current_location || 'Not specified'}
+                    {asset.asset_master_depot?.name ||
+                      asset.asset_master_outlet?.name ||
+                      asset.current_location ||
+                      'Not specified'}
                   </Typography>
                 </div>
               </div>

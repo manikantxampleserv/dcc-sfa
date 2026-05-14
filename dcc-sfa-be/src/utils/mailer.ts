@@ -229,7 +229,7 @@ interface SMTPConfig {
 
 const getSMTPConfig = async (log_inst?: number): Promise<SMTPConfig> => {
   try {
-    let company = null;
+    let company: any = null;
 
     if (log_inst) {
       company = await prisma.companies.findFirst({

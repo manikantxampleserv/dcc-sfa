@@ -499,6 +499,7 @@ class StockMovementsImportExportService extends import_export_service_1.ImportEx
         const worksheet = workbook.addWorksheet(this.displayName);
         const exportColumns = [
             ...this.columns,
+            { header: 'ID', key: 'id', width: 12 },
             { header: 'Product Name', key: 'product_name', width: 25 },
             { header: 'Product Code', key: 'product_code', width: 15 },
             { header: 'From Location Name', key: 'from_location_name', width: 25 },

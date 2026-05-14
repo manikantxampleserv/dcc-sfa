@@ -469,6 +469,7 @@ class CustomersImportExportService extends import_export_service_1.ImportExportS
     }
     async transformDataForExport(data) {
         return data.map(customer => ({
+            id: customer.id,
             name: customer.name,
             short_name: customer.short_name || '',
             code: customer.code,
@@ -761,6 +762,7 @@ class CustomersImportExportService extends import_export_service_1.ImportExportS
         const workbook = new ExcelJS.Workbook();
         const worksheet = workbook.addWorksheet(this.displayName);
         const exportColumns = [
+            { header: 'ID', key: 'id', width: 12 },
             { header: 'Customer Code', key: 'code', width: 20 },
             ...this.columns,
             { header: 'Zone Name', key: 'zone_name', width: 25 },

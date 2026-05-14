@@ -98,9 +98,9 @@ const serializeVanInventory = (item: any): VanInventorySerialized => {
     let productBatches: any[] = [];
 
     items.forEach((it: any) => {
-      let productBatch = null;
-      let batchLot = null;
-      let serialNumbers = null;
+      let productBatch: any = null;
+      let batchLot: any = null;
+      let serialNumbers: any = null;
 
       if (
         it.batch_lot_id &&
@@ -3092,7 +3092,7 @@ export const vanInventoryController = {
             const product = item.van_inventory_items_products;
             const batch = item.van_inventory_items_batch_lot;
 
-            let batchInfo = null;
+            let batchInfo: any = null;
             if (batch) {
               const isExpired = new Date(batch.expiry_date) <= new Date();
               const daysUntilExpiry = Math.floor(

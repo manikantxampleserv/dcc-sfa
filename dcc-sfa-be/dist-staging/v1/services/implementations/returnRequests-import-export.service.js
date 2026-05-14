@@ -470,6 +470,7 @@ class ReturnRequestsImportExportService extends import_export_service_1.ImportEx
         const worksheet = workbook.addWorksheet(this.displayName);
         const exportColumns = [
             ...this.columns,
+            { header: 'ID', key: 'id', width: 12 },
             { header: 'Customer Name', key: 'customer_name', width: 25 },
             { header: 'Product Name', key: 'product_name', width: 25 },
             { header: 'Serial Number', key: 'serial_number', width: 20 },

@@ -2339,7 +2339,7 @@ export const ordersController = {
           active_orders: activeOrders,
           inactive_orders: inactiveOrders,
           orders_this_month: ordersThisMonth,
-          ...(routeStats && { route_statistics: routeStats }),
+          ...(routeStats ? { route_statistics: routeStats } : {}),
           filters_applied: {
             route_id: route_id || null,
             route_ids: route_ids || null,

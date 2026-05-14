@@ -44,7 +44,12 @@ class VisitsImportExportService extends import_export_service_1.ImportExportServ
     modelName = 'visits';
     displayName = 'Visits';
     uniqueFields = [];
-    searchFields = ['purpose', 'status', 'visit_notes', 'customer_feedback'];
+    searchFields = [
+        'purpose',
+        'status',
+        'visit_notes',
+        'customer_feedback',
+    ];
     validationCache = new Map();
     masterTableConfigs = [
         {
@@ -926,6 +931,7 @@ class VisitsImportExportService extends import_export_service_1.ImportExportServ
         const workbook = new ExcelJS.Workbook();
         const worksheet = workbook.addWorksheet(this.displayName);
         const exportColumns = [
+            { header: 'ID', key: 'id', width: 12 },
             { header: 'Visit ID', key: 'id', width: 12 },
             ...this.columns,
             { header: 'Customer Name', key: 'customer_name', width: 25 },

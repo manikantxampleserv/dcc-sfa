@@ -1013,7 +1013,7 @@ exports.requestsController = {
                         await tx.orders.update({
                             where: { id: request.reference_id },
                             data: {
-                                approval_status: 'approved',
+                                approval_status: 'A',
                                 status: 'confirmed',
                                 approved_by: userId,
                                 approved_at: new Date(),
@@ -1043,27 +1043,6 @@ exports.requestsController = {
                                     updatedate: new Date(),
                                 },
                             });
-                            let assetStatusUpdate = '';
-                            switch (assetMovement.movement_type?.toLowerCase()) {
-                                case 'transfer':
-                                    assetStatusUpdate = 'Available';
-                                    break;
-                                case 'installation':
-                                    assetStatusUpdate = 'Installed';
-                                    break;
-                                case 'disposal':
-                                    assetStatusUpdate = 'Retired';
-                                    break;
-                                case 'maintenance':
-                                case 'repair':
-                                    assetStatusUpdate = 'Under Maintenance';
-                                    break;
-                                case 'return':
-                                    assetStatusUpdate = 'Available';
-                                    break;
-                                default:
-                                    assetStatusUpdate = 'Available';
-                            }
                             const toDirection = assetMovement.to_direction || '';
                             const toDepotId = assetMovement.to_depot_id;
                             const toCustomerId = assetMovement.to_customer_id;
@@ -1074,10 +1053,18 @@ exports.requestsController = {
                                     },
                                 },
                                 data: {
+                                    depot_id: toDepotId || null,
+                                    outlet_id: toCustomerId || null,
                                     current_location: `${toDirection} (${toDepotId || toCustomerId})`,
-                                    current_status: assetStatusUpdate,
+                                    current_status: toCustomerId ? 'Installed' : 'Available',
                                     updatedate: new Date(),
                                     updatedby: userId,
+                                },
+                            });
+                            await tx.coolers.update({
+                                where: { id: request.reference_id },
+                                data: {
+                                    approval_status: 'A',
                                 },
                             });
                             if (assetMovement.movement_type?.toLowerCase() ===
@@ -1230,7 +1217,6 @@ exports.requestsController = {
                 const requestData = JSON.parse(result.request.request_data || '{}');
                 const customerData = requestData.customer_data;
                 if (action === 'A') {
-                    // ✅ FETCH THE ACTUAL CREATED CUSTOMER
                     const createdCustomer = await prisma_client_1.default.customers.findFirst({
                         where: { code: customerData.code },
                         select: {

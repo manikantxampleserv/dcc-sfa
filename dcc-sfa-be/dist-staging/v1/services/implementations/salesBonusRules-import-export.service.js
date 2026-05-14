@@ -321,6 +321,7 @@ class SalesBonusRulesImportExportService extends import_export_service_1.ImportE
         const worksheet = workbook.addWorksheet(this.displayName);
         const exportColumns = [
             ...this.columns,
+            { header: 'ID', key: 'id', width: 12 },
             { header: 'Sales Target Info', key: 'sales_target_info', width: 40 },
             { header: 'Created Date', key: 'createdate', width: 20 },
             { header: 'Created By', key: 'createdby', width: 15 },

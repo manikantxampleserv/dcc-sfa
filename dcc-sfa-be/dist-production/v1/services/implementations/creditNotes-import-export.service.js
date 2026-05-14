@@ -569,6 +569,7 @@ class CreditNotesImportExportService extends import_export_service_1.ImportExpor
         const worksheet = workbook.addWorksheet(this.displayName);
         const exportColumns = [
             ...this.columns,
+            { header: 'ID', key: 'id', width: 12 },
             { header: 'Customer Name', key: 'customer_name', width: 25 },
             { header: 'Order Number', key: 'order_number', width: 20 },
             { header: 'Currency Code', key: 'currency_code', width: 15 },

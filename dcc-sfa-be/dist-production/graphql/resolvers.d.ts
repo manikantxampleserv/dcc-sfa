@@ -66,6 +66,7 @@ export declare const resolvers: {
             updatedate: Date | null;
             updatedby: number | null;
             log_inst: number | null;
+            depot_id: number | null;
             asset_type_id: number;
             code: string;
             serial_number: string;
@@ -78,6 +79,7 @@ export declare const resolvers: {
             barcode: string | null;
             nfc_tag: string | null;
             brand_id: number | null;
+            outlet_id: number | null;
             brand: string | null;
             asset_brand_id: number | null;
             installation_date: Date | null;
@@ -152,6 +154,7 @@ export declare const resolvers: {
             updatedate: Date | null;
             updatedby: number | null;
             log_inst: number | null;
+            depot_id: number | null;
             asset_type_id: number;
             code: string;
             serial_number: string;
@@ -164,6 +167,7 @@ export declare const resolvers: {
             barcode: string | null;
             nfc_tag: string | null;
             brand_id: number | null;
+            outlet_id: number | null;
             brand: string | null;
             asset_brand_id: number | null;
             installation_date: Date | null;
@@ -293,6 +297,7 @@ export declare const resolvers: {
                 updatedate: Date | null;
                 updatedby: number | null;
                 log_inst: number | null;
+                depot_id: number | null;
                 asset_type_id: number;
                 code: string;
                 serial_number: string;
@@ -305,6 +310,7 @@ export declare const resolvers: {
                 barcode: string | null;
                 nfc_tag: string | null;
                 brand_id: number | null;
+                outlet_id: number | null;
                 brand: string | null;
                 asset_brand_id: number | null;
                 installation_date: Date | null;
@@ -327,9 +333,11 @@ export declare const resolvers: {
             warranty_expiry: Date | null;
             brand: string | null;
             last_scanned_date: Date | null;
+            approval_status: string | null;
             temperature: import("@prisma/client-runtime-utils").Decimal | null;
             customer_id: number;
             asset_master_id: number | null;
+            asset_movement_id: number | null;
             capacity: number | null;
             install_date: Date | null;
             last_service_date: Date | null;
@@ -464,6 +472,7 @@ export declare const resolvers: {
                 updatedate: Date | null;
                 updatedby: number | null;
                 log_inst: number | null;
+                depot_id: number | null;
                 asset_type_id: number;
                 code: string;
                 serial_number: string;
@@ -476,6 +485,7 @@ export declare const resolvers: {
                 barcode: string | null;
                 nfc_tag: string | null;
                 brand_id: number | null;
+                outlet_id: number | null;
                 brand: string | null;
                 asset_brand_id: number | null;
                 installation_date: Date | null;
@@ -498,9 +508,11 @@ export declare const resolvers: {
             warranty_expiry: Date | null;
             brand: string | null;
             last_scanned_date: Date | null;
+            approval_status: string | null;
             temperature: import("@prisma/client-runtime-utils").Decimal | null;
             customer_id: number;
             asset_master_id: number | null;
+            asset_movement_id: number | null;
             capacity: number | null;
             install_date: Date | null;
             last_service_date: Date | null;
@@ -635,6 +647,7 @@ export declare const resolvers: {
                 updatedate: Date | null;
                 updatedby: number | null;
                 log_inst: number | null;
+                depot_id: number | null;
                 asset_type_id: number;
                 code: string;
                 serial_number: string;
@@ -647,6 +660,7 @@ export declare const resolvers: {
                 barcode: string | null;
                 nfc_tag: string | null;
                 brand_id: number | null;
+                outlet_id: number | null;
                 brand: string | null;
                 asset_brand_id: number | null;
                 installation_date: Date | null;
@@ -669,9 +683,11 @@ export declare const resolvers: {
             warranty_expiry: Date | null;
             brand: string | null;
             last_scanned_date: Date | null;
+            approval_status: string | null;
             temperature: import("@prisma/client-runtime-utils").Decimal | null;
             customer_id: number;
             asset_master_id: number | null;
+            asset_movement_id: number | null;
             capacity: number | null;
             install_date: Date | null;
             last_service_date: Date | null;
@@ -723,9 +739,11 @@ export declare const resolvers: {
                 warranty_expiry: Date | null;
                 brand: string | null;
                 last_scanned_date: Date | null;
+                approval_status: string | null;
                 temperature: import("@prisma/client-runtime-utils").Decimal | null;
                 customer_id: number;
                 asset_master_id: number | null;
+                asset_movement_id: number | null;
                 capacity: number | null;
                 install_date: Date | null;
                 last_service_date: Date | null;
@@ -835,9 +853,11 @@ export declare const resolvers: {
                 warranty_expiry: Date | null;
                 brand: string | null;
                 last_scanned_date: Date | null;
+                approval_status: string | null;
                 temperature: import("@prisma/client-runtime-utils").Decimal | null;
                 customer_id: number;
                 asset_master_id: number | null;
+                asset_movement_id: number | null;
                 capacity: number | null;
                 install_date: Date | null;
                 last_service_date: Date | null;
@@ -947,9 +967,11 @@ export declare const resolvers: {
                 warranty_expiry: Date | null;
                 brand: string | null;
                 last_scanned_date: Date | null;
+                approval_status: string | null;
                 temperature: import("@prisma/client-runtime-utils").Decimal | null;
                 customer_id: number;
                 asset_master_id: number | null;
+                asset_movement_id: number | null;
                 capacity: number | null;
                 install_date: Date | null;
                 last_service_date: Date | null;
@@ -1059,9 +1081,11 @@ export declare const resolvers: {
                 warranty_expiry: Date | null;
                 brand: string | null;
                 last_scanned_date: Date | null;
+                approval_status: string | null;
                 temperature: import("@prisma/client-runtime-utils").Decimal | null;
                 customer_id: number;
                 asset_master_id: number | null;
+                asset_movement_id: number | null;
                 capacity: number | null;
                 install_date: Date | null;
                 last_service_date: Date | null;
@@ -1165,6 +1189,7 @@ export declare const resolvers: {
             updatedate: Date | null;
             updatedby: number | null;
             log_inst: number | null;
+            depot_id: number | null;
             asset_type_id: number;
             code: string;
             serial_number: string;
@@ -1177,6 +1202,7 @@ export declare const resolvers: {
             barcode: string | null;
             nfc_tag: string | null;
             brand_id: number | null;
+            outlet_id: number | null;
             brand: string | null;
             asset_brand_id: number | null;
             installation_date: Date | null;
@@ -1219,6 +1245,7 @@ export declare const resolvers: {
             updatedate: Date | null;
             updatedby: number | null;
             log_inst: number | null;
+            depot_id: number | null;
             asset_type_id: number;
             code: string;
             serial_number: string;
@@ -1231,6 +1258,7 @@ export declare const resolvers: {
             barcode: string | null;
             nfc_tag: string | null;
             brand_id: number | null;
+            outlet_id: number | null;
             brand: string | null;
             asset_brand_id: number | null;
             installation_date: Date | null;
@@ -1275,6 +1303,7 @@ export declare const resolvers: {
             updatedate: Date | null;
             updatedby: number | null;
             log_inst: number | null;
+            depot_id: number | null;
             asset_type_id: number;
             code: string;
             serial_number: string;
@@ -1287,6 +1316,7 @@ export declare const resolvers: {
             barcode: string | null;
             nfc_tag: string | null;
             brand_id: number | null;
+            outlet_id: number | null;
             brand: string | null;
             asset_brand_id: number | null;
             installation_date: Date | null;
@@ -1394,6 +1424,7 @@ export declare const resolvers: {
                 updatedate: Date | null;
                 updatedby: number | null;
                 log_inst: number | null;
+                depot_id: number | null;
                 asset_type_id: number;
                 code: string;
                 serial_number: string;
@@ -1406,6 +1437,7 @@ export declare const resolvers: {
                 barcode: string | null;
                 nfc_tag: string | null;
                 brand_id: number | null;
+                outlet_id: number | null;
                 brand: string | null;
                 asset_brand_id: number | null;
                 installation_date: Date | null;
@@ -1428,9 +1460,11 @@ export declare const resolvers: {
             warranty_expiry: Date | null;
             brand: string | null;
             last_scanned_date: Date | null;
+            approval_status: string | null;
             temperature: import("@prisma/client-runtime-utils").Decimal | null;
             customer_id: number;
             asset_master_id: number | null;
+            asset_movement_id: number | null;
             capacity: number | null;
             install_date: Date | null;
             last_service_date: Date | null;
@@ -1541,6 +1575,7 @@ export declare const resolvers: {
                 updatedate: Date | null;
                 updatedby: number | null;
                 log_inst: number | null;
+                depot_id: number | null;
                 asset_type_id: number;
                 code: string;
                 serial_number: string;
@@ -1553,6 +1588,7 @@ export declare const resolvers: {
                 barcode: string | null;
                 nfc_tag: string | null;
                 brand_id: number | null;
+                outlet_id: number | null;
                 brand: string | null;
                 asset_brand_id: number | null;
                 installation_date: Date | null;
@@ -1575,9 +1611,11 @@ export declare const resolvers: {
             warranty_expiry: Date | null;
             brand: string | null;
             last_scanned_date: Date | null;
+            approval_status: string | null;
             temperature: import("@prisma/client-runtime-utils").Decimal | null;
             customer_id: number;
             asset_master_id: number | null;
+            asset_movement_id: number | null;
             capacity: number | null;
             install_date: Date | null;
             last_service_date: Date | null;
@@ -1690,6 +1728,7 @@ export declare const resolvers: {
                 updatedate: Date | null;
                 updatedby: number | null;
                 log_inst: number | null;
+                depot_id: number | null;
                 asset_type_id: number;
                 code: string;
                 serial_number: string;
@@ -1702,6 +1741,7 @@ export declare const resolvers: {
                 barcode: string | null;
                 nfc_tag: string | null;
                 brand_id: number | null;
+                outlet_id: number | null;
                 brand: string | null;
                 asset_brand_id: number | null;
                 installation_date: Date | null;
@@ -1724,9 +1764,11 @@ export declare const resolvers: {
             warranty_expiry: Date | null;
             brand: string | null;
             last_scanned_date: Date | null;
+            approval_status: string | null;
             temperature: import("@prisma/client-runtime-utils").Decimal | null;
             customer_id: number;
             asset_master_id: number | null;
+            asset_movement_id: number | null;
             capacity: number | null;
             install_date: Date | null;
             last_service_date: Date | null;
@@ -1778,9 +1820,11 @@ export declare const resolvers: {
                 warranty_expiry: Date | null;
                 brand: string | null;
                 last_scanned_date: Date | null;
+                approval_status: string | null;
                 temperature: import("@prisma/client-runtime-utils").Decimal | null;
                 customer_id: number;
                 asset_master_id: number | null;
+                asset_movement_id: number | null;
                 capacity: number | null;
                 install_date: Date | null;
                 last_service_date: Date | null;
@@ -1888,9 +1932,11 @@ export declare const resolvers: {
                 warranty_expiry: Date | null;
                 brand: string | null;
                 last_scanned_date: Date | null;
+                approval_status: string | null;
                 temperature: import("@prisma/client-runtime-utils").Decimal | null;
                 customer_id: number;
                 asset_master_id: number | null;
+                asset_movement_id: number | null;
                 capacity: number | null;
                 install_date: Date | null;
                 last_service_date: Date | null;
@@ -2000,9 +2046,11 @@ export declare const resolvers: {
                 warranty_expiry: Date | null;
                 brand: string | null;
                 last_scanned_date: Date | null;
+                approval_status: string | null;
                 temperature: import("@prisma/client-runtime-utils").Decimal | null;
                 customer_id: number;
                 asset_master_id: number | null;
+                asset_movement_id: number | null;
                 capacity: number | null;
                 install_date: Date | null;
                 last_service_date: Date | null;

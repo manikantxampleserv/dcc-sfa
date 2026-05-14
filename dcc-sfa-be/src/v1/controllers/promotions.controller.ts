@@ -2863,7 +2863,7 @@ export const promotionsController = {
 
       let finalPrice = product.base_price;
       let priceType = 'base';
-      let override = null;
+      let override: any = null;
 
       if (depot_id) {
         const now = new Date();

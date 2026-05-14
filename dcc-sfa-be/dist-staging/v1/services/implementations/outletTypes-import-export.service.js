@@ -214,6 +214,7 @@ class OutletTypesImportExportService extends import_export_service_1.ImportExpor
         const workbook = new ExcelJS.Workbook();
         const worksheet = workbook.addWorksheet(this.displayName);
         const exportColumns = [
+            { header: 'ID', key: 'id', width: 12 },
             { header: 'Outlet Type ID', key: 'id', width: 12 },
             ...this.columns,
             { header: 'Created Date', key: 'created_date', width: 20 },

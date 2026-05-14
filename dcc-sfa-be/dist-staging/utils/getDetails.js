@@ -175,6 +175,61 @@ async function getRequestDetailsByType(request_type, reference_id, request_data)
                     notes: assetMovement.notes || '',
                     approval_status: assetMovement.approval_status || 'P',
                 };
+            case 'ASSET_MASTER_APPROVAL':
+                const assetMaster = await prisma_client_1.default.asset_master.findUnique({
+                    where: { id: reference_id || 0 },
+                    include: {
+                        asset_master_asset_types: {
+                            select: { id: true, name: true },
+                        },
+                        asset_master_asset_sub_types: {
+                            select: { id: true, name: true },
+                        },
+                        asset_master_brands: {
+                            select: { id: true, name: true },
+                        },
+                        asset_master_depot: {
+                            select: { id: true, name: true, code: true },
+                        },
+                        asset_master_outlet: {
+                            select: { id: true, name: true, code: true },
+                        },
+                    },
+                });
+                if (!assetMaster)
+                    return {};
+                const parsedAssetData = request_data ? JSON.parse(request_data) : {};
+                return {
+                    asset_id: assetMaster.id,
+                    asset_name: assetMaster.name,
+                    asset_code: assetMaster.code,
+                    asset_serial_number: assetMaster.serial_number,
+                    asset_type: assetMaster.asset_master_asset_types?.name || 'N/A',
+                    asset_sub_type: assetMaster.asset_master_asset_sub_types?.name || 'N/A',
+                    asset_brand: assetMaster.asset_master_brands?.name || 'N/A',
+                    current_status: assetMaster.current_status || 'N/A',
+                    requested_status: parsedAssetData.requested_status || 'N/A',
+                    previous_status: parsedAssetData.previous_status || 'N/A',
+                    current_location: assetMaster.current_location || 'N/A',
+                    depot_name: assetMaster.asset_master_depot?.name || 'N/A',
+                    depot_code: assetMaster.asset_master_depot?.code || 'N/A',
+                    customer_name: assetMaster.asset_master_outlet?.name || 'N/A',
+                    customer_code: assetMaster.asset_master_outlet?.code || 'N/A',
+                    requested_depot_id: parsedAssetData.depot_id || null,
+                    requested_customer_id: parsedAssetData.customer_id || null,
+                    barcode: assetMaster.barcode || 'N/A',
+                    nfc_tag: assetMaster.nfc_tag || 'N/A',
+                    purchase_date: assetMaster.purchase_date
+                        ? new Date(assetMaster.purchase_date).toLocaleDateString()
+                        : 'N/A',
+                    warranty_expiry: assetMaster.warranty_expiry
+                        ? new Date(assetMaster.warranty_expiry).toLocaleDateString()
+                        : 'N/A',
+                    is_active: assetMaster.is_active,
+                    created_date: assetMaster.createdate
+                        ? new Date(assetMaster.createdate).toLocaleDateString()
+                        : 'N/A',
+                };
             default:
                 return {};
         }

@@ -259,6 +259,7 @@ class ProductSubCategoriesImportExportService extends import_export_service_1.Im
         const worksheet = workbook.addWorksheet(this.displayName);
         const exportColumns = [
             ...this.columns,
+            { header: 'ID', key: 'id', width: 12 },
             {
                 header: 'Product Category Name',
                 key: 'product_category_name',

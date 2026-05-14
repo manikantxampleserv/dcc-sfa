@@ -168,7 +168,7 @@ export const scheduleCustomerCategoryAssignment = async () => {
           try {
             const totalSales = salesMap.get(customer.id) || 0;
 
-            let assignedCategory = null;
+            let assignedCategory: any = null;
 
             for (let i = validCategories.length - 1; i >= 0; i--) {
               if (totalSales >= validCategories[i].thresholdValue) {
