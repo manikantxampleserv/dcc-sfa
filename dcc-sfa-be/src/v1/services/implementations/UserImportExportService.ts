@@ -458,7 +458,8 @@ export class UserImportExportService extends ImportExportService<any> {
         });
         if (!depot) return `Depot with ID ${data.depot_id} does not exist`;
         const isActive = (depot as any).isactive || (depot as any).is_active;
-        if (isActive !== 'Y') return `Depot with ID ${data.depot_id} is inactive`;
+        if (isActive !== 'Y')
+          return `Depot with ID ${data.depot_id} is inactive`;
         return null;
       });
       if (error) return error;
@@ -470,8 +471,10 @@ export class UserImportExportService extends ImportExportService<any> {
           where: { id: data.parent_id },
         });
         if (!company) return `Company with ID ${data.parent_id} does not exist`;
-        const isActive = (company as any).isactive || (company as any).is_active;
-        if (isActive !== 'Y') return `Company with ID ${data.parent_id} is inactive`;
+        const isActive =
+          (company as any).isactive || (company as any).is_active;
+        if (isActive !== 'Y')
+          return `Company with ID ${data.parent_id} is inactive`;
         return null;
       });
       if (error) return error;
@@ -482,9 +485,12 @@ export class UserImportExportService extends ImportExportService<any> {
         const manager = await prismaClient.users.findUnique({
           where: { id: data.reporting_to },
         });
-        if (!manager) return `Reporting Manager with ID ${data.reporting_to} does not exist`;
-        const isActive = (manager as any).is_active || (manager as any).isactive;
-        if (isActive !== 'Y') return `Reporting Manager with ID ${data.reporting_to} is inactive`;
+        if (!manager)
+          return `Reporting Manager with ID ${data.reporting_to} does not exist`;
+        const isActive =
+          (manager as any).is_active || (manager as any).isactive;
+        if (isActive !== 'Y')
+          return `Reporting Manager with ID ${data.reporting_to} is inactive`;
         return null;
       });
       if (error) return error;

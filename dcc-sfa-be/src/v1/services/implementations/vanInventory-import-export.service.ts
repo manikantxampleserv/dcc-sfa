@@ -622,6 +622,7 @@ export class VanInventoryImportExportService extends ImportExportService<any> {
 
     const exportColumns = [
       ...this.columns,
+      { header: 'ID', key: 'id', width: 12 },
       { header: 'User Name', key: 'user_name', width: 20 },
       { header: 'Vehicle Number', key: 'vehicle_number', width: 20 },
       { header: 'Location Name', key: 'location_name', width: 20 },

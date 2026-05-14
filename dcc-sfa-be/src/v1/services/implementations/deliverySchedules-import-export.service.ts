@@ -527,6 +527,8 @@ export class DeliverySchedulesImportExportService extends ImportExportService<an
 
     const exportColumns = [
       ...this.columns,
+      { header: 'ID', key: 'id', width: 12 },
+
       { header: 'Order Number', key: 'order_number', width: 20 },
       { header: 'Customer Name', key: 'customer_name', width: 25 },
       { header: 'Vehicle Number', key: 'vehicle_number', width: 20 },

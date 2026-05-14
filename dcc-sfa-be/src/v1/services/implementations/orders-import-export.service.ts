@@ -517,6 +517,8 @@ export class OrdersImportExportService extends ImportExportService<any> {
 
     const exportColumns = [
       ...this.columns,
+      { header: 'ID', key: 'id', width: 12 },
+
       { header: 'Customer Name', key: 'customer_name', width: 25 },
       { header: 'Salesperson Name', key: 'salesperson_name', width: 25 },
       { header: 'Item Count', key: 'item_count', width: 12 },

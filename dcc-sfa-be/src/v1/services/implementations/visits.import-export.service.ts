@@ -7,7 +7,12 @@ export class VisitsImportExportService extends ImportExportService<any> {
   protected modelName = 'visits' as const;
   protected displayName = 'Visits';
   protected uniqueFields = [];
-  protected searchFields = ['purpose', 'status', 'visit_notes', 'customer_feedback'];
+  protected searchFields = [
+    'purpose',
+    'status',
+    'visit_notes',
+    'customer_feedback',
+  ];
 
   private validationCache: Map<string, string | null> = new Map();
 
@@ -613,20 +618,26 @@ export class VisitsImportExportService extends ImportExportService<any> {
         const customer = await prismaClient.customers.findUnique({
           where: { id: data.customer_id },
         });
-        if (!customer) return `Customer with ID ${data.customer_id} does not exist`;
+        if (!customer)
+          return `Customer with ID ${data.customer_id} does not exist`;
         return null;
       });
       if (error) return error;
     }
 
     if (data.sales_person_id) {
-      const error = await checkCache('salesperson', data.sales_person_id, async () => {
-        const salesperson = await prismaClient.users.findUnique({
-          where: { id: data.sales_person_id },
-        });
-        if (!salesperson) return `Salesperson with ID ${data.sales_person_id} does not exist`;
-        return null;
-      });
+      const error = await checkCache(
+        'salesperson',
+        data.sales_person_id,
+        async () => {
+          const salesperson = await prismaClient.users.findUnique({
+            where: { id: data.sales_person_id },
+          });
+          if (!salesperson)
+            return `Salesperson with ID ${data.sales_person_id} does not exist`;
+          return null;
+        }
+      );
       if (error) return error;
     }
 
@@ -710,8 +721,6 @@ export class VisitsImportExportService extends ImportExportService<any> {
 
     return preparedData;
   }
-
-
 
   protected async updateExisting(
     data: any,
@@ -951,6 +960,8 @@ export class VisitsImportExportService extends ImportExportService<any> {
     const worksheet = workbook.addWorksheet(this.displayName);
 
     const exportColumns = [
+      { header: 'ID', key: 'id', width: 12 },
+
       { header: 'Visit ID', key: 'id', width: 12 },
       ...this.columns,
       { header: 'Customer Name', key: 'customer_name', width: 25 },

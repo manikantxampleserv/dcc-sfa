@@ -189,6 +189,7 @@ export class SalesTargetGroupsImportExportService extends ImportExportService<an
 
     const exportColumns = [
       ...this.columns,
+      { header: 'ID', key: 'id', width: 12 },
       { header: 'Member Count', key: 'member_count', width: 15 },
       { header: 'Created Date', key: 'created_date', width: 15 },
       { header: 'Created By', key: 'created_by', width: 15 },
