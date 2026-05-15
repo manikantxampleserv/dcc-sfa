@@ -275,7 +275,7 @@ interface BulkVisitInput {
   }>;
   cooler_inspections?: Array<{
     id?: number;
-    cooler_id: number;
+    serial_number: string;
     visit_id?: number;
     inspected_by: number;
     inspection_date?: Date | string;
@@ -290,7 +290,8 @@ interface BulkVisitInput {
     next_inspection_due?: Date | string;
   }>;
   cooler_installations?: Array<{
-    serial_number: string;
+    asset_serial_number?: string;
+    serial_number?: string;
     status?: string;
   }>;
   survey?: {
@@ -413,6 +414,24 @@ function serializeVisit(visit: any) {
         currency_id: payment.currency_id,
       })) || [],
 
+    cooler_installations:
+      visit.cooler_installations?.map((cooler: any) => ({
+        id: cooler.id,
+        customer_id: cooler.customer_id,
+        code: cooler.code,
+        asset_master_id: cooler.asset_master_id,
+        brand: cooler.brand,
+        model: cooler.model,
+        serial_number: cooler.serial_number,
+        capacity: cooler.capacity,
+        install_date: cooler.install_date,
+        status: cooler.status,
+        approval_status: cooler.approval_status,
+        is_active: cooler.is_active,
+        createdate: cooler.createdate,
+        updatedate: cooler.updatedate,
+      })) || [],
+
     cooler_inspections:
       visit.cooler_inspections?.map((inspection: any) => ({
         id: inspection.id,
@@ -427,6 +446,7 @@ function serializeVisit(visit: any) {
         longitude: inspection.longitude,
         action_required: inspection.action_required,
         action_taken: inspection.action_taken,
+
         next_inspection_due: inspection.next_inspection_due,
         cooler: inspection.coolers
           ? {
@@ -848,6 +868,7 @@ export const visitsController = {
           invoices: item.invoices || [],
           payments: item.payments || [],
           cooler_inspections: item.cooler_inspections || [],
+          cooler_installations: item.cooler_installations || [],
           survey: item.survey,
         }));
       } else if (Array.isArray(inputData)) {
@@ -1076,6 +1097,7 @@ export const visitsController = {
                 const paymentIds: number[] = [];
                 const inspectionIds: number[] = [];
                 const surveyResponseIds: number[] = [];
+                const coolerInstallationIds: number[] = [];
 
                 let visitRecord;
 
@@ -2434,25 +2456,41 @@ export const visitsController = {
 
                 if (cooler_installations && cooler_installations.length > 0) {
                   for (const installation of cooler_installations) {
-                    if (!installation.serial_number) {
-                      throw new Error('serial_number is required');
+                    const assetSerialNumber =
+                      installation.asset_serial_number ||
+                      installation.serial_number;
+
+                    if (!assetSerialNumber) {
+                      throw new Error('asset_serial_number is required');
                     }
 
-                    const existingCooler = await tx.coolers.findFirst({
+                    const asset = await tx.asset_master.findFirst({
                       where: {
-                        serial_number: installation.serial_number,
+                        serial_number: assetSerialNumber,
                       },
                     });
 
-                    if (!existingCooler) {
+                    if (!asset) {
                       throw new Error(
-                        `Cooler with serial number ${installation.serial_number} not found`
+                        `Asset with serial number ${assetSerialNumber} not found`
                       );
                     }
 
-                    await tx.coolers.update({
+                    const cooler = await tx.coolers.findFirst({
                       where: {
-                        id: existingCooler.id,
+                        asset_master_id: asset.id,
+                      },
+                    });
+
+                    if (!cooler) {
+                      throw new Error(
+                        `Cooler linked with asset serial number ${assetSerialNumber} not found`
+                      );
+                    }
+
+                    const updatedCooler = await tx.coolers.update({
+                      where: {
+                        id: cooler.id,
                       },
                       data: {
                         status: installation.status || 'installed',
@@ -2462,8 +2500,30 @@ export const visitsController = {
                       },
                     });
 
+                    coolerInstallationIds.push(updatedCooler.id);
+
+                    coolerInstallationIds.push(updatedCooler.id);
+
+                    await tx.asset_master.update({
+                      where: {
+                        id: asset.id,
+                      },
+                      data: {
+                        current_status:
+                          (installation.status || 'installed').toLowerCase() ===
+                          'installed'
+                            ? 'Installed'
+                            : installation.status || 'installed',
+                        updatedate: new Date(),
+                        updatedby:
+                          (req as any).user?.id || visit.createdby || 1,
+                      },
+                    });
+
                     console.log(
-                      `Cooler ${installation.serial_number} status updated to ${installation.status || 'installed'}`
+                      `Cooler ${updatedCooler.id} status updated to ${
+                        installation.status || 'installed'
+                      } using asset serial ${assetSerialNumber}`
                     );
                   }
                 }
@@ -2612,31 +2672,57 @@ export const visitsController = {
 
                 if (cooler_inspections && cooler_inspections.length > 0) {
                   for (const inspection of cooler_inspections) {
-                    // Get cooler_id directly from inspection object
-                    const coolerId = inspection.cooler_id;
-
-                    if (!coolerId) {
+                    if (!inspection.serial_number) {
                       throw new Error(
-                        'cooler_id is required for cooler inspection'
+                        'serial_number is required for cooler inspection'
                       );
                     }
 
-                    // Verify the cooler exists
-                    const existingCooler = await tx.coolers.findUnique({
-                      where: { id: coolerId },
+                    const asset = await tx.asset_master.findFirst({
+                      where: {
+                        serial_number: inspection.serial_number,
+                      },
                     });
 
-                    if (!existingCooler) {
-                      throw new Error(`Cooler with id ${coolerId} not found`);
+                    if (!asset) {
+                      throw new Error(
+                        `Asset with serial number ${inspection.serial_number} not found`
+                      );
                     }
 
+                    const cooler = await tx.coolers.findFirst({
+                      where: {
+                        asset_master_id: asset.id,
+                      },
+                    });
+
+                    if (!cooler) {
+                      throw new Error(
+                        `Cooler linked with serial number ${inspection.serial_number} not found`
+                      );
+                    }
+
+                    const inspectionDate = inspection.inspection_date
+                      ? new Date(inspection.inspection_date)
+                      : new Date();
+
+                    await tx.coolers.update({
+                      where: {
+                        id: cooler.id,
+                      },
+                      data: {
+                        last_scanned_date: inspectionDate,
+                        updatedate: new Date(),
+                        updatedby:
+                          (req as any).user?.id || visit.createdby || 1,
+                      },
+                    });
+
                     const processedInspectionData = {
-                      cooler_id: coolerId,
+                      cooler_id: cooler.id,
                       visit_id: visitId,
                       inspected_by: inspection.inspected_by,
-                      inspection_date: inspection.inspection_date
-                        ? new Date(inspection.inspection_date)
-                        : new Date(),
+                      inspection_date: inspectionDate,
                       temperature: inspection.temperature || undefined,
                       is_working: inspection.is_working || 'Y',
                       issues: inspection.issues,
@@ -2651,7 +2737,6 @@ export const visitsController = {
                     };
 
                     if (inspection.id) {
-                      // Update existing inspection
                       const updatedInspection =
                         await tx.cooler_inspections.update({
                           where: { id: inspection.id },
@@ -2662,9 +2747,9 @@ export const visitsController = {
                               (req as any).user?.id || visit.createdby || 1,
                           },
                         });
+
                       inspectionIds.push(updatedInspection.id);
                     } else {
-                      // Create new inspection
                       const newInspection = await tx.cooler_inspections.create({
                         data: {
                           ...processedInspectionData,
@@ -2674,6 +2759,7 @@ export const visitsController = {
                           log_inst: 1,
                         },
                       });
+
                       inspectionIds.push(newInspection.id);
                     }
                   }
@@ -2790,6 +2876,16 @@ export const visitsController = {
                       })
                     : [];
 
+                const relatedCoolerInstallations =
+                  coolerInstallationIds.length > 0
+                    ? await tx.coolers.findMany({
+                        where: {
+                          id: {
+                            in: coolerInstallationIds,
+                          },
+                        },
+                      })
+                    : [];
                 const relatedSurveyResponses =
                   surveyResponseIds.length > 0
                     ? await tx.survey_responses.findMany({
@@ -2821,6 +2917,8 @@ export const visitsController = {
                   ...visitWithBasicRelations,
                   invoices: relatedInvoices,
                   payments: relatedPayments,
+                  cooler_installations: relatedCoolerInstallations,
+
                   cooler_inspections: relatedInspections,
                   survey_responses: surveyResponsesWithAnswers,
                   visit_attachments: relatedAttachments,

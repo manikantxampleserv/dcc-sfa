@@ -370,6 +370,7 @@ export const coolerInstallationsController = {
         isActive,
         status,
         customer_id,
+        approval_status,
         technician_id,
         user_id,
       } = req.query;
@@ -378,6 +379,34 @@ export const coolerInstallationsController = {
       const limit_num = limit ? parseInt(limit as string, 10) : 10;
       const searchLower = search ? (search as string).toLowerCase() : '';
       const inspectorFilter = technician_id || user_id;
+
+      // const filters: any = {
+      //   ...(isActive && { is_active: isActive as string }),
+
+      //   ...(search && {
+      //     OR: [
+      //       { code: { contains: searchLower } },
+      //       { brand: { contains: searchLower } },
+      //       { model: { contains: searchLower } },
+      //       { serial_number: { contains: searchLower } },
+      //       { status: { contains: searchLower } },
+      //       { energy_rating: { contains: searchLower } },
+      //       { maintenance_contract: { contains: searchLower } },
+      //       { coolers_customers: { name: { contains: searchLower } } },
+      //       { users: { name: { contains: searchLower } } },
+      //     ],
+      //   }),
+      //   ...(status && { status: status as string }),
+      //   ...(customer_id && { customer_id: parseInt(customer_id as string) }),
+      //   ...(inspectorFilter !== undefined &&
+      //     inspectorFilter !== null &&
+      //     inspectorFilter !== '' && {
+      //       technician_id:
+      //         inspectorFilter === 'null'
+      //           ? null
+      //           : parseInt(inspectorFilter as string, 10),
+      //     }),
+      // };
 
       const filters: any = {
         ...(isActive && { is_active: isActive as string }),
@@ -395,8 +424,17 @@ export const coolerInstallationsController = {
             { users: { name: { contains: searchLower } } },
           ],
         }),
+
         ...(status && { status: status as string }),
-        ...(customer_id && { customer_id: parseInt(customer_id as string) }),
+
+        ...(approval_status && {
+          approval_status: approval_status as string,
+        }),
+
+        ...(customer_id && {
+          customer_id: parseInt(customer_id as string),
+        }),
+
         ...(inspectorFilter !== undefined &&
           inspectorFilter !== null &&
           inspectorFilter !== '' && {
@@ -406,7 +444,6 @@ export const coolerInstallationsController = {
                 : parseInt(inspectorFilter as string, 10),
           }),
       };
-
       const { data, pagination } = await paginate({
         model: prisma.coolers,
         filters,
