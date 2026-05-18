@@ -365,8 +365,182 @@ export const createRequest = async (data: {
     }
 
     if (!workflowSteps || workflowSteps.length === 0) {
-      console.log('No workflow found');
-      return request;
+      console.log('No workflow found, auto-approving request:', request.id);
+
+      const approvedRequest = await prisma.sfa_d_requests.update({
+        where: { id: request.id },
+        data: {
+          status: 'A',
+          overall_status: 'APPROVED',
+          updatedate: new Date(),
+          updatedby: data.createdby,
+        },
+      });
+
+      // 1. ASSET_MOVEMENT_APPROVAL
+      if (
+        data.request_type === 'ASSET_MOVEMENT_APPROVAL' &&
+        data.reference_id
+      ) {
+        const assetMovement = await prisma.asset_movements.findUnique({
+          where: { id: data.reference_id },
+          include: {
+            asset_movement_assets: {
+              select: { asset_id: true },
+            },
+          },
+        });
+
+        if (assetMovement) {
+          await prisma.asset_movements.update({
+            where: { id: data.reference_id },
+            data: {
+              approval_status: 'A',
+              approved_by: data.createdby,
+              approved_at: new Date(),
+              updatedby: data.createdby,
+              updatedate: new Date(),
+            },
+          });
+
+          const toDirection = assetMovement.to_direction || '';
+          const toDepotId = assetMovement.to_depot_id;
+          const toCustomerId = assetMovement.to_customer_id;
+
+          await prisma.asset_master.updateMany({
+            where: {
+              id: {
+                in: assetMovement.asset_movement_assets.map(
+                  (aa: any) => aa.asset_id
+                ),
+              },
+            },
+            data: {
+              depot_id: toDepotId || null,
+              outlet_id: toCustomerId || null,
+              current_location: `${toDirection} (${toDepotId || toCustomerId})`,
+              current_status: toCustomerId ? 'Installed' : 'Available',
+              updatedate: new Date(),
+              updatedby: data.createdby,
+            },
+          });
+
+          const existingCooler = await prisma.coolers.findUnique({
+            where: { id: data.reference_id },
+          });
+
+          if (existingCooler) {
+            await prisma.coolers.update({
+              where: { id: data.reference_id },
+              data: {
+                approval_status: 'A',
+              },
+            });
+          }
+
+          if (
+            assetMovement.movement_type?.toLowerCase() === 'maintenance' ||
+            assetMovement.movement_type?.toLowerCase() === 'repair'
+          ) {
+            try {
+              await prisma.asset_maintenance.createMany({
+                data: assetMovement.asset_movement_assets.map((aa: any) => ({
+                  asset_id: aa.asset_id,
+                  maintenance_date: assetMovement.movement_date || new Date(),
+                  issue_reported:
+                    assetMovement.notes ||
+                    `${assetMovement.movement_type} movement`,
+                  action_taken: `Asset moved from ${assetMovement.from_direction} to ${toDirection}`,
+                  remarks: `Movement type: ${assetMovement.movement_type}`,
+                  createdby: data.createdby,
+                  createdate: new Date(),
+                  technician_id: assetMovement.performed_by,
+                  log_inst: 1,
+                })),
+              });
+              console.log(
+                `Maintenance records created for auto-approved asset movement: ${data.reference_id}`
+              );
+            } catch (maintenanceError) {
+              console.error(
+                'Error creating maintenance records on auto-approval:',
+                maintenanceError
+              );
+            }
+          }
+
+          try {
+            await generateContractOnApproval(data.reference_id);
+          } catch (contractError) {
+            console.error(
+              'Error generating contract after auto-approval:',
+              contractError
+            );
+          }
+        }
+      }
+
+      // 2. ORDER_APPROVAL
+      if (data.request_type === 'ORDER_APPROVAL' && data.reference_id) {
+        await prisma.orders.update({
+          where: { id: data.reference_id },
+          data: {
+            approval_status: 'A',
+            status: 'confirmed',
+            approved_by: data.createdby,
+            approved_at: new Date(),
+            updatedby: data.createdby,
+            updatedate: new Date(),
+          },
+        });
+      }
+
+      // 3. LOCATION_RESET
+      if (data.request_type === 'LOCATION_RESET' && data.reference_id) {
+        const requestData = JSON.parse(data.request_data || '{}');
+        const updateData: any = { updatedate: new Date() };
+
+        if (requestData.latitude !== undefined) {
+          updateData.latitude = requestData.latitude;
+        }
+
+        if (requestData.longitude !== undefined) {
+          updateData.longitude = requestData.longitude;
+        }
+
+        await prisma.customers.update({
+          where: { id: data.reference_id },
+          data: updateData,
+        });
+
+        console.log(
+          `Customer ${data.reference_id} location updated successfully`
+        );
+      }
+
+      // 4. CUSTOMER_CREATION
+      if (data.request_type === 'CUSTOMER_CREATION') {
+        const requestData = JSON.parse(data.request_data || '{}');
+        const customerData = requestData.customer_data;
+        const customerImages = requestData.customer_images || [];
+
+        const { platform_type, ...customerDataWithoutPlatform } = customerData;
+
+        const createdCustomer = await prisma.customers.create({
+          data: customerDataWithoutPlatform,
+        });
+
+        if (customerImages.length > 0) {
+          await prisma.customer_image.createMany({
+            data: customerImages.map((img: any) => ({
+              ...img,
+              customer_id: createdCustomer.id,
+            })),
+          });
+        }
+      }
+
+      return approvedRequest;
     }
 
     console.log(
@@ -714,119 +888,6 @@ export const requestsController = {
       });
     }
   },
-
-  // async getAllRequests(req: any, res: any) {
-  //   try {
-  //     const {
-  //       page,
-  //       limit,
-  //       search,
-  //       request_type,
-  //       status,
-  //       requester_id,
-  //       startDate,
-  //       endDate,
-  //     } = req.query;
-
-  //     const pageNum = parseInt(page as string, 10) || 1;
-  //     const limitNum = parseInt(limit as string, 10) || 10;
-  //     const searchLower = search ? (search as string).toLowerCase() : '';
-
-  //     const filters: any = {};
-
-  //     if (search) {
-  //       filters.OR = [
-  //         { request_type: { contains: searchLower } },
-  //         { status: { contains: searchLower } },
-  //         { overall_status: { contains: searchLower } },
-  //       ];
-  //     }
-
-  //     if (request_type) {
-  //       filters.request_type = request_type as string;
-  //     }
-
-  //     if (status) {
-  //       filters.status = status as string;
-  //     }
-
-  //     if (requester_id) {
-  //       filters.requester_id = parseInt(requester_id as string, 10);
-  //     }
-
-  //     if (startDate && endDate) {
-  //       filters.createdate = {
-  //         gte: new Date(startDate as string),
-  //         lte: new Date(endDate as string),
-  //       };
-  //     }
-
-  //     const { data, pagination } = await paginate({
-  //       model: prisma.sfa_d_requests,
-  //       filters,
-  //       page: pageNum,
-  //       limit: limitNum,
-  //       orderBy: { createdate: 'desc' },
-  //       include: {
-  //         sfa_d_requests_requester: {
-  //           select: { id: true, name: true, email: true },
-  //         },
-  //         // sfa_d_requests_approvals_request: {
-  //         //   select: { id: true, sequence: true, status: true },
-  //         // },
-  //         sfa_d_requests_approvals_request: {
-  //           select: {
-  //             id: true,
-  //             approver_id: true,
-  //             sequence: true,
-  //             status: true,
-  //             remarks: true,
-  //             action_at: true,
-  //             sfa_d_requests_approvals_approver: {
-  //               select: { id: true, name: true, email: true },
-  //             },
-  //           },
-  //           orderBy: { sequence: 'asc' },
-  //         },
-  //       },
-  //     });
-
-  //     const totalRequests = await prisma.sfa_d_requests.count({
-  //       where: filters,
-  //     });
-
-  //     const pendingRequests = await prisma.sfa_d_requests.count({
-  //       where: { ...filters, status: 'P' },
-  //     });
-
-  //     const approvedRequests = await prisma.sfa_d_requests.count({
-  //       where: { ...filters, status: 'A' },
-  //     });
-
-  //     const rejectedRequests = await prisma.sfa_d_requests.count({
-  //       where: { ...filters, status: 'R' },
-  //     });
-
-  //     res.json({
-  //       message: 'Requests retrieved successfully',
-  //       data: data.map((request: any) => serializeRequest(request)),
-  //       pagination,
-  //       stats: {
-  //         total_requests: totalRequests,
-  //         pending_requests: pendingRequests,
-  //         approved_requests: approvedRequests,
-  //         rejected_requests: rejectedRequests,
-  //       },
-  //     });
-  //   } catch (error: any) {
-  //     console.error('Get Requests Error:', error);
-  //     res.status(500).json({
-  //       message: 'Failed to retrieve requests',
-  //       error: error.message,
-  //     });
-  //   }
-  // },
-
   async getAllRequests(req: any, res: any) {
     try {
       const {
@@ -903,17 +964,6 @@ export const requestsController = {
           },
         },
       });
-      // console.log(' Applied filters:', filters);
-      // console.log(' Total requests fetched:', data.length);
-      // console.log(
-      //   'Request types being processed:',
-      //   data.map((r: any) => ({
-      //     id: r.id,
-      //     request_type: r.request_type,
-      //     reference_id: r.reference_id,
-      //     has_request_data: !!r.request_data,
-      //   }))
-      // );
       const requestsWithDetails = await Promise.all(
         data.map(async (request: any) => {
           const referenceDetails = await getRequestDetailsByType(
@@ -1307,12 +1357,18 @@ export const requestsController = {
                   },
                 });
 
-                await tx.coolers.update({
+                const existingCooler = await tx.coolers.findUnique({
                   where: { id: request.reference_id },
-                  data: {
-                    approval_status: 'A',
-                  },
                 });
+
+                if (existingCooler) {
+                  await tx.coolers.update({
+                    where: { id: request.reference_id },
+                    data: {
+                      approval_status: 'A',
+                    },
+                  });
+                }
 
                 if (
                   assetMovement.movement_type?.toLowerCase() ===

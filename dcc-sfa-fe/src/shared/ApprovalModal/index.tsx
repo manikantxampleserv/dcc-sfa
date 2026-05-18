@@ -92,9 +92,8 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({
     >
       <DialogTitle className="!flex !items-center !gap-3 !pb-4 !border-b !border-gray-200 !relative">
         <div
-          className={`!w-12 !h-12 !rounded-full !flex !items-center !justify-center !shrink-0 ${
-            type === 'approve' ? '!bg-green-100' : '!bg-red-100'
-          }`}
+          className={`!w-12 !h-12 !rounded-full !flex !items-center !justify-center !shrink-0 ${type === 'approve' ? '!bg-green-100' : '!bg-red-100'
+            }`}
         >
           {type === 'approve' ? (
             <Check className="!w-6 !h-6 !text-green-600" />
@@ -121,7 +120,9 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({
             ) : (
               <>
                 Are you sure you want to reject this{' '}
-                {request?.request_type?.toLowerCase() || 'request'} from{' '}
+                {request?.request_type?.replaceAll('_', ' ').toLowerCase() ||
+                  'request'}{' '}
+                from{' '}
                 <span className="!font-semibold !text-gray-900">
                   {request?.requester?.name || 'User'}
                 </span>
@@ -597,29 +598,29 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({
 
                     {(request.reference_details.profile_picture ||
                       requestData?.customer_data?.profile_picture) && (
-                      <div className="!space-y-1 md:!col-span-2">
-                        <Typography
-                          variant="caption"
-                          className="!text-gray-500 !text-xs !uppercase !tracking-wide"
-                        >
-                          Profile Picture
-                        </Typography>
-                        <div className="!mt-1">
-                          <img
-                            src={(
-                              request.reference_details.profile_picture ||
-                              requestData?.customer_data?.profile_picture
-                            ).trim()}
-                            alt="Profile"
-                            className="!w-24 !h-24 !rounded-lg !object-cover !border !border-gray-200 shadow-sm"
-                            onError={e => {
-                              (e.target as HTMLImageElement).src =
-                                'https://via.placeholder.com/100?text=No+Image';
-                            }}
-                          />
+                        <div className="!space-y-1 md:!col-span-2">
+                          <Typography
+                            variant="caption"
+                            className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                          >
+                            Profile Picture
+                          </Typography>
+                          <div className="!mt-1">
+                            <img
+                              src={(
+                                request.reference_details.profile_picture ||
+                                requestData?.customer_data?.profile_picture
+                              ).trim()}
+                              alt="Profile"
+                              className="!w-24 !h-24 !rounded-lg !object-cover !border !border-gray-200 shadow-sm"
+                              onError={e => {
+                                (e.target as HTMLImageElement).src =
+                                  'https://via.placeholder.com/100?text=No+Image';
+                              }}
+                            />
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      )}
                   </div>
                 )}
               </div>

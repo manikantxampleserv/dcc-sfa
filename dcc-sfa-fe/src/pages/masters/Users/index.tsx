@@ -438,7 +438,7 @@ const UsersManagement: React.FC = () => {
                       size="small"
                       placeholder="Filter by Depot"
                       disableClearable
-                      className="!min-w-40"
+                      className="!min-w-52"
                     >
                       <MenuItem value="all">All Depots</MenuItem>
                       {depots.map((depot: Depot) => (

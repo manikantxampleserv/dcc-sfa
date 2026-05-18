@@ -60,11 +60,16 @@ interface Depot {
   depots_region?: { id: number; name: string; code?: string } | null;
   depots_city?: { id: number; name: string; code?: string } | null;
   depots_district?: { id: number; name: string; code?: string } | null;
-  // Additional computed fields for display
   company_name?: string;
   manager_name?: string;
   supervisor_name?: string;
   coordinator_name?: string;
+  default_outlet_id?: number | null;
+  default_outlet?: {
+    id: number;
+    name: string;
+    code: string;
+  } | null;
 }
 
 interface ManageDepotPayload {
@@ -86,6 +91,7 @@ interface ManageDepotPayload {
   city_id?: number;
   is_active?: string;
   createdby?: number;
+  default_outlet_id?: number | null;
 }
 
 interface UpdateDepotPayload {
@@ -108,6 +114,7 @@ interface UpdateDepotPayload {
   city_id?: number;
   is_active?: string;
   updatedby?: number;
+  default_outlet_id?: number | null;
 }
 
 interface GetDepotsParams {
@@ -117,6 +124,7 @@ interface GetDepotsParams {
   isActive?: string;
   parent_id?: number;
   depot_id?: number;
+  user_id?: number;
 }
 
 interface PaginationMeta {

@@ -7,6 +7,7 @@ interface AssetMasterSerialized {
   id: number;
   name: string;
   code: string;
+  outlet_id?: number | null;
   asset_type_id: number;
   asset_brand_id?: number | null;
   installation_date?: Date | null;
@@ -85,6 +86,7 @@ const serializeAssetMaster = (asset: any): AssetMasterSerialized => ({
   id: asset.id,
   name: asset.name,
   code: asset.code,
+  outlet_id: asset.outlet_id,
   asset_type_id: asset.asset_type_id,
   asset_sub_type_id: asset.asset_sub_type_id,
   installation_date: asset.installation_date ?? null,
@@ -376,7 +378,15 @@ export const assetMasterController = {
 
   async getAllAssetMaster(req: any, res: any) {
     try {
-      const { page, limit, search, status, depot_id, outlet_id } = req.query;
+      const {
+        page,
+        limit,
+        search,
+        status,
+        depot_id,
+        outlet_id,
+        only_available,
+      } = req.query;
       const pageNum = parseInt(page as string, 10) || 1;
       const limitNum = parseInt(limit as string, 10) || 10;
       const searchLower = search ? (search as string).toLowerCase() : '';
@@ -399,6 +409,7 @@ export const assetMasterController = {
         ...(statusLower === 'inactive' && { is_active: 'N' }),
         ...(depot_id && { depot_id: parseInt(depot_id as string, 10) }),
         ...(outlet_id && { outlet_id: parseInt(outlet_id as string, 10) }),
+        ...(only_available === 'true' && { outlet_id: null }),
       };
 
       const { data, pagination } = await paginate({

@@ -359,7 +359,6 @@ export const assetMovementsController = {
       }
 
       setTimeout(async () => {
-        // TODO: LATER I WILL DO THIS
         try {
           await createRequest({
             requester_id: data.performed_by,

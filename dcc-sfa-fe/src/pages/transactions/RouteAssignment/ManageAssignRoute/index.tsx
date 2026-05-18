@@ -47,7 +47,12 @@ const ManageAssignRoute: React.FC<ManageAssignRouteProps> = ({
     }
   }, [selectedDepot]);
 
-  const { data: depotsResponse } = useDepots({ isActive: 'Y', limit: 1000 });
+  const { data: depotsResponse } = useDepots({
+    isActive: 'Y',
+    limit: 1000,
+    user_id: user?.id || undefined,
+  });
+
   const depots = depotsResponse?.data || [];
 
   const { data: zonesResponse } = useZones(

@@ -26,6 +26,7 @@ interface CustomerSelectProps {
   value?: string | number;
   onChange?: (event: any, value: Customer | null) => void;
   nameToSearch?: string;
+  depotId?: number;
 }
 
 const CustomerSelect: React.FC<CustomerSelectProps> = ({
@@ -39,6 +40,7 @@ const CustomerSelect: React.FC<CustomerSelectProps> = ({
   value,
   nameToSearch = '',
   onChange,
+  depotId,
 }) => {
   const [inputValue, setInputValue] = useState('');
   const [searchValue, setSearchValue] = useState('');
@@ -93,6 +95,7 @@ const CustomerSelect: React.FC<CustomerSelectProps> = ({
   const { data: dropdownResponse, isFetching } = useCustomersDropdown({
     search: effectiveSearch,
     customer_id: customerId && !effectiveSearch ? customerId : undefined,
+    depot_id: depotId,
   });
 
   const searchResults: Customer[] = (dropdownResponse?.data || []).map(

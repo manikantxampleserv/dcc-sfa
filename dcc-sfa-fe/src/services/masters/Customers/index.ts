@@ -90,6 +90,11 @@ interface Customer {
     category_code: string;
     level?: number | null;
   } | null;
+  default_for_depots?: Array<{
+    id: number;
+    name: string;
+    code: string;
+  }>;
 }
 
 /**
@@ -124,6 +129,7 @@ interface ManageCustomerPayload {
   nfc_tag_code?: string;
   last_visit_date?: string;
   is_active?: string;
+  is_default_for_depot?: boolean;
 }
 
 /**
@@ -265,6 +271,7 @@ export interface CustomerDropdown {
 export interface GetCustomersDropdownParams {
   search?: string;
   customer_id?: number;
+  depot_id?: number;
 }
 
 /**

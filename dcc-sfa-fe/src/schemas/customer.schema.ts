@@ -66,4 +66,5 @@ export const customerValidationSchema = yup.object().shape({
     .string()
     .oneOf(['Y', 'N'], 'Status must be Y or N')
     .required('Status is required'),
+  is_default_for_depot: yup.boolean().nullable(),
 });

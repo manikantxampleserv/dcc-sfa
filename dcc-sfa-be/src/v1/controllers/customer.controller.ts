@@ -162,6 +162,13 @@ const serializeCustomer = async (customer: any) => {
           code: customer.customer_depot.code,
         }
       : null,
+    default_for_depots: customer.default_for_depots
+      ? customer.default_for_depots.map((d: any) => ({
+          id: d.id,
+          name: d.name,
+          code: d.code,
+        }))
+      : [],
     outlet_images: (customer.outlet_images_customers || []).map((img: any) => ({
       id: img.id,
       image_url: img.image_url,
@@ -1407,6 +1414,7 @@ export const customerController = {
         outstanding_amount,
         latitude,
         longitude,
+        is_default_for_depot,
         ...otherData
       } = data;
       const processedData = {
@@ -1445,10 +1453,62 @@ export const customerController = {
               channel_code: true,
             },
           },
+          default_for_depots: {
+            select: {
+              id: true,
+              name: true,
+              code: true,
+            },
+          },
         },
       });
 
-      const serializedCustomer = await serializeCustomer(customer);
+      if (is_default_for_depot && customer.depot_id) {
+        await prisma.depots.update({
+          where: { id: customer.depot_id },
+          data: { default_outlet_id: customer.id },
+        });
+      }
+
+      // Re-fetch to get correct relations
+      const finalCustomer = await prisma.customers.findUnique({
+        where: { id: customer.id },
+        include: {
+          customer_zones: true,
+          customer_routes: true,
+          customer_users: true,
+          customer_type_customer: {
+            select: {
+              id: true,
+              type_name: true,
+              type_code: true,
+            },
+          },
+          customer_channel_customer: {
+            select: {
+              id: true,
+              channel_name: true,
+              channel_code: true,
+            },
+          },
+          customer_depot: {
+            select: {
+              id: true,
+              name: true,
+              code: true,
+            },
+          },
+          default_for_depots: {
+            select: {
+              id: true,
+              name: true,
+              code: true,
+            },
+          },
+        },
+      });
+
+      const serializedCustomer = await serializeCustomer(finalCustomer);
       res.status(201).json({
         message: 'Customer created successfully',
         data: serializedCustomer,
@@ -1766,6 +1826,13 @@ export const customerController = {
               code: true,
             },
           },
+          default_for_depots: {
+            select: {
+              id: true,
+              name: true,
+              code: true,
+            },
+          },
           customers_city: {
             select: {
               id: true,
@@ -1928,6 +1995,13 @@ export const customerController = {
         include: {
           customer_zones: true,
           customer_routes: true,
+          default_for_depots: {
+            select: {
+              id: true,
+              name: true,
+              code: true,
+            },
+          },
           customer_users: true,
           customer_category_customer: true,
           customer_type_customer: {
@@ -2030,6 +2104,7 @@ export const customerController = {
         outstanding_amount,
         latitude,
         longitude,
+        is_default_for_depot,
         ...otherData
       } = req.body;
 
@@ -2064,10 +2139,75 @@ export const customerController = {
               channel_code: true,
             },
           },
+          default_for_depots: {
+            select: {
+              id: true,
+              name: true,
+              code: true,
+            },
+          },
         },
       });
 
-      const serializedCustomer = await serializeCustomer(customer);
+      if (customer.depot_id) {
+        if (is_default_for_depot) {
+          await prisma.depots.update({
+            where: { id: customer.depot_id },
+            data: { default_outlet_id: customer.id },
+          });
+        } else {
+          const depot = await prisma.depots.findUnique({
+            where: { id: customer.depot_id },
+            select: { default_outlet_id: true },
+          });
+          if (depot && depot.default_outlet_id === customer.id) {
+            await prisma.depots.update({
+              where: { id: customer.depot_id },
+              data: { default_outlet_id: null },
+            });
+          }
+        }
+      }
+
+      // Re-fetch to get correct relations
+      const finalCustomer = await prisma.customers.findUnique({
+        where: { id: customer.id },
+        include: {
+          customer_zones: true,
+          customer_routes: true,
+          customer_users: true,
+          customer_type_customer: {
+            select: {
+              id: true,
+              type_name: true,
+              type_code: true,
+            },
+          },
+          customer_channel_customer: {
+            select: {
+              id: true,
+              channel_name: true,
+              channel_code: true,
+            },
+          },
+          customer_depot: {
+            select: {
+              id: true,
+              name: true,
+              code: true,
+            },
+          },
+          default_for_depots: {
+            select: {
+              id: true,
+              name: true,
+              code: true,
+            },
+          },
+        },
+      });
+
+      const serializedCustomer = await serializeCustomer(finalCustomer);
       res.json({
         message: 'Customer updated successfully',
         data: serializedCustomer,
@@ -2154,13 +2294,16 @@ export const customerController = {
 
   async getCustomersDropdown(req: any, res: any): Promise<void> {
     try {
-      const { search = '', customer_id } = req.query;
+      const { search = '', customer_id, depot_id } = req.query;
       const searchLower = search.toLowerCase().trim();
       const customerId = customer_id ? Number(customer_id) : null;
+      const depotId = depot_id ? Number(depot_id) : null;
 
-      const where: any = {
-        is_active: 'Y',
-      };
+      const where: any = { is_active: 'Y' };
+
+      if (depotId) {
+        where.depot_id = depotId;
+      }
 
       if (customerId) {
         where.id = customerId;

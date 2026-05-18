@@ -37,7 +37,6 @@ const DepotsManagement: React.FC = () => {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [companyFilter, setCompanyFilter] = useState('all');
   const [selectedDepot, setSelectedDepot] = useState<Depot | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [importModalOpen, setImportModalOpen] = useState(false);
@@ -59,8 +58,7 @@ const DepotsManagement: React.FC = () => {
           ? undefined
           : statusFilter === 'active'
             ? 'Y'
-            : 'N',
-      parent_id: companyFilter === 'all' ? undefined : Number(companyFilter),
+            : 'N'
     },
     {
       enabled: isRead,
@@ -133,7 +131,6 @@ const DepotsManagement: React.FC = () => {
             : statusFilter === 'active'
               ? 'Y'
               : 'N',
-        parent_id: companyFilter === 'all' ? undefined : Number(companyFilter),
       };
 
       await exportToExcelMutation.mutateAsync({
@@ -143,7 +140,7 @@ const DepotsManagement: React.FC = () => {
     } catch (error) {
       console.error('Error exporting depots:', error);
     }
-  }, [exportToExcelMutation, search, statusFilter, companyFilter]);
+  }, [exportToExcelMutation, search, statusFilter]);
 
   const depotColumns: TableColumn<Depot>[] = [
     {
@@ -242,38 +239,38 @@ const DepotsManagement: React.FC = () => {
     },
     ...(isUpdate || isDelete || isRead
       ? [
-          {
-            id: 'action',
-            label: 'Actions',
-            sortable: false,
-            render: (_value: any, row: Depot) => (
-              <div className="!flex !gap-2 !items-center">
-                {isRead && (
-                  <ActionButton
-                    onClick={() => handleViewDepot(row)}
-                    tooltip={`View ${row.name}`}
-                    icon={<Visibility fontSize="small" />}
-                    color="info"
-                  />
-                )}
-                {isUpdate && (
-                  <EditButton
-                    onClick={() => handleEditDepot(row)}
-                    tooltip={`Edit ${row.name}`}
-                  />
-                )}
-                {isDelete && (
-                  <DeleteButton
-                    onClick={() => handleDeleteDepot(row.id)}
-                    tooltip={`Delete ${row.name}`}
-                    itemName={row.name}
-                    confirmDelete={true}
-                  />
-                )}
-              </div>
-            ),
-          },
-        ]
+        {
+          id: 'action',
+          label: 'Actions',
+          sortable: false,
+          render: (_value: any, row: Depot) => (
+            <div className="!flex !gap-2 !items-center">
+              {isRead && (
+                <ActionButton
+                  onClick={() => handleViewDepot(row)}
+                  tooltip={`View ${row.name}`}
+                  icon={<Visibility fontSize="small" />}
+                  color="info"
+                />
+              )}
+              {isUpdate && (
+                <EditButton
+                  onClick={() => handleEditDepot(row)}
+                  tooltip={`Edit ${row.name}`}
+                />
+              )}
+              {isDelete && (
+                <DeleteButton
+                  onClick={() => handleDeleteDepot(row.id)}
+                  tooltip={`Delete ${row.name}`}
+                  itemName={row.name}
+                  confirmDelete={true}
+                />
+              )}
+            </div>
+          ),
+        },
+      ]
       : []),
   ];
 
@@ -345,28 +342,11 @@ const DepotsManagement: React.FC = () => {
                     <Select
                       value={statusFilter}
                       onChange={e => setStatusFilter(e.target.value)}
-                      className="!w-32"
                       disableClearable
                     >
                       <MenuItem value="all">All Status</MenuItem>
                       <MenuItem value="active">Active</MenuItem>
                       <MenuItem value="inactive">Inactive</MenuItem>
-                    </Select>
-                    <Select
-                      value={companyFilter}
-                      onChange={e => setCompanyFilter(e.target.value)}
-                      className="!w-68"
-                      disableClearable
-                    >
-                      <MenuItem value="all">All Companies</MenuItem>
-                      {companies.map(company => (
-                        <MenuItem
-                          key={company.id}
-                          value={company.id.toString()}
-                        >
-                          {company.name}
-                        </MenuItem>
-                      ))}
                     </Select>
                   </>
                 )}

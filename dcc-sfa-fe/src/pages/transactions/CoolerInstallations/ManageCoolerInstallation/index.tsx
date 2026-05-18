@@ -133,6 +133,7 @@ const ManageCoolerInstallation: React.FC<ManageCoolerInstallationProps> = ({
               label="Cooler"
               formik={formik}
               required
+              onlyAvailable={true}
               placeholder="Select Cooler"
               nameToSearch={selectedInstallation?.asset_master?.name || ''}
             />

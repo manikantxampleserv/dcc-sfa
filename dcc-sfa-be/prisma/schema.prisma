@@ -232,6 +232,7 @@ model depots {
   city_id                      Int?
   district_id                  Int?
   region_id                    Int?
+  default_outlet_id            Int?
   approval_work_flow_depot     approval_work_flow[]    @relation("ApprovalWorkFlowDepot")
   asset_movement_from_depot    asset_movements[]       @relation("AssetMovementFromDepot")
   asset_movement_to_depot      asset_movements[]       @relation("AssetMovementToDepot")
@@ -245,6 +246,7 @@ model depots {
   depot_companies              companies               @relation(fields: [parent_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   depots_region                regions?                @relation(fields: [region_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   depots_supervisior           users?                  @relation("DeportsSupervisior", fields: [supervisor_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  default_outlet               customers?              @relation("DepotDefaultOutlet", fields: [default_outlet_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   inventory_stock_depots       inventory_stock[]
   pricelists_depot             pricelists[]
   promotion_depot              promotion_depot[]
@@ -996,6 +998,7 @@ model customers {
   visit_customers                        visits[]
   warranty_claims_customers              warranty_claims[]
   asset_master_outlet                    asset_master[]
+  default_for_depots                     depots[]                        @relation("DepotDefaultOutlet")
 }
 
 model customer_image {

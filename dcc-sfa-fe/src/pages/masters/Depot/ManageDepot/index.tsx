@@ -16,6 +16,7 @@ import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
 import Select from 'shared/Select';
+import CustomerSelect from 'shared/CustomerSelect';
 
 interface ManageDepotProps {
   selectedDepot?: Depot | null;
@@ -69,6 +70,7 @@ const ManageDepot: React.FC<ManageDepotProps> = ({
       latitude: selectedDepot?.latitude?.toString() || '',
       longitude: selectedDepot?.longitude?.toString() || '',
       is_active: selectedDepot?.is_active || 'Y',
+      default_outlet_id: selectedDepot?.default_outlet_id?.toString() || '',
     },
     validationSchema: depotValidationSchema,
     enableReinitialize: true,
@@ -96,6 +98,7 @@ const ManageDepot: React.FC<ManageDepotProps> = ({
           latitude: values.latitude ? Number(values.latitude) : undefined,
           longitude: values.longitude ? Number(values.longitude) : undefined,
           is_active: values.is_active,
+          default_outlet_id: values.default_outlet_id ? Number(values.default_outlet_id) : null,
         };
 
         if (isEdit && selectedDepot) {
@@ -320,6 +323,7 @@ const ManageDepot: React.FC<ManageDepotProps> = ({
                 multiline
                 rows={3}
               />
+
             </Box>
 
             <ActiveInactiveField
@@ -328,6 +332,18 @@ const ManageDepot: React.FC<ManageDepotProps> = ({
               formik={formik}
               required
             />
+
+            {isEdit && (
+              <Box className="md:!col-span-2">
+                <CustomerSelect
+                  name="default_outlet_id"
+                  label="Default Outlet"
+                  formik={formik}
+                  depotId={selectedDepot?.id}
+                  nameToSearch={selectedDepot?.default_outlet?.name || ''}
+                />
+              </Box>
+            )}
           </Box>
 
           <Box className="!flex !justify-end items-center ">

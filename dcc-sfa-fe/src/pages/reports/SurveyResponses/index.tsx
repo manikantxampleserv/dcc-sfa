@@ -229,10 +229,10 @@ const SurveyResponses: React.FC = () => {
           <span className="text-xs">
             {row.submitted_at
               ? formatDate(
-                  typeof row.submitted_at === 'string'
-                    ? row.submitted_at
-                    : row.submitted_at?.toString() || ''
-                )
+                typeof row.submitted_at === 'string'
+                  ? row.submitted_at
+                  : row.submitted_at?.toString() || ''
+              )
               : 'Not submitted'}
           </span>
         </Box>
@@ -390,7 +390,7 @@ const SurveyResponses: React.FC = () => {
                       : Number(e.target.value)
                   )
                 }
-                className="!w-68"
+                className="!w-72"
                 disableClearable
               >
                 <MenuItem value="all">All Surveys</MenuItem>

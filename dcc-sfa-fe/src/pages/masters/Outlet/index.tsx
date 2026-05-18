@@ -239,11 +239,22 @@ const OutletsManagement: React.FC = () => {
     {
       id: 'depot',
       label: 'Depot',
-      render: value =>
+      render: (value, row) =>
         value ? (
-          <Typography variant="body2" className="!text-gray-700">
-            {value?.name || 'N/A'}
-          </Typography>
+          <Box className="!flex !items-center !gap-1.5 flex-wrap">
+            <Typography variant="body2" className="!text-gray-700">
+              {value?.name || 'N/A'}
+            </Typography>
+            {row.default_for_depots && row.default_for_depots.length > 0 && (
+              <Chip
+                label="Default"
+                size="small"
+                variant="filled"
+                color="success"
+                className="!text-[10px] !h-4 !px-0.5 !font-semibold"
+              />
+            )}
+          </Box>
         ) : (
           <span className="italic text-gray-400 text-xs">No Depot</span>
         ),
@@ -340,30 +351,30 @@ const OutletsManagement: React.FC = () => {
     },
     ...(isUpdate || isDelete || isRead
       ? [
-          {
-            id: 'action',
-            label: 'Actions',
-            sortable: false,
-            render: (_value: any, row: Customer) => (
-              <div className="!flex !gap-2 !items-center">
-                {isUpdate && (
-                  <EditButton
-                    onClick={() => handleEditOutlet(row)}
-                    tooltip={`Edit ${row.name}`}
-                  />
-                )}
-                {isDelete && (
-                  <DeleteButton
-                    onClick={() => handleDeleteOutlet(row.id)}
-                    tooltip={`Delete ${row.name}`}
-                    itemName={row.name}
-                    confirmDelete={true}
-                  />
-                )}
-              </div>
-            ),
-          },
-        ]
+        {
+          id: 'action',
+          label: 'Actions',
+          sortable: false,
+          render: (_value: any, row: Customer) => (
+            <div className="!flex !gap-2 !items-center">
+              {isUpdate && (
+                <EditButton
+                  onClick={() => handleEditOutlet(row)}
+                  tooltip={`Edit ${row.name}`}
+                />
+              )}
+              {isDelete && (
+                <DeleteButton
+                  onClick={() => handleDeleteOutlet(row.id)}
+                  tooltip={`Delete ${row.name}`}
+                  itemName={row.name}
+                  confirmDelete={true}
+                />
+              )}
+            </div>
+          ),
+        },
+      ]
       : []),
   ];
 

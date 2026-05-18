@@ -40,6 +40,7 @@ export const depotValidationSchema = Yup.object({
     .min(-180, 'Invalid longitude')
     .max(180, 'Invalid longitude'),
   is_active: Yup.string().required('Status is required'),
+  default_outlet_id: Yup.string().nullable(),
 });
 
 /**

@@ -25,6 +25,7 @@ import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import UserSelect from 'shared/UserSelect';
 import { formatForDateInput } from 'utils/dateUtils';
+import { useAuth } from 'context/AuthContext';
 
 interface ManageAssetMovementProps {
   selectedMovement?: AssetMovement | null;
@@ -39,6 +40,7 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
   drawerOpen,
   setDrawerOpen,
 }) => {
+  const { user } = useAuth();
   const isEdit = !!selectedMovement;
   const [selectedAssetIds, setSelectedAssetIds] = useState<number[]>([]);
   const [availableSearch, setAvailableSearch] = useState('');
@@ -58,7 +60,6 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
 
   const handleDirectionChange = (fieldName: string, value: string) => {
     formik.setFieldValue(fieldName, value);
-
     if (fieldName === 'from_direction') {
       formik.setFieldValue('from_outlet', '');
       formik.setFieldValue('from_depot', '');
@@ -79,7 +80,7 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
       to_depot: selectedMovement?.to_depot_id?.toString() || '',
       movement_type: selectedMovement?.movement_type || '',
       movement_date: formatForDateInput(selectedMovement?.movement_date),
-      performed_by: selectedMovement?.performed_by?.toString() || '',
+      performed_by: selectedMovement?.performed_by?.toString() || user?.id?.toString() || '',
       notes: selectedMovement?.notes || '',
       is_active: selectedMovement?.is_active || 'Y',
       priority: 'medium',
@@ -194,20 +195,30 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
 
   const [knownAssetsMap, setKnownAssetsMap] = useState<Map<number, AssetMaster>>(new Map());
 
-  const { data: assetsResponse, isFetching } = useAssetMaster({
-    page,
-    limit: 100,
-    status: 'active',
-    search: availableSearch,
-    depot_id:
-      formik.values.from_direction === 'depot' && formik.values.from_depot
-        ? Number(formik.values.from_depot)
-        : undefined,
-    outlet_id:
-      formik.values.from_direction === 'outlet' && formik.values.from_outlet
-        ? Number(formik.values.from_outlet)
-        : undefined,
-  });
+  const isSourceSelected = !!(
+    (formik.values.from_direction === 'depot' && formik.values.from_depot) ||
+    (formik.values.from_direction === 'outlet' && formik.values.from_outlet)
+  );
+
+  const { data: assetsResponse, isFetching } = useAssetMaster(
+    {
+      page,
+      limit: 100,
+      status: 'active',
+      search: availableSearch,
+      depot_id:
+        formik.values.from_direction === 'depot' && formik.values.from_depot
+          ? Number(formik.values.from_depot)
+          : undefined,
+      outlet_id:
+        formik.values.from_direction === 'outlet' && formik.values.from_outlet
+          ? Number(formik.values.from_outlet)
+          : undefined,
+    },
+    {
+      enabled: isSourceSelected,
+    }
+  );
 
   const assets: AssetMaster[] = assetsResponse?.data || [];
 
@@ -261,6 +272,19 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
     return displayedAssets.filter(asset => !selectedIds.has(asset.id));
   }, [displayedAssets, selectedAssetIds]);
 
+  const emptyStateMessage = useMemo(() => {
+    if (!isSourceSelected) {
+      return 'Please select From Direction and Source first';
+    }
+    if (availableSearch) {
+      return 'No assets match your search';
+    }
+    if (displayedAssets.length === 0) {
+      return 'No assets available in this source';
+    }
+    return 'All assets are selected';
+  }, [isSourceSelected, availableSearch, displayedAssets.length]);
+
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const target = e.target as HTMLDivElement;
     if (
@@ -274,7 +298,6 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
     }
   };
 
-  // Update formik asset_ids when selectedAssetIds changes
   useEffect(() => {
     formik.setFieldValue('asset_ids', selectedAssetIds);
   }, [selectedAssetIds, formik.setFieldValue]);
@@ -386,6 +409,10 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
                 label="From Depot"
                 formik={formik}
                 required
+                onChange={(_, selectedDepot) => {
+                  formik.setFieldValue('from_depot', selectedDepot ? selectedDepot.id : '');
+                  formik.setFieldValue('to_outlet', '');
+                }}
               />
             )}
 
@@ -395,6 +422,11 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
                 label="To Outlet"
                 formik={formik}
                 required
+                depotId={
+                  formik.values.from_direction === 'depot' && formik.values.from_depot
+                    ? Number(formik.values.from_depot)
+                    : undefined
+                }
               />
             )}
 
@@ -420,7 +452,7 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
               name="performed_by"
               label="Performed By"
               formik={formik}
-              required
+              disabled={true}
             />
             <Box className="col-span-2">
               <DragDropContext onDragEnd={handleDragEnd}>
@@ -492,9 +524,7 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
                                   variant="body2"
                                   className="!text-gray-500"
                                 >
-                                  {availableSearch
-                                    ? 'No assets found'
-                                    : 'All assets are selected'}
+                                  {emptyStateMessage}
                                 </Typography>
                               </Box>
                             )}

@@ -1,4 +1,4 @@
-import { Box, MenuItem } from '@mui/material';
+import { Box, MenuItem, Checkbox, FormControlLabel } from '@mui/material';
 import { useFormik } from 'formik';
 import { useCities } from 'hooks/useCity';
 import { useCustomerCategories } from 'hooks/useCustomerCategory';
@@ -108,6 +108,9 @@ const ManageOutlet: React.FC<ManageOutletProps> = ({
         ? selectedOutlet.last_visit_date.split('T')[0]
         : '',
       is_active: selectedOutlet?.is_active || 'Y',
+      is_default_for_depot: selectedOutlet?.default_for_depots
+        ? selectedOutlet.default_for_depots.length > 0
+        : false,
     },
     validationSchema: customerValidationSchema,
     enableReinitialize: true,
@@ -148,6 +151,7 @@ const ManageOutlet: React.FC<ManageOutletProps> = ({
             ? new Date(values.last_visit_date).toISOString()
             : undefined,
           is_active: values.is_active,
+          is_default_for_depot: values.is_default_for_depot,
         };
 
         if (isEdit && selectedOutlet) {
@@ -277,6 +281,28 @@ const ManageOutlet: React.FC<ManageOutletProps> = ({
               required
               onChange={handleDepotChange}
             />
+
+            {formik.values.depot_id && (
+              <Box className="!flex !items-center !p-px !bg-gray-50 !border !border-gray-200 !rounded">
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      id="is_default_for_depot"
+                      name="is_default_for_depot"
+                      checked={formik.values.is_default_for_depot}
+                      onChange={formik.handleChange}
+                      color="primary"
+                    />
+                  }
+                  label={
+                    <span className="!text-sm !font-semibold !text-gray-700 select-none">
+                      Set as Default Outlet
+                    </span>
+                  }
+                  className="!m-0"
+                />
+              </Box>
+            )}
 
             <Select
               name="zones_id"

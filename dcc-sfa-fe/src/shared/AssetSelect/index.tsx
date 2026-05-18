@@ -21,6 +21,7 @@ interface AssetSelectProps {
   onChange?: (event: any, value: AssetMaster | null) => void;
   nameToSearch?: string;
   placeholder?: string;
+  onlyAvailable?: boolean;
 }
 
 const AssetSelect: React.FC<AssetSelectProps> = ({
@@ -35,6 +36,7 @@ const AssetSelect: React.FC<AssetSelectProps> = ({
   nameToSearch = '',
   onChange,
   placeholder = 'Select Asset',
+  onlyAvailable = false,
 }) => {
   const [inputValue, setInputValue] = useState('');
   const [searchValue, setSearchValue] = useState('');
@@ -88,6 +90,7 @@ const AssetSelect: React.FC<AssetSelectProps> = ({
     search: effectiveSearch,
     limit: 100,
     status: 'active',
+    only_available: onlyAvailable,
   });
 
   const { data: singleAssetData, isFetching: isFetchingSingle } = useAssetMasterById(

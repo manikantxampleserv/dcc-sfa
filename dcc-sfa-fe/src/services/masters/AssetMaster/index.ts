@@ -183,6 +183,7 @@ export interface AssetMasterQueryParams {
   status?: string;
   depot_id?: number;
   outlet_id?: number;
+  only_available?: boolean;
 }
 
 export interface AssetMasterStats {

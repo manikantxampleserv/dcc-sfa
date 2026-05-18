@@ -158,10 +158,10 @@ const CoolerInstallationsManagement: React.FC = () => {
   }, [exportToExcelMutation, search, statusFilter]);
 
   const getStatusColor = (status?: string | null) => {
-    switch (status) {
-      case 'Installed':
+    switch (status?.toLowerCase()) {
+      case 'installed':
         return 'success';
-      case 'Ready to Install':
+      case 'ready to install':
         return 'info';
       default:
         return 'default';

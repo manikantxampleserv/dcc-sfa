@@ -11,7 +11,7 @@ import {
   Autocomplete,
   FormControl,
   TextField,
-  type AutocompleteProps,
+  type AutocompleteProps
 } from '@mui/material';
 import type { FormikProps } from 'formik';
 import React, { useCallback, useMemo } from 'react';
@@ -51,15 +51,25 @@ const Select: React.FC<CustomSelectProps> = ({
   value,
   required,
   children,
-  fullWidth = false,
+  fullWidth,
   placeholder,
   onBlur,
   onChange,
   disabled,
   compact = false,
   disableClearable = false,
+  className,
   ...rest
 }) => {
+  const hasWidthClass = !!(
+    className &&
+    (className.includes('w-') || className.includes('width'))
+  );
+
+  const effectiveFullWidth =
+    fullWidth !== undefined
+      ? fullWidth
+      : !!(formik && !compact && !hasWidthClass);
   const options = useMemo(() => {
     if (!children) return [];
     const childrenArray = React.Children.toArray(children);
@@ -179,7 +189,11 @@ const Select: React.FC<CustomSelectProps> = ({
   const errorMessage = typeof error === 'string' ? error : undefined;
 
   return (
-    <FormControl fullWidth={fullWidth} error={!!error}>
+    <FormControl
+      fullWidth={effectiveFullWidth}
+      error={!!error}
+      className={className}
+    >
       <Autocomplete
         loading={loading}
         options={options}
@@ -200,7 +214,7 @@ const Select: React.FC<CustomSelectProps> = ({
         getOptionDisabled={(option: Option) => option?.disabled || false}
         disabled={disabled}
         size={size}
-        fullWidth={fullWidth}
+        fullWidth={true}
         openOnFocus
         selectOnFocus
         clearOnBlur={false}
@@ -237,10 +251,9 @@ const Select: React.FC<CustomSelectProps> = ({
               '& .MuiOutlinedInput-root': {
                 minWidth: '160px',
               },
-              '&.MuiAutocomplete-hasPopupIcon.MuiAutocomplete-hasClearIcon .MuiOutlinedInput-root':
-                {
-                  paddingRight: '24px !important',
-                },
+              '&.MuiAutocomplete-hasPopupIcon.MuiAutocomplete-hasClearIcon .MuiOutlinedInput-root': {
+                paddingRight: '24px !important',
+              },
               ...(compact && {
                 '& .MuiInputBase-root': {
                   height: '28px !important',
@@ -297,6 +310,9 @@ const Select: React.FC<CustomSelectProps> = ({
               htmlInput: {
                 ...params.inputProps,
                 required: false,
+              },
+              inputLabel: {
+                shrink: compact ? true : undefined,
               },
             }}
           />
