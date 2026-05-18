@@ -920,6 +920,18 @@ exports.reportsController = {
                     asset_master_asset_types: {
                         select: { id: true, name: true, category: true, brand: true },
                     },
+                    asset_master_asset_sub_types: {
+                        select: { id: true, name: true },
+                    },
+                    asset_master_brands: {
+                        select: { id: true, name: true },
+                    },
+                    asset_master_depot: {
+                        select: { id: true, name: true },
+                    },
+                    asset_master_outlet: {
+                        select: { id: true, name: true },
+                    },
                 },
             });
             // Fetch Asset Movements
@@ -932,7 +944,11 @@ exports.reportsController = {
             // Apply filters to movements based on asset query results
             if (asset_status || asset_type_id) {
                 const filteredAssetIds = assets.map(a => a.id);
-                whereMovements.asset_id = { in: filteredAssetIds };
+                whereMovements.asset_movement_assets = {
+                    some: {
+                        asset_id: { in: filteredAssetIds },
+                    },
+                };
             }
             const movements = await prisma_client_1.default.asset_movements.findMany({
                 where: whereMovements,
@@ -950,6 +966,18 @@ exports.reportsController = {
                     },
                     asset_movements_performed_by: {
                         select: { id: true, name: true, email: true },
+                    },
+                    asset_movement_from_depot: {
+                        select: { id: true, name: true },
+                    },
+                    asset_movement_from_customer: {
+                        select: { id: true, name: true },
+                    },
+                    asset_movement_to_depot: {
+                        select: { id: true, name: true },
+                    },
+                    asset_movement_to_customer: {
+                        select: { id: true, name: true },
                     },
                 },
             });
@@ -1001,29 +1029,49 @@ exports.reportsController = {
             // Serialize data
             const serializedAssets = assets.map(asset => ({
                 id: asset.id,
+                name: asset.name || 'N/A',
                 asset_type: asset.asset_master_asset_types?.name || 'N/A',
+                sub_type: asset.asset_master_asset_sub_types?.name || 'N/A',
                 category: asset.asset_master_asset_types?.category || 'N/A',
-                brand: asset.asset_master_asset_types?.brand || 'N/A',
+                brand: asset.asset_master_brands?.name ||
+                    asset.asset_master_asset_types?.brand ||
+                    'N/A',
                 serial_number: asset.serial_number,
                 purchase_date: asset.purchase_date?.toISOString() || null,
                 warranty_expiry: asset.warranty_expiry?.toISOString() || null,
-                current_location: asset.current_location || 'N/A',
+                current_location: asset.asset_master_depot?.name ||
+                    asset.asset_master_outlet?.name ||
+                    asset.current_location ||
+                    'N/A',
                 current_status: asset.current_status || 'N/A',
                 assigned_to: asset.assigned_to || 'N/A',
+                barcode: asset.barcode || '',
+                nfc_tag: asset.nfc_tag || '',
+                is_active: asset.is_active || 'Y',
             }));
             const serializedMovements = movements.map(movement => ({
                 id: movement.id,
+                asset_ids: movement.asset_movement_assets?.map(a => a.asset_id) || [],
+                asset_count: movement.asset_movement_assets?.length || 0,
                 asset_serial: movement.asset_movement_assets?.[0]?.asset_movement_assets_asset
                     ?.serial_number || 'N/A',
                 asset_type: movement.asset_movement_assets?.[0]?.asset_movement_assets_asset
                     ?.asset_master_asset_types?.name || 'N/A',
-                from_location: movement.from_direction || 'N/A',
-                to_location: movement.to_direction || 'N/A',
+                from_direction: movement.from_direction || 'N/A',
+                to_direction: movement.to_direction || 'N/A',
+                from_location: movement.from_direction === 'depot'
+                    ? movement.asset_movement_from_depot?.name || 'N/A'
+                    : movement.asset_movement_from_customer?.name || 'N/A',
+                to_location: movement.to_direction === 'depot'
+                    ? movement.asset_movement_to_depot?.name || 'N/A'
+                    : movement.asset_movement_to_customer?.name || 'N/A',
                 movement_type: movement.movement_type || 'N/A',
                 movement_date: movement.movement_date?.toISOString() || '',
                 performed_by: movement.asset_movements_performed_by?.name || 'N/A',
                 performed_by_email: movement.asset_movements_performed_by?.email || 'N/A',
                 notes: movement.notes || 'N/A',
+                approval_status: movement.approval_status || 'P',
+                is_active: movement.is_active || 'Y',
             }));
             const serializedCustomerAssets = customerAssets.map(ca => ({
                 id: ca.id,
@@ -1126,6 +1174,18 @@ exports.reportsController = {
                     asset_master_asset_types: {
                         select: { id: true, name: true, category: true, brand: true },
                     },
+                    asset_master_asset_sub_types: {
+                        select: { id: true, name: true },
+                    },
+                    asset_master_brands: {
+                        select: { id: true, name: true },
+                    },
+                    asset_master_depot: {
+                        select: { id: true, name: true },
+                    },
+                    asset_master_outlet: {
+                        select: { id: true, name: true },
+                    },
                 },
             });
             // Fetch Asset Movements
@@ -1138,7 +1198,11 @@ exports.reportsController = {
             // Apply filters to movements based on asset query results
             if (asset_status || asset_type_id) {
                 const filteredAssetIds = assets.map(a => a.id);
-                whereMovements.asset_id = { in: filteredAssetIds };
+                whereMovements.asset_movement_assets = {
+                    some: {
+                        asset_id: { in: filteredAssetIds },
+                    },
+                };
             }
             const movements = await prisma_client_1.default.asset_movements.findMany({
                 where: whereMovements,
@@ -1157,86 +1221,60 @@ exports.reportsController = {
                     asset_movements_performed_by: {
                         select: { id: true, name: true, email: true },
                     },
-                },
-            });
-            // Fetch Customer Assets
-            const whereCustomerAssets = {
-                is_active: 'Y',
-                ...(customer_id && { customer_id: parseInt(customer_id) }),
-                ...(asset_type_id && {
-                    asset_type_id: parseInt(asset_type_id),
-                }),
-                ...(asset_status && { status: asset_status }),
-            };
-            const customerAssets = await prisma_client_1.default.customer_assets.findMany({
-                where: whereCustomerAssets,
-                include: {
-                    customer_assets_customers: {
-                        select: { id: true, name: true, code: true },
+                    asset_movement_from_depot: {
+                        select: { id: true, name: true },
                     },
-                    customer_asset_types: {
-                        select: { id: true, name: true, category: true, brand: true },
+                    asset_movement_from_customer: {
+                        select: { id: true, name: true },
                     },
-                    customer_assets_users: {
-                        select: { id: true, name: true, email: true },
+                    asset_movement_to_depot: {
+                        select: { id: true, name: true },
+                    },
+                    asset_movement_to_customer: {
+                        select: { id: true, name: true },
                     },
                 },
             });
-            // Fetch Asset Warranty Claims
-            const whereClaims = {
-                is_active: 'Y',
-                ...(Object.keys(dateFilter).length > 0 && { claim_date: dateFilter }),
-            };
-            // Apply filters to warranty claims based on asset query results
-            if (asset_status || asset_type_id) {
-                const filteredAssetIds = assets.map(a => a.id);
-                whereClaims.asset_id = { in: filteredAssetIds };
-            }
-            const warrantyClaims = await prisma_client_1.default.asset_warranty_claims.findMany({
-                where: whereClaims,
-                include: {
-                    asset_master_warranty_claims: {
-                        include: {
-                            asset_master_asset_types: {
-                                select: { id: true, name: true },
-                            },
-                        },
-                    },
-                },
-            });
-            // Import ExcelJS
             const ExcelJS = await Promise.resolve().then(() => __importStar(require('exceljs')));
             const workbook = new ExcelJS.Workbook();
-            // Create Asset Master sheet
             const assetsSheet = workbook.addWorksheet('Asset Master', {
                 pageSetup: { paperSize: 9, orientation: 'landscape' },
             });
             assetsSheet.columns = [
+                { header: 'Asset Name', key: 'name', width: 25 },
                 { header: 'Serial Number', key: 'serial_number', width: 20 },
                 { header: 'Asset Type', key: 'asset_type', width: 20 },
+                { header: 'Sub Type', key: 'sub_type', width: 20 },
                 { header: 'Category', key: 'category', width: 15 },
                 { header: 'Brand', key: 'brand', width: 15 },
                 { header: 'Purchase Date', key: 'purchase_date', width: 15 },
                 { header: 'Warranty Expiry', key: 'warranty_expiry', width: 15 },
-                { header: 'Current Location', key: 'current_location', width: 20 },
+                { header: 'Current Location', key: 'current_location', width: 25 },
                 { header: 'Status', key: 'current_status', width: 15 },
-                { header: 'Assigned To', key: 'assigned_to', width: 20 },
+                { header: 'Active Status', key: 'is_active', width: 15 },
             ];
             assets.forEach((asset) => {
                 assetsSheet.addRow({
+                    name: asset.name || 'N/A',
                     serial_number: asset.serial_number,
                     asset_type: asset.asset_master_asset_types?.name || 'N/A',
+                    sub_type: asset.asset_master_asset_sub_types?.name || 'N/A',
                     category: asset.asset_master_asset_types?.category || 'N/A',
-                    brand: asset.asset_master_asset_types?.brand || 'N/A',
+                    brand: asset.asset_master_brands?.name ||
+                        asset.asset_master_asset_types?.brand ||
+                        'N/A',
                     purchase_date: asset.purchase_date
                         ? new Date(asset.purchase_date).toLocaleDateString()
                         : 'N/A',
                     warranty_expiry: asset.warranty_expiry
                         ? new Date(asset.warranty_expiry).toLocaleDateString()
                         : 'N/A',
-                    current_location: asset.current_location || 'N/A',
+                    current_location: asset.asset_master_depot?.name ||
+                        asset.asset_master_outlet?.name ||
+                        asset.current_location ||
+                        'N/A',
                     current_status: asset.current_status || 'N/A',
-                    assigned_to: asset.assigned_to || 'N/A',
+                    is_active: asset.is_active === 'Y' ? 'Active' : 'Inactive',
                 });
             });
             // Create Asset Movements sheet
@@ -1244,96 +1282,47 @@ exports.reportsController = {
                 pageSetup: { paperSize: 9, orientation: 'landscape' },
             });
             movementsSheet.columns = [
-                { header: 'Asset Serial', key: 'asset_serial', width: 20 },
-                { header: 'Asset Type', key: 'asset_type', width: 20 },
-                { header: 'From Location', key: 'from_location', width: 20 },
-                { header: 'To Location', key: 'to_location', width: 20 },
+                { header: 'Movement ID', key: 'id', width: 15 },
+                { header: 'Asset Count', key: 'asset_count', width: 15 },
+                { header: 'From Location', key: 'from_location', width: 25 },
+                { header: 'To Location', key: 'to_location', width: 25 },
                 { header: 'Movement Type', key: 'movement_type', width: 18 },
                 { header: 'Movement Date', key: 'movement_date', width: 18 },
                 { header: 'Performed By', key: 'performed_by', width: 20 },
+                { header: 'Performed By Email', key: 'performed_by_email', width: 25 },
+                { header: 'Approval Status', key: 'approval_status', width: 18 },
+                { header: 'Active Status', key: 'is_active', width: 15 },
                 { header: 'Notes', key: 'notes', width: 30 },
             ];
             movements.forEach((movement) => {
+                const from_location = movement.from_direction === 'depot'
+                    ? movement.asset_movement_from_depot?.name || 'N/A'
+                    : movement.asset_movement_from_customer?.name || 'N/A';
+                const to_location = movement.to_direction === 'depot'
+                    ? movement.asset_movement_to_depot?.name || 'N/A'
+                    : movement.asset_movement_to_customer?.name || 'N/A';
+                const approvalStatusLower = String(movement.approval_status || 'P').toLowerCase();
+                const approvalLabel = approvalStatusLower === 'p'
+                    ? 'Pending'
+                    : approvalStatusLower === 'a'
+                        ? 'Approved'
+                        : approvalStatusLower === 'r'
+                            ? 'Rejected'
+                            : movement.approval_status || 'Pending';
                 movementsSheet.addRow({
-                    asset_serial: movement.asset_movement_assets?.[0]?.asset_movement_assets_asset
-                        ?.serial_number || 'N/A',
-                    asset_type: movement.asset_movement_assets?.[0]?.asset_movement_assets_asset
-                        ?.asset_master_asset_types?.name || 'N/A',
-                    from_location: movement.from_direction || 'N/A',
-                    to_location: movement.to_direction || 'N/A',
+                    id: movement.id,
+                    asset_count: movement.asset_movement_assets?.length || 0,
+                    from_location: from_location,
+                    to_location: to_location,
                     movement_type: movement.movement_type || 'N/A',
                     movement_date: movement.movement_date
                         ? new Date(movement.movement_date).toLocaleDateString()
                         : 'N/A',
                     performed_by: movement.asset_movements_performed_by?.name || 'N/A',
+                    performed_by_email: movement.asset_movements_performed_by?.email || 'N/A',
+                    approval_status: approvalLabel,
+                    is_active: movement.is_active === 'Y' ? 'Active' : 'Inactive',
                     notes: movement.notes || 'N/A',
-                });
-            });
-            // Create Customer Assets sheet
-            const customerAssetsSheet = workbook.addWorksheet('Customer Assets', {
-                pageSetup: { paperSize: 9, orientation: 'landscape' },
-            });
-            customerAssetsSheet.columns = [
-                { header: 'Customer Name', key: 'customer_name', width: 25 },
-                { header: 'Customer Code', key: 'customer_code', width: 15 },
-                { header: 'Asset Type', key: 'asset_type', width: 20 },
-                { header: 'Category', key: 'category', width: 15 },
-                { header: 'Brand', key: 'brand', width: 15 },
-                { header: 'Model', key: 'model', width: 15 },
-                { header: 'Serial Number', key: 'serial_number', width: 20 },
-                { header: 'Capacity', key: 'capacity', width: 12 },
-                { header: 'Install Date', key: 'install_date', width: 15 },
-                { header: 'Status', key: 'status', width: 15 },
-                { header: 'Technician', key: 'technician', width: 20 },
-                { header: 'Warranty Expiry', key: 'warranty_expiry', width: 15 },
-            ];
-            customerAssets.forEach((ca) => {
-                customerAssetsSheet.addRow({
-                    customer_name: ca.customer_assets_customers?.name || 'N/A',
-                    customer_code: ca.customer_assets_customers?.code || 'N/A',
-                    asset_type: ca.customer_asset_types?.name || 'N/A',
-                    category: ca.customer_asset_types?.category || 'N/A',
-                    brand: ca.customer_asset_types?.brand || 'N/A',
-                    model: ca.model || 'N/A',
-                    serial_number: ca.serial_number || 'N/A',
-                    capacity: ca.capacity || 0,
-                    install_date: ca.install_date
-                        ? new Date(ca.install_date).toLocaleDateString()
-                        : 'N/A',
-                    status: ca.status || 'N/A',
-                    technician: ca.customer_assets_users?.name || 'N/A',
-                    warranty_expiry: ca.warranty_expiry
-                        ? new Date(ca.warranty_expiry).toLocaleDateString()
-                        : 'N/A',
-                });
-            });
-            // Create Warranty Claims sheet
-            const claimsSheet = workbook.addWorksheet('Warranty Claims', {
-                pageSetup: { paperSize: 9, orientation: 'landscape' },
-            });
-            claimsSheet.columns = [
-                { header: 'Asset Serial', key: 'asset_serial', width: 20 },
-                { header: 'Asset Type', key: 'asset_type', width: 20 },
-                { header: 'Claim Date', key: 'claim_date', width: 15 },
-                { header: 'Issue Description', key: 'issue_description', width: 30 },
-                { header: 'Claim Status', key: 'claim_status', width: 15 },
-                { header: 'Resolved Date', key: 'resolved_date', width: 15 },
-                { header: 'Notes', key: 'notes', width: 30 },
-            ];
-            warrantyClaims.forEach((claim) => {
-                claimsSheet.addRow({
-                    asset_serial: claim.asset_master_warranty_claims?.serial_number || 'N/A',
-                    asset_type: claim.asset_master_warranty_claims?.asset_master_asset_types
-                        ?.name || 'N/A',
-                    claim_date: claim.claim_date
-                        ? new Date(claim.claim_date).toLocaleDateString()
-                        : 'N/A',
-                    issue_description: claim.issue_description || 'N/A',
-                    claim_status: claim.claim_status || 'N/A',
-                    resolved_date: claim.resolved_date
-                        ? new Date(claim.resolved_date).toLocaleDateString()
-                        : 'N/A',
-                    notes: claim.notes || 'N/A',
                 });
             });
             // Create Summary sheet
@@ -1345,20 +1334,12 @@ exports.reportsController = {
             const summaryData = [
                 { metric: 'Total Assets', value: assets.length },
                 { metric: 'Total Asset Movements', value: movements.length },
-                { metric: 'Total Customer Assets', value: customerAssets.length },
-                { metric: 'Total Warranty Claims', value: warrantyClaims.length },
             ];
             summaryData.forEach(row => {
                 summarySheet.addRow(row);
             });
             // Style header rows
-            [
-                assetsSheet,
-                movementsSheet,
-                customerAssetsSheet,
-                claimsSheet,
-                summarySheet,
-            ].forEach(sheet => {
+            [assetsSheet, movementsSheet, summarySheet].forEach(sheet => {
                 const headerRow = sheet.getRow(1);
                 headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
                 headerRow.fill = {
@@ -3243,7 +3224,6 @@ exports.reportsController = {
                         customerInvoices.length,
                 };
             });
-            // Serialize Collections (Payments)
             const collections = payments.map(payment => ({
                 id: payment.id,
                 payment_number: payment.payment_number,
@@ -3339,7 +3319,6 @@ exports.reportsController = {
             });
             const ExcelJS = await Promise.resolve().then(() => __importStar(require('exceljs')));
             const workbook = new ExcelJS.Workbook();
-            // Outstanding Invoices Sheet
             const outstandingSheet = workbook.addWorksheet('Outstanding Invoices', {
                 pageSetup: { paperSize: 9, orientation: 'landscape' },
             });
@@ -3374,7 +3353,6 @@ exports.reportsController = {
                     status: invoice.status || 'N/A',
                 });
             });
-            // Collections Sheet
             const collectionsSheet = workbook.addWorksheet('Collections');
             collectionsSheet.columns = [
                 { header: 'Payment#', key: 'payment', width: 20 },

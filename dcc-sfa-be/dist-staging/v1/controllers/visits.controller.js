@@ -103,6 +103,22 @@ function serializeVisit(visit) {
             is_active: payment.is_active,
             currency_id: payment.currency_id,
         })) || [],
+        cooler_installations: visit.cooler_installations?.map((cooler) => ({
+            id: cooler.id,
+            customer_id: cooler.customer_id,
+            code: cooler.code,
+            asset_master_id: cooler.asset_master_id,
+            brand: cooler.brand,
+            model: cooler.model,
+            serial_number: cooler.serial_number,
+            capacity: cooler.capacity,
+            install_date: cooler.install_date,
+            status: cooler.status,
+            approval_status: cooler.approval_status,
+            is_active: cooler.is_active,
+            createdate: cooler.createdate,
+            updatedate: cooler.updatedate,
+        })) || [],
         cooler_inspections: visit.cooler_inspections?.map((inspection) => ({
             id: inspection.id,
             cooler_id: inspection.cooler_id,
@@ -468,6 +484,7 @@ exports.visitsController = {
                     invoices: item.invoices || [],
                     payments: item.payments || [],
                     cooler_inspections: item.cooler_inspections || [],
+                    cooler_installations: item.cooler_installations || [],
                     survey: item.survey,
                 }));
             }
@@ -510,7 +527,7 @@ exports.visitsController = {
             for (let index = 0; index < dataArray.length; index++) {
                 const data = dataArray[index];
                 try {
-                    const { visit, invoices, orders, payments, cooler_inspections, survey, } = data;
+                    const { visit, invoices, orders, payments, cooler_inspections, cooler_installations, survey, } = data;
                     if (!visit) {
                         results.failed.push({
                             visitIndex: index,
@@ -650,6 +667,7 @@ exports.visitsController = {
                             const paymentIds = [];
                             const inspectionIds = [];
                             const surveyResponseIds = [];
+                            const coolerInstallationIds = [];
                             let visitRecord;
                             if (isUpdate) {
                                 visitRecord = await tx.visits.update({
@@ -1666,81 +1684,232 @@ exports.visitsController = {
                                     paymentIds.push(createdPayment.id);
                                 }
                             }
+                            if (cooler_installations && cooler_installations.length > 0) {
+                                for (const installation of cooler_installations) {
+                                    const assetSerialNumber = installation.asset_serial_number ||
+                                        installation.serial_number;
+                                    if (!assetSerialNumber) {
+                                        throw new Error('asset_serial_number is required');
+                                    }
+                                    const asset = await tx.asset_master.findFirst({
+                                        where: {
+                                            serial_number: assetSerialNumber,
+                                        },
+                                    });
+                                    if (!asset) {
+                                        throw new Error(`Asset with serial number ${assetSerialNumber} not found`);
+                                    }
+                                    const cooler = await tx.coolers.findFirst({
+                                        where: {
+                                            asset_master_id: asset.id,
+                                        },
+                                    });
+                                    if (!cooler) {
+                                        throw new Error(`Cooler linked with asset serial number ${assetSerialNumber} not found`);
+                                    }
+                                    const updatedCooler = await tx.coolers.update({
+                                        where: {
+                                            id: cooler.id,
+                                        },
+                                        data: {
+                                            status: installation.status || 'installed',
+                                            updatedate: new Date(),
+                                            updatedby: req.user?.id || visit.createdby || 1,
+                                        },
+                                    });
+                                    coolerInstallationIds.push(updatedCooler.id);
+                                    coolerInstallationIds.push(updatedCooler.id);
+                                    await tx.asset_master.update({
+                                        where: {
+                                            id: asset.id,
+                                        },
+                                        data: {
+                                            current_status: (installation.status || 'installed').toLowerCase() ===
+                                                'installed'
+                                                ? 'Installed'
+                                                : installation.status || 'installed',
+                                            updatedate: new Date(),
+                                            updatedby: req.user?.id || visit.createdby || 1,
+                                        },
+                                    });
+                                    console.log(`Cooler ${updatedCooler.id} status updated to ${installation.status || 'installed'} using asset serial ${assetSerialNumber}`);
+                                }
+                            }
+                            // if (cooler_inspections && cooler_inspections.length > 0) {
+                            //   for (const inspection of cooler_inspections) {
+                            //     const coolerData = inspection.cooler || {};
+                            //     let coolerId: number | undefined;
+                            //     if (coolerData.id) {
+                            //       const {
+                            //         id,
+                            //         customer_id,
+                            //         technician_id,
+                            //         capacity,
+                            //         ...coolerUpdateData
+                            //       } = coolerData;
+                            //       const updatedCooler = await tx.coolers.update({
+                            //         where: { id: coolerData.id },
+                            //         data: {
+                            //           ...coolerUpdateData,
+                            //           ...(capacity !== undefined && {
+                            //             capacity:
+                            //               typeof capacity === 'string'
+                            //                 ? parseFloat(capacity) || 0
+                            //                 : capacity,
+                            //           }),
+                            //           updatedate: new Date(),
+                            //           updatedby:
+                            //             (req as any).user?.id || visit.createdby || 1,
+                            //         },
+                            //       });
+                            //       coolerId = updatedCooler.id;
+                            //       if (
+                            //         updatedCooler.status?.toLowerCase() === 'installed' &&
+                            //         updatedCooler.asset_master_id
+                            //       ) {
+                            //         await tx.asset_master.update({
+                            //           where: { id: updatedCooler.asset_master_id },
+                            //           data: {
+                            //             current_status: 'Installed',
+                            //             updatedate: new Date(),
+                            //             updatedby:
+                            //               (req as any).user?.id || visit.createdby || 1,
+                            //           },
+                            //         });
+                            //       }
+                            //     } else {
+                            //       const {
+                            //         id,
+                            //         customer_id,
+                            //         technician_id,
+                            //         capacity,
+                            //         code,
+                            //         ...coolerCreateData
+                            //       } = coolerData;
+                            //       const newCooler = await tx.coolers.create({
+                            //         data: {
+                            //           ...coolerCreateData,
+                            //           ...(capacity !== undefined && {
+                            //             capacity:
+                            //               typeof capacity === 'string'
+                            //                 ? parseFloat(capacity) || 0
+                            //                 : capacity,
+                            //           }),
+                            //           code:
+                            //             code ||
+                            //             `COOLER-${Date.now()}-${Math.random()
+                            //               .toString(36)
+                            //               .substr(2, 6)
+                            //               .toUpperCase()}`,
+                            //           createdate: new Date(),
+                            //           createdby:
+                            //             visit.createdby || (req as any).user?.id || 1,
+                            //           log_inst: 1,
+                            //           coolers_customers: {
+                            //             connect: { id: visit.customer_id },
+                            //           },
+                            //         },
+                            //       });
+                            //       coolerId = newCooler.id;
+                            //       if (
+                            //         newCooler.status?.toLowerCase() === 'installed' &&
+                            //         newCooler.asset_master_id
+                            //       ) {
+                            //         await tx.asset_master.update({
+                            //           where: { id: newCooler.asset_master_id },
+                            //           data: {
+                            //             current_status: 'Installed',
+                            //             updatedate: new Date(),
+                            //             updatedby:
+                            //               (req as any).user?.id || visit.createdby || 1,
+                            //           },
+                            //         });
+                            //       }
+                            //     }
+                            //     const processedInspectionData = {
+                            //       cooler_id: coolerId,
+                            //       visit_id: visitId,
+                            //       inspected_by: inspection.inspected_by,
+                            //       inspection_date: inspection.inspection_date
+                            //         ? new Date(inspection.inspection_date)
+                            //         : new Date(),
+                            //       temperature: inspection.temperature || undefined,
+                            //       is_working: inspection.is_working || 'Y',
+                            //       issues: inspection.issues,
+                            //       images: inspection.images,
+                            //       latitude: inspection.latitude || undefined,
+                            //       longitude: inspection.longitude || undefined,
+                            //       action_required: inspection.action_required || 'N',
+                            //       action_taken: inspection.action_taken,
+                            //       next_inspection_due: inspection.next_inspection_due
+                            //         ? new Date(inspection.next_inspection_due)
+                            //         : undefined,
+                            //     };
+                            //     if (inspection.id) {
+                            //       const updatedInspection =
+                            //         await tx.cooler_inspections.update({
+                            //           where: { id: inspection.id },
+                            //           data: {
+                            //             ...processedInspectionData,
+                            //             updatedate: new Date(),
+                            //             updatedby:
+                            //               (req as any).user?.id || visit.createdby || 1,
+                            //           },
+                            //         });
+                            //       inspectionIds.push(updatedInspection.id);
+                            //     } else {
+                            //       const newInspection = await tx.cooler_inspections.create({
+                            //         data: {
+                            //           ...processedInspectionData,
+                            //           createdate: new Date(),
+                            //           createdby:
+                            //             visit.createdby || (req as any).user?.id || 1,
+                            //           log_inst: 1,
+                            //         },
+                            //       });
+                            //       inspectionIds.push(newInspection.id);
+                            //     }
+                            //   }
+                            // }
                             if (cooler_inspections && cooler_inspections.length > 0) {
                                 for (const inspection of cooler_inspections) {
-                                    const coolerData = inspection.cooler || {};
-                                    let coolerId;
-                                    if (coolerData.id) {
-                                        const { id, customer_id, technician_id, capacity, ...coolerUpdateData } = coolerData;
-                                        const updatedCooler = await tx.coolers.update({
-                                            where: { id: coolerData.id },
-                                            data: {
-                                                ...coolerUpdateData,
-                                                ...(capacity !== undefined && {
-                                                    capacity: typeof capacity === 'string'
-                                                        ? parseFloat(capacity) || 0
-                                                        : capacity,
-                                                }),
-                                                updatedate: new Date(),
-                                                updatedby: req.user?.id || visit.createdby || 1,
-                                            },
-                                        });
-                                        coolerId = updatedCooler.id;
-                                        if (updatedCooler.status?.toLowerCase() === 'installed' &&
-                                            updatedCooler.asset_master_id) {
-                                            await tx.asset_master.update({
-                                                where: { id: updatedCooler.asset_master_id },
-                                                data: {
-                                                    current_status: 'Installed',
-                                                    updatedate: new Date(),
-                                                    updatedby: req.user?.id || visit.createdby || 1,
-                                                },
-                                            });
-                                        }
+                                    if (!inspection.serial_number) {
+                                        throw new Error('serial_number is required for cooler inspection');
                                     }
-                                    else {
-                                        const { id, customer_id, technician_id, capacity, code, ...coolerCreateData } = coolerData;
-                                        const newCooler = await tx.coolers.create({
-                                            data: {
-                                                ...coolerCreateData,
-                                                ...(capacity !== undefined && {
-                                                    capacity: typeof capacity === 'string'
-                                                        ? parseFloat(capacity) || 0
-                                                        : capacity,
-                                                }),
-                                                code: code ||
-                                                    `COOLER-${Date.now()}-${Math.random()
-                                                        .toString(36)
-                                                        .substr(2, 6)
-                                                        .toUpperCase()}`,
-                                                createdate: new Date(),
-                                                createdby: visit.createdby || req.user?.id || 1,
-                                                log_inst: 1,
-                                                coolers_customers: {
-                                                    connect: { id: visit.customer_id },
-                                                },
-                                            },
-                                        });
-                                        coolerId = newCooler.id;
-                                        if (newCooler.status?.toLowerCase() === 'installed' &&
-                                            newCooler.asset_master_id) {
-                                            await tx.asset_master.update({
-                                                where: { id: newCooler.asset_master_id },
-                                                data: {
-                                                    current_status: 'Installed',
-                                                    updatedate: new Date(),
-                                                    updatedby: req.user?.id || visit.createdby || 1,
-                                                },
-                                            });
-                                        }
+                                    const asset = await tx.asset_master.findFirst({
+                                        where: {
+                                            serial_number: inspection.serial_number,
+                                        },
+                                    });
+                                    if (!asset) {
+                                        throw new Error(`Asset with serial number ${inspection.serial_number} not found`);
                                     }
+                                    const cooler = await tx.coolers.findFirst({
+                                        where: {
+                                            asset_master_id: asset.id,
+                                        },
+                                    });
+                                    if (!cooler) {
+                                        throw new Error(`Cooler linked with serial number ${inspection.serial_number} not found`);
+                                    }
+                                    const inspectionDate = inspection.inspection_date
+                                        ? new Date(inspection.inspection_date)
+                                        : new Date();
+                                    await tx.coolers.update({
+                                        where: {
+                                            id: cooler.id,
+                                        },
+                                        data: {
+                                            last_scanned_date: inspectionDate,
+                                            updatedate: new Date(),
+                                            updatedby: req.user?.id || visit.createdby || 1,
+                                        },
+                                    });
                                     const processedInspectionData = {
-                                        cooler_id: coolerId,
+                                        cooler_id: cooler.id,
                                         visit_id: visitId,
                                         inspected_by: inspection.inspected_by,
-                                        inspection_date: inspection.inspection_date
-                                            ? new Date(inspection.inspection_date)
-                                            : new Date(),
+                                        inspection_date: inspectionDate,
                                         temperature: inspection.temperature || undefined,
                                         is_working: inspection.is_working || 'Y',
                                         issues: inspection.issues,
@@ -1874,6 +2043,15 @@ exports.visitsController = {
                                     include: { coolers: true },
                                 })
                                 : [];
+                            const relatedCoolerInstallations = coolerInstallationIds.length > 0
+                                ? await tx.coolers.findMany({
+                                    where: {
+                                        id: {
+                                            in: coolerInstallationIds,
+                                        },
+                                    },
+                                })
+                                : [];
                             const relatedSurveyResponses = surveyResponseIds.length > 0
                                 ? await tx.survey_responses.findMany({
                                     where: { id: { in: surveyResponseIds } },
@@ -1895,6 +2073,7 @@ exports.visitsController = {
                                 ...visitWithBasicRelations,
                                 invoices: relatedInvoices,
                                 payments: relatedPayments,
+                                cooler_installations: relatedCoolerInstallations,
                                 cooler_inspections: relatedInspections,
                                 survey_responses: surveyResponsesWithAnswers,
                                 visit_attachments: relatedAttachments,

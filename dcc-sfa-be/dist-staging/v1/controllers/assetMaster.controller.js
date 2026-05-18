@@ -27,6 +27,7 @@ const serializeAssetMaster = (asset) => ({
     id: asset.id,
     name: asset.name,
     code: asset.code,
+    outlet_id: asset.outlet_id,
     asset_type_id: asset.asset_type_id,
     asset_sub_type_id: asset.asset_sub_type_id,
     installation_date: asset.installation_date ?? null,
@@ -274,7 +275,7 @@ exports.assetMasterController = {
     },
     async getAllAssetMaster(req, res) {
         try {
-            const { page, limit, search, status, depot_id, outlet_id } = req.query;
+            const { page, limit, search, status, depot_id, outlet_id, only_available, } = req.query;
             const pageNum = parseInt(page, 10) || 1;
             const limitNum = parseInt(limit, 10) || 10;
             const searchLower = search ? search.toLowerCase() : '';
@@ -296,6 +297,7 @@ exports.assetMasterController = {
                 ...(statusLower === 'inactive' && { is_active: 'N' }),
                 ...(depot_id && { depot_id: parseInt(depot_id, 10) }),
                 ...(outlet_id && { outlet_id: parseInt(outlet_id, 10) }),
+                ...(only_available === 'true' && { outlet_id: null }),
             };
             const { data, pagination } = await (0, paginate_1.paginate)({
                 model: prisma_client_1.default.asset_master,

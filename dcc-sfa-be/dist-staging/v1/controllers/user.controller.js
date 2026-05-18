@@ -201,103 +201,9 @@ exports.userController = {
             res.error(error.message);
         }
     },
-    // async getUsers(req: any, res: any): Promise<void> {
-    //   try {
-    //     const {
-    //       page = '1',
-    //       limit = '10',
-    //       search = '',
-    //       isActive,
-    //       role_id,
-    //       depot_id,
-    //       zone_id,
-    //     } = req.query;
-    //     const page_num = parseInt(page as string, 10);
-    //     const limit_num = parseInt(limit as string, 10);
-    //     const searchLower = (search as string).toLowerCase();
-    //     const filters: any = {
-    //       is_active: isActive as string,
-    //       ...(search && {
-    //         OR: [
-    //           {
-    //             name: {
-    //               contains: searchLower,
-    //             },
-    //           },
-    //           {
-    //             email: {
-    //               contains: searchLower,
-    //             },
-    //           },
-    //           {
-    //             employee_id: {
-    //               contains: searchLower,
-    //             },
-    //           },
-    //         ],
-    //       }),
-    //       ...(role_id && { role_id: Number(role_id) }),
-    //       ...(depot_id && { depot_id: Number(depot_id) }),
-    //       ...(zone_id && { zone_id: Number(zone_id) }),
-    //     };
-    //     const { data, pagination } = await paginate({
-    //       model: prisma.users,
-    //       filters,
-    //       page: page_num,
-    //       limit: limit_num,
-    //       orderBy: { createdate: 'desc' },
-    //       include: {
-    //         user_role: true,
-    //         companies: true,
-    //         user_depot: true,
-    //         users: {
-    //           select: {
-    //             id: true,
-    //             name: true,
-    //             email: true,
-    //           },
-    //         },
-    //       },
-    //     });
-    //     const totalUsers = await prisma.users.count();
-    //     const activeUsers = await prisma.users.count({
-    //       where: { is_active: 'Y' },
-    //     });
-    //     const inactiveUsers = await prisma.users.count({
-    //       where: { is_active: 'N' },
-    //     });
-    //     const now = new Date();
-    //     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    //     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-    //     const newUsersThisMonth = await prisma.users.count({
-    //       where: {
-    //         createdate: {
-    //           gte: startOfMonth,
-    //           lt: endOfMonth,
-    //         },
-    //       },
-    //     });
-    //     res.success(
-    //       'Users retrieved successfully',
-    //       data.map((user: any) => serializeUser(user, true, true)),
-    //       200,
-    //       pagination,
-    //       {
-    //         total_users: totalUsers,
-    //         active_users: activeUsers,
-    //         inactive_users: inactiveUsers,
-    //         new_users: newUsersThisMonth,
-    //       }
-    //     );
-    //   } catch (error: any) {
-    //     console.error('Error fetching users:', error);
-    //     res.error(error.message);
-    //   }
-    // },
     async getUsers(req, res) {
         try {
-            const { page = '1', limit = '10', search = '', isActive, role_id, depot_id, // Keep for filtering
-            zone_id, reporting_to, } = req.query;
+            const { page = '1', limit = '10', search = '', isActive, role_id, depot_id, zone_id, reporting_to, } = req.query;
             const page_num = parseInt(page, 10);
             const limit_num = parseInt(limit, 10);
             const searchLower = search.toLowerCase();
@@ -387,71 +293,6 @@ exports.userController = {
             res.error(error.message);
         }
     },
-    // async getUserById(req: any, res: any): Promise<void> {
-    //   try {
-    //     const errors = validationResult(req);
-    //     if (!errors.isEmpty()) {
-    //       res.validationError(errors.array(), 400);
-    //       return;
-    //     }
-    //     const id = Number(req.params.id);
-    //     const user = await prisma.users.findFirst({
-    //       where: { id },
-    //       include: {
-    //         user_role: true,
-    //         companies: true,
-    //         user_depot: true,
-    //         users: {
-    //           select: {
-    //             id: true,
-    //             name: true,
-    //             email: true,
-    //           },
-    //         },
-    //       },
-    //     });
-    //     if (!user) {
-    //       res.error('User not found', 404);
-    //       return;
-    //     }
-    //     const recentAuditLogs = await prisma.audit_logs.findMany({
-    //       where: {
-    //         changed_by: id,
-    //         is_active: 'Y',
-    //       },
-    //       orderBy: { changed_at: 'desc' },
-    //       take: 10,
-    //       select: {
-    //         id: true,
-    //         table_name: true,
-    //         record_id: true,
-    //         action: true,
-    //         changed_at: true,
-    //         ip_address: true,
-    //         device_info: true,
-    //       },
-    //     });
-    //     const serializedUser = serializeUser(user);
-    //     const responseData = {
-    //       ...serializedUser,
-    //       recent_activities: {
-    //         audit_logs: recentAuditLogs.map(log => ({
-    //           id: log.id,
-    //           table_name: log.table_name,
-    //           record_id: log.record_id,
-    //           action: log.action,
-    //           changed_at: log.changed_at,
-    //           ip_address: log.ip_address,
-    //           device_info: log.device_info,
-    //         })),
-    //       },
-    //     };
-    //     res.success('User fetched successfully', responseData, 200);
-    //   } catch (error: any) {
-    //     console.error('Error fetching user:', error);
-    //     res.error(error.message);
-    //   }
-    // },
     async getUserById(req, res) {
         try {
             const errors = (0, express_validator_1.validationResult)(req);
@@ -510,18 +351,15 @@ exports.userController = {
                     device_info: true,
                 },
             });
-            // Calculate subordinate count
             const subordinateCount = await prisma_client_1.default.users.count({
                 where: { reporting_to: id, is_active: 'Y' },
             });
-            // Calculate manager team count (colleagues)
             let managerTeamCount = 0;
             if (user.reporting_to) {
                 managerTeamCount = await prisma_client_1.default.users.count({
                     where: { reporting_to: Number(user.reporting_to), is_active: 'Y' },
                 });
             }
-            // Fetch manager's team members
             let managerTeamMembers = [];
             if (user.reporting_to) {
                 managerTeamMembers = await prisma_client_1.default.users.findMany({
@@ -561,124 +399,6 @@ exports.userController = {
             res.error(error.message);
         }
     },
-    // async updateUser(req: any, res: any): Promise<void> {
-    //   try {
-    //     const errors = validationResult(req);
-    //     if (!errors.isEmpty()) {
-    //       res.validationError(errors.array(), 400);
-    //       return;
-    //     }
-    //     const targetUserId = Number(req.params.id);
-    //     const currentUserId = req.user?.id;
-    //     if (!currentUserId) {
-    //       res.error('User not authenticated', 401);
-    //       return;
-    //     }
-    //     const existingUser = await prisma.users.findFirst({
-    //       where: { id: targetUserId },
-    //     });
-    //     if (!existingUser) {
-    //       res.error('User not found', 404);
-    //       return;
-    //     }
-    //     const { createdate, updatedate, password, id, is_active, ...userData } =
-    //       req.body;
-    //     if (userData.email && userData.email !== existingUser.email) {
-    //       const existingEmail = await prisma.users.findFirst({
-    //         where: {
-    //           email: userData.email,
-    //           id: { not: targetUserId },
-    //         },
-    //       });
-    //       if (existingEmail) {
-    //         res.error('Email already exists', 400);
-    //         return;
-    //       }
-    //     }
-    //     if (
-    //       userData.employee_id &&
-    //       userData.employee_id !== existingUser.employee_id
-    //     ) {
-    //       const existingEmployeeId = await prisma.users.findFirst({
-    //         where: {
-    //           employee_id: userData.employee_id,
-    //           id: { not: targetUserId },
-    //         },
-    //       });
-    //       if (existingEmployeeId) {
-    //         res.error('Employee ID already exists', 400);
-    //         return;
-    //       }
-    //     }
-    //     let profile_image_url: string | undefined;
-    //     const uploadedFile = (req as any).file;
-    //     if (uploadedFile) {
-    //       if (existingUser.profile_image) {
-    //         try {
-    //           const oldFileUrl = new URL(existingUser.profile_image);
-    //           const pathParts = oldFileUrl.pathname.split('/');
-    //           const fileName = pathParts.slice(3).join('/');
-    //           await deleteFile(fileName);
-    //         } catch (err) {
-    //           console.error('Error deleting old profile image:', err);
-    //         }
-    //       }
-    //       const fileExt = uploadedFile.originalname.split('.').pop();
-    //       const fileName = `profiles/profile_${targetUserId}_${Date.now()}.${fileExt}`;
-    //       try {
-    //         profile_image_url = await uploadFile(
-    //           uploadedFile.buffer,
-    //           fileName,
-    //           uploadedFile.mimetype
-    //         );
-    //       } catch (err) {
-    //         console.error('Error uploading new profile image:', err);
-    //         res.error('Failed to upload profile image', 500);
-    //         return;
-    //       }
-    //     }
-    //     const updateData: any = {
-    //       ...userData,
-    //       ...(profile_image_url && { profile_image: profile_image_url }),
-    //       depot_id: Number(userData.depot_id),
-    //       updatedby: currentUserId,
-    //       updatedate: new Date(),
-    //     };
-    //     if (password) {
-    //       updateData.password_hash = await bcrypt.hash(password, 10);
-    //     }
-    //     if (userData.joining_date) {
-    //       updateData.joining_date = new Date(userData.joining_date);
-    //     }
-    //     if (
-    //       userData.reporting_to !== undefined &&
-    //       userData.reporting_to !== null
-    //     ) {
-    //       updateData.reporting_to = Number(userData.reporting_to);
-    //     }
-    //     if (is_active !== undefined && is_active !== null) {
-    //       updateData.is_active = is_active;
-    //     }
-    //     if (updateData.role_id) {
-    //       updateData.role_id = Number(updateData.role_id);
-    //     }
-    //     const updatedUser = await prisma.users.update({
-    //       where: { id: targetUserId },
-    //       data: updateData,
-    //       include: {
-    //         user_role: true,
-    //         companies: true,
-    //         user_depot: true,
-    //         users: { select: { id: true, name: true, email: true } },
-    //       },
-    //     });
-    //     const serializedUser = serializeUser(updatedUser, true, true);
-    //     res.success('Profile updated successfully', serializedUser, 200);
-    //   } catch (error: any) {
-    //     console.error('Error updating user:', error);
-    //     res.error(error.message);
-    //   }
-    // },
     async updateUser(req, res) {
         try {
             const errors = (0, express_validator_1.validationResult)(req);
@@ -969,11 +689,36 @@ exports.userController = {
                             email: true,
                         },
                     },
+                    // route_salespersons: {
+                    //   where: {
+                    //     is_active: 'Y',
+                    //   },
+                    //   include: {
+                    //     route: {
+                    //       select: {
+                    //         id: true,
+                    //         name: true,
+                    //         code: true,
+                    //         description: true,
+                    //         start_location: true,
+                    //         end_location: true,
+                    //         estimated_distance: true,
+                    //         estimated_time: true,
+                    //       },
+                    //     },
+                    //   },
+                    // },
                     route_salespersons: {
                         where: {
                             is_active: 'Y',
                         },
-                        include: {
+                        select: {
+                            id: true,
+                            route_id: true,
+                            user_id: true,
+                            role: true,
+                            assigned_at: true,
+                            is_active: true,
                             route: {
                                 select: {
                                     id: true,

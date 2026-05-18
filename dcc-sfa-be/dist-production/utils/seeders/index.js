@@ -10,7 +10,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.seedProductShelfLife = exports.clearProductShelfLife = exports.seedProductWebOrders = exports.clearProductWebOrders = exports.seedProductTargetGroups = exports.clearProductTargetGroups = exports.seedProductTypes = exports.clearProductTypes = exports.seedProductVolumes = exports.clearProductVolumes = exports.seedProductFlavours = exports.clearProductFlavours = exports.seedProductSubCategories = exports.clearProductSubCategories = exports.seedSalesBonusRules = exports.clearSalesBonusRules = exports.seedSalesTargets = exports.clearSalesTargets = exports.seedSalesTargetGroups = exports.clearSalesTargetGroups = exports.seedProducts = exports.clearProducts = exports.seedProductCategories = exports.clearProductCategories = exports.seedPermissions = exports.clearPermissions = exports.addSinglePermission = exports.addModulePermissions = exports.seedOrders = exports.clearOrders = exports.seedDepots = exports.clearDepots = exports.seedCustomerType = exports.clearCustomerType = exports.seedCustomers = exports.clearCustomers = exports.seedCurrencies = exports.clearCurrencies = exports.seedCompanies = exports.clearCompanies = exports.seedCoolerSubTypes = exports.clearCoolerSubTypes = exports.seedCoolerTypes = exports.clearCoolerTypes = exports.seedBatchLots = exports.clearBatchLots = exports.seedAssetTypes = exports.clearAssetTypes = exports.seedAssetMaster = exports.clearAssetMaster = void 0;
-exports.seedZones = exports.clearZones = exports.seedWarehouses = exports.clearWarehouses = exports.seedVisits = exports.clearVisits = exports.seedVehicles = exports.clearVehicles = exports.seedUsers = exports.clearUsers = exports.seedRoutes = exports.clearRoutes = exports.seedRoles = exports.clearRoles = void 0;
+exports.seedEmailTemplates = exports.clearEmailTemplates = exports.seedZones = exports.clearZones = exports.seedWarehouses = exports.clearWarehouses = exports.seedVisits = exports.clearVisits = exports.seedVehicles = exports.clearVehicles = exports.seedUsers = exports.clearUsers = exports.seedRoutes = exports.clearRoutes = exports.seedRoles = exports.clearRoles = void 0;
 exports.seedSection = seedSection;
 exports.clearSection = clearSection;
 exports.seedAll = seedAll;
@@ -66,13 +66,18 @@ const kpi_targets_seeder_1 = require("./kpi-targets.seeder");
 const outlet_groups_seeder_1 = require("./outlet-groups.seeder");
 const pricelists_seeder_1 = require("./pricelists.seeder");
 const taxMaster_seeder_1 = require("./taxMaster.seeder");
-// Seeder configuration
+const emailTemplates_seeder_1 = require("./emailTemplates.seeder");
 const seeders = {
     roles: { seed: roles_seeder_1.seedRoles, clear: roles_seeder_1.clearRoles, name: 'Roles' },
     permissions: {
         seed: permissions_seeder_1.seedPermissions,
         clear: permissions_seeder_1.clearPermissions,
         name: 'Permissions',
+    },
+    'email-templates': {
+        seed: emailTemplates_seeder_1.seedEmailTemplates,
+        clear: emailTemplates_seeder_1.clearEmailTemplates,
+        name: 'Email Templates',
     },
     companies: { seed: companies_seeder_1.seedCompanies, clear: companies_seeder_1.clearCompanies, name: 'Companies' },
     depots: { seed: depots_seeder_1.seedDepots, clear: depots_seeder_1.clearDepots, name: 'Depots' },
@@ -288,6 +293,7 @@ async function seedAll() {
         await seedSection('roles');
         await seedSection('currencies');
         await seedSection('unit-of-measurement');
+        await seedSection('email-templates');
         // 2. Company and location hierarchy
         await seedSection('companies');
         await seedSection('depots');
@@ -392,6 +398,7 @@ async function clearAll() {
         // Skip companies due to admin user constraint (users.parent_id references companies)
         logger_1.default.info('Skipping companies clearing due to admin user foreign key constraint');
         // 1. Core system data (clear last - no dependencies)
+        await clearSection('email-templates');
         await clearSection('unit-of-measurement');
         await clearSection('currencies');
         // Skip permissions and roles as they may be referenced by admin user
@@ -603,6 +610,9 @@ Object.defineProperty(exports, "seedWarehouses", { enumerable: true, get: functi
 var zones_seeder_2 = require("./zones.seeder");
 Object.defineProperty(exports, "clearZones", { enumerable: true, get: function () { return zones_seeder_2.clearZones; } });
 Object.defineProperty(exports, "seedZones", { enumerable: true, get: function () { return zones_seeder_2.seedZones; } });
+var emailTemplates_seeder_2 = require("./emailTemplates.seeder");
+Object.defineProperty(exports, "clearEmailTemplates", { enumerable: true, get: function () { return emailTemplates_seeder_2.clearEmailTemplates; } });
+Object.defineProperty(exports, "seedEmailTemplates", { enumerable: true, get: function () { return emailTemplates_seeder_2.seedEmailTemplates; } });
 async function main() {
     const command = process.argv[2];
     const arg1 = process.argv[3];

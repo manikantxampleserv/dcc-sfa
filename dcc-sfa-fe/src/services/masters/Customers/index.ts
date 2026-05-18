@@ -95,6 +95,7 @@ interface Customer {
     name: string;
     code: string;
   }>;
+  is_default_outlet?: 'Y' | 'N';
 }
 
 /**

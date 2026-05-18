@@ -169,6 +169,10 @@ const serializeCustomer = async (customer: any) => {
           code: d.code,
         }))
       : [],
+    is_default_outlet:
+      customer.default_for_depots && customer.default_for_depots.length > 0
+        ? 'Y'
+        : 'N',
     outlet_images: (customer.outlet_images_customers || []).map((img: any) => ({
       id: img.id,
       image_url: img.image_url,

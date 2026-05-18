@@ -102,6 +102,14 @@ const serializeDepot = (depot, includeCompany = false) => ({
             code: depot.depots_district.code,
         }
         : null,
+    default_outlet_id: depot.default_outlet_id,
+    default_outlet: depot.default_outlet
+        ? {
+            id: depot.default_outlet.id,
+            name: depot.default_outlet.name,
+            code: depot.default_outlet.code,
+        }
+        : null,
 });
 exports.depotsController = {
     async createDepots(req, res) {
@@ -115,6 +123,7 @@ exports.depotsController = {
                 data: {
                     ...data,
                     code: data.code || newCode,
+                    default_outlet_id: data.default_outlet_id ? Number(data.default_outlet_id) : null,
                     createdby: data.createdby ? Number(data.createdby) : 1,
                     log_inst: data.log_inst || 1,
                     createdate: new Date(),
@@ -138,6 +147,7 @@ exports.depotsController = {
                     depots_region: true,
                     depots_city: true,
                     depots_district: true,
+                    default_outlet: true,
                 },
             });
             res.status(201).json({
@@ -152,7 +162,7 @@ exports.depotsController = {
     },
     async getDepots(req, res) {
         try {
-            const { page = '1', limit = '10', search = '', isActive, parent_id, depot_id, } = req.query;
+            const { page = '1', limit = '10', search = '', isActive, parent_id, depot_id, user_id, } = req.query;
             const page_num = parseInt(page, 10);
             const limit_num = parseInt(limit, 10);
             const searchLower = search.toLowerCase();
@@ -168,6 +178,14 @@ exports.depotsController = {
                 }),
                 ...(parent_id && { parent_id: Number(parent_id) }),
                 ...(depot_id && { id: Number(depot_id) }),
+                ...(user_id && {
+                    user_depots_depot_id: {
+                        some: {
+                            user_id: Number(user_id),
+                            is_active: 'Y',
+                        },
+                    },
+                }),
             };
             const totalDepots = await prisma_client_1.default.depots.count();
             const activeDepots = await prisma_client_1.default.depots.count({
@@ -218,6 +236,7 @@ exports.depotsController = {
                     depots_region: true,
                     depots_city: true,
                     depots_district: true,
+                    default_outlet: true,
                 },
             });
             res.json({
@@ -264,6 +283,7 @@ exports.depotsController = {
                     depots_region: true,
                     depots_city: true,
                     depots_district: true,
+                    default_outlet: true,
                 },
             });
             if (!depot) {
@@ -288,7 +308,11 @@ exports.depotsController = {
             if (!existingDepot) {
                 return res.status(404).json({ message: 'Depot not found' });
             }
-            const data = { ...req.body, updatedate: new Date() };
+            const data = {
+                ...req.body,
+                default_outlet_id: req.body.default_outlet_id ? Number(req.body.default_outlet_id) : null,
+                updatedate: new Date(),
+            };
             const depot = await prisma_client_1.default.depots.update({
                 where: { id: Number(id) },
                 data,
@@ -311,6 +335,7 @@ exports.depotsController = {
                     depots_region: true,
                     depots_city: true,
                     depots_district: true,
+                    default_outlet: true,
                 },
             });
             res.json({

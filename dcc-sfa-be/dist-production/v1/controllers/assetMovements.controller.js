@@ -272,7 +272,6 @@ exports.assetMovementsController = {
                 console.error('Error updating asset master records:', updateError);
             }
             setTimeout(async () => {
-                // TODO: LATER I WILL DO THIS
                 try {
                     await (0, requests_controller_1.createRequest)({
                         requester_id: data.performed_by,
