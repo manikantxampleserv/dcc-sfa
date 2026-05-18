@@ -1459,6 +1459,199 @@ export const customerController = {
     }
   },
 
+  // async getAllCustomers(req: any, res: any) {
+  //   try {
+  //     const {
+  //       page,
+  //       limit,
+  //       search,
+  //       type,
+  //       salesperson_id,
+  //       route_id,
+  //       isActive,
+  //       city_id,
+  //       district_id,
+  //       region_id,
+  //     } = req.query;
+  //     const pageNum = parseInt(page as string, 10) || 1;
+  //     const limitNum = parseInt(limit as string, 10) || 10;
+  //     const searchLower = search ? (search as string).toLowerCase() : '';
+
+  //     const filters: any = {
+  //       ...(search && {
+  //         OR: [
+  //           { name: { contains: searchLower } },
+  //           { code: { contains: searchLower } },
+  //           { email: { contains: searchLower } },
+  //           { phone_number: { contains: searchLower } },
+  //         ],
+  //       }),
+  //       ...(city_id && { city_id: Number(city_id) }),
+  //       ...(district_id && { district_id: Number(district_id) }),
+  //       ...(region_id && { region_id: Number(region_id) }),
+  //       ...(type && type !== 'All' && { type }),
+  //       ...(salesperson_id && {
+  //         salesperson_id: parseInt(salesperson_id as string, 10),
+  //       }),
+  //       ...(route_id && { route_id: parseInt(route_id as string, 10) }),
+  //       ...(isActive && {
+  //         is_active: isActive,
+  //       }),
+  //     };
+
+  //     const { data, pagination } = await paginate({
+  //       model: prisma.customers,
+  //       filters,
+  //       page: pageNum,
+  //       limit: limitNum,
+  //       orderBy: { createdate: 'desc' },
+  //       include: {
+  //         customer_zones: true,
+  //         customer_routes: {
+  //           select: {
+  //             id: true,
+  //             name: true,
+  //             code: true,
+  //             description: true,
+  //             start_location: true,
+  //             end_location: true,
+  //             estimated_distance: true,
+  //             estimated_time: true,
+  //             route_type: true,
+  //             outlet_group: true,
+  //           },
+  //         },
+  //         customer_users: true,
+  //         customer_depot: {
+  //           select: {
+  //             id: true,
+  //             name: true,
+  //             code: true,
+  //           },
+  //         },
+  //         customers_city: {
+  //           select: {
+  //             id: true,
+  //             name: true,
+  //             code: true,
+  //           },
+  //         },
+  //         customers_districts: {
+  //           select: {
+  //             id: true,
+  //             name: true,
+  //             code: true,
+  //           },
+  //         },
+  //         customers_regions: {
+  //           select: {
+  //             id: true,
+  //             name: true,
+  //             code: true,
+  //           },
+  //         },
+  //         customer_type_customer: {
+  //           select: {
+  //             id: true,
+  //             type_name: true,
+  //             type_code: true,
+  //           },
+  //         },
+  //         customer_category_customer: {
+  //           select: {
+  //             id: true,
+  //             category_name: true,
+  //             category_code: true,
+  //             level: true,
+  //           },
+  //         },
+
+  //         customer_channel_customer: {
+  //           select: {
+  //             id: true,
+  //             channel_name: true,
+  //             channel_code: true,
+  //           },
+  //         },
+  //         outlet_images_customers: {
+  //           where: { is_active: 'Y' },
+  //           orderBy: { createdate: 'desc' },
+  //           select: {
+  //             id: true,
+  //             image_url: true,
+  //             createdate: true,
+  //             createdby: true,
+  //           },
+  //         },
+  //       },
+  //     });
+
+  //     const distributors = await prisma.customers.count({
+  //       where: { type: 'Distributor' },
+  //     });
+  //     const retailers = await prisma.customers.count({
+  //       where: { type: 'Retailer' },
+  //     });
+
+  //     const wholesellers = await prisma.customers.count({
+  //       where: { type: 'Wholesaler' },
+  //     });
+  //     const totalCustomers = await prisma.customers.count();
+  //     const activeCustomers = await prisma.customers.count({
+  //       where: { is_active: 'Y' },
+  //     });
+  //     const inactiveCustomers = await prisma.customers.count({
+  //       where: { is_active: 'N' },
+  //     });
+  //     const totals = await prisma.customers.aggregate({
+  //       _sum: {
+  //         credit_limit: true,
+  //         outstanding_amount: true,
+  //       },
+  //     });
+
+  //     const totalCreditLimit = totals._sum.credit_limit || 0;
+  //     const totalOutstandingAmount = totals._sum.outstanding_amount || 0;
+
+  //     const now = new Date();
+  //     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  //     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  //     const newCustomersThisMonth = await prisma.customers.count({
+  //       where: {
+  //         createdate: {
+  //           gte: startOfMonth,
+  //           lte: endOfMonth,
+  //         },
+  //       },
+  //     });
+
+  //     const serializedData = await Promise.all(
+  //       data.map((c: any) => serializeCustomer(c))
+  //     );
+
+  //     res.success(
+  //       'Customers retrieved successfully',
+  //       serializedData,
+  //       200,
+  //       pagination,
+  //       {
+  //         new_customers_this_month: newCustomersThisMonth,
+  //         total_customers: totalCustomers,
+  //         active_customers: activeCustomers,
+  //         inactive_customers: inactiveCustomers,
+  //         distributors: distributors,
+  //         retailers: retailers,
+  //         wholesaler: wholesellers,
+  //         total_credit_limit: totalCreditLimit,
+  //         total_outstanding_amount: totalOutstandingAmount,
+  //       }
+  //     );
+  //   } catch (error: any) {
+  //     console.error('Get Customers Error:', error);
+  //     res.status(500).json({ message: error.message });
+  //   }
+  // },
+
   async getAllCustomers(req: any, res: any) {
     try {
       const {
@@ -1467,7 +1660,6 @@ export const customerController = {
         search,
         type,
         salesperson_id,
-        route_id,
         isActive,
         city_id,
         district_id,
@@ -1490,14 +1682,37 @@ export const customerController = {
         ...(district_id && { district_id: Number(district_id) }),
         ...(region_id && { region_id: Number(region_id) }),
         ...(type && type !== 'All' && { type }),
-        ...(salesperson_id && {
-          salesperson_id: parseInt(salesperson_id as string, 10),
-        }),
-        ...(route_id && { route_id: parseInt(route_id as string, 10) }),
-        ...(isActive && {
-          is_active: isActive,
-        }),
+        ...(isActive && { is_active: isActive }),
       };
+
+      if (salesperson_id) {
+        const salespersonIdNum = parseInt(salesperson_id as string, 10);
+
+        const salespersonRoutes = await prisma.routes.findMany({
+          where: {
+            is_active: 'Y',
+            salespersons: {
+              some: {
+                user_id: salespersonIdNum,
+                is_active: 'Y',
+              },
+            },
+          },
+          select: {
+            id: true,
+          },
+        });
+
+        const routeIds = salespersonRoutes.map(route => route.id);
+
+        if (routeIds.length > 0) {
+          filters.route_id = {
+            in: routeIds,
+          };
+        } else {
+          filters.route_id = -1;
+        }
+      }
 
       const { data, pagination } = await paginate({
         model: prisma.customers,
@@ -1519,9 +1734,31 @@ export const customerController = {
               estimated_time: true,
               route_type: true,
               outlet_group: true,
+              is_active: true,
+              salespersons: {
+                where: { is_active: 'Y' },
+                select: {
+                  id: true,
+                  user_id: true,
+                  role: true,
+                  assigned_at: true,
+                  is_active: true,
+                  user: {
+                    select: {
+                      id: true,
+                      email: true,
+                    },
+                  },
+                },
+              },
             },
           },
-          customer_users: true,
+          customer_users: {
+            select: {
+              id: true,
+              email: true,
+            },
+          },
           customer_depot: {
             select: {
               id: true,
@@ -1565,7 +1802,6 @@ export const customerController = {
               level: true,
             },
           },
-
           customer_channel_customer: {
             select: {
               id: true,
@@ -1586,24 +1822,56 @@ export const customerController = {
         },
       });
 
+      const statsFilter: any = {};
+      if (salesperson_id) {
+        const salespersonIdNum = parseInt(salesperson_id as string, 10);
+
+        const salespersonRoutes = await prisma.routes.findMany({
+          where: {
+            is_active: 'Y',
+            salespersons: {
+              some: {
+                user_id: salespersonIdNum,
+                is_active: 'Y',
+              },
+            },
+          },
+          select: {
+            id: true,
+          },
+        });
+
+        const routeIds = salespersonRoutes.map(route => route.id);
+
+        if (routeIds.length > 0) {
+          filters.route_id = {
+            in: routeIds,
+          };
+        } else {
+          filters.route_id = -1;
+        }
+      }
+
       const distributors = await prisma.customers.count({
-        where: { type: 'Distributor' },
+        where: { type: 'Distributor', ...statsFilter },
       });
       const retailers = await prisma.customers.count({
-        where: { type: 'Retailer' },
+        where: { type: 'Retailer', ...statsFilter },
       });
-
       const wholesellers = await prisma.customers.count({
-        where: { type: 'Wholesaler' },
+        where: { type: 'Wholesaler', ...statsFilter },
       });
-      const totalCustomers = await prisma.customers.count();
+      const totalCustomers = await prisma.customers.count({
+        where: statsFilter,
+      });
       const activeCustomers = await prisma.customers.count({
-        where: { is_active: 'Y' },
+        where: { is_active: 'Y', ...statsFilter },
       });
       const inactiveCustomers = await prisma.customers.count({
-        where: { is_active: 'N' },
+        where: { is_active: 'N', ...statsFilter },
       });
       const totals = await prisma.customers.aggregate({
+        where: statsFilter,
         _sum: {
           credit_limit: true,
           outstanding_amount: true,
@@ -1622,6 +1890,7 @@ export const customerController = {
             gte: startOfMonth,
             lte: endOfMonth,
           },
+          ...statsFilter,
         },
       });
 
@@ -1651,7 +1920,6 @@ export const customerController = {
       res.status(500).json({ message: error.message });
     }
   },
-
   async getCustomersById(req: Request, res: Response) {
     try {
       const { id } = req.params;
