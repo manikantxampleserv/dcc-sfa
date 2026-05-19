@@ -9,37 +9,18 @@ import JoyrideTour from 'shared/JoyrideTour';
 
 const Layout: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [remountKey, setRemountKey] = useState(0);
   const location = useLocation();
   const mainRef = useRef<HTMLElement>(null);
-  const prevPathnameRef = useRef<string>('');
-  const prevForceReloadRef = useRef<number | null>(null);
 
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
 
   useEffect(() => {
-    const currentPath = location.pathname + location.search;
-    const locationState = location.state as { forceReload?: number } | null;
-    const forceReload = locationState?.forceReload ?? null;
-    const pathChanged = prevPathnameRef.current !== currentPath;
-    const forceReloadChanged = prevForceReloadRef.current !== forceReload;
-
-    if (pathChanged || forceReloadChanged) {
-      if (pathChanged) {
-        prevPathnameRef.current = currentPath;
-      }
-      if (forceReloadChanged && forceReload !== null) {
-        prevForceReloadRef.current = forceReload;
-      }
-      setRemountKey(prev => prev + 1);
-
-      if (mainRef.current) {
-        mainRef.current.scrollTo({ top: 0, behavior: 'smooth' });
-      }
+    if (mainRef.current) {
+      mainRef.current.scrollTo({ top: 0, behavior: 'smooth' });
     }
-  }, [location.pathname, location.search, location.key, location.state]);
+  }, [location.pathname, location.search]);
 
-  const outletKey = `${location.pathname}${location.search}${location.key || remountKey}${(location.state as { forceReload?: number } | null)?.forceReload || ''}`;
+  const outletKey = `${location.pathname}${location.search}${(location.state as { forceReload?: number } | null)?.forceReload || ''}`;
 
   const getNavItem = () => {
     const pathSegments = location.pathname.split('/').filter(Boolean);

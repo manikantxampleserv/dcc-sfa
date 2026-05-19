@@ -159,12 +159,14 @@ const UserSelect: React.FC<UserSelectProps> = ({
     user_id: userId && !effectiveSearch ? userId : undefined,
   });
 
-  const searchResults: User[] = (dropdownResponse?.data || []).map(user => ({
-    id: user.id,
-    name: user.name,
-    email: user.email,
-    profile_image: user.profile_image,
-  }));
+  const searchResults: User[] = React.useMemo(() => {
+    return (dropdownResponse?.data || []).map(user => ({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      profile_image: user.profile_image,
+    }));
+  }, [dropdownResponse?.data]);
 
   useEffect(() => {
     if (
@@ -216,7 +218,7 @@ const UserSelect: React.FC<UserSelectProps> = ({
   }, [normalizedValue, searchResults, selectedUserData]);
 
   useEffect(() => {
-    if (selectedUser && selectedUser !== selectedUserData) {
+    if (selectedUser && selectedUser.id !== selectedUserData?.id) {
       setSelectedUserData(selectedUser);
       if (!inputValue && selectedUser.name) {
         setInputValue(selectedUser.name);

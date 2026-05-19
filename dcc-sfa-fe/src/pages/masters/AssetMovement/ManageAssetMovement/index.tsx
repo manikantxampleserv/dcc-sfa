@@ -34,6 +34,9 @@ interface ManageAssetMovementProps {
   setDrawerOpen: (drawerOpen: boolean) => void;
 }
 
+const EMPTY_ASSETS: AssetMaster[] = [];
+const EMPTY_IDS: number[] = [];
+
 const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
   selectedMovement,
   setSelectedMovement,
@@ -183,14 +186,16 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
   useEffect(() => {
     if (selectedMovement?.asset_ids) {
       setSelectedAssetIds(selectedMovement.asset_ids);
-    } else {
-      setSelectedAssetIds([]);
+    } else if (selectedAssetIds.length > 0) {
+      setSelectedAssetIds(EMPTY_IDS);
     }
   }, [selectedMovement]);
 
   useEffect(() => {
     setPage(1);
-    setDisplayedAssets([]);
+    if (displayedAssets.length > 0) {
+      setDisplayedAssets(EMPTY_ASSETS);
+    }
   }, [availableSearch, formik.values.from_direction, formik.values.from_depot, formik.values.from_outlet]);
 
   const [knownAssetsMap, setKnownAssetsMap] = useState<Map<number, AssetMaster>>(new Map());
@@ -220,7 +225,9 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
     }
   );
 
-  const assets: AssetMaster[] = assetsResponse?.data || [];
+  const assets: AssetMaster[] = useMemo(() => {
+    return assetsResponse?.data || EMPTY_ASSETS;
+  }, [assetsResponse?.data]);
 
   useEffect(() => {
     if (assets.length > 0) {
@@ -232,8 +239,8 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
           return [...prev, ...newAssets];
         });
       }
-    } else if (page === 1) {
-      setDisplayedAssets([]);
+    } else if (page === 1 && displayedAssets.length > 0) {
+      setDisplayedAssets(EMPTY_ASSETS);
     }
   }, [assets, page]);
 

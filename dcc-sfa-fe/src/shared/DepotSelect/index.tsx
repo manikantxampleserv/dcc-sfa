@@ -160,11 +160,13 @@ const DepotSelect: React.FC<DepotSelectProps> = ({
     depot_id: depotId && !effectiveSearch ? depotId : undefined,
   });
 
-  const searchResults: Depot[] = (dropdownResponse?.data || []).map(depot => ({
-    id: depot.id,
-    name: depot.name,
-    code: depot.code,
-  }));
+  const searchResults: Depot[] = React.useMemo(() => {
+    return (dropdownResponse?.data || []).map(depot => ({
+      id: depot.id,
+      name: depot.name,
+      code: depot.code,
+    }));
+  }, [dropdownResponse?.data]);
 
   useEffect(() => {
     if (
@@ -216,7 +218,7 @@ const DepotSelect: React.FC<DepotSelectProps> = ({
   }, [normalizedValue, searchResults, selectedDepotData]);
 
   useEffect(() => {
-    if (selectedDepot && selectedDepot !== selectedDepotData) {
+    if (selectedDepot && selectedDepot.id !== selectedDepotData?.id) {
       setSelectedDepotData(selectedDepot);
       if (!inputValue && selectedDepot.name) {
         setInputValue(selectedDepot.name);
