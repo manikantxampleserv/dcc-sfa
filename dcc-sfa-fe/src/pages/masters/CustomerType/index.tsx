@@ -175,30 +175,30 @@ const CustomerTypePage: React.FC = () => {
     },
     ...(isUpdate || isDelete || isRead
       ? [
-          {
-            id: 'action',
-            label: 'Actions',
-            sortable: false,
-            render: (_value: any, row: CustomerType) => (
-              <div className="!flex !gap-2 !items-center">
-                {isUpdate && (
-                  <EditButton
-                    onClick={() => handleEditCustomerType(row)}
-                    tooltip={`Edit ${row.type_name}`}
-                  />
-                )}
-                {isDelete && (
-                  <DeleteButton
-                    onClick={() => handleDeleteCustomerType(row.id)}
-                    tooltip={`Delete ${row.type_name}`}
-                    itemName={row.type_name}
-                    confirmDelete={true}
-                  />
-                )}
-              </div>
-            ),
-          },
-        ]
+        {
+          id: 'action',
+          label: 'Actions',
+          sortable: false,
+          render: (_value: any, row: CustomerType) => (
+            <div className="!flex !gap-2 !items-center">
+              {isUpdate && (
+                <EditButton
+                  onClick={() => handleEditCustomerType(row)}
+                  tooltip={`Edit ${row.type_name}`}
+                />
+              )}
+              {isDelete && (
+                <DeleteButton
+                  onClick={() => handleDeleteCustomerType(row.id)}
+                  tooltip={`Delete ${row.type_name}`}
+                  itemName={row.type_name}
+                  confirmDelete={true}
+                />
+              )}
+            </div>
+          ),
+        },
+      ]
       : []),
   ];
 
@@ -272,7 +272,6 @@ const CustomerTypePage: React.FC = () => {
                     <Select
                       value={statusFilter}
                       onChange={e => setStatusFilter(e.target.value)}
-                      className="!w-32"
                       disableClearable
                     >
                       <MenuItem value="all">All Status</MenuItem>

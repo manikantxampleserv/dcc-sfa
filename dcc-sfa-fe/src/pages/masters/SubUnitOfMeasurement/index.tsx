@@ -202,33 +202,33 @@ const SubUnitOfMeasurementPage: React.FC = () => {
     },
     ...(isUpdate || isDelete
       ? [
-          {
-            id: 'actions',
-            label: 'Actions',
-            sortable: false,
-            render: (_value: any, row: SubUnitOfMeasurement) => (
-              <Box className="!flex !gap-2 !items-center">
-                {isUpdate && (
-                  <EditButton
-                    onClick={() => handleEdit(row)}
-                    tooltip={`Edit ${row.name}`}
-                  />
-                )}
-                {isDelete && (
-                  <PopConfirm
-                    title="Delete Sub Unit"
-                    description={`Are you sure you want to delete "${row.name || 'this sub unit'}"? This action cannot be undone.`}
-                    onConfirm={() => handleDelete(row)}
-                  >
-                    <Tooltip title="Delete Sub Unit">
-                      <DeleteButton />
-                    </Tooltip>
-                  </PopConfirm>
-                )}
-              </Box>
-            ),
-          },
-        ]
+        {
+          id: 'actions',
+          label: 'Actions',
+          sortable: false,
+          render: (_value: any, row: SubUnitOfMeasurement) => (
+            <Box className="!flex !gap-2 !items-center">
+              {isUpdate && (
+                <EditButton
+                  onClick={() => handleEdit(row)}
+                  tooltip={`Edit ${row.name}`}
+                />
+              )}
+              {isDelete && (
+                <PopConfirm
+                  title="Delete Sub Unit"
+                  description={`Are you sure you want to delete "${row.name || 'this sub unit'}"? This action cannot be undone.`}
+                  onConfirm={() => handleDelete(row)}
+                >
+                  <Tooltip title="Delete Sub Unit">
+                    <DeleteButton />
+                  </Tooltip>
+                </PopConfirm>
+              )}
+            </Box>
+          ),
+        },
+      ]
       : []),
   ];
 
@@ -312,7 +312,6 @@ const SubUnitOfMeasurementPage: React.FC = () => {
                     <Select
                       value={statusFilter}
                       onChange={e => setStatusFilter(e.target.value)}
-                      className="!w-32"
                       disableClearable
                     >
                       <MenuItem value="all">All Status</MenuItem>

@@ -14,7 +14,7 @@ import {
   Chip,
   MenuItem,
   Tooltip,
-  Typography,
+  Typography
 } from '@mui/material';
 import {
   useAssetMovements,
@@ -27,6 +27,7 @@ import { ArrowRight, Calendar, FileText, MapPin, Package } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { ActionButton, DeleteButton, EditButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
+import { CurrentApproverTooltip } from 'shared/CurrentApproverTooltip';
 import { PopConfirm } from 'shared/DeleteConfirmation';
 import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
@@ -291,7 +292,7 @@ const AssetMovementManagement: React.FC = () => {
                 ? 'Rejected'
                 : status;
 
-        return (
+        const chipEl = (
           <Chip
             icon={icon}
             label={label}
@@ -301,6 +302,16 @@ const AssetMovementManagement: React.FC = () => {
             className="!capitalize"
           />
         );
+
+        if (statusLower === 'p' && row.current_approver) {
+          return (
+            <CurrentApproverTooltip currentApprover={row.current_approver}>
+              <span>{chipEl}</span>
+            </CurrentApproverTooltip>
+          );
+        }
+
+        return chipEl;
       },
     },
     {
@@ -428,7 +439,6 @@ const AssetMovementManagement: React.FC = () => {
                   <Select
                     value={statusFilter}
                     onChange={e => setStatusFilter(e.target.value)}
-                    className="!w-32"
                     disableClearable
                   >
                     <MenuItem value="all">All Status</MenuItem>

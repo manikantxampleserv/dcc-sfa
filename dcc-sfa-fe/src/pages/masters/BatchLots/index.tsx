@@ -352,38 +352,38 @@ const BatchLotsPage: React.FC = () => {
     },
     ...(isUpdate || isDelete || isRead
       ? [
-          {
-            id: 'action',
-            label: 'Actions',
-            sortable: false,
-            render: (_value: any, row: BatchLot) => (
-              <div className="!flex !gap-2 !items-center">
-                {isRead && (
-                  <ActionButton
-                    onClick={() => handleViewBatchLot(row.id)}
-                    tooltip={`View ${row.batch_number}`}
-                    icon={<Visibility fontSize="small" />}
-                    color="info"
-                  />
-                )}
-                {isUpdate && (
-                  <EditButton
-                    onClick={() => handleEditBatchLot(row)}
-                    tooltip={`Edit ${row.batch_number}`}
-                  />
-                )}
-                {isDelete && (
-                  <DeleteButton
-                    onClick={() => handleDeleteBatchLot(row.id)}
-                    tooltip={`Delete ${row.batch_number}`}
-                    itemName={row.batch_number}
-                    confirmDelete={true}
-                  />
-                )}
-              </div>
-            ),
-          },
-        ]
+        {
+          id: 'action',
+          label: 'Actions',
+          sortable: false,
+          render: (_value: any, row: BatchLot) => (
+            <div className="!flex !gap-2 !items-center">
+              {isRead && (
+                <ActionButton
+                  onClick={() => handleViewBatchLot(row.id)}
+                  tooltip={`View ${row.batch_number}`}
+                  icon={<Visibility fontSize="small" />}
+                  color="info"
+                />
+              )}
+              {isUpdate && (
+                <EditButton
+                  onClick={() => handleEditBatchLot(row)}
+                  tooltip={`Edit ${row.batch_number}`}
+                />
+              )}
+              {isDelete && (
+                <DeleteButton
+                  onClick={() => handleDeleteBatchLot(row.id)}
+                  tooltip={`Delete ${row.batch_number}`}
+                  itemName={row.batch_number}
+                  confirmDelete={true}
+                />
+              )}
+            </div>
+          ),
+        },
+      ]
       : []),
   ];
 
@@ -460,7 +460,6 @@ const BatchLotsPage: React.FC = () => {
                         setStatusFilter(e.target.value);
                         setPage(1);
                       }}
-                      className="!w-32"
                       disableClearable
                     >
                       <MenuItem value="all">All Status</MenuItem>

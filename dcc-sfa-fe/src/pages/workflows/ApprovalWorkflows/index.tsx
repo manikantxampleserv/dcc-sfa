@@ -1,6 +1,6 @@
 import { Chip, MenuItem, Typography } from '@mui/material';
-import { useRequestsByUsers, useRequestTypes } from 'hooks/useRequests';
 import { usePermission } from 'hooks/usePermission';
+import { useRequestsByUsers, useRequestTypes } from 'hooks/useRequests';
 import {
   AlertTriangle,
   Check,
@@ -17,7 +17,8 @@ import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
-import { formatDate } from 'utils/dateUtils';
+import { CurrentApproverTooltip } from 'shared/CurrentApproverTooltip';
+import { formatDateTime } from 'utils/dateUtils';
 
 const ApprovalWorkflows: React.FC = () => {
   const [search, setSearch] = useState('');
@@ -192,7 +193,18 @@ const ApprovalWorkflows: React.FC = () => {
       label: 'Status',
       render: (_value, row) => {
         const approvalStatus = row.approvals?.[0]?.status || row.status;
-        return (
+        const firstPendingStep = row.approvals?.find(step => step.status === 'P');
+        const approver = firstPendingStep?.approver;
+        const currentApproverStr = approver
+          ? JSON.stringify({
+            name: approver.name,
+            email: approver.email || '',
+            profile_image: approver.profile_image || null,
+            employee_id: approver.employee_id || '',
+          })
+          : null;
+
+        const chipEl = (
           <Chip
             label={getStatusLabel(approvalStatus)}
             color={getStatusColor(approvalStatus) as any}
@@ -200,13 +212,23 @@ const ApprovalWorkflows: React.FC = () => {
             className="!capitalize"
           />
         );
+
+        if (approvalStatus?.toUpperCase() === 'P' && currentApproverStr) {
+          return (
+            <CurrentApproverTooltip currentApprover={currentApproverStr}>
+              <span>{chipEl}</span>
+            </CurrentApproverTooltip>
+          );
+        }
+
+        return chipEl;
       },
     },
     {
       id: 'createdate',
       label: 'Request Date',
       render: (_value, row) =>
-        formatDate(
+        formatDateTime(
           row.createdate instanceof Date
             ? row.createdate.toISOString()
             : String(row.createdate || '')
@@ -214,33 +236,33 @@ const ApprovalWorkflows: React.FC = () => {
     },
     ...(isUpdate
       ? [
-          {
-            id: 'actions',
-            label: 'Actions',
-            sortable: false,
-            render: (_value: any, row: Request) => {
-              const normalizedStatus = row.approvals?.[0]?.status || row.status;
-              return (
-                <div className="!flex !gap-2 !items-center">
-                  <ActionButton
-                    onClick={() => handleApproveClick(row)}
-                    tooltip="Approve request"
-                    icon={<Check className="!w-4 !h-4" />}
-                    color="success"
-                    disabled={normalizedStatus?.toUpperCase() !== 'P'}
-                  />
-                  <ActionButton
-                    onClick={() => handleRejectClick(row)}
-                    tooltip="Reject request"
-                    icon={<X className="!w-4 !h-4" />}
-                    color="error"
-                    disabled={normalizedStatus?.toUpperCase() !== 'P'}
-                  />
-                </div>
-              );
-            },
+        {
+          id: 'actions',
+          label: 'Actions',
+          sortable: false,
+          render: (_value: any, row: Request) => {
+            const normalizedStatus = row.approvals?.[0]?.status || row.status;
+            return (
+              <div className="!flex !gap-2 !items-center">
+                <ActionButton
+                  onClick={() => handleApproveClick(row)}
+                  tooltip="Approve request"
+                  icon={<Check className="!w-4 !h-4" />}
+                  color="success"
+                  disabled={normalizedStatus?.toUpperCase() !== 'P'}
+                />
+                <ActionButton
+                  onClick={() => handleRejectClick(row)}
+                  tooltip="Reject request"
+                  icon={<X className="!w-4 !h-4" />}
+                  color="error"
+                  disabled={normalizedStatus?.toUpperCase() !== 'P'}
+                />
+              </div>
+            );
           },
-        ]
+        },
+      ]
       : []),
   ];
 

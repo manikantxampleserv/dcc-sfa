@@ -327,7 +327,7 @@ const CoolerInspectionsManagement: React.FC = () => {
             {row.latitude && row.longitude ? (
               `${row.latitude.toFixed(4)}, ${row.longitude.toFixed(4)}`
             ) : (
-              <span className="italic text-sm">No Location</span>
+              <span className="italic text-xs text-gray-400">No Location</span>
             )}
           </span>
         </Box>
@@ -343,7 +343,7 @@ const CoolerInspectionsManagement: React.FC = () => {
             {row.next_inspection_due ? (
               formatDate(row.next_inspection_due)
             ) : (
-              <span className="italic text-sm">No Date</span>
+              <span className="italic text-gray-400 text-xs">No Date</span>
             )}
           </span>
         </Box>

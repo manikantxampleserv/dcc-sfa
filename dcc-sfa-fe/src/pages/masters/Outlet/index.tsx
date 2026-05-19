@@ -289,7 +289,7 @@ const OutletsManagement: React.FC = () => {
         const locationParts = [
           row.customer_city?.name,
           row.customer_district?.name,
-          row.customer_region?.name,
+          row.customer_region?.name
         ].filter(Boolean);
         return (
           <Box>
@@ -298,9 +298,13 @@ const OutletsManagement: React.FC = () => {
               {locationParts.length > 0 ? (
                 locationParts.join(', ')
               ) : (
-                <span className="!text-gray-400 !text-xs italic">
-                  No Location
-                </span>
+                <Typography variant="body2" className="!text-gray-700">
+                  {row.address || (
+                    <span className="!text-gray-400 !text-xs italic">
+                      No Location
+                    </span>
+                  )}
+                </Typography>
               )}
             </Box>
           </Box>

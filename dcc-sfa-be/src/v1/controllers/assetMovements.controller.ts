@@ -63,9 +63,13 @@ interface AssetMovementSerialized {
     name: string;
     email: string;
   } | null;
+  current_approver?: string | null;
 }
 
-const serializeAssetMovement = (movement: any): AssetMovementSerialized => {
+const serializeAssetMovement = (
+  movement: any,
+  currentApprover: string | null = null
+): AssetMovementSerialized => {
   return {
     id: movement.id,
     asset_ids:
@@ -82,6 +86,7 @@ const serializeAssetMovement = (movement: any): AssetMovementSerialized => {
     notes: movement.notes,
     status: movement.status,
     approval_status: movement.approval_status,
+    current_approver: currentApprover || null,
     approved_by: movement.approved_by,
     approved_at: movement.approved_at,
     is_active: movement.is_active,
@@ -478,6 +483,57 @@ export const assetMovementsController = {
         },
       });
 
+      // Get current pending approvers
+      const movementIds = data.map((m: any) => m.id);
+      const approvalRequests = await prisma.sfa_d_requests.findMany({
+        where: {
+          reference_id: { in: movementIds },
+          request_type: 'ASSET_MOVEMENT_APPROVAL',
+        },
+        include: {
+          sfa_d_requests_approvals_request: {
+            where: {
+              status: 'P',
+            },
+            orderBy: {
+              sequence: 'asc',
+            },
+            include: {
+              sfa_d_requests_approvals_approver: {
+                select: {
+                  name: true,
+                  employee_id: true,
+                  email: true,
+                  profile_image: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      const approverMap = new Map<number, string>();
+      for (const req of approvalRequests) {
+        if (
+          req.reference_id !== null &&
+          req.sfa_d_requests_approvals_request.length > 0
+        ) {
+          const firstPendingStep = req.sfa_d_requests_approvals_request[0];
+          if (firstPendingStep.sfa_d_requests_approvals_approver) {
+            const approver = firstPendingStep.sfa_d_requests_approvals_approver;
+            approverMap.set(
+              req.reference_id,
+              JSON.stringify({
+                name: approver.name,
+                email: approver.email || '',
+                profile_image: approver.profile_image || null,
+                employee_id: approver.employee_id || '',
+              })
+            );
+          }
+        }
+      }
+
       const totalAssetMovements = await prisma.asset_movements.count();
       const activeAssetMovements = await prisma.asset_movements.count({
         where: { is_active: 'Y' },
@@ -500,7 +556,7 @@ export const assetMovementsController = {
 
       res.success(
         'Asset movements retrieved successfully',
-        data.map((m: any) => serializeAssetMovement(m)),
+        data.map((m: any) => serializeAssetMovement(m, approverMap.get(m.id))),
         200,
         pagination,
         {
@@ -558,9 +614,51 @@ export const assetMovementsController = {
         return res.status(404).json({ message: 'Asset movement not found' });
       }
 
+      let currentApproverName: string | null = null;
+      const request = await prisma.sfa_d_requests.findFirst({
+        where: {
+          reference_id: movement.id,
+          request_type: 'ASSET_MOVEMENT_APPROVAL',
+        },
+        include: {
+          sfa_d_requests_approvals_request: {
+            where: {
+              status: 'P',
+            },
+            orderBy: {
+              sequence: 'asc',
+            },
+            take: 1,
+            include: {
+              sfa_d_requests_approvals_approver: {
+                select: {
+                  name: true,
+                  email: true,
+                  profile_image: true,
+                  employee_id: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      if (request && request.sfa_d_requests_approvals_request.length > 0) {
+        const firstPendingStep = request.sfa_d_requests_approvals_request[0];
+        const approver = firstPendingStep.sfa_d_requests_approvals_approver;
+        currentApproverName = approver
+          ? JSON.stringify({
+              name: approver.name,
+              email: approver.email || '',
+              profile_image: approver.profile_image || null,
+              employee_id: approver.employee_id || '',
+            })
+          : null;
+      }
+
       res.json({
         message: 'Asset movement fetched successfully',
-        data: serializeAssetMovement(movement),
+        data: serializeAssetMovement(movement, currentApproverName),
       });
     } catch (error: any) {
       console.error('Get Asset Movement Error:', error);

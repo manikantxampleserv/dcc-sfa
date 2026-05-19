@@ -398,7 +398,6 @@ const PriceListsManagement: React.FC = () => {
                     <Select
                       value={statusFilter}
                       onChange={e => setStatusFilter(e.target.value)}
-                      className="!w-32"
                     >
                       <MenuItem value="all">All Status</MenuItem>
                       <MenuItem value="active">Active</MenuItem>

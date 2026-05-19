@@ -196,30 +196,30 @@ const CustomerCategoryPage: React.FC = () => {
     },
     ...(isUpdate || isDelete || isRead
       ? [
-          {
-            id: 'action',
-            label: 'Actions',
-            sortable: false,
-            render: (_value: any, row: CustomerCategory) => (
-              <div className="!flex !gap-2 !items-center">
-                {isUpdate && (
-                  <EditButton
-                    onClick={() => handleEditCustomerCategory(row)}
-                    tooltip={`Edit ${row.category_name}`}
-                  />
-                )}
-                {isDelete && (
-                  <DeleteButton
-                    onClick={() => handleDeleteCustomerCategory(row.id)}
-                    tooltip={`Delete ${row.category_name}`}
-                    itemName={row.category_name}
-                    confirmDelete={true}
-                  />
-                )}
-              </div>
-            ),
-          },
-        ]
+        {
+          id: 'action',
+          label: 'Actions',
+          sortable: false,
+          render: (_value: any, row: CustomerCategory) => (
+            <div className="!flex !gap-2 !items-center">
+              {isUpdate && (
+                <EditButton
+                  onClick={() => handleEditCustomerCategory(row)}
+                  tooltip={`Edit ${row.category_name}`}
+                />
+              )}
+              {isDelete && (
+                <DeleteButton
+                  onClick={() => handleDeleteCustomerCategory(row.id)}
+                  tooltip={`Delete ${row.category_name}`}
+                  itemName={row.category_name}
+                  confirmDelete={true}
+                />
+              )}
+            </div>
+          ),
+        },
+      ]
       : []),
   ];
 
@@ -296,7 +296,6 @@ const CustomerCategoryPage: React.FC = () => {
                     <Select
                       value={statusFilter}
                       onChange={e => setStatusFilter(e.target.value)}
-                      className="!w-32"
                       disableClearable
                     >
                       <MenuItem value="all">All Status</MenuItem>

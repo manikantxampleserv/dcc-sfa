@@ -195,30 +195,30 @@ const AssetSubTypesPage: React.FC = () => {
     },
     ...(isUpdate || isDelete || isRead
       ? [
-          {
-            id: 'action',
-            label: 'Actions',
-            sortable: false,
-            render: (_value: any, row: AssetSubType) => (
-              <div className="!flex !gap-2 !items-center">
-                {isUpdate && (
-                  <EditButton
-                    onClick={() => handleEditAssetSubType(row)}
-                    tooltip={`Edit ${row.name}`}
-                  />
-                )}
-                {isDelete && (
-                  <DeleteButton
-                    onClick={() => handleDeleteAssetSubType(row.id)}
-                    tooltip={`Delete ${row.name}`}
-                    itemName={row.name}
-                    confirmDelete={true}
-                  />
-                )}
-              </div>
-            ),
-          },
-        ]
+        {
+          id: 'action',
+          label: 'Actions',
+          sortable: false,
+          render: (_value: any, row: AssetSubType) => (
+            <div className="!flex !gap-2 !items-center">
+              {isUpdate && (
+                <EditButton
+                  onClick={() => handleEditAssetSubType(row)}
+                  tooltip={`Edit ${row.name}`}
+                />
+              )}
+              {isDelete && (
+                <DeleteButton
+                  onClick={() => handleDeleteAssetSubType(row.id)}
+                  tooltip={`Delete ${row.name}`}
+                  itemName={row.name}
+                  confirmDelete={true}
+                />
+              )}
+            </div>
+          ),
+        },
+      ]
       : []),
   ];
 
@@ -295,7 +295,6 @@ const AssetSubTypesPage: React.FC = () => {
                         setStatusFilter(e.target.value);
                         setPage(1);
                       }}
-                      className="!w-32"
                       disableClearable
                     >
                       <MenuItem value="all">All Status</MenuItem>

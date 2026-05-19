@@ -303,40 +303,40 @@ const VanStockPage: React.FC = () => {
     },
     ...(isUpdate || isDelete || isRead
       ? [
-          {
-            id: 'id',
-            label: 'Actions',
-            sortable: false,
-            render: (_value: any, row: VanInventory) => (
-              <div className="!flex !gap-2 !items-center">
-                {isRead && (
-                  <>
-                    <ActionButton
-                      onClick={() => handleManageItems(row)}
-                      tooltip="Manage van inventory items"
-                      icon={<Visibility fontSize="small" />}
-                      color="info"
-                    />
-                  </>
-                )}
-                {/* {isUpdate && (
+        {
+          id: 'id',
+          label: 'Actions',
+          sortable: false,
+          render: (_value: any, row: VanInventory) => (
+            <div className="!flex !gap-2 !items-center">
+              {isRead && (
+                <>
+                  <ActionButton
+                    onClick={() => handleManageItems(row)}
+                    tooltip="Manage van inventory items"
+                    icon={<Visibility fontSize="small" />}
+                    color="info"
+                  />
+                </>
+              )}
+              {/* {isUpdate && (
                   <EditButton
                     onClick={() => handleEditVanInventory(row)}
                     tooltip={`Edit Van Inventory #${row.id}`}
                   />
                 )} */}
-                {isDelete && (
-                  <DeleteButton
-                    onClick={() => handleDeleteVanInventory(row.id)}
-                    tooltip={`Delete Van Inventory #${row.id}`}
-                    itemName={`Van Inventory #${row.id}`}
-                    confirmDelete={true}
-                  />
-                )}
-              </div>
-            ),
-          },
-        ]
+              {isDelete && (
+                <DeleteButton
+                  onClick={() => handleDeleteVanInventory(row.id)}
+                  tooltip={`Delete Van Inventory #${row.id}`}
+                  itemName={`Van Inventory #${row.id}`}
+                  confirmDelete={true}
+                />
+              )}
+            </div>
+          ),
+        },
+      ]
       : []),
   ];
 
@@ -410,7 +410,6 @@ const VanStockPage: React.FC = () => {
                   <Select
                     value={statusFilter}
                     onChange={e => handleStatusFilterChange(e.target.value)}
-                    className="!w-32"
                     disableClearable
                   >
                     <MenuItem value="all">All Status</MenuItem>
@@ -420,7 +419,6 @@ const VanStockPage: React.FC = () => {
                   <Select
                     value={typeFilter}
                     onChange={e => handleTypeFilterChange(e.target.value)}
-                    className="!w-32"
                     disableClearable
                   >
                     <MenuItem value="all">All Types</MenuItem>

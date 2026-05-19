@@ -68,6 +68,7 @@ export interface CoolerInstallation {
       name: string;
     } | null;
   } | null;
+  current_approver?: string | null;
 }
 
 export interface CreateCoolerInstallationPayload {

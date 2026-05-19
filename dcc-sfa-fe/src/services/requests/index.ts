@@ -71,6 +71,8 @@ export interface Request {
       id: number;
       name: string;
       email: string;
+      profile_image?: string | null;
+      employee_id?: string | null;
     } | null;
   }[];
 }

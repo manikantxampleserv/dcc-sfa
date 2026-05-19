@@ -47,6 +47,7 @@ export interface AssetMovement {
     name: string;
     email: string;
   } | null;
+  current_approver?: string | null;
 }
 
 export interface CreateAssetMovementPayload {

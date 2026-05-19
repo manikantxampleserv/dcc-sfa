@@ -14,20 +14,23 @@ import {
 } from 'hooks/useCoolerInstallations';
 import { useExportToExcel } from 'hooks/useImportExport';
 import { usePermission } from 'hooks/usePermission';
-import UserSelect from 'shared/UserSelect';
 import { Calendar, Droplets, Package, Thermometer } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ActionButton, DeleteButton, EditButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
+import { CurrentApproverTooltip } from 'shared/CurrentApproverTooltip';
 import { PopConfirm } from 'shared/DeleteConfirmation';
 import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
+import UserSelect from 'shared/UserSelect';
 import { formatDate } from 'utils/dateUtils';
 import ImportCoolerInstallation from './ImportCoolerInstallation';
 import ManageCoolerInstallation from './ManageCoolerInstallation';
+
+
 
 const CoolerInstallationsManagement: React.FC = () => {
   const navigate = useNavigate();
@@ -318,18 +321,28 @@ const CoolerInstallationsManagement: React.FC = () => {
       id: 'approval_status',
       label: 'Approval Status',
       render: (_value, row) => {
-        const status = (row.approval_status || 'P');
+        const status = row.approval_status || 'P';
         const label = status === 'A' ? 'Approved' : status === 'R' ? 'Rejected' : 'Pending';
         const color =
           label === 'Approved' ? 'success' : label === 'Rejected' ? 'error' : 'warning';
 
-        return (
+        const chipEl = (
           <Chip
             label={label}
             size="small"
             color={color as any}
           />
         );
+
+        if (status === 'P' && row.current_approver) {
+          return (
+            <CurrentApproverTooltip currentApprover={row.current_approver}>
+              <span>{chipEl}</span>
+            </CurrentApproverTooltip>
+          );
+        }
+
+        return chipEl;
       },
     },
     {
@@ -453,7 +466,6 @@ const CoolerInstallationsManagement: React.FC = () => {
                       onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                         setStatusFilter(e.target.value)
                       }
-                      className="!w-32"
                       disableClearable
                     >
                       <MenuItem value="all">All Status</MenuItem>

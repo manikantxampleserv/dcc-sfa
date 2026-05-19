@@ -290,38 +290,38 @@ const PaymentCollection: React.FC = () => {
     },
     ...(isRead || isUpdate || isDelete
       ? [
-          {
-            id: 'action',
-            label: 'Actions',
-            sortable: false,
-            render: (_value: any, row: Payment) => (
-              <div className="!flex !gap-2 !items-center">
-                {isRead && (
-                  <ActionButton
-                    onClick={() => handleViewPayment(row)}
-                    tooltip={`View ${row.payment_number}`}
-                    icon={<Visibility />}
-                    color="success"
-                  />
-                )}
-                {isUpdate && (
-                  <EditButton
-                    onClick={() => handleEditPayment(row)}
-                    tooltip={`Edit ${row.payment_number}`}
-                  />
-                )}
-                {isDelete && (
-                  <DeleteButton
-                    onClick={() => handleDeletePayment(row.id)}
-                    tooltip={`Delete ${row.payment_number}`}
-                    itemName={row.payment_number}
-                    confirmDelete={true}
-                  />
-                )}
-              </div>
-            ),
-          },
-        ]
+        {
+          id: 'action',
+          label: 'Actions',
+          sortable: false,
+          render: (_value: any, row: Payment) => (
+            <div className="!flex !gap-2 !items-center">
+              {isRead && (
+                <ActionButton
+                  onClick={() => handleViewPayment(row)}
+                  tooltip={`View ${row.payment_number}`}
+                  icon={<Visibility />}
+                  color="success"
+                />
+              )}
+              {isUpdate && (
+                <EditButton
+                  onClick={() => handleEditPayment(row)}
+                  tooltip={`Edit ${row.payment_number}`}
+                />
+              )}
+              {isDelete && (
+                <DeleteButton
+                  onClick={() => handleDeletePayment(row.id)}
+                  tooltip={`Delete ${row.payment_number}`}
+                  itemName={row.payment_number}
+                  confirmDelete={true}
+                />
+              )}
+            </div>
+          ),
+        },
+      ]
       : []),
   ];
 
@@ -396,7 +396,6 @@ const PaymentCollection: React.FC = () => {
                     <Select
                       value={statusFilter}
                       onChange={e => setStatusFilter(e.target.value)}
-                      className="!w-32"
                       disableClearable
                     >
                       <MenuItem value="all">All Status</MenuItem>
