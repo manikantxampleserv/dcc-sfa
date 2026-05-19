@@ -152,6 +152,206 @@ const serializeAssetMovement = (
   };
 };
 
+const COOLER_APPROVAL_STATUS = {
+  PENDING: 'P',
+  APPROVED: 'A',
+} as const;
+
+const COOLER_PENDING_VALUES = ['P', 'pending'] as const;
+
+const isInstallationMovement = (movement: {
+  movement_type?: string | null;
+  from_direction?: string | null;
+  to_direction?: string | null;
+}): boolean => {
+  return (
+    movement.movement_type?.toLowerCase() === 'installation' &&
+    movement.from_direction?.toLowerCase() === 'depot' &&
+    movement.to_direction?.toLowerCase() === 'outlet'
+  );
+};
+
+const createCoolerInstallationsForMovement = async (
+  movement: {
+    id: number;
+    to_customer_id?: number | null;
+    from_depot_id?: number | null;
+    movement_date: Date;
+    performed_by: number;
+    createdby: number;
+    log_inst?: number | null;
+  },
+  assetIds: number[],
+  approvalExists: boolean,
+  isApproved: boolean,
+  performedByUserId: number
+): Promise<void> => {
+  const needsApproval = approvalExists && !isApproved;
+  const coolerStatus = needsApproval ? 'Ready To Install' : 'Installed';
+  const coolerApprovalStatus = needsApproval
+    ? COOLER_APPROVAL_STATUS.PENDING
+    : COOLER_APPROVAL_STATUS.APPROVED;
+
+  console.log(
+    `[createCoolerInstallations] movementId=${movement.id} ` +
+      `approvalExists=${approvalExists} isApproved=${isApproved} ` +
+      `→ coolerStatus="${coolerStatus}" coolerApprovalStatus="${coolerApprovalStatus}" ` +
+      `assetIds=${JSON.stringify(assetIds)}`
+  );
+
+  for (const assetId of assetIds) {
+    try {
+      const assetMaster = await prisma.asset_master.findUnique({
+        where: { id: assetId },
+        select: {
+          id: true,
+          name: true,
+          code: true,
+          serial_number: true,
+          depot_id: true,
+          outlet_id: true,
+          current_status: true,
+          current_location: true,
+          asset_type_id: true,
+          asset_master_asset_types: { select: { id: true, name: true } },
+        },
+      });
+
+      if (!assetMaster) {
+        console.warn(
+          `[createCoolerInstallations] Asset ${assetId} not found – skipping`
+        );
+        continue;
+      }
+
+      if (!movement.to_customer_id) {
+        console.warn(
+          `[createCoolerInstallations] movement ${movement.id} has no to_customer_id – ` +
+            `cannot create cooler for asset ${assetId}`
+        );
+        continue;
+      }
+
+      const existingCooler = await prisma.coolers.findFirst({
+        where: {
+          asset_master_id: assetId,
+          approval_status: { in: [...COOLER_PENDING_VALUES, 'A', 'approved'] },
+        },
+      });
+
+      if (existingCooler) {
+        console.log(
+          `[createCoolerInstallations] Cooler already exists for asset ${assetId} ` +
+            `(id=${existingCooler.id} approval_status="${existingCooler.approval_status}") – skipping`
+        );
+        continue;
+      }
+
+      const newCooler = await prisma.coolers.create({
+        data: {
+          customer_id: movement.to_customer_id,
+          code: assetMaster.code || `COOL-${assetId}-${movement.id}`,
+          asset_master_id: assetId,
+          asset_movement_id: movement.id,
+          serial_number: assetMaster.serial_number,
+          install_date: !needsApproval
+            ? new Date(movement.movement_date)
+            : undefined,
+          status: coolerStatus,
+          approval_status: coolerApprovalStatus,
+          is_active: 'Y',
+          createdby: performedByUserId,
+          createdate: new Date(),
+          log_inst: movement.log_inst || 1,
+        },
+      });
+
+      console.log(
+        `[createCoolerInstallations] Created cooler id=${newCooler.id} ` +
+          `for asset ${assetId} with status="${coolerStatus}" approval_status="${coolerApprovalStatus}"`
+      );
+    } catch (coolerError: any) {
+      console.error(
+        `[createCoolerInstallations] Error for asset ${assetId}:`,
+        coolerError.message
+      );
+    }
+  }
+};
+
+const approveCoolerInstallationsForMovement = async (
+  movementId: number,
+  assetIds: number[],
+  approvedByUserId: number
+): Promise<void> => {
+  console.log(
+    `[approveCoolerInstallations] movementId=${movementId} ` +
+      `assetIds=${JSON.stringify(assetIds)} approvedBy=${approvedByUserId}`
+  );
+
+  const existingCoolers = await prisma.coolers.findMany({
+    where: { asset_movement_id: movementId },
+    select: {
+      id: true,
+      asset_master_id: true,
+      status: true,
+      approval_status: true,
+    },
+  });
+
+  console.log(
+    `[approveCoolerInstallations] Coolers found for movement ${movementId}:`,
+    JSON.stringify(existingCoolers)
+  );
+
+  if (existingCoolers.length === 0) {
+    console.log(
+      `[approveCoolerInstallations] No coolers linked to movement ${movementId} – nothing to approve`
+    );
+    return;
+  }
+
+  const updateResult = await prisma.coolers.updateMany({
+    where: {
+      asset_movement_id: movementId,
+      approval_status: { in: [...COOLER_PENDING_VALUES] },
+    },
+    data: {
+      status: 'Installed',
+      approval_status: COOLER_APPROVAL_STATUS.APPROVED,
+      install_date: new Date(),
+      updatedate: new Date(),
+      updatedby: approvedByUserId,
+    },
+  });
+
+  console.log(
+    `[approveCoolerInstallations] updateMany result for movement ${movementId}:`,
+    JSON.stringify(updateResult)
+  );
+
+  if (assetIds.length > 0) {
+    try {
+      await prisma.asset_master.updateMany({
+        where: { id: { in: assetIds } },
+        data: {
+          current_status: 'Installed',
+          updatedate: new Date(),
+          updatedby: approvedByUserId,
+        },
+      });
+      console.log(
+        `[approveCoolerInstallations] asset_master updated for assetIds=${JSON.stringify(assetIds)}`
+      );
+    } catch (assetUpdateErr: any) {
+      console.error(
+        '[approveCoolerInstallations] Error updating asset_master:',
+        assetUpdateErr.message
+      );
+    }
+  }
+};
+
 export const assetMovementsController = {
   async createAssetMovements(req: Request, res: Response) {
     try {
@@ -267,8 +467,14 @@ export const assetMovementsController = {
           });
       }
 
+      const isDepotToOutletMovement =
+        fromDirection === 'depot' && toDirection === 'outlet';
+      const isInstallation =
+        data.movement_type.toLowerCase() === 'installation' &&
+        isDepotToOutletMovement;
+
       const assetMovement = await prisma.$transaction(async tx => {
-        const assetMovement = await tx.asset_movements.create({
+        return await tx.asset_movements.create({
           data: {
             from_direction: data.from_direction,
             to_direction: data.to_direction,
@@ -321,12 +527,7 @@ export const assetMovementsController = {
             },
           },
         });
-
-        return assetMovement;
       });
-
-      const isDepotToOutletMovement =
-        fromDirection === 'depot' && toDirection === 'outlet';
 
       try {
         const assetUpdateData: any = {
@@ -334,16 +535,6 @@ export const assetMovementsController = {
           updatedate: new Date(),
           updatedby: req.user?.id || 1,
         };
-
-        // if (toDepotId) {
-        //   assetUpdateData.depot_id = toDepotId;
-        //   assetUpdateData.outlet_id = null;
-        // }
-
-        // if (toCustomerId) {
-        //   assetUpdateData.outlet_id = toCustomerId;
-        //   assetUpdateData.depot_id = null;
-        // }
 
         if (isDepotToOutletMovement) {
           assetUpdateData.installation_date = new Date();
@@ -372,6 +563,7 @@ export const assetMovementsController = {
             createdby: req.user?.id || 1,
             log_inst: 1,
           });
+
           console.log(
             `Legacy approval request created for asset movement: ${assetMovement.id}`
           );
@@ -383,13 +575,40 @@ export const assetMovementsController = {
         }
       }, 500);
 
-      res.status(201).json({
+      if (isInstallation) {
+        setImmediate(async () => {
+          try {
+            await createCoolerInstallationsForMovement(
+              {
+                id: assetMovement.id,
+                to_customer_id: toCustomerId,
+                from_depot_id: fromDepotId,
+                movement_date: assetMovement.movement_date,
+                performed_by: assetMovement.performed_by,
+                createdby: assetMovement.createdby,
+                log_inst: assetMovement.log_inst,
+              },
+              assetIds,
+              true,
+              false,
+              req.user?.id || data.performed_by
+            );
+          } catch (coolerErr) {
+            console.error(
+              'Error creating cooler installations on movement create:',
+              coolerErr
+            );
+          }
+        });
+      }
+
+      return res.status(201).json({
         message: 'Asset movement created successfully',
         data: serializeAssetMovement(assetMovement),
       });
     } catch (error: any) {
       console.error('Create Asset Movement Error:', error);
-      res.status(500).json({ message: error.message });
+      return res.status(500).json({ message: error.message });
     }
   },
 
@@ -673,6 +892,11 @@ export const assetMovementsController = {
 
       const existing = await prisma.asset_movements.findUnique({
         where: { id: Number(id) },
+        include: {
+          asset_movement_assets: {
+            select: { asset_id: true },
+          },
+        },
       });
 
       if (!existing) {
@@ -708,8 +932,12 @@ export const assetMovementsController = {
         }
       });
 
+      const wasApproved = existing.approval_status === 'A';
+      const becomingApproved =
+        !wasApproved && validUpdateData.approval_status === 'A';
+
       if (
-        existing.approval_status === 'A' &&
+        wasApproved &&
         (updateData.asset_ids ||
           updateData.from_direction ||
           updateData.to_direction ||
@@ -718,7 +946,7 @@ export const assetMovementsController = {
           updateData.notes)
       ) {
         console.log(
-          `Asset movement ${id} was approved, resetting approval status due to update`
+          `Asset movement ${id} was approved; resetting approval_status due to edit`
         );
         validUpdateData.approval_status = 'P';
         validUpdateData.approved_by = null;
@@ -726,9 +954,6 @@ export const assetMovementsController = {
 
         setTimeout(async () => {
           try {
-            console.log(
-              `Creating approval workflow for updated asset movement: ${id}`
-            );
             await createAssetMovementApprovalWorkflow(
               Number(id),
               `AMV-${Number(id).toString().padStart(5, '0')}`,
@@ -754,9 +979,6 @@ export const assetMovementsController = {
               },
               req.user?.id || 1
             );
-            console.log(
-              `Approval workflow created for updated asset movement: AMV-${Number(id).toString().padStart(5, '0')}`
-            );
           } catch (workflowError) {
             console.error(
               'Error creating approval workflow for updated movement:',
@@ -765,9 +987,6 @@ export const assetMovementsController = {
           }
 
           try {
-            console.log(
-              `Creating approval request for updated asset movement: ${id}`
-            );
             await createRequest({
               requester_id: existing.performed_by,
               request_type: 'ASSET_MOVEMENT_APPROVAL',
@@ -775,9 +994,6 @@ export const assetMovementsController = {
               createdby: req.user?.id || 1,
               log_inst: 1,
             });
-            console.log(
-              `Approval request created for updated asset movement: ${Number(id)}`
-            );
           } catch (requestError) {
             console.error(
               'Error creating approval request for updated movement:',
@@ -788,7 +1004,7 @@ export const assetMovementsController = {
       }
 
       const updated = await prisma.$transaction(async tx => {
-        const movementUpdate = await tx.asset_movements.update({
+        await tx.asset_movements.update({
           where: { id: Number(id) },
           data: {
             ...validUpdateData,
@@ -798,44 +1014,12 @@ export const assetMovementsController = {
             updatedby: req.user?.id || 1,
             updatedate: new Date(),
           },
-          include: {
-            asset_movement_assets: {
-              include: {
-                asset_movement_assets_asset: {
-                  include: {
-                    asset_master_asset_types: {
-                      select: { id: true, name: true },
-                    },
-                  },
-                },
-              },
-            },
-            asset_movements_performed_by: true,
-            asset_movement_from_depot: {
-              select: { id: true, name: true },
-            },
-            asset_movement_from_customer: {
-              select: { id: true, name: true },
-            },
-            asset_movement_to_depot: {
-              select: { id: true, name: true },
-            },
-            asset_movement_to_customer: {
-              select: { id: true, name: true },
-            },
-            asset_movements_generated_contract: {
-              select: { contract_url: true },
-              orderBy: { createdate: 'desc' },
-              take: 1,
-            },
-          },
         });
 
         if (asset_ids && Array.isArray(asset_ids)) {
           await tx.asset_movement_assets.deleteMany({
             where: { movement_id: Number(id) },
           });
-
           if (asset_ids.length > 0) {
             await tx.asset_movement_assets.createMany({
               data: asset_ids.map((assetId: number) => ({
@@ -849,7 +1033,7 @@ export const assetMovementsController = {
           }
         }
 
-        return await tx.asset_movements.findUnique({
+        return tx.asset_movements.findUnique({
           where: { id: Number(id) },
           include: {
             asset_movement_assets: {
@@ -864,31 +1048,78 @@ export const assetMovementsController = {
               },
             },
             asset_movements_performed_by: true,
-            asset_movement_from_depot: {
-              select: { id: true, name: true },
-            },
-            asset_movement_from_customer: {
-              select: { id: true, name: true },
-            },
-            asset_movement_to_depot: {
-              select: { id: true, name: true },
-            },
-            asset_movement_to_customer: {
-              select: { id: true, name: true },
+            asset_movement_from_depot: { select: { id: true, name: true } },
+            asset_movement_from_customer: { select: { id: true, name: true } },
+            asset_movement_to_depot: { select: { id: true, name: true } },
+            asset_movement_to_customer: { select: { id: true, name: true } },
+            asset_movements_generated_contract: {
+              select: { contract_url: true },
+              orderBy: { createdate: 'desc' },
+              take: 1,
             },
           },
         });
       });
 
-      res.json({
+      if (becomingApproved && updated && isInstallationMovement(updated)) {
+        const effectiveAssetIds: number[] =
+          asset_ids && Array.isArray(asset_ids) && asset_ids.length > 0
+            ? asset_ids
+            : existing.asset_movement_assets.map((a: any) => a.asset_id);
+
+        setImmediate(async () => {
+          try {
+            // 1. Approve any existing pending coolers tied to this movement
+            await approveCoolerInstallationsForMovement(
+              Number(id),
+              effectiveAssetIds,
+              req.user?.id || 1
+            );
+
+            for (const assetId of effectiveAssetIds) {
+              const linked = await prisma.coolers.findFirst({
+                where: {
+                  asset_movement_id: Number(id),
+                  asset_master_id: assetId,
+                },
+              });
+              if (!linked) {
+                await createCoolerInstallationsForMovement(
+                  {
+                    id: Number(id),
+                    to_customer_id: updated.to_customer_id,
+                    from_depot_id: updated.from_depot_id,
+                    movement_date: updated.movement_date,
+                    performed_by: updated.performed_by,
+                    createdby: updated.createdby,
+                    log_inst: updated.log_inst,
+                  },
+                  [assetId],
+                  false,
+                  true,
+                  req.user?.id || 1
+                );
+              }
+            }
+          } catch (coolerSyncErr) {
+            console.error(
+              'Error syncing cooler installations on movement approval:',
+              coolerSyncErr
+            );
+          }
+        });
+      }
+
+      return res.json({
         message: 'Asset movement updated successfully',
         data: serializeAssetMovement(updated),
       });
     } catch (error: any) {
       console.error('Update Asset Movement Error:', error);
-      res.status(500).json({ message: error.message });
+      return res.status(500).json({ message: error.message });
     }
   },
+
   async deleteAssetMovements(req: Request, res: Response) {
     try {
       const { id } = req.params;
