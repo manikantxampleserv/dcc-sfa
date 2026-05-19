@@ -7,7 +7,7 @@ exports.coolerInstallationsController = void 0;
 const paginate_1 = require("../../utils/paginate");
 const prisma_client_1 = __importDefault(require("../../configs/prisma.client"));
 const requests_controller_1 = require("./requests.controller");
-const serializeCoolerInstallation = (cooler) => {
+const serializeCoolerInstallation = (cooler, currentApprover = null) => {
     const { coolers_customers: customer, users: technician, cooler_asset_master: asset_master, } = cooler;
     const { asset_master_asset_types: asset_type, asset_master_asset_sub_types: asset_sub_type, asset_master_brands: brand, } = asset_master || {};
     return {
@@ -37,6 +37,7 @@ const serializeCoolerInstallation = (cooler) => {
         updatedate: cooler.updatedate?.toISOString(),
         updatedby: cooler.updatedby,
         approval_status: cooler.approval_status,
+        current_approver: currentApprover || null,
         customer: customer
             ? { id: customer.id, name: customer.name, code: customer.code }
             : null,
@@ -389,6 +390,52 @@ exports.coolerInstallationsController = {
                     },
                 },
             });
+            // Get current pending approvers for the asset movements linked to the coolers
+            const movementIds = data
+                .map((d) => d.asset_movement_id)
+                .filter((id) => id !== null && id !== undefined);
+            const approvalRequests = await prisma_client_1.default.sfa_d_requests.findMany({
+                where: {
+                    reference_id: { in: movementIds },
+                    request_type: 'ASSET_MOVEMENT_APPROVAL',
+                },
+                include: {
+                    sfa_d_requests_approvals_request: {
+                        where: {
+                            status: 'P',
+                        },
+                        orderBy: {
+                            sequence: 'asc',
+                        },
+                        include: {
+                            sfa_d_requests_approvals_approver: {
+                                select: {
+                                    name: true,
+                                    email: true,
+                                    employee_id: true,
+                                    profile_image: true,
+                                },
+                            },
+                        },
+                    },
+                },
+            });
+            const approverMap = new Map();
+            for (const req of approvalRequests) {
+                if (req.reference_id !== null &&
+                    req.sfa_d_requests_approvals_request.length > 0) {
+                    const firstPendingStep = req.sfa_d_requests_approvals_request[0];
+                    if (firstPendingStep.sfa_d_requests_approvals_approver) {
+                        const approver = firstPendingStep.sfa_d_requests_approvals_approver;
+                        approverMap.set(req.reference_id, JSON.stringify({
+                            name: approver.name,
+                            email: approver.email || '',
+                            profile_image: approver.profile_image || null,
+                            employee_id: approver.employee_id || '',
+                        }));
+                    }
+                }
+            }
             const stats = {
                 total_coolers: totalCoolers,
                 active_coolers: activeCoolers,
@@ -404,7 +451,7 @@ exports.coolerInstallationsController = {
                     ...pagination,
                 },
                 stats,
-                data: data.map((d) => serializeCoolerInstallation(d)),
+                data: data.map((d) => serializeCoolerInstallation(d, d.asset_movement_id ? approverMap.get(d.asset_movement_id) : null)),
             });
         }
         catch (error) {
@@ -474,9 +521,51 @@ exports.coolerInstallationsController = {
                     .status(404)
                     .json({ message: 'Cooler installation not found' });
             }
+            let currentApproverName = null;
+            if (cooler.asset_movement_id) {
+                const request = await prisma_client_1.default.sfa_d_requests.findFirst({
+                    where: {
+                        reference_id: cooler.asset_movement_id,
+                        request_type: 'ASSET_MOVEMENT_APPROVAL',
+                    },
+                    include: {
+                        sfa_d_requests_approvals_request: {
+                            where: {
+                                status: 'P',
+                            },
+                            orderBy: {
+                                sequence: 'asc',
+                            },
+                            take: 1,
+                            include: {
+                                sfa_d_requests_approvals_approver: {
+                                    select: {
+                                        name: true,
+                                        email: true,
+                                        profile_image: true,
+                                        employee_id: true,
+                                    },
+                                },
+                            },
+                        },
+                    },
+                });
+                if (request && request.sfa_d_requests_approvals_request.length > 0) {
+                    const firstPendingStep = request.sfa_d_requests_approvals_request[0];
+                    const approver = firstPendingStep.sfa_d_requests_approvals_approver;
+                    currentApproverName = approver
+                        ? JSON.stringify({
+                            name: approver.name,
+                            email: approver.email || '',
+                            profile_image: approver.profile_image || null,
+                            employee_id: approver.employee_id || '',
+                        })
+                        : null;
+                }
+            }
             res.json({
                 message: 'Cooler installation fetched successfully',
-                data: serializeCoolerInstallation(cooler),
+                data: serializeCoolerInstallation(cooler, currentApproverName),
             });
         }
         catch (error) {

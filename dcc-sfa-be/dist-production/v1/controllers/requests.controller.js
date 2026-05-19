@@ -44,6 +44,8 @@ const serializeRequest = (request) => ({
                 id: approval.sfa_d_requests_approvals_approver.id,
                 name: approval.sfa_d_requests_approvals_approver.name,
                 email: approval.sfa_d_requests_approvals_approver.email,
+                profile_image: approval.sfa_d_requests_approvals_approver.profile_image || null,
+                employee_id: approval.sfa_d_requests_approvals_approver.employee_id || null,
             }
             : null,
         reference_details: request.reference_details || null,
@@ -342,17 +344,30 @@ const createRequest = async (data) => {
                             updatedby: data.createdby,
                         },
                     });
-                    const existingCooler = await prisma_client_1.default.coolers.findUnique({
-                        where: { id: data.reference_id },
+                    // const existingCooler = await prisma.coolers.findUnique({
+                    //   where: { id: data.reference_id },
+                    // });
+                    // if (existingCooler) {
+                    //   await prisma.coolers.update({
+                    //     where: { id: data.reference_id },
+                    //     data: {
+                    //       approval_status: 'A',
+                    //     },
+                    //   });
+                    // }
+                    await prisma_client_1.default.coolers.updateMany({
+                        where: {
+                            asset_movement_id: data.reference_id,
+                        },
+                        data: {
+                            status: 'Installed',
+                            approval_status: 'A',
+                            install_date: new Date(),
+                            updatedate: new Date(),
+                            updatedby: data.createdby,
+                        },
                     });
-                    if (existingCooler) {
-                        await prisma_client_1.default.coolers.update({
-                            where: { id: data.reference_id },
-                            data: {
-                                approval_status: 'A',
-                            },
-                        });
-                    }
+                    console.log(`Cooler installations updated for auto-approved movement ${data.reference_id}`);
                     if (assetMovement.movement_type?.toLowerCase() === 'maintenance' ||
                         assetMovement.movement_type?.toLowerCase() === 'repair') {
                         try {
@@ -655,7 +670,13 @@ exports.requestsController = {
                                 sequence: true,
                                 status: true,
                                 sfa_d_requests_approvals_approver: {
-                                    select: { id: true, name: true, email: true },
+                                    select: {
+                                        id: true,
+                                        name: true,
+                                        email: true,
+                                        profile_image: true,
+                                        employee_id: true,
+                                    },
                                 },
                             },
                             orderBy: { sequence: 'asc' },
@@ -764,7 +785,13 @@ exports.requestsController = {
                             remarks: true,
                             action_at: true,
                             sfa_d_requests_approvals_approver: {
-                                select: { id: true, name: true, email: true },
+                                select: {
+                                    id: true,
+                                    name: true,
+                                    email: true,
+                                    profile_image: true,
+                                    employee_id: true,
+                                },
                             },
                         },
                         orderBy: { sequence: 'asc' },
@@ -828,7 +855,13 @@ exports.requestsController = {
                             remarks: true,
                             action_at: true,
                             sfa_d_requests_approvals_approver: {
-                                select: { id: true, name: true, email: true },
+                                select: {
+                                    id: true,
+                                    name: true,
+                                    email: true,
+                                    profile_image: true,
+                                    employee_id: true,
+                                },
                             },
                         },
                         orderBy: { sequence: 'asc' },
@@ -1091,17 +1124,19 @@ exports.requestsController = {
                                     updatedby: userId,
                                 },
                             });
-                            const existingCooler = await tx.coolers.findUnique({
-                                where: { id: request.reference_id },
+                            await tx.coolers.updateMany({
+                                where: {
+                                    asset_movement_id: request.reference_id,
+                                },
+                                data: {
+                                    status: 'Installed',
+                                    approval_status: 'A',
+                                    install_date: new Date(),
+                                    updatedate: new Date(),
+                                    updatedby: userId,
+                                },
                             });
-                            if (existingCooler) {
-                                await tx.coolers.update({
-                                    where: { id: request.reference_id },
-                                    data: {
-                                        approval_status: 'A',
-                                    },
-                                });
-                            }
+                            console.log(`Cooler installations updated for asset movement ${request.reference_id}`);
                             if (assetMovement.movement_type?.toLowerCase() ===
                                 'maintenance' ||
                                 assetMovement.movement_type?.toLowerCase() === 'repair') {

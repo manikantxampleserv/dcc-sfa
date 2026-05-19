@@ -47,7 +47,6 @@ export const useTemplates = (
     queryFn: async () => {
       const response = await fetchTemplates(params);
 
-      // Calculate stats from the data if backend doesn't provide them
       const templates = response.data || [];
       const channels = [
         ...new Set(templates.filter(t => t.channel).map(t => t.channel!)),
@@ -56,7 +55,6 @@ export const useTemplates = (
         ...new Set(templates.filter(t => t.type).map(t => t.type!)),
       ];
 
-      // Calculate new templates this month on client side
       const now = new Date();
       const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
       const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
@@ -66,7 +64,6 @@ export const useTemplates = (
         return createdDate >= startOfMonth && createdDate < endOfMonth;
       }).length;
 
-      // Use backend stats if available and has correct structure, otherwise calculate
       const backendStats = response.stats;
       const hasCorrectStatsStructure =
         backendStats &&
@@ -76,9 +73,13 @@ export const useTemplates = (
       const transformedData: TemplateResponse = {
         data: templates,
         meta: {
-          total_count: response.meta?.total || templates.length,
-          current_page: response.meta?.page || 1,
-          total_pages: response.meta?.totalPages || 1,
+          total_count:
+            response.meta?.total_count ||
+            response.meta?.total ||
+            templates.length,
+          current_page: response.meta?.current_page || response.meta?.page || 1,
+          total_pages:
+            response.meta?.total_pages || response.meta?.totalPages || 1,
         },
         stats: hasCorrectStatsStructure
           ? (backendStats as any)

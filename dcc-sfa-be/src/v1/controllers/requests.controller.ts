@@ -75,8 +75,10 @@ const serializeRequest = (request: any): RequestSerialized => ({
             id: approval.sfa_d_requests_approvals_approver.id,
             name: approval.sfa_d_requests_approvals_approver.name,
             email: approval.sfa_d_requests_approvals_approver.email,
-            profile_image: approval.sfa_d_requests_approvals_approver.profile_image || null,
-            employee_id: approval.sfa_d_requests_approvals_approver.employee_id || null,
+            profile_image:
+              approval.sfa_d_requests_approvals_approver.profile_image || null,
+            employee_id:
+              approval.sfa_d_requests_approvals_approver.employee_id || null,
           }
         : null,
       reference_details: request.reference_details || null,
@@ -836,7 +838,13 @@ export const requestsController = {
                   sequence: true,
                   status: true,
                   sfa_d_requests_approvals_approver: {
-                    select: { id: true, name: true, email: true, profile_image: true, employee_id: true },
+                    select: {
+                      id: true,
+                      name: true,
+                      email: true,
+                      profile_image: true,
+                      employee_id: true,
+                    },
                   },
                 },
                 orderBy: { sequence: 'asc' },
@@ -976,7 +984,13 @@ export const requestsController = {
               remarks: true,
               action_at: true,
               sfa_d_requests_approvals_approver: {
-                select: { id: true, name: true, email: true, profile_image: true, employee_id: true },
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                  profile_image: true,
+                  employee_id: true,
+                },
               },
             },
             orderBy: { sequence: 'asc' },
@@ -1052,7 +1066,13 @@ export const requestsController = {
               remarks: true,
               action_at: true,
               sfa_d_requests_approvals_approver: {
-                select: { id: true, name: true, email: true, profile_image: true, employee_id: true },
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                  profile_image: true,
+                  employee_id: true,
+                },
               },
             },
             orderBy: { sequence: 'asc' },

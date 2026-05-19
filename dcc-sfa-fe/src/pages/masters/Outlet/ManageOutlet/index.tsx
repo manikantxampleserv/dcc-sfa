@@ -466,6 +466,13 @@ const ManageOutlet: React.FC<ManageOutletProps> = ({
               formik={formik}
             />
 
+            <Input
+              name="nfc_tag_code"
+              label="NFC Tag Code"
+              placeholder="Enter NFC tag code"
+              formik={formik}
+            />
+
             <Box className="md:!col-span-2">
               <ActiveInactiveField name="is_active" formik={formik} required />
             </Box>
