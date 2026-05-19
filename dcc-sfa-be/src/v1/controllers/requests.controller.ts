@@ -425,18 +425,35 @@ export const createRequest = async (data: {
             },
           });
 
-          const existingCooler = await prisma.coolers.findUnique({
-            where: { id: data.reference_id },
+          // const existingCooler = await prisma.coolers.findUnique({
+          //   where: { id: data.reference_id },
+          // });
+
+          // if (existingCooler) {
+          //   await prisma.coolers.update({
+          //     where: { id: data.reference_id },
+          //     data: {
+          //       approval_status: 'A',
+          //     },
+          //   });
+          // }
+
+          await prisma.coolers.updateMany({
+            where: {
+              asset_movement_id: data.reference_id,
+            },
+            data: {
+              status: 'Installed',
+              approval_status: 'A',
+              install_date: new Date(),
+              updatedate: new Date(),
+              updatedby: data.createdby,
+            },
           });
 
-          if (existingCooler) {
-            await prisma.coolers.update({
-              where: { id: data.reference_id },
-              data: {
-                approval_status: 'A',
-              },
-            });
-          }
+          console.log(
+            `Cooler installations updated for auto-approved movement ${data.reference_id}`
+          );
 
           if (
             assetMovement.movement_type?.toLowerCase() === 'maintenance' ||
@@ -1357,18 +1374,22 @@ export const requestsController = {
                   },
                 });
 
-                const existingCooler = await tx.coolers.findUnique({
-                  where: { id: request.reference_id },
+                await tx.coolers.updateMany({
+                  where: {
+                    asset_movement_id: request.reference_id,
+                  },
+                  data: {
+                    status: 'Installed',
+                    approval_status: 'A',
+                    install_date: new Date(),
+                    updatedate: new Date(),
+                    updatedby: userId,
+                  },
                 });
 
-                if (existingCooler) {
-                  await tx.coolers.update({
-                    where: { id: request.reference_id },
-                    data: {
-                      approval_status: 'A',
-                    },
-                  });
-                }
+                console.log(
+                  `Cooler installations updated for asset movement ${request.reference_id}`
+                );
 
                 if (
                   assetMovement.movement_type?.toLowerCase() ===
