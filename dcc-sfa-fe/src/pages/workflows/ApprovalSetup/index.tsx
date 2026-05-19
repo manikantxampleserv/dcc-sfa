@@ -26,6 +26,7 @@ const ApprovalSetup: React.FC = () => {
   const [selectedRequestType, setSelectedRequestType] = useState<string | null>(
     null
   );
+  const [selectedDepotId, setSelectedDepotId] = useState<number | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const { isCreate, isRead, isUpdate, isDelete } = usePermission('approval');
 
@@ -68,15 +69,21 @@ const ApprovalSetup: React.FC = () => {
 
   const deleteMutation = useDeleteApprovalWorkflowSetupByRequestType();
 
-  const handleManage = (requestType: string) => {
-    setSelectedRequestType(requestType);
+  const handleManage = (row: ApprovalWorkflowSetupGrouped) => {
+    setSelectedRequestType(row.request_type);
+
+    const nonGlobalDepot = row.depots.find(d => !d.is_global);
+
+    setSelectedDepotId(nonGlobalDepot ? nonGlobalDepot.id : null);
     setDrawerOpen(true);
   };
 
   const handleDelete = useCallback(
-    async (requestType: string) => {
+    async (row: ApprovalWorkflowSetupGrouped) => {
       try {
-        await deleteMutation.mutateAsync(requestType);
+        const nonGlobalDepot = row.depots.find(d => !d.is_global);
+        const depotId = nonGlobalDepot ? nonGlobalDepot.id : null;
+        await deleteMutation.mutateAsync({ requestType: row.request_type, depotId });
       } catch (error) {
         console.error('Error deleting approval setup:', error);
       }
@@ -93,6 +100,7 @@ const ApprovalSetup: React.FC = () => {
     setDrawerOpen(drawerOpen);
     if (!drawerOpen) {
       setSelectedRequestType(null);
+      setSelectedDepotId(null);
     }
   };
 
@@ -123,31 +131,6 @@ const ApprovalSetup: React.FC = () => {
         <Typography variant="body2" className="!font-medium !capitalize">
           {row.request_type.replace(/_/g, ' ')}
         </Typography>
-      ),
-    },
-    {
-      id: 'zones',
-      label: 'Zones',
-      render: (_value, row) => (
-        <div className="!flex !flex-wrap !gap-1">
-          {row.zones.slice(0, 2).map((zone, idx) => (
-            <Chip
-              key={idx}
-              label={zone.name}
-              size="small"
-              variant="outlined"
-              className="!text-xs"
-            />
-          ))}
-          {row.zones.length > 2 && (
-            <Chip
-              label={`+${row.zones.length - 2} more`}
-              size="small"
-              variant="outlined"
-              className="!text-xs"
-            />
-          )}
-        </div>
       ),
     },
     {
@@ -203,30 +186,30 @@ const ApprovalSetup: React.FC = () => {
     },
     ...(isUpdate || isDelete
       ? [
-          {
-            id: 'actions',
-            label: 'Actions',
-            sortable: false,
-            render: (_value: any, row: ApprovalWorkflowSetupGrouped) => (
-              <div className="!flex !gap-2 !items-center">
-                {isUpdate && (
-                  <EditButton
-                    onClick={() => handleManage(row.request_type)}
-                    tooltip={`Manage ${row.request_type.replace(/_/g, ' ')}`}
-                  />
-                )}
-                {isDelete && (
-                  <DeleteButton
-                    onClick={() => handleDelete(row.request_type)}
-                    tooltip={`Delete ${row.request_type.replace(/_/g, ' ')}`}
-                    itemName={row.request_type.replace(/_/g, ' ')}
-                    confirmDelete={true}
-                  />
-                )}
-              </div>
-            ),
-          },
-        ]
+        {
+          id: 'actions',
+          label: 'Actions',
+          sortable: false,
+          render: (_value: any, row: ApprovalWorkflowSetupGrouped) => (
+            <div className="!flex !gap-2 !items-center">
+              {isUpdate && (
+                <EditButton
+                  onClick={() => handleManage(row)}
+                  tooltip={`Manage ${row.request_type.replace(/_/g, ' ')}`}
+                />
+              )}
+              {isDelete && (
+                <DeleteButton
+                  onClick={() => handleDelete(row)}
+                  tooltip={`Delete ${row.request_type.replace(/_/g, ' ')}`}
+                  itemName={row.request_type.replace(/_/g, ' ')}
+                  confirmDelete={true}
+                />
+              )}
+            </div>
+          ),
+        },
+      ]
       : []),
   ];
 
@@ -362,6 +345,7 @@ const ApprovalSetup: React.FC = () => {
 
       <ManageApprovalSetup
         requestType={selectedRequestType}
+        initialDepotId={selectedDepotId}
         drawerOpen={drawerOpen}
         setDrawerOpen={handleDrawerClose}
       />

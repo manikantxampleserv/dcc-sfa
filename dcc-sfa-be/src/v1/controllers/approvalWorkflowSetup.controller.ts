@@ -29,6 +29,13 @@ const serializeApprovalWorkFlowData = (data: any) => ({
 });
 
 export const approvalWorkflowSetupController = {
+  /**
+   * Creates one or multiple approval workflow setup records.
+   * Clears existing setups matching the exact request type, zone, and depot before creating.
+   *
+   * @param req - Express request object containing workflow data array
+   * @param res - Express response object
+   */
   async createApprovalWorkFlow(req: Request, res: Response) {
     try {
       let dataArray: any[] = req.body;
@@ -45,7 +52,6 @@ export const approvalWorkflowSetupController = {
         log_inst: data.log_inst ? Number(data.log_inst) : 1,
       }));
 
-      // Validate all approvers first
       for (const data of dataArray) {
         const approver = await prisma.users.findUnique({
           where: { id: Number(data.approver_id) },
@@ -63,7 +69,6 @@ export const approvalWorkflowSetupController = {
           });
         }
 
-        // Only validate zone if zone_id is provided (not null/global)
         if (data.zone_id && approver.zone_id !== Number(data.zone_id)) {
           const zone = await prisma.zones.findUnique({
             where: { id: Number(data.zone_id) },
@@ -74,22 +79,8 @@ export const approvalWorkflowSetupController = {
             message: `Approver ${approver.name} does not belong to ${zone?.name} zone`,
           });
         }
-
-        // Validate depot if depot_id is provided (not null/global)
-        //   if (data.depot_id && approver.depot_id !== Number(data.depot_id)) {
-        //     const depot = await prisma.depots.findUnique({
-        //       where: { id: Number(data.depot_id) },
-        //       select: { name: true },
-        //     });
-
-        //     return res.status(400).json({
-        //       message: `Approver ${approver.name} does not belong to ${depot?.name} depot`,
-        //     });
-        //   }
       }
 
-      // Delete existing workflows for the same request_type, zone_id, and depot_id
-      // This ensures we replace instead of duplicate
       if (dataArray.length > 0) {
         const firstItem = dataArray[0];
         await prisma.approval_work_flow.deleteMany({
@@ -149,6 +140,12 @@ export const approvalWorkflowSetupController = {
     }
   },
 
+  /**
+   * Retrieves a single approval workflow setup record by its ID.
+   *
+   * @param req - Express request object containing record ID in params
+   * @param res - Express response object
+   */
   async getApprovalWorkFlowById(req: Request, res: Response) {
     try {
       const { id } = req.params;
@@ -196,6 +193,12 @@ export const approvalWorkflowSetupController = {
     }
   },
 
+  /**
+   * Updates an existing approval workflow setup record.
+   *
+   * @param req - Express request object containing record ID in params and updated payload in body
+   * @param res - Express response object
+   */
   async updateApprovalWorkFlow(req: Request, res: Response) {
     try {
       const { id } = req.params;
@@ -265,6 +268,12 @@ export const approvalWorkflowSetupController = {
     }
   },
 
+  /**
+   * Deletes all approval workflow setup records matching a specific request type.
+   *
+   * @param req - Express request object containing requestType in params
+   * @param res - Express response object
+   */
   async deleteApprovalWorkFlow(req: Request, res: Response) {
     try {
       const { requestType } = req.params;
@@ -284,6 +293,12 @@ export const approvalWorkflowSetupController = {
     }
   },
 
+  /**
+   * Deletes multiple approval workflow setup records by their unique IDs.
+   *
+   * @param req - Express request object containing IDs array in body
+   * @param res - Express response object
+   */
   async deleteApprovalWorkFlows(req: Request, res: Response) {
     try {
       const { ids } = req.body;
@@ -307,6 +322,13 @@ export const approvalWorkflowSetupController = {
     }
   },
 
+  /**
+   * Retrieves all approval workflow setup records, grouped by request type.
+   * Supports search queries, page pagination, and request type filters.
+   *
+   * @param req - Express request object containing query filters
+   * @param res - Express response object
+   */
   async getAllApprovalWorkFlow(req: any, res: any) {
     try {
       const {
@@ -366,14 +388,15 @@ export const approvalWorkflowSetupController = {
         },
       });
 
-      // Group by request_type
       const grouped: any = {};
 
       for (const wf of workflows) {
         const type = wf.request_type;
+        const depotId = wf.depot_id;
+        const key = `${type}_${depotId !== null ? depotId : 'global'}`;
 
-        if (!grouped[type]) {
-          grouped[type] = {
+        if (!grouped[key]) {
+          grouped[key] = {
             request_type: type,
             zones: [],
             depots: [],
@@ -388,23 +411,23 @@ export const approvalWorkflowSetupController = {
         const depotName =
           wf.approval_work_flow_depot?.name || 'Global (All Depots)';
 
-        if (!grouped[type].zones.some((z: any) => z.id === wf.zone_id)) {
-          grouped[type].zones.push({
+        if (!grouped[key].zones.some((z: any) => z.id === wf.zone_id)) {
+          grouped[key].zones.push({
             id: wf.zone_id,
             name: zoneName,
             is_global: wf.zone_id === null,
           });
         }
 
-        if (!grouped[type].depots.some((d: any) => d.id === wf.depot_id)) {
-          grouped[type].depots.push({
+        if (!grouped[key].depots.some((d: any) => d.id === wf.depot_id)) {
+          grouped[key].depots.push({
             id: wf.depot_id,
             name: depotName,
             is_global: wf.depot_id === null,
           });
         }
 
-        grouped[type].request_approval_request.push({
+        grouped[key].request_approval_request.push({
           id: wf.id,
           sequence: wf.sequence,
           approver_id: wf.approver_id,
@@ -423,12 +446,11 @@ export const approvalWorkflowSetupController = {
           },
         });
 
-        grouped[type].no_of_approvers += 1;
+        grouped[key].no_of_approvers += 1;
       }
 
       let groupedArray = Object.values(grouped);
 
-      // Apply search filter if provided
       if (search && search.trim()) {
         const searchLower = search.toLowerCase().trim();
         groupedArray = groupedArray.filter((item: any) =>
@@ -436,11 +458,9 @@ export const approvalWorkflowSetupController = {
         );
       }
 
-      // Calculate total count after all filters are applied
       const totalCount = groupedArray.length;
       const totalPages = totalCount > 0 ? Math.ceil(totalCount / sizeNum) : 0;
 
-      // Apply pagination
       const paginatedData = groupedArray.slice(
         (pageNum - 1) * sizeNum,
         pageNum * sizeNum
@@ -465,6 +485,13 @@ export const approvalWorkflowSetupController = {
     }
   },
 
+  /**
+   * Retrieves active approval workflows matching a specific request type.
+   * Matches specific zone/depot setups first, then falls back to global configurations.
+   *
+   * @param req - Express request object containing request_type, zone_id, and depot_id in query
+   * @param res - Express response object
+   */
   async getAllApprovalWorkFlowByRequest(req: Request, res: Response) {
     try {
       const { request_type, zone_id, depot_id } = req.query;
@@ -495,61 +522,70 @@ export const approvalWorkflowSetupController = {
         },
       };
 
-      if (zone_id && depot_id) {
+      if (zone_id || depot_id) {
         const results: any[] = [];
         const seenApprovers = new Set<number>();
 
-        const zoneDepotWorkflows = await prisma.approval_work_flow.findMany({
-          where: {
-            request_type: request_type as string,
-            zone_id: Number(zone_id),
-            depot_id: Number(depot_id),
-            is_active: 'Y',
-          },
-          orderBy: { sequence: 'asc' },
-          include: includeConfig,
-        });
+        const zId = zone_id ? Number(zone_id) : null;
+        const dId = depot_id ? Number(depot_id) : null;
 
-        zoneDepotWorkflows.forEach(wf => {
-          results.push(wf);
-          seenApprovers.add(wf.approver_id);
-        });
+        if (zId !== null && dId !== null) {
+          const zoneDepotWorkflows = await prisma.approval_work_flow.findMany({
+            where: {
+              request_type: request_type as string,
+              zone_id: zId,
+              depot_id: dId,
+              is_active: 'Y',
+            },
+            orderBy: { sequence: 'asc' },
+            include: includeConfig,
+          });
 
-        const zoneWorkflows = await prisma.approval_work_flow.findMany({
-          where: {
-            request_type: request_type as string,
-            zone_id: Number(zone_id),
-            depot_id: null,
-            is_active: 'Y',
-          },
-          orderBy: { sequence: 'asc' },
-          include: includeConfig,
-        });
-
-        zoneWorkflows.forEach(wf => {
-          if (!seenApprovers.has(wf.approver_id)) {
+          zoneDepotWorkflows.forEach(wf => {
             results.push(wf);
             seenApprovers.add(wf.approver_id);
-          }
-        });
+          });
+        }
 
-        const depotWorkflows = await prisma.approval_work_flow.findMany({
-          where: {
-            request_type: request_type as string,
-            depot_id: Number(depot_id),
-            zone_id: null,
-            is_active: 'Y',
-          },
-          orderBy: { sequence: 'asc' },
-          include: includeConfig,
-        });
+        if (zId !== null) {
+          const zoneWorkflows = await prisma.approval_work_flow.findMany({
+            where: {
+              request_type: request_type as string,
+              zone_id: zId,
+              depot_id: null,
+              is_active: 'Y',
+            },
+            orderBy: { sequence: 'asc' },
+            include: includeConfig,
+          });
 
-        depotWorkflows.forEach(wf => {
-          if (!seenApprovers.has(wf.approver_id)) {
-            results.push(wf);
-            seenApprovers.add(wf.approver_id);
-          }
-        });
+          zoneWorkflows.forEach(wf => {
+            if (!seenApprovers.has(wf.approver_id)) {
+              results.push(wf);
+              seenApprovers.add(wf.approver_id);
+            }
+          });
+        }
+
+        if (dId !== null) {
+          const depotWorkflows = await prisma.approval_work_flow.findMany({
+            where: {
+              request_type: request_type as string,
+              depot_id: dId,
+              zone_id: null,
+              is_active: 'Y',
+            },
+            orderBy: { sequence: 'asc' },
+            include: includeConfig,
+          });
+
+          depotWorkflows.forEach(wf => {
+            if (!seenApprovers.has(wf.approver_id)) {
+              results.push(wf);
+              seenApprovers.add(wf.approver_id);
+            }
+          });
+        }
 
         const globalWorkflows = await prisma.approval_work_flow.findMany({
           where: {
@@ -613,6 +649,12 @@ export const approvalWorkflowSetupController = {
     }
   },
 
+  /**
+   * Retrieves unique zones configured with approval workflows for a request type.
+   *
+   * @param req - Express request object containing requestType in params
+   * @param res - Express response object
+   */
   async getZonesWithWorkflows(req: Request, res: Response) {
     try {
       const { requestType } = req.params;
@@ -652,6 +694,12 @@ export const approvalWorkflowSetupController = {
     }
   },
 
+  /**
+   * Retrieves unique depots configured with approval workflows for a request type.
+   *
+   * @param req - Express request object containing requestType in params
+   * @param res - Express response object
+   */
   async getDepotsWithWorkflows(req: Request, res: Response) {
     try {
       const { requestType } = req.params;

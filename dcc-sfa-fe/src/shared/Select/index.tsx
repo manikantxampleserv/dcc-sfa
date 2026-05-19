@@ -66,6 +66,8 @@ const Select: React.FC<CustomSelectProps> = ({
     (className.includes('w-') || className.includes('width'))
   );
 
+  const defaultMinWidth = hasWidthClass ? 'unset' : '160px';
+
   const effectiveFullWidth =
     fullWidth !== undefined
       ? fullWidth
@@ -227,7 +229,7 @@ const Select: React.FC<CustomSelectProps> = ({
             option.label.toLowerCase().includes(state.inputValue.toLowerCase())
           );
         }}
-        sx={{ minWidth: '160px' }}
+        sx={{ minWidth: defaultMinWidth }}
         slotProps={{
           popper: {
             style: { zIndex: 1300 },
@@ -249,7 +251,7 @@ const Select: React.FC<CustomSelectProps> = ({
             size={size}
             sx={{
               '& .MuiOutlinedInput-root': {
-                minWidth: '160px',
+                minWidth: defaultMinWidth,
               },
               '&.MuiAutocomplete-hasPopupIcon.MuiAutocomplete-hasClearIcon .MuiOutlinedInput-root': {
                 paddingRight: '24px !important',

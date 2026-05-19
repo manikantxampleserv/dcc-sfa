@@ -9,6 +9,7 @@ import {
 import { useAssetTypes } from 'hooks/useAssetTypes';
 import { useAssetSubTypes } from 'hooks/useAssetSubTypes';
 import { useAssetBrands } from 'hooks/useAssetBrands';
+import { useDepots } from 'hooks/useDepots';
 import React, { useEffect, useRef, useState } from 'react';
 import { assetMasterValidationSchema } from 'schemas/assetMaster.schema';
 import ActiveInactiveField from 'shared/ActiveInactiveField';
@@ -59,6 +60,13 @@ const ManageAssetMaster: React.FC<ManageAssetMasterProps> = ({
     isActive: 'Y',
   });
   const assetBrands = assetBrandsResponse?.data || [];
+
+  const { data: depotsResponse } = useDepots({
+    page: 1,
+    limit: 1000,
+    isActive: 'Y',
+  });
+  const depots = depotsResponse?.data || [];
 
   const formik = useFormik({
     initialValues: {
@@ -206,6 +214,17 @@ const ManageAssetMaster: React.FC<ManageAssetMasterProps> = ({
       formik.setFieldValue('asset_sub_type_id', '');
     }
   }, [formik.values.asset_type_id]);
+
+  useEffect(() => {
+    if (!isEdit && drawerOpen && depots.length > 0 && !formik.values.depot_id) {
+      const moshiDepot = depots.find(
+        (depot: any) => depot.name?.toUpperCase() === 'MOSHI'
+      );
+      if (moshiDepot) {
+        formik.setFieldValue('depot_id', moshiDepot.id.toString());
+      }
+    }
+  }, [depots, isEdit, drawerOpen, formik.values.depot_id]);
 
 
   return (

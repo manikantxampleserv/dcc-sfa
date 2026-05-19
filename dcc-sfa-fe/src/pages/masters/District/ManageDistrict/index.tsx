@@ -114,7 +114,6 @@ const ManageDistrict: React.FC<ManageDistrictProps> = ({
       open={drawerOpen}
       setOpen={handleCancel}
       title={isEdit ? 'Edit District' : 'Create District'}
-      size="medium"
     >
       <Box className="!p-6">
         <form onSubmit={formik.handleSubmit} className="!space-y-5">
@@ -177,7 +176,7 @@ const ManageDistrict: React.FC<ManageDistrictProps> = ({
               }
             >
               {createDistrictMutation.isPending ||
-              updateDistrictMutation.isPending
+                updateDistrictMutation.isPending
                 ? isEdit
                   ? 'Updating...'
                   : 'Creating...'
