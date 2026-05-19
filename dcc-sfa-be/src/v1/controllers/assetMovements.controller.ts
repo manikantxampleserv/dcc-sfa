@@ -1069,7 +1069,6 @@ export const assetMovementsController = {
 
         setImmediate(async () => {
           try {
-            // 1. Approve any existing pending coolers tied to this movement
             await approveCoolerInstallationsForMovement(
               Number(id),
               effectiveAssetIds,
@@ -1120,25 +1119,107 @@ export const assetMovementsController = {
     }
   },
 
+  // async deleteAssetMovements(req: Request, res: Response) {
+  //   try {
+  //     const { id } = req.params;
+  //     const existing = await prisma.asset_movements.findUnique({
+  //       where: { id: Number(id) },
+  //     });
+
+  //     if (!existing) {
+  //       return res.status(404).json({ message: 'Asset movement not found' });
+  //     }
+
+  //     await prisma.asset_movements.delete({ where: { id: Number(id) } });
+  //     res.json({ message: 'Asset movement deleted successfully' });
+  //   } catch (error: any) {
+  //     console.error('Delete Asset Movement Error:', error);
+  //     res.status(500).json({ message: error.message });
+  //   }
+  // },
+
   async deleteAssetMovements(req: Request, res: Response) {
     try {
       const { id } = req.params;
+      const movementId = Number(id);
+
       const existing = await prisma.asset_movements.findUnique({
-        where: { id: Number(id) },
+        where: { id: movementId },
       });
 
       if (!existing) {
-        return res.status(404).json({ message: 'Asset movement not found' });
+        return res.status(404).json({
+          message: 'Asset movement not found',
+        });
       }
 
-      await prisma.asset_movements.delete({ where: { id: Number(id) } });
-      res.json({ message: 'Asset movement deleted successfully' });
+      await prisma.$transaction(async tx => {
+        await tx.asset_movement_contracts.deleteMany({
+          where: {
+            asset_movement_id: movementId,
+          },
+        });
+
+        await tx.coolers.deleteMany({
+          where: {
+            asset_movement_id: movementId,
+          },
+        });
+
+        await tx.asset_movement_assets.deleteMany({
+          where: {
+            movement_id: movementId,
+          },
+        });
+
+        const requests = await tx.sfa_d_requests.findMany({
+          where: {
+            reference_id: movementId,
+            request_type: 'ASSET_MOVEMENT_APPROVAL',
+          },
+          select: {
+            id: true,
+          },
+        });
+
+        const requestIds = requests.map(r => r.id);
+
+        if (requestIds.length > 0) {
+          await tx.sfa_d_request_approvals.deleteMany({
+            where: {
+              request_id: {
+                in: requestIds,
+              },
+            },
+          });
+
+          await tx.sfa_d_requests.deleteMany({
+            where: {
+              id: {
+                in: requestIds,
+              },
+            },
+          });
+        }
+
+        await tx.asset_movements.delete({
+          where: {
+            id: movementId,
+          },
+        });
+      });
+
+      return res.json({
+        message: 'Asset movement and all linked records deleted successfully',
+      });
     } catch (error: any) {
       console.error('Delete Asset Movement Error:', error);
-      res.status(500).json({ message: error.message });
+
+      return res.status(500).json({
+        message: error.message,
+      });
     }
   },
-
   async generateContract(req: Request, res: Response) {
     try {
       const { id } = req.params;
