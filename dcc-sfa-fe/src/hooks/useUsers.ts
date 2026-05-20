@@ -227,7 +227,7 @@ export const useUpdateUser = (options?: {
       userData: userService.UpdateUserPayload | FormData;
     }) => userService.updateUser(id, userData),
     loadingMessage: 'Updating user...',
-    invalidateQueries: ['users'],
+    invalidateQueries: ['users', 'route-assignments'],
     onSuccess: options?.onSuccess,
     onError: options?.onError,
   });
@@ -270,8 +270,7 @@ export const useUpdateUserProfile = (options?: {
     mutationFn: (profileData: userService.UpdateProfilePayload | FormData) =>
       userService.updateUserProfile(profileData),
     loadingMessage: 'Updating profile...',
-    invalidateQueries: ['users'],
+    invalidateQueries: ['users', 'route-assignments'],
     onSuccess: options?.onSuccess,
-    onError: options?.onError,
   });
 };

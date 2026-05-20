@@ -2,18 +2,15 @@ import {
   Cancel,
   CheckCircle,
   Description,
-  Error as ErrorIcon,
-  Feedback,
   History,
   Inventory,
   LocationOn,
   MonetizationOn,
   Phone,
-  Receipt,
   Schedule,
   Star,
   Verified,
-  Warning,
+  Warning
 } from '@mui/icons-material';
 import {
   Alert,
@@ -37,6 +34,7 @@ import {
 } from 'lucide-react';
 import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
+import Barcode from 'shared/Barcode';
 import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
 import { formatDate } from 'utils/dateUtils';
@@ -214,27 +212,6 @@ const OutletDetail: React.FC = () => {
                 disabled
               />
               <Tab
-                icon={<Receipt />}
-                label="Transactions (0)"
-                iconPosition="start"
-                className="!min-h-14 !py-0"
-                disabled
-              />
-              <Tab
-                icon={<Feedback />}
-                label="Feedbacks (0)"
-                iconPosition="start"
-                className="!min-h-14 !py-0"
-                disabled
-              />
-              <Tab
-                icon={<ErrorIcon />}
-                label="Complaints (0)"
-                iconPosition="start"
-                className="!min-h-14 !py-0"
-                disabled
-              />
-              <Tab
                 icon={<Description />}
                 label="Attachments (0)"
                 iconPosition="start"
@@ -367,19 +344,20 @@ const OutletDetail: React.FC = () => {
   const assetColumns: TableColumn<any>[] = [
     {
       id: 'code',
-      label: 'Asset Code',
+      label: 'Asset',
       render: (_value, row) => (
         <Box className="flex items-center gap-2">
-          <Avatar className="!h-8 !w-8 !bg-purple-100 !text-purple-600">
-            <Package className="h-4 w-4" />
+          <Avatar className="!h-10 !w-10 !bg-purple-100 !rounded !text-purple-600">
+            <Package className="h-5 w-5" />
           </Avatar>
           <Box>
             <Typography variant="body2" className="!font-medium">
               {row.code}
             </Typography>
             {row.asset_types && (
-              <Typography variant="caption" className="!text-gray-500">
+              <Typography variant="caption" className="!text-gray-500 block">
                 {row.asset_types.name}
+                {row.asset_sub_types?.name && ` - ${row.asset_sub_types.name}`}
               </Typography>
             )}
           </Box>
@@ -408,15 +386,6 @@ const OutletDetail: React.FC = () => {
       render: serial_number => (
         <Typography variant="body2">
           {serial_number || <span className="text-gray-400">N/A</span>}
-        </Typography>
-      ),
-    },
-    {
-      id: 'capacity',
-      label: 'Capacity',
-      render: capacity => (
-        <Typography variant="body2">
-          {capacity || <span className="text-gray-400">-</span>}
         </Typography>
       ),
     },
@@ -744,262 +713,275 @@ const OutletDetail: React.FC = () => {
   };
 
   return (
-    <>
-      {/* Header */}
-      <Box className="!mb-3 !flex !items-center !gap-3">
-        <Box className="!flex-1">
-          <Box className="!flex !items-center !gap-3">
-            <Typography variant="h5" className="!font-bold !text-gray-900">
-              {customer.name}
-            </Typography>
-            <Chip
-              icon={customer.is_active === 'Y' ? <CheckCircle /> : <Cancel />}
-              label={customer.is_active === 'Y' ? 'Active' : 'Inactive'}
-              size="small"
-              color={customer.is_active === 'Y' ? 'success' : 'error'}
-            />
-            {customer.type && (
-              <Chip
-                icon={getBusinessTypeIcon(customer.type || '')}
-                label={customer.type || 'N/A'}
-                size="small"
-                variant="outlined"
-                className="!px-1 !capitalize"
-                color={getBusinessTypeChipColor(customer.type || '')}
-              />
-            )}
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
+        {/* Left main info */}
+        <div className="flex-1 space-y-4 w-full">
+          {/* Header */}
+          <Box className="!mb-3 !flex !items-center !gap-3">
+            <Box className="!flex-1">
+              <Box className="!flex !items-center !gap-3">
+                <Typography variant="h5" className="!font-bold !text-gray-900">
+                  {customer.name}
+                </Typography>
+                <Chip
+                  icon={customer.is_active === 'Y' ? <CheckCircle /> : <Cancel />}
+                  label={customer.is_active === 'Y' ? 'Active' : 'Inactive'}
+                  size="small"
+                  color={customer.is_active === 'Y' ? 'success' : 'error'}
+                />
+                {customer.type && (
+                  <Chip
+                    icon={getBusinessTypeIcon(customer.type || '')}
+                    label={customer.type || 'N/A'}
+                    size="small"
+                    variant="outlined"
+                    className="!px-1 !capitalize"
+                    color={getBusinessTypeChipColor(customer.type || '')}
+                  />
+                )}
+              </Box>
+              <Typography variant="body2" className="!mt-1 !text-gray-500">
+                Code: {customer.code}
+                {customer.short_name && ` • Short: ${customer.short_name}`}
+                {customer.email && ` • ${customer.email}`}
+                {customer.phone_number && ` • ${customer.phone_number}`}
+                {customer.nfc_tag_code && ` • NFC: ${customer.nfc_tag_code}`}
+              </Typography>
+            </Box>
           </Box>
-          <Typography variant="body2" className="!mt-1 !text-gray-500">
-            Code: {customer.code}
-            {customer.short_name && ` • Short: ${customer.short_name}`}
-            {customer.email && ` • ${customer.email}`}
-            {customer.phone_number && ` • ${customer.phone_number}`}
-            {customer.nfc_tag_code && ` • NFC: ${customer.nfc_tag_code}`}
-          </Typography>
-        </Box>
-      </Box>
 
-      {/* Info Cards */}
-      <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {/* Customer Type Card */}
-        <StatsCard
-          title="Customer Type"
-          value={customer.customer_type?.type_name || 'N/A'}
-          icon={<Building2 className="h-6 w-6" />}
-          color="blue"
-        />
+          {/* Info Cards */}
+          <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+            {/* Customer Type Card */}
+            <StatsCard
+              title="Customer Type"
+              value={customer.customer_type?.type_name || 'N/A'}
+              icon={<Building2 className="h-6 w-6" />}
+              color="blue"
+            />
 
-        {/* Category Card */}
-        <StatsCard
-          title="Category"
-          value={customer.customer_category?.category_name || 'N/A'}
-          icon={<Star className="h-6 w-6" />}
-          color="purple"
-        />
+            {/* Category Card */}
+            <StatsCard
+              title="Category"
+              value={customer.customer_category?.category_name || 'N/A'}
+              icon={<Star className="h-6 w-6" />}
+              color="purple"
+            />
 
-        {/* Zone Card */}
-        <StatsCard
-          title="Zone"
-          value={customer.customer_zones?.name || 'N/A'}
-          icon={<LocationOn className="h-6 w-6" />}
-          color="green"
-        />
+            {/* Zone Card */}
+            <StatsCard
+              title="Zone"
+              value={customer.customer_zones?.name || 'N/A'}
+              icon={<LocationOn className="h-6 w-6" />}
+              color="green"
+            />
 
-        {/* Route Card */}
-        <StatsCard
-          title="Route"
-          value={customer.customer_routes?.name || 'N/A'}
-          icon={<Schedule className="h-6 w-6" />}
-          color="orange"
-        />
-      </div>
-
-      {/* Detailed Information */}
-      <div className="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
-        {/* Contact Information */}
-        <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-          <Typography
-            variant="h6"
-            className="!mb-4 !font-semibold !text-gray-900"
-          >
-            Contact Information
-          </Typography>
-          <div className="space-y-3">
-            <div className="flex items-center gap-3">
-              <Phone className="h-4 w-4 text-gray-400" />
-              <div>
-                <Typography variant="body2" className="!text-gray-500">
-                  Phone Number
-                </Typography>
-                <Typography variant="body1" className="!font-medium">
-                  {customer.phone_number || 'N/A'}
-                </Typography>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <Building2 className="h-4 w-4 text-gray-400" />
-              <div>
-                <Typography variant="body2" className="!text-gray-500">
-                  Outlet Channel
-                </Typography>
-                <Typography variant="body1" className="!font-medium">
-                  {customer.customer_channel?.channel_name || (
-                    <span className="text-xs text-gray-400 italic">
-                      No Channel
-                    </span>
-                  )}
-                </Typography>
-              </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <MapPin className="mt-1 h-4 w-4 text-gray-400" />
-              <div className="space-y-1">
-                <Typography variant="body2" className="!text-gray-500">
-                  Address & Location
-                </Typography>
-                {(customer.customer_city ||
-                  customer.customer_district ||
-                  customer.customer_region) && (
-                  <Typography variant="body2" className="!text-gray-600">
-                    {[
-                      customer.customer_city?.name,
-                      customer.customer_district?.name,
-                      customer.customer_region?.name,
-                    ]
-                      .filter(Boolean)
-                      .join(', ')}
-                  </Typography>
-                )}
-                {customer.zipcode && (
-                  <Typography variant="body2" className="!text-gray-600">
-                    Zip Code: {customer.zipcode}
-                  </Typography>
-                )}
-                {(customer.latitude || customer.longitude) && (
-                  <Typography
-                    variant="body2"
-                    className="!text-xs !text-gray-400 italic"
-                  >
-                    Coordinates: {customer.latitude}, {customer.longitude}
-                  </Typography>
-                )}
-              </div>
-            </div>
+            {/* Route Card */}
+            <StatsCard
+              title="Route"
+              value={customer.customer_routes?.name || 'N/A'}
+              icon={<Schedule className="h-6 w-6" />}
+              color="orange"
+            />
           </div>
-        </div>
 
-        {/* Business Information */}
-        <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-          <Typography
-            variant="h6"
-            className="!mb-4 !font-semibold !text-gray-900"
-          >
-            Business Information
-          </Typography>
-          <div className="space-y-3">
-            <div className="flex items-center gap-3">
-              <CreditCard className="h-4 w-4 text-gray-400" />
-              <div>
-                <Typography variant="body2" className="!text-gray-500">
-                  Credit Limit
-                </Typography>
-                <Typography variant="body1" className="!font-medium">
-                  {customer.credit_limit
-                    ? formatCurrency(customer.credit_limit)
-                    : 'Not Set'}
-                </Typography>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <MonetizationOn className="h-4 w-4 text-gray-400" />
-              <div>
-                <Typography variant="body2" className="!text-gray-500">
-                  Outstanding Amount
-                </Typography>
-                <Typography variant="body1" className="!font-medium">
-                  {customer.outstanding_amount
-                    ? formatCurrency(customer.outstanding_amount)
-                    : '₹0'}
-                </Typography>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <Calendar className="h-4 w-4 text-gray-400" />
-              <div>
-                <Typography variant="body2" className="!text-gray-500">
-                  Last Visit Date
-                </Typography>
-                <Typography variant="body1" className="!font-medium">
-                  {customer.last_visit_date
-                    ? formatDate(customer.last_visit_date)
-                    : 'No visits yet'}
-                </Typography>
-              </div>
-            </div>
-            {customer.depot && (
-              <div className="flex items-center gap-3">
-                <Building2 className="h-4 w-4 text-gray-400" />
-                <div>
-                  <Typography variant="body2" className="!text-gray-500">
-                    Associated Depot
-                  </Typography>
-                  <Typography variant="body1" className="!font-medium">
-                    {customer.depot.name} ({customer.depot.code})
-                  </Typography>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Map Section */}
-      {(customer.latitude || customer.longitude) && (
-        <div className="mb-6 rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-          <div className="mb-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <MapPin className="h-5 w-5 text-blue-600" />
+          {/* Detailed Information */}
+          <div className="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
+            {/* Contact Information */}
+            <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
               <Typography
                 variant="h6"
-                className="!font-semibold !text-gray-900"
+                className="!mb-4 !font-semibold !text-gray-900"
               >
-                Outlet Location Map
+                Contact Information
               </Typography>
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <Phone className="h-4 w-4 text-gray-400" />
+                  <div>
+                    <Typography variant="body2" className="!text-gray-500">
+                      Phone Number
+                    </Typography>
+                    <Typography variant="body1" className="!font-medium">
+                      {customer.phone_number || 'N/A'}
+                    </Typography>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Building2 className="h-4 w-4 text-gray-400" />
+                  <div>
+                    <Typography variant="body2" className="!text-gray-500">
+                      Outlet Channel
+                    </Typography>
+                    <Typography variant="body1" className="!font-medium">
+                      {customer.customer_channel?.channel_name || (
+                        <span className="text-xs text-gray-400 italic">
+                          No Channel
+                        </span>
+                      )}
+                    </Typography>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <MapPin className="mt-1 h-4 w-4 text-gray-400" />
+                  <div className="space-y-1">
+                    <Typography variant="body2" className="!text-gray-500">
+                      Address & Location
+                    </Typography>
+                    {(customer.customer_city ||
+                      customer.customer_district ||
+                      customer.customer_region) && (
+                        <Typography variant="body2" className="!text-gray-600">
+                          {[
+                            customer.customer_city?.name,
+                            customer.customer_district?.name,
+                            customer.customer_region?.name,
+                          ]
+                            .filter(Boolean)
+                            .join(', ')}
+                        </Typography>
+                      )}
+                    {customer.zipcode && (
+                      <Typography variant="body2" className="!text-gray-600">
+                        Zip Code: {customer.zipcode}
+                      </Typography>
+                    )}
+                    {(customer.latitude || customer.longitude) && (
+                      <Typography
+                        variant="body2"
+                        className="!text-xs !text-gray-400 italic"
+                      >
+                        Coordinates: {customer.latitude}, {customer.longitude}
+                      </Typography>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
-            <a
-              href={`https://www.google.com/maps/search/?api=1&query=${customer.latitude},${customer.longitude}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 text-sm font-medium text-blue-600 transition-colors hover:text-blue-700"
-            >
-              <ExternalLink className="h-4 w-4" />
-              Open in Google Maps
-            </a>
+
+            {/* Business Information */}
+            <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+              <Typography
+                variant="h6"
+                className="!mb-4 !font-semibold !text-gray-900"
+              >
+                Business Information
+              </Typography>
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <CreditCard className="h-4 w-4 text-gray-400" />
+                  <div>
+                    <Typography variant="body2" className="!text-gray-500">
+                      Credit Limit
+                    </Typography>
+                    <Typography variant="body1" className="!font-medium">
+                      {customer.credit_limit
+                        ? formatCurrency(customer.credit_limit)
+                        : 'Not Set'}
+                    </Typography>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <MonetizationOn className="h-4 w-4 text-gray-400" />
+                  <div>
+                    <Typography variant="body2" className="!text-gray-500">
+                      Outstanding Amount
+                    </Typography>
+                    <Typography variant="body1" className="!font-medium">
+                      {customer.outstanding_amount
+                        ? formatCurrency(customer.outstanding_amount)
+                        : '₹0'}
+                    </Typography>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Calendar className="h-4 w-4 text-gray-400" />
+                  <div>
+                    <Typography variant="body2" className="!text-gray-500">
+                      Last Visit Date
+                    </Typography>
+                    <Typography variant="body1" className="!font-medium">
+                      {customer.last_visit_date
+                        ? formatDate(customer.last_visit_date)
+                        : 'No visits yet'}
+                    </Typography>
+                  </div>
+                </div>
+                {customer.depot && (
+                  <div className="flex items-center gap-3">
+                    <Building2 className="h-4 w-4 text-gray-400" />
+                    <div>
+                      <Typography variant="body2" className="!text-gray-500">
+                        Associated Depot
+                      </Typography>
+                      <Typography variant="body1" className="!font-medium">
+                        {customer.depot.name} ({customer.depot.code})
+                      </Typography>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+            {customer.code && (
+              <div className="w-full flex-shrink-0">
+                <Barcode value={customer.code} label="Customer Code" showText={false} />
+              </div>
+            )}
           </div>
-          <div className="h-[400px] w-full overflow-hidden rounded-lg border border-gray-100 shadow-inner">
-            <iframe
-              src={`https://maps.google.com/maps?q=${customer.latitude},${customer.longitude}&z=16&output=embed`}
-              width="100%"
-              height="100%"
-              style={{ border: 0 }}
-              allowFullScreen
-              loading="lazy"
-              referrerPolicy="no-referrer-when-downgrade"
-              title="Location Map"
-            />
-          </div>
-          <div className="mt-3 flex items-center gap-4 rounded border border-gray-100 bg-gray-50 p-3 text-xs text-gray-500">
-            <p>
-              <span className="font-semibold text-gray-700">Latitude:</span>{' '}
-              {customer.latitude}
-            </p>
-            <p>
-              <span className="font-semibold text-gray-700">Longitude:</span>{' '}
-              {customer.longitude}
-            </p>
-          </div>
+
+          {/* Map Section */}
+          {(customer.latitude || customer.longitude) && (
+            <div className="mb-6 rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+              <div className="mb-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <MapPin className="h-5 w-5 text-blue-600" />
+                  <Typography
+                    variant="h6"
+                    className="!font-semibold !text-gray-900"
+                  >
+                    Outlet Location Map
+                  </Typography>
+                </div>
+                <a
+                  href={`https://www.google.com/maps/search/?api=1&query=${customer.latitude},${customer.longitude}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 text-sm font-medium text-blue-600 transition-colors hover:text-blue-700"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  Open in Google Maps
+                </a>
+              </div>
+              <div className="h-[400px] w-full overflow-hidden rounded-lg border border-gray-100 shadow-inner">
+                <iframe
+                  src={`https://maps.google.com/maps?q=${customer.latitude},${customer.longitude}&z=16&output=embed`}
+                  width="100%"
+                  height="100%"
+                  style={{ border: 0 }}
+                  allowFullScreen
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                  title="Location Map"
+                />
+              </div>
+              <div className="mt-3 flex items-center gap-4 rounded border border-gray-100 bg-gray-50 p-3 text-xs text-gray-500">
+                <p>
+                  <span className="font-semibold text-gray-700">Latitude:</span>{' '}
+                  {customer.latitude}
+                </p>
+                <p>
+                  <span className="font-semibold text-gray-700">Longitude:</span>{' '}
+                  {customer.longitude}
+                </p>
+              </div>
+            </div>
+          )}
         </div>
-      )}
+
+        {/* Right sidebar - Customer Barcode */}
+
+      </div>
 
       {/* Tabs */}
       <div className="rounded-lg border border-gray-200 bg-white shadow-sm">
@@ -1111,7 +1093,7 @@ const OutletDetail: React.FC = () => {
           />
         </TabPanel>
       </div>
-    </>
+    </div>
   );
 };
 

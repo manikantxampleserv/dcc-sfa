@@ -19,6 +19,7 @@ import {
 import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import Button from 'shared/Button';
+import Barcode from 'shared/Barcode';
 import { formatDate } from 'utils/dateUtils';
 
 const AssetDetails: React.FC = () => {
@@ -284,6 +285,12 @@ const AssetDetails: React.FC = () => {
                 variant="outlined"
               />
             </div>
+
+            {asset.serial_number && (
+              <div className="!mt-4">
+                <Barcode value={asset.serial_number} label="Serial Number" />
+              </div>
+            )}
 
             <div className="!space-y-1 !text-left !mt-4">
               <div className="!p-2 !bg-gray-50 !rounded-md">

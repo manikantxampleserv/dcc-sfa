@@ -21,12 +21,9 @@ const App = (): React.ReactElement => {
   return (
     <ErrorBoundary
       onError={(error, errorInfo) => {
-        // Log errors to console in development
         if (import.meta.env.DEV) {
           console.error('App-level error:', error, errorInfo);
         }
-        // In production, you would send this to an error tracking service
-        // errorTrackingService.captureException(error, errorInfo);
       }}
     >
       <ContextProvider>

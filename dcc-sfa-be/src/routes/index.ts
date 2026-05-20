@@ -99,9 +99,11 @@ import cities from '../v1/routes/cities.routes';
 import alerts from '../v1/routes/alerts.routes';
 import customerCategoryGrading from '../v1/controllers/customerCategoryGrading.routes';
 import assetMasterBrands from '../v1/routes/assetMaterBrands.routes';
+import barcode from '../v1/routes/barcode.routes';
 
 const routes = Router();
 
+routes.use('/v1', barcode);
 routes.use('/v1', auth);
 routes.use('/v1', user);
 routes.use('/v1', roles);

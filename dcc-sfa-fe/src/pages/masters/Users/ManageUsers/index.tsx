@@ -1,15 +1,28 @@
 import { Close as CloseIcon } from '@mui/icons-material';
-import { Box, IconButton, MenuItem, Typography } from '@mui/material';
+import {
+  Box,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
+  IconButton,
+  MenuItem,
+  Typography,
+  Avatar,
+} from '@mui/material';
+import { Route as RouteIcon } from 'lucide-react';
 import { useFormik } from 'formik';
 import { useDepots } from 'hooks/useDepots';
 import { useRolesDropdown } from 'hooks/useRoles';
+import { useRouteAssignment, useRoutes } from 'hooks/useRoutes';
 import { useCreateUser, useUpdateUser, type User } from 'hooks/useUsers';
 import React, { useState } from 'react';
 import validationSchema from 'schemas/masters/Users';
 import ActiveInactiveField from 'shared/ActiveInactiveField';
 import Button from 'shared/Button';
-import CustomDrawer from 'shared/Drawer';
 import DepotAssignment from 'shared/DepotAssignment';
+import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
 import Select from 'shared/Select';
 import UserSelect from 'shared/UserSelect';
@@ -31,6 +44,11 @@ const ManageUsers: React.FC<ManageUsersProps> = ({
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const isEdit = !!selectedUser;
 
+  // Confirmation dialog and route management states
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const [routesToRemove, setRoutesToRemove] = useState<Array<{ id: number; name: string; code: string }>>([]);
+  const [pendingValues, setPendingValues] = useState<any>(null);
+
   const { data: rolesResponse, isLoading: rolesLoading } = useRolesDropdown({
     enabled: drawerOpen,
   });
@@ -40,6 +58,13 @@ const ManageUsers: React.FC<ManageUsersProps> = ({
   });
   const roles = rolesResponse?.data || [];
   const depots = depotsResponse?.data || [];
+
+  // Fetch routes and user assignments to detect affected routes upon depot removal
+  const { data: routeAssignmentsResponse } = useRouteAssignment(selectedUser?.id || 0);
+  const { data: routesResponse } = useRoutes(
+    { limit: 1000 },
+    { enabled: isEdit && drawerOpen }
+  );
 
   const createUserMutation = useCreateUser({
     onSuccess: () => {
@@ -73,53 +98,104 @@ const ManageUsers: React.FC<ManageUsersProps> = ({
     isEdit: !!selectedUser,
   };
 
+  const saveUserData = async (values: typeof initialValues) => {
+    try {
+      const formData = new FormData();
+      formData.append('name', values.name);
+      formData.append('email', values.email);
+      formData.append('role_id', values.role_id.toString());
+      formData.append(
+        'depot_ids',
+        JSON.stringify(values.depot_ids.map(Number))
+      );
+      formData.append('sap_code', values.sap_code);
+      formData.append('phone_number', values.phone_number);
+      formData.append('employee_id', values.employee_id);
+      formData.append('address', values.address);
+      formData.append('joining_date', values.joining_date);
+      formData.append('reporting_to', values.reporting_to.toString());
+      formData.append(
+        'platform',
+        values.platform !== 'both' ? values.platform : ''
+      );
+      formData.append('is_active', values.is_active);
+
+      if (values.password) {
+        formData.append('password', values.password);
+      }
+
+      if (uploadedFile) {
+        formData.append('profile_image', uploadedFile);
+      }
+
+      if (isEdit && selectedUser) {
+        await updateUserMutation.mutateAsync({
+          id: selectedUser.id,
+          userData: formData,
+        });
+      } else {
+        await createUserMutation.mutateAsync(formData);
+      }
+    } catch (error) {
+      console.error('Error saving user:', error);
+    }
+  };
+
   const formik = useFormik({
     initialValues,
     validationSchema,
     enableReinitialize: true,
     onSubmit: async values => {
-      try {
-        const formData = new FormData();
-        formData.append('name', values.name);
-        formData.append('email', values.email);
-        formData.append('role_id', values.role_id.toString());
-        formData.append(
-          'depot_ids',
-          JSON.stringify(values.depot_ids.map(Number))
-        );
-        formData.append('sap_code', values.sap_code);
-        formData.append('phone_number', values.phone_number);
-        formData.append('employee_id', values.employee_id);
-        formData.append('address', values.address);
-        formData.append('joining_date', values.joining_date);
-        formData.append('reporting_to', values.reporting_to.toString());
-        formData.append(
-          'platform',
-          values.platform !== 'both' ? values.platform : ''
-        );
-        formData.append('is_active', values.is_active);
+      if (isEdit && selectedUser) {
+        const initialDepotIds = selectedUser.depots?.map((d: any) => d.id) || [];
+        const currentDepotIds = values.depot_ids.map(Number);
+        const removedDepotIds = initialDepotIds.filter(id => !currentDepotIds.includes(id));
 
-        if (values.password) {
-          formData.append('password', values.password);
-        }
+        if (removedDepotIds.length > 0) {
+          const allRoutes = routesResponse?.data || [];
+          const userAssignedRoutes = routeAssignmentsResponse?.data?.assigned_routes || [];
 
-        if (uploadedFile) {
-          formData.append('profile_image', uploadedFile);
-        }
-
-        if (isEdit && selectedUser) {
-          await updateUserMutation.mutateAsync({
-            id: selectedUser.id,
-            userData: formData,
+          const affected = userAssignedRoutes.filter(assignedRoute => {
+            const fullRoute = allRoutes.find(r => r.id === assignedRoute.id);
+            return fullRoute && removedDepotIds.includes(fullRoute.depot_id);
           });
-        } else {
-          await createUserMutation.mutateAsync(formData);
+
+          if (affected.length > 0) {
+            setRoutesToRemove(
+              affected.map((r: any) => {
+                const fullRoute = allRoutes.find(ar => ar.id === r.id);
+                return {
+                  id: r.id,
+                  name: r.name || fullRoute?.name || `Route ${r.id}`,
+                  code: r.code || fullRoute?.code || 'No Code',
+                };
+              })
+            );
+            setPendingValues(values);
+            setConfirmDialogOpen(true);
+            return;
+          }
         }
-      } catch (error) {
-        console.error('Error saving user:', error);
       }
+
+      await saveUserData(values);
     },
   });
+
+  const handleConfirmSubmit = async () => {
+    if (pendingValues) {
+      await saveUserData(pendingValues);
+    }
+    setConfirmDialogOpen(false);
+    setPendingValues(null);
+    setRoutesToRemove([]);
+  };
+
+  const handleCancelSubmit = () => {
+    setConfirmDialogOpen(false);
+    setPendingValues(null);
+    setRoutesToRemove([]);
+  };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -138,9 +214,10 @@ const ManageUsers: React.FC<ManageUsersProps> = ({
     formik.resetForm();
     setSelectedUser(null);
     setUploadedFile(null);
+    setConfirmDialogOpen(false);
+    setRoutesToRemove([]);
+    setPendingValues(null);
   };
-
-  console.log(formik.errors);
 
   const removeUploadedFile = () => {
     setUploadedFile(null);
@@ -338,6 +415,67 @@ const ManageUsers: React.FC<ManageUsersProps> = ({
           </Button>
         </div>
       </Box>
+      <Dialog
+        open={confirmDialogOpen}
+        onClose={handleCancelSubmit}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          className: 'rounded-xl p-4',
+        }}
+      >
+        <DialogTitle className="!p-0 !mb-4 !text-xl !font-semibold !text-gray-900">
+          Confirm Route Unassignment
+        </DialogTitle>
+        <DialogContent className="!p-0 !mb-6">
+          <DialogContentText className="!text-gray-600 !text-sm !mb-4 !leading-relaxed">
+            Unassigning the selected depot(s) will automatically remove the
+            following route assignments from this user:
+          </DialogContentText>
+          <Box className="flex flex-col gap-3 max-h-[240px] overflow-y-auto pr-1">
+            {routesToRemove.map(route => (
+              <Box
+                key={route.id}
+                className="!p-2 !bg-white !rounded-lg !border !border-gray-200 !flex !items-center !gap-3"
+              >
+                <Avatar className="!bg-primary-100 !text-primary-600 !rounded !w-10 !h-10">
+                  <RouteIcon className="w-5 h-5" />
+                </Avatar>
+                <Box className="!min-w-0">
+                  <Typography
+                    variant="body2"
+                    className="!font-semibold !text-gray-900 !truncate"
+                  >
+                    {route.name}
+                  </Typography>
+                  <Typography
+                    variant="caption"
+                    className="!text-gray-500 !truncate !block"
+                  >
+                    {route.code}
+                  </Typography>
+                </Box>
+              </Box>
+            ))}
+          </Box>
+        </DialogContent>
+        <DialogActions className="!p-0 flex gap-2">
+          <Button
+            color='error'
+            variant="outlined"
+            onClick={handleCancelSubmit}
+          >
+            Cancel
+          </Button>
+          <Button
+            color='error'
+            variant="contained"
+            onClick={handleConfirmSubmit}
+          >
+            Proceed
+          </Button>
+        </DialogActions>
+      </Dialog>
     </CustomDrawer>
   );
 };

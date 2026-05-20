@@ -1818,18 +1818,36 @@ exports.customerController = {
                     customer_documents_customers: {
                         orderBy: { createdate: 'desc' },
                     },
-                    customer_assets_customers: {
+                    coolers_customers: {
+                        where: { is_active: 'Y', status: 'Installed' },
                         include: {
-                            customer_asset_types: {
-                                select: { id: true, name: true, category: true, brand: true },
+                            cooler_types: {
+                                select: { id: true, name: true, description: true },
                             },
-                            customer_assets_users: {
-                                select: { id: true, name: true, email: true },
+                            cooler_sub_types: {
+                                select: { id: true, name: true },
                             },
-                            customers_assets_history: {
-                                orderBy: { change_date: 'desc' },
+                            cooler_asset_master: {
                                 include: {
-                                    users_customer_assets_history_changed_byTousers: {
+                                    asset_master_brands: {
+                                        select: { id: true, name: true },
+                                    },
+                                    asset_master_brand: {
+                                        select: { id: true, name: true },
+                                    },
+                                    asset_master_asset_types: {
+                                        select: { id: true, name: true },
+                                    },
+                                    asset_master_asset_sub_types: {
+                                        select: { id: true, name: true },
+                                    },
+                                },
+                            },
+                            cooler_inspections: {
+                                where: { is_active: 'Y' },
+                                orderBy: { inspection_date: 'desc' },
+                                include: {
+                                    users: {
                                         select: { id: true, name: true, email: true },
                                     },
                                 },
@@ -1843,13 +1861,58 @@ exports.customerController = {
                 return res.status(404).json({ message: 'Customer not found' });
             }
             const serializedCustomer = await serializeCustomer(customer);
+            const mappedAssets = (customer.coolers_customers || []).map((cooler) => {
+                const assetMaster = cooler.cooler_asset_master;
+                const resolvedBrand = cooler.brand ||
+                    assetMaster?.brand ||
+                    assetMaster?.asset_master_brands?.name ||
+                    assetMaster?.asset_master_brand?.name ||
+                    null;
+                const resolvedType = cooler.cooler_types
+                    ? { id: cooler.cooler_types.id, name: cooler.cooler_types.name }
+                    : (assetMaster?.asset_master_asset_types
+                        ? { id: assetMaster.asset_master_asset_types.id, name: assetMaster.asset_master_asset_types.name }
+                        : null);
+                const resolvedSubType = cooler.cooler_sub_types
+                    ? { id: cooler.cooler_sub_types.id, name: cooler.cooler_sub_types.name }
+                    : (assetMaster?.asset_master_asset_sub_types
+                        ? { id: assetMaster.asset_master_asset_sub_types.id, name: assetMaster.asset_master_asset_sub_types.name }
+                        : null);
+                const resolvedInstallDate = cooler.install_date || assetMaster?.installation_date || null;
+                return {
+                    id: cooler.id,
+                    code: cooler.code,
+                    brand: resolvedBrand,
+                    asset_brand: resolvedBrand,
+                    model: cooler.model || assetMaster?.name || null,
+                    serial_number: cooler.serial_number || assetMaster?.serial_number || null,
+                    capacity: cooler.capacity || null,
+                    status: cooler.status,
+                    install_date: resolvedInstallDate,
+                    installed_date: resolvedInstallDate,
+                    createdate: cooler.createdate,
+                    asset_type: resolvedType,
+                    asset_types: resolvedType,
+                    asset_sub_type: resolvedSubType,
+                    asset_sub_types: resolvedSubType,
+                    customer_assets_history: (cooler.cooler_inspections || []).map((inspection) => ({
+                        id: inspection.id,
+                        change_date: inspection.inspection_date || inspection.createdate,
+                        change_type: inspection.is_working === 'Y' ? 'Inspection (Working)' : 'Inspection (Issue)',
+                        old_status: null,
+                        new_status: inspection.is_working === 'Y' ? 'working' : 'broken/issue',
+                        remarks: inspection.issues || 'No issues observed',
+                        users_customer_assets_history_changed_byTousers: inspection.users,
+                    })),
+                };
+            });
             res.json({
                 success: true,
                 message: 'Customer fetched successfully',
                 data: {
                     customer: serializedCustomer,
                     documents: customer.customer_documents_customers || [],
-                    assets: customer.customer_assets_customers || [],
+                    assets: mappedAssets,
                 },
             });
         }

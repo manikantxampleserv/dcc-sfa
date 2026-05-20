@@ -85,89 +85,89 @@ const serializeCustomer = async (customer: any) => {
     region_id: customer.region_id || null,
     customer_zones: customer.customer_zones
       ? {
-          id: customer.customer_zones.id,
-          name: customer.customer_zones.name,
-          code: customer.customer_zones.code,
-        }
+        id: customer.customer_zones.id,
+        name: customer.customer_zones.name,
+        code: customer.customer_zones.code,
+      }
       : null,
     customer_routes: customer.customer_routes
       ? {
-          id: customer.customer_routes.id,
-          name: customer.customer_routes.name,
-          code: customer.customer_routes.code,
-          description: customer.customer_routes.description || null,
-          start_location: customer.customer_routes.start_location || null,
-          end_location: customer.customer_routes.end_location || null,
-          estimated_distance:
-            customer.customer_routes.estimated_distance?.toString() || null,
-          estimated_time: customer.customer_routes.estimated_time || null,
-          route_type: customer.customer_routes.route_type || null,
-          outlet_group: customer.customer_routes.outlet_group || null,
-        }
+        id: customer.customer_routes.id,
+        name: customer.customer_routes.name,
+        code: customer.customer_routes.code,
+        description: customer.customer_routes.description || null,
+        start_location: customer.customer_routes.start_location || null,
+        end_location: customer.customer_routes.end_location || null,
+        estimated_distance:
+          customer.customer_routes.estimated_distance?.toString() || null,
+        estimated_time: customer.customer_routes.estimated_time || null,
+        route_type: customer.customer_routes.route_type || null,
+        outlet_group: customer.customer_routes.outlet_group || null,
+      }
       : null,
     customer_city: customer.customers_city
       ? {
-          id: customer.customers_city.id,
-          name: customer.customers_city.name,
-          code: customer.customers_city.code,
-        }
+        id: customer.customers_city.id,
+        name: customer.customers_city.name,
+        code: customer.customers_city.code,
+      }
       : null,
     customer_district: customer.customers_districts
       ? {
-          id: customer.customers_districts.id,
-          name: customer.customers_districts.name,
-          code: customer.customers_districts.code,
-        }
+        id: customer.customers_districts.id,
+        name: customer.customers_districts.name,
+        code: customer.customers_districts.code,
+      }
       : null,
     customer_region: customer.customers_regions
       ? {
-          id: customer.customers_regions.id,
-          name: customer.customers_regions.name,
-          code: customer.customers_regions.code,
-        }
+        id: customer.customers_regions.id,
+        name: customer.customers_regions.name,
+        code: customer.customers_regions.code,
+      }
       : null,
     customer_users: customer.customer_users
       ? {
-          id: customer.customer_users.id,
-          name: customer.customer_users.name,
-          email: customer.customer_users.email,
-        }
+        id: customer.customer_users.id,
+        name: customer.customer_users.name,
+        email: customer.customer_users.email,
+      }
       : null,
     customer_type: customer.customer_type_customer
       ? {
-          id: customer.customer_type_customer.id,
-          type_name: customer.customer_type_customer.type_name,
-          type_code: customer.customer_type_customer.type_code,
-        }
+        id: customer.customer_type_customer.id,
+        type_name: customer.customer_type_customer.type_name,
+        type_code: customer.customer_type_customer.type_code,
+      }
       : null,
     customer_category: customer.customer_category_customer
       ? {
-          id: customer.customer_category_customer.id,
-          category_name: customer.customer_category_customer.category_name,
-          category_code: customer.customer_category_customer.category_code,
-          level: customer.customer_category_customer.level,
-        }
+        id: customer.customer_category_customer.id,
+        category_name: customer.customer_category_customer.category_name,
+        category_code: customer.customer_category_customer.category_code,
+        level: customer.customer_category_customer.level,
+      }
       : null,
     customer_channel: customer.customer_channel_customer
       ? {
-          id: customer.customer_channel_customer.id,
-          channel_name: customer.customer_channel_customer.channel_name,
-          channel_code: customer.customer_channel_customer.channel_code,
-        }
+        id: customer.customer_channel_customer.id,
+        channel_name: customer.customer_channel_customer.channel_name,
+        channel_code: customer.customer_channel_customer.channel_code,
+      }
       : null,
     depot: customer.customer_depot
       ? {
-          id: customer.customer_depot.id,
-          name: customer.customer_depot.name,
-          code: customer.customer_depot.code,
-        }
+        id: customer.customer_depot.id,
+        name: customer.customer_depot.name,
+        code: customer.customer_depot.code,
+      }
       : null,
     default_for_depots: customer.default_for_depots
       ? customer.default_for_depots.map((d: any) => ({
-          id: d.id,
-          name: d.name,
-          code: d.code,
-        }))
+        id: d.id,
+        name: d.name,
+        code: d.code,
+      }))
       : [],
     is_default_outlet:
       customer.default_for_depots && customer.default_for_depots.length > 0
@@ -308,7 +308,7 @@ export const customerController = {
         if (customer?.profile_picture) {
           try {
             await deleteFile(customer.profile_picture);
-          } catch {}
+          } catch { }
         }
 
         const fileName = `customer-profiles/${Date.now()}-${customerId}-${profileFile.originalname}`;
@@ -331,7 +331,7 @@ export const customerController = {
         for (const img of oldImages) {
           try {
             await deleteFile(img.image_url);
-          } catch {}
+          } catch { }
         }
 
         await prisma.customer_image.updateMany({
@@ -2049,19 +2049,36 @@ export const customerController = {
           customer_documents_customers: {
             orderBy: { createdate: 'desc' },
           },
-          customer_assets_customers: {
+          coolers_customers: {
+            where: { is_active: 'Y', status: 'Installed' },
             include: {
-              customer_asset_types: {
-                select: { id: true, name: true, category: true, brand: true },
+              cooler_types: {
+                select: { id: true, name: true, description: true },
               },
-              customer_assets_users: {
-                select: { id: true, name: true, email: true },
+              cooler_sub_types: {
+                select: { id: true, name: true },
               },
-
-              customers_assets_history: {
-                orderBy: { change_date: 'desc' },
+              cooler_asset_master: {
                 include: {
-                  users_customer_assets_history_changed_byTousers: {
+                  asset_master_brands: {
+                    select: { id: true, name: true },
+                  },
+                  asset_master_brand: {
+                    select: { id: true, name: true },
+                  },
+                  asset_master_asset_types: {
+                    select: { id: true, name: true },
+                  },
+                  asset_master_asset_sub_types: {
+                    select: { id: true, name: true },
+                  },
+                },
+              },
+              cooler_inspections: {
+                where: { is_active: 'Y' },
+                orderBy: { inspection_date: 'desc' },
+                include: {
+                  users: {
                     select: { id: true, name: true, email: true },
                   },
                 },
@@ -2077,13 +2094,66 @@ export const customerController = {
       }
 
       const serializedCustomer = await serializeCustomer(customer);
+
+      const mappedAssets = (customer.coolers_customers || []).map((cooler: any) => {
+        const assetMaster = cooler.cooler_asset_master;
+
+        const resolvedBrand =
+          cooler.brand ||
+          assetMaster?.brand ||
+          assetMaster?.asset_master_brands?.name ||
+          assetMaster?.asset_master_brand?.name ||
+          null;
+
+        const resolvedType = cooler.cooler_types
+          ? { id: cooler.cooler_types.id, name: cooler.cooler_types.name }
+          : (assetMaster?.asset_master_asset_types
+              ? { id: assetMaster.asset_master_asset_types.id, name: assetMaster.asset_master_asset_types.name }
+              : null);
+
+        const resolvedSubType = cooler.cooler_sub_types
+          ? { id: cooler.cooler_sub_types.id, name: cooler.cooler_sub_types.name }
+          : (assetMaster?.asset_master_asset_sub_types
+              ? { id: assetMaster.asset_master_asset_sub_types.id, name: assetMaster.asset_master_asset_sub_types.name }
+              : null);
+
+        const resolvedInstallDate = cooler.install_date || assetMaster?.installation_date || null;
+
+        return {
+          id: cooler.id,
+          code: cooler.code,
+          brand: resolvedBrand,
+          asset_brand: resolvedBrand,
+          model: cooler.model || assetMaster?.name || null,
+          serial_number: cooler.serial_number || assetMaster?.serial_number || null,
+          capacity: cooler.capacity || null,
+          status: cooler.status,
+          install_date: resolvedInstallDate,
+          installed_date: resolvedInstallDate,
+          createdate: cooler.createdate,
+          asset_type: resolvedType,
+          asset_types: resolvedType,
+          asset_sub_type: resolvedSubType,
+          asset_sub_types: resolvedSubType,
+          customer_assets_history: (cooler.cooler_inspections || []).map((inspection: any) => ({
+            id: inspection.id,
+            change_date: inspection.inspection_date || inspection.createdate,
+            change_type: inspection.is_working === 'Y' ? 'Inspection (Working)' : 'Inspection (Issue)',
+            old_status: null,
+            new_status: inspection.is_working === 'Y' ? 'working' : 'broken/issue',
+            remarks: inspection.issues || 'No issues observed',
+            users_customer_assets_history_changed_byTousers: inspection.users,
+          })),
+        };
+      });
+
       res.json({
         success: true,
         message: 'Customer fetched successfully',
         data: {
           customer: serializedCustomer,
           documents: customer.customer_documents_customers || [],
-          assets: customer.customer_assets_customers || [],
+          assets: mappedAssets,
         },
       });
     } catch (error: any) {

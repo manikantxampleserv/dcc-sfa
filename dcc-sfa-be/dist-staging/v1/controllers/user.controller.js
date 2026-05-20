@@ -542,6 +542,23 @@ exports.userController = {
                         })),
                     });
                 }
+                const userRoutes = await prisma_client_1.default.route_salespersons.findMany({
+                    where: { user_id: targetUserId },
+                    include: {
+                        route: true,
+                    },
+                });
+                const routesToRemove = userRoutes.filter(rs => rs.route && !parsedDepotIds.includes(rs.route.depot_id));
+                if (routesToRemove.length > 0) {
+                    await prisma_client_1.default.route_salespersons.deleteMany({
+                        where: {
+                            user_id: targetUserId,
+                            route_id: {
+                                in: routesToRemove.map(rs => rs.route_id),
+                            },
+                        },
+                    });
+                }
             }
             const finalUser = await prisma_client_1.default.users.findUnique({
                 where: { id: targetUserId },

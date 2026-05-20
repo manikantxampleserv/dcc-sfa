@@ -44,6 +44,7 @@
   "dependencies": {
     "@prisma/adapter-mssql": "^7.1.0",
     "@prisma/client": "^7.1.0",
+    "code-inspector-plugin": "^1.5.1",
     "mssql": "^12.2.0",
     "node-cron": "^4.2.1",
     "recharts": "^3.3.0"
