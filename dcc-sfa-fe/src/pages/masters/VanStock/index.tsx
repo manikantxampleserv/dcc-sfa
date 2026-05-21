@@ -24,7 +24,7 @@ import {
   type VanInventory,
 } from '../../../hooks/useVanInventory';
 import UserSelect from '../../../shared/UserSelect';
-import { formatDate } from '../../../utils/dateUtils';
+import { formatDateTime } from '../../../utils/dateUtils';
 import ImportVanInventory from './ImportVanInventory';
 import ManageVanInventory from './ManageVanInventory';
 import VanInventoryDetail from './VanInventoryDetail';
@@ -272,7 +272,7 @@ const VanStockPage: React.FC = () => {
       id: 'document_date',
       label: 'Document Date',
       render: (_value, row) =>
-        formatDate(row.document_date) || (
+        formatDateTime(row.document_date) || (
           <span className="italic text-gray-400">No Date</span>
         ),
     },
@@ -293,7 +293,7 @@ const VanStockPage: React.FC = () => {
       id: 'last_updated',
       label: 'Last Updated',
       render: (_value, row) => {
-        const formattedDate = formatDate(row.last_updated);
+        const formattedDate = formatDateTime(row.last_updated);
         return formattedDate ? (
           <span>{formattedDate}</span>
         ) : (

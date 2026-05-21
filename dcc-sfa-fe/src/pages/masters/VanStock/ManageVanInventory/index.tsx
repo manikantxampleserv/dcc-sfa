@@ -1,7 +1,6 @@
 import { Tag, WarningAmberRounded } from '@mui/icons-material';
 import { Box, MenuItem, Tooltip, Typography } from '@mui/material';
 import { useFormik } from 'formik';
-import { useDepots } from 'hooks/useDepots';
 import { useProducts } from 'hooks/useProducts';
 import {
   useCreateVanInventory,
@@ -33,6 +32,7 @@ import Input from 'shared/Input';
 import Select from 'shared/Select';
 import Table, { type TableColumn } from 'shared/Table';
 import UserSelect from 'shared/UserSelect';
+import DepotSelect from 'shared/DepotSelect';
 import ManageBatch from '../ManageBatch';
 import ManageSerial from '../ManageSerial';
 
@@ -116,8 +116,6 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
     limit: 1000,
     isActive: 'Y',
   });
-
-  const { data: depotsResponse } = useDepots({ limit: 1000, isActive: 'Y' });
 
   const formik = useFormik<VanInventoryFormValues>({
     initialValues: {
@@ -281,7 +279,7 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
     () => vehiclesResponse?.data || [],
     [vehiclesResponse]
   );
-  const depots = useMemo(() => depotsResponse?.data || [], [depotsResponse]);
+
 
   const availableProducts = useMemo(() => {
     if (!isUnloadType) {
@@ -815,6 +813,9 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
               label="Van Inventory User"
               formik={formik}
               required
+              onChange={() => {
+                formik.setFieldValue('location_id', '');
+              }}
             />
 
             <Select name="loading_type" label="Type" formik={formik} required>
@@ -849,18 +850,13 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
               ))}
             </Select>
 
-            <Select
+            <DepotSelect
               name="location_id"
               label="Location/Depot"
               formik={formik}
               placeholder="Select Location/Depot"
-            >
-              {depots.map(depot => (
-                <MenuItem key={depot.id} value={depot.id}>
-                  {depot.name} ({depot.code})
-                </MenuItem>
-              ))}
-            </Select>
+              userId={formik.values.user_id ? Number(formik.values.user_id) : undefined}
+            />
           </Box>
 
           <ActiveInactiveField
