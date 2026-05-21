@@ -20,7 +20,7 @@ const Barcode: React.FC<BarcodeProps> = ({
   const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+  const backendUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000';
   const barcodeUrl = `${backendUrl}/api/v1/barcode?text=${encodeURIComponent(
     value
   )}&type=${type}&format=svg`;
