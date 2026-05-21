@@ -42,7 +42,7 @@ const ManageCoolerInspection: React.FC<ManageCoolerInspectionProps> = ({
   const updateCoolerInspectionMutation = useUpdateCoolerInspection();
 
   // Fetch data for dropdowns
-  const { data: coolersResponse } = useCoolerInstallations({ limit: 1000 });
+  const { data: coolersResponse } = useCoolerInstallations({ limit: 1000, filter_status: 'Removed' });
   const { data: usersResponse } = useUsers({ limit: 1000 });
   const { data: visitsResponse } = useVisits({ limit: 1000 });
 

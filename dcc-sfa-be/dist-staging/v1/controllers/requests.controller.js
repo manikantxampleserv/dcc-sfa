@@ -51,6 +51,11 @@ const serializeRequest = (request) => ({
         reference_details: request.reference_details || null,
     })) || [],
 });
+const isDisposalMovementOutletToDepot = (movement) => {
+    return (movement.movement_type?.toLowerCase() === 'disposal' &&
+        movement.from_direction?.toLowerCase() === 'outlet' &&
+        movement.to_direction?.toLowerCase() === 'depot');
+};
 const formatRequestType = (type) => {
     return type
         .replace(/_/g, ' ')
@@ -329,6 +334,7 @@ const createRequest = async (data) => {
                     const toDirection = assetMovement.to_direction || '';
                     const toDepotId = assetMovement.to_depot_id;
                     const toCustomerId = assetMovement.to_customer_id;
+                    const isDisposal = isDisposalMovementOutletToDepot(assetMovement);
                     await prisma_client_1.default.asset_master.updateMany({
                         where: {
                             id: {
@@ -339,7 +345,7 @@ const createRequest = async (data) => {
                             depot_id: toDepotId || null,
                             outlet_id: toCustomerId || null,
                             current_location: `${toDirection} (${toDepotId || toCustomerId})`,
-                            current_status: toCustomerId ? 'Installed' : 'Available',
+                            current_status: isDisposal ? 'Damaged' : (toCustomerId ? 'Installed' : 'Available'),
                             updatedate: new Date(),
                             updatedby: data.createdby,
                         },
@@ -357,12 +363,15 @@ const createRequest = async (data) => {
                     // }
                     await prisma_client_1.default.coolers.updateMany({
                         where: {
-                            asset_movement_id: data.reference_id,
+                            asset_master_id: {
+                                in: assetMovement.asset_movement_assets.map((aa) => aa.asset_id),
+                            },
                         },
                         data: {
-                            status: 'Installed',
+                            status: isDisposal ? 'Removed' : 'Installed',
                             approval_status: 'A',
-                            install_date: new Date(),
+                            ...(!isDisposal && { install_date: new Date() }),
+                            asset_movement_id: data.reference_id,
                             updatedate: new Date(),
                             updatedby: data.createdby,
                         },
@@ -1109,6 +1118,7 @@ exports.requestsController = {
                             const toDirection = assetMovement.to_direction || '';
                             const toDepotId = assetMovement.to_depot_id;
                             const toCustomerId = assetMovement.to_customer_id;
+                            const isDisposal = isDisposalMovementOutletToDepot(assetMovement);
                             await tx.asset_master.updateMany({
                                 where: {
                                     id: {
@@ -1119,19 +1129,22 @@ exports.requestsController = {
                                     depot_id: toDepotId || null,
                                     outlet_id: toCustomerId || null,
                                     current_location: `${toDirection} (${toDepotId || toCustomerId})`,
-                                    current_status: toCustomerId ? 'Installed' : 'Available',
+                                    current_status: isDisposal ? 'Damaged' : (toCustomerId ? 'Installed' : 'Available'),
                                     updatedate: new Date(),
                                     updatedby: userId,
                                 },
                             });
                             await tx.coolers.updateMany({
                                 where: {
-                                    asset_movement_id: request.reference_id,
+                                    asset_master_id: {
+                                        in: assetMovement.asset_movement_assets.map((aa) => aa.asset_id),
+                                    },
                                 },
                                 data: {
-                                    status: 'Installed',
+                                    status: isDisposal ? 'Removed' : 'Installed',
                                     approval_status: 'A',
-                                    install_date: new Date(),
+                                    ...(!isDisposal && { install_date: new Date() }),
+                                    asset_movement_id: request.reference_id,
                                     updatedate: new Date(),
                                     updatedby: userId,
                                 },

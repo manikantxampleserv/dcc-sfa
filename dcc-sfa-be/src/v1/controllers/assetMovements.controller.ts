@@ -103,51 +103,51 @@ const serializeAssetMovement = (
         asset_id: aa.asset_id,
         asset_master: aa.asset_movement_assets_asset
           ? {
-              id: aa.asset_movement_assets_asset.id,
-              name: aa.asset_movement_assets_asset.name,
-              serial_number: aa.asset_movement_assets_asset.serial_number,
-              asset_master_asset_types: aa.asset_movement_assets_asset
-                .asset_master_asset_types
-                ? {
-                    id: aa.asset_movement_assets_asset.asset_master_asset_types
-                      .id,
-                    name: aa.asset_movement_assets_asset
-                      .asset_master_asset_types.name,
-                  }
-                : null,
-            }
+            id: aa.asset_movement_assets_asset.id,
+            name: aa.asset_movement_assets_asset.name,
+            serial_number: aa.asset_movement_assets_asset.serial_number,
+            asset_master_asset_types: aa.asset_movement_assets_asset
+              .asset_master_asset_types
+              ? {
+                id: aa.asset_movement_assets_asset.asset_master_asset_types
+                  .id,
+                name: aa.asset_movement_assets_asset
+                  .asset_master_asset_types.name,
+              }
+              : null,
+          }
           : null,
       })) || [],
     asset_movement_from_depot: movement.asset_movement_from_depot
       ? {
-          id: movement.asset_movement_from_depot.id,
-          name: movement.asset_movement_from_depot.name,
-        }
+        id: movement.asset_movement_from_depot.id,
+        name: movement.asset_movement_from_depot.name,
+      }
       : null,
     asset_movement_from_customer: movement.asset_movement_from_customer
       ? {
-          id: movement.asset_movement_from_customer.id,
-          name: movement.asset_movement_from_customer.name,
-        }
+        id: movement.asset_movement_from_customer.id,
+        name: movement.asset_movement_from_customer.name,
+      }
       : null,
     asset_movement_to_depot: movement.asset_movement_to_depot
       ? {
-          id: movement.asset_movement_to_depot.id,
-          name: movement.asset_movement_to_depot.name,
-        }
+        id: movement.asset_movement_to_depot.id,
+        name: movement.asset_movement_to_depot.name,
+      }
       : null,
     asset_movement_to_customer: movement.asset_movement_to_customer
       ? {
-          id: movement.asset_movement_to_customer.id,
-          name: movement.asset_movement_to_customer.name,
-        }
+        id: movement.asset_movement_to_customer.id,
+        name: movement.asset_movement_to_customer.name,
+      }
       : null,
     asset_movements_performed_by: movement.asset_movements_performed_by
       ? {
-          id: movement.asset_movements_performed_by.id,
-          name: movement.asset_movements_performed_by.name,
-          email: movement.asset_movements_performed_by.email,
-        }
+        id: movement.asset_movements_performed_by.id,
+        name: movement.asset_movements_performed_by.name,
+        email: movement.asset_movements_performed_by.email,
+      }
       : null,
   };
 };
@@ -159,7 +159,7 @@ const COOLER_APPROVAL_STATUS = {
 
 const COOLER_PENDING_VALUES = ['P', 'pending'] as const;
 
-const isInstallationMovement = (movement: {
+const isInstallationMovementDepotToOutlet = (movement: {
   movement_type?: string | null;
   from_direction?: string | null;
   to_direction?: string | null;
@@ -194,9 +194,9 @@ const createCoolerInstallationsForMovement = async (
 
   console.log(
     `[createCoolerInstallations] movementId=${movement.id} ` +
-      `approvalExists=${approvalExists} isApproved=${isApproved} ` +
-      `→ coolerStatus="${coolerStatus}" coolerApprovalStatus="${coolerApprovalStatus}" ` +
-      `assetIds=${JSON.stringify(assetIds)}`
+    `approvalExists=${approvalExists} isApproved=${isApproved} ` +
+    `→ coolerStatus="${coolerStatus}" coolerApprovalStatus="${coolerApprovalStatus}" ` +
+    `assetIds=${JSON.stringify(assetIds)}`
   );
 
   for (const assetId of assetIds) {
@@ -227,7 +227,7 @@ const createCoolerInstallationsForMovement = async (
       if (!movement.to_customer_id) {
         console.warn(
           `[createCoolerInstallations] movement ${movement.id} has no to_customer_id – ` +
-            `cannot create cooler for asset ${assetId}`
+          `cannot create cooler for asset ${assetId}`
         );
         continue;
       }
@@ -242,7 +242,7 @@ const createCoolerInstallationsForMovement = async (
       if (existingCooler) {
         console.log(
           `[createCoolerInstallations] Cooler already exists for asset ${assetId} ` +
-            `(id=${existingCooler.id} approval_status="${existingCooler.approval_status}") – skipping`
+          `(id=${existingCooler.id} approval_status="${existingCooler.approval_status}") – skipping`
         );
         continue;
       }
@@ -268,7 +268,7 @@ const createCoolerInstallationsForMovement = async (
 
       console.log(
         `[createCoolerInstallations] Created cooler id=${newCooler.id} ` +
-          `for asset ${assetId} with status="${coolerStatus}" approval_status="${coolerApprovalStatus}"`
+        `for asset ${assetId} with status="${coolerStatus}" approval_status="${coolerApprovalStatus}"`
       );
     } catch (coolerError: any) {
       console.error(
@@ -286,7 +286,7 @@ const approveCoolerInstallationsForMovement = async (
 ): Promise<void> => {
   console.log(
     `[approveCoolerInstallations] movementId=${movementId} ` +
-      `assetIds=${JSON.stringify(assetIds)} approvedBy=${approvedByUserId}`
+    `assetIds=${JSON.stringify(assetIds)} approvedBy=${approvedByUserId}`
   );
 
   const existingCoolers = await prisma.coolers.findMany({
@@ -867,11 +867,11 @@ export const assetMovementsController = {
         const approver = firstPendingStep.sfa_d_requests_approvals_approver;
         currentApproverName = approver
           ? JSON.stringify({
-              name: approver.name,
-              email: approver.email || '',
-              profile_image: approver.profile_image || null,
-              employee_id: approver.employee_id || '',
-            })
+            name: approver.name,
+            email: approver.email || '',
+            profile_image: approver.profile_image || null,
+            employee_id: approver.employee_id || '',
+          })
           : null;
       }
 
@@ -1061,7 +1061,7 @@ export const assetMovementsController = {
         });
       });
 
-      if (becomingApproved && updated && isInstallationMovement(updated)) {
+      if (becomingApproved && updated && isInstallationMovementDepotToOutlet(updated)) {
         const effectiveAssetIds: number[] =
           asset_ids && Array.isArray(asset_ids) && asset_ids.length > 0
             ? asset_ids

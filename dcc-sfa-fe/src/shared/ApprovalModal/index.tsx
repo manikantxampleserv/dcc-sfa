@@ -4,22 +4,21 @@ import {
   DialogContent,
   DialogTitle,
   IconButton,
-  Typography,
+  Typography
 } from '@mui/material';
 import { useFormik } from 'formik';
 import { useTakeActionOnRequest } from 'hooks/useRequests';
-import { Check, X } from 'lucide-react';
+import { Check, FileText, X } from 'lucide-react';
 import React from 'react';
 import type { Request } from 'services/requests';
 import Button from 'shared/Button';
-import Input from 'shared/Input';
 import * as yup from 'yup';
 
 interface ApprovalModalProps {
   open: boolean;
   onClose: () => void;
   request: Request | null;
-  type: 'approve' | 'reject';
+  type: 'approve' | 'reject' | 'view';
 }
 
 const ApprovalModal: React.FC<ApprovalModalProps> = ({
@@ -35,19 +34,23 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({
       remarks: '',
     },
     validationSchema: yup.object({
-      remarks: yup
-        .string()
-        .required(
-          `${type === 'approve' ? 'Approval' : 'Rejection'} remarks are required`
-        )
-        .trim()
-        .min(
-          1,
-          `${type === 'approve' ? 'Approval' : 'Rejection'} remarks are required`
-        ),
+      remarks:
+        type === 'view'
+          ? yup.string().optional()
+          : yup
+            .string()
+            .required(
+              `${type === 'approve' ? 'Approval' : 'Rejection'} remarks are required`
+            )
+            .trim()
+            .min(
+              1,
+              `${type === 'approve' ? 'Approval' : 'Rejection'} remarks are required`
+            ),
     }),
     enableReinitialize: true,
     onSubmit: async values => {
+      if (type === 'view') return;
       if (!request || !request.approvals?.[0]) return;
 
       try {
@@ -82,6 +85,63 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({
 
   const requestData = getParsedRequestData();
 
+
+  const formatRequestType = (type: string): string => {
+    return type
+      .replace(/_/g, ' ')
+      .replace(/\w\S*/g, txt => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase());
+  };
+
+  const getReferenceNumber = (request: Request | null): string => {
+    if (!request) return '';
+    if (request.reference_details) {
+      if (
+        request.request_type === 'ORDER_APPROVAL' &&
+        request.reference_details.order_number
+      ) {
+        return request.reference_details.order_number;
+      }
+      if (
+        request.request_type === 'ASSET_MOVEMENT_APPROVAL' &&
+        request.reference_details.movement_number
+      ) {
+        return request.reference_details.movement_number;
+      }
+      if (
+        request.request_type === 'LOCATION_RESET' &&
+        request.reference_details.customer_code
+      ) {
+        return request.reference_details.customer_code;
+      }
+    }
+
+    if (request.request_data) {
+      try {
+        const data = JSON.parse(request.request_data);
+        if (request.request_type === 'CUSTOMER_CREATION') {
+          return (
+            data.customer_data?.code ||
+            request.reference_details?.customer_code ||
+            `NEW-CUST-${request.id}`
+          );
+        }
+        if (request.request_type === 'LOCATION_RESET') {
+          return (
+            data.customer_code ||
+            request.reference_details?.customer_code ||
+            `LOC-${request.reference_id || request.id}`
+          );
+        }
+      } catch (e) {
+        console.error('Error parsing request data:', e);
+      }
+    }
+
+    return request.reference_id
+      ? `#${request.reference_id}`
+      : `REQ-${request.id}`;
+  };
+
   return (
     <Dialog
       open={open}
@@ -92,21 +152,39 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({
     >
       <DialogTitle className="!flex !items-center !gap-3 !pb-4 !border-b !border-gray-200 !relative">
         <div
-          className={`!w-12 !h-12 !rounded-full !flex !items-center !justify-center !shrink-0 ${type === 'approve' ? '!bg-green-100' : '!bg-red-100'
+          className={`!w-12 !h-12 !rounded-full !flex !items-center !justify-center !shrink-0 ${type === 'approve'
+            ? '!bg-green-100'
+            : type === 'reject'
+              ? '!bg-red-100'
+              : '!bg-blue-100'
             }`}
         >
           {type === 'approve' ? (
             <Check className="!w-6 !h-6 !text-green-600" />
-          ) : (
+          ) : type === 'reject' ? (
             <X className="!w-6 !h-6 !text-red-600" />
+          ) : (
+            <FileText className="!w-6 !h-6 !text-blue-600" />
           )}
         </div>
         <div className="!flex-1">
           <Typography variant="h6" className="!font-semibold !text-gray-900">
-            {type === 'approve' ? 'Approve Request?' : 'Reject Request?'}
+            {type === 'approve'
+              ? 'Approve Request?'
+              : type === 'reject'
+                ? 'Reject Request?'
+                : 'Request Details'}
           </Typography>
           <Typography variant="body2" className="!text-gray-600 !mt-1">
-            {type === 'approve' ? (
+            {type === 'view' ? (
+              <>
+                Viewing{' '}
+                <span className="!font-semibold !text-gray-900">
+                  {getReferenceNumber(request)}
+                </span>{' '}
+                - {formatRequestType(request?.request_type || '')}
+              </>
+            ) : type === 'approve' ? (
               <>
                 Are you sure you want to approve this{' '}
                 {request?.request_type?.replaceAll('_', ' ').toLowerCase() ||
@@ -627,51 +705,45 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({
             ) : null}
           </div>
         )}
-
-        <Input
-          name="remarks"
-          multiline
-          rows={3}
-          label={type === 'approve' ? 'Approval Remarks' : 'Rejection Remarks'}
-          placeholder={
-            type === 'approve'
-              ? 'Enter approval remarks...'
-              : 'Enter rejection remarks...'
-          }
-          formik={formik}
-          required
-        />
       </DialogContent>
 
-      <DialogActions className="!px-6 !py-4 !gap-2">
-        <Button variant="outlined" onClick={handleCancel}>
-          Cancel
-        </Button>
-        <Button
-          variant="contained"
-          color={type === 'approve' ? 'success' : 'error'}
-          startIcon={
-            type === 'approve' ? (
-              <Check className="!w-4 !h-4" />
-            ) : (
-              <X className="!w-4 !h-4" />
-            )
-          }
-          onClick={() => formik.handleSubmit()}
-          disabled={
-            takeActionMutation.isPending ||
-            !formik.isValid ||
-            !formik.values.remarks.trim()
-          }
-        >
-          {takeActionMutation.isPending
-            ? type === 'approve'
-              ? 'Approving...'
-              : 'Rejecting...'
-            : type === 'approve'
-              ? 'Yes, Approve'
-              : 'Yes, Reject'}
-        </Button>
+      <DialogActions className="!px-4 !pb-4 !gap-2">
+        {type === 'view' ? (
+          <Button variant="contained" onClick={handleCancel} className="!px-6">
+            Close
+          </Button>
+        ) : (
+          <>
+            <Button variant="outlined" onClick={handleCancel}>
+              Cancel
+            </Button>
+            <Button
+              variant="contained"
+              color={type === 'approve' ? 'success' : 'error'}
+              startIcon={
+                type === 'approve' ? (
+                  <Check className="!w-4 !h-4" />
+                ) : (
+                  <X className="!w-4 !h-4" />
+                )
+              }
+              onClick={() => formik.handleSubmit()}
+              disabled={
+                takeActionMutation.isPending ||
+                !formik.isValid ||
+                !formik.values.remarks.trim()
+              }
+            >
+              {takeActionMutation.isPending
+                ? type === 'approve'
+                  ? 'Approving...'
+                  : 'Rejecting...'
+                : type === 'approve'
+                  ? 'Yes, Approve'
+                  : 'Yes, Reject'}
+            </Button>
+          </>
+        )}
       </DialogActions>
     </Dialog>
   );
