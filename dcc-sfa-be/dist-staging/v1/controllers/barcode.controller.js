@@ -29,9 +29,8 @@ exports.barcodeController = {
                     includetext: true,
                     textxalign: 'center',
                     textsize: 10,
-                    textyoffset: 10,
-                    paddingwidth: 20,
-                    paddingheight: 20,
+                    textyoffset: -2,
+                    paddingwidth: 10,
                     textfont: 'monospace',
                 });
                 res.setHeader('Content-Type', 'image/png');
@@ -47,8 +46,8 @@ exports.barcodeController = {
                     includetext: true,
                     textxalign: 'center',
                     textsize: 10,
-                    paddingwidth: 20,
-                    paddingheight: 20,
+                    textyoffset: -2,
+                    paddingwidth: 10,
                     textfont: 'monospace',
                 });
                 svgString = svgString.replace(/(<text[^>]*y=")(\d+)(")/, (_, start, y, end) => `${start}${Number(y) + 15}${end}`);

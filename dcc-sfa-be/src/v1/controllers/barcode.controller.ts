@@ -29,19 +29,13 @@ export const barcodeController = {
         const pngBuffer = await bwipjs.toBuffer({
           bcid: barcodeType,
           text: valueStr,
-
           scale: scaleNum,
           height: heightNum,
-
           includetext: true,
           textxalign: 'center',
-
           textsize: 10,
-          textyoffset: 10,
-
-          paddingwidth: 20,
-          paddingheight: 20,
-
+          textyoffset: -2,
+          paddingwidth: 10,
           textfont: 'monospace',
         });
 
@@ -56,18 +50,13 @@ export const barcodeController = {
         let svgString = bwipjs.toSVG({
           bcid: barcodeType,
           text: valueStr,
-
           scale: scaleNum,
           height: heightNum,
-
           includetext: true,
           textxalign: 'center',
-
           textsize: 10,
-
-          paddingwidth: 20,
-          paddingheight: 20,
-
+          textyoffset: -2,
+          paddingwidth: 10,
           textfont: 'monospace',
         });
 

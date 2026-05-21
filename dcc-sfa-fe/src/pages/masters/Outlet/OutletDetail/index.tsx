@@ -139,7 +139,7 @@ const OutletDetail: React.FC = () => {
         </div>
 
         {/* Detailed Information Skeleton */}
-        <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <div className="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
           {/* Contact Information Skeleton */}
           <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
             <Skeleton
@@ -189,6 +189,24 @@ const OutletDetail: React.FC = () => {
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+
+          {/* Barcode Skeleton */}
+          <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm flex flex-col justify-between min-h-[220px]">
+            <div className="flex justify-between items-center w-full mb-3">
+              <div className="flex items-center gap-1.5">
+                <Skeleton variant="circular" width={16} height={16} />
+                <Skeleton variant="text" width={80} height={16} />
+              </div>
+              <div className="flex items-center gap-1">
+                <Skeleton variant="circular" width={24} height={24} />
+                <Skeleton variant="circular" width={24} height={24} />
+                <Skeleton variant="circular" width={24} height={24} />
+              </div>
+            </div>
+            <div className="flex-grow w-full flex items-center justify-center bg-gray-50/50 rounded-lg p-4 border border-gray-50">
+              <Skeleton variant="rectangular" width="80%" height={80} />
             </div>
           </div>
         </div>
@@ -787,7 +805,7 @@ const OutletDetail: React.FC = () => {
           </div>
 
           {/* Detailed Information */}
-          <div className="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
             {/* Contact Information */}
             <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
               <Typography
@@ -924,8 +942,8 @@ const OutletDetail: React.FC = () => {
               </div>
             </div>
             {customer.code && (
-              <div className="w-full flex-shrink-0">
-                <Barcode value={customer.code} label="Customer Code" showText={false} />
+              <div className="w-full h-full flex-shrink-0 flex flex-col">
+                <Barcode value={customer.code} label="Customer Code" showText={false} className='!flex-1 !h-full' />
               </div>
             )}
           </div>
@@ -978,9 +996,6 @@ const OutletDetail: React.FC = () => {
             </div>
           )}
         </div>
-
-        {/* Right sidebar - Customer Barcode */}
-
       </div>
 
       {/* Tabs */}

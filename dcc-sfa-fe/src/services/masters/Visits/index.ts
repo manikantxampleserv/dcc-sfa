@@ -1,6 +1,44 @@
 import axiosInstance from 'configs/axio.config';
 import type { ApiResponse } from '../../../types/api.types';
 
+interface OrderItem {
+  id: number;
+  order_id: number;
+  product_id: number;
+  product_name: string;
+  unit?: string | null;
+  quantity: number;
+  unit_price: string;
+  tax_amount?: string | null;
+  total_amount: string;
+  notes?: string | null;
+}
+
+interface VisitOrder {
+  id: number;
+  visit_id: number;
+  order_number: string;
+  status: string;
+  order_date: string;
+  payment_method: string;
+  payment_terms?: string | null;
+  subtotal: string;
+  discount_amount?: string | null;
+  tax_amount?: string | null;
+  shipping_amount?: string | null;
+  total_amount: string;
+  order_items: OrderItem[];
+}
+
+interface VisitAttachment {
+  id: number;
+  visit_id: number;
+  file_url: string;
+  file_name?: string | null;
+  file_type: string;
+  description?: string | null;
+}
+
 interface Visit {
   id: number;
   customer_id: number;
@@ -62,6 +100,8 @@ interface Visit {
     name: string;
     code: string;
   } | null;
+  orders?: VisitOrder[] | null;
+  visit_attachments?: VisitAttachment[] | null;
 }
 
 interface ManageVisitPayload {

@@ -20,10 +20,13 @@ const Barcode: React.FC<BarcodeProps> = ({
   const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  const backendUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000';
-  const barcodeUrl = `${backendUrl}/api/v1/barcode?text=${encodeURIComponent(
+  const backendUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api/v1';
+  const normalizedBaseUrl = backendUrl.endsWith('/api/v1')
+    ? backendUrl
+    : `${backendUrl.replace(/\/$/, '')}/api/v1`;
+  const barcodeUrl = `${normalizedBaseUrl}/barcode?text=${encodeURIComponent(
     value
-  )}&type=${type}&format=svg`;
+  )}&type=${type}&format=png`;
 
   const handleCopy = async () => {
     try {
@@ -43,7 +46,7 @@ const Barcode: React.FC<BarcodeProps> = ({
 
       const link = document.createElement('a');
       link.href = blobUrl;
-      link.download = `${value}_barcode.svg`;
+      link.download = `${value}_barcode.png`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -108,7 +111,7 @@ const Barcode: React.FC<BarcodeProps> = ({
 
   return (
     <div
-      className={`!bg-white !rounded-xl !border !border-gray-100 !shadow-sm !p-4 !flex !flex-col !items-center !justify-center !transition-all !duration-300 hover:!shadow-md hover:!border-gray-200 group ${className}`}
+      className={`!bg-white !rounded-lg !border !border-gray-100 !shadow-sm !p-4 !flex !flex-col !items-center !justify-center !transition-all !duration-300 hover:!shadow-md hover:!border-gray-200 group ${className}`}
     >
       {/* Header Info */}
       <div className="!flex !items-center !justify-between !w-full !mb-3">
@@ -142,7 +145,7 @@ const Barcode: React.FC<BarcodeProps> = ({
       </div>
 
       {/* Barcode Image Container */}
-      <div className="!relative !w-full !flex !items-center !justify-center !bg-gray-50/50 !rounded-lg !py-4 !px-6 !border !border-gray-50 !min-h-[100px] overflow-hidden">
+      <div className="!relative !w-full !flex-1 !flex !items-center !justify-center !bg-gray-50/50 !rounded-lg !py-4 !px-6 !border !border-gray-50 !min-h-[100px] overflow-hidden">
         {loading && (
           <div className="!absolute !inset-0 !flex !items-center !justify-center !bg-white/80 !z-10">
             <CircularProgress size={24} className="!text-primary-500" />
@@ -153,7 +156,7 @@ const Barcode: React.FC<BarcodeProps> = ({
           alt={`${label} ${value}`}
           onLoad={() => setLoading(false)}
           onError={() => setLoading(false)}
-          className={`!w-full !max-w-[280px] !height-auto !object-contain !transition-all !duration-500 ${loading ? '!scale-95 !blur-[2px]' : '!scale-100 !blur-0'
+          className={`!w-full !max-w-[280px] !h-auto !object-contain !transition-all !duration-500 ${loading ? '!scale-95 !blur-[2px]' : '!scale-100 !blur-0'
             }`}
         />
       </div>

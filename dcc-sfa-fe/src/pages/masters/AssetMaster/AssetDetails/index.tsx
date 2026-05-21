@@ -286,11 +286,7 @@ const AssetDetails: React.FC = () => {
               />
             </div>
 
-            {asset.serial_number && (
-              <div className="!mt-4">
-                <Barcode value={asset.serial_number} label="Serial Number" />
-              </div>
-            )}
+
 
             <div className="!space-y-1 !text-left !mt-4">
               <div className="!p-2 !bg-gray-50 !rounded-md">
@@ -323,10 +319,13 @@ const AssetDetails: React.FC = () => {
               </div>
             </div>
           </div>
+
+
         </div>
 
         {/* Right Info Column */}
         <div className="!flex-4 !space-y-2 w-full">
+
           <InfoCard title="Asset Information" icon={SettingsIcon}>
             <div className="!grid !grid-cols-1 md:!grid-cols-2 !gap-4">
               <div className="!space-y-0.5">
@@ -529,40 +528,50 @@ const AssetDetails: React.FC = () => {
       </div>
 
       {/* Images Section */}
-      <InfoCard title="Asset Images" icon={ImageIcon}>
-        {asset.asset_master_image && asset.asset_master_image.length > 0 ? (
-          <div className="!flex !flex-wrap !gap-4">
-            {asset.asset_master_image.map((img: any, index: number) => (
-              <div
-                key={img.id}
-                className="group relative cursor-pointer"
-                onClick={() => handleOpenImage(index)}
-              >
-                <div className="!w-40 !h-40 rounded-lg overflow-hidden border border-gray-200 bg-gray-50 shadow-sm transition-transform duration-300 hover:scale-[1.02]">
-                  <img
-                    src={img.image_url}
-                    alt={img.caption || 'Asset'}
-                    className="w-full h-full object-contain p-2"
-                  />
-                </div>
-                <Typography
-                  variant="caption"
-                  className="!mt-1 !block !text-center !text-gray-500 truncate px-1"
-                >
-                  {img.caption || 'No caption'}
+      <div className="flex items-stretch gap-4 w-full">
+        <div className="!flex-2 flex flex-col">
+          {asset.serial_number && (
+            <Barcode value={asset.serial_number} label="Serial Number" className='!flex-1 !h-full' />
+          )}
+        </div>
+        <div className="!flex-4 w-full">
+          <InfoCard title="Asset Images" icon={ImageIcon}>
+            {asset.asset_master_image && asset.asset_master_image.length > 0 ? (
+              <div className="!flex !flex-wrap !gap-4">
+                {asset.asset_master_image.map((img: any, index: number) => (
+                  <div
+                    key={img.id}
+                    className="group relative cursor-pointer"
+                    onClick={() => handleOpenImage(index)}
+                  >
+                    <div className="!w-40 !h-40 rounded-lg overflow-hidden border border-gray-200 bg-gray-50 shadow-sm transition-transform duration-300 hover:scale-[1.02]">
+                      <img
+                        src={img.image_url}
+                        alt={img.caption || 'Asset'}
+                        className="w-full h-full object-contain p-2"
+                      />
+                    </div>
+                    <Typography
+                      variant="caption"
+                      className="!mt-1 !block !text-center !text-gray-500 truncate px-1"
+                    >
+                      {img.caption || 'No caption'}
+                    </Typography>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-10 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200">
+                <ImageIcon className="text-gray-300 w-12 h-12 mb-2" />
+                <Typography variant="body2" className="!text-gray-400 !italic">
+                  No images uploaded for this asset
                 </Typography>
               </div>
-            ))}
-          </div>
-        ) : (
-          <div className="flex flex-col items-center justify-center py-10 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200">
-            <ImageIcon className="text-gray-300 w-12 h-12 mb-2" />
-            <Typography variant="body2" className="!text-gray-400 !italic">
-              No images uploaded for this asset
-            </Typography>
-          </div>
-        )}
-      </InfoCard>
+            )}
+          </InfoCard>
+        </div>
+      </div>
+
 
       {/* Image Viewer Modal */}
       <Modal
