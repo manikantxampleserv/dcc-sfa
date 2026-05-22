@@ -2592,6 +2592,15 @@ exports.visitsController = {
                 })
                 : [];
             console.log(` Fetched ${visitPayments.length} payments`);
+            const visitOrders = customerIds.length > 0
+                ? await prisma_client_1.default.orders.findMany({
+                    where: {
+                        parent_id: { in: customerIds },
+                        is_active: 'Y',
+                    },
+                })
+                : [];
+            console.log(` Fetched ${visitOrders.length} orders`);
             let visitSurveys = [];
             try {
                 if (visitIds.length > 0) {
@@ -2612,6 +2621,13 @@ exports.visitsController = {
                     paymentsByCustomer.set(payment.customer_id, []);
                 }
                 paymentsByCustomer.get(payment.customer_id).push(payment);
+            });
+            const ordersByCustomer = new Map();
+            visitOrders.forEach(order => {
+                if (!ordersByCustomer.has(order.parent_id)) {
+                    ordersByCustomer.set(order.parent_id, []);
+                }
+                ordersByCustomer.get(order.parent_id).push(order);
             });
             const surveysByVisit = new Map();
             visitSurveys.forEach(survey => {
@@ -2642,7 +2658,6 @@ exports.visitsController = {
                     },
                 })
                 : [];
-            console.log(` Fetched ${customerCoolers.length} customer coolers`);
             const coolersByCustomer = new Map();
             customerCoolers.forEach(cooler => {
                 if (!coolersByCustomer.has(cooler.customer_id)) {
@@ -2664,18 +2679,36 @@ exports.visitsController = {
                     },
                 }),
             ]);
-            console.log('Statistics:', {
-                totalVisits,
-                activeVisits,
-                inactiveVisits,
-                newVisitsThisMonth,
-            });
             const serializedData = data.map((visit) => {
-                const customerPayments = paymentsByCustomer.get(visit.customer_id) || [];
+                const visitTime = visit.createdate ? new Date(visit.createdate).getTime() : 0;
+                const visitUpdateTime = visit.updatedate ? new Date(visit.updatedate).getTime() : 0;
+                const customerPayments = (paymentsByCustomer.get(visit.customer_id) || []).filter((payment) => {
+                    if (payment.collected_by !== visit.sales_person_id)
+                        return false;
+                    if (!payment.createdate)
+                        return false;
+                    const paymentTime = new Date(payment.createdate).getTime();
+                    const diffCreated = Math.abs(paymentTime - visitTime);
+                    const diffUpdated = Math.abs(paymentTime - visitUpdateTime);
+                    return diffCreated <= 300000 || diffUpdated <= 300000;
+                });
+                const customerOrders = (ordersByCustomer.get(visit.customer_id) || []).filter((order) => {
+                    if (order.salesperson_id !== visit.sales_person_id)
+                        return false;
+                    if (!order.createdate)
+                        return false;
+                    const orderTime = new Date(order.createdate).getTime();
+                    const diffCreated = Math.abs(orderTime - visitTime);
+                    const diffUpdated = Math.abs(orderTime - visitUpdateTime);
+                    return diffCreated <= 300000 || diffUpdated <= 300000;
+                });
                 const visitSurveyResponses = surveysByVisit.get(visit.id) || [];
-                console.log(` Visit ${visit.id} (Customer ${visit.customer_id}) has ${customerPayments.length} payments`);
+                console.log(` Visit ${visit.id} (Customer ${visit.customer_id}) has ${customerPayments.length} payments and ${customerOrders.length} orders`);
+                const totalAmountCollected = customerPayments.reduce((sum, p) => sum + Number(p.total_amount || 0), 0);
                 const visitWithRelations = {
                     ...visit,
+                    amount_collected: String(totalAmountCollected),
+                    orders_created: customerOrders.length,
                     payments: customerPayments,
                     survey_responses: visitSurveyResponses,
                 };
@@ -2737,11 +2770,10 @@ exports.visitsController = {
                     is_active: 'Y',
                 },
             });
-            const orders = await prisma_client_1.default.orders.findMany({
+            const allOrders = await prisma_client_1.default.orders.findMany({
                 where: {
-                    orders_customers: {
-                        id: visit.customer_id,
-                    },
+                    parent_id: visit.customer_id,
+                    salesperson_id: visit.sales_person_id,
                     is_active: 'Y',
                 },
                 include: {
@@ -2752,14 +2784,32 @@ exports.visitsController = {
                     },
                 },
             });
-            const payments = await prisma_client_1.default.payments.findMany({
+            const allPayments = await prisma_client_1.default.payments.findMany({
                 where: {
-                    payments_customers: {
-                        id: visit.customer_id,
-                    },
+                    customer_id: visit.customer_id,
+                    collected_by: visit.sales_person_id,
                     is_active: 'Y',
                 },
             });
+            const visitTime = visit.createdate ? new Date(visit.createdate).getTime() : 0;
+            const visitUpdateTime = visit.updatedate ? new Date(visit.updatedate).getTime() : 0;
+            const orders = allOrders.filter(order => {
+                if (!order.createdate)
+                    return false;
+                const orderTime = new Date(order.createdate).getTime();
+                const diffCreated = Math.abs(orderTime - visitTime);
+                const diffUpdated = Math.abs(orderTime - visitUpdateTime);
+                return diffCreated <= 300000 || diffUpdated <= 300000;
+            });
+            const payments = allPayments.filter(payment => {
+                if (!payment.createdate)
+                    return false;
+                const paymentTime = new Date(payment.createdate).getTime();
+                const diffCreated = Math.abs(paymentTime - visitTime);
+                const diffUpdated = Math.abs(paymentTime - visitUpdateTime);
+                return diffCreated <= 300000 || diffUpdated <= 300000;
+            });
+            const totalAmountCollected = payments.reduce((sum, p) => sum + Number(p.total_amount || 0), 0);
             let surveyResponses = [];
             try {
                 surveyResponses = await prisma_client_1.default.survey_responses.findMany({
@@ -2773,6 +2823,8 @@ exports.visitsController = {
                 message: 'Visit retrieved successfully',
                 data: {
                     ...visit,
+                    amount_collected: String(totalAmountCollected),
+                    orders_created: orders.length,
                     customer: visit.visit_customers
                         ? {
                             ...visit.visit_customers,

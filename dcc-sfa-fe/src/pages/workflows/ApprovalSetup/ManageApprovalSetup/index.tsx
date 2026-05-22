@@ -94,7 +94,6 @@ const ManageApprovalSetup: React.FC<ManageApprovalSetupProps> = ({
   const { data: usersResponse, isFetching: isFetchingUsers } = useUsers({
     page: 1,
     limit: 10000,
-    search: availableUsersSearch,
     isActive: 'Y',
   });
 
@@ -115,11 +114,15 @@ const ManageApprovalSetup: React.FC<ManageApprovalSetupProps> = ({
     const selectedUserIds = approvers.map(item => item.approver_id) || [];
     return allUsers
       .filter(user => !selectedUserIds.includes(user.id))
-      .filter(user =>
-        user.name
-          ?.toLowerCase()
-          .includes(availableUsersSearch?.toLowerCase() || '')
-      )
+      .filter(user => {
+        if (!availableUsersSearch) return true;
+        const searchLower = availableUsersSearch.toLowerCase();
+        return (
+          user.name?.toLowerCase().includes(searchLower) ||
+          user.email?.toLowerCase().includes(searchLower) ||
+          user.employee_id?.toLowerCase().includes(searchLower)
+        );
+      })
       .filter(user => {
         if (!selectedRoleFilter) return true;
         const roleName = user.role?.name || 'General';

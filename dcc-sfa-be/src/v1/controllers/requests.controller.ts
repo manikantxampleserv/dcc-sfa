@@ -57,10 +57,10 @@ const serializeRequest = (request: any): RequestSerialized => ({
   log_inst: request.log_inst,
   requester: request.sfa_d_requests_requester
     ? {
-        id: request.sfa_d_requests_requester.id,
-        name: request.sfa_d_requests_requester.name,
-        email: request.sfa_d_requests_requester.email,
-      }
+      id: request.sfa_d_requests_requester.id,
+      name: request.sfa_d_requests_requester.name,
+      email: request.sfa_d_requests_requester.email,
+    }
     : null,
   approvals:
     request.sfa_d_requests_approvals_request?.map((approval: any) => ({
@@ -72,18 +72,30 @@ const serializeRequest = (request: any): RequestSerialized => ({
       action_at: approval.action_at,
       approver: approval.sfa_d_requests_approvals_approver
         ? {
-            id: approval.sfa_d_requests_approvals_approver.id,
-            name: approval.sfa_d_requests_approvals_approver.name,
-            email: approval.sfa_d_requests_approvals_approver.email,
-            profile_image:
-              approval.sfa_d_requests_approvals_approver.profile_image || null,
-            employee_id:
-              approval.sfa_d_requests_approvals_approver.employee_id || null,
-          }
+          id: approval.sfa_d_requests_approvals_approver.id,
+          name: approval.sfa_d_requests_approvals_approver.name,
+          email: approval.sfa_d_requests_approvals_approver.email,
+          profile_image:
+            approval.sfa_d_requests_approvals_approver.profile_image || null,
+          employee_id:
+            approval.sfa_d_requests_approvals_approver.employee_id || null,
+        }
         : null,
       reference_details: request.reference_details || null,
     })) || [],
 });
+
+const isDisposalMovementOutletToDepot = (movement: {
+  movement_type?: string | null;
+  from_direction?: string | null;
+  to_direction?: string | null;
+}): boolean => {
+  return (
+    movement.movement_type?.toLowerCase() === 'disposal' &&
+    movement.from_direction?.toLowerCase() === 'outlet' &&
+    movement.to_direction?.toLowerCase() === 'depot'
+  );
+};
 
 const formatRequestType = (type: string): string => {
   return type
@@ -410,6 +422,7 @@ export const createRequest = async (data: {
           const toDirection = assetMovement.to_direction || '';
           const toDepotId = assetMovement.to_depot_id;
           const toCustomerId = assetMovement.to_customer_id;
+          const isDisposal = isDisposalMovementOutletToDepot(assetMovement);
 
           await prisma.asset_master.updateMany({
             where: {
@@ -423,7 +436,7 @@ export const createRequest = async (data: {
               depot_id: toDepotId || null,
               outlet_id: toCustomerId || null,
               current_location: `${toDirection} (${toDepotId || toCustomerId})`,
-              current_status: toCustomerId ? 'Installed' : 'Available',
+              current_status: isDisposal ? 'Damaged' : (toCustomerId ? 'Installed' : 'Available'),
               updatedate: new Date(),
               updatedby: data.createdby,
             },
@@ -444,12 +457,17 @@ export const createRequest = async (data: {
 
           await prisma.coolers.updateMany({
             where: {
-              asset_movement_id: data.reference_id,
+              asset_master_id: {
+                in: assetMovement.asset_movement_assets.map(
+                  (aa: any) => aa.asset_id
+                ),
+              },
             },
             data: {
-              status: 'Installed',
+              status: isDisposal ? 'Removed' : 'Installed',
               approval_status: 'A',
-              install_date: new Date(),
+              ...(!isDisposal && { install_date: new Date() }),
+              asset_movement_id: data.reference_id,
               updatedate: new Date(),
               updatedby: data.createdby,
             },
@@ -1377,6 +1395,7 @@ export const requestsController = {
                 const toDirection = assetMovement.to_direction || '';
                 const toDepotId = assetMovement.to_depot_id;
                 const toCustomerId = assetMovement.to_customer_id;
+                const isDisposal = isDisposalMovementOutletToDepot(assetMovement);
 
                 await tx.asset_master.updateMany({
                   where: {
@@ -1390,7 +1409,7 @@ export const requestsController = {
                     depot_id: toDepotId || null,
                     outlet_id: toCustomerId || null,
                     current_location: `${toDirection} (${toDepotId || toCustomerId})`,
-                    current_status: toCustomerId ? 'Installed' : 'Available',
+                    current_status: isDisposal ? 'Damaged' : (toCustomerId ? 'Installed' : 'Available'),
                     updatedate: new Date(),
                     updatedby: userId,
                   },
@@ -1398,12 +1417,17 @@ export const requestsController = {
 
                 await tx.coolers.updateMany({
                   where: {
-                    asset_movement_id: request.reference_id,
+                    asset_master_id: {
+                      in: assetMovement.asset_movement_assets.map(
+                        (aa: any) => aa.asset_id
+                      ),
+                    },
                   },
                   data: {
-                    status: 'Installed',
+                    status: isDisposal ? 'Removed' : 'Installed',
                     approval_status: 'A',
-                    install_date: new Date(),
+                    ...(!isDisposal && { install_date: new Date() }),
+                    asset_movement_id: request.reference_id,
                     updatedate: new Date(),
                     updatedby: userId,
                   },
@@ -1415,7 +1439,7 @@ export const requestsController = {
 
                 if (
                   assetMovement.movement_type?.toLowerCase() ===
-                    'maintenance' ||
+                  'maintenance' ||
                   assetMovement.movement_type?.toLowerCase() === 'repair'
                 ) {
                   try {

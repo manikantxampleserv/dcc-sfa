@@ -38,6 +38,7 @@ export interface CoolerInstallation {
     name: string;
     email: string;
     profile_image?: string | null;
+    employee_id?: string | null;
   } | null;
   cooler_type?: {
     id: number;
@@ -125,6 +126,7 @@ export interface CoolerInstallationQueryParams {
   status?: string;
   customer_id?: number;
   technician_id?: number | null;
+  filter_status?: string;
 }
 
 export interface CoolerInstallationStats {

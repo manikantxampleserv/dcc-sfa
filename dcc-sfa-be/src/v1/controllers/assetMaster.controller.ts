@@ -126,31 +126,31 @@ const serializeAssetMaster = (asset: any): AssetMasterSerialized => ({
   asset_master_asset_sub_types: asset.asset_master_asset_sub_types || null,
   asset_brand: asset.asset_master_brands
     ? {
-        id: asset.asset_master_brands.id,
-        name: asset.asset_master_brands.name,
-        code: asset.asset_master_brands.code,
-      }
+      id: asset.asset_master_brands.id,
+      name: asset.asset_master_brands.name,
+      code: asset.asset_master_brands.code,
+    }
     : null,
   last_read_user: asset.asset_master_last_read
     ? {
-        id: asset.asset_master_last_read.id,
-        name: asset.asset_master_last_read.name,
-        email: asset.asset_master_last_read.email,
-      }
+      id: asset.asset_master_last_read.id,
+      name: asset.asset_master_last_read.name,
+      email: asset.asset_master_last_read.email,
+    }
     : null,
   asset_master_depot: asset.asset_master_depot
     ? {
-        id: asset.asset_master_depot.id,
-        name: asset.asset_master_depot.name,
-        code: asset.asset_master_depot.code,
-      }
+      id: asset.asset_master_depot.id,
+      name: asset.asset_master_depot.name,
+      code: asset.asset_master_depot.code,
+    }
     : null,
   asset_master_outlet: asset.asset_master_outlet
     ? {
-        id: asset.asset_master_outlet.id,
-        name: asset.asset_master_outlet.name,
-        code: asset.asset_master_outlet.code,
-      }
+      id: asset.asset_master_outlet.id,
+      name: asset.asset_master_outlet.name,
+      code: asset.asset_master_outlet.code,
+    }
     : null,
   inspections:
     asset.inspections?.map((ins: any) => ({
@@ -677,6 +677,9 @@ export const assetMasterController = {
         data.asset_master_depot = req.body.depot_id
           ? { connect: { id: Number(req.body.depot_id) } }
           : { disconnect: true };
+        if (req.body.depot_id) {
+          data.asset_master_outlet = { disconnect: true };
+        }
       }
 
       if (req.body.asset_brand_id) {

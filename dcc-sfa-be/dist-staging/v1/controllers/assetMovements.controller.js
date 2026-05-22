@@ -93,7 +93,7 @@ const COOLER_APPROVAL_STATUS = {
     APPROVED: 'A',
 };
 const COOLER_PENDING_VALUES = ['P', 'pending'];
-const isInstallationMovement = (movement) => {
+const isInstallationMovementDepotToOutlet = (movement) => {
     return (movement.movement_type?.toLowerCase() === 'installation' &&
         movement.from_direction?.toLowerCase() === 'depot' &&
         movement.to_direction?.toLowerCase() === 'outlet');
@@ -827,7 +827,7 @@ exports.assetMovementsController = {
                     },
                 });
             });
-            if (becomingApproved && updated && isInstallationMovement(updated)) {
+            if (becomingApproved && updated && isInstallationMovementDepotToOutlet(updated)) {
                 const effectiveAssetIds = asset_ids && Array.isArray(asset_ids) && asset_ids.length > 0
                     ? asset_ids
                     : existing.asset_movement_assets.map((a) => a.asset_id);

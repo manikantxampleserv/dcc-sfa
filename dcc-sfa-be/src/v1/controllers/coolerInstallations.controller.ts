@@ -40,6 +40,7 @@ interface CoolerInstallationSerialized {
     name: string;
     email: string;
     profile_image?: string | null;
+    employee_id?: string | null;
   } | null;
   cooler_type?: {
     id: number;
@@ -122,27 +123,28 @@ const serializeCoolerInstallation = (
       : null,
     technician: technician
       ? {
-          id: technician.id,
-          name: technician.name,
-          email: technician.email,
-          profile_image: technician.profile_image,
-        }
+        id: technician.id,
+        name: technician.name,
+        email: technician.email,
+        profile_image: technician.profile_image,
+        employee_id: technician.employee_id
+      }
       : null,
     asset_master: asset_master
       ? {
-          id: asset_master.id,
-          name: asset_master?.name,
-          serial_number: asset_master.serial_number,
-          current_status: asset_master.current_status,
-          current_location: asset_master.current_location,
-          asset_type: asset_type
-            ? { id: asset_type.id, name: asset_type.name }
-            : null,
-          asset_sub_type: asset_sub_type
-            ? { id: asset_sub_type.id, name: asset_sub_type.name }
-            : null,
-          brand: brand ? { id: brand.id, name: brand.name } : null,
-        }
+        id: asset_master.id,
+        name: asset_master?.name,
+        serial_number: asset_master.serial_number,
+        current_status: asset_master.current_status,
+        current_location: asset_master.current_location,
+        asset_type: asset_type
+          ? { id: asset_type.id, name: asset_type.name }
+          : null,
+        asset_sub_type: asset_sub_type
+          ? { id: asset_sub_type.id, name: asset_sub_type.name }
+          : null,
+        brand: brand ? { id: brand.id, name: brand.name } : null,
+      }
       : null,
   };
 };
@@ -376,6 +378,7 @@ export const coolerInstallationsController = {
         approval_status,
         technician_id,
         user_id,
+        filter_status
       } = req.query;
 
       const page_num = page ? parseInt(page as string, 10) : 1;
@@ -383,37 +386,8 @@ export const coolerInstallationsController = {
       const searchLower = search ? (search as string).toLowerCase() : '';
       const inspectorFilter = technician_id || user_id;
 
-      // const filters: any = {
-      //   ...(isActive && { is_active: isActive as string }),
-
-      //   ...(search && {
-      //     OR: [
-      //       { code: { contains: searchLower } },
-      //       { brand: { contains: searchLower } },
-      //       { model: { contains: searchLower } },
-      //       { serial_number: { contains: searchLower } },
-      //       { status: { contains: searchLower } },
-      //       { energy_rating: { contains: searchLower } },
-      //       { maintenance_contract: { contains: searchLower } },
-      //       { coolers_customers: { name: { contains: searchLower } } },
-      //       { users: { name: { contains: searchLower } } },
-      //     ],
-      //   }),
-      //   ...(status && { status: status as string }),
-      //   ...(customer_id && { customer_id: parseInt(customer_id as string) }),
-      //   ...(inspectorFilter !== undefined &&
-      //     inspectorFilter !== null &&
-      //     inspectorFilter !== '' && {
-      //       technician_id:
-      //         inspectorFilter === 'null'
-      //           ? null
-      //           : parseInt(inspectorFilter as string, 10),
-      //     }),
-      // };
-
       const filters: any = {
         ...(isActive && { is_active: isActive as string }),
-
         ...(search && {
           OR: [
             { code: { contains: searchLower } },
@@ -428,7 +402,11 @@ export const coolerInstallationsController = {
           ],
         }),
 
-        ...(status && { status: status as string }),
+        ...(status
+          ? { status: status as string }
+          : (filter_status === 'Removed' && {
+              status: { not: 'Removed' },
+            })),
 
         ...(approval_status && {
           approval_status: approval_status as string,
@@ -441,11 +419,11 @@ export const coolerInstallationsController = {
         ...(inspectorFilter !== undefined &&
           inspectorFilter !== null &&
           inspectorFilter !== '' && {
-            technician_id:
-              inspectorFilter === 'null'
-                ? null
-                : parseInt(inspectorFilter as string, 10),
-          }),
+          technician_id:
+            inspectorFilter === 'null'
+              ? null
+              : parseInt(inspectorFilter as string, 10),
+        }),
       };
       const { data, pagination } = await paginate({
         model: prisma.coolers,
@@ -467,6 +445,7 @@ export const coolerInstallationsController = {
               name: true,
               email: true,
               profile_image: true,
+              employee_id: true,
             },
           },
           cooler_types: {
@@ -710,11 +689,11 @@ export const coolerInstallationsController = {
           const approver = firstPendingStep.sfa_d_requests_approvals_approver;
           currentApproverName = approver
             ? JSON.stringify({
-                name: approver.name,
-                email: approver.email || '',
-                profile_image: approver.profile_image || null,
-                employee_id: approver.employee_id || '',
-              })
+              name: approver.name,
+              email: approver.email || '',
+              profile_image: approver.profile_image || null,
+              employee_id: approver.employee_id || '',
+            })
             : null;
         }
       }

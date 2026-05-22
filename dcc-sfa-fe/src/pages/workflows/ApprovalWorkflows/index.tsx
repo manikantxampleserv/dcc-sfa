@@ -5,6 +5,7 @@ import {
   AlertTriangle,
   Check,
   CheckCircle,
+  Eye,
   FileText,
   X,
   XCircle,
@@ -27,7 +28,7 @@ const ApprovalWorkflows: React.FC = () => {
   const [page, setPage] = useState(1);
   const [limit] = useState(6);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [dialogType, setDialogType] = useState<'approve' | 'reject'>('approve');
+  const [dialogType, setDialogType] = useState<'approve' | 'reject' | 'view'>('approve');
   const [selectedRequest, setSelectedRequest] = useState<Request | null>(null);
   const { isRead, isUpdate } = usePermission('approval');
 
@@ -60,6 +61,12 @@ const ApprovalWorkflows: React.FC = () => {
   const handleRejectClick = (request: Request) => {
     setSelectedRequest(request);
     setDialogType('reject');
+    setDialogOpen(true);
+  };
+
+  const handleViewClick = (request: Request) => {
+    setSelectedRequest(request);
+    setDialogType('view');
     setDialogOpen(true);
   };
 
@@ -234,36 +241,44 @@ const ApprovalWorkflows: React.FC = () => {
             : String(row.createdate || '')
         ) || 'N/A',
     },
-    ...(isUpdate
-      ? [
-        {
-          id: 'actions',
-          label: 'Actions',
-          sortable: false,
-          render: (_value: any, row: Request) => {
-            const normalizedStatus = row.approvals?.[0]?.status || row.status;
-            return (
-              <div className="!flex !gap-2 !items-center">
+    {
+      id: 'actions',
+      label: 'Actions',
+      sortable: false,
+      render: (_value: any, row: Request) => {
+        const normalizedStatus = row.approvals?.[0]?.status || row.status;
+        const isPending =
+          normalizedStatus?.toUpperCase() === 'P' ||
+          normalizedStatus?.toUpperCase() === 'PENDING';
+        return (
+          <div className="!flex !gap-2 !items-center !justify-center">
+            {isPending && isUpdate ? (
+              <>
                 <ActionButton
                   onClick={() => handleApproveClick(row)}
                   tooltip="Approve request"
-                  icon={<Check className="!w-4 !h-4" />}
+                  icon={<Check className="!w-5 !h-5" />}
                   color="success"
-                  disabled={normalizedStatus?.toUpperCase() !== 'P'}
                 />
                 <ActionButton
                   onClick={() => handleRejectClick(row)}
                   tooltip="Reject request"
-                  icon={<X className="!w-4 !h-4" />}
+                  icon={<X className="!w-5 !h-5" />}
                   color="error"
-                  disabled={normalizedStatus?.toUpperCase() !== 'P'}
                 />
-              </div>
-            );
-          },
-        },
-      ]
-      : []),
+              </>
+            ) : (
+              <ActionButton
+                onClick={() => handleViewClick(row)}
+                tooltip="View Details"
+                icon={<Eye className="!w-5 !h-5" />}
+                color="info"
+              />
+            )}
+          </div>
+        );
+      },
+    },
   ];
 
   return (

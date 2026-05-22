@@ -3,11 +3,10 @@ import {
   Block,
   CheckCircle,
   Download,
-  Pause,
   PlayArrow,
   Settings,
   Upload,
-  Visibility,
+  Visibility
 } from '@mui/icons-material';
 import { Alert, Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
 import { useExportToExcel } from 'hooks/useImportExport';
@@ -221,7 +220,7 @@ const SurveyBuilder: React.FC = () => {
       label: 'Status',
       render: (_value, row) => (
         <Box className="flex gap-2 items-center">
-          <Chip
+          {/* <Chip
             icon={
               Boolean(row.is_published) ? (
                 <PlayArrow fontSize="small" />
@@ -233,7 +232,7 @@ const SurveyBuilder: React.FC = () => {
             size="small"
             variant="outlined"
             color={Boolean(row.is_published) ? 'success' : 'warning'}
-          />
+          /> */}
           <Chip
             icon={
               row.is_active === 'Y' ? (

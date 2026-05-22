@@ -26,7 +26,7 @@ import Select from 'shared/Select';
 import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
 import UserSelect from 'shared/UserSelect';
-import { formatDate } from 'utils/dateUtils';
+import { formatDateTime } from 'utils/dateUtils';
 import ImportCoolerInstallation from './ImportCoolerInstallation';
 import ManageCoolerInstallation from './ManageCoolerInstallation';
 
@@ -65,7 +65,7 @@ const CoolerInstallationsManagement: React.FC = () => {
           technicianFilter === '' ||
           !technicianFilter
           ? undefined
-          : Number(technicianFilter),
+          : Number(technicianFilter)
     },
     {
       enabled: isRead,
@@ -158,7 +158,7 @@ const CoolerInstallationsManagement: React.FC = () => {
     } catch (error) {
       console.error('Error exporting cooler installations:', error);
     }
-  }, [exportToExcelMutation, search, statusFilter]);
+  }, [exportToExcelMutation, search, statusFilter, operationalStatusFilter, technicianFilter]);
 
   const getStatusColor = (status?: string | null) => {
     switch (status?.toLowerCase()) {
@@ -166,6 +166,8 @@ const CoolerInstallationsManagement: React.FC = () => {
         return 'success';
       case 'ready to install':
         return 'info';
+      case 'removed':
+        return 'error';
       default:
         return 'default';
     }
@@ -274,7 +276,7 @@ const CoolerInstallationsManagement: React.FC = () => {
               variant="caption"
               className="!text-gray-500 !text-xs !block !mt-0.5"
             >
-              {row.technician?.email || 'No email'}
+              {row.technician?.email || row.technician?.employee_id || 'No email'}
             </Typography>
           </Box>
         </Box>
@@ -290,10 +292,8 @@ const CoolerInstallationsManagement: React.FC = () => {
             <Calendar className="w-3 h-3 text-gray-400" />
             <span className="text-xs">
               {row.install_date
-                ? formatDate(row.install_date)
-                : row.createdate
-                  ? formatDate(row.createdate)
-                  : 'Not installed'}
+                ? formatDateTime(row.install_date)
+                : 'Not installed'}
             </span>
           </Box>
           {row.capacity && (
@@ -312,7 +312,7 @@ const CoolerInstallationsManagement: React.FC = () => {
         <Box className="flex items-center gap-1">
           <Calendar className="w-3 h-3 text-gray-400" />
           {row.next_service_due ? <span className="text-xs">
-            {formatDate(row.next_service_due)}
+            {formatDateTime(row.next_service_due)}
           </span> : <span className='italic text-gray-400'>No service date</span>}
         </Box>
       ),
