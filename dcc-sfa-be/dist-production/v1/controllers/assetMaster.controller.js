@@ -541,6 +541,9 @@ exports.assetMasterController = {
                 data.asset_master_depot = req.body.depot_id
                     ? { connect: { id: Number(req.body.depot_id) } }
                     : { disconnect: true };
+                if (req.body.depot_id) {
+                    data.asset_master_outlet = { disconnect: true };
+                }
             }
             if (req.body.asset_brand_id) {
                 const assetBrandExists = await prisma_client_1.default.asset_brands.findUnique({
