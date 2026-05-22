@@ -5,14 +5,12 @@ import { isPortInUse, killPort } from './utils/killPort';
 import { AttendanceCronService } from './v1/services/attendance.cron.service';
 import { resolve } from 'path';
 
-// First check if DATABASE_URL is already set in environment variables
 if (!process.env.DATABASE_URL) {
-  // Load environment variables from the root directory
   const possiblePaths = [
-    resolve(process.cwd(), '.env'), // Current working directory
-    resolve(__dirname, '../.env'), // Relative to compiled file
-    resolve(__dirname, '../../../.env'), // For production builds
-    '.env', // Fallback
+    resolve(process.cwd(), '.env'),
+    resolve(__dirname, '../.env'),
+    resolve(__dirname, '../../../.env'),
+    '.env',
   ];
 
   for (const path of possiblePaths) {

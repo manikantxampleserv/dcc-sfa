@@ -10,14 +10,12 @@ const logger_1 = __importDefault(require("./configs/logger"));
 const killPort_1 = require("./utils/killPort");
 const attendance_cron_service_1 = require("./v1/services/attendance.cron.service");
 const path_1 = require("path");
-// First check if DATABASE_URL is already set in environment variables
 if (!process.env.DATABASE_URL) {
-    // Load environment variables from the root directory
     const possiblePaths = [
-        (0, path_1.resolve)(process.cwd(), '.env'), // Current working directory
-        (0, path_1.resolve)(__dirname, '../.env'), // Relative to compiled file
-        (0, path_1.resolve)(__dirname, '../../../.env'), // For production builds
-        '.env', // Fallback
+        (0, path_1.resolve)(process.cwd(), '.env'),
+        (0, path_1.resolve)(__dirname, '../.env'),
+        (0, path_1.resolve)(__dirname, '../../../.env'),
+        '.env',
     ];
     for (const path of possiblePaths) {
         try {

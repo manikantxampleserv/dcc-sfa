@@ -335,25 +335,17 @@ const InventoryDetail: React.FC = () => {
     );
   }, [stockMovements, salespersonVanInventoryIds]);
 
-  const vanInventoryLoadingTypes = useMemo(() => {
-    const map = new Map<number, string>();
-    vanInventories.forEach(v => {
-      map.set(v.id, v.loading_type || 'L');
-    });
-    return map;
-  }, [vanInventories]);
-
   const totalQtyLoaded = useMemo(() => {
     return salespersonStockMovements
-      .filter(sm => vanInventoryLoadingTypes.get(sm.van_inventory_id!) === 'L')
+      .filter(sm => sm.movement_type === 'VAN_LOAD')
       .reduce((sum, sm) => sum + (Number(sm.quantity) || 0), 0);
-  }, [salespersonStockMovements, vanInventoryLoadingTypes]);
+  }, [salespersonStockMovements]);
 
   const totalQtyUnloaded = useMemo(() => {
     return salespersonStockMovements
-      .filter(sm => vanInventoryLoadingTypes.get(sm.van_inventory_id!) === 'U')
+      .filter(sm => sm.movement_type === 'VAN_UNLOAD')
       .reduce((sum, sm) => sum + (Number(sm.quantity) || 0), 0);
-  }, [salespersonStockMovements, vanInventoryLoadingTypes]);
+  }, [salespersonStockMovements]);
 
   const totalInvoicesCount = salespersonInvoices.length;
 
