@@ -1562,6 +1562,17 @@ exports.customerController = {
                     filters.route_id = -1;
                 }
             }
+            const depots = await prisma_client_1.default.depots.findMany({
+                where: {
+                    default_outlet_id: { not: null },
+                },
+                select: {
+                    default_outlet_id: true,
+                },
+            });
+            const defaultOutletIds = depots
+                .map(depot => depot.default_outlet_id)
+                .filter((id) => id != null);
             const { data, pagination } = await (0, paginate_1.paginate)({
                 model: prisma_client_1.default.customers,
                 filters,
@@ -1676,6 +1687,124 @@ exports.customerController = {
                     },
                 },
             });
+            let defaultOutlets = [];
+            if (defaultOutletIds.length > 0) {
+                defaultOutlets = await prisma_client_1.default.customers.findMany({
+                    where: {
+                        id: { in: defaultOutletIds },
+                    },
+                    include: {
+                        customer_zones: true,
+                        customer_routes: {
+                            select: {
+                                id: true,
+                                name: true,
+                                code: true,
+                                description: true,
+                                start_location: true,
+                                end_location: true,
+                                estimated_distance: true,
+                                estimated_time: true,
+                                route_type: true,
+                                outlet_group: true,
+                                is_active: true,
+                                salespersons: {
+                                    where: { is_active: 'Y' },
+                                    select: {
+                                        id: true,
+                                        user_id: true,
+                                        role: true,
+                                        assigned_at: true,
+                                        is_active: true,
+                                        user: {
+                                            select: {
+                                                id: true,
+                                                email: true,
+                                            },
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                        customer_users: {
+                            select: {
+                                id: true,
+                                email: true,
+                            },
+                        },
+                        customer_depot: {
+                            select: {
+                                id: true,
+                                name: true,
+                                code: true,
+                            },
+                        },
+                        default_for_depots: {
+                            select: {
+                                id: true,
+                                name: true,
+                                code: true,
+                            },
+                        },
+                        customers_city: {
+                            select: {
+                                id: true,
+                                name: true,
+                                code: true,
+                            },
+                        },
+                        customers_districts: {
+                            select: {
+                                id: true,
+                                name: true,
+                                code: true,
+                            },
+                        },
+                        customers_regions: {
+                            select: {
+                                id: true,
+                                name: true,
+                                code: true,
+                            },
+                        },
+                        customer_type_customer: {
+                            select: {
+                                id: true,
+                                type_name: true,
+                                type_code: true,
+                            },
+                        },
+                        customer_category_customer: {
+                            select: {
+                                id: true,
+                                category_name: true,
+                                category_code: true,
+                                level: true,
+                            },
+                        },
+                        customer_channel_customer: {
+                            select: {
+                                id: true,
+                                channel_name: true,
+                                channel_code: true,
+                            },
+                        },
+                        outlet_images_customers: {
+                            where: { is_active: 'Y' },
+                            orderBy: { createdate: 'desc' },
+                            select: {
+                                id: true,
+                                image_url: true,
+                                createdate: true,
+                                createdby: true,
+                            },
+                        },
+                    },
+                });
+            }
+            const existingIds = new Set(data.map((c) => c.id));
+            const uniqueDefaultOutlets = defaultOutlets.filter((outlet) => !existingIds.has(outlet.id));
+            const mergedData = [...data, ...uniqueDefaultOutlets];
             const statsFilter = {};
             if (salesperson_id) {
                 const salespersonIdNum = parseInt(salesperson_id, 10);
@@ -1742,7 +1871,7 @@ exports.customerController = {
                     ...statsFilter,
                 },
             });
-            const serializedData = await Promise.all(data.map((c) => serializeCustomer(c)));
+            const serializedData = await Promise.all(mergedData.map((c) => serializeCustomer(c)));
             res.success('Customers retrieved successfully', serializedData, 200, pagination, {
                 new_customers_this_month: newCustomersThisMonth,
                 total_customers: totalCustomers,
@@ -1870,14 +1999,23 @@ exports.customerController = {
                     null;
                 const resolvedType = cooler.cooler_types
                     ? { id: cooler.cooler_types.id, name: cooler.cooler_types.name }
-                    : (assetMaster?.asset_master_asset_types
-                        ? { id: assetMaster.asset_master_asset_types.id, name: assetMaster.asset_master_asset_types.name }
-                        : null);
+                    : assetMaster?.asset_master_asset_types
+                        ? {
+                            id: assetMaster.asset_master_asset_types.id,
+                            name: assetMaster.asset_master_asset_types.name,
+                        }
+                        : null;
                 const resolvedSubType = cooler.cooler_sub_types
-                    ? { id: cooler.cooler_sub_types.id, name: cooler.cooler_sub_types.name }
-                    : (assetMaster?.asset_master_asset_sub_types
-                        ? { id: assetMaster.asset_master_asset_sub_types.id, name: assetMaster.asset_master_asset_sub_types.name }
-                        : null);
+                    ? {
+                        id: cooler.cooler_sub_types.id,
+                        name: cooler.cooler_sub_types.name,
+                    }
+                    : assetMaster?.asset_master_asset_sub_types
+                        ? {
+                            id: assetMaster.asset_master_asset_sub_types.id,
+                            name: assetMaster.asset_master_asset_sub_types.name,
+                        }
+                        : null;
                 const resolvedInstallDate = cooler.install_date || assetMaster?.installation_date || null;
                 return {
                     id: cooler.id,
@@ -1898,7 +2036,9 @@ exports.customerController = {
                     customer_assets_history: (cooler.cooler_inspections || []).map((inspection) => ({
                         id: inspection.id,
                         change_date: inspection.inspection_date || inspection.createdate,
-                        change_type: inspection.is_working === 'Y' ? 'Inspection (Working)' : 'Inspection (Issue)',
+                        change_type: inspection.is_working === 'Y'
+                            ? 'Inspection (Working)'
+                            : 'Inspection (Issue)',
                         old_status: null,
                         new_status: inspection.is_working === 'Y' ? 'working' : 'broken/issue',
                         remarks: inspection.issues || 'No issues observed',
