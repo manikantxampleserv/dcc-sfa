@@ -425,7 +425,7 @@ const VanStockPage: React.FC = () => {
                     <MenuItem value="load">Load</MenuItem>
                     <MenuItem value="unload">Unload</MenuItem>
                   </Select>
-                  <Box className="!w-70">
+                  <Box className="!w-72">
                     <UserSelect
                       label=""
                       placeholder="Select User"

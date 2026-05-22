@@ -52,7 +52,8 @@ const serializeRequest = (request) => ({
     })) || [],
 });
 const isDisposalMovementOutletToDepot = (movement) => {
-    return (movement.movement_type?.toLowerCase() === 'disposal' &&
+    return ((movement.movement_type?.toLowerCase() === 'return' ||
+        movement.movement_type?.toLowerCase() === 'disposal') &&
         movement.from_direction?.toLowerCase() === 'outlet' &&
         movement.to_direction?.toLowerCase() === 'depot');
 };

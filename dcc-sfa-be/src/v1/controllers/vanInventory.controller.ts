@@ -129,10 +129,10 @@ const serializeVanInventory = (item: any): VanInventorySerialized => {
             customer_id: sn.customer_id || null,
             customer: sn.serial_numbers_customers
               ? {
-                  id: sn.serial_numbers_customers.id,
-                  name: sn.serial_numbers_customers.name,
-                  email: sn.serial_numbers_customers.email,
-                }
+                id: sn.serial_numbers_customers.id,
+                name: sn.serial_numbers_customers.name,
+                email: sn.serial_numbers_customers.email,
+              }
               : null,
             sold_date: sn.sold_date || null,
             created_date: sn.createdate || null,
@@ -289,12 +289,12 @@ const serializeVanInventory = (item: any): VanInventorySerialized => {
         serials.length > 0 ? serials.map((sn: any) => sn.serial_number) : null,
       tax_details: product?.product_tax_master
         ? {
-            id: product.product_tax_master.id,
-            name: product.product_tax_master.name,
-            code: product.product_tax_master.code,
-            tax_rate: Number(product.product_tax_master.tax_rate),
-            description: product.product_tax_master.description,
-          }
+          id: product.product_tax_master.id,
+          name: product.product_tax_master.name,
+          code: product.product_tax_master.code,
+          tax_rate: Number(product.product_tax_master.tax_rate),
+          description: product.product_tax_master.description,
+        }
         : null,
       product_serials: productSerials.length > 0 ? productSerials : null,
       product_batches: productBatches.length > 0 ? productBatches : null,
@@ -337,24 +337,24 @@ const serializeVanInventory = (item: any): VanInventorySerialized => {
     location_type: item.location_type,
     user: item.van_inventory_users
       ? {
-          id: item.van_inventory_users.id,
-          name: item.van_inventory_users.name,
-          email: item.van_inventory_users.email,
-        }
+        id: item.van_inventory_users.id,
+        name: item.van_inventory_users.name,
+        email: item.van_inventory_users.email,
+      }
       : null,
     vehicle: item.vehicle
       ? {
-          id: item.vehicle.id,
-          vehicle_number: item.vehicle.vehicle_number,
-          type: item.vehicle.type,
-        }
+        id: item.vehicle.id,
+        vehicle_number: item.vehicle.vehicle_number,
+        type: item.vehicle.type,
+      }
       : null,
     depot: item.van_inventory_depot
       ? {
-          id: item.van_inventory_depot.id,
-          name: item.van_inventory_depot.name,
-          code: item.van_inventory_depot.code,
-        }
+        id: item.van_inventory_depot.id,
+        name: item.van_inventory_depot.name,
+        code: item.van_inventory_depot.code,
+      }
       : null,
     items: processedItems,
     summary: summary,
@@ -667,11 +667,11 @@ export const vanInventoryController = {
         batch_lot_id: it.batch_lot_id || null,
         batch: it.van_inventory_items_batch_lot
           ? {
-              id: it.van_inventory_items_batch_lot.id,
-              batch_number: it.van_inventory_items_batch_lot.batch_number,
-              lot_number: it.van_inventory_items_batch_lot.lot_number,
-              expiry_date: it.van_inventory_items_batch_lot.expiry_date,
-            }
+            id: it.van_inventory_items_batch_lot.id,
+            batch_number: it.van_inventory_items_batch_lot.batch_number,
+            lot_number: it.van_inventory_items_batch_lot.lot_number,
+            expiry_date: it.van_inventory_items_batch_lot.expiry_date,
+          }
           : null,
       }));
       return res.json({
@@ -816,12 +816,12 @@ export const vanInventoryController = {
                 tracking_type: p.tracking_type || null,
                 tax_details: p.product_tax_master
                   ? {
-                      id: p.product_tax_master.id,
-                      name: p.product_tax_master.name,
-                      code: p.product_tax_master.code,
-                      tax_rate: Number(p.product_tax_master.tax_rate),
-                      description: p.product_tax_master.description,
-                    }
+                    id: p.product_tax_master.id,
+                    name: p.product_tax_master.name,
+                    code: p.product_tax_master.code,
+                    tax_rate: Number(p.product_tax_master.tax_rate),
+                    description: p.product_tax_master.description,
+                  }
                   : null,
               });
             }
@@ -939,7 +939,7 @@ export const vanInventoryController = {
             loading_type: loadingType,
             document_date:
               inventoryData.document_date &&
-              inventoryData.document_date.trim() !== ''
+                inventoryData.document_date.trim() !== ''
                 ? new Date(inventoryData.document_date)
                 : new Date(),
             vehicle_id: inventoryData.vehicle_id
@@ -1471,10 +1471,10 @@ export const vanInventoryController = {
                           expiry_date: batchInput.expiry_date
                             ? new Date(batchInput.expiry_date)
                             : new Date(
-                                new Date().setFullYear(
-                                  new Date().getFullYear() + 2
-                                )
-                              ),
+                              new Date().setFullYear(
+                                new Date().getFullYear() + 2
+                              )
+                            ),
                           quantity: batchQty,
                           remaining_quantity: batchQty,
                           supplier_name: batchInput.supplier_name || null,
@@ -3293,7 +3293,7 @@ export const vanInventoryController = {
       if (inventoryData.document_date !== undefined) {
         payload.document_date =
           inventoryData.document_date &&
-          inventoryData.document_date.trim() !== ''
+            inventoryData.document_date.trim() !== ''
             ? new Date(inventoryData.document_date)
             : new Date();
       }
@@ -3506,8 +3506,8 @@ export const vanInventoryController = {
           total_amount:
             data.quantity && data.unit_price
               ? Number(data.quantity) * Number(data.unit_price) -
-                (Number(data.discount_amount) || 0) +
-                (Number(data.tax_amount) || 0)
+              (Number(data.discount_amount) || 0) +
+              (Number(data.tax_amount) || 0)
               : undefined,
           notes: data.notes !== undefined ? data.notes : undefined,
         },
@@ -3807,7 +3807,7 @@ export const vanInventoryController = {
       const isExpiringSoon =
         !isExpired &&
         new Date(batchLot.expiry_date) <=
-          new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+        new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
       const response = {
         batch_id: batchLot.id,
@@ -3817,7 +3817,7 @@ export const vanInventoryController = {
         expiry_date: batchLot.expiry_date,
         days_until_expiry: Math.floor(
           (new Date(batchLot.expiry_date).getTime() - Date.now()) /
-            (1000 * 60 * 60 * 24)
+          (1000 * 60 * 60 * 24)
         ),
         is_expired: isExpired,
         is_expiring_soon: isExpiringSoon,
@@ -3993,7 +3993,7 @@ export const vanInventoryController = {
               const isExpired = new Date(batch.expiry_date) <= new Date();
               const daysUntilExpiry = Math.floor(
                 (new Date(batch.expiry_date).getTime() - Date.now()) /
-                  (1000 * 60 * 60 * 24)
+                (1000 * 60 * 60 * 24)
               );
               const isExpiringSoon = !isExpired && daysUntilExpiry <= 30;
 
@@ -4045,10 +4045,10 @@ export const vanInventoryController = {
                   warranty_expired: warrantyExpired,
                   warranty_days_remaining: serial.warranty_expiry
                     ? Math.floor(
-                        (new Date(serial.warranty_expiry).getTime() -
-                          Date.now()) /
-                          (1000 * 60 * 60 * 24)
-                      )
+                      (new Date(serial.warranty_expiry).getTime() -
+                        Date.now()) /
+                      (1000 * 60 * 60 * 24)
+                    )
                     : null,
                   batch_id: serial.batch_id,
                   batch: serial.batch_lots,
@@ -4076,12 +4076,12 @@ export const vanInventoryController = {
                 van_inventories: [],
                 tax_details: product?.product_tax_master
                   ? {
-                      id: product.product_tax_master.id,
-                      name: product.product_tax_master.name,
-                      code: product.product_tax_master.code,
-                      tax_rate: Number(product.product_tax_master.tax_rate),
-                      description: product.product_tax_master.description,
-                    }
+                    id: product.product_tax_master.id,
+                    name: product.product_tax_master.name,
+                    code: product.product_tax_master.code,
+                    tax_rate: Number(product.product_tax_master.tax_rate),
+                    description: product.product_tax_master.description,
+                  }
                   : null,
               });
             }
@@ -4676,10 +4676,10 @@ export const vanInventoryController = {
                       warranty_expired: warrantyExpired,
                       warranty_days_remaining: linkedSerial.warranty_expiry
                         ? Math.floor(
-                            (new Date(linkedSerial.warranty_expiry).getTime() -
-                              Date.now()) /
-                              (1000 * 60 * 60 * 24)
-                          )
+                          (new Date(linkedSerial.warranty_expiry).getTime() -
+                            Date.now()) /
+                          (1000 * 60 * 60 * 24)
+                        )
                         : null,
                       customer_id: linkedSerial.customer_id,
                       customer: linkedSerial.serial_numbers_customers,
@@ -4722,12 +4722,12 @@ export const vanInventoryController = {
                   serials: [],
                   tax_details: product?.product_tax_master
                     ? {
-                        id: product.product_tax_master.id,
-                        name: product.product_tax_master.name,
-                        code: product.product_tax_master.code,
-                        tax_rate: Number(product.product_tax_master.tax_rate),
-                        description: product.product_tax_master.description,
-                      }
+                      id: product.product_tax_master.id,
+                      name: product.product_tax_master.name,
+                      code: product.product_tax_master.code,
+                      tax_rate: Number(product.product_tax_master.tax_rate),
+                      description: product.product_tax_master.description,
+                    }
                     : null,
                 });
               }
@@ -4797,9 +4797,9 @@ export const vanInventoryController = {
               vehicle_id: vanInventory.vehicle_id,
               vehicle: vanInventory.vehicle
                 ? {
-                    vehicle_id: vanInventory.vehicle.id,
-                    vehicle_number: vanInventory.vehicle.vehicle_number,
-                  }
+                  vehicle_id: vanInventory.vehicle.id,
+                  vehicle_number: vanInventory.vehicle.vehicle_number,
+                }
                 : null,
               products: Array.from(products.values()),
             };
