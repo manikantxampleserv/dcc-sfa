@@ -6,7 +6,11 @@ import { codeInspectorPlugin } from 'code-inspector-plugin';
 
 export default defineConfig({
   plugins: [
-    codeInspectorPlugin({ bundler: 'vite', hotKeys: ['altKey'] }),
+    codeInspectorPlugin({
+      bundler: 'vite',
+      hotKeys: ['altKey'],
+      editor: 'antigravity',
+    }),
     react(),
     tailwindcss(),
   ],

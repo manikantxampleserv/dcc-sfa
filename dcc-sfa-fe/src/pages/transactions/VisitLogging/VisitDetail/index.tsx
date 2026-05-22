@@ -126,9 +126,10 @@ const VisitDetail: React.FC = () => {
 
   if (isLoading || isFetching) {
     return (
-      <div className="flex flex-col gap-4">
-        <div className="flex items-start gap-4">
-          <div className="!flex-2 flex flex-col gap-4">
+      <div className="flex flex-col gap-4 pb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
+          {/* Left Column (Sidebar - 1/3) */}
+          <div className="lg:col-span-1 flex flex-col gap-4">
             <div className="!bg-white !rounded-lg !shadow !border !border-gray-200 !p-6 !text-center !relative">
               <div className="!absolute !top-3 !right-3">
                 <Skeleton
@@ -235,7 +236,9 @@ const VisitDetail: React.FC = () => {
             </div>
           </div>
 
-          <div className="!flex-4 !space-y-4">
+          {/* Right Column (Main Content - 2/3) */}
+          <div className="lg:col-span-2 flex flex-col gap-4">
+            {/* Visit Information Skeleton */}
             <div className="!bg-white !rounded-lg !shadow !border !border-gray-200 !p-6 !relative !overflow-hidden">
               <div className="!absolute !top-0 !right-0 !w-16 !h-16 !bg-gradient-to-br !from-blue-50 !to-purple-50 !rounded-full !-translate-y-8 !translate-x-8"></div>
               <div className="!relative !z-10">
@@ -268,38 +271,71 @@ const VisitDetail: React.FC = () => {
                 </div>
               </div>
             </div>
-          </div>
-        </div>
 
-        <div className="!bg-white !rounded-lg !shadow !border !border-gray-200 !p-6 !relative !overflow-hidden">
-          <div className="!absolute !top-0 !right-0 !w-16 !h-16 !bg-gradient-to-br !from-blue-50 !to-purple-50 !rounded-full !-translate-y-8 !translate-x-8"></div>
-          <div className="!relative !z-10">
-            <div className="!flex !items-center !gap-2 !mb-4">
-              <div className="!p-1.5 !w-10 !h-10 flex items-center justify-center !bg-primary-100 !rounded-md">
-                <Skeleton
-                  variant="circular"
-                  width={16}
-                  height={16}
-                  className="!bg-primary-200"
-                />
-              </div>
-              <Skeleton variant="text" width={200} height={20} />
-            </div>
-            <div className="!grid !grid-cols-1 md:!grid-cols-2 lg:!grid-cols-3 !gap-4">
-              {[1, 2, 3, 4, 5, 6].map(field => (
-                <div key={field} className="!space-y-1">
-                  <Skeleton
-                    variant="text"
-                    width={`${40 + field * 8}%`}
-                    height={12}
-                  />
-                  <Skeleton
-                    variant="text"
-                    width={`${60 + field * 6}%`}
-                    height={16}
-                  />
+            {/* Customer Information Skeleton */}
+            <div className="!bg-white !rounded-lg !shadow !border !border-gray-200 !p-6 !relative !overflow-hidden">
+              <div className="!absolute !top-0 !right-0 !w-16 !h-16 !bg-gradient-to-br !from-blue-50 !to-purple-50 !rounded-full !-translate-y-8 !translate-x-8"></div>
+              <div className="!relative !z-10">
+                <div className="!flex !items-center !gap-2 !mb-4">
+                  <div className="!p-1.5 !w-10 !h-10 flex items-center justify-center !bg-primary-100 !rounded-md">
+                    <Skeleton
+                      variant="circular"
+                      width={16}
+                      height={16}
+                      className="!bg-primary-200"
+                    />
+                  </div>
+                  <Skeleton variant="text" width={200} height={20} />
                 </div>
-              ))}
+                <div className="!grid !grid-cols-1 md:!grid-cols-2 lg:!grid-cols-3 !gap-4">
+                  {[1, 2, 3, 4, 5, 6].map(field => (
+                    <div key={field} className="!space-y-1">
+                      <Skeleton
+                        variant="text"
+                        width={`${40 + field * 8}%`}
+                        height={12}
+                      />
+                      <Skeleton
+                        variant="text"
+                        width={`${60 + field * 6}%`}
+                        height={16}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div className="!bg-white !rounded-lg !shadow !border !border-gray-200 !p-6 !relative !overflow-hidden">
+              <div className="!absolute !top-0 !right-0 !w-16 !h-16 !bg-gradient-to-br !from-blue-50 !to-purple-50 !rounded-full !-translate-y-8 !translate-x-8"></div>
+              <div className="!relative !z-10">
+                <div className="!flex !items-center !gap-2 !mb-4">
+                  <div className="!p-1.5 !w-10 !h-10 flex items-center justify-center !bg-primary-100 !rounded-md">
+                    <Skeleton
+                      variant="circular"
+                      width={16}
+                      height={16}
+                      className="!bg-primary-200"
+                    />
+                  </div>
+                  <Skeleton variant="text" width={200} height={20} />
+                </div>
+                <div className="!grid !grid-cols-1 md:!grid-cols-2 lg:!grid-cols-3 !gap-4">
+                  {[1, 2, 3, 4, 5, 6].map(field => (
+                    <div key={field} className="!space-y-1">
+                      <Skeleton
+                        variant="text"
+                        width={`${40 + field * 8}%`}
+                        height={12}
+                      />
+                      <Skeleton
+                        variant="text"
+                        width={`${60 + field * 6}%`}
+                        height={16}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -309,7 +345,7 @@ const VisitDetail: React.FC = () => {
 
   if (error || !visit) {
     return (
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-4xl mx-auto pb-8">
         <div className="bg-gradient-to-r from-red-600 via-pink-600 to-red-600 rounded-lg p-6 mb-6 text-white relative overflow-hidden shadow-lg">
           <div className="flex items-center gap-2 mb-3">
             <AlertTriangle className="w-5 h-5" />
@@ -364,7 +400,7 @@ const VisitDetail: React.FC = () => {
   const activeAttachment = selectedImageIndex !== null ? visit?.visit_attachments?.[selectedImageIndex] : null;
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4 pb-8">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
         {/* Left Column (Sidebar - 1/3) */}
         <div className="lg:col-span-1 flex flex-col gap-4">

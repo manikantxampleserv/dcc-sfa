@@ -46,6 +46,8 @@ interface DepotSelectProps {
   className?: string;
   /** Placeholder for the input */
   placeholder?: string;
+  /** Filter depots by user id */
+  userId?: number;
 }
 
 /**
@@ -103,6 +105,7 @@ const DepotSelect: React.FC<DepotSelectProps> = ({
   onChange,
   className,
   placeholder,
+  userId,
 }) => {
   const [inputValue, setInputValue] = useState('');
   const [searchValue, setSearchValue] = useState('');
@@ -112,6 +115,11 @@ const DepotSelect: React.FC<DepotSelectProps> = ({
     null
   );
   const [hasInitialized, setHasInitialized] = useState(false);
+  const [hasManuallyCleared, setHasManuallyCleared] = useState(false);
+
+  useEffect(() => {
+    setHasManuallyCleared(false);
+  }, [userId]);
 
   const currentValue = formik ? formik.values[name] : value;
 
@@ -158,6 +166,7 @@ const DepotSelect: React.FC<DepotSelectProps> = ({
     search: effectiveSearch,
     isActive: 'Y',
     depot_id: depotId && !effectiveSearch ? depotId : undefined,
+    user_id: userId,
   });
 
   const searchResults: Depot[] = React.useMemo(() => {
@@ -248,6 +257,50 @@ const DepotSelect: React.FC<DepotSelectProps> = ({
     }
   }, [normalizedValue]);
 
+  useEffect(() => {
+    if (
+      !isFetching &&
+      searchResults.length === 1 &&
+      !normalizedValue &&
+      !isSelecting &&
+      !hasManuallyCleared &&
+      !searchValue
+    ) {
+      const soleDepot = searchResults[0];
+      const selectedValue = soleDepot.id.toString();
+
+      setIsSelecting(true);
+      setSelectedDepotData(soleDepot);
+
+      if (formik) {
+        formik.setFieldValue(name, selectedValue);
+      } else if (setValue) {
+        setValue(selectedValue);
+      }
+
+      if (onChange) {
+        onChange(null, soleDepot);
+      }
+
+      setInputValue(soleDepot.name);
+      setSearchValue('');
+      setDebouncedSearch('');
+
+      setTimeout(() => setIsSelecting(false), 100);
+    }
+  }, [
+    isFetching,
+    searchResults,
+    normalizedValue,
+    isSelecting,
+    hasManuallyCleared,
+    searchValue,
+    formik,
+    name,
+    setValue,
+    onChange,
+  ]);
+
   const depots: Depot[] = React.useMemo(() => {
     const allDepots: Depot[] = [];
 
@@ -285,6 +338,10 @@ const DepotSelect: React.FC<DepotSelectProps> = ({
       setSelectedDepotData(newValue);
 
       const selectedValue = newValue ? newValue.id.toString() : '';
+
+      if (newValue === null) {
+        setHasManuallyCleared(true);
+      }
 
       if (formik) {
         formik.setFieldValue(name, selectedValue);
