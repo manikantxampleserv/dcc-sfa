@@ -21,25 +21,26 @@ export const salespersonStockController = {
   async getSalespersonInventory(req: Request, res: Response) {
     try {
       const { salesperson_id } = req.params;
-      const {
-        page,
-        limit,
-        product_id,
-        batch_status,
-        serial_status,
-      } = req.query;
+      const { page, limit, product_id, batch_status, serial_status } =
+        req.query;
 
       const pageNum = parseInt(page as string, 10) || 1;
       const limitNum = parseInt(limit as string, 10) || 50;
 
       // ── Handle "all salespersons" case ────────────────────────────────────
-      if (!salesperson_id || salesperson_id === '' || salesperson_id === 'all') {
+      if (
+        !salesperson_id ||
+        salesperson_id === '' ||
+        salesperson_id === 'all'
+      ) {
         return await handleAllSalespersons(req, res, pageNum, limitNum);
       }
 
       const salespersonIdNum = parseInt(salesperson_id as string, 10);
       if (isNaN(salespersonIdNum)) {
-        return res.status(400).json({ success: false, message: 'Invalid salesperson_id' });
+        return res
+          .status(400)
+          .json({ success: false, message: 'Invalid salesperson_id' });
       }
 
       // ── Fetch salesperson user record ─────────────────────────────────────
@@ -56,7 +57,9 @@ export const salespersonStockController = {
       });
 
       if (!salesperson) {
-        return res.status(404).json({ success: false, message: 'Salesperson not found' });
+        return res
+          .status(404)
+          .json({ success: false, message: 'Salesperson not found' });
       }
 
       // ── Fetch the van location IDs for this salesperson ───────────────────
@@ -75,7 +78,11 @@ export const salespersonStockController = {
           success: true,
           message: 'No inventory found for this salesperson',
           data: buildEmptyResponse(salesperson),
-          filters: { product_id: product_id || null, batch_status: batch_status || null, serial_status: serial_status || null },
+          filters: {
+            product_id: product_id || null,
+            batch_status: batch_status || null,
+            serial_status: serial_status || null,
+          },
           pagination: buildPagination(pageNum, limitNum, 0),
         });
       }
@@ -102,7 +109,13 @@ export const salespersonStockController = {
                 select: { id: true, name: true, conversion_rate: true },
               },
               product_tax_master: {
-                select: { id: true, name: true, code: true, tax_rate: true, description: true },
+                select: {
+                  id: true,
+                  name: true,
+                  code: true,
+                  tax_rate: true,
+                  description: true,
+                },
               },
               serial_numbers_products: {
                 where: {
@@ -118,7 +131,12 @@ export const salespersonStockController = {
                   customer_id: true,
                   sold_date: true,
                   batch_lots: {
-                    select: { id: true, batch_number: true, lot_number: true, expiry_date: true },
+                    select: {
+                      id: true,
+                      batch_number: true,
+                      lot_number: true,
+                      expiry_date: true,
+                    },
                   },
                   serial_numbers_customers: {
                     select: { id: true, name: true, code: true },
@@ -153,7 +171,12 @@ export const salespersonStockController = {
                 select: { id: true, name: true, code: true },
               },
               batch_lots: {
-                select: { id: true, batch_number: true, lot_number: true, expiry_date: true },
+                select: {
+                  id: true,
+                  batch_number: true,
+                  lot_number: true,
+                  expiry_date: true,
+                },
               },
             },
           },
@@ -176,7 +199,8 @@ export const salespersonStockController = {
             product_code: product?.code || null,
             tracking_type: product?.tracking_type || 'none',
             unit_price: null,
-            product_unit_of_measurement: product?.product_unit_of_measurement || null,
+            product_unit_of_measurement:
+              product?.product_unit_of_measurement || null,
             tax_details: product?.product_tax_master
               ? {
                   id: product.product_tax_master.id,
@@ -209,9 +233,15 @@ export const salespersonStockController = {
           if (batch_status) {
             if (batch_status === 'active' && batchStatusValue !== 'active') {
               // Skip – but still count the stock quantity above
-            } else if (batch_status === 'expiring_soon' && batchStatusValue !== 'expiring_soon') {
+            } else if (
+              batch_status === 'expiring_soon' &&
+              batchStatusValue !== 'expiring_soon'
+            ) {
               // Skip
-            } else if (batch_status === 'expired' && batchStatusValue !== 'expired') {
+            } else if (
+              batch_status === 'expired' &&
+              batchStatusValue !== 'expired'
+            ) {
               // Skip
             } else {
               upsertBatch(productData.batches, {
@@ -223,7 +253,8 @@ export const salespersonStockController = {
                 supplier_name: batch.supplier_name,
                 quality_grade: batch.quality_grade,
                 total_quantity: Number(batch.quantity) || 0,
-                remaining_quantity: qty,  // use inventory_stock's current_stock
+                remaining_quantity: qty, // use inventory_stock's current_stock
+                base_quantity: stock.base_quantity, // use inventory_stock's current_stock
                 is_expired: batchStatusValue === 'expired',
                 is_expiring_soon: batchStatusValue === 'expiring_soon',
                 days_until_expiry: daysUntilExpiry(batch.expiry_date),
@@ -241,6 +272,7 @@ export const salespersonStockController = {
               quality_grade: batch.quality_grade,
               total_quantity: Number(batch.quantity) || 0,
               remaining_quantity: qty,
+              base_quantity: stock.base_quantity || 0,
               is_expired: batchStatusValue === 'expired',
               is_expiring_soon: batchStatusValue === 'expiring_soon',
               days_until_expiry: daysUntilExpiry(batch.expiry_date),
@@ -260,7 +292,10 @@ export const salespersonStockController = {
               ? new Date(serial.warranty_expiry) <= new Date()
               : false,
             warranty_days_remaining: serial.warranty_expiry
-              ? Math.floor((new Date(serial.warranty_expiry).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+              ? Math.floor(
+                  (new Date(serial.warranty_expiry).getTime() - Date.now()) /
+                    (1000 * 60 * 60 * 24)
+                )
               : null,
             batch_id: serial.batch_id,
             batch: serial.batch_lots,
@@ -282,7 +317,10 @@ export const salespersonStockController = {
                 ? new Date(sn.warranty_expiry) <= new Date()
                 : false,
               warranty_days_remaining: sn.warranty_expiry
-                ? Math.floor((new Date(sn.warranty_expiry).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+                ? Math.floor(
+                    (new Date(sn.warranty_expiry).getTime() - Date.now()) /
+                      (1000 * 60 * 60 * 24)
+                  )
                 : null,
               batch_id: sn.batch_id,
               batch: sn.batch_lots,
@@ -308,7 +346,10 @@ export const salespersonStockController = {
 
       // Paginate products
       const startIndex = (pageNum - 1) * limitNum;
-      const paginatedProducts = products.slice(startIndex, startIndex + limitNum);
+      const paginatedProducts = products.slice(
+        startIndex,
+        startIndex + limitNum
+      );
 
       return res.json({
         success: true,
@@ -335,7 +376,10 @@ export const salespersonStockController = {
         pagination: buildPagination(pageNum, limitNum, products.length),
       });
     } catch (error: any) {
-      console.error('salespersonStockController.getSalespersonInventory error:', error);
+      console.error(
+        'salespersonStockController.getSalespersonInventory error:',
+        error
+      );
       return res.status(500).json({
         success: false,
         message: 'Failed to retrieve salesperson inventory',
@@ -411,12 +455,18 @@ async function handleAllSalespersons(
 
     for (const s of stockRecords) {
       const qty = Number(s.current_stock) || 0;
-      productStockMap.set(s.product_id, (productStockMap.get(s.product_id) || 0) + qty);
+      productStockMap.set(
+        s.product_id,
+        (productStockMap.get(s.product_id) || 0) + qty
+      );
       if (s.batch_id) batchIds.add(s.batch_id);
       if (s.serial_number_id) serialIds.add(s.serial_number_id);
     }
 
-    const totalQty = Array.from(productStockMap.values()).reduce((a, b) => a + b, 0);
+    const totalQty = Array.from(productStockMap.values()).reduce(
+      (a, b) => a + b,
+      0
+    );
 
     productStockMap.forEach((_, pid) => overallProducts.add(pid));
     overallTotalQty += totalQty;
@@ -497,14 +547,18 @@ function getBatchStatus(expiryDate: Date | null | undefined): string {
   const now = new Date();
   const expiry = new Date(expiryDate);
   if (expiry <= now) return 'expired';
-  const days = Math.floor((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+  const days = Math.floor(
+    (expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+  );
   if (days <= 30) return 'expiring_soon';
   return 'active';
 }
 
 function daysUntilExpiry(expiryDate: Date | null | undefined): number {
   if (!expiryDate) return 0;
-  return Math.floor((new Date(expiryDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+  return Math.floor(
+    (new Date(expiryDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+  );
 }
 
 function upsertBatch(batches: any[], batchInfo: any) {

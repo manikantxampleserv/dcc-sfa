@@ -24,16 +24,20 @@ exports.salespersonStockController = {
     async getSalespersonInventory(req, res) {
         try {
             const { salesperson_id } = req.params;
-            const { page, limit, product_id, batch_status, serial_status, } = req.query;
+            const { page, limit, product_id, batch_status, serial_status } = req.query;
             const pageNum = parseInt(page, 10) || 1;
             const limitNum = parseInt(limit, 10) || 50;
             // ── Handle "all salespersons" case ────────────────────────────────────
-            if (!salesperson_id || salesperson_id === '' || salesperson_id === 'all') {
+            if (!salesperson_id ||
+                salesperson_id === '' ||
+                salesperson_id === 'all') {
                 return await handleAllSalespersons(req, res, pageNum, limitNum);
             }
             const salespersonIdNum = parseInt(salesperson_id, 10);
             if (isNaN(salespersonIdNum)) {
-                return res.status(400).json({ success: false, message: 'Invalid salesperson_id' });
+                return res
+                    .status(400)
+                    .json({ success: false, message: 'Invalid salesperson_id' });
             }
             // ── Fetch salesperson user record ─────────────────────────────────────
             const salesperson = await prisma_client_1.default.users.findUnique({
@@ -48,7 +52,9 @@ exports.salespersonStockController = {
                 },
             });
             if (!salesperson) {
-                return res.status(404).json({ success: false, message: 'Salesperson not found' });
+                return res
+                    .status(404)
+                    .json({ success: false, message: 'Salesperson not found' });
             }
             // ── Fetch the van location IDs for this salesperson ───────────────────
             const vanLocations = await prisma_client_1.default.van_inventory.findMany({
@@ -64,7 +70,11 @@ exports.salespersonStockController = {
                     success: true,
                     message: 'No inventory found for this salesperson',
                     data: buildEmptyResponse(salesperson),
-                    filters: { product_id: product_id || null, batch_status: batch_status || null, serial_status: serial_status || null },
+                    filters: {
+                        product_id: product_id || null,
+                        batch_status: batch_status || null,
+                        serial_status: serial_status || null,
+                    },
                     pagination: buildPagination(pageNum, limitNum, 0),
                 });
             }
@@ -89,7 +99,13 @@ exports.salespersonStockController = {
                                 select: { id: true, name: true, conversion_rate: true },
                             },
                             product_tax_master: {
-                                select: { id: true, name: true, code: true, tax_rate: true, description: true },
+                                select: {
+                                    id: true,
+                                    name: true,
+                                    code: true,
+                                    tax_rate: true,
+                                    description: true,
+                                },
                             },
                             serial_numbers_products: {
                                 where: {
@@ -105,7 +121,12 @@ exports.salespersonStockController = {
                                     customer_id: true,
                                     sold_date: true,
                                     batch_lots: {
-                                        select: { id: true, batch_number: true, lot_number: true, expiry_date: true },
+                                        select: {
+                                            id: true,
+                                            batch_number: true,
+                                            lot_number: true,
+                                            expiry_date: true,
+                                        },
                                     },
                                     serial_numbers_customers: {
                                         select: { id: true, name: true, code: true },
@@ -140,7 +161,12 @@ exports.salespersonStockController = {
                                 select: { id: true, name: true, code: true },
                             },
                             batch_lots: {
-                                select: { id: true, batch_number: true, lot_number: true, expiry_date: true },
+                                select: {
+                                    id: true,
+                                    batch_number: true,
+                                    lot_number: true,
+                                    expiry_date: true,
+                                },
                             },
                         },
                     },
@@ -190,10 +216,12 @@ exports.salespersonStockController = {
                         if (batch_status === 'active' && batchStatusValue !== 'active') {
                             // Skip – but still count the stock quantity above
                         }
-                        else if (batch_status === 'expiring_soon' && batchStatusValue !== 'expiring_soon') {
+                        else if (batch_status === 'expiring_soon' &&
+                            batchStatusValue !== 'expiring_soon') {
                             // Skip
                         }
-                        else if (batch_status === 'expired' && batchStatusValue !== 'expired') {
+                        else if (batch_status === 'expired' &&
+                            batchStatusValue !== 'expired') {
                             // Skip
                         }
                         else {
@@ -207,6 +235,7 @@ exports.salespersonStockController = {
                                 quality_grade: batch.quality_grade,
                                 total_quantity: Number(batch.quantity) || 0,
                                 remaining_quantity: qty, // use inventory_stock's current_stock
+                                base_quantity: stock.base_quantity, // use inventory_stock's current_stock
                                 is_expired: batchStatusValue === 'expired',
                                 is_expiring_soon: batchStatusValue === 'expiring_soon',
                                 days_until_expiry: daysUntilExpiry(batch.expiry_date),
@@ -225,6 +254,7 @@ exports.salespersonStockController = {
                             quality_grade: batch.quality_grade,
                             total_quantity: Number(batch.quantity) || 0,
                             remaining_quantity: qty,
+                            base_quantity: stock.base_quantity || 0,
                             is_expired: batchStatusValue === 'expired',
                             is_expiring_soon: batchStatusValue === 'expiring_soon',
                             days_until_expiry: daysUntilExpiry(batch.expiry_date),
@@ -243,7 +273,8 @@ exports.salespersonStockController = {
                             ? new Date(serial.warranty_expiry) <= new Date()
                             : false,
                         warranty_days_remaining: serial.warranty_expiry
-                            ? Math.floor((new Date(serial.warranty_expiry).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+                            ? Math.floor((new Date(serial.warranty_expiry).getTime() - Date.now()) /
+                                (1000 * 60 * 60 * 24))
                             : null,
                         batch_id: serial.batch_id,
                         batch: serial.batch_lots,
@@ -264,7 +295,8 @@ exports.salespersonStockController = {
                                 ? new Date(sn.warranty_expiry) <= new Date()
                                 : false,
                             warranty_days_remaining: sn.warranty_expiry
-                                ? Math.floor((new Date(sn.warranty_expiry).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+                                ? Math.floor((new Date(sn.warranty_expiry).getTime() - Date.now()) /
+                                    (1000 * 60 * 60 * 24))
                                 : null,
                             batch_id: sn.batch_id,
                             batch: sn.batch_lots,
