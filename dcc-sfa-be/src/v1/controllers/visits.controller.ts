@@ -350,51 +350,51 @@ function serializeVisit(visit: any) {
     images: {
       self: visit.visit_attachments
         ? visit.visit_attachments
-          .filter((att: any) => att.file_type === 'self_image')
-          .map((att: any) => att.file_url)
+            .filter((att: any) => att.file_type === 'self_image')
+            .map((att: any) => att.file_url)
         : visit.self_image
           ? visit.self_image.split(',').filter(Boolean)
           : [],
       customer: visit.visit_attachments
         ? visit.visit_attachments
-          .filter((att: any) => att.file_type === 'customer_image')
-          .map((att: any) => att.file_url)
+            .filter((att: any) => att.file_type === 'customer_image')
+            .map((att: any) => att.file_url)
         : visit.customer_image
           ? visit.customer_image.split(',').filter(Boolean)
           : [],
       cooler: visit.visit_attachments
         ? visit.visit_attachments
-          .filter((att: any) => att.file_type === 'cooler_image')
-          .map((att: any) => att.file_url)
+            .filter((att: any) => att.file_type === 'cooler_image')
+            .map((att: any) => att.file_url)
         : visit.cooler_image
           ? visit.cooler_image.split(',').filter(Boolean)
           : [],
     },
     customer: visit.visit_customers
       ? {
-        id: visit.visit_customers.id,
-        name: visit.visit_customers.name,
-        code: visit.visit_customers.code,
-        type: visit.visit_customers.type,
-        contact_person: visit.visit_customers.contact_person,
-        phone_number: visit.visit_customers.phone_number,
-        email: visit.visit_customers.email,
-        address: visit.visit_customers.address,
-        city: visit.visit_customers.city,
-        state: visit.visit_customers.state,
-        zipcode: visit.visit_customers.zipcode,
-        outstanding_amount: visit.visit_customers.outstanding_amount,
-        credit_limit: visit.visit_customers.credit_limit,
-        is_active: visit.visit_customers.is_active,
-      }
+          id: visit.visit_customers.id,
+          name: visit.visit_customers.name,
+          code: visit.visit_customers.code,
+          type: visit.visit_customers.type,
+          contact_person: visit.visit_customers.contact_person,
+          phone_number: visit.visit_customers.phone_number,
+          email: visit.visit_customers.email,
+          address: visit.visit_customers.address,
+          city: visit.visit_customers.city,
+          state: visit.visit_customers.state,
+          zipcode: visit.visit_customers.zipcode,
+          outstanding_amount: visit.visit_customers.outstanding_amount,
+          credit_limit: visit.visit_customers.credit_limit,
+          is_active: visit.visit_customers.is_active,
+        }
       : null,
 
     salesperson: visit.visits_salesperson
       ? {
-        id: visit.visits_salesperson.id,
-        name: visit.visits_salesperson.name,
-        email: visit.visits_salesperson.email,
-      }
+          id: visit.visits_salesperson.id,
+          name: visit.visits_salesperson.name,
+          email: visit.visits_salesperson.email,
+        }
       : null,
 
     route: visit.visit_routes,
@@ -450,15 +450,15 @@ function serializeVisit(visit: any) {
         next_inspection_due: inspection.next_inspection_due,
         cooler: inspection.coolers
           ? {
-            id: inspection.coolers.id,
-            code: inspection.coolers.code,
-            brand: inspection.coolers.brand,
-            model: inspection.coolers.model,
-            serial_number: inspection.coolers.serial_number,
-            customer_id: inspection.coolers.customer_id,
-            capacity: inspection.coolers.capacity,
-            status: inspection.coolers.status,
-          }
+              id: inspection.coolers.id,
+              code: inspection.coolers.code,
+              brand: inspection.coolers.brand,
+              model: inspection.coolers.model,
+              serial_number: inspection.coolers.serial_number,
+              customer_id: inspection.coolers.customer_id,
+              capacity: inspection.coolers.capacity,
+              status: inspection.coolers.status,
+            }
           : null,
       })) || [],
 
@@ -641,7 +641,7 @@ function getOrderedQuantities(item: any): {
 
   console.log(
     `Unit normalize: "${rawUnit}" → "${normalizedUnit}" | ` +
-    `Cases: ${quantityInCases}, Pcs: ${baseQuantityInPcs}, CF: ${conversionFactor}`
+      `Cases: ${quantityInCases}, Pcs: ${baseQuantityInPcs}, CF: ${conversionFactor}`
   );
 
   if (isPcsUnit) {
@@ -1016,20 +1016,20 @@ export const visitsController = {
             ...(visit.duration !== undefined && { duration: visit.duration }),
             ...(visit.start_latitude &&
               String(visit.start_latitude).trim() !== '' && {
-              start_latitude: parseFloat(visit.start_latitude),
-            }),
+                start_latitude: parseFloat(visit.start_latitude),
+              }),
             ...(visit.start_longitude &&
               String(visit.start_longitude).trim() !== '' && {
-              start_longitude: parseFloat(visit.start_longitude),
-            }),
+                start_longitude: parseFloat(visit.start_longitude),
+              }),
             ...(visit.end_latitude &&
               String(visit.end_latitude).trim() !== '' && {
-              end_latitude: parseFloat(visit.end_latitude),
-            }),
+                end_latitude: parseFloat(visit.end_latitude),
+              }),
             ...(visit.end_longitude &&
               String(visit.end_longitude).trim() !== '' && {
-              end_longitude: parseFloat(visit.end_longitude),
-            }),
+                end_longitude: parseFloat(visit.end_longitude),
+              }),
             ...(visit.check_in_time && {
               check_in_time: new Date(visit.check_in_time),
             }),
@@ -1041,8 +1041,8 @@ export const visitsController = {
             }),
             ...(visit.amount_collected &&
               String(visit.amount_collected).trim() !== '' && {
-              amount_collected: parseFloat(visit.amount_collected),
-            }),
+                amount_collected: parseFloat(visit.amount_collected),
+              }),
             ...(visit.visit_notes && { visit_notes: visit.visit_notes }),
             ...(visit.customer_feedback && {
               customer_feedback: visit.customer_feedback,
@@ -1278,47 +1278,9 @@ export const visitsController = {
                     invoiceIds.push(createdInvoice.id);
 
                     if (invoiceItems.length > 0) {
-                      const isDirect =
-                        (invoiceData as any).invoice_method === 'direct';
-                      let order: any = null;
-
-                      if (!isDirect) {
-                        const orderNumber = `ORD-${new Date()
-                          .toISOString()
-                          .slice(0, 10)
-                          .replace(/-/g, '')}-${Math.random()
-                            .toString(36)
-                            .substr(2, 6)
-                            .toUpperCase()}`;
-
-                        order = await tx.orders.create({
-                          data: {
-                            order_number: orderNumber,
-                            parent_id: visit.customer_id,
-                            salesperson_id: visit.sales_person_id,
-                            order_date: new Date(),
-                            status: 'processing',
-                            total_amount: invoiceData.total_amount || 0,
-                            subtotal: invoiceData.subtotal || 0,
-                            tax_amount: invoiceData.tax_amount || 0,
-                            discount_amount: invoiceData.discount_amount || 0,
-                            notes: `Generated from invoice ${createdInvoice.invoice_number}`,
-                            is_active: 'Y',
-                            createdby:
-                              visit.createdby || (req as any).user?.id || 1,
-                            createdate: new Date(),
-                            log_inst: 1,
-                          },
-                        });
-                      }
-
-                      const referenceType = isDirect ? 'INVOICE' : 'ORDER';
-                      const referenceId = isDirect
-                        ? createdInvoice.id
-                        : order.id;
-                      const referenceLabel = isDirect
-                        ? `invoice ${createdInvoice.invoice_number}`
-                        : `order ${order.id}`;
+                      const referenceType = 'INVOICE';
+                      const referenceId = createdInvoice.id;
+                      const referenceLabel = `invoice ${createdInvoice.invoice_number}`;
 
                       for (const item of invoiceItems) {
                         const product = await tx.products.findUnique({
@@ -1347,10 +1309,10 @@ export const visitsController = {
 
                         console.log(
                           `Processing ${trackingType} - Product: ${product.name}, ` +
-                          `Unit: ${itemUnit}, ` +
-                          `Ordered Cases: ${orderedQty}, ` +
-                          `Ordered Pcs: ${orderedPieces}, ` +
-                          `ConversionFactor: ${conversionFactor}`
+                            `Unit: ${itemUnit}, ` +
+                            `Ordered Cases: ${orderedQty}, ` +
+                            `Ordered Pcs: ${orderedPieces}, ` +
+                            `ConversionFactor: ${conversionFactor}`
                         );
 
                         if (trackingType === 'BATCH') {
@@ -1477,14 +1439,14 @@ export const visitsController = {
                                 : `${orderedQty} cases`;
                               throw new Error(
                                 `Insufficient van quantity for batch "${batchLot.batch_number}". ` +
-                                `Available: ${availableMsg}, Requested: ${requestedMsg}`
+                                  `Available: ${availableMsg}, Requested: ${requestedMsg}`
                               );
                             }
 
                             console.log(
                               `BATCH VAN [${itemUnit}]: ` +
-                              `${vanItem.quantity}cs + ${vanItem.base_quantity || 0}pc → ` +
-                              `${vanDeduction.newQuantity}cs + ${vanDeduction.newBaseQuantity}pc`
+                                `${vanItem.quantity}cs + ${vanItem.base_quantity || 0}pc → ` +
+                                `${vanDeduction.newQuantity}cs + ${vanDeduction.newBaseQuantity}pc`
                             );
 
                             if (
@@ -1516,7 +1478,7 @@ export const visitsController = {
                             if (batchLotDeduction.newQuantity < 0) {
                               const totalAvailableInBatch =
                                 (batchLot.remaining_quantity || 0) *
-                                conversionFactor +
+                                  conversionFactor +
                                 (batchLot.base_quantity || 0);
                               const availableMsg = isUnitPcs
                                 ? `${totalAvailableInBatch} pcs`
@@ -1526,14 +1488,14 @@ export const visitsController = {
                                 : `${orderedQty} cases`;
                               throw new Error(
                                 `Insufficient batch lot quantity for "${batchLot.batch_number}". ` +
-                                `Available: ${availableMsg}, Requested: ${requestedMsg}`
+                                  `Available: ${availableMsg}, Requested: ${requestedMsg}`
                               );
                             }
 
                             console.log(
                               `BATCH LOT [${itemUnit}]: ` +
-                              `${batchLot.remaining_quantity}cs + ${batchLot.base_quantity || 0}pc → ` +
-                              `${batchLotDeduction.newQuantity}cs + ${batchLotDeduction.newBaseQuantity}pc`
+                                `${batchLot.remaining_quantity}cs + ${batchLot.base_quantity || 0}pc → ` +
+                                `${batchLotDeduction.newQuantity}cs + ${batchLotDeduction.newBaseQuantity}pc`
                             );
 
                             await tx.batch_lots.update({
@@ -1574,7 +1536,7 @@ export const visitsController = {
                                 if (remaining < 0) {
                                   throw new Error(
                                     `Insufficient product batch for "${batchLot.batch_number}". ` +
-                                    `Available: ${totalPcs} pcs, Requested: ${piecesToDeduct} pcs`
+                                      `Available: ${totalPcs} pcs, Requested: ${piecesToDeduct} pcs`
                                   );
                                 }
 
@@ -1587,7 +1549,7 @@ export const visitsController = {
                                 if (orderedQty > productBatchCurrentQty) {
                                   throw new Error(
                                     `Insufficient product batch for "${batchLot.batch_number}". ` +
-                                    `Available: ${productBatchCurrentQty} cases, Requested: ${orderedQty} cases`
+                                      `Available: ${productBatchCurrentQty} cases, Requested: ${orderedQty} cases`
                                   );
                                 }
                                 newProductBatchQty =
@@ -1597,8 +1559,8 @@ export const visitsController = {
 
                               console.log(
                                 `PRODUCT BATCH [${itemUnit}]: ` +
-                                `${productBatchCurrentQty}cs + ${productBatchCurrentBase}pc → ` +
-                                `${newProductBatchQty}cs + ${newProductBatchBase}pc`
+                                  `${productBatchCurrentQty}cs + ${productBatchCurrentBase}pc → ` +
+                                  `${newProductBatchQty}cs + ${newProductBatchBase}pc`
                               );
 
                               await tx.product_batches.update({
@@ -1639,14 +1601,14 @@ export const visitsController = {
                                   : `${orderedQty} cases`;
                                 throw new Error(
                                   `Insufficient product batch for "${batchLot.batch_number}". ` +
-                                  `Available: ${availableMsg}, Requested: ${requestedMsg}`
+                                    `Available: ${availableMsg}, Requested: ${requestedMsg}`
                                 );
                               }
 
                               console.log(
                                 `PRODUCT BATCH [${itemUnit}]: ` +
-                                `${productBatchCurrentQty}cs + ${productBatchCurrentBase}pc → ` +
-                                `${productBatchDeduction.newQuantity}cs + ${productBatchDeduction.newBaseQuantity}pc`
+                                  `${productBatchCurrentQty}cs + ${productBatchCurrentBase}pc → ` +
+                                  `${productBatchDeduction.newQuantity}cs + ${productBatchDeduction.newBaseQuantity}pc`
                               );
 
                               await tx.product_batches.update({
@@ -1689,7 +1651,7 @@ export const visitsController = {
                                   : `${orderedQty} cases`;
                                 throw new Error(
                                   `Insufficient inventory stock for batch "${batchLot.batch_number}". ` +
-                                  `Available: ${availableMsg}, Requested: ${requestedMsg}`
+                                    `Available: ${availableMsg}, Requested: ${requestedMsg}`
                                 );
                               }
 
@@ -1697,7 +1659,7 @@ export const visitsController = {
                               if (isUnitPcs) {
                                 const availableTotalPieces =
                                   (inventoryStock.available_stock || 0) *
-                                  conversionFactor +
+                                    conversionFactor +
                                   (inventoryStock.base_quantity || 0);
                                 const newAvailablePieces = Math.max(
                                   0,
@@ -1710,7 +1672,7 @@ export const visitsController = {
                                 newAvailableQty = Math.max(
                                   0,
                                   (inventoryStock.available_stock || 0) -
-                                  orderedQty
+                                    orderedQty
                                 );
                               }
 
@@ -1730,8 +1692,8 @@ export const visitsController = {
 
                               console.log(
                                 `BATCH STOCK [${itemUnit}]: ` +
-                                `${inventoryStock.current_stock}cs + ${inventoryStock.base_quantity || 0}pc → ` +
-                                `${stockDeduction.newQuantity}cs + ${stockDeduction.newBaseQuantity}pc`
+                                  `${inventoryStock.current_stock}cs + ${inventoryStock.base_quantity || 0}pc → ` +
+                                  `${stockDeduction.newQuantity}cs + ${stockDeduction.newBaseQuantity}pc`
                               );
                             } else {
                               throw new Error(
@@ -1776,34 +1738,6 @@ export const visitsController = {
                             );
                           }
 
-                          if (!isDirect) {
-                            await tx.order_items.create({
-                              data: {
-                                parent_id: order.id,
-                                product_id: product.id,
-                                product_name: item.product_name || product.name,
-                                unit: item.unit || 'CASE',
-                                quantity: isUnitPcs ? 0 : orderedQty,
-                                unit_price: Number(item.unit_price) || 0,
-                                discount_amount:
-                                  Number(item.discount_amount) || 0,
-                                tax_amount: Number(item.tax_amount) || 0,
-                                total_amount: isUnitPcs
-                                  ? totalPiecesDeducted *
-                                  (Number(item.unit_price) || 0)
-                                  : totalUomDeducted *
-                                  (Number(item.unit_price) || 0),
-                                notes: hasBatchNumber
-                                  ? `Batch: ${(item as any).batch_number}`
-                                  : `Batches: ${batchDeductions.map(b => b.batch_lot_id).join(', ')}`,
-                                conversion_factor: conversionFactor,
-                                base_quantity: isUnitPcs
-                                  ? totalPiecesDeducted
-                                  : 0,
-                              },
-                            });
-                          }
-
                           await tx.invoice_items.create({
                             data: {
                               parent_id: createdInvoice.id,
@@ -1817,17 +1751,12 @@ export const visitsController = {
                               tax_amount: Number(item.tax_amount) || 0,
                               total_amount: isUnitPcs
                                 ? totalPiecesDeducted *
-                                (Number(item.unit_price) || 0)
+                                  (Number(item.unit_price) || 0)
                                 : totalUomDeducted *
-                                (Number(item.unit_price) || 0),
-                              notes: !isDirect
-                                ? `Order ID: ${order.id} - ${hasBatchNumber
-                                  ? `Batch: ${(item as any).batch_number}`
-                                  : `Batches: ${batchDeductions.map(b => b.batch_lot_id).join(', ')}`
-                                }`
-                                : hasBatchNumber
-                                  ? `Batch: ${(item as any).batch_number}`
-                                  : `Batches: ${batchDeductions.map(b => b.batch_lot_id).join(', ')}`,
+                                  (Number(item.unit_price) || 0),
+                              notes: hasBatchNumber
+                                ? `Batch: ${(item as any).batch_number}`
+                                : `Batches: ${batchDeductions.map(b => b.batch_lot_id).join(', ')}`,
                               ...(item.tax_code && { tax_code: item.tax_code }),
                               ...(item.tax_rate !== undefined && {
                                 tax_rate: item.tax_rate,
@@ -2040,32 +1969,6 @@ export const visitsController = {
                             );
                           }
 
-                          if (!isDirect) {
-                            await tx.order_items.create({
-                              data: {
-                                parent_id: order.id,
-                                product_id: product.id,
-                                product_name: item.product_name || product.name,
-                                unit: item.unit || 'pcs',
-                                quantity: serialData.length,
-                                unit_price: Number(item.unit_price) || 0,
-                                discount_amount:
-                                  Number(item.discount_amount) || 0,
-                                tax_amount: Number(item.tax_amount) || 0,
-                                total_amount:
-                                  serialData.length *
-                                  (Number(item.unit_price) || 0),
-                                notes: `Serials: ${serialData
-                                  .map((s: any) =>
-                                    typeof s === 'string' ? s : s.serial_number
-                                  )
-                                  .join(', ')}`,
-                                conversion_factor: 1,
-                                base_quantity: serialData.length,
-                              },
-                            });
-                          }
-
                           await tx.invoice_items.create({
                             data: {
                               parent_id: createdInvoice.id,
@@ -2080,21 +1983,11 @@ export const visitsController = {
                               total_amount:
                                 serialData.length *
                                 (Number(item.unit_price) || 0),
-                              notes: !isDirect
-                                ? `Order ID: ${order.id} - Serials: ${serialData
-                                  .map((s: any) =>
-                                    typeof s === 'string'
-                                      ? s
-                                      : s.serial_number
-                                  )
-                                  .join(', ')}`
-                                : `Serials: ${serialData
-                                  .map((s: any) =>
-                                    typeof s === 'string'
-                                      ? s
-                                      : s.serial_number
-                                  )
-                                  .join(', ')}`,
+                              notes: `Serials: ${serialData
+                                .map((s: any) =>
+                                  typeof s === 'string' ? s : s.serial_number
+                                )
+                                .join(', ')}`,
                               ...(item.tax_code && { tax_code: item.tax_code }),
                               ...(item.tax_rate !== undefined && {
                                 tax_rate: item.tax_rate,
@@ -2160,13 +2053,13 @@ export const visitsController = {
                               : `${orderedQty} cases`;
                             throw new Error(
                               `Insufficient van quantity for "${product.name}". ` +
-                              `Available: ${availableMsg}, Requested: ${requestedMsg}`
+                                `Available: ${availableMsg}, Requested: ${requestedMsg}`
                             );
                           }
 
                           console.log(
                             `NONE VAN [${itemUnit}]: ${vanItem.quantity}cs + ${vanItem.base_quantity || 0}pc → ` +
-                            `${vanDeduction.newQuantity}cs + ${vanDeduction.newBaseQuantity}pc`
+                              `${vanDeduction.newQuantity}cs + ${vanDeduction.newBaseQuantity}pc`
                           );
 
                           if (
@@ -2217,7 +2110,7 @@ export const visitsController = {
                                 : `${orderedQty} cases`;
                               throw new Error(
                                 `Insufficient inventory stock for "${product.name}". ` +
-                                `Available: ${availableMsg}, Requested: ${requestedMsg}`
+                                  `Available: ${availableMsg}, Requested: ${requestedMsg}`
                               );
                             }
 
@@ -2225,7 +2118,7 @@ export const visitsController = {
                             if (isUnitPcs) {
                               const availableTotalPieces =
                                 (inventoryStock.available_stock || 0) *
-                                conversionFactor +
+                                  conversionFactor +
                                 (inventoryStock.base_quantity || 0);
                               const newAvailablePieces = Math.max(
                                 0,
@@ -2238,7 +2131,7 @@ export const visitsController = {
                               newAvailableQty = Math.max(
                                 0,
                                 (inventoryStock.available_stock || 0) -
-                                orderedQty
+                                  orderedQty
                               );
                             }
 
@@ -2256,8 +2149,8 @@ export const visitsController = {
 
                             console.log(
                               `NONE STOCK [${itemUnit}]: ${inventoryStock.current_stock}cs + ` +
-                              `${inventoryStock.base_quantity || 0}pc → ` +
-                              `${stockDeduction.newQuantity}cs + ${stockDeduction.newBaseQuantity}pc`
+                                `${inventoryStock.base_quantity || 0}pc → ` +
+                                `${stockDeduction.newQuantity}cs + ${stockDeduction.newBaseQuantity}pc`
                             );
                           } else {
                             throw new Error(
@@ -2295,29 +2188,6 @@ export const visitsController = {
                             },
                           });
 
-                          if (!isDirect) {
-                            await tx.order_items.create({
-                              data: {
-                                parent_id: order.id,
-                                product_id: product.id,
-                                product_name: item.product_name || product.name,
-                                unit: item.unit || 'CASE',
-                                quantity: isUnitPcs ? 0 : orderedQty,
-                                unit_price: Number(item.unit_price) || 0,
-                                discount_amount:
-                                  Number(item.discount_amount) || 0,
-                                tax_amount: Number(item.tax_amount) || 0,
-                                total_amount: isUnitPcs
-                                  ? orderedPieces *
-                                  (Number(item.unit_price) || 0)
-                                  : orderedQty * (Number(item.unit_price) || 0),
-                                notes: item.notes || null,
-                                conversion_factor: conversionFactor,
-                                base_quantity: isUnitPcs ? orderedPieces : 0,
-                              },
-                            });
-                          }
-
                           await tx.invoice_items.create({
                             data: {
                               parent_id: createdInvoice.id,
@@ -2332,9 +2202,7 @@ export const visitsController = {
                               total_amount: isUnitPcs
                                 ? orderedPieces * (Number(item.unit_price) || 0)
                                 : orderedQty * (Number(item.unit_price) || 0),
-                              notes: !isDirect
-                                ? `Order ID: ${order.id} - ${item.notes || ''}`
-                                : item.notes || null,
+                              notes: item.notes || null,
                               ...(item.tax_code && { tax_code: item.tax_code }),
                               ...(item.tax_rate !== undefined && {
                                 tax_rate: item.tax_rate,
@@ -2510,7 +2378,7 @@ export const visitsController = {
                       data: {
                         current_status:
                           (installation.status || 'installed').toLowerCase() ===
-                            'installed'
+                          'installed'
                             ? 'Installed'
                             : installation.status || 'installed',
                         updatedate: new Date(),
@@ -2520,7 +2388,8 @@ export const visitsController = {
                     });
 
                     console.log(
-                      `Cooler ${updatedCooler.id} status updated to ${installation.status || 'installed'
+                      `Cooler ${updatedCooler.id} status updated to ${
+                        installation.status || 'installed'
                       } using asset serial ${assetSerialNumber}`
                     );
                   }
@@ -2850,52 +2719,52 @@ export const visitsController = {
                 const relatedInvoices =
                   invoiceIds.length > 0
                     ? await tx.invoices.findMany({
-                      where: { id: { in: invoiceIds } },
-                      include: {
-                        invoice_items: {
-                          include: { invoice_items_products: true },
+                        where: { id: { in: invoiceIds } },
+                        include: {
+                          invoice_items: {
+                            include: { invoice_items_products: true },
+                          },
                         },
-                      },
-                    })
+                      })
                     : [];
 
                 const relatedPayments =
                   paymentIds.length > 0
                     ? await tx.payments.findMany({
-                      where: { id: { in: paymentIds } },
-                    })
+                        where: { id: { in: paymentIds } },
+                      })
                     : [];
 
                 const relatedInspections =
                   inspectionIds.length > 0
                     ? await tx.cooler_inspections.findMany({
-                      where: { id: { in: inspectionIds } },
-                      include: { coolers: true },
-                    })
+                        where: { id: { in: inspectionIds } },
+                        include: { coolers: true },
+                      })
                     : [];
 
                 const relatedCoolerInstallations =
                   coolerInstallationIds.length > 0
                     ? await tx.coolers.findMany({
-                      where: {
-                        id: {
-                          in: coolerInstallationIds,
+                        where: {
+                          id: {
+                            in: coolerInstallationIds,
+                          },
                         },
-                      },
-                    })
+                      })
                     : [];
                 const relatedSurveyResponses =
                   surveyResponseIds.length > 0
                     ? await tx.survey_responses.findMany({
-                      where: { id: { in: surveyResponseIds } },
-                    })
+                        where: { id: { in: surveyResponseIds } },
+                      })
                     : [];
 
                 const surveyAnswersData =
                   surveyResponseIds.length > 0
                     ? await tx.survey_answers.findMany({
-                      where: { parent_id: { in: surveyResponseIds } },
-                    })
+                        where: { parent_id: { in: surveyResponseIds } },
+                      })
                     : [];
 
                 const surveyResponsesWithAnswers = relatedSurveyResponses.map(
@@ -3530,10 +3399,10 @@ export const visitsController = {
       const visitPayments =
         customerIds.length > 0
           ? await prisma.payments.findMany({
-            where: {
-              customer_id: { in: customerIds },
-            },
-          })
+              where: {
+                customer_id: { in: customerIds },
+              },
+            })
           : [];
 
       console.log(` Fetched ${visitPayments.length} payments`);
@@ -3541,11 +3410,11 @@ export const visitsController = {
       const visitOrders =
         customerIds.length > 0
           ? await prisma.orders.findMany({
-            where: {
-              parent_id: { in: customerIds },
-              is_active: 'Y',
-            },
-          })
+              where: {
+                parent_id: { in: customerIds },
+                is_active: 'Y',
+              },
+            })
           : [];
 
       console.log(` Fetched ${visitOrders.length} orders`);
@@ -3599,27 +3468,26 @@ export const visitsController = {
       const customerCoolers =
         customerIds.length > 0
           ? await prisma.coolers.findMany({
-            where: {
-              customer_id: { in: customerIds },
-              is_active: 'Y',
-            },
-            select: {
-              id: true,
-              code: true,
-              brand: true,
-              model: true,
-              serial_number: true,
-              status: true,
-              capacity: true,
-              install_date: true,
-              last_service_date: true,
-              next_service_due: true,
-              temperature: true,
-              customer_id: true,
-            },
-          })
+              where: {
+                customer_id: { in: customerIds },
+                is_active: 'Y',
+              },
+              select: {
+                id: true,
+                code: true,
+                brand: true,
+                model: true,
+                serial_number: true,
+                status: true,
+                capacity: true,
+                install_date: true,
+                last_service_date: true,
+                next_service_due: true,
+                temperature: true,
+                customer_id: true,
+              },
+            })
           : [];
-
 
       const coolersByCustomer = new Map();
 
@@ -3659,30 +3527,34 @@ export const visitsController = {
         ]);
 
       const serializedData = data.map((visit: any) => {
-        const visitTime = visit.createdate ? new Date(visit.createdate).getTime() : 0;
-        const visitUpdateTime = visit.updatedate ? new Date(visit.updatedate).getTime() : 0;
+        const visitTime = visit.createdate
+          ? new Date(visit.createdate).getTime()
+          : 0;
+        const visitUpdateTime = visit.updatedate
+          ? new Date(visit.updatedate).getTime()
+          : 0;
 
-        const customerPayments = (paymentsByCustomer.get(visit.customer_id) || []).filter(
-          (payment: any) => {
-            if (payment.collected_by !== visit.sales_person_id) return false;
-            if (!payment.createdate) return false;
-            const paymentTime = new Date(payment.createdate).getTime();
-            const diffCreated = Math.abs(paymentTime - visitTime);
-            const diffUpdated = Math.abs(paymentTime - visitUpdateTime);
-            return diffCreated <= 300000 || diffUpdated <= 300000;
-          }
-        );
+        const customerPayments = (
+          paymentsByCustomer.get(visit.customer_id) || []
+        ).filter((payment: any) => {
+          if (payment.collected_by !== visit.sales_person_id) return false;
+          if (!payment.createdate) return false;
+          const paymentTime = new Date(payment.createdate).getTime();
+          const diffCreated = Math.abs(paymentTime - visitTime);
+          const diffUpdated = Math.abs(paymentTime - visitUpdateTime);
+          return diffCreated <= 300000 || diffUpdated <= 300000;
+        });
 
-        const customerOrders = (ordersByCustomer.get(visit.customer_id) || []).filter(
-          (order: any) => {
-            if (order.salesperson_id !== visit.sales_person_id) return false;
-            if (!order.createdate) return false;
-            const orderTime = new Date(order.createdate).getTime();
-            const diffCreated = Math.abs(orderTime - visitTime);
-            const diffUpdated = Math.abs(orderTime - visitUpdateTime);
-            return diffCreated <= 300000 || diffUpdated <= 300000;
-          }
-        );
+        const customerOrders = (
+          ordersByCustomer.get(visit.customer_id) || []
+        ).filter((order: any) => {
+          if (order.salesperson_id !== visit.sales_person_id) return false;
+          if (!order.createdate) return false;
+          const orderTime = new Date(order.createdate).getTime();
+          const diffCreated = Math.abs(orderTime - visitTime);
+          const diffUpdated = Math.abs(orderTime - visitUpdateTime);
+          return diffCreated <= 300000 || diffUpdated <= 300000;
+        });
 
         const visitSurveyResponses = surveysByVisit.get(visit.id) || [];
 
@@ -3802,8 +3674,12 @@ export const visitsController = {
         },
       });
 
-      const visitTime = visit.createdate ? new Date(visit.createdate).getTime() : 0;
-      const visitUpdateTime = visit.updatedate ? new Date(visit.updatedate).getTime() : 0;
+      const visitTime = visit.createdate
+        ? new Date(visit.createdate).getTime()
+        : 0;
+      const visitUpdateTime = visit.updatedate
+        ? new Date(visit.updatedate).getTime()
+        : 0;
 
       const orders = allOrders.filter(order => {
         if (!order.createdate) return false;
@@ -3843,17 +3719,17 @@ export const visitsController = {
           orders_created: orders.length,
           customer: visit.visit_customers
             ? {
-              ...visit.visit_customers,
-              coolers: coolers,
-              total_coolers: coolers.length,
-            }
+                ...visit.visit_customers,
+                coolers: coolers,
+                total_coolers: coolers.length,
+              }
             : null,
           salesperson: visit.visits_salesperson
             ? {
-              id: visit.visits_salesperson.id,
-              name: visit.visits_salesperson.name,
-              email: visit.visits_salesperson.email,
-            }
+                id: visit.visits_salesperson.id,
+                name: visit.visits_salesperson.name,
+                email: visit.visits_salesperson.email,
+              }
             : null,
           route: visit.visit_routes || null,
           zone: visit.visit_zones || null,
@@ -4245,9 +4121,9 @@ export const visitsController = {
           sort_order: sortOrderValue,
           date_range: startDate
             ? {
-              start: startDate,
-              end: endDate || 'Current + 7 days',
-            }
+                start: startDate,
+                end: endDate || 'Current + 7 days',
+              }
             : 'All time',
         }
       );
