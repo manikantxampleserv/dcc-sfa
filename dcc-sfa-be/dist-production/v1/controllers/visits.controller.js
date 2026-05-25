@@ -829,42 +829,9 @@ exports.visitsController = {
                                     }
                                     invoiceIds.push(createdInvoice.id);
                                     if (invoiceItems.length > 0) {
-                                        const isDirect = invoiceData.invoice_method === 'direct';
-                                        let order = null;
-                                        if (!isDirect) {
-                                            const orderNumber = `ORD-${new Date()
-                                                .toISOString()
-                                                .slice(0, 10)
-                                                .replace(/-/g, '')}-${Math.random()
-                                                .toString(36)
-                                                .substr(2, 6)
-                                                .toUpperCase()}`;
-                                            order = await tx.orders.create({
-                                                data: {
-                                                    order_number: orderNumber,
-                                                    parent_id: visit.customer_id,
-                                                    salesperson_id: visit.sales_person_id,
-                                                    order_date: new Date(),
-                                                    status: 'processing',
-                                                    total_amount: invoiceData.total_amount || 0,
-                                                    subtotal: invoiceData.subtotal || 0,
-                                                    tax_amount: invoiceData.tax_amount || 0,
-                                                    discount_amount: invoiceData.discount_amount || 0,
-                                                    notes: `Generated from invoice ${createdInvoice.invoice_number}`,
-                                                    is_active: 'Y',
-                                                    createdby: visit.createdby || req.user?.id || 1,
-                                                    createdate: new Date(),
-                                                    log_inst: 1,
-                                                },
-                                            });
-                                        }
-                                        const referenceType = isDirect ? 'INVOICE' : 'ORDER';
-                                        const referenceId = isDirect
-                                            ? createdInvoice.id
-                                            : order.id;
-                                        const referenceLabel = isDirect
-                                            ? `invoice ${createdInvoice.invoice_number}`
-                                            : `order ${order.id}`;
+                                        const referenceType = 'INVOICE';
+                                        const referenceId = createdInvoice.id;
+                                        const referenceLabel = `invoice ${createdInvoice.invoice_number}`;
                                         for (const item of invoiceItems) {
                                             const product = await tx.products.findUnique({
                                                 where: { id: Number(item.product_id) },
@@ -1167,32 +1134,6 @@ exports.visitsController = {
                                                 if (totalPiecesDeducted !== orderedPieces) {
                                                     throw new Error(`Total batch pieces (${totalPiecesDeducted}) does not match ordered pieces (${orderedPieces})`);
                                                 }
-                                                if (!isDirect) {
-                                                    await tx.order_items.create({
-                                                        data: {
-                                                            parent_id: order.id,
-                                                            product_id: product.id,
-                                                            product_name: item.product_name || product.name,
-                                                            unit: item.unit || 'CASE',
-                                                            quantity: isUnitPcs ? 0 : orderedQty,
-                                                            unit_price: Number(item.unit_price) || 0,
-                                                            discount_amount: Number(item.discount_amount) || 0,
-                                                            tax_amount: Number(item.tax_amount) || 0,
-                                                            total_amount: isUnitPcs
-                                                                ? totalPiecesDeducted *
-                                                                    (Number(item.unit_price) || 0)
-                                                                : totalUomDeducted *
-                                                                    (Number(item.unit_price) || 0),
-                                                            notes: hasBatchNumber
-                                                                ? `Batch: ${item.batch_number}`
-                                                                : `Batches: ${batchDeductions.map(b => b.batch_lot_id).join(', ')}`,
-                                                            conversion_factor: conversionFactor,
-                                                            base_quantity: isUnitPcs
-                                                                ? totalPiecesDeducted
-                                                                : 0,
-                                                        },
-                                                    });
-                                                }
                                                 await tx.invoice_items.create({
                                                     data: {
                                                         parent_id: createdInvoice.id,
@@ -1208,13 +1149,9 @@ exports.visitsController = {
                                                                 (Number(item.unit_price) || 0)
                                                             : totalUomDeducted *
                                                                 (Number(item.unit_price) || 0),
-                                                        notes: !isDirect
-                                                            ? `Order ID: ${order.id} - ${hasBatchNumber
-                                                                ? `Batch: ${item.batch_number}`
-                                                                : `Batches: ${batchDeductions.map(b => b.batch_lot_id).join(', ')}`}`
-                                                            : hasBatchNumber
-                                                                ? `Batch: ${item.batch_number}`
-                                                                : `Batches: ${batchDeductions.map(b => b.batch_lot_id).join(', ')}`,
+                                                        notes: hasBatchNumber
+                                                            ? `Batch: ${item.batch_number}`
+                                                            : `Batches: ${batchDeductions.map(b => b.batch_lot_id).join(', ')}`,
                                                         ...(item.tax_code && { tax_code: item.tax_code }),
                                                         ...(item.tax_rate !== undefined && {
                                                             tax_rate: item.tax_rate,
@@ -1362,27 +1299,6 @@ exports.visitsController = {
                                                     });
                                                     console.log(`Stock movement created for serial ${serialNumber}`);
                                                 }
-                                                if (!isDirect) {
-                                                    await tx.order_items.create({
-                                                        data: {
-                                                            parent_id: order.id,
-                                                            product_id: product.id,
-                                                            product_name: item.product_name || product.name,
-                                                            unit: item.unit || 'pcs',
-                                                            quantity: serialData.length,
-                                                            unit_price: Number(item.unit_price) || 0,
-                                                            discount_amount: Number(item.discount_amount) || 0,
-                                                            tax_amount: Number(item.tax_amount) || 0,
-                                                            total_amount: serialData.length *
-                                                                (Number(item.unit_price) || 0),
-                                                            notes: `Serials: ${serialData
-                                                                .map((s) => typeof s === 'string' ? s : s.serial_number)
-                                                                .join(', ')}`,
-                                                            conversion_factor: 1,
-                                                            base_quantity: serialData.length,
-                                                        },
-                                                    });
-                                                }
                                                 await tx.invoice_items.create({
                                                     data: {
                                                         parent_id: createdInvoice.id,
@@ -1395,17 +1311,9 @@ exports.visitsController = {
                                                         tax_amount: Number(item.tax_amount) || 0,
                                                         total_amount: serialData.length *
                                                             (Number(item.unit_price) || 0),
-                                                        notes: !isDirect
-                                                            ? `Order ID: ${order.id} - Serials: ${serialData
-                                                                .map((s) => typeof s === 'string'
-                                                                ? s
-                                                                : s.serial_number)
-                                                                .join(', ')}`
-                                                            : `Serials: ${serialData
-                                                                .map((s) => typeof s === 'string'
-                                                                ? s
-                                                                : s.serial_number)
-                                                                .join(', ')}`,
+                                                        notes: `Serials: ${serialData
+                                                            .map((s) => typeof s === 'string' ? s : s.serial_number)
+                                                            .join(', ')}`,
                                                         ...(item.tax_code && { tax_code: item.tax_code }),
                                                         ...(item.tax_rate !== undefined && {
                                                             tax_rate: item.tax_rate,
@@ -1548,27 +1456,6 @@ exports.visitsController = {
                                                         van_inventory_id: vanInventory?.id || null,
                                                     },
                                                 });
-                                                if (!isDirect) {
-                                                    await tx.order_items.create({
-                                                        data: {
-                                                            parent_id: order.id,
-                                                            product_id: product.id,
-                                                            product_name: item.product_name || product.name,
-                                                            unit: item.unit || 'CASE',
-                                                            quantity: isUnitPcs ? 0 : orderedQty,
-                                                            unit_price: Number(item.unit_price) || 0,
-                                                            discount_amount: Number(item.discount_amount) || 0,
-                                                            tax_amount: Number(item.tax_amount) || 0,
-                                                            total_amount: isUnitPcs
-                                                                ? orderedPieces *
-                                                                    (Number(item.unit_price) || 0)
-                                                                : orderedQty * (Number(item.unit_price) || 0),
-                                                            notes: item.notes || null,
-                                                            conversion_factor: conversionFactor,
-                                                            base_quantity: isUnitPcs ? orderedPieces : 0,
-                                                        },
-                                                    });
-                                                }
                                                 await tx.invoice_items.create({
                                                     data: {
                                                         parent_id: createdInvoice.id,
@@ -1582,9 +1469,7 @@ exports.visitsController = {
                                                         total_amount: isUnitPcs
                                                             ? orderedPieces * (Number(item.unit_price) || 0)
                                                             : orderedQty * (Number(item.unit_price) || 0),
-                                                        notes: !isDirect
-                                                            ? `Order ID: ${order.id} - ${item.notes || ''}`
-                                                            : item.notes || null,
+                                                        notes: item.notes || null,
                                                         ...(item.tax_code && { tax_code: item.tax_code }),
                                                         ...(item.tax_rate !== undefined && {
                                                             tax_rate: item.tax_rate,
@@ -2680,8 +2565,12 @@ exports.visitsController = {
                 }),
             ]);
             const serializedData = data.map((visit) => {
-                const visitTime = visit.createdate ? new Date(visit.createdate).getTime() : 0;
-                const visitUpdateTime = visit.updatedate ? new Date(visit.updatedate).getTime() : 0;
+                const visitTime = visit.createdate
+                    ? new Date(visit.createdate).getTime()
+                    : 0;
+                const visitUpdateTime = visit.updatedate
+                    ? new Date(visit.updatedate).getTime()
+                    : 0;
                 const customerPayments = (paymentsByCustomer.get(visit.customer_id) || []).filter((payment) => {
                     if (payment.collected_by !== visit.sales_person_id)
                         return false;
@@ -2791,8 +2680,12 @@ exports.visitsController = {
                     is_active: 'Y',
                 },
             });
-            const visitTime = visit.createdate ? new Date(visit.createdate).getTime() : 0;
-            const visitUpdateTime = visit.updatedate ? new Date(visit.updatedate).getTime() : 0;
+            const visitTime = visit.createdate
+                ? new Date(visit.createdate).getTime()
+                : 0;
+            const visitUpdateTime = visit.updatedate
+                ? new Date(visit.updatedate).getTime()
+                : 0;
             const orders = allOrders.filter(order => {
                 if (!order.createdate)
                     return false;
