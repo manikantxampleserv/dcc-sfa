@@ -331,7 +331,9 @@ const InventoryDetail: React.FC = () => {
 
   const salespersonStockMovements = useMemo(() => {
     return stockMovements.filter(
-      sm => sm.van_inventory_id && salespersonVanInventoryIds.has(sm.van_inventory_id)
+      sm =>
+        sm.van_inventory_id &&
+        salespersonVanInventoryIds.has(sm.van_inventory_id)
     );
   }, [stockMovements, salespersonVanInventoryIds]);
 
@@ -657,7 +659,79 @@ const InventoryDetail: React.FC = () => {
     []
   );
 
-  // NOW CHECK CONDITIONS AFTER ALL HOOKS
+  const invoiceColumns = useMemo<TableColumn<any>[]>(
+    () => [
+      {
+        id: 'invoice_number',
+        label: 'Invoice #',
+        sortable: true,
+        render: (value: string) => (
+          <span className="font-mono font-semibold text-indigo-700 text-xs">{value || 'N/A'}</span>
+        ),
+      },
+      {
+        id: 'customer',
+        label: 'Customer',
+        sortable: false,
+        render: (_value: any, row: any) => (
+          <div className="flex flex-col">
+            <span className="font-medium text-gray-900 text-sm">{row.customer?.name || 'N/A'}</span>
+            <span className="text-xs text-gray-400">{row.customer?.code || ''}</span>
+          </div>
+        ),
+      },
+      {
+        id: 'invoice_date',
+        label: 'Date',
+        sortable: true,
+        render: (value: string) => value ? formatDate(value) : 'N/A',
+      },
+      {
+        id: 'invoice_items',
+        label: 'Items',
+        sortable: false,
+        render: (_value: any, row: any) => (
+          <span className="font-medium">{row.invoice_items?.length || 0} items</span>
+        ),
+      },
+      {
+        id: 'total_amount',
+        label: 'Total',
+        sortable: true,
+        render: (value: any) => (
+          <span className="font-semibold text-gray-900">
+            {currencySymbol} {Number(value || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </span>
+        ),
+      },
+      {
+        id: 'status',
+        label: 'Status',
+        sortable: true,
+        render: (value: string) => {
+          const map: Record<string, { label: string; color: 'success' | 'warning' | 'error' | 'default' }> = {
+            confirmed: { label: 'Confirmed', color: 'success' },
+            pending:   { label: 'Pending',   color: 'warning' },
+            cancelled: { label: 'Cancelled', color: 'error' },
+          };
+          const s = map[String(value || '').toLowerCase()] || { label: value || 'N/A', color: 'default' };
+          return (
+            <Chip label={s.label} size="small" color={s.color} variant="outlined" className="!capitalize" />
+          );
+        },
+      },
+      {
+        id: 'payment_method',
+        label: 'Payment',
+        sortable: true,
+        render: (value: string) => (
+          <span className="text-xs text-gray-600 capitalize">{value || 'N/A'}</span>
+        ),
+      },
+    ],
+    [currencySymbol]
+  );
+
   if (isLoading || isLoadingInvoices || isLoadingStockMovements) {
     return (
       <div className="flex flex-col animate-pulse">
@@ -682,7 +756,8 @@ const InventoryDetail: React.FC = () => {
         {tabValue === 1 && <TableSkeleton columns={7} rows={7} />}
         {tabValue === 2 && <TableSkeleton columns={5} rows={7} />}
         {tabValue === 3 && <TableSkeleton columns={7} rows={7} />}
-        {tabValue === 4 && (
+        {tabValue === 4 && <TableSkeleton columns={7} rows={5} />}
+        {tabValue === 5 && (
           <div className="bg-white shadow-sm border border-gray-100 rounded-lg p-6 space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
               {Array.from({ length: 4 }).map((_, i) => (
@@ -847,6 +922,7 @@ const InventoryDetail: React.FC = () => {
             label={`Serial Numbers (${salespersonData?.total_serials || 0})`}
           />
           <Tab label={`Van Inventories (${vanInventories.length})`} />
+          <Tab label={`Invoices (${salespersonInvoices.length})`} />
           <Tab label="Salesperson Summary" />
         </Tabs>
       </Box>
@@ -912,20 +988,23 @@ const InventoryDetail: React.FC = () => {
                           {product.tracking_type}
                         </span>
                       </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600">Batches</span>
-                        <span className="font-medium">
-                          {product.batches?.length || 0}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600">
-                          Serial Numbers
-                        </span>
-                        <span className="font-medium">
-                          {product.serials?.length || 0}
-                        </span>
-                      </div>
+                      {product.tracking_type?.toLowerCase() === 'batch' ? (
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-gray-600">Batches</span>
+                          <span className="font-medium">
+                            {product.batches?.length || 0}
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-gray-600">
+                            Serial Numbers
+                          </span>
+                          <span className="font-medium">
+                            {product.serials?.length || 0}
+                          </span>
+                        </div>
+                      )}
                     </div>
                     {product.total_quantity > 0 &&
                       product.total_quantity <= 10 && (
@@ -976,6 +1055,17 @@ const InventoryDetail: React.FC = () => {
       </TabPanel>
 
       <TabPanel value={tabValue} index={4}>
+        <Table<any>
+          data={salespersonInvoices}
+          columns={invoiceColumns}
+          getRowId={(row: any) => row.id}
+          pagination={false}
+          emptyMessage="No invoices found"
+          loading={isLoadingInvoices}
+        />
+      </TabPanel>
+
+      <TabPanel value={tabValue} index={5}>
         <div className="space-y-6">
           {/* Glassmorphic Stats Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
@@ -1320,7 +1410,6 @@ const InventoryDetail: React.FC = () => {
           </div>
         </div>
       </TabPanel>
-
       <VanInventoryDetail
         open={detailDrawerOpen}
         onClose={() => {
