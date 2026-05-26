@@ -38,6 +38,11 @@ import {
 import InvoiceDetail from 'pages/transactions/Invoices/InvoiceDetail';
 import React, { useCallback, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import {
+  Select as MuiSelect,
+  FormControl,
+  MenuItem as MuiMenuItem,
+} from '@mui/material';
 import type {
   BatchInfo,
   ProductInventory,
@@ -270,6 +275,7 @@ const InventoryDetail = () => {
   };
 
   const [tabValue, setTabValue] = useState(0);
+  const [timeFilter, setTimeFilter] = useState('all');
   const [selectedVanInventory, setSelectedVanInventory] =
     useState<VanInventory | null>(null);
   const [detailDrawerOpen, setDetailDrawerOpen] = useState(false);
@@ -290,6 +296,7 @@ const InventoryDetail = () => {
       {
         user_id: inventoryId,
         limit: 10000000,
+        time_filter: timeFilter !== 'all' ? timeFilter : undefined,
       },
       {
         enabled: inventoryId !== undefined,
@@ -299,6 +306,7 @@ const InventoryDetail = () => {
   const { data: invoicesResponse, isLoading: isLoadingInvoices } = useInvoices(
     {
       limit: 1000000,
+      time_filter: timeFilter !== 'all' ? timeFilter : undefined,
     },
     {
       enabled: inventoryId !== undefined,
@@ -309,6 +317,7 @@ const InventoryDetail = () => {
     useStockMovements(
       {
         limit: 1000000,
+        time_filter: timeFilter !== 'all' ? timeFilter : undefined,
       },
       {
         enabled: inventoryId !== undefined,
@@ -337,6 +346,15 @@ const InventoryDetail = () => {
     });
   }, [invoicesResponse, inventoryId]);
 
+  const salespersonStockMovements = useMemo(() => {
+    const salespersonVanInventoryIds = new Set(vanInventories.map(v => v.id));
+    return stockMovements.filter(
+      sm =>
+        sm.van_inventory_id &&
+        salespersonVanInventoryIds.has(sm.van_inventory_id)
+    );
+  }, [stockMovements, vanInventories]);
+
   const loadTransactions = useMemo(() => {
     return vanInventories.filter(v => v.loading_type === 'L');
   }, [vanInventories]);
@@ -348,18 +366,6 @@ const InventoryDetail = () => {
   }, [vanInventories]);
 
   const unloadCount = unloadTransactions.length;
-
-  const salespersonVanInventoryIds = useMemo(() => {
-    return new Set(vanInventories.map(v => v.id));
-  }, [vanInventories]);
-
-  const salespersonStockMovements = useMemo(() => {
-    return stockMovements.filter(
-      sm =>
-        sm.van_inventory_id &&
-        salespersonVanInventoryIds.has(sm.van_inventory_id)
-    );
-  }, [stockMovements, salespersonVanInventoryIds]);
 
   const totalQtyLoaded = useMemo(() => {
     return salespersonStockMovements
@@ -1174,6 +1180,24 @@ const InventoryDetail = () => {
 
       <TabPanel value={tabValue} index={5}>
         <div className="space-y-6">
+          <div className="flex justify-end">
+            <FormControl size="small" className="w-48 bg-white">
+              <MuiSelect
+                value={timeFilter}
+                onChange={e => setTimeFilter(e.target.value)}
+                displayEmpty
+              >
+                <MuiMenuItem value="all">All Time</MuiMenuItem>
+                <MuiMenuItem value="today">Today</MuiMenuItem>
+                <MuiMenuItem value="yesterday">Yesterday</MuiMenuItem>
+                <MuiMenuItem value="this_week">This Week</MuiMenuItem>
+                <MuiMenuItem value="this_month">This Month</MuiMenuItem>
+                <MuiMenuItem value="prev_month">Previous Month</MuiMenuItem>
+                <MuiMenuItem value="this_year">This Year</MuiMenuItem>
+                <MuiMenuItem value="prev_year">Previous Year</MuiMenuItem>
+              </MuiSelect>
+            </FormControl>
+          </div>
           {/* Glassmorphic Stats Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
             {/* Load Card */}

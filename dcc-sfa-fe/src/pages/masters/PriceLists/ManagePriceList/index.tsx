@@ -20,6 +20,7 @@ import { useProducts } from 'hooks/useProducts';
 import { useRoutes } from 'hooks/useRoutes';
 import React, { useEffect, useState } from 'react';
 import { priceListValidationSchema } from 'schemas/priceLists.schema';
+import type { PriceListItem, SpecialPrice } from 'services/masters/PriceLists';
 import { ActionButton, DeleteButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
@@ -27,7 +28,6 @@ import Input from 'shared/Input';
 import Select from 'shared/Select';
 import Table, { type TableColumn } from 'shared/Table';
 import YesNoField from 'shared/YesNoField';
-import type { PriceListItem, SpecialPrice } from 'services/masters/PriceLists';
 
 interface ManagePriceListProps {
   selectedPriceList?: PriceList | null;
@@ -36,8 +36,10 @@ interface ManagePriceListProps {
   setDrawerOpen: (drawerOpen: boolean) => void;
 }
 
-interface PriceListItemForm
-  extends Omit<Partial<PriceListItem>, 'special_prices'> {
+interface PriceListItemForm extends Omit<
+  Partial<PriceListItem>,
+  'special_prices'
+> {
   product_id: number | undefined;
   unit_price: string;
   uom: string;
@@ -48,11 +50,10 @@ interface PriceListItemForm
   special_prices?: SpecialPriceForm[];
 }
 
-interface SpecialPriceForm
-  extends Omit<
-    SpecialPrice,
-    'route_id' | 'customer_id' | 'customer_category_id' | 'sale_price'
-  > {
+interface SpecialPriceForm extends Omit<
+  SpecialPrice,
+  'route_id' | 'customer_id' | 'customer_category_id' | 'sale_price'
+> {
   id?: number;
   valid_from?: string;
   valid_to?: string;
@@ -81,23 +82,39 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
   const [showSpecialForIndex, setShowSpecialForIndex] = useState<number | null>(
     null
   );
+  const [subCategoryFilter, setSubCategoryFilter] = useState<string>('');
 
   const createPriceListMutation = useCreatePriceList();
   const updatePriceListMutation = useUpdatePriceList();
 
-  const { data: depotsResponse } = useDepots({ limit: 1000, isActive: 'Y' }, { enabled: drawerOpen });
-  const { data: routesResponse } = useRoutes({ limit: 1000, status: 'active' }, { enabled: drawerOpen });
-  const { data: categoriesResponse } = useCustomerCategories({
-    limit: 1000,
-    is_active: 'Y',
-  }, { enabled: drawerOpen });
-  const { data: customersResponse } = useCustomers({
-    limit: 1000,
-    isActive: 'Y',
-  }, { enabled: drawerOpen });
-  const { data: productsResponse, isLoading: isLoadingProducts } = useProducts({
-    limit: 1000,
-  }, { enabled: drawerOpen });
+  const { data: depotsResponse } = useDepots(
+    { limit: 1000, isActive: 'Y' },
+    { enabled: drawerOpen }
+  );
+  const { data: routesResponse } = useRoutes(
+    { limit: 1000, status: 'active' },
+    { enabled: drawerOpen }
+  );
+  const { data: categoriesResponse } = useCustomerCategories(
+    {
+      limit: 1000,
+      is_active: 'Y',
+    },
+    { enabled: drawerOpen }
+  );
+  const { data: customersResponse } = useCustomers(
+    {
+      limit: 1000,
+      isActive: 'Y',
+    },
+    { enabled: drawerOpen }
+  );
+  const { data: productsResponse, isLoading: isLoadingProducts } = useProducts(
+    {
+      limit: 1000,
+    },
+    { enabled: drawerOpen }
+  );
 
   const depots = depotsResponse?.data || [];
   const routes = routesResponse?.data || [];
@@ -106,10 +123,13 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
   const products = productsResponse?.data || [];
 
   const { data: allPriceListsResponse, isLoading: isLoadingPriceList } =
-    usePriceLists({
-      limit: 1000,
-      include_items: true,
-    }, { enabled: drawerOpen });
+    usePriceLists(
+      {
+        limit: 1000,
+        include_items: true,
+      },
+      { enabled: drawerOpen }
+    );
   const allPriceLists = allPriceListsResponse?.data || [];
 
   const handleCancel = () => {
@@ -118,6 +138,7 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
     setPriceListItems([]);
     setNewPriceListItems([]);
     setShowSpecialForIndex(null);
+    setSubCategoryFilter('');
     formik.resetForm();
   };
 
@@ -372,75 +393,117 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
     _index: index,
   }));
 
+  const filteredPriceListItems = priceListItemsWithIndex.filter(item => {
+    if (!subCategoryFilter) return true;
+    const product = products.find(p => p.id === item.product_id);
+    return product?.product_sub_category?.id?.toString() === subCategoryFilter;
+  });
+
+  const filteredNewPriceListItems = newPriceListItemsWithIndex.filter(item => {
+    if (!subCategoryFilter) return true;
+    const product = products.find(p => p.id === item.product_id);
+    return product?.product_sub_category?.id?.toString() === subCategoryFilter;
+  });
+
+  const sortItems = (items: (PriceListItemForm & { _index: number })[]) => {
+    return [...items].sort((a, b) => {
+      const productA = products.find(p => p.id === a.product_id);
+      const productB = products.find(p => p.id === b.product_id);
+      const subCatA = productA?.product_sub_category?.sub_category_name || '';
+      const subCatB = productB?.product_sub_category?.sub_category_name || '';
+
+      const aHasRGB = subCatA.toUpperCase().includes('RGB');
+      const bHasRGB = subCatB.toUpperCase().includes('RGB');
+
+      if (aHasRGB && !bHasRGB) return -1;
+      if (!aHasRGB && bHasRGB) return 1;
+
+      return subCatA.localeCompare(subCatB);
+    });
+  };
+
+  const sortedPriceListItems = sortItems(filteredPriceListItems);
+  const sortedNewPriceListItems = sortItems(filteredNewPriceListItems);
+
   const priceListItemsColumns: TableColumn<
     PriceListItemForm & { _index: number }
   >[] = [
-      {
-        id: 'sku',
-        label: 'SKU',
-        render: (_value, row) => {
-          const product = products.find(p => p.id === row.product_id);
-          return <span>{product?.code || '-'}</span>;
-        },
+    {
+      id: 'sku',
+      label: 'SKU',
+      render: (_value, row) => {
+        const product = products.find(p => p.id === row.product_id);
+        return <span>{product?.code || '-'}</span>;
       },
-      {
-        id: 'product_id',
-        label: 'Product',
-        render: (_value, row) => {
-          const product = products.find(p => p.id === row.product_id);
-          const name = product?.name || '-';
-          return (
-            <Tooltip title={name} arrow placement="top">
-              <div className="max-w-[240px] truncate cursor-help">{name}</div>
-            </Tooltip>
-          );
-        },
+    },
+    {
+      id: 'product_id',
+      label: 'Product',
+      render: (_value, row) => {
+        const product = products.find(p => p.id === row.product_id);
+        const name = product?.name || '-';
+        return (
+          <Tooltip title={name} arrow placement="top">
+            <div className="max-w-[240px] truncate cursor-help">{name}</div>
+          </Tooltip>
+        );
       },
-      {
-        id: 'base_price',
-        label: 'Base Price',
-        render: (_value, row) => {
-          const baseId = Number(formik.values.base_pricelist_id);
-          const base = allPriceLists.find((pl: any) => pl.id === baseId);
-          const baseItem = base?.pricelist_item?.find(
-            (bi: any) => bi.product_id === row.product_id
-          );
-          return <span>{baseItem?.unit_price || '-'}</span>;
-        },
+    },
+    {
+      id: 'base_price',
+      label: 'Base Price',
+      render: (_value, row) => {
+        const baseId = Number(formik.values.base_pricelist_id);
+        const base = allPriceLists.find((pl: any) => pl.id === baseId);
+        const baseItem = base?.pricelist_item?.find(
+          (bi: any) => bi.product_id === row.product_id
+        );
+        return <span>{baseItem?.unit_price || '-'}</span>;
       },
-      {
-        id: 'base_subunit',
-        label: 'Base Subunit Price',
-        render: (_value, row) => {
-          const baseId = Number(formik.values.base_pricelist_id);
-          const base = allPriceLists.find((pl: any) => pl.id === baseId);
-          const baseItem = base?.pricelist_item?.find(
-            (bi: any) => bi.product_id === row.product_id
-          );
-          return <span>{baseItem?.sub_unit_price || '-'}</span>;
-        },
+    },
+    {
+      id: 'base_subunit',
+      label: 'Base Subunit Price',
+      render: (_value, row) => {
+        const product = products.find(p => p.id === row.product_id);
+        const isRGB =
+          product?.product_sub_category?.sub_category_name?.includes('RGB');
+        if (!isRGB) return <span>-</span>;
+
+        const baseId = Number(formik.values.base_pricelist_id);
+        const base = allPriceLists.find((pl: any) => pl.id === baseId);
+        const baseItem = base?.pricelist_item?.find(
+          (bi: any) => bi.product_id === row.product_id
+        );
+        return <span>{baseItem?.sub_unit_price || '-'}</span>;
       },
-      {
-        id: 'unit_price',
-        label: 'Price',
-        render: (_value, row) => (
-          <Input
-            compact={true}
-            value={row.unit_price}
-            onChange={e =>
-              updatePriceListItem(row._index, 'unit_price', e.target.value)
-            }
-            placeholder="0.00"
-            type="number"
-            size="small"
-            className="!min-w-24"
-          />
-        ),
-      },
-      {
-        id: 'sub_unit_price',
-        label: 'Subunit Price',
-        render: (_value, row) => (
+    },
+    {
+      id: 'unit_price',
+      label: 'Price',
+      render: (_value, row) => (
+        <Input
+          compact={true}
+          value={row.unit_price}
+          onChange={e =>
+            updatePriceListItem(row._index, 'unit_price', e.target.value)
+          }
+          placeholder="0.00"
+          type="number"
+          size="small"
+          className="!min-w-24"
+        />
+      ),
+    },
+    {
+      id: 'sub_unit_price',
+      label: 'Subunit Price',
+      render: (_value, row) => {
+        const product = products.find(p => p.id === row.product_id);
+        const isRGB =
+          product?.product_sub_category?.sub_category_name?.includes('RGB');
+        if (!isRGB) return <span>-</span>;
+        return (
           <Input
             compact={true}
             value={row.sub_unit_price}
@@ -452,138 +515,149 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
             size="small"
             className="!min-w-24"
           />
-        ),
+        );
       },
-      {
-        id: 'actions',
-        label: 'Action',
-        render: (_value, row) => (
-          <div className="flex gap-2">
-            <ActionButton
-              onClick={() =>
-                setShowSpecialForIndex(
-                  showSpecialForIndex === row._index ? null : row._index
-                )
-              }
-              size="small"
-              tooltip={
-                showSpecialForIndex === row._index
-                  ? 'Hide Special Prices'
-                  : 'Special Prices'
-              }
-              color={showSpecialForIndex === row._index ? 'primary' : 'info'}
-              icon={<MoreHoriz fontSize="small" />}
-            />
-          </div>
-        ),
-      },
-    ];
+    },
+    {
+      id: 'actions',
+      label: 'Action',
+      render: (_value, row) => (
+        <div className="flex gap-2">
+          <ActionButton
+            onClick={() =>
+              setShowSpecialForIndex(
+                showSpecialForIndex === row._index ? null : row._index
+              )
+            }
+            size="small"
+            tooltip={
+              showSpecialForIndex === row._index
+                ? 'Hide Special Prices'
+                : 'Special Prices'
+            }
+            color={showSpecialForIndex === row._index ? 'primary' : 'info'}
+            icon={<MoreHoriz fontSize="small" />}
+          />
+        </div>
+      ),
+    },
+  ];
   const newPriceListItemsColumns: TableColumn<
     PriceListItemForm & { _index: number }
   >[] = [
-      {
-        id: 'sku',
-        label: 'SKU',
-        render: (_value, row) => {
-          const product = products.find(p => p.id === row.product_id);
-          return <span>{product?.code || '-'}</span>;
-        },
+    {
+      id: 'sku',
+      label: 'SKU',
+      render: (_value, row) => {
+        const product = products.find(p => p.id === row.product_id);
+        return <span>{product?.code || '-'}</span>;
       },
-      {
-        id: 'product_id',
-        label: 'Product',
-        render: (_value, row) => {
-          const product = products.find(p => p.id === row.product_id);
-          const name = product?.name || '-';
-          return (
-            <Tooltip title={name} arrow placement="top">
-              <div className="max-w-[240px] truncate cursor-help">{name}</div>
-            </Tooltip>
-          );
-        },
+    },
+    {
+      id: 'product_id',
+      label: 'Product',
+      render: (_value, row) => {
+        const product = products.find(p => p.id === row.product_id);
+        const name = product?.name || '-';
+        return (
+          <Tooltip title={name} arrow placement="top">
+            <div className="max-w-[240px] truncate cursor-help">{name}</div>
+          </Tooltip>
+        );
       },
-      {
-        id: 'base_price',
-        label: 'Base Price',
-        render: (_value, row) => {
-          const baseId = Number(formik.values.base_pricelist_id);
-          const base = allPriceLists.find((pl: any) => pl.id === baseId);
-          const baseItem = base?.pricelist_item?.find(
-            (bi: any) => bi.product_id === row.product_id
-          );
-          return <span>{baseItem?.unit_price || '-'}</span>;
-        },
+    },
+    {
+      id: 'base_price',
+      label: 'Base Price',
+      render: (_value, row) => {
+        const baseId = Number(formik.values.base_pricelist_id);
+        const base = allPriceLists.find((pl: any) => pl.id === baseId);
+        const baseItem = base?.pricelist_item?.find(
+          (bi: any) => bi.product_id === row.product_id
+        );
+        return <span>{baseItem?.unit_price || '-'}</span>;
       },
-      {
-        id: 'base_subunit',
-        label: 'Base Subunit Price',
-        render: (_value, row) => {
-          const baseId = Number(formik.values.base_pricelist_id);
-          const base = allPriceLists.find((pl: any) => pl.id === baseId);
-          const baseItem = base?.pricelist_item?.find(
-            (bi: any) => bi.product_id === row.product_id
-          );
-          return <span>{baseItem?.sub_unit_price || '-'}</span>;
-        },
+    },
+    {
+      id: 'base_subunit',
+      label: 'Base Subunit Price',
+      render: (_value, row) => {
+        const baseId = Number(formik.values.base_pricelist_id);
+        const base = allPriceLists.find((pl: any) => pl.id === baseId);
+        const baseItem = base?.pricelist_item?.find(
+          (bi: any) => bi.product_id === row.product_id
+        );
+        return <span>{baseItem?.sub_unit_price || '-'}</span>;
       },
-      {
-        id: 'unit_price',
-        label: 'Price',
-        render: (_value, row) => (
-          <Input
-            compact={true}
-            value={row.unit_price}
-            onChange={e =>
-              updateNewPriceListItem(row._index, 'unit_price', e.target.value)
-            }
-            placeholder="0.00"
-            type="number"
-            size="small"
-            className="!min-w-24"
-          />
-        ),
-      },
-      {
-        id: 'sub_unit_price',
-        label: 'Subunit Price',
-        render: (_value, row) => (
+    },
+    {
+      id: 'unit_price',
+      label: 'Price',
+      render: (_value, row) => (
+        <Input
+          compact={true}
+          value={row.unit_price}
+          onChange={e =>
+            updateNewPriceListItem(row._index, 'unit_price', e.target.value)
+          }
+          placeholder="0.00"
+          type="number"
+          size="small"
+          className="!min-w-24"
+        />
+      ),
+    },
+    {
+      id: 'sub_unit_price',
+      label: 'Subunit Price',
+      render: (_value, row) => {
+        const product = products.find(p => p.id === row.product_id);
+        const isRGB =
+          product?.product_sub_category?.sub_category_name?.includes('RGB');
+        if (!isRGB) return <span>-</span>;
+        return (
           <Input
             compact={true}
             value={row.sub_unit_price}
             onChange={e =>
-              updateNewPriceListItem(row._index, 'sub_unit_price', e.target.value)
+              updateNewPriceListItem(
+                row._index,
+                'sub_unit_price',
+                e.target.value
+              )
             }
             placeholder="0.00"
             type="number"
             size="small"
             className="!min-w-24"
           />
-        ),
+        );
       },
-      {
-        id: 'actions',
-        label: 'Action',
-        render: (_value, row) => (
-          <div className="flex gap-2">
-            <ActionButton
-              onClick={() =>
-                setShowSpecialForIndex(
-                  showSpecialForIndex === row._index ? null : row._index
-                )
-              }
-              size="small"
-              tooltip={
-                showSpecialForIndex === row._index
-                  ? 'Hide Special Prices'
-                  : 'Special Prices'
-              }
-              color={showSpecialForIndex === row._index ? 'primary' : 'info'}
-              icon={<MoreHoriz fontSize="small" />}
-            />
-          </div>
-        ),
-      },
-    ];
+    },
+    {
+      id: 'actions',
+      label: 'Action',
+      render: (_value, row) => (
+        <div className="flex gap-2">
+          <ActionButton
+            onClick={() =>
+              setShowSpecialForIndex(
+                showSpecialForIndex === row._index ? null : row._index
+              )
+            }
+            size="small"
+            tooltip={
+              showSpecialForIndex === row._index
+                ? 'Hide Special Prices'
+                : 'Special Prices'
+            }
+            color={showSpecialForIndex === row._index ? 'primary' : 'info'}
+            icon={<MoreHoriz fontSize="small" />}
+          />
+        </div>
+      ),
+    },
+  ];
 
   const addSpecialPrice = (index: number) => {
     const updated = [...priceListItems];
@@ -732,21 +806,33 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
           </div>
 
           <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h6 className="text-base font-semibold text-gray-900">
-                {isEdit && 'Existing'} Price List Items
-              </h6>
-            </div>
+            {isEdit && (
+              <div className="flex justify-between items-center mt-2">
+                <h6 className="text-sm font-semibold text-gray-700">
+                  Existing Items
+                </h6>
+              </div>
+            )}
 
             <Table
               compact={true}
-              data={priceListItemsWithIndex}
+              data={sortedPriceListItems}
               columns={priceListItemsColumns}
               getRowId={row => row._index.toString()}
               pagination={false}
               sortable={false}
               loading={isLoadingPriceList || isLoadingProducts}
               emptyMessage="No list items found."
+              groupBy={row => {
+                const product = products.find(p => p.id === row.product_id);
+                return (
+                  product?.product_sub_category?.sub_category_name ||
+                  'Uncategorized'
+                );
+              }}
+              renderGroupHeader={group => (
+                <span className="text-sm font-bold uppercase">{group}</span>
+              )}
             />
 
             {isEdit && (
@@ -759,12 +845,22 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
 
                 <Table
                   compact={true}
-                  data={newPriceListItemsWithIndex}
+                  data={sortedNewPriceListItems}
                   columns={newPriceListItemsColumns}
                   getRowId={row => row._index.toString()}
                   pagination={false}
                   sortable={false}
                   emptyMessage="No new list items found."
+                  groupBy={row => {
+                    const product = products.find(p => p.id === row.product_id);
+                    return (
+                      product?.product_sub_category?.sub_category_name ||
+                      'Uncategorized'
+                    );
+                  }}
+                  renderGroupHeader={group => (
+                    <span className="text-sm font-bold uppercase">{group}</span>
+                  )}
                 />
               </>
             )}
@@ -994,12 +1090,25 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
                           {
                             id: 'original_subunit',
                             label: 'Orig. Subunit',
-                            render: () => (
-                              <span className="text-xs">
-                                {priceListItems[showSpecialForIndex]
-                                  .sub_unit_price || '0.00'}
-                              </span>
-                            ),
+                            render: () => {
+                              const product = products.find(
+                                p =>
+                                  p.id ===
+                                  priceListItems[showSpecialForIndex!]
+                                    .product_id
+                              );
+                              const isRGB =
+                                product?.product_sub_category?.sub_category_name?.includes(
+                                  'RGB'
+                                );
+                              if (!isRGB) return <span>-</span>;
+                              return (
+                                <span className="text-xs">
+                                  {priceListItems[showSpecialForIndex!]
+                                    .sub_unit_price || '0.00'}
+                                </span>
+                              );
+                            },
                           },
                           {
                             id: 'sale_price',
@@ -1025,23 +1134,37 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
                           {
                             id: 'sale_sub_unit_price',
                             label: 'Sale Subunit',
-                            render: (_v, row: any) => (
-                              <Input
-                                compact={true}
-                                type="number"
-                                value={row.sale_sub_unit_price || ''}
-                                onChange={e =>
-                                  updateSpecialPrice(
-                                    showSpecialForIndex,
-                                    row._index,
-                                    'sale_sub_unit_price',
-                                    e.target.value
-                                  )
-                                }
-                                size="small"
-                                className="!min-w-24"
-                              />
-                            ),
+                            render: (_v, row: any) => {
+                              const product = products.find(
+                                p =>
+                                  p.id ===
+                                  priceListItems[showSpecialForIndex!]
+                                    .product_id
+                              );
+                              const isRGB =
+                                product?.product_sub_category?.sub_category_name?.includes(
+                                  'RGB'
+                                );
+                              if (!isRGB) return <span>-</span>;
+
+                              return (
+                                <Input
+                                  compact={true}
+                                  type="number"
+                                  value={row.sale_sub_unit_price || ''}
+                                  onChange={e =>
+                                    updateSpecialPrice(
+                                      showSpecialForIndex!,
+                                      row._index,
+                                      'sale_sub_unit_price',
+                                      e.target.value
+                                    )
+                                  }
+                                  size="small"
+                                  className="!min-w-24"
+                                />
+                              );
+                            },
                           },
                           {
                             id: 'tax_percent',
@@ -1150,7 +1273,7 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
               }
             >
               {createPriceListMutation.isPending ||
-                updatePriceListMutation.isPending
+              updatePriceListMutation.isPending
                 ? isEdit
                   ? 'Updating...'
                   : 'Creating...'

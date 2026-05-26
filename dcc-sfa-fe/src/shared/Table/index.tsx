@@ -138,6 +138,10 @@ export interface TableProps<T = any> {
   filterColunm?: boolean;
   /** Optional ID for DOM targeting (e.g., for guided tours) */
   id?: string;
+  /** Function to group rows by a string key */
+  groupBy?: (row: T) => string;
+  /** Function to render the group header content */
+  renderGroupHeader?: (group: string, rows: T[]) => ReactNode;
 }
 
 /** Sort order type with three states */
@@ -539,7 +543,7 @@ export default function Table<T extends Record<string, any>>(
             compact={compact}
             order={order}
             orderBy={orderBy ? String(orderBy) : ''}
-            onRequestSort={() => { }}
+            onRequestSort={() => {}}
             columns={columns}
             sortable={sortable}
           />
@@ -579,31 +583,65 @@ export default function Table<T extends Record<string, any>>(
               </MuiTableCell>
             </MuiTableRow>
           ) : (
-            visibleRows.map((row, index) => {
-              const rowId = getRowId(row, index);
-              return (
-                <MuiTableRow
-                  hover
-                  onClick={event => handleClick(event, row, index)}
-                  tabIndex={-1}
-                  key={String(rowId)}
-                  className="!whitespace-nowrap last:!border-b-0 !cursor-pointer hover:!bg-gray-50"
-                >
-                  {visibleColumns.map(column => (
+            (() => {
+              const renderRow = (row: T, index: number) => {
+                const rowId = getRowId(row, index);
+                return (
+                  <MuiTableRow
+                    hover
+                    onClick={event => handleClick(event, row, index)}
+                    tabIndex={-1}
+                    key={String(rowId)}
+                    className="!whitespace-nowrap last:!border-b-0 !cursor-pointer hover:!bg-gray-50"
+                  >
+                    {visibleColumns.map(column => (
+                      <MuiTableCell
+                        key={String(column.id)}
+                        align={column.numeric ? 'right' : 'left'}
+                        padding={column.disablePadding ? 'none' : 'normal'}
+                        className="!border-b !p-1.5 !border-gray-100 !text-gray-700 !whitespace-nowrap !text-sm"
+                      >
+                        {column.render
+                          ? column.render(row[column.id], row, index)
+                          : String(row[column.id] || '')}
+                      </MuiTableCell>
+                    ))}
+                  </MuiTableRow>
+                );
+              };
+
+              if (!props.groupBy) {
+                return visibleRows.map((row, index) => renderRow(row, index));
+              }
+
+              const groups: { group: string; rows: T[] }[] = [];
+              const groupMap = new Map<string, T[]>();
+              visibleRows.forEach(row => {
+                const group = props.groupBy!(row);
+                if (!groupMap.has(group)) {
+                  const newGroup: T[] = [];
+                  groupMap.set(group, newGroup);
+                  groups.push({ group, rows: newGroup });
+                }
+                groupMap.get(group)!.push(row);
+              });
+
+              return groups.map(({ group, rows }) => (
+                <React.Fragment key={`group-${group}`}>
+                  <MuiTableRow className="!bg-gray-200">
                     <MuiTableCell
-                      key={String(column.id)}
-                      align={column.numeric ? 'right' : 'left'}
-                      padding={column.disablePadding ? 'none' : 'normal'}
-                      className="!border-b !p-1.5 !border-gray-100 !text-gray-700 !whitespace-nowrap !text-sm"
+                      colSpan={visibleColumns.length}
+                      className="!py-2 !px-4 !font-bold !text-gray-800"
                     >
-                      {column.render
-                        ? column.render(row[column.id], row, index)
-                        : String(row[column.id] || '')}
+                      {props.renderGroupHeader
+                        ? props.renderGroupHeader(group, rows)
+                        : group}
                     </MuiTableCell>
-                  ))}
-                </MuiTableRow>
-              );
-            })
+                  </MuiTableRow>
+                  {rows.map((row, index) => renderRow(row, index))}
+                </React.Fragment>
+              ));
+            })()
           )}
         </MuiTableBody>
       </MuiTable>

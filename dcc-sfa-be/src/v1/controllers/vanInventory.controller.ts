@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { paginate } from '../../utils/paginate';
 import prisma from '../../configs/prisma.client';
+import { getTimeFilter } from '../../utils/dateFilters';
 
 interface VanInventoryItemSerialized {
   id: number;
@@ -1823,7 +1824,7 @@ export const vanInventoryController = {
 
   async getAllVanInventory(req: any, res: any) {
     try {
-      const { page, limit, search, status, loading_type, user_id } = req.query;
+      const { page, limit, search, status, loading_type, user_id, time_filter } = req.query;
       const pageNum = parseInt(page as string, 10) || 1;
       const limitNum = parseInt(limit as string, 10) || 10;
       const searchLower = search ? (search as string).toLowerCase() : '';
@@ -1831,6 +1832,8 @@ export const vanInventoryController = {
       const loadingType = loading_type
         ? (loading_type as string).toUpperCase()
         : '';
+
+      const documentDateFilter = getTimeFilter(time_filter as string | undefined);
 
       const filters: any = {
         ...(search && {
@@ -1844,6 +1847,7 @@ export const vanInventoryController = {
         ...(loadingType === 'L' && { loading_type: 'L' }),
         ...(loadingType === 'U' && { loading_type: 'U' }),
         ...(user_id && { user_id: parseInt(user_id as string, 10) }),
+        ...(documentDateFilter && { document_date: documentDateFilter }),
       };
 
       const { data, pagination } = await paginate({
@@ -2743,6 +2747,7 @@ export const vanInventoryController = {
         include_expired_batches = 'false',
         batch_status,
         serial_status,
+        time_filter,
       } = req.query;
 
       const pageNum = parseInt(page as string, 10) || 1;
@@ -2926,7 +2931,12 @@ export const vanInventoryController = {
       };
 
       let dateFilter = {};
-      if (document_date) {
+      if (time_filter && time_filter !== 'all') {
+        const tf = getTimeFilter(time_filter as string);
+        if (tf) {
+          dateFilter = { document_date: tf };
+        }
+      } else if (document_date) {
         const date = new Date(document_date as string);
         if (isNaN(date.getTime())) {
           return res.status(400).json({

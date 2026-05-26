@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { paginate } from '../../utils/paginate';
 import prisma from '../../configs/prisma.client';
+import { getTimeFilter } from '../../utils/dateFilters';
 
 interface StockMovementSerialized {
   id: number;
@@ -150,10 +151,12 @@ export const stockMovementsController = {
 
   async getAllStockMovements(req: any, res: any) {
     try {
-      const { page, limit, search, status, movement_type } = req.query;
+      const { page, limit, search, status, movement_type, time_filter } = req.query;
       const pageNum = parseInt(page as string, 10) || 1;
       const limitNum = parseInt(limit as string, 10) || 10;
       const searchLower = search ? (search as string).toLowerCase() : '';
+
+      const movementDateFilter = getTimeFilter(time_filter as string | undefined);
 
       const filters: any = {
         ...(search && {
@@ -169,6 +172,7 @@ export const stockMovementsController = {
         ...(movement_type && {
           movement_type: movement_type,
         }),
+        ...(movementDateFilter && { movement_date: movementDateFilter }),
       };
 
       const { data, pagination } = await paginate({

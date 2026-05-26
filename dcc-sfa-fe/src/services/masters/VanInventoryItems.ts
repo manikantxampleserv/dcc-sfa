@@ -161,6 +161,8 @@ export interface GetSalespersonInventoryParams {
   include_expired_batches?: boolean;
   batch_status?: 'active' | 'expiring_soon' | 'expired';
   serial_status?: string;
+  depot_id?: number;
+  supervisor_id?: number;
 }
 
 export const fetchAllSalespersonsInventory = async (
@@ -183,6 +185,10 @@ export const fetchAllSalespersonsInventory = async (
     queryParams.append('batch_status', params.batch_status);
   if (params?.serial_status)
     queryParams.append('serial_status', params.serial_status);
+  if (params?.depot_id !== undefined)
+    queryParams.append('depot_id', params.depot_id.toString());
+  if (params?.supervisor_id !== undefined)
+    queryParams.append('supervisor_id', params.supervisor_id.toString());
 
   const qs = queryParams.toString();
   const url = `/inventory-item-salesperson${qs ? `?${qs}` : ''}`;
@@ -212,6 +218,10 @@ export const fetchSalespersonInventory = async (
     queryParams.append('batch_status', params.batch_status);
   if (params?.serial_status)
     queryParams.append('serial_status', params.serial_status);
+  if (params?.depot_id !== undefined)
+    queryParams.append('depot_id', params.depot_id.toString());
+  if (params?.supervisor_id !== undefined)
+    queryParams.append('supervisor_id', params.supervisor_id.toString());
 
   const qs = queryParams.toString();
   const url = `/inventory-item-salesperson/${salespersonId}${qs ? `?${qs}` : ''}`;

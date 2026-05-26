@@ -136,6 +136,7 @@ interface GetInvoicesParams {
   due_date_from?: string;
   due_date_to?: string;
   is_active?: string;
+  time_filter?: string;
 }
 
 interface PaginationMeta {

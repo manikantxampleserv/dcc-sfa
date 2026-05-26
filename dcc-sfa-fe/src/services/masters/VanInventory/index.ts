@@ -116,6 +116,7 @@ interface GetVanInventoryParams {
   vehicle_id?: number;
   location_type?: string;
   location_id?: number;
+  time_filter?: string;
 }
 
 interface PaginationMeta {

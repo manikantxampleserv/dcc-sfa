@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { paginate } from '../../utils/paginate';
 import prisma from '../../configs/prisma.client';
+import { getTimeFilter } from '../../utils/dateFilters';
 
 function calculateUnitConversion(
   quantity: number,
@@ -458,11 +459,14 @@ export const invoicesController = {
         invoice_date_to,
         currency_id,
         is_active = 'Y',
+        time_filter,
       } = req.query;
 
       const page_num = parseInt(page as string, 10);
       const limit_num = parseInt(limit as string, 10);
       const searchLower = (search as string).toLowerCase();
+
+      const timeBasedDateFilter = getTimeFilter(time_filter as string | undefined);
 
       const filters: any = {
         is_active: is_active as string,
@@ -479,7 +483,9 @@ export const invoicesController = {
         ...(status && { status: status as string }),
         ...(payment_method && { payment_method: payment_method as string }),
         ...(currency_id && { currency_id: Number(currency_id) }),
-        ...(invoice_date_from || invoice_date_to
+        ...(timeBasedDateFilter
+          ? { invoice_date: timeBasedDateFilter }
+          : invoice_date_from || invoice_date_to
           ? {
               invoice_date: {
                 ...(invoice_date_from && {

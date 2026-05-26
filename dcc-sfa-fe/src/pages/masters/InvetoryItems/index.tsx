@@ -19,17 +19,29 @@ import React, { useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import SearchInput from 'shared/SearchInput';
 import StatsCard from 'shared/StatsCard';
+import DepotSelect from 'shared/DepotSelect';
+import UserSelect from 'shared/UserSelect';
 import { formatDate } from 'utils/dateUtils';
 
 const InventoryItems: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [depotId, setDepotId] = useState<string>('');
+  const [supervisorId, setSupervisorId] = useState<string>('');
   const navigate = useNavigate();
 
   const { isRead } = usePermission('inventory-items');
   const { formatCurrency } = useCurrency();
 
   const { data: inventoryResponse, isLoading: isLoadingInventory } =
-    useInventoryItems({ page: 1, limit: 50 }, { enabled: isRead });
+    useInventoryItems(
+      {
+        page: 1,
+        limit: 50,
+        depot_id: depotId ? Number(depotId) : undefined,
+        supervisor_id: supervisorId ? Number(supervisorId) : undefined,
+      },
+      { enabled: isRead }
+    );
 
   const isLoading = isLoadingInventory;
 
@@ -165,13 +177,27 @@ const InventoryItems: React.FC = () => {
       {isRead && (
         <div className="bg-white shadow-sm p-4 rounded-lg border border-gray-100">
           <div className="flex items-center flex-wrap gap-4">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <SearchInput
                 placeholder="Search Sales Person..."
                 value={searchTerm}
                 onChange={setSearchTerm}
-                className="!w-80"
+                className="!w-64"
               />
+              <div className="w-70">
+                <DepotSelect
+                  value={depotId}
+                  setValue={setDepotId}
+                  label="Depot Filter"
+                />
+              </div>
+              <div className="w-70">
+                <UserSelect
+                  value={supervisorId}
+                  setValue={setSupervisorId}
+                  label="Area Supervisor Filter"
+                />
+              </div>
             </div>
             <div className="ml-auto flex items-center gap-2">
               <div className="flex items-center gap-2 px-3 py-1.5 bg-green-100 rounded-full">

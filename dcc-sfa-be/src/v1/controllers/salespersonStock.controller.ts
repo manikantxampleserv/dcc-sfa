@@ -20,7 +20,7 @@ export const salespersonStockController = {
   async getSalespersonInventory(req: Request, res: Response) {
     try {
       const { salesperson_id } = req.params;
-      const { page, limit, product_id, batch_status, serial_status } =
+      const { page, limit, product_id, batch_status, serial_status, depot_id } =
         req.query;
 
       const pageNum = parseInt(page as string, 10) || 1;
@@ -59,8 +59,17 @@ export const salespersonStockController = {
           .json({ success: false, message: 'Salesperson not found' });
       }
 
+      let parsedDepotId: number | null = null;
+      if (depot_id) {
+        parsedDepotId = parseInt(depot_id as string, 10);
+      }
+
       const vanLocations = await prisma.van_inventory.findMany({
-        where: { user_id: salespersonIdNum, is_active: 'Y' },
+        where: { 
+          user_id: salespersonIdNum, 
+          is_active: 'Y',
+          ...(parsedDepotId ? { location_id: parsedDepotId } : {})
+        },
         select: { location_id: true },
         distinct: ['location_id'],
       });
@@ -389,9 +398,15 @@ async function handleAllSalespersons(
   pageNum: number,
   limitNum: number
 ) {
-  const { product_id, batch_status, serial_status } = req.query;
+  const { product_id, batch_status, serial_status, depot_id, supervisor_id } = req.query;
+
+  const usersWhere: any = {};
+  if (supervisor_id) {
+    usersWhere.reporting_to = parseInt(supervisor_id as string, 10);
+  }
 
   const allSalespersons = await prisma.users.findMany({
+    where: usersWhere,
     select: {
       id: true,
       name: true,
@@ -409,9 +424,18 @@ async function handleAllSalespersons(
   let overallBatches = 0;
   let overallSerials = 0;
 
+  let parsedDepotId: number | null = null;
+  if (depot_id) {
+    parsedDepotId = parseInt(depot_id as string, 10);
+  }
+
   for (const sp of allSalespersons) {
     const vanLocations = await prisma.van_inventory.findMany({
-      where: { user_id: sp.id, is_active: 'Y' },
+      where: { 
+        user_id: sp.id, 
+        is_active: 'Y',
+        ...(parsedDepotId ? { location_id: parsedDepotId } : {})
+      },
       select: { location_id: true },
       distinct: ['location_id'],
     });
