@@ -46,31 +46,14 @@ async function getReportData(filters: any) {
       invoices_customers: {
         select: { id: true, name: true, code: true },
       },
+      invoice_items: {
+        select: { id: true },
+      },
     },
     orderBy: { invoice_date: 'desc' },
   });
 
-  const whereReturns: any = {
-    is_active: 'Y',
-    ...(Object.keys(dateFilter).length > 0 && { return_date: dateFilter }),
-    ...(customer_id && { customer_id: parseInt(customer_id as string) }),
-    ...(status && { status: status as string }),
-  };
-
-  const returnRequests = await prisma.return_requests.findMany({
-    where: whereReturns,
-    include: {
-      return_requests_customers: {
-        select: { id: true, name: true, code: true },
-      },
-      return_requests_products: {
-        select: { id: true, name: true, code: true },
-      },
-    },
-    orderBy: { return_date: 'desc' },
-  });
-
-  return { orders, invoices, returnRequests };
+  return { orders, invoices };
 }
 
 /**
@@ -86,7 +69,7 @@ export const reportsController = {
     try {
       const { start_date, end_date, customer_id, status } = req.query;
 
-      const { orders, invoices, returnRequests } = await getReportData({
+      const { orders, invoices } = await getReportData({
         start_date,
         end_date,
         customer_id,
@@ -95,7 +78,6 @@ export const reportsController = {
 
       const totalOrders = orders.length;
       const totalInvoices = invoices.length;
-      const totalReturns = returnRequests.length;
 
       const totalOrderValue = orders.reduce(
         (sum, order) => sum + Number(order.total_amount || 0),
@@ -138,30 +120,12 @@ export const reportsController = {
           order.status?.toLowerCase() === 'processing'
       );
 
-      const completedReturns = returnRequests.filter(
-        ret =>
-          ret.status?.toUpperCase() === 'COMPLETED' ||
-          ret.status?.toUpperCase() === 'PROCESSED' ||
-          ret.status?.toLowerCase() === 'completed' ||
-          ret.status?.toLowerCase() === 'processed'
-      );
-
-      const pendingReturns = returnRequests.filter(
-        ret =>
-          ret.status?.toUpperCase() === 'PENDING' ||
-          ret.status?.toUpperCase() === 'APPROVAL' ||
-          ret.status?.toLowerCase() === 'pending' ||
-          ret.status?.toLowerCase() === 'approval'
-      );
-
       const averageOrderValue =
         orders.length > 0 ? totalOrderValue / orders.length : 0;
       const averageInvoiceValue =
         invoices.length > 0 ? totalInvoiceValue / invoices.length : 0;
       const conversionRate =
         orders.length > 0 ? (invoices.length / orders.length) * 100 : 0;
-      const returnRate =
-        orders.length > 0 ? (returnRequests.length / orders.length) * 100 : 0;
 
       const serializedOrders = orders.map(order => ({
         id: order.id,
@@ -187,25 +151,17 @@ export const reportsController = {
         due_date: invoice.due_date?.toISOString() || '',
         status: invoice.status || 'N/A',
         total_amount: Number(invoice.total_amount || 0),
+        tax_amount: Number(invoice.tax_amount || 0),
         balance_due: Number(invoice.balance_due || 0),
         amount_paid: Number(invoice.amount_paid || 0),
-      }));
-
-      const serializedReturns = returnRequests.map(ret => ({
-        id: ret.id,
-        customer_name: ret.return_requests_customers?.name || 'N/A',
-        customer_code: ret.return_requests_customers?.code || 'N/A',
-        product_name: ret.return_requests_products?.name || 'N/A',
-        return_date: ret.return_date?.toISOString() || '',
-        reason: ret.reason || 'N/A',
-        status: ret.status || 'N/A',
+        invoice_items: invoice.invoice_items || [],
+        parent_id: invoice.parent_id || null,
       }));
 
       const response = {
         summary: {
           total_orders: totalOrders,
           total_invoices: totalInvoices,
-          total_returns: totalReturns,
           total_order_value: totalOrderValue,
           total_invoice_value: totalInvoiceValue,
         },
@@ -214,19 +170,15 @@ export const reportsController = {
           completed_orders: completedOrders.length,
           pending_invoices: pendingInvoices.length,
           paid_invoices: paidInvoices.length,
-          pending_returns: pendingReturns.length,
-          completed_returns: completedReturns.length,
         },
         statistics: {
           average_order_value: averageOrderValue,
           average_invoice_value: averageInvoiceValue,
           conversion_rate: conversionRate,
-          return_rate: returnRate,
         },
         data: {
           orders: serializedOrders,
           invoices: serializedInvoices,
-          returns: serializedReturns,
         },
       };
 
@@ -252,7 +204,7 @@ export const reportsController = {
     try {
       const { start_date, end_date, customer_id, status } = req.query;
 
-      const { orders, invoices, returnRequests } = await getReportData({
+      const { orders, invoices } = await getReportData({
         start_date,
         end_date,
         customer_id,
@@ -322,30 +274,6 @@ export const reportsController = {
         });
       });
 
-      const returnsSheet = workbook.addWorksheet('Returns', {
-        pageSetup: { paperSize: 9, orientation: 'landscape' },
-      });
-      returnsSheet.columns = [
-        { header: 'Customer Name', key: 'customer_name', width: 30 },
-        { header: 'Customer Code', key: 'customer_code', width: 15 },
-        { header: 'Product Name', key: 'product_name', width: 30 },
-        { header: 'Return Date', key: 'return_date', width: 15 },
-        { header: 'Reason', key: 'reason', width: 40 },
-        { header: 'Status', key: 'status', width: 15 },
-      ];
-      returnRequests.forEach((ret: any) => {
-        returnsSheet.addRow({
-          customer_name: ret.return_requests_customers?.name || 'N/A',
-          customer_code: ret.return_requests_customers?.code || 'N/A',
-          product_name: ret.return_requests_products?.name || 'N/A',
-          return_date: ret.return_date
-            ? new Date(ret.return_date).toLocaleDateString()
-            : 'N/A',
-          reason: ret.reason || 'N/A',
-          status: ret.status || 'N/A',
-        });
-      });
-
       const totalOrderValue = orders.reduce(
         (sum, order) => sum + Number(order.total_amount || 0),
         0
@@ -364,7 +292,6 @@ export const reportsController = {
       const summaryData = [
         { metric: 'Total Orders', value: orders.length },
         { metric: 'Total Invoices', value: invoices.length },
-        { metric: 'Total Returns', value: returnRequests.length },
         { metric: 'Total Order Value', value: totalOrderValue },
         { metric: 'Total Invoice Value', value: totalInvoiceValue },
         {
@@ -382,32 +309,23 @@ export const reportsController = {
               ? ((invoices.length / orders.length) * 100).toFixed(2)
               : 0,
         },
-        {
-          metric: 'Return Rate (%)',
-          value:
-            orders.length > 0
-              ? ((returnRequests.length / orders.length) * 100).toFixed(2)
-              : 0,
-        },
       ];
 
       summaryData.forEach(row => {
         summarySheet.addRow(row);
       });
 
-      [ordersSheet, invoicesSheet, returnsSheet, summarySheet].forEach(
-        sheet => {
-          const headerRow = sheet.getRow(1);
-          headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
-          headerRow.fill = {
-            type: 'pattern',
-            pattern: 'solid',
-            fgColor: { argb: 'FF4472C4' },
-          };
-          headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
-          headerRow.height = 25;
-        }
-      );
+      [ordersSheet, invoicesSheet, summarySheet].forEach(sheet => {
+        const headerRow = sheet.getRow(1);
+        headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        headerRow.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FF4472C4' },
+        };
+        headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
+        headerRow.height = 25;
+      });
 
       const buffer = await workbook.xlsx.writeBuffer();
 
@@ -417,7 +335,7 @@ export const reportsController = {
       );
       res.setHeader(
         'Content-Disposition',
-        `attachment; filename=Orders_Invoices_Returns_Report_${Date.now()}.xlsx`
+        `attachment; filename=Orders_Invoices_Report_${Date.now()}.xlsx`
       );
       res.setHeader('Content-Length', buffer.byteLength.toString());
 

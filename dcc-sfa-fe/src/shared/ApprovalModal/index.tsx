@@ -4,7 +4,7 @@ import {
   DialogContent,
   DialogTitle,
   IconButton,
-  Typography
+  Typography,
 } from '@mui/material';
 import { useFormik } from 'formik';
 import { useTakeActionOnRequest } from 'hooks/useRequests';
@@ -12,6 +12,7 @@ import { Check, FileText, X } from 'lucide-react';
 import React from 'react';
 import type { Request } from 'services/requests';
 import Button from 'shared/Button';
+import Input from 'shared/Input';
 import * as yup from 'yup';
 
 interface ApprovalModalProps {
@@ -38,15 +39,15 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({
         type === 'view'
           ? yup.string().optional()
           : yup
-            .string()
-            .required(
-              `${type === 'approve' ? 'Approval' : 'Rejection'} remarks are required`
-            )
-            .trim()
-            .min(
-              1,
-              `${type === 'approve' ? 'Approval' : 'Rejection'} remarks are required`
-            ),
+              .string()
+              .required(
+                `${type === 'approve' ? 'Approval' : 'Rejection'} remarks are required`
+              )
+              .trim()
+              .min(
+                1,
+                `${type === 'approve' ? 'Approval' : 'Rejection'} remarks are required`
+              ),
     }),
     enableReinitialize: true,
     onSubmit: async values => {
@@ -85,11 +86,13 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({
 
   const requestData = getParsedRequestData();
 
-
   const formatRequestType = (type: string): string => {
     return type
       .replace(/_/g, ' ')
-      .replace(/\w\S*/g, txt => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase());
+      .replace(
+        /\w\S*/g,
+        txt => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase()
+      );
   };
 
   const getReferenceNumber = (request: Request | null): string => {
@@ -152,12 +155,13 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({
     >
       <DialogTitle className="!flex !items-center !gap-3 !pb-4 !border-b !border-gray-200 !relative">
         <div
-          className={`!w-12 !h-12 !rounded-full !flex !items-center !justify-center !shrink-0 ${type === 'approve'
-            ? '!bg-green-100'
-            : type === 'reject'
-              ? '!bg-red-100'
-              : '!bg-blue-100'
-            }`}
+          className={`!w-12 !h-12 !rounded-full !flex !items-center !justify-center !shrink-0 ${
+            type === 'approve'
+              ? '!bg-green-100'
+              : type === 'reject'
+                ? '!bg-red-100'
+                : '!bg-blue-100'
+          }`}
         >
           {type === 'approve' ? (
             <Check className="!w-6 !h-6 !text-green-600" />
@@ -676,34 +680,51 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({
 
                     {(request.reference_details.profile_picture ||
                       requestData?.customer_data?.profile_picture) && (
-                        <div className="!space-y-1 md:!col-span-2">
-                          <Typography
-                            variant="caption"
-                            className="!text-gray-500 !text-xs !uppercase !tracking-wide"
-                          >
-                            Profile Picture
-                          </Typography>
-                          <div className="!mt-1">
-                            <img
-                              src={(
-                                request.reference_details.profile_picture ||
-                                requestData?.customer_data?.profile_picture
-                              ).trim()}
-                              alt="Profile"
-                              className="!w-24 !h-24 !rounded-lg !object-cover !border !border-gray-200 shadow-sm"
-                              onError={e => {
-                                (e.target as HTMLImageElement).src =
-                                  'https://via.placeholder.com/100?text=No+Image';
-                              }}
-                            />
-                          </div>
+                      <div className="!space-y-1 md:!col-span-2">
+                        <Typography
+                          variant="caption"
+                          className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                        >
+                          Profile Picture
+                        </Typography>
+                        <div className="!mt-1">
+                          <img
+                            src={(
+                              request.reference_details.profile_picture ||
+                              requestData?.customer_data?.profile_picture
+                            ).trim()}
+                            alt="Profile"
+                            className="!w-24 !h-24 !rounded-lg !object-cover !border !border-gray-200 shadow-sm"
+                            onError={e => {
+                              (e.target as HTMLImageElement).src =
+                                'https://via.placeholder.com/100?text=No+Image';
+                            }}
+                          />
                         </div>
-                      )}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
             ) : null}
           </div>
+        )}
+        {type !== 'view' && (
+          <Input
+            name="remarks"
+            multiline
+            rows={3}
+            label={
+              type === 'approve' ? 'Approval Remarks' : 'Rejection Remarks'
+            }
+            placeholder={
+              type === 'approve'
+                ? 'Enter approval remarks...'
+                : 'Enter rejection remarks...'
+            }
+            formik={formik}
+            required
+          />
         )}
       </DialogContent>
 

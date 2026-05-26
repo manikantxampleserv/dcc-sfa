@@ -72,22 +72,22 @@ async function main() {
     // ── Pre-run counts ─────────────────────────────────────────────────────
     log('Pre-cleanup record counts:');
     console.table({
-      stock_movements:    await prisma.stock_movements.count(),
-      invoice_items:      await prisma.invoice_items.count(),
-      refund_lines:       await prisma.refund_lines.count(),
-      payment_refunds:    await prisma.payment_refunds.count(),
-      payment_lines:      await prisma.payment_lines.count(),
-      payments:           await prisma.payments.count(),
-      invoices:           await prisma.invoices.count(),
-      order_items:        await prisma.order_items.count(),
-      orders:             await prisma.orders.count(),
+      stock_movements: await prisma.stock_movements.count(),
+      invoice_items: await prisma.invoice_items.count(),
+      refund_lines: await prisma.refund_lines.count(),
+      payment_refunds: await prisma.payment_refunds.count(),
+      payment_lines: await prisma.payment_lines.count(),
+      payments: await prisma.payments.count(),
+      invoices: await prisma.invoices.count(),
+      order_items: await prisma.order_items.count(),
+      orders: await prisma.orders.count(),
       van_inventory_items: await prisma.van_inventory_items.count(),
-      van_inventory:      await prisma.van_inventory.count(),
-      inventory_stock:    await prisma.inventory_stock.count(),
-      serial_numbers:     await prisma.serial_numbers.count(),
-      product_batches:    await prisma.product_batches.count(),
-      batch_lots:         await prisma.batch_lots.count(),
-      products:           await prisma.products.count(),
+      van_inventory: await prisma.van_inventory.count(),
+      inventory_stock: await prisma.inventory_stock.count(),
+      serial_numbers: await prisma.serial_numbers.count(),
+      product_batches: await prisma.product_batches.count(),
+      batch_lots: await prisma.batch_lots.count(),
+      products: await prisma.products.count(),
     });
     console.log('');
 
@@ -119,7 +119,9 @@ async function main() {
     await del('orders', () => prisma.orders.deleteMany({}));
 
     // ── 10. Van Inventory Items ────────────────────────────────────────────
-    await del('van_inventory_items', () => prisma.van_inventory_items.deleteMany({}));
+    await del('van_inventory_items', () =>
+      prisma.van_inventory_items.deleteMany({})
+    );
 
     // ── 11. Van Inventory ──────────────────────────────────────────────────
     await del('van_inventory', () => prisma.van_inventory.deleteMany({}));
@@ -137,7 +139,8 @@ async function main() {
     await del('batch_lots', () => prisma.batch_lots.deleteMany({}));
 
     // ── 16. Products (master — deleted last) ───────────────────────────────
-    await del('products', () => prisma.products.deleteMany({}));
+    // Skipping product deletion as requested
+    // await del('products', () => prisma.products.deleteMany({}));
 
     console.log('');
     if (isDryRun) {
@@ -149,22 +152,22 @@ async function main() {
       console.log('');
       log('Post-cleanup verification (should all be 0):');
       console.table({
-        stock_movements:    await prisma.stock_movements.count(),
-        invoice_items:      await prisma.invoice_items.count(),
-        refund_lines:       await prisma.refund_lines.count(),
-        payment_refunds:    await prisma.payment_refunds.count(),
-        payment_lines:      await prisma.payment_lines.count(),
-        payments:           await prisma.payments.count(),
-        invoices:           await prisma.invoices.count(),
-        order_items:        await prisma.order_items.count(),
-        orders:             await prisma.orders.count(),
+        stock_movements: await prisma.stock_movements.count(),
+        invoice_items: await prisma.invoice_items.count(),
+        refund_lines: await prisma.refund_lines.count(),
+        payment_refunds: await prisma.payment_refunds.count(),
+        payment_lines: await prisma.payment_lines.count(),
+        payments: await prisma.payments.count(),
+        invoices: await prisma.invoices.count(),
+        order_items: await prisma.order_items.count(),
+        orders: await prisma.orders.count(),
         van_inventory_items: await prisma.van_inventory_items.count(),
-        van_inventory:      await prisma.van_inventory.count(),
-        inventory_stock:    await prisma.inventory_stock.count(),
-        serial_numbers:     await prisma.serial_numbers.count(),
-        product_batches:    await prisma.product_batches.count(),
-        batch_lots:         await prisma.batch_lots.count(),
-        products:           await prisma.products.count(),
+        van_inventory: await prisma.van_inventory.count(),
+        inventory_stock: await prisma.inventory_stock.count(),
+        serial_numbers: await prisma.serial_numbers.count(),
+        product_batches: await prisma.product_batches.count(),
+        batch_lots: await prisma.batch_lots.count(),
+        // products:           await prisma.products.count(), // Not deleting products
       });
     }
   } catch (error: any) {
@@ -177,4 +180,3 @@ async function main() {
 }
 
 main();
-

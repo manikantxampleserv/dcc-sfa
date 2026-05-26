@@ -19,7 +19,9 @@
     "seed:all": "ts-node src/utils/seeders/index.ts seed",
     "seed": "ts-node src/utils/seeders/index.ts",
     "lint": "echo \"No linting configured for backend yet\"",
-    "check:env": "node -e \"console.log('DATABASE_URL:', process.env.DATABASE_URL ? 'SET' : 'NOT SET'); console.log('NODE_ENV:', process.env.NODE_ENV); console.log('Working Directory:', process.cwd());\""
+    "check:env": "node -e \"console.log('DATABASE_URL:', process.env.DATABASE_URL ? 'SET' : 'NOT SET'); console.log('NODE_ENV:', process.env.NODE_ENV); console.log('Working Directory:', process.cwd());\"",
+    "create:admin": "ts-node src/scripts/create-admin.ts",
+    "copy:database": "ts-node src/scripts/copy-database.ts"
   },
   "devDependencies": {
     "@types/backblaze-b2": "^1.5.6",

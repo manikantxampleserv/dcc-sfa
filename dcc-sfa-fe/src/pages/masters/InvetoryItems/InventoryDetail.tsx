@@ -17,7 +17,7 @@ import {
 } from '@mui/material';
 import { useCurrency } from 'hooks/useCurrency';
 import { useInventoryItemById } from 'hooks/useInventoryItems';
-import { useInvoices } from 'hooks/useInvoices';
+import { useInvoices, type Invoice } from 'hooks/useInvoices';
 import { useStockMovements } from 'hooks/useStockMovements';
 import { useVanInventory, type VanInventory } from 'hooks/useVanInventory';
 import {
@@ -30,10 +30,12 @@ import {
   MapPin,
   Package,
   Phone,
+  Receipt,
   ShoppingBag,
   TrendingUp,
   Truck,
 } from 'lucide-react';
+import InvoiceDetail from 'pages/transactions/Invoices/InvoiceDetail';
 import React, { useCallback, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import type {
@@ -206,10 +208,10 @@ const getStockStatus = (quantity: number) => {
   return { status: 'in_stock', color: 'success', label: 'In Stock' };
 };
 
-const InventoryDetail: React.FC = () => {
+const InventoryDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { currencies, defaultCurrencyId } = useCurrency();
+  const { currencies, defaultCurrencyId, formatCurrency } = useCurrency();
 
   const currencyCode = getCurrencyCode(
     currencies || [],
@@ -247,10 +249,32 @@ const InventoryDetail: React.FC = () => {
     return `${currencySymbol} ${formattedAmount}`;
   };
 
+  const formatQuantityAndBase = (
+    qty: number | undefined,
+    baseQty: number | undefined
+  ) => {
+    const safeQty = Number(qty) || 0;
+    const safeBaseQty = Number(baseQty) || 0;
+    const caseUnit = 'Crates';
+    const baseUnit = 'PCs';
+    if (safeQty === 0 && safeBaseQty === 0) {
+      return `0 ${caseUnit}`;
+    }
+
+    return [
+      safeQty > 0 ? `${safeQty} ${caseUnit}` : null,
+      safeBaseQty > 0 ? `${safeBaseQty} ${baseUnit}` : null,
+    ]
+      .filter(Boolean)
+      .join(' ');
+  };
+
   const [tabValue, setTabValue] = useState(0);
   const [selectedVanInventory, setSelectedVanInventory] =
     useState<VanInventory | null>(null);
   const [detailDrawerOpen, setDetailDrawerOpen] = useState(false);
+  const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+  const [invoiceDetailDrawerOpen, setInvoiceDetailDrawerOpen] = useState(false);
 
   const inventoryId = id ? Number(id) : undefined;
   const {
@@ -397,18 +421,20 @@ const InventoryDetail: React.FC = () => {
     }));
   }, [salespersonData]);
 
-  const batchRows: Array<BatchInfo & { product_id: number | string }> =
-    useMemo(() => {
-      if (!Array.isArray(products) || products.length === 0) return [];
+  const batchRows: Array<
+    BatchInfo & { product_id: number | string; product: ProductInventory }
+  > = useMemo(() => {
+    if (!Array.isArray(products) || products.length === 0) return [];
 
-      return products.flatMap(product => {
-        if (!product.batches || !Array.isArray(product.batches)) return [];
-        return product.batches.map(batch => ({
-          ...batch,
-          product_id: product.product_id,
-        }));
-      });
-    }, [products]);
+    return products.flatMap(product => {
+      if (!product.batches || !Array.isArray(product.batches)) return [];
+      return product.batches.map(batch => ({
+        ...batch,
+        product_id: product.product_id,
+        product: product,
+      }));
+    });
+  }, [products]);
 
   const serialRows: Array<SerialInfo & { product_id: number | string }> =
     useMemo(() => {
@@ -426,7 +452,9 @@ const InventoryDetail: React.FC = () => {
     }, [products]);
 
   const batchColumns = useMemo<
-    TableColumn<BatchInfo & { product_id: number | string }>[]
+    TableColumn<
+      BatchInfo & { product_id: number | string; product: ProductInventory }
+    >[]
   >(
     () => [
       {
@@ -443,27 +471,64 @@ const InventoryDetail: React.FC = () => {
         id: 'remaining_quantity',
         label: 'Quantity',
         sortable: true,
+        render: (_value, row) => {
+          const qty = Number(row?.remaining_quantity) || 0;
+          const baseQty = Number(row?.base_quantity) || 0;
+          const caseUnit = 'Crates';
+          const baseUnit = 'PCs';
+          if (qty === 0 && baseQty === 0) {
+            return (
+              <span className="font-mono text-sm text-gray-500">
+                0 {caseUnit}
+              </span>
+            );
+          }
+
+          return (
+            <span className="font-mono text-sm font-medium">
+              {[
+                qty > 0 ? `${qty} ${caseUnit}` : null,
+                baseQty > 0 ? `${baseQty} ${baseUnit}` : null,
+              ]
+                .filter(Boolean)
+                .join(' and ')}
+            </span>
+          );
+        },
       },
       {
         id: 'expiry_date',
         label: 'Expiry Date',
         sortable: true,
-        render: (value: string | undefined) =>
-          value ? formatDate(value) : 'N/A',
+        render: (value: string) => (value ? formatDate(value) : 'N/A'),
       },
       {
         id: 'status',
         label: 'Status',
         sortable: true,
-        render: (value: string) => (
-          <Chip
-            label={String(value || '').replace('_', ' ')}
-            size="small"
-            color={getStatusColor(String(value)) as ChipProps['color']}
-            variant="outlined"
-            className="!capitalize"
-          />
-        ),
+        render: (value: string) => {
+          const getBatchStatusColor = (status: string) => {
+            switch (status) {
+              case 'active':
+                return 'success';
+              case 'expiring_soon':
+                return 'warning';
+              case 'expired':
+                return 'error';
+              default:
+                return 'default';
+            }
+          };
+          return (
+            <Chip
+              label={String(value || '').replace('_', ' ')}
+              size="small"
+              color={getBatchStatusColor(String(value)) as ChipProps['color']}
+              variant="outlined"
+              className="!capitalize"
+            />
+          );
+        },
       },
     ],
     []
@@ -663,73 +728,102 @@ const InventoryDetail: React.FC = () => {
     () => [
       {
         id: 'invoice_number',
-        label: 'Invoice #',
-        sortable: true,
-        render: (value: string) => (
-          <span className="font-mono font-semibold text-indigo-700 text-xs">{value || 'N/A'}</span>
+        label: 'Invoice Info',
+        render: (_value, row) => (
+          <Box className="!flex !gap-2 !items-center">
+            <Avatar
+              alt={row.invoice_number}
+              className="!rounded !bg-primary-100 !text-primary-500"
+            >
+              <Receipt className="w-5 h-5" />
+            </Avatar>
+            <Box>
+              <Typography
+                variant="body1"
+                className="!text-gray-900 !leading-tight"
+              >
+                {row.invoice_number}
+              </Typography>
+              <Typography
+                variant="caption"
+                className="!text-gray-500 !text-xs !block !mt-0.5"
+              >
+                {row.invoice_items?.length || 0} items
+                {row.parent_id && ` • Order #${row.parent_id}`}
+              </Typography>
+            </Box>
+          </Box>
         ),
       },
       {
-        id: 'customer',
-        label: 'Customer',
-        sortable: false,
-        render: (_value: any, row: any) => (
-          <div className="flex flex-col">
-            <span className="font-medium text-gray-900 text-sm">{row.customer?.name || 'N/A'}</span>
-            <span className="text-xs text-gray-400">{row.customer?.code || ''}</span>
-          </div>
+        id: 'customer.name',
+        label: 'Customer Info',
+        render: (_value, row) => (
+          <Box>
+            <Typography
+              variant="body2"
+              className="!text-gray-900 !font-medium uppercase"
+            >
+              {row.customer?.name || 'N/A'}
+            </Typography>
+            <Typography
+              variant="caption"
+              className="!text-gray-500 !text-xs !block !mt-0.5"
+            >
+              {row.customer?.code || 'N/A'}
+            </Typography>
+          </Box>
         ),
       },
       {
         id: 'invoice_date',
         label: 'Date',
-        sortable: true,
-        render: (value: string) => value ? formatDate(value) : 'N/A',
-      },
-      {
-        id: 'invoice_items',
-        label: 'Items',
-        sortable: false,
-        render: (_value: any, row: any) => (
-          <span className="font-medium">{row.invoice_items?.length || 0} items</span>
+        render: (_value, row) => (
+          <Box>
+            <Box className="flex items-center text-sm text-gray-900">
+              <Calendar className="w-4 h-4 text-gray-400 mr-1" />
+              {row.invoice_date ? formatDateTime(row.invoice_date) : 'N/A'}
+            </Box>
+          </Box>
         ),
       },
       {
         id: 'total_amount',
-        label: 'Total',
-        sortable: true,
-        render: (value: any) => (
-          <span className="font-semibold text-gray-900">
-            {currencySymbol} {Number(value || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-          </span>
+        label: 'Amounts',
+        render: (_value, row) => (
+          <Box>
+            <Typography variant="body2" className="!text-gray-900 !font-medium">
+              Total: {formatCurrency(row.total_amount || 0)}
+            </Typography>
+            <Typography
+              variant="caption"
+              className="!text-gray-500 !text-xs !block !mt-0.5"
+            >
+              Tax: {formatCurrency(row.tax_amount || 0)}
+            </Typography>
+          </Box>
         ),
       },
       {
-        id: 'status',
-        label: 'Status',
-        sortable: true,
-        render: (value: string) => {
-          const map: Record<string, { label: string; color: 'success' | 'warning' | 'error' | 'default' }> = {
-            confirmed: { label: 'Confirmed', color: 'success' },
-            pending:   { label: 'Pending',   color: 'warning' },
-            cancelled: { label: 'Cancelled', color: 'error' },
-          };
-          const s = map[String(value || '').toLowerCase()] || { label: value || 'N/A', color: 'default' };
-          return (
-            <Chip label={s.label} size="small" color={s.color} variant="outlined" className="!capitalize" />
-          );
-        },
-      },
-      {
-        id: 'payment_method',
-        label: 'Payment',
-        sortable: true,
-        render: (value: string) => (
-          <span className="text-xs text-gray-600 capitalize">{value || 'N/A'}</span>
+        id: 'actions',
+        label: 'Actions',
+        sortable: false,
+        render: (_value: any, row: any) => (
+          <div className="!flex !gap-2 !items-center">
+            <ActionButton
+              onClick={() => {
+                setSelectedInvoice(row);
+                setInvoiceDetailDrawerOpen(true);
+              }}
+              tooltip="View Invoice"
+              icon={<Visibility className="!text-[20px]" />}
+              color="success"
+            />
+          </div>
         ),
       },
     ],
-    [currencySymbol]
+    [formatCurrency, navigate]
   );
 
   if (isLoading || isLoadingInvoices || isLoadingStockMovements) {
@@ -894,7 +988,10 @@ const InventoryDetail: React.FC = () => {
         />
         <StatsCard
           title="Total Quantity"
-          value={salespersonData?.total_remaining_quantity || 0}
+          value={formatQuantityAndBase(
+            salespersonData?.total_remaining_quantity,
+            salespersonData?.total_remaining_base_quantity
+          )}
           icon={<TrendingUp className="w-6 h-6" />}
           color="green"
         />
@@ -975,9 +1072,14 @@ const InventoryDetail: React.FC = () => {
                           Total Quantity
                         </span>
                         <span className="font-medium">
-                          {product.total_remaining_quantity < 0
-                            ? 0
-                            : product.total_remaining_quantity}
+                          {formatQuantityAndBase(
+                            product.total_remaining_quantity < 0
+                              ? 0
+                              : product.total_remaining_quantity,
+                            Number(product.total_remaining_base_quantity) < 0
+                              ? 0
+                              : product.total_remaining_base_quantity
+                          )}
                         </span>
                       </div>
                       <div className="flex items-center justify-between">
@@ -1022,12 +1124,17 @@ const InventoryDetail: React.FC = () => {
       </TabPanel>
 
       <TabPanel value={tabValue} index={1}>
-        <Table<BatchInfo & { product_id: number | string }>
+        <Table<
+          BatchInfo & { product_id: number | string; product: ProductInventory }
+        >
           data={batchRows}
           columns={batchColumns}
-          getRowId={(row: BatchInfo & { product_id: number | string }) =>
-            `${row.batch_lot_id}-${row.product_id}`
-          }
+          getRowId={(
+            row: BatchInfo & {
+              product_id: number | string;
+              product: ProductInventory;
+            }
+          ) => `${row.batch_lot_id}-${row.product_id}`}
           pagination={false}
           emptyMessage="No batches found"
         />
@@ -1184,8 +1291,9 @@ const InventoryDetail: React.FC = () => {
                     variant="h6"
                     className="text-gray-900 font-black mt-0.5"
                   >
-                    {formatCompactNumber(
-                      salespersonData?.total_remaining_quantity || 0
+                    {formatQuantityAndBase(
+                      salespersonData?.total_remaining_quantity,
+                      salespersonData?.total_remaining_base_quantity
                     )}
                   </Typography>
                 </div>
@@ -1410,14 +1518,23 @@ const InventoryDetail: React.FC = () => {
           </div>
         </div>
       </TabPanel>
-      <VanInventoryDetail
-        open={detailDrawerOpen}
-        onClose={() => {
-          setDetailDrawerOpen(false);
-          setSelectedVanInventory(null);
-        }}
-        vanInventory={selectedVanInventory}
-      />
+      {detailDrawerOpen && (
+        <VanInventoryDetail
+          open={detailDrawerOpen}
+          onClose={() => {
+            setDetailDrawerOpen(false);
+            setSelectedVanInventory(null);
+          }}
+          vanInventory={selectedVanInventory}
+        />
+      )}
+      {invoiceDetailDrawerOpen && (
+        <InvoiceDetail
+          open={invoiceDetailDrawerOpen}
+          onClose={() => setInvoiceDetailDrawerOpen(false)}
+          invoice={selectedInvoice}
+        />
+      )}
     </div>
   );
 };

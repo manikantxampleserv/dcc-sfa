@@ -186,7 +186,10 @@ export const priceListsController = {
         for (const item of items) {
           const itemData = {
             product_id: item.product_id,
-            unit_price: item.unit_price,
+            unit_price:
+              item.unit_price !== '' && item.unit_price !== null && item.unit_price !== undefined
+                ? String(item.unit_price)
+                : '0',
             discount_percent:
               item.discount_percent !== '' && item.discount_percent !== null
                 ? Number(item.discount_percent)
@@ -199,7 +202,7 @@ export const priceListsController = {
               item.sub_unit_price !== '' &&
               item.sub_unit_price !== null &&
               item.sub_unit_price !== undefined
-                ? item.sub_unit_price
+                ? String(item.sub_unit_price)
                 : null,
             is_active: item.is_active || 'Y',
           };

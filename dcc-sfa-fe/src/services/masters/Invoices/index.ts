@@ -6,8 +6,8 @@ interface InvoiceItem {
   parent_id?: number;
   product_id: number;
   product_name?: string;
-  unit: 'CASE' | 'PIECE';
-  uom?: 'CASE' | 'PIECE';
+  unit: 'CASE' | 'PCS';
+  uom?: 'CASE' | 'PCS';
   quantity: number;
   base_quantity?: number;
   conversion_factor?: number;

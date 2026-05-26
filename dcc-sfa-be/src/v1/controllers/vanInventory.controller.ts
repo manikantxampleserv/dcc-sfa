@@ -2577,11 +2577,18 @@ export const vanInventoryController = {
       }
 
       const batchLot = productBatch.batch_lot_product_batches;
-      const isExpired = new Date(batchLot.expiry_date) <= new Date();
+      const nowStr = new Date().toISOString().split('T')[0];
+      const now = new Date(`${nowStr}T00:00:00.000Z`);
+
+      const expiryStr = new Date(batchLot.expiry_date)
+        .toISOString()
+        .split('T')[0];
+      const expiry = new Date(`${expiryStr}T00:00:00.000Z`);
+
+      const isExpired = expiry.getTime() < now.getTime();
       const isExpiringSoon =
         !isExpired &&
-        new Date(batchLot.expiry_date) <=
-          new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+        expiry.getTime() <= now.getTime() + 30 * 24 * 60 * 60 * 1000;
 
       const response = {
         batch_id: batchLot.id,
@@ -2590,8 +2597,7 @@ export const vanInventoryController = {
         manufacturing_date: batchLot.manufacturing_date,
         expiry_date: batchLot.expiry_date,
         days_until_expiry: Math.floor(
-          (new Date(batchLot.expiry_date).getTime() - Date.now()) /
-            (1000 * 60 * 60 * 24)
+          (expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
         ),
         is_expired: isExpired,
         is_expiring_soon: isExpiringSoon,
@@ -2764,10 +2770,17 @@ export const vanInventoryController = {
 
             let batchInfo: any = null;
             if (batch) {
-              const isExpired = new Date(batch.expiry_date) <= new Date();
+              const nowStr = new Date().toISOString().split('T')[0];
+              const now = new Date(`${nowStr}T00:00:00.000Z`);
+
+              const expiryStr = new Date(batch.expiry_date)
+                .toISOString()
+                .split('T')[0];
+              const expiry = new Date(`${expiryStr}T00:00:00.000Z`);
+
+              const isExpired = expiry.getTime() < now.getTime();
               const daysUntilExpiry = Math.floor(
-                (new Date(batch.expiry_date).getTime() - Date.now()) /
-                  (1000 * 60 * 60 * 24)
+                (expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
               );
               const isExpiringSoon = !isExpired && daysUntilExpiry <= 30;
 
@@ -4013,22 +4026,14 @@ export const vanInventoryController = {
 
       const userIdNum = parseInt(userId.toString(), 10);
 
-      const vanInventories = await prisma.van_inventory.findMany({
-        where: {
-          user_id: userIdNum,
-          is_active: 'Y',
-          loading_type: { not: 'U' },
-        },
-        include: {
-          van_inventory_items_inventory: {
-            include: {
-              van_inventory_items_products: true,
-            },
-          },
-        },
+      // 1. Get all active van locations for this user
+      const vanLocations = await prisma.van_inventory.findMany({
+        where: { user_id: userIdNum, is_active: 'Y' },
+        select: { location_id: true, vehicle_id: true },
+        distinct: ['location_id'],
       });
 
-      if (vanInventories.length === 0) {
+      if (vanLocations.length === 0) {
         return res.status(404).json({
           success: false,
           message: 'No active van inventory found for authenticated user',
@@ -4039,25 +4044,36 @@ export const vanInventoryController = {
       const processedVanInventoryIds: number[] = [];
       const errors: string[] = [];
 
-      for (const vanInventory of vanInventories) {
+      for (const vanLoc of vanLocations) {
+        const locationId = vanLoc.location_id;
+        if (!locationId) continue;
+
         try {
-          const itemsToUnload =
-            vanInventory.van_inventory_items_inventory.filter(
-              item => (item.quantity || 0) > 0
-            );
-
-          if (itemsToUnload.length === 0) {
-            continue;
-          }
-
           await prisma.$transaction(async tx => {
+            // Find stock to unload
+            const stockToUnload = await tx.inventory_stock.findMany({
+              where: {
+                location_id: locationId,
+                OR: [
+                  { current_stock: { gt: 0 } },
+                  { base_quantity: { gt: 0 } },
+                ],
+              },
+              include: {
+                inventory_stock_products: true,
+              },
+            });
+
+            if (stockToUnload.length === 0) return;
+
             const newVanInventory = await tx.van_inventory.create({
               data: {
                 user_id: userIdNum,
-                location_id: vanInventory.location_id,
-                vehicle_id: vanInventory.vehicle_id,
+                location_id: vanLoc.location_id,
+                vehicle_id: vanLoc.vehicle_id,
                 loading_type: 'U',
                 is_active: 'Y',
+                document_date: new Date(),
                 createdate: new Date(),
                 createdby: userIdNum,
                 log_inst: 1,
@@ -4065,200 +4081,82 @@ export const vanInventoryController = {
             });
 
             const stockMovementData: any[] = [];
-            const serialStockIds: number[] = [];
-            const vanInventoryItemIds: number[] = [];
-            const batchLotIds: { id: number; quantity: number }[] = [];
+            const vanInventoryItemsData: any[] = [];
             const serialNumberIds: number[] = [];
+            const stockIdsToUpdate: number[] = [];
 
-            for (const item of itemsToUnload) {
-              const product = item.van_inventory_items_products;
+            for (const stock of stockToUnload) {
+              const product = (stock as any).inventory_stock_products;
               if (!product) continue;
 
-              try {
-                const trackingType =
-                  product?.tracking_type?.toLowerCase() || 'none';
+              const unloadQty = stock.current_stock || 0;
+              const unloadBaseQty = stock.base_quantity || 0;
 
-                vanInventoryItemIds.push(item.id);
+              if (unloadQty <= 0 && unloadBaseQty <= 0) continue;
 
-                if (trackingType === 'serial') {
-                  const serialStockRecords = await tx.inventory_stock.findMany({
-                    where: {
-                      product_id: item.product_id,
-                      location_id: vanInventory.location_id ?? 1,
-                      serial_number_id: { not: null },
-                    },
-                    select: { id: true, serial_number_id: true },
-                  });
-
-                  serialStockIds.push(...serialStockRecords.map(r => r.id));
-                  serialNumberIds.push(
-                    ...serialStockRecords
-                      .map(r => r.serial_number_id)
-                      .filter((id): id is number => id !== null)
-                  );
-                } else if (trackingType === 'batch') {
-                  if (item.batch_lot_id !== null) {
-                    batchLotIds.push({
-                      id: item.batch_lot_id,
-                      quantity: item.quantity || 0,
-                    });
-                  }
-
-                  const existingStock = await tx.inventory_stock.findFirst({
-                    where: {
-                      product_id: item.product_id,
-                      location_id: vanInventory.location_id ?? 1,
-                      batch_id: item.batch_lot_id,
-                    },
-                    select: {
-                      id: true,
-                      current_stock: true,
-                      available_stock: true,
-                    },
-                  });
-
-                  if (existingStock) {
-                    await tx.inventory_stock.update({
-                      where: { id: existingStock.id },
-                      data: {
-                        current_stock: Math.max(
-                          0,
-                          (existingStock.current_stock ?? 0) -
-                            (item.quantity || 0)
-                        ),
-                        available_stock: Math.max(
-                          0,
-                          (existingStock.available_stock ?? 0) -
-                            (item.quantity || 0)
-                        ),
-                        updatedate: new Date(),
-                        updatedby: userIdNum,
-                      },
-                    });
-                  }
-                } else {
-                  const existingStock = await tx.inventory_stock.findFirst({
-                    where: {
-                      product_id: item.product_id,
-                      location_id: vanInventory.location_id ?? 1,
-                      batch_id: null,
-                      serial_number_id: null,
-                    },
-                    select: {
-                      id: true,
-                      current_stock: true,
-                      available_stock: true,
-                    },
-                  });
-
-                  if (existingStock) {
-                    await tx.inventory_stock.update({
-                      where: { id: existingStock.id },
-                      data: {
-                        current_stock: Math.max(
-                          0,
-                          (existingStock.current_stock ?? 0) -
-                            (item.quantity || 0)
-                        ),
-                        available_stock: Math.max(
-                          0,
-                          (existingStock.available_stock ?? 0) -
-                            (item.quantity || 0)
-                        ),
-                        updatedate: new Date(),
-                        updatedby: userIdNum,
-                      },
-                    });
-                  }
-                }
-
-                stockMovementData.push({
-                  product_id: item.product_id,
-                  batch_id: item.batch_lot_id ?? null,
-                  serial_id: null,
-                  movement_type: 'VAN_UNLOAD',
-                  reference_type: 'VAN_INVENTORY',
-                  reference_id: newVanInventory.id,
-                  from_location_id: null,
-                  to_location_id: null,
-                  quantity: item.quantity || 0,
-                  movement_date: new Date(),
-                  remarks: `Van unloaded from ${vanInventory.vehicle_id ? `vehicle ${vanInventory.vehicle_id}` : 'location'} for user ${userIdNum}`,
-                  is_active: 'Y',
-                  createdate: new Date(),
-                  createdby: userIdNum,
-                  log_inst: 1,
-                  van_inventory_id: newVanInventory.id,
-                });
-
-                totalItemsUnloaded++;
-              } catch (itemError: any) {
-                console.error(`Failed to process item ${item.id}:`, itemError);
-                errors.push(`Item ${item.id}: ${itemError.message}`);
-                continue;
+              stockIdsToUpdate.push(stock.id);
+              if (stock.serial_number_id) {
+                serialNumberIds.push(stock.serial_number_id);
               }
+
+              // Add to stock_movements
+              stockMovementData.push({
+                product_id: stock.product_id,
+                batch_id: stock.batch_id ?? null,
+                serial_id: stock.serial_number_id ?? null,
+                movement_type: 'VAN_UNLOAD',
+                reference_type: 'VAN_INVENTORY',
+                reference_id: newVanInventory.id,
+                from_location_id: null,
+                to_location_id: null,
+                quantity: unloadQty,
+                movement_date: new Date(),
+                remarks: `Van unloaded from ${vanLoc.vehicle_id ? `vehicle ${vanLoc.vehicle_id}` : 'location'} for user ${userIdNum}`,
+                is_active: 'Y',
+                createdate: new Date(),
+                createdby: userIdNum,
+                log_inst: 1,
+                van_inventory_id: newVanInventory.id,
+              });
+
+              // Add to van_inventory_items
+              vanInventoryItemsData.push({
+                parent_id: newVanInventory.id,
+                product_id: stock.product_id,
+                batch_lot_id: stock.batch_id ?? null,
+                serial_id: stock.serial_number_id ?? null,
+                quantity: unloadQty,
+                base_quantity: unloadBaseQty,
+                product_name: product.name,
+                unit: null,
+                unit_price: product.selling_price || 0,
+                discount_amount: 0,
+                tax_amount: 0,
+                total_amount: unloadQty * Number(product.selling_price || 0),
+                notes: 'Unloaded from inventory_stock',
+              });
+
+              totalItemsUnloaded++;
             }
 
-            await Promise.all([
-              tx.inventory_stock.updateMany({
-                where: { id: { in: serialStockIds } },
+            if (stockIdsToUpdate.length > 0) {
+              await tx.inventory_stock.updateMany({
+                where: { id: { in: stockIdsToUpdate } },
                 data: {
                   current_stock: 0,
                   available_stock: 0,
+                  base_quantity: 0,
                   updatedate: new Date(),
                   updatedby: userIdNum,
                 },
-              }),
-              tx.stock_movements.createMany({
+              });
+            }
+
+            if (stockMovementData.length > 0) {
+              await tx.stock_movements.createMany({
                 data: stockMovementData,
-              }),
-              tx.van_inventory_items.updateMany({
-                where: { id: { in: vanInventoryItemIds } },
-                data: {
-                  quantity: 0,
-                },
-              }),
-            ]);
-
-            // for (const batchLot of batchLotIds) {
-            //   await tx.batch_lots.update({
-            //     where: { id: batchLot.id },
-            //     data: {
-            //       quantity: {
-            //         decrement: batchLot.quantity,
-            //       },
-            //       remaining_quantity: {
-            //         decrement: batchLot.quantity,
-            //       },
-            //       updatedate: new Date(),
-            //       updatedby: userIdNum,
-            //     },
-            //   });
-            // }
-
-            // if (serialNumberIds.length > 0) {
-            //   await tx.serial_numbers.updateMany({
-            //     where: { id: { in: serialNumberIds } },
-            //     data: {
-            //       status: 'available',
-            //       updatedate: new Date(),
-            //       updatedby: userIdNum,
-            //     },
-            //   });
-            // }
-
-            const vanInventoryItemsData = itemsToUnload.map(item => ({
-              parent_id: newVanInventory.id,
-              product_id: item.product_id,
-              batch_lot_id: item.batch_lot_id,
-              serial_id: item.serial_id,
-              quantity: item.quantity || 0,
-              unit_price: item.unit_price,
-              discount_amount: item.discount_amount,
-              tax_amount: item.tax_amount,
-              total_amount: item.total_amount,
-              notes: item.notes,
-            }));
+              });
+            }
 
             if (vanInventoryItemsData.length > 0) {
               await tx.van_inventory_items.createMany({
@@ -4268,14 +4166,12 @@ export const vanInventoryController = {
 
             processedVanInventoryIds.push(newVanInventory.id);
           });
-        } catch (vanInventoryError: any) {
+        } catch (vanLocError: any) {
           console.error(
-            `Failed to process van inventory ${vanInventory.id}:`,
-            vanInventoryError
+            `Failed to process van location ${vanLoc.location_id}:`,
+            vanLocError
           );
-          errors.push(
-            `Van Inventory ${vanInventory.id}: ${vanInventoryError.message}`
-          );
+          errors.push(`Location ${vanLoc.location_id}: ${vanLocError.message}`);
           continue;
         }
       }

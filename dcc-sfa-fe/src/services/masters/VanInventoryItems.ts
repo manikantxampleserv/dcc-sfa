@@ -11,6 +11,7 @@ export interface BatchInfo {
   total_quantity: number;
   remaining_quantity: number;
   is_expired: boolean;
+  base_quantity: string;
   is_expiring_soon: boolean;
   days_until_expiry: number;
   status: 'active' | 'expiring_soon' | 'expired';
@@ -63,6 +64,8 @@ export interface ProductInventory {
   tracking_type: string;
   total_quantity: number;
   total_remaining_quantity: number;
+  total_base_quantity?: number;
+  total_remaining_base_quantity?: number;
   product_unit_of_measurement?: {
     id: number;
     name: string;
@@ -96,6 +99,8 @@ export interface SalespersonInventoryData {
   total_products: number;
   total_remaining_quantity: number;
   total_quantity: number;
+  total_base_quantity?: number;
+  total_remaining_base_quantity?: number;
   total_batches: number;
   total_serials: number;
   products: ProductInventory[];

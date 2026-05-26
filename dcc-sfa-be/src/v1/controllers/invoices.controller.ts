@@ -242,8 +242,13 @@ export const invoicesController = {
             where: { id: { in: productIds } },
             include: {
               product_unit_of_measurement: true,
+              product_tax_master: true,
             },
           });
+
+          let calculatedSubtotal = 0;
+          let calculatedTaxAmount = 0;
+          let calculatedDiscountAmount = 0;
 
           const productMap = new Map(products.map(p => [p.id, p]));
 
@@ -252,9 +257,16 @@ export const invoicesController = {
             const quantity = Number(item.quantity);
             const unitPrice = Number(item.unit_price);
             const discountAmount = Number(item.discount_amount) || 0;
-            const taxAmount = Number(item.tax_amount) || 0;
-            const totalAmount =
-              quantity * unitPrice - discountAmount + taxAmount;
+            const itemSubtotal = quantity * unitPrice;
+            const taxRate = Number(product?.product_tax_master?.tax_rate) || 0;
+            const taxAmount =
+              Number(item.tax_amount) ||
+              ((itemSubtotal - discountAmount) * taxRate) / 100;
+            const totalAmount = itemSubtotal - discountAmount + taxAmount;
+
+            calculatedSubtotal += itemSubtotal;
+            calculatedDiscountAmount += discountAmount;
+            calculatedTaxAmount += taxAmount;
 
             const conversionRate =
               Number(product?.product_unit_of_measurement?.conversion_rate) ||
@@ -374,6 +386,29 @@ export const invoicesController = {
               },
             });
           }
+
+          const invoiceDiscount = Number(data.discount_amount) || 0;
+          const invoiceShipping = Number(data.shipping_amount) || 0;
+          const finalTotalAmount =
+            calculatedSubtotal -
+            calculatedDiscountAmount -
+            invoiceDiscount +
+            calculatedTaxAmount +
+            invoiceShipping;
+
+          await tx.invoices.update({
+            where: { id: newInvoice.id },
+            data: {
+              subtotal: calculatedSubtotal,
+              tax_amount: calculatedTaxAmount,
+              discount_amount: calculatedDiscountAmount + invoiceDiscount,
+              total_amount: finalTotalAmount,
+              balance_due:
+                data.status === 'paid'
+                  ? 0
+                  : finalTotalAmount - Number(data.amount_paid || 0),
+            },
+          });
         }
 
         return newInvoice;
@@ -646,8 +681,13 @@ export const invoicesController = {
               where: { id: { in: productIds } },
               include: {
                 product_unit_of_measurement: true,
+                product_tax_master: true,
               },
             });
+
+            let calculatedSubtotal = 0;
+            let calculatedTaxAmount = 0;
+            let calculatedDiscountAmount = 0;
 
             const productMap = new Map(products.map(p => [p.id, p]));
 
@@ -656,9 +696,16 @@ export const invoicesController = {
               const quantity = Number(item.quantity);
               const unitPrice = Number(item.unit_price);
               const discountAmount = Number(item.discount_amount) || 0;
-              const taxAmount = Number(item.tax_amount) || 0;
-              const totalAmount =
-                quantity * unitPrice - discountAmount + taxAmount;
+              const itemSubtotal = quantity * unitPrice;
+              const taxRate =
+                Number(product?.product_tax_master?.tax_rate) || 0;
+              const taxAmount =
+                Number(item.tax_amount) ||
+                ((itemSubtotal - discountAmount) * taxRate) / 100;
+              const totalAmount = itemSubtotal - discountAmount + taxAmount;
+              calculatedSubtotal += itemSubtotal;
+              calculatedDiscountAmount += discountAmount;
+              calculatedTaxAmount += taxAmount;
 
               let trackingNotes = '';
               const trackingType = product?.tracking_type?.toUpperCase();
@@ -677,7 +724,6 @@ export const invoicesController = {
                 );
                 trackingNotes = `Serials: ${selectedSerials.map((s: any) => s.serial_number).join(', ')}`;
               }
-
               await tx.invoice_items.create({
                 data: {
                   parent_id: Number(id),
@@ -705,6 +751,29 @@ export const invoicesController = {
                 },
               });
             }
+
+            const invoiceDiscount = Number(data.discount_amount) || 0;
+            const invoiceShipping = Number(data.shipping_amount) || 0;
+            const finalTotalAmount =
+              calculatedSubtotal -
+              calculatedDiscountAmount -
+              invoiceDiscount +
+              calculatedTaxAmount +
+              invoiceShipping;
+
+            await tx.invoices.update({
+              where: { id: Number(id) },
+              data: {
+                subtotal: calculatedSubtotal,
+                tax_amount: calculatedTaxAmount,
+                discount_amount: calculatedDiscountAmount + invoiceDiscount,
+                total_amount: finalTotalAmount,
+                balance_due:
+                  data.status === 'paid'
+                    ? 0
+                    : finalTotalAmount - Number(data.amount_paid || 0),
+              },
+            });
           }
         }
       });

@@ -87,20 +87,6 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
     return formatCurrency(amount, undefined, currencies, currencyId);
   };
 
-  // Helper function to calculate display quantity for PIECE units
-  const getDisplayQuantity = (item: any) => {
-    if (item.unit === 'PIECE') {
-      const pieceQuantity = item.base_quantity || item.quantity || 0;
-      return pieceQuantity.toString();
-    }
-    return item.quantity;
-  };
-
-  // Helper function to get unit label
-  const getUnitLabel = (item: any) => {
-    return item.unit || 'CASE';
-  };
-
   const isOverdue = (invoice: Invoice) => {
     if (!invoice.due_date || !invoice.balance_due) return false;
     return new Date(invoice.due_date) < new Date() && invoice.balance_due > 0;
@@ -297,7 +283,7 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
             )}
           </div>
 
-          <div className="!space-y-1 !text-left !mt-4">
+          {/* <div className="!space-y-1 !text-left !mt-4">
             <div className="!p-2 !bg-gray-50 !rounded-md">
               <Typography
                 variant="caption"
@@ -346,7 +332,7 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
                 {formatCurrencyWithInvoiceCurrency(invoiceData.balance_due)}
               </Typography>
             </div>
-          </div>
+          </div> */}
         </div>
 
         <div className="!grid !grid-cols-1 md:!grid-cols-2 !gap-6">
@@ -371,7 +357,11 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
                   variant="body2"
                   className="!font-semibold !text-gray-900"
                 >
-                  {formatDate(invoiceData.due_date)}
+                  {formatDate(invoiceData.due_date) || (
+                    <span className="!text-gray-500 font-normal">
+                      No Due Date
+                    </span>
+                  )}
                 </Typography>
               </div>
               <div className="!flex !justify-between">
@@ -502,7 +492,10 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
                   </Typography>
                   <Typography variant="subtitle2" className="!font-bold">
                     {formatCurrencyWithInvoiceCurrency(
-                      invoiceData.total_amount
+                      Number(invoiceData.total_amount) +
+                        Number(invoiceData.tax_amount) +
+                        Number(invoiceData.shipping_amount) -
+                        Number(invoiceData.discount_amount)
                     )}
                   </Typography>
                 </div>
@@ -544,33 +537,30 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
                         className="!font-semibold !text-gray-900"
                       >
                         {formatCurrencyWithInvoiceCurrency(
-                          (() => {
-                            const quantity = getDisplayQuantity(item);
-                            const unitPrice =
-                              item.unit === 'PIECE' && item.conversion_factor
-                                ? item.unit_price * item.conversion_factor
-                                : item.unit_price;
-                            return (
-                              unitPrice * quantity - (item.discount_amount || 0)
-                            );
-                          })()
+                          (item.quantity || item.base_quantity || 1) *
+                            item.unit_price -
+                            (item.discount_amount || 0)
                         )}
                       </Typography>
                     </div>
                     <div className="!flex !justify-between !text-xs !text-gray-500">
                       <span>
-                        Qty: {getDisplayQuantity(item)} {getUnitLabel(item)} ×{' '}
-                        {formatCurrencyWithInvoiceCurrency(
-                          item.unit === 'PIECE' && item.conversion_factor
-                            ? item.unit_price * item.conversion_factor
-                            : item.unit_price
-                        )}
+                        Qty: {item.quantity || item.base_quantity}{' '}
+                        {item.quantity
+                          ? 'Crates x '
+                          : item.base_quantity
+                            ? 'PCs x '
+                            : ''}
+                        {formatCurrencyWithInvoiceCurrency(item.unit_price)}
                       </span>
-                      {item.discount_amount && item.discount_amount > 0 && (
-                        <span className="!text-green-600">
+                      {item.discount_amount && item.discount_amount > 0 ? (
+                        <Typography
+                          variant="body2"
+                          className="!font-semibold !text-green-600"
+                        >
                           Discount: -{formatCurrency(item.discount_amount)}
-                        </span>
-                      )}
+                        </Typography>
+                      ) : null}
                     </div>
                     {item.notes && (
                       <Typography

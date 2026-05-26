@@ -54,8 +54,8 @@ interface ManageInvoiceProps {
 export interface InvoiceItemFormData {
   product_id: number | '';
   product_name?: string;
-  unit: 'CASE' | 'PIECE';
-  uom?: 'CASE' | 'PIECE';
+  unit: 'CASE' | 'PCS';
+  uom?: 'CASE' | 'PCS';
   tracking_type?: string | null;
   quantity: string;
   base_quantity?: number;
@@ -170,8 +170,8 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
           if (trackingType === 'serial' && quantity > 0) {
             const allSerials = (item.product_serials ||
               []) as (ProductSerial & {
-                selected?: boolean;
-              })[];
+              selected?: boolean;
+            })[];
             const selectedSerials = allSerials.filter(
               s => s.selected !== false
             );
@@ -230,6 +230,7 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
           notes: values.notes,
           billing_address: values.billing_address,
           subtotal: totals.subtotal,
+          tax_amount: totals.tax_amount,
           total_amount: totals.total_amount,
           amount_paid: values.status === 'paid' ? totals.total_amount : 0,
           balance_due: totals.balance_due,
@@ -241,6 +242,10 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
               const quantity = Number(item.quantity) || 0;
               const conversionRate = item.conversion_rate || 1;
 
+              const taxRate = getProductTaxRate(Number(item.product_id));
+              const itemSubtotal = quantity * unitPrice;
+              const itemTax = (itemSubtotal * taxRate) / 100;
+
               return {
                 tracking_type: item.tracking_type || null,
                 product_id: Number(item.product_id),
@@ -249,6 +254,7 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
                 unit: item.unit || undefined,
                 quantity: quantity,
                 unit_price: unitPrice,
+                tax_amount: itemTax,
                 notes: item.notes,
                 product_batches: item.product_batches || [],
                 product_serials: item.product_serials,
@@ -274,22 +280,6 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
     },
   });
 
-  const totals = React.useMemo(() => {
-    const subtotal = invoiceItems.reduce(
-      (sum, item) => sum + Number(item.quantity) * Number(item.unit_price),
-      0
-    );
-
-    const totalAmount = subtotal;
-    const balanceDue = formik.values.status === 'paid' ? 0 : totalAmount;
-
-    return {
-      subtotal,
-      total_amount: totalAmount,
-      balance_due: balanceDue,
-    };
-  }, [invoiceItems, formik.values.status]);
-
   const salespersonId = formik.values.salesperson_id
     ? Number(formik.values.salesperson_id)
     : 0;
@@ -304,6 +294,50 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
     salespersonId,
     { enabled: !!salespersonId && open }
   );
+
+  /**
+   * Get product tax rate from inventory data
+   */
+  const getProductTaxRate = useCallback(
+    (productId: number): number => {
+      if (!salespersonInventoryData?.data) return 0;
+      const responseData = salespersonInventoryData.data;
+      const salespersonData = responseData as SalespersonInventoryData;
+      const product = salespersonData.products?.find(
+        p => p.product_id === productId
+      );
+      // Ensure tax rate is extracted correctly
+      return Number((product as any)?.tax_details?.tax_rate) || 0;
+    },
+    [salespersonInventoryData]
+  );
+
+  const totals = React.useMemo(() => {
+    let subtotal = 0;
+    let tax_amount = 0;
+
+    invoiceItems.forEach(item => {
+      const quantity = Number(item.quantity) || 0;
+      const unitPrice = Number(item.unit_price) || 0;
+      const itemSubtotal = quantity * unitPrice;
+
+      const taxRate = getProductTaxRate(Number(item.product_id));
+      const itemTax = (itemSubtotal * taxRate) / 100;
+
+      subtotal += itemSubtotal;
+      tax_amount += itemTax;
+    });
+
+    const totalAmount = subtotal + tax_amount;
+    const balanceDue = formik.values.status === 'paid' ? 0 : totalAmount;
+
+    return {
+      subtotal,
+      tax_amount,
+      total_amount: totalAmount,
+      balance_due: balanceDue,
+    };
+  }, [invoiceItems, formik.values.status, getProductTaxRate]);
 
   /**
    * Get product conversion rate from inventory data
@@ -330,7 +364,7 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
   const resolvePrice = (
     productId: number,
     priceLists: CustomerPriceListResult[] | undefined,
-    unit: 'CASE' | 'PIECE' = 'CASE',
+    unit: 'CASE' | 'PCS' = 'CASE',
     conversionRate: number = 24
   ): string | null => {
     if (!priceLists || priceLists.length === 0) return null;
@@ -346,7 +380,7 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
       // 1. Customer-specific price
       const customerSp = specials.find(sp => sp.customer_id === customerId);
       if (customerSp) {
-        if (unit === 'PIECE') {
+        if (unit === 'PCS') {
           const piecePrice = Number(customerSp.sale_price) / conversionRate;
           return String(piecePrice.toFixed(2));
         }
@@ -358,7 +392,7 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
         sp => sp.route_id != null || sp.customer_category_id != null
       );
       if (otherSp) {
-        if (unit === 'PIECE') {
+        if (unit === 'PCS') {
           const piecePrice = Number(otherSp.sale_price) / conversionRate;
           return String(piecePrice.toFixed(2));
         }
@@ -366,7 +400,7 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
       }
 
       // 3. Base pricelist item price
-      if (unit === 'PIECE') {
+      if (unit === 'PCS') {
         const subUnitPrice = item.sub_unit_price;
         if (subUnitPrice) {
           return String(subUnitPrice);
@@ -514,7 +548,7 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
             const conversionRate = item.conversion_factor || 1;
             let displayQuantity = item.quantity;
 
-            if (item.unit === 'PIECE') {
+            if (item.unit === 'PCS') {
               displayQuantity = (item.base_quantity || 0) * conversionRate;
             }
 
@@ -532,7 +566,7 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
                 item.product_batches?.map(batch => ({
                   ...batch,
                   quantity:
-                    item.unit === 'PIECE'
+                    item.unit === 'PCS'
                       ? (batch.quantity || 0) * conversionRate
                       : batch.quantity || 0,
                 })) || [],
@@ -588,8 +622,9 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
           const conversionRate = item.conversion_factor || 1;
           let displayQuantity = item.quantity;
 
-          if (item.unit === 'PIECE') {
-            displayQuantity = (item.base_quantity || 0) * (item.conversion_factor || 1);
+          if (item.unit === 'PCS') {
+            displayQuantity =
+              (item.base_quantity || 0) * (item.conversion_factor || 1);
           }
 
           return {
@@ -685,18 +720,15 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
     formikSyncRef.current = JSON.stringify(updatedItems);
   };
 
-
-
-
   /**
    * Update price when unit changes (CASE/PIECE)
    */
   const handleUnitChange = useCallback(
-    (rowIndex: number, unit: 'CASE' | 'PIECE') => {
+    (rowIndex: number, unit: 'CASE' | 'PCS') => {
       const item = invoiceItems[rowIndex];
 
       const isSerialTracked = item.tracking_type?.toLowerCase() === 'serial';
-      if (isSerialTracked && unit === 'PIECE') {
+      if (isSerialTracked && unit === 'PCS') {
         return;
       }
 
@@ -720,9 +752,9 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
       const updatedBatches =
         item.product_batches?.map(batch => {
           let newQty = Number(batch.quantity) || 0;
-          if (previousUnit === 'CASE' && unit === 'PIECE') {
+          if (previousUnit === 'CASE' && unit === 'PCS') {
             newQty = newQty * conversionRate;
-          } else if (previousUnit === 'PIECE' && unit === 'CASE') {
+          } else if (previousUnit === 'PCS' && unit === 'CASE') {
             newQty = newQty / conversionRate;
           }
           return { ...batch, quantity: newQty };
@@ -760,11 +792,11 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
 
       const resolvedPrice = product
         ? (resolvePrice(
-          product.product_id,
-          customerPriceLists,
-          unit,
-          conversionRate
-        ) ?? '0')
+            product.product_id,
+            customerPriceLists,
+            unit,
+            conversionRate
+          ) ?? '0')
         : '0';
 
       updatedItems[rowIndex] = {
@@ -807,153 +839,153 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
   const invoiceItemsColumns: TableColumn<
     InvoiceItemFormData & { _index: number }
   >[] = [
-      {
-        id: 'product_id',
-        label: 'Product',
-        render: (_value, row) => (
-          <SalesItemsSelect
-            salespersonId={Number(formik.values.salesperson_id)}
-            value={row.product_id}
-            onChange={(_event, product) =>
-              handleProductChange(row._index, _event, product)
-            }
-            size="small"
-            placeholder="Search for a product"
-            label=""
-            disabled={!formik.values.salesperson_id}
-            className="!min-w-72"
-          />
-        ),
-      },
-      {
-        id: 'uom',
-        label: 'Case/PCs',
-        render: (_value, row) => {
-          const currentValue = ['CASE', 'PIECE'].includes(row.unit)
-            ? row.unit
-            : 'CASE';
+    {
+      id: 'product_id',
+      label: 'Product',
+      render: (_value, row) => (
+        <SalesItemsSelect
+          salespersonId={Number(formik.values.salesperson_id)}
+          value={row.product_id}
+          onChange={(_event, product) =>
+            handleProductChange(row._index, _event, product)
+          }
+          size="small"
+          placeholder="Search for a product"
+          label=""
+          disabled={!formik.values.salesperson_id}
+          className="!min-w-72"
+        />
+      ),
+    },
+    {
+      id: 'uom',
+      label: 'Case/PCs',
+      render: (_value, row) => {
+        const currentValue = ['CASE', 'PCS'].includes(row.unit)
+          ? row.unit
+          : 'CASE';
 
-          const isSerialTracked = row.tracking_type?.toLowerCase() === 'serial';
+        const isSerialTracked = row.tracking_type?.toLowerCase() === 'serial';
 
-          return (
-            <Box className="!min-w-28">
-              <Select
-                value={currentValue}
-                onChange={(e: any) => {
-                  const unit = e.target.value as 'CASE' | 'PIECE';
-                  handleUnitChange(row._index, unit);
-                }}
-                size="small"
-                disableClearable
-                label=""
-                disabled={isSerialTracked}
-              >
-                <MenuItem value="CASE">CASE</MenuItem>
-                {!isSerialTracked && <MenuItem value="PIECE">PIECE</MenuItem>}
-              </Select>
-            </Box>
-          );
-        },
-      },
-      {
-        id: 'tracking_type',
-        label: 'Tracking',
-        render: (_value, row) => {
-          const tracking = (row.tracking_type || '').toString().toLowerCase();
-          const canManage =
-            tracking === 'batch' || tracking === 'serial' ? tracking : null;
-
-          return (
-            <Box className="!flex !min-w-52 !items-center !justify-between">
-              <Typography
-                variant="body2"
-                className={`!text-gray-700 !uppercase !text-xs`}
-              >
-                {tracking || 'none'}
-              </Typography>
-
-              {canManage && (
-                <Button
-                  type="button"
-                  startIcon={<Tag />}
-                  variant="text"
-                  size="small"
-                  onClick={() => {
-                    const index = row._index;
-                    const item = invoiceItems[index];
-                    if (!item || !item.product_id) {
-                      toast.error('Please select a product first');
-                      return;
-                    }
-                    setSelectedRowIndex(index);
-                    if (canManage === 'batch') {
-                      setIsBatchSelectorOpen(true);
-                    } else {
-                      setIsSerialSelectorOpen(true);
-                    }
-                  }}
-                >
-                  {canManage === 'batch' ? 'Select Batches' : 'Select Serials'}
-                </Button>
-              )}
-            </Box>
-          );
-        },
-      },
-      {
-        id: 'quantity',
-        label: 'Quantity',
-        render: (_value, row) => {
-          const tracking = (row.tracking_type || '').toString().toLowerCase();
-          const isNoneTracking = !tracking || tracking === 'none';
-          const displayQuantity = Number(row.quantity) || 0;
-
-          return (
-            <Input
-              value={displayQuantity.toString()}
-              onChange={e =>
-                updateInvoiceItem(row._index, 'quantity', e.target.value)
-              }
-              placeholder="1"
-              type="number"
+        return (
+          <Box className="!min-w-28">
+            <Select
+              value={currentValue}
+              onChange={(e: any) => {
+                const unit = e.target.value as 'CASE' | 'PCS';
+                handleUnitChange(row._index, unit);
+              }}
               size="small"
-              className="!min-w-20"
-              disabled={!isNoneTracking}
-            />
-          );
-        },
+              disableClearable
+              label=""
+              disabled={isSerialTracked}
+            >
+              <MenuItem value="CASE">CASE</MenuItem>
+              {!isSerialTracked && <MenuItem value="PIECE">PIECE</MenuItem>}
+            </Select>
+          </Box>
+        );
       },
-      {
-        id: 'unit_price',
-        label: 'Unit Price',
-        render: (_value, row) => (
+    },
+    {
+      id: 'tracking_type',
+      label: 'Tracking',
+      render: (_value, row) => {
+        const tracking = (row.tracking_type || '').toString().toLowerCase();
+        const canManage =
+          tracking === 'batch' || tracking === 'serial' ? tracking : null;
+
+        return (
+          <Box className="!flex !min-w-52 !items-center !justify-between">
+            <Typography
+              variant="body2"
+              className={`!text-gray-700 !uppercase !text-xs`}
+            >
+              {tracking || 'none'}
+            </Typography>
+
+            {canManage && (
+              <Button
+                type="button"
+                startIcon={<Tag />}
+                variant="text"
+                size="small"
+                onClick={() => {
+                  const index = row._index;
+                  const item = invoiceItems[index];
+                  if (!item || !item.product_id) {
+                    toast.error('Please select a product first');
+                    return;
+                  }
+                  setSelectedRowIndex(index);
+                  if (canManage === 'batch') {
+                    setIsBatchSelectorOpen(true);
+                  } else {
+                    setIsSerialSelectorOpen(true);
+                  }
+                }}
+              >
+                {canManage === 'batch' ? 'Select Batches' : 'Select Serials'}
+              </Button>
+            )}
+          </Box>
+        );
+      },
+    },
+    {
+      id: 'quantity',
+      label: 'Quantity',
+      render: (_value, row) => {
+        const tracking = (row.tracking_type || '').toString().toLowerCase();
+        const isNoneTracking = !tracking || tracking === 'none';
+        const displayQuantity = Number(row.quantity) || 0;
+
+        return (
           <Input
-            value={row.unit_price}
+            value={displayQuantity.toString()}
             onChange={e =>
-              updateInvoiceItem(row._index, 'unit_price', e.target.value)
+              updateInvoiceItem(row._index, 'quantity', e.target.value)
             }
-            placeholder="0.00"
+            placeholder="1"
             type="number"
             size="small"
-            className="!min-w-32"
+            className="!min-w-20"
+            disabled={!isNoneTracking}
           />
-        ),
+        );
       },
-      {
-        id: 'actions',
-        label: 'Actions',
-        sortable: false,
-        render: (_value, row) => (
-          <DeleteButton
-            onClick={() => removeInvoiceItem(row._index)}
-            tooltip="Remove item"
-            confirmDelete={true}
-            size="medium"
-            itemName="invoice item"
-          />
-        ),
-      },
-    ];
+    },
+    {
+      id: 'unit_price',
+      label: 'Unit Price',
+      render: (_value, row) => (
+        <Input
+          value={row.unit_price}
+          onChange={e =>
+            updateInvoiceItem(row._index, 'unit_price', e.target.value)
+          }
+          placeholder="0.00"
+          type="number"
+          size="small"
+          className="!min-w-32"
+        />
+      ),
+    },
+    {
+      id: 'actions',
+      label: 'Actions',
+      sortable: false,
+      render: (_value, row) => (
+        <DeleteButton
+          onClick={() => removeInvoiceItem(row._index)}
+          tooltip="Remove item"
+          confirmDelete={true}
+          size="medium"
+          itemName="invoice item"
+        />
+      ),
+    },
+  ];
 
   return (
     <CustomDrawer
@@ -1046,8 +1078,6 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
               formik={formik}
               slotProps={{ inputLabel: { shrink: true } }}
             />
-
-
 
             <Select name="status" label="Status" formik={formik} required>
               <MenuItem value="draft">Draft</MenuItem>

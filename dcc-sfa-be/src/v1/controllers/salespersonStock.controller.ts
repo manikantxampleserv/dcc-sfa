@@ -17,7 +17,6 @@ import prisma from '../../configs/prisma.client';
  */
 
 export const salespersonStockController = {
-  /** GET /inventory-item-salesperson/:salesperson_id */
   async getSalespersonInventory(req: Request, res: Response) {
     try {
       const { salesperson_id } = req.params;
@@ -27,7 +26,6 @@ export const salespersonStockController = {
       const pageNum = parseInt(page as string, 10) || 1;
       const limitNum = parseInt(limit as string, 10) || 50;
 
-      // ── Handle "all salespersons" case ────────────────────────────────────
       if (
         !salesperson_id ||
         salesperson_id === '' ||
@@ -43,7 +41,6 @@ export const salespersonStockController = {
           .json({ success: false, message: 'Invalid salesperson_id' });
       }
 
-      // ── Fetch salesperson user record ─────────────────────────────────────
       const salesperson = await prisma.users.findUnique({
         where: { id: salespersonIdNum },
         select: {
@@ -62,7 +59,6 @@ export const salespersonStockController = {
           .json({ success: false, message: 'Salesperson not found' });
       }
 
-      // ── Fetch the van location IDs for this salesperson ───────────────────
       const vanLocations = await prisma.van_inventory.findMany({
         where: { user_id: salespersonIdNum, is_active: 'Y' },
         select: { location_id: true },
@@ -87,7 +83,6 @@ export const salespersonStockController = {
         });
       }
 
-      // ── Query inventory_stock for those locations ──────────────────────────
       const stockWhere: any = {
         location_id: { in: locationIds },
         is_active: 'Y',
@@ -183,7 +178,6 @@ export const salespersonStockController = {
         },
       });
 
-      // ── Aggregate by product_id ───────────────────────────────────────────
       const productsMap = new Map<number, any>();
 
       for (const stock of stockRecords) {
@@ -212,6 +206,8 @@ export const salespersonStockController = {
               : null,
             total_quantity: 0,
             total_remaining_quantity: 0,
+            total_base_quantity: 0,
+            total_remaining_base_quantity: 0,
             batches: [],
             serials: [],
             van_inventories: [],
@@ -220,29 +216,26 @@ export const salespersonStockController = {
 
         const productData = productsMap.get(productId)!;
 
-        // Sum current_stock as the hand stock quantity
         const qty = Number(stock.current_stock) || 0;
+        const baseQty = Number(stock.base_quantity) || 0;
         productData.total_quantity += qty;
         productData.total_remaining_quantity += qty;
+        productData.total_base_quantity += baseQty;
+        productData.total_remaining_base_quantity += baseQty;
 
-        // Attach batch info if present
         if (batch) {
           const batchStatusValue = getBatchStatus(batch.expiry_date);
 
-          // Apply batch_status filter if provided
           if (batch_status) {
             if (batch_status === 'active' && batchStatusValue !== 'active') {
-              // Skip – but still count the stock quantity above
             } else if (
               batch_status === 'expiring_soon' &&
               batchStatusValue !== 'expiring_soon'
             ) {
-              // Skip
             } else if (
               batch_status === 'expired' &&
               batchStatusValue !== 'expired'
             ) {
-              // Skip
             } else {
               upsertBatch(productData.batches, {
                 batch_lot_id: batch.id,
@@ -253,8 +246,8 @@ export const salespersonStockController = {
                 supplier_name: batch.supplier_name,
                 quality_grade: batch.quality_grade,
                 total_quantity: Number(batch.quantity) || 0,
-                remaining_quantity: qty, // use inventory_stock's current_stock
-                base_quantity: stock.base_quantity, // use inventory_stock's current_stock
+                remaining_quantity: qty,
+                base_quantity: stock.base_quantity,
                 is_expired: batchStatusValue === 'expired',
                 is_expiring_soon: batchStatusValue === 'expiring_soon',
                 days_until_expiry: daysUntilExpiry(batch.expiry_date),
@@ -281,7 +274,6 @@ export const salespersonStockController = {
           }
         }
 
-        // Attach serial info if present (from inventory_stock_serial relation)
         if (serial) {
           upsertSerial(productData.serials, {
             serial_id: serial.id,
@@ -305,7 +297,6 @@ export const salespersonStockController = {
           });
         }
 
-        // Also include serials attached to the product itself (via serial_numbers_products)
         if (product?.serial_numbers_products?.length) {
           for (const sn of product.serial_numbers_products) {
             upsertSerial(productData.serials, {
@@ -337,14 +328,15 @@ export const salespersonStockController = {
       let totalBatches = 0;
       let totalSerials = 0;
       let totalRemainingQty = 0;
+      let totalRemainingBaseQty = 0;
 
       products.forEach(p => {
         totalBatches += p.batches.length;
         totalSerials += p.serials.length;
         totalRemainingQty += p.total_remaining_quantity;
+        totalRemainingBaseQty += p.total_remaining_base_quantity;
       });
 
-      // Paginate products
       const startIndex = (pageNum - 1) * limitNum;
       const paginatedProducts = products.slice(
         startIndex,
@@ -364,6 +356,8 @@ export const salespersonStockController = {
           total_products: products.length,
           total_quantity: totalRemainingQty,
           total_remaining_quantity: totalRemainingQty,
+          total_base_quantity: totalRemainingBaseQty,
+          total_remaining_base_quantity: totalRemainingBaseQty,
           total_batches: totalBatches,
           total_serials: totalSerials,
           products: paginatedProducts,
@@ -388,8 +382,6 @@ export const salespersonStockController = {
     }
   },
 };
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 async function handleAllSalespersons(
   req: Request,
@@ -448,7 +440,6 @@ async function handleAllSalespersons(
 
     if (stockRecords.length === 0) continue;
 
-    // Aggregate per product
     const productStockMap = new Map<number, number>();
     const batchIds = new Set<number>();
     const serialIds = new Set<number>();
@@ -544,9 +535,15 @@ function buildPagination(page: number, limit: number, total: number) {
 
 function getBatchStatus(expiryDate: Date | null | undefined): string {
   if (!expiryDate) return 'active';
-  const now = new Date();
-  const expiry = new Date(expiryDate);
-  if (expiry <= now) return 'expired';
+
+  const nowStr = new Date().toISOString().split('T')[0];
+  const now = new Date(`${nowStr}T00:00:00.000Z`);
+
+  const expiryStr = new Date(expiryDate).toISOString().split('T')[0];
+  const expiry = new Date(`${expiryStr}T00:00:00.000Z`);
+
+  if (expiry.getTime() < now.getTime()) return 'expired';
+
   const days = Math.floor(
     (expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
   );
@@ -556,15 +553,19 @@ function getBatchStatus(expiryDate: Date | null | undefined): string {
 
 function daysUntilExpiry(expiryDate: Date | null | undefined): number {
   if (!expiryDate) return 0;
-  return Math.floor(
-    (new Date(expiryDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
-  );
+
+  const nowStr = new Date().toISOString().split('T')[0];
+  const now = new Date(`${nowStr}T00:00:00.000Z`);
+
+  const expiryStr = new Date(expiryDate).toISOString().split('T')[0];
+  const expiry = new Date(`${expiryStr}T00:00:00.000Z`);
+
+  return Math.floor((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 }
 
 function upsertBatch(batches: any[], batchInfo: any) {
   const existing = batches.find(b => b.batch_lot_id === batchInfo.batch_lot_id);
   if (existing) {
-    // Accumulate remaining_quantity across multiple stock records for the same batch
     existing.remaining_quantity += batchInfo.remaining_quantity;
   } else {
     batches.push(batchInfo);

@@ -1,30 +1,34 @@
-import { CheckCircle, Pending } from '@mui/icons-material';
-import { Box, Chip, MenuItem } from '@mui/material';
+import { CheckCircle, Pending, Receipt, Visibility } from '@mui/icons-material';
+import { Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
 import { useCurrency } from 'hooks/useCurrency';
 import { usePermission } from 'hooks/usePermission';
 import { useOrdersInvoicesReturnsReport } from 'hooks/useReports';
 import {
+  Calendar,
   Download,
   FileText,
-  RefreshCw,
   ShoppingCart,
   TrendingUp,
 } from 'lucide-react';
+import InvoiceDetail from 'pages/transactions/Invoices/InvoiceDetail';
 import React, { useCallback, useState } from 'react';
 import { exportOrdersInvoicesReturnsReport } from 'services/reports/ordersInvoicesReturns';
+import { ActionButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
 import CustomerSelect from 'shared/CustomerSelect';
 import { PopConfirm } from 'shared/DeleteConfirmation';
 import Input from 'shared/Input';
 import Select from 'shared/Select';
 import Table, { type TableColumn } from 'shared/Table';
-import { formatDate } from 'utils/dateUtils';
+import { formatDate, formatDateTime } from 'utils/dateUtils';
 
 const OrdersInvoicesReturnsReport: React.FC = () => {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [customerId, setCustomerId] = useState<number | undefined>(undefined);
   const [status, setStatus] = useState('all');
+  const [selectedInvoice, setSelectedInvoice] = useState<any | null>(null);
+  const [invoiceDetailDrawerOpen, setInvoiceDetailDrawerOpen] = useState(false);
   const { formatCurrency } = useCurrency();
   const { isRead } = usePermission('report');
 
@@ -206,184 +210,99 @@ const OrdersInvoicesReturnsReport: React.FC = () => {
   const invoiceColumns: TableColumn<any>[] = [
     {
       id: 'invoice_number',
-      label: 'Invoice Number',
+      label: 'Invoice Info',
       render: (_value, row) => (
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-            <FileText className="w-5 h-5 text-green-600" />
-          </div>
-          <div className="flex flex-col">
-            <span className="font-semibold text-sm">{row.invoice_number}</span>
-          </div>
-        </div>
+        <Box className="!flex !gap-2 !items-center">
+          <Avatar
+            alt={row.invoice_number}
+            className="!rounded !bg-primary-100 !text-primary-500"
+          >
+            <Receipt className="w-5 h-5" />
+          </Avatar>
+          <Box>
+            <Typography
+              variant="body1"
+              className="!text-gray-900 !leading-tight"
+            >
+              {row.invoice_number}
+            </Typography>
+            <Typography
+              variant="caption"
+              className="!text-gray-500 !text-xs !block !mt-0.5"
+            >
+              {row.invoice_items?.length || 0} items
+              {row.parent_id && ` • Order #${row.parent_id}`}
+            </Typography>
+          </Box>
+        </Box>
       ),
     },
     {
       id: 'customer_name',
-      label: 'Customer',
+      label: 'Customer Info',
       render: (_value, row) => (
-        <div className="flex flex-col">
-          <span className="font-semibold text-sm">{row.customer_name}</span>
-          <span className="text-xs text-gray-500">{row.customer_code}</span>
-        </div>
+        <Box>
+          <Typography
+            variant="body2"
+            className="!text-gray-900 !font-medium uppercase"
+          >
+            {row.customer?.name || row.customer_name || 'N/A'}
+          </Typography>
+          <Typography
+            variant="caption"
+            className="!text-gray-500 !text-xs !block !mt-0.5"
+          >
+            {row.customer?.code || row.customer_code || 'N/A'}
+          </Typography>
+        </Box>
       ),
     },
     {
       id: 'invoice_date',
-      label: 'Invoice Date',
-      render: value => formatDate(value) || 'N/A',
-    },
-    {
-      id: 'due_date',
-      label: 'Due Date',
-      render: value => formatDate(value) || 'N/A',
-    },
-    {
-      id: 'status',
-      label: 'Status',
-      render: value => {
-        const statusLower = String(value || '').toLowerCase();
-        let chipColor: 'success' | 'warning' | 'error' | 'info' | 'default' =
-          'default';
-
-        if (
-          statusLower === 'paid' ||
-          statusLower === 'paid_in_full' ||
-          statusLower === 'completed'
-        ) {
-          chipColor = 'success';
-        } else if (
-          statusLower === 'pending' ||
-          statusLower === 'unpaid' ||
-          statusLower === 'overdue'
-        ) {
-          chipColor = 'error';
-        } else if (
-          statusLower === 'sent' ||
-          statusLower === 'draft' ||
-          statusLower === 'partial' ||
-          statusLower === 'processing'
-        ) {
-          chipColor = 'warning';
-        } else if (statusLower === 'cancelled' || statusLower === 'void') {
-          chipColor = 'default';
-        }
-
-        return (
-          <Chip
-            icon={
-              statusLower === 'pending' ? (
-                <Pending fontSize="small" />
-              ) : (
-                <CheckCircle fontSize="small" />
-              )
-            }
-            label={value}
-            size="small"
-            variant="outlined"
-            className="!capitalize"
-            color={chipColor}
-          />
-        );
-      },
+      label: 'Date',
+      render: (_value, row) => (
+        <Box>
+          <Box className="flex items-center text-sm text-gray-900">
+            <Calendar className="w-4 h-4 text-gray-400 mr-1" />
+            {row.invoice_date ? formatDateTime(row.invoice_date) : 'N/A'}
+          </Box>
+        </Box>
+      ),
     },
     {
       id: 'total_amount',
-      label: 'Amount',
-      numeric: true,
-      render: value => formatCurrency(Number(value)),
-    },
-    {
-      id: 'balance_due',
-      label: 'Balance Due',
-      numeric: true,
-      render: value => (
-        <span
-          className={`font-semibold ${
-            Number(value) > 0 ? 'text-red-600' : 'text-green-600'
-          }`}
-        >
-          {formatCurrency(Number(value))}
-        </span>
+      label: 'Amounts',
+      render: (_value, row) => (
+        <Box>
+          <Typography variant="body2" className="!text-gray-900 !font-medium">
+            Total: {formatCurrency(row.total_amount || 0)}
+          </Typography>
+          <Typography
+            variant="caption"
+            className="!text-gray-500 !text-xs !block !mt-0.5"
+          >
+            Tax: {formatCurrency(row.tax_amount || 0)}
+          </Typography>
+        </Box>
       ),
     },
-  ];
-
-  const returnColumns: TableColumn<any>[] = [
     {
-      id: 'customer_name',
-      label: 'Customer',
-      render: (_value, row) => (
-        <div className="flex flex-col">
-          <span className="font-semibold text-sm">{row.customer_name}</span>
-          <span className="text-xs text-gray-500">{row.customer_code}</span>
+      id: 'actions',
+      label: 'Actions',
+      sortable: false,
+      render: (_value: any, row: any) => (
+        <div className="!flex !gap-2 !items-center">
+          <ActionButton
+            onClick={() => {
+              setSelectedInvoice(row);
+              setInvoiceDetailDrawerOpen(true);
+            }}
+            tooltip="View Invoice"
+            icon={<Visibility className="!text-[20px]" />}
+            color="success"
+          />
         </div>
       ),
-    },
-    {
-      id: 'product_name',
-      label: 'Product',
-    },
-    {
-      id: 'return_date',
-      label: 'Return Date',
-      render: value => formatDate(value) || 'N/A',
-    },
-    {
-      id: 'reason',
-      label: 'Reason',
-      render: value => (
-        <span className="text-sm max-w-xs truncate" title={value}>
-          {value}
-        </span>
-      ),
-    },
-    {
-      id: 'status',
-      label: 'Status',
-      render: value => {
-        const statusLower = String(value || '').toLowerCase();
-        let chipColor: 'success' | 'warning' | 'error' | 'info' | 'default' =
-          'default';
-
-        if (statusLower === 'completed' || statusLower === 'processed') {
-          chipColor = 'success';
-        } else if (
-          statusLower === 'pending' ||
-          statusLower === 'approval' ||
-          statusLower === 'awaiting_approval'
-        ) {
-          chipColor = 'warning';
-        } else if (
-          statusLower === 'rejected' ||
-          statusLower === 'failed' ||
-          statusLower === 'cancelled'
-        ) {
-          chipColor = 'error';
-        } else if (
-          statusLower === 'in_progress' ||
-          statusLower === 'processing'
-        ) {
-          chipColor = 'info';
-        }
-
-        return (
-          <Chip
-            icon={
-              statusLower === 'pending' ? (
-                <Pending fontSize="small" />
-              ) : (
-                <CheckCircle fontSize="small" />
-              )
-            }
-            label={value}
-            size="small"
-            variant="outlined"
-            className="!capitalize"
-            color={chipColor}
-          />
-        );
-      },
     },
   ];
 
@@ -393,16 +312,16 @@ const OrdersInvoicesReturnsReport: React.FC = () => {
       <Box className="!mb-3 !flex !justify-between !items-center flex-wrap gap-4">
         <Box>
           <p className="!font-bold text-xl !text-gray-900">
-            Orders, Invoices & Returns Report
+            Orders & Invoices Report
           </p>
           <p className="!text-gray-500 text-sm">
-            Comprehensive report on orders, invoices, and returns
+            Comprehensive report on orders and invoices
           </p>
         </Box>
         {isRead && (
           <PopConfirm
             title="Export Report to Excel"
-            description="Are you sure you want to export the current report data to Excel? This will include all filtered results with Orders, Invoices, and Returns data."
+            description="Are you sure you want to export the current report data to Excel? This will include all filtered results with Orders and Invoices data."
             onConfirm={handleExportToExcel}
             confirmText="Export"
             cancelText="Cancel"
@@ -443,7 +362,6 @@ const OrdersInvoicesReturnsReport: React.FC = () => {
               onChange={(_event, customer) =>
                 setCustomerId(customer ? customer.id : undefined)
               }
-              fullWidth={false}
             />
             <div>
               <Select
@@ -466,7 +384,7 @@ const OrdersInvoicesReturnsReport: React.FC = () => {
       )}
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
           <div className="flex items-center justify-between">
             <div>
@@ -500,20 +418,6 @@ const OrdersInvoicesReturnsReport: React.FC = () => {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Total Returns</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {summary.total_returns}
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
-              <RefreshCw className="w-6 h-6 text-red-600" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-          <div className="flex items-center justify-between">
-            <div>
               <p className="text-sm font-medium text-gray-600">Total Value</p>
               <p className="text-2xl font-bold text-gray-900">
                 {formatCurrency(
@@ -533,7 +437,7 @@ const OrdersInvoicesReturnsReport: React.FC = () => {
         <h2 className="!font-bold text-lg !text-gray-900 !mb-4">
           Key Statistics
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="text-center p-4 bg-gray-50 rounded-lg border border-gray-200">
             <p className="text-sm text-gray-600 mb-1">Avg Order Value</p>
             <p className="text-xl font-bold text-gray-900">
@@ -552,12 +456,6 @@ const OrdersInvoicesReturnsReport: React.FC = () => {
               {statistics.conversion_rate.toFixed(2)}%
             </p>
           </div>
-          <div className="text-center p-4 bg-gray-50 rounded-lg border border-gray-200">
-            <p className="text-sm text-gray-600 mb-1">Return Rate</p>
-            <p className="text-xl font-bold text-red-600">
-              {statistics.return_rate.toFixed(2)}%
-            </p>
-          </div>
         </div>
       </div>
 
@@ -566,7 +464,7 @@ const OrdersInvoicesReturnsReport: React.FC = () => {
         <h2 className="!font-bold text-lg !text-gray-900 !mb-4">
           Status Breakdown
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
           <div className="text-center p-3 bg-orange-50 rounded-lg border border-orange-200">
             <p className="text-sm text-gray-600">Pending Orders</p>
             <p className="text-lg font-bold text-orange-600">
@@ -589,18 +487,6 @@ const OrdersInvoicesReturnsReport: React.FC = () => {
             <p className="text-sm text-gray-600">Paid Invoices</p>
             <p className="text-lg font-bold text-green-600">
               {statusBreakdown.paid_invoices}
-            </p>
-          </div>
-          <div className="text-center p-3 bg-red-50 rounded-lg border border-red-200">
-            <p className="text-sm text-gray-600">Pending Returns</p>
-            <p className="text-lg font-bold text-red-600">
-              {statusBreakdown.pending_returns}
-            </p>
-          </div>
-          <div className="text-center p-3 bg-emerald-50 rounded-lg border border-emerald-200">
-            <p className="text-sm text-gray-600">Completed Returns</p>
-            <p className="text-lg font-bold text-emerald-600">
-              {statusBreakdown.completed_returns}
             </p>
           </div>
         </div>
@@ -636,19 +522,14 @@ const OrdersInvoicesReturnsReport: React.FC = () => {
         isPermission={isRead}
       />
 
-      {/* Returns Table */}
-      <Table
-        actions={
-          <Box className="flex font-bold items-center gap-2">
-            <RefreshCw className="w-5 h-5" /> Returns (
-            {reportData?.data?.returns?.length || 0})
-          </Box>
-        }
-        data={reportData?.data?.returns || []}
-        columns={returnColumns}
-        loading={isFetching}
-        pagination={false}
-        isPermission={isRead}
+      {/* Invoice Detail Drawer */}
+      <InvoiceDetail
+        open={invoiceDetailDrawerOpen}
+        onClose={() => {
+          setInvoiceDetailDrawerOpen(false);
+          setSelectedInvoice(null);
+        }}
+        invoice={selectedInvoice}
       />
     </div>
   );

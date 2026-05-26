@@ -1,5 +1,5 @@
 import { Add, Download, Upload, Visibility } from '@mui/icons-material';
-import { Alert, Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
+import { Alert, Avatar, Box, MenuItem, Typography } from '@mui/material';
 import { useCurrency } from 'hooks/useCurrency';
 import { useExportToExcel } from 'hooks/useImportExport';
 import { useDeleteInvoice, useInvoices, type Invoice } from 'hooks/useInvoices';
@@ -8,12 +8,8 @@ import {
   AlertTriangle,
   Calendar,
   CheckCircle as CheckCircleIcon,
-  Clock,
-  // CreditCard,
   DollarSign,
-  FileText,
   Receipt,
-  XCircle,
 } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { ActionButton, DeleteButton, EditButton } from 'shared/ActionButton';
@@ -139,41 +135,6 @@ const InvoicesManagement: React.FC = () => {
     }
   }, [exportToExcelMutation, search, statusFilter]);
 
-  const getStatusColor = (status: string) => {
-    const colors = {
-      draft: '!bg-gray-100 !text-gray-800',
-      sent: '!bg-blue-100 !text-blue-800',
-      paid: '!bg-green-100 !text-green-800',
-      overdue: '!bg-red-100 !text-red-800',
-      cancelled: '!bg-gray-100 !text-gray-800',
-    };
-    return (
-      colors[status as keyof typeof colors] || '!bg-gray-100 !text-gray-800'
-    );
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'draft':
-        return <FileText className="w-4 h-4" />;
-      case 'sent':
-        return <Clock className="w-4 h-4" />;
-      case 'paid':
-        return <CheckCircleIcon className="w-4 h-4" />;
-      case 'overdue':
-        return <AlertTriangle className="w-4 h-4" />;
-      case 'cancelled':
-        return <XCircle className="w-4 h-4" />;
-      default:
-        return <FileText className="w-4 h-4" />;
-    }
-  };
-
-  // const isOverdue = (invoice: Invoice) => {
-  //   if (!invoice.due_date || !invoice.balance_due) return false;
-  //   return new Date(invoice.due_date) < new Date() && invoice.balance_due > 0;
-  // };
-
   const invoiceColumns: TableColumn<Invoice>[] = [
     {
       id: 'invoice_number',
@@ -197,7 +158,8 @@ const InvoicesManagement: React.FC = () => {
               variant="caption"
               className="!text-gray-500 !text-xs !block !mt-0.5"
             >
-              {row.invoice_items?.length || 0} items • Order #{row.parent_id}
+              {row.invoice_items?.length || 0} items
+              {row.parent_id && ` • Order #${row.parent_id}`}
             </Typography>
           </Box>
         </Box>
@@ -205,10 +167,13 @@ const InvoicesManagement: React.FC = () => {
     },
     {
       id: 'customer.name',
-      label: 'Customer',
+      label: 'Customer Info',
       render: (_value, row) => (
         <Box>
-          <Typography variant="body2" className="!text-gray-900 !font-medium">
+          <Typography
+            variant="body2"
+            className="!text-gray-900 !font-medium uppercase"
+          >
             {row.customer?.name || 'N/A'}
           </Typography>
           <Typography
@@ -221,44 +186,16 @@ const InvoicesManagement: React.FC = () => {
       ),
     },
     {
-      id: 'status',
-      label: 'Status',
-      render: (_value, row) => (
-        <Box className="flex !gap-2 items-center">
-          <Chip
-            icon={getStatusIcon(row.status || 'draft')}
-            label={row.status || 'draft'}
-            size="small"
-            className={`!text-xs !capitalize ${getStatusColor(row.status || 'draft')} !min-w-20`}
-          />
-          {/* {isOverdue(row) && (
-            <Chip
-              label="OVERDUE"
-              size="small"
-              className="!text-xs !bg-red-100 !text-red-800 !font-bold"
-            />
-          )} */}
-        </Box>
-      ),
-    },
-    {
       id: 'invoice_date',
-      label: 'Dates',
+      label: 'Date',
       render: (_value, row) => (
         <Box>
           <Box className="flex items-center text-sm text-gray-900">
             <Calendar className="w-4 h-4 text-gray-400 mr-1" />
-            Invoice:{' '}
             {row.invoice_date
               ? new Date(row.invoice_date).toLocaleDateString()
               : 'N/A'}
           </Box>
-          {row.due_date && (
-            <Box className="flex items-center text-sm text-gray-500 mt-1">
-              <Clock className="w-4 h-4 text-gray-400 mr-1" />
-              Due: {new Date(row.due_date).toLocaleDateString()}
-            </Box>
-          )}
         </Box>
       ),
     },
@@ -272,28 +209,11 @@ const InvoicesManagement: React.FC = () => {
           </Typography>
           <Typography
             variant="caption"
-            className="!text-green-600 !text-xs !block !mt-0.5"
+            className="!text-gray-500 !text-xs !block !mt-0.5"
           >
-            Paid: {formatCurrency(row.amount_paid || 0)}
+            Tax: {formatCurrency(row.tax_amount || 0)}
           </Typography>
-          {row.balance_due && row.balance_due > 0 ? (
-            <Typography
-              variant="caption"
-              className="!text-red-600 !text-xs !block !mt-0.5"
-            >
-              Balance: {formatCurrency(row.balance_due || 0)}
-            </Typography>
-          ) : null}
         </Box>
-      ),
-    },
-    {
-      id: 'payment_method',
-      label: 'Payment Method',
-      render: (_value, row) => (
-        <Typography variant="body2" className="!text-gray-600 !capitalize">
-          {row.payment_method?.replaceAll('_', ' ') || 'N/A'}
-        </Typography>
       ),
     },
     ...(isRead || isUpdate || isDelete
