@@ -2609,26 +2609,27 @@ export const customerController = {
       });
 
       if (customer.depot_id) {
-        if (is_default_for_depot) {
-          await prisma.depots.update({
-            where: { id: customer.depot_id },
-            data: { default_outlet_id: customer.id },
-          });
-        } else {
-          const depot = await prisma.depots.findUnique({
-            where: { id: customer.depot_id },
-            select: { default_outlet_id: true },
-          });
-          if (depot && depot.default_outlet_id === customer.id) {
+        if (is_default_for_depot !== undefined) {
+          if (is_default_for_depot) {
             await prisma.depots.update({
               where: { id: customer.depot_id },
-              data: { default_outlet_id: null },
+              data: { default_outlet_id: customer.id },
             });
+          } else {
+            const depot = await prisma.depots.findUnique({
+              where: { id: customer.depot_id },
+              select: { default_outlet_id: true },
+            });
+            if (depot && depot.default_outlet_id === customer.id) {
+              await prisma.depots.update({
+                where: { id: customer.depot_id },
+                data: { default_outlet_id: null },
+              });
+            }
           }
         }
       }
 
-      // Re-fetch to get correct relations
       const finalCustomer = await prisma.customers.findUnique({
         where: { id: customer.id },
         include: {
