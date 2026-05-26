@@ -264,13 +264,13 @@ const ManageInvoiceBatch: React.FC<ManageInvoiceBatchProps> = ({
           const conversionRate = currentItem?.conversion_rate || 1;
 
           let displayTotal = row.batch_remaining_quantity || 0;
-          if (unit.toUpperCase() === 'PIECE') {
+          if (unit.toUpperCase() === 'PCS') {
             displayTotal = displayTotal * conversionRate;
           }
 
           return (
             <Typography variant="body2" className="!text-gray-600">
-              {displayTotal} {unit.toUpperCase() === 'PIECE' ? 'pieces' : 'cases'}
+              {displayTotal} {unit.toUpperCase() === 'PCS' ? 'pieces' : 'cases'}
             </Typography>
           );
         },
@@ -288,7 +288,7 @@ const ManageInvoiceBatch: React.FC<ManageInvoiceBatchProps> = ({
           const displayValue = row.quantity || 0;
 
           let maxDisplay = row.batch_remaining_quantity || 0;
-          if (unit.toUpperCase() === 'PIECE') {
+          if (unit.toUpperCase() === 'PCS') {
             maxDisplay = maxDisplay * conversionRate;
           }
 

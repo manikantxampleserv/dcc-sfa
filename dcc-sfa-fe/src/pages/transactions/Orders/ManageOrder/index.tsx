@@ -288,7 +288,7 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
   const resolvePrice = (
     productId: number,
     priceLists: CustomerPriceListResult[] | undefined,
-    unit: 'CASE' | 'PIECE' = 'CASE'
+    unit: 'CASE' | 'PCS' = 'CASE'
   ): string | null => {
     if (
       !priceLists ||
@@ -327,7 +327,7 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
 
     if (casePrice === null) return null;
 
-    if (unit === 'PIECE') {
+    if (unit === 'PCS') {
       for (const pl of priceLists) {
         const item = pl.pricelist_items?.find(i => i.product_id === productId);
         if (item && item.sub_unit_price) {
@@ -463,7 +463,7 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
           let displayQuantity = item.quantity;
 
           // For PIECE units, displayQuantity is the raw piece count stored in base_quantity
-          if (item.unit === 'PIECE') {
+          if (item.unit === 'PCS') {
             displayQuantity = item.base_quantity || 0;
           }
 
@@ -481,7 +481,7 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
               item.product_batches?.map(batch => ({
                 ...batch,
                 quantity:
-                  item.unit === 'PIECE'
+                  item.unit === 'PCS'
                     ? (batch.quantity || 0) * conversionRate
                     : batch.quantity || 0,
               })) || [],
@@ -585,11 +585,11 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
    * Update price when unit changes (CASE/PIECE)
    */
   const handleUnitChange = useCallback(
-    (rowIndex: number, unit: 'CASE' | 'PIECE') => {
+    (rowIndex: number, unit: 'CASE' | 'PCS') => {
       const item = orderItems[rowIndex];
 
       const isSerialTracked = item.tracking_type?.toLowerCase() === 'serial';
-      if (isSerialTracked && unit === 'PIECE') {
+      if (isSerialTracked && unit === 'PCS') {
         return;
       }
 
@@ -610,9 +610,9 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
       const updatedBatches =
         item.product_batches?.map(batch => {
           let newQty = Number(batch.quantity) || 0;
-          if (previousUnit === 'CASE' && unit === 'PIECE') {
+          if (previousUnit === 'CASE' && unit === 'PCS') {
             newQty = newQty * conversionRate;
-          } else if (previousUnit === 'PIECE' && unit === 'CASE') {
+          } else if (previousUnit === 'PCS' && unit === 'CASE') {
             newQty = newQty / conversionRate;
           }
           return { ...batch, quantity: newQty };
@@ -713,7 +713,7 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
         id: 'uom',
         label: 'Case/PCs',
         render: (_value, row) => {
-          const currentValue = ['CASE', 'PIECE'].includes(row.unit)
+          const currentValue = ['CASE', 'PCS'].includes(row.unit)
             ? row.unit
             : 'CASE';
 
@@ -724,7 +724,7 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
               <Select
                 value={currentValue}
                 onChange={(e: any) => {
-                  const unit = e.target.value as 'CASE' | 'PIECE';
+                  const unit = e.target.value as 'CASE' | 'PCS';
                   handleUnitChange(row._index, unit);
                 }}
                 size="small"
@@ -733,7 +733,7 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
                 disabled={isSerialTracked}
               >
                 <MenuItem value="CASE">CASE</MenuItem>
-                {!isSerialTracked && <MenuItem value="PIECE">PIECE</MenuItem>}
+                {!isSerialTracked && <MenuItem value="PCS">PIECE</MenuItem>}
               </Select>
             </Box>
           );
@@ -784,7 +784,7 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
       },
       {
         id: 'quantity',
-        label: orderItems.some(item => item.unit === 'PIECE')
+        label: orderItems.some(item => item.unit === 'PCS')
           ? 'Quantity (pieces)'
           : 'Quantity (cases)',
         render: (_value, row) => {
@@ -800,7 +800,7 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
                 updateOrderItem(row._index, 'quantity', e.target.value);
               }}
               placeholder={
-                unit.toUpperCase() === 'PIECE' ? 'Enter pieces' : 'Enter cases'
+                unit.toUpperCase() === 'PCS' ? 'Enter pieces' : 'Enter cases'
               }
               type="number"
               size="small"

@@ -8,7 +8,7 @@ function calculateUnitConversion(
   unit: string,
   conversionRate: number
 ): number {
-  if (unit?.toUpperCase() === 'PIECE') {
+  if (unit?.toUpperCase() === 'PCS') {
     return quantity / (conversionRate || 1);
   }
   return quantity;

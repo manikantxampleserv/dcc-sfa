@@ -14,7 +14,6 @@ import { Request, Response } from 'express';
  *  5. Return response matching SingleSalespersonResponse / AllSalespersonsResponse shape
  */
 export declare const salespersonStockController: {
-    /** GET /inventory-item-salesperson/:salesperson_id */
     getSalespersonInventory(req: Request, res: Response): Promise<Response<any, Record<string, any>>>;
 };
 //# sourceMappingURL=salespersonStock.controller.d.ts.map

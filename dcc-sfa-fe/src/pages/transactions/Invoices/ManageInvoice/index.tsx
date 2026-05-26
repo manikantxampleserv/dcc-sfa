@@ -881,7 +881,7 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
               disabled={isSerialTracked}
             >
               <MenuItem value="CASE">CASE</MenuItem>
-              {!isSerialTracked && <MenuItem value="PIECE">PIECE</MenuItem>}
+              {!isSerialTracked && <MenuItem value="PCS">PIECE</MenuItem>}
             </Select>
           </Box>
         );

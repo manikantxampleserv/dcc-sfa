@@ -105,7 +105,7 @@ const serializeOrder = (order) => ({
 });
 function calculateUnitConversion(currentQuantity, currentBaseQuantity, conversionFactor, usedQuantity, unit, movementType) {
     const factor = conversionFactor || 1;
-    if (unit === 'PIECE') {
+    if (unit === 'PCS') {
         const totalCurrentPCS = currentQuantity * factor + currentBaseQuantity;
         let newTotalPCS;
         if (movementType === 'SALE') {
@@ -282,7 +282,7 @@ async function processOrderItems(tx, params) {
                 }
             }
             if (needsUpdate) {
-                const originalDisplayQty = originalItem.unit === 'PIECE'
+                const originalDisplayQty = originalItem.unit === 'PCS'
                     ? originalItem.base_quantity
                     : originalItem.quantity;
                 const newDisplayQty = parseInt(newItem.quantity, 10);
@@ -427,7 +427,7 @@ async function processOrderItems(tx, params) {
                         movementType: 'SALE',
                     });
                 }
-                const originalDisplayQty = originalItem.unit === 'PIECE'
+                const originalDisplayQty = originalItem.unit === 'PCS'
                     ? originalItem.base_quantity
                     : originalItem.quantity;
                 await processInventoryChange(tx, {
@@ -459,8 +459,8 @@ async function processOrderItems(tx, params) {
             where: { id: originalItem.id },
             data: {
                 unit,
-                quantity: unit === 'PIECE' ? 0 : parseInt(newItem.quantity),
-                base_quantity: unit === 'PIECE' ? parseInt(newItem.quantity) : 0,
+                quantity: unit === 'PCS' ? 0 : parseInt(newItem.quantity),
+                base_quantity: unit === 'PCS' ? parseInt(newItem.quantity) : 0,
                 conversion_factor: Number(newItem.conversion_factor) ||
                     Number(newItem.conversion_rate) ||
                     1,
@@ -516,8 +516,8 @@ async function processSingleItem(tx, params) {
             product_id: product.id,
             product_name: product.name,
             unit: unit,
-            quantity: unit === 'PIECE' ? 0 : quantity,
-            base_quantity: unit === 'PIECE' ? quantity : 0,
+            quantity: unit === 'PCS' ? 0 : quantity,
+            base_quantity: unit === 'PCS' ? quantity : 0,
             conversion_factor: conversionFactor,
             unit_price: Number(item.unit_price || item.price) || 0,
             discount_amount: Number(item.discount_amount) || 0,
@@ -545,7 +545,7 @@ async function restoreInventoryForItem(tx, params) {
     const trackingType = product.tracking_type?.toUpperCase() || 'NONE';
     const unit = (item.unit || 'CASE').toUpperCase();
     const conversionFactor = Number(item.conversion_factor) || Number(product.conversion_factor) || 1;
-    const restoreQuantity = unit === 'PIECE' ? item.base_quantity || item.quantity : item.quantity;
+    const restoreQuantity = unit === 'PCS' ? item.base_quantity || item.quantity : item.quantity;
     await processInventoryChange(tx, {
         product,
         trackingType,
@@ -593,8 +593,8 @@ async function processInventoryChange(tx, params) {
             if (!batchLot) {
                 throw new Error(`Batch ${batch.batch_lot_id} not found`);
             }
-            if (unit === 'PIECE') {
-                const calc = (currentQty, currentBase) => calculateUnitConversion(currentQty, currentBase, conversionFactor, batchQty, 'PIECE', movementType);
+            if (unit === 'PCS') {
+                const calc = (currentQty, currentBase) => calculateUnitConversion(currentQty, currentBase, conversionFactor, batchQty, 'PCS', movementType);
                 const batchRes = calc(Number(batchLot.remaining_quantity) || 0, Number(batchLot.base_quantity) || 0);
                 await tx.batch_lots.update({
                     where: { id: batch.batch_lot_id },
@@ -845,8 +845,8 @@ async function processInventoryChange(tx, params) {
             },
         });
         if (vanItem) {
-            if (unit === 'PIECE') {
-                const vanRes = calculateUnitConversion(Number(vanItem.quantity) || 0, Number(vanItem.base_quantity) || 0, conversionFactor, quantity, 'PIECE', movementType);
+            if (unit === 'PCS') {
+                const vanRes = calculateUnitConversion(Number(vanItem.quantity) || 0, Number(vanItem.base_quantity) || 0, conversionFactor, quantity, 'PCS', movementType);
                 if (vanRes.newQuantity === 0 && vanRes.newBaseQuantity === 0) {
                     await tx.van_inventory_items.delete({ where: { id: vanItem.id } });
                 }
@@ -888,8 +888,8 @@ async function processInventoryChange(tx, params) {
             },
         });
         if (stock) {
-            if (unit === 'PIECE') {
-                const stockRes = calculateUnitConversion(Number(stock.current_stock) || 0, Number(stock.base_quantity) || 0, conversionFactor, quantity, 'PIECE', movementType);
+            if (unit === 'PCS') {
+                const stockRes = calculateUnitConversion(Number(stock.current_stock) || 0, Number(stock.base_quantity) || 0, conversionFactor, quantity, 'PCS', movementType);
                 await tx.inventory_stock.update({
                     where: { id: stock.id },
                     data: {
@@ -1919,7 +1919,7 @@ exports.ordersController = {
                         .map((item) => ({
                         product_id: item.product_id,
                         product_name: item.product_name,
-                        quantity: item.unit === 'PIECE' ? item.base_quantity : item.quantity,
+                        quantity: item.unit === 'PCS' ? item.base_quantity : item.quantity,
                     })) || [],
                 };
             }
@@ -1999,8 +1999,8 @@ exports.ordersController = {
                             product_id: item.product_id,
                             product_name: item.product_name || null,
                             unit,
-                            quantity: unit === 'PIECE' ? 0 : quantity,
-                            base_quantity: unit === 'PIECE' ? quantity : 0,
+                            quantity: unit === 'PCS' ? 0 : quantity,
+                            base_quantity: unit === 'PCS' ? quantity : 0,
                             conversion_factor: Number(item.conversion_factor) ||
                                 Number(item.conversion_rate) ||
                                 1,

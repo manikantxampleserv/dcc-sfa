@@ -29,7 +29,7 @@ interface ManageCreditNoteProps {
 
 interface CreditNoteItemFormData {
   product_id: number | '';
-  unit: 'CASE' | 'PIECE';
+  unit: 'CASE' | 'PCS';
   quantity: string;
   unit_price: string;
   discount_amount: string;
@@ -225,7 +225,7 @@ const ManageCreditNote: React.FC<ManageCreditNoteProps> = ({
       render: (_value, row) => (
         <Box className="!min-w-28">
           <Select
-            value={['CASE', 'PIECE'].includes(row.unit) ? row.unit : 'CASE'}
+            value={['CASE', 'PCS'].includes(row.unit) ? row.unit : 'CASE'}
             onChange={(e: any) =>
               updateCreditNoteItem(row._index, 'unit', e.target.value as any)
             }
@@ -234,7 +234,7 @@ const ManageCreditNote: React.FC<ManageCreditNoteProps> = ({
             label=""
           >
             <MenuItem value="CASE">CASE</MenuItem>
-            <MenuItem value="PIECE">PIECE</MenuItem>
+            <MenuItem value="PCS">PIECE</MenuItem>
           </Select>
         </Box>
       ),

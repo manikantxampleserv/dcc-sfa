@@ -133,7 +133,7 @@ const OrderDetail: React.FC = () => {
     const pieceQty = item.base_quantity || 0;
     const conversionFactor = item.conversion_factor || 1;
 
-    if (unit === 'PIECE' || unit === 'PSC') {
+    if (unit === 'PCS' || unit === 'PSC') {
       // When PIECE is selected, always show as pieces regardless of base_quantity
       const displayQty = pieceQty > 0 ? pieceQty : caseQty;
       return {

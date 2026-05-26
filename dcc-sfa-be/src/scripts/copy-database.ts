@@ -222,7 +222,7 @@ async function copyTable(
 
     // Try bulk insert with IDs included
     try {
-      const dataToInsert = sourceData.map(record => ({
+      const dataToInsert = sourceData.map((record: any) => ({
         ...record,
         createdate: record.createdate || new Date(),
         updatedate: record.updatedate || new Date(),

@@ -6,8 +6,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.invoicesController = void 0;
 const paginate_1 = require("../../utils/paginate");
 const prisma_client_1 = __importDefault(require("../../configs/prisma.client"));
+const dateFilters_1 = require("../../utils/dateFilters");
 function calculateUnitConversion(quantity, unit, conversionRate) {
-    if (unit?.toUpperCase() === 'PIECE') {
+    if (unit?.toUpperCase() === 'PCS') {
         return quantity / (conversionRate || 1);
     }
     return quantity;
@@ -163,16 +164,26 @@ exports.invoicesController = {
                         where: { id: { in: productIds } },
                         include: {
                             product_unit_of_measurement: true,
+                            product_tax_master: true,
                         },
                     });
+                    let calculatedSubtotal = 0;
+                    let calculatedTaxAmount = 0;
+                    let calculatedDiscountAmount = 0;
                     const productMap = new Map(products.map(p => [p.id, p]));
                     for (const item of data.invoiceItems) {
                         const product = productMap.get(Number(item.product_id));
                         const quantity = Number(item.quantity);
                         const unitPrice = Number(item.unit_price);
                         const discountAmount = Number(item.discount_amount) || 0;
-                        const taxAmount = Number(item.tax_amount) || 0;
-                        const totalAmount = quantity * unitPrice - discountAmount + taxAmount;
+                        const itemSubtotal = quantity * unitPrice;
+                        const taxRate = Number(product?.product_tax_master?.tax_rate) || 0;
+                        const taxAmount = Number(item.tax_amount) ||
+                            ((itemSubtotal - discountAmount) * taxRate) / 100;
+                        const totalAmount = itemSubtotal - discountAmount + taxAmount;
+                        calculatedSubtotal += itemSubtotal;
+                        calculatedDiscountAmount += discountAmount;
+                        calculatedTaxAmount += taxAmount;
                         const conversionRate = Number(product?.product_unit_of_measurement?.conversion_rate) ||
                             1;
                         const baseQuantity = calculateUnitConversion(quantity, item.unit, conversionRate);
@@ -271,6 +282,25 @@ exports.invoicesController = {
                             },
                         });
                     }
+                    const invoiceDiscount = Number(data.discount_amount) || 0;
+                    const invoiceShipping = Number(data.shipping_amount) || 0;
+                    const finalTotalAmount = calculatedSubtotal -
+                        calculatedDiscountAmount -
+                        invoiceDiscount +
+                        calculatedTaxAmount +
+                        invoiceShipping;
+                    await tx.invoices.update({
+                        where: { id: newInvoice.id },
+                        data: {
+                            subtotal: calculatedSubtotal,
+                            tax_amount: calculatedTaxAmount,
+                            discount_amount: calculatedDiscountAmount + invoiceDiscount,
+                            total_amount: finalTotalAmount,
+                            balance_due: data.status === 'paid'
+                                ? 0
+                                : finalTotalAmount - Number(data.amount_paid || 0),
+                        },
+                    });
                 }
                 return newInvoice;
             });
@@ -306,10 +336,11 @@ exports.invoicesController = {
     },
     async getInvoices(req, res) {
         try {
-            const { page = '1', limit = '10', search = '', customer_id, status, payment_method, invoice_date_from, invoice_date_to, currency_id, is_active = 'Y', } = req.query;
+            const { page = '1', limit = '10', search = '', customer_id, status, payment_method, invoice_date_from, invoice_date_to, currency_id, is_active = 'Y', time_filter, } = req.query;
             const page_num = parseInt(page, 10);
             const limit_num = parseInt(limit, 10);
             const searchLower = search.toLowerCase();
+            const timeBasedDateFilter = (0, dateFilters_1.getTimeFilter)(time_filter);
             const filters = {
                 is_active: is_active,
                 ...(search && {
@@ -325,18 +356,20 @@ exports.invoicesController = {
                 ...(status && { status: status }),
                 ...(payment_method && { payment_method: payment_method }),
                 ...(currency_id && { currency_id: Number(currency_id) }),
-                ...(invoice_date_from || invoice_date_to
-                    ? {
-                        invoice_date: {
-                            ...(invoice_date_from && {
-                                gte: new Date(invoice_date_from),
-                            }),
-                            ...(invoice_date_to && {
-                                lte: new Date(invoice_date_to),
-                            }),
-                        },
-                    }
-                    : {}),
+                ...(timeBasedDateFilter
+                    ? { invoice_date: timeBasedDateFilter }
+                    : invoice_date_from || invoice_date_to
+                        ? {
+                            invoice_date: {
+                                ...(invoice_date_from && {
+                                    gte: new Date(invoice_date_from),
+                                }),
+                                ...(invoice_date_to && {
+                                    lte: new Date(invoice_date_to),
+                                }),
+                            },
+                        }
+                        : {}),
             };
             const totalInvoices = await prisma_client_1.default.invoices.count({ where: filters });
             const totalAmount = await prisma_client_1.default.invoices.aggregate({
@@ -503,16 +536,26 @@ exports.invoicesController = {
                             where: { id: { in: productIds } },
                             include: {
                                 product_unit_of_measurement: true,
+                                product_tax_master: true,
                             },
                         });
+                        let calculatedSubtotal = 0;
+                        let calculatedTaxAmount = 0;
+                        let calculatedDiscountAmount = 0;
                         const productMap = new Map(products.map(p => [p.id, p]));
                         for (const item of data.invoiceItems) {
                             const product = productMap.get(Number(item.product_id));
                             const quantity = Number(item.quantity);
                             const unitPrice = Number(item.unit_price);
                             const discountAmount = Number(item.discount_amount) || 0;
-                            const taxAmount = Number(item.tax_amount) || 0;
-                            const totalAmount = quantity * unitPrice - discountAmount + taxAmount;
+                            const itemSubtotal = quantity * unitPrice;
+                            const taxRate = Number(product?.product_tax_master?.tax_rate) || 0;
+                            const taxAmount = Number(item.tax_amount) ||
+                                ((itemSubtotal - discountAmount) * taxRate) / 100;
+                            const totalAmount = itemSubtotal - discountAmount + taxAmount;
+                            calculatedSubtotal += itemSubtotal;
+                            calculatedDiscountAmount += discountAmount;
+                            calculatedTaxAmount += taxAmount;
                             let trackingNotes = '';
                             const trackingType = product?.tracking_type?.toUpperCase();
                             if (trackingType === 'BATCH' && item.product_batches) {
@@ -553,6 +596,25 @@ exports.invoicesController = {
                                 },
                             });
                         }
+                        const invoiceDiscount = Number(data.discount_amount) || 0;
+                        const invoiceShipping = Number(data.shipping_amount) || 0;
+                        const finalTotalAmount = calculatedSubtotal -
+                            calculatedDiscountAmount -
+                            invoiceDiscount +
+                            calculatedTaxAmount +
+                            invoiceShipping;
+                        await tx.invoices.update({
+                            where: { id: Number(id) },
+                            data: {
+                                subtotal: calculatedSubtotal,
+                                tax_amount: calculatedTaxAmount,
+                                discount_amount: calculatedDiscountAmount + invoiceDiscount,
+                                total_amount: finalTotalAmount,
+                                balance_due: data.status === 'paid'
+                                    ? 0
+                                    : finalTotalAmount - Number(data.amount_paid || 0),
+                            },
+                        });
                     }
                 }
             });

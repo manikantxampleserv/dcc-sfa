@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.stockMovementsController = void 0;
 const paginate_1 = require("../../utils/paginate");
 const prisma_client_1 = __importDefault(require("../../configs/prisma.client"));
+const dateFilters_1 = require("../../utils/dateFilters");
 const serializeStockMovement = (sm) => ({
     id: sm.id,
     product_id: sm.product_id,
@@ -116,10 +117,11 @@ exports.stockMovementsController = {
     },
     async getAllStockMovements(req, res) {
         try {
-            const { page, limit, search, status, movement_type } = req.query;
+            const { page, limit, search, status, movement_type, time_filter } = req.query;
             const pageNum = parseInt(page, 10) || 1;
             const limitNum = parseInt(limit, 10) || 10;
             const searchLower = search ? search.toLowerCase() : '';
+            const movementDateFilter = (0, dateFilters_1.getTimeFilter)(time_filter);
             const filters = {
                 ...(search && {
                     OR: [
@@ -134,6 +136,7 @@ exports.stockMovementsController = {
                 ...(movement_type && {
                     movement_type: movement_type,
                 }),
+                ...(movementDateFilter && { movement_date: movementDateFilter }),
             };
             const { data, pagination } = await (0, paginate_1.paginate)({
                 model: prisma_client_1.default.stock_movements,
