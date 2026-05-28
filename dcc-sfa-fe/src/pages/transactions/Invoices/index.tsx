@@ -12,13 +12,14 @@ import {
   Receipt,
 } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
-import { ActionButton, DeleteButton, EditButton } from 'shared/ActionButton';
+import { ActionButton, DeleteButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
 import { PopConfirm } from 'shared/DeleteConfirmation';
 import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
+import { formatDateTime } from 'utils/dateUtils';
 import ImportInvoice from './ImportInvoice';
 import InvoiceDetail from './InvoiceDetail';
 import InvoiceItemsManagement from './InvoiceItemsManagement';
@@ -76,11 +77,6 @@ const InvoicesManagement: React.FC = () => {
 
   const handleCreateInvoice = useCallback(() => {
     setSelectedInvoice(null);
-    setDrawerOpen(true);
-  }, []);
-
-  const handleEditInvoice = useCallback((invoice: Invoice) => {
-    setSelectedInvoice(invoice);
     setDrawerOpen(true);
   }, []);
 
@@ -192,9 +188,7 @@ const InvoicesManagement: React.FC = () => {
         <Box>
           <Box className="flex items-center text-sm text-gray-900">
             <Calendar className="w-4 h-4 text-gray-400 mr-1" />
-            {row.invoice_date
-              ? new Date(row.invoice_date).toLocaleDateString()
-              : 'N/A'}
+            {row.invoice_date ? formatDateTime(row.invoice_date) : 'N/A'}
           </Box>
         </Box>
       ),
@@ -205,7 +199,10 @@ const InvoicesManagement: React.FC = () => {
       render: (_value, row) => (
         <Box>
           <Typography variant="body2" className="!text-gray-900 !font-medium">
-            Total: {formatCurrency(row.total_amount || 0)}
+            Total:{' '}
+            {formatCurrency(
+              Number(row.total_amount) + Number(row.tax_amount) || 0
+            )}
           </Typography>
           <Typography
             variant="caption"
@@ -246,12 +243,12 @@ const InvoicesManagement: React.FC = () => {
                     /> */}
                   </>
                 )}
-                {isUpdate && (
+                {/* {isUpdate && (
                   <EditButton
                     onClick={() => handleEditInvoice(row)}
                     tooltip={`Edit ${row.invoice_number}`}
                   />
-                )}
+                )} */}
                 {isDelete && (
                   <DeleteButton
                     onClick={() => handleDeleteInvoice(row.id)}

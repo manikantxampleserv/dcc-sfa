@@ -43,6 +43,7 @@ import {
   FormControl,
   MenuItem as MuiMenuItem,
 } from '@mui/material';
+import Input from 'shared/Input';
 import type {
   BatchInfo,
   ProductInventory,
@@ -276,6 +277,10 @@ const InventoryDetail = () => {
 
   const [tabValue, setTabValue] = useState(0);
   const [timeFilter, setTimeFilter] = useState('all');
+  const [customDateRange, setCustomDateRange] = useState({
+    start: '',
+    end: '',
+  });
   const [selectedVanInventory, setSelectedVanInventory] =
     useState<VanInventory | null>(null);
   const [detailDrawerOpen, setDetailDrawerOpen] = useState(false);
@@ -296,7 +301,10 @@ const InventoryDetail = () => {
       {
         user_id: inventoryId,
         limit: 10000000,
-        time_filter: timeFilter !== 'all' ? timeFilter : undefined,
+        time_filter:
+          timeFilter !== 'all' && timeFilter !== 'custom'
+            ? timeFilter
+            : undefined,
       },
       {
         enabled: inventoryId !== undefined,
@@ -306,7 +314,10 @@ const InventoryDetail = () => {
   const { data: invoicesResponse, isLoading: isLoadingInvoices } = useInvoices(
     {
       limit: 1000000,
-      time_filter: timeFilter !== 'all' ? timeFilter : undefined,
+      time_filter:
+        timeFilter !== 'all' && timeFilter !== 'custom'
+          ? timeFilter
+          : undefined,
     },
     {
       enabled: inventoryId !== undefined,
@@ -317,7 +328,10 @@ const InventoryDetail = () => {
     useStockMovements(
       {
         limit: 1000000,
-        time_filter: timeFilter !== 'all' ? timeFilter : undefined,
+        time_filter:
+          timeFilter !== 'all' && timeFilter !== 'custom'
+            ? timeFilter
+            : undefined,
       },
       {
         enabled: inventoryId !== undefined,
@@ -325,15 +339,59 @@ const InventoryDetail = () => {
     );
 
   const stockMovements = useMemo(() => {
-    return stockMovementsResponse?.data || [];
-  }, [stockMovementsResponse]);
+    let data = stockMovementsResponse?.data || [];
+    if (
+      timeFilter === 'custom' &&
+      customDateRange.start &&
+      customDateRange.end
+    ) {
+      data = data.filter(sm => {
+        const dt = new Date(sm.createdate || '');
+        if (isNaN(dt.getTime())) return true;
+        return (
+          dt >= new Date(customDateRange.start) &&
+          dt <= new Date(`${customDateRange.end}T23:59:59.999Z`)
+        );
+      });
+    }
+    return data;
+  }, [stockMovementsResponse, timeFilter, customDateRange]);
 
   const vanInventories = useMemo(() => {
-    return vanInventoryResponse?.data || [];
-  }, [vanInventoryResponse]);
+    let data = vanInventoryResponse?.data || [];
+    if (
+      timeFilter === 'custom' &&
+      customDateRange.start &&
+      customDateRange.end
+    ) {
+      data = data.filter(v => {
+        const dt = new Date(v.document_date || v.createdate || '');
+        if (isNaN(dt.getTime())) return true;
+        return (
+          dt >= new Date(customDateRange.start) &&
+          dt <= new Date(`${customDateRange.end}T23:59:59.999Z`)
+        );
+      });
+    }
+    return data;
+  }, [vanInventoryResponse, timeFilter, customDateRange]);
 
   const salespersonInvoices = useMemo(() => {
-    const rawInvoices = invoicesResponse?.data || [];
+    let rawInvoices = invoicesResponse?.data || [];
+    if (
+      timeFilter === 'custom' &&
+      customDateRange.start &&
+      customDateRange.end
+    ) {
+      rawInvoices = rawInvoices.filter(inv => {
+        const dt = new Date(inv.invoice_date || inv.createdate || '');
+        if (isNaN(dt.getTime())) return true;
+        return (
+          dt >= new Date(customDateRange.start) &&
+          dt <= new Date(`${customDateRange.end}T23:59:59.999Z`)
+        );
+      });
+    }
     return rawInvoices.filter(inv => {
       return (
         (inv.salesperson_id !== null &&
@@ -344,7 +402,7 @@ const InventoryDetail = () => {
           Number(inv.createdby) === inventoryId)
       );
     });
-  }, [invoicesResponse, inventoryId]);
+  }, [invoicesResponse, inventoryId, timeFilter, customDateRange]);
 
   const salespersonStockMovements = useMemo(() => {
     const salespersonVanInventoryIds = new Set(vanInventories.map(v => v.id));
@@ -799,7 +857,7 @@ const InventoryDetail = () => {
         render: (_value, row) => (
           <Box>
             <Typography variant="body2" className="!text-gray-900 !font-medium">
-              Total: {formatCurrency(row.total_amount || 0)}
+              Total: {formatCurrency(row.total_amount + row.tax_amount || 0)}
             </Typography>
             <Typography
               variant="caption"
@@ -1184,7 +1242,7 @@ const InventoryDetail = () => {
 
       <TabPanel value={tabValue} index={5}>
         <div className="space-y-6">
-          <div className="flex justify-end">
+          <div className="flex justify-end gap-4">
             <FormControl size="small" className="w-48 bg-white">
               <MuiSelect
                 value={timeFilter}
@@ -1199,8 +1257,40 @@ const InventoryDetail = () => {
                 <MuiMenuItem value="prev_month">Previous Month</MuiMenuItem>
                 <MuiMenuItem value="this_year">This Year</MuiMenuItem>
                 <MuiMenuItem value="prev_year">Previous Year</MuiMenuItem>
+                <MuiMenuItem value="custom">Custom Range</MuiMenuItem>
               </MuiSelect>
             </FormControl>
+            {timeFilter === 'custom' && (
+              <div className="flex items-center gap-2">
+                <Input
+                  type="date"
+                  value={customDateRange.start}
+                  onChange={e =>
+                    setCustomDateRange(prev => ({
+                      ...prev,
+                      start: e.target.value,
+                    }))
+                  }
+                  size="small"
+                  className="w-36 bg-white"
+                  placeholder="Start Date"
+                />
+                <span className="text-gray-500">to</span>
+                <Input
+                  type="date"
+                  value={customDateRange.end}
+                  onChange={e =>
+                    setCustomDateRange(prev => ({
+                      ...prev,
+                      end: e.target.value,
+                    }))
+                  }
+                  size="small"
+                  className="w-36 bg-white"
+                  placeholder="End Date"
+                />
+              </div>
+            )}
           </div>
           {/* Glassmorphic Stats Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">

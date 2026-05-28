@@ -30,7 +30,7 @@ const CustomerCategoryPage: React.FC = () => {
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
   const { isCreate, isUpdate, isDelete, isRead } =
-    usePermission('customer-category');
+    usePermission('outlet-category');
 
   const {
     data: customerCategoriesResponse,
@@ -196,30 +196,30 @@ const CustomerCategoryPage: React.FC = () => {
     },
     ...(isUpdate || isDelete || isRead
       ? [
-        {
-          id: 'action',
-          label: 'Actions',
-          sortable: false,
-          render: (_value: any, row: CustomerCategory) => (
-            <div className="!flex !gap-2 !items-center">
-              {isUpdate && (
-                <EditButton
-                  onClick={() => handleEditCustomerCategory(row)}
-                  tooltip={`Edit ${row.category_name}`}
-                />
-              )}
-              {isDelete && (
-                <DeleteButton
-                  onClick={() => handleDeleteCustomerCategory(row.id)}
-                  tooltip={`Delete ${row.category_name}`}
-                  itemName={row.category_name}
-                  confirmDelete={true}
-                />
-              )}
-            </div>
-          ),
-        },
-      ]
+          {
+            id: 'action',
+            label: 'Actions',
+            sortable: false,
+            render: (_value: any, row: CustomerCategory) => (
+              <div className="!flex !gap-2 !items-center">
+                {isUpdate && (
+                  <EditButton
+                    onClick={() => handleEditCustomerCategory(row)}
+                    tooltip={`Edit ${row.category_name}`}
+                  />
+                )}
+                {isDelete && (
+                  <DeleteButton
+                    onClick={() => handleDeleteCustomerCategory(row.id)}
+                    tooltip={`Delete ${row.category_name}`}
+                    itemName={row.category_name}
+                    confirmDelete={true}
+                  />
+                )}
+              </div>
+            ),
+          },
+        ]
       : []),
   ];
 
