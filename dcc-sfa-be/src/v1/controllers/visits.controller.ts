@@ -319,8 +319,8 @@ function serializeVisit(visit: any) {
     id: visit.id,
     customer_id: visit.customer_id,
     sales_person_id: visit.sales_person_id,
-    route_id: visit.route_id,
-    zones_id: visit.zones_id,
+    route_id: visit.visit_customers?.route_id || visit.route_id,
+    zones_id: visit.visit_customers?.zones_id || visit.zones_id,
     visit_date: visit.visit_date,
     visit_time: visit.visit_time,
     purpose: visit.purpose,
@@ -334,7 +334,7 @@ function serializeVisit(visit: any) {
     end_longitude: visit.end_longitude,
     check_in_time: visit.check_in_time,
     check_out_time: visit.check_out_time,
-    orders_created: visit.orders_created,
+    invoices_created: visit.invoices_created,
     amount_collected: visit.amount_collected,
     visit_notes: visit.visit_notes,
     customer_feedback: visit.customer_feedback,
@@ -397,8 +397,8 @@ function serializeVisit(visit: any) {
         }
       : null,
 
-    route: visit.visit_routes,
-    zone: visit.visit_zones,
+    route: visit.visit_customers?.customer_routes || visit.visit_routes,
+    zone: visit.visit_customers?.customer_zones || visit.visit_zones,
     payments:
       visit.payments?.map((payment: any) => ({
         id: payment.id,
@@ -2865,7 +2865,40 @@ export const visitsController = {
         limit: limitNum,
         orderBy: { createdate: 'desc' },
         include: {
-          visit_customers: true,
+          visit_customers: {
+            select: {
+              id: true,
+              name: true,
+              code: true,
+              type: true,
+              contact_person: true,
+              phone_number: true,
+              email: true,
+              address: true,
+              city: true,
+              state: true,
+              zipcode: true,
+              outstanding_amount: true,
+              credit_limit: true,
+              is_active: true,
+              route_id: true,
+              zones_id: true,
+              customer_routes: {
+                select: {
+                  id: true,
+                  name: true,
+                  code: true,
+                },
+              },
+              customer_zones: {
+                select: {
+                  id: true,
+                  name: true,
+                  code: true,
+                },
+              },
+            },
+          },
           visits_salesperson: true,
           visit_routes: true,
           visit_zones: true,
@@ -3104,7 +3137,7 @@ export const visitsController = {
         const visitWithRelations = {
           ...visit,
           amount_collected: String(totalAmountCollected),
-          orders_created: customerOrders.length,
+          invoices_created: customerInvoices.length,
           payments: customerPayments,
           invoices: customerInvoices,
           survey_responses: visitSurveyResponses,
