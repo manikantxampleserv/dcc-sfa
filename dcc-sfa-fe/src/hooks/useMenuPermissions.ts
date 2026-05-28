@@ -5,16 +5,20 @@
  */
 
 import { useCallback, useMemo } from 'react';
-import { usePermission } from './usePermission';
+import type { MenuItem } from '../mock/sidebar';
 import {
   AUTO_PERMISSION_MAPPINGS,
   type BackendModule,
 } from '../utils/permission-auto-generator';
-import type { MenuItem } from '../mock/sidebar';
+import { usePermission } from './usePermission';
 
 export const useMenuPermissions = () => {
-  const dashboardPerms = usePermission('dashboard' as BackendModule);
-  const companyPerms = usePermission('company' as BackendModule);
+  const executiveDashboardPerms = usePermission(
+    'executive-dashboard' as BackendModule
+  );
+  const gradingDashboardPerms = usePermission(
+    'grading-dashboard' as BackendModule
+  );
   const userPerms = usePermission('user' as BackendModule);
   const rolePerms = usePermission('role' as BackendModule);
   const depotPerms = usePermission('depot' as BackendModule);
@@ -31,7 +35,6 @@ export const useMenuPermissions = () => {
   const assetBrandPerms = usePermission('asset-brand' as BackendModule);
   const assetSubTypesPerms = usePermission('asset-sub-types' as BackendModule);
   const assetMasterPerms = usePermission('asset-master' as BackendModule);
-  const warehousePerms = usePermission('warehouse' as BackendModule);
   const vehiclePerms = usePermission('vehicle' as BackendModule);
   const brandPerms = usePermission('brand' as BackendModule);
   const productCategoryPerms = usePermission(
@@ -42,9 +45,6 @@ export const useMenuPermissions = () => {
   );
   const unitOfMeasurementPerms = usePermission(
     'unit-of-measurement' as BackendModule
-  );
-  const subunitOfMeasurementPerms = usePermission(
-    'subunit-of-measurement' as BackendModule
   );
   const productPerms = usePermission('product' as BackendModule);
   const pricelistPerms = usePermission('pricelist' as BackendModule);
@@ -63,7 +63,6 @@ export const useMenuPermissions = () => {
   const returnPerms = usePermission('return' as BackendModule);
   const paymentPerms = usePermission('payment' as BackendModule);
   const invoicePerms = usePermission('invoice' as BackendModule);
-  const creditNotePerms = usePermission('credit-note' as BackendModule);
   const visitPerms = usePermission('visit' as BackendModule);
   const assetMovementPerms = usePermission('asset-movement' as BackendModule);
   const maintenancePerms = usePermission('maintenance' as BackendModule);
@@ -105,7 +104,6 @@ export const useMenuPermissions = () => {
   const routeEffectivenessPerms = usePermission(
     'route-effectiveness' as BackendModule
   );
-  const erpSyncPerms = usePermission('erp-sync' as BackendModule);
   const reportPerms = usePermission('report' as BackendModule);
   const approvalPerms = usePermission('approval' as BackendModule);
   const exceptionPerms = usePermission('exception' as BackendModule);
@@ -118,8 +116,8 @@ export const useMenuPermissions = () => {
 
   const permissions = useMemo(
     () => ({
-      dashboard: dashboardPerms,
-      company: companyPerms,
+      'executive-dashboard': executiveDashboardPerms,
+      'grading-dashboard': gradingDashboardPerms,
       user: userPerms,
       role: rolePerms,
       depot: depotPerms,
@@ -136,13 +134,11 @@ export const useMenuPermissions = () => {
       'asset-brand': assetBrandPerms,
       'asset-sub-types': assetSubTypesPerms,
       'asset-master': assetMasterPerms,
-      warehouse: warehousePerms,
       vehicle: vehiclePerms,
       brand: brandPerms,
       'product-category': productCategoryPerms,
       'product-sub-category': productSubCategoryPerms,
       'unit-of-measurement': unitOfMeasurementPerms,
-      'subunit-of-measurement': subunitOfMeasurementPerms,
       product: productPerms,
       pricelist: pricelistPerms,
       'sales-target-group': salesTargetGroupPerms,
@@ -156,7 +152,6 @@ export const useMenuPermissions = () => {
       return: returnPerms,
       payment: paymentPerms,
       invoice: invoicePerms,
-      'credit-note': creditNotePerms,
       visit: visitPerms,
       'asset-movement': assetMovementPerms,
       maintenance: maintenancePerms,
@@ -182,7 +177,6 @@ export const useMenuPermissions = () => {
       'tax-master': taxMasterPerms,
       location: locationPerms,
       'route-effectiveness': routeEffectivenessPerms,
-      'erp-sync': erpSyncPerms,
       report: reportPerms,
       approval: approvalPerms,
       exception: exceptionPerms,
@@ -194,8 +188,8 @@ export const useMenuPermissions = () => {
       templates: templatesPerms,
     }),
     [
-      dashboardPerms,
-      companyPerms,
+      executiveDashboardPerms,
+      gradingDashboardPerms,
       userPerms,
       rolePerms,
       depotPerms,
@@ -212,13 +206,11 @@ export const useMenuPermissions = () => {
       assetBrandPerms,
       assetSubTypesPerms,
       assetMasterPerms,
-      warehousePerms,
       vehiclePerms,
       brandPerms,
       productCategoryPerms,
       productSubCategoryPerms,
       unitOfMeasurementPerms,
-      subunitOfMeasurementPerms,
       productPerms,
       pricelistPerms,
       salesTargetGroupPerms,
@@ -232,7 +224,6 @@ export const useMenuPermissions = () => {
       returnPerms,
       paymentPerms,
       invoicePerms,
-      creditNotePerms,
       visitPerms,
       assetMovementPerms,
       maintenancePerms,
@@ -258,7 +249,6 @@ export const useMenuPermissions = () => {
       taxMasterPerms,
       locationPerms,
       routeEffectivenessPerms,
-      erpSyncPerms,
       reportPerms,
       approvalPerms,
       exceptionPerms,

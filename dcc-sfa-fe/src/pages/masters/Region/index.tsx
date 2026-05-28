@@ -9,11 +9,7 @@ import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
-import {
-  useRegions,
-  useDeleteRegion,
-  type Region,
-} from 'hooks/useRegion';
+import { useRegions, useDeleteRegion, type Region } from 'hooks/useRegion';
 import { useExportToExcel } from 'hooks/useImportExport';
 import { usePermission } from 'hooks/usePermission';
 import { formatDate } from 'utils/dateUtils';
@@ -23,14 +19,12 @@ import ImportRegion from './ImportRegion';
 const RegionsPage: React.FC = () => {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [selectedRegion, setSelectedRegion] =
-    useState<Region | null>(null);
+  const [selectedRegion, setSelectedRegion] = useState<Region | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [importDrawerOpen, setImportDrawerOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
-  const { isCreate, isUpdate, isDelete, isRead } =
-    usePermission('region');
+  const { isCreate, isUpdate, isDelete, isRead } = usePermission('region');
 
   const {
     data: regionsResponse,
@@ -154,7 +148,7 @@ const RegionsPage: React.FC = () => {
     {
       id: 'description',
       label: 'Description',
-      render: (value) => value || '-',
+      render: value => value || '-',
     },
     {
       id: 'is_active',
@@ -179,30 +173,30 @@ const RegionsPage: React.FC = () => {
     },
     ...(isUpdate || isDelete || isRead
       ? [
-        {
-          id: 'action',
-          label: 'Actions',
-          sortable: false,
-          render: (_value: any, row: Region) => (
-            <div className="!flex !gap-2 !items-center">
-              {isUpdate && (
-                <EditButton
-                  onClick={() => handleEditRegion(row)}
-                  tooltip={`Edit ${row.name}`}
-                />
-              )}
-              {isDelete && (
-                <DeleteButton
-                  onClick={() => handleDeleteRegion(row.id)}
-                  tooltip={`Delete ${row.name}`}
-                  itemName={row.name}
-                  confirmDelete={true}
-                />
-              )}
-            </div>
-          ),
-        },
-      ]
+          {
+            id: 'action',
+            label: 'Actions',
+            sortable: false,
+            render: (_value: any, row: Region) => (
+              <div className="!flex !gap-2 !items-center">
+                {isUpdate && (
+                  <EditButton
+                    onClick={() => handleEditRegion(row)}
+                    tooltip={`Edit ${row.name}`}
+                  />
+                )}
+                {isDelete && (
+                  <DeleteButton
+                    onClick={() => handleDeleteRegion(row.id)}
+                    tooltip={`Delete ${row.name}`}
+                    itemName={row.name}
+                    confirmDelete={true}
+                  />
+                )}
+              </div>
+            ),
+          },
+        ]
       : []),
   ];
 
@@ -210,9 +204,7 @@ const RegionsPage: React.FC = () => {
     <>
       <Box className="!mb-3 !flex !justify-between !items-center">
         <Box>
-          <p className="!font-bold text-xl !text-gray-900">
-            Region Management
-          </p>
+          <p className="!font-bold text-xl !text-gray-900">Region Management</p>
           <p className="!text-gray-500 text-sm">
             Manage regions for geographic organization
           </p>
