@@ -1675,7 +1675,6 @@ model unit_of_measurement {
   log_inst                     Int?
   conversion_rate              Float?
   sub_unit                     String?    @db.NVarChar(50)
-  subunit_id                   Int?
   product_unit_of_measurement  products[]
   subunit                      subunits?
 }

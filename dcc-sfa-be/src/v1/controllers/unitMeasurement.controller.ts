@@ -10,7 +10,6 @@ interface UnitSerialized {
   category?: string | null;
   symbol?: string | null;
   sub_unit?: string | null;
-  subunit_id?: number | null;
   conversion_rate?: number | null;
   is_active: string;
   createdate?: Date | null;
@@ -19,7 +18,7 @@ interface UnitSerialized {
   updatedby?: number | null;
   log_inst?: number | null;
   product_unit_of_measurement?: { id: number; name: string }[];
-  subunits?: {
+  subunit?: {
     id: number;
     name: string;
     code: string;
@@ -29,7 +28,7 @@ interface UnitSerialized {
       name: string;
       code: string;
     } | null;
-  }[];
+  } | null;
 }
 
 const serializeUnit = (unit: any): UnitSerialized => ({
@@ -39,7 +38,6 @@ const serializeUnit = (unit: any): UnitSerialized => ({
   category: unit.category,
   symbol: unit.symbol,
   sub_unit: unit.sub_unit,
-  subunit_id: unit.subunit_id,
   conversion_rate: unit.conversion_rate,
   is_active: unit.is_active,
   createdate: unit.createdate,
@@ -52,23 +50,21 @@ const serializeUnit = (unit: any): UnitSerialized => ({
       id: p.id,
       name: p.name,
     })) || [],
-  subunits: unit.subunit
-    ? [
-        {
-          id: unit.subunit.id,
-          name: unit.subunit.name,
-          code: unit.subunit.code,
-          description: unit.subunit.description,
-          subunits_products: unit.subunit.subunits_products
-            ? {
-                id: unit.subunit.subunits_products.id,
-                name: unit.subunit.subunits_products.name,
-                code: unit.subunit.subunits_products.code,
-              }
-            : null,
-        },
-      ]
-    : [],
+  subunit: unit.subunit
+    ? {
+        id: unit.subunit.id,
+        name: unit.subunit.name,
+        code: unit.subunit.code,
+        description: unit.subunit.description,
+        subunits_products: unit.subunit.subunits_products
+          ? {
+              id: unit.subunit.subunits_products.id,
+              name: unit.subunit.subunits_products.name,
+              code: unit.subunit.subunits_products.code,
+            }
+          : null,
+      }
+    : null,
 });
 
 export const unitMeasurementController = {
@@ -83,7 +79,6 @@ export const unitMeasurementController = {
           category: data.category || null,
           symbol: data.symbol || null,
           sub_unit: data.sub_unit || null,
-          subunit_id: data.subunit_id ? Number(data.subunit_id) : null,
           conversion_rate: data.conversion_rate || null,
           is_active: data.is_active || 'Y',
           createdate: new Date(),
@@ -238,7 +233,6 @@ export const unitMeasurementController = {
         category: req.body.category || '',
         symbol: req.body.symbol || '',
         sub_unit: req.body.sub_unit || '',
-        subunit_id: req.body.subunit_id ? Number(req.body.subunit_id) : null,
         conversion_rate: req.body.conversion_rate || null,
         is_active: req.body.is_active || 'Y',
         updatedate: new Date(),
