@@ -14,7 +14,8 @@ interface UnitOfMeasurement {
   description?: string | null;
   category?: string | null;
   symbol?: string | null;
-  sub_unit?: 'case' | 'pcs' | null;
+  subunit_id?: number | string | null;
+  sub_unit?: string | null;
   conversion_rate?: number | null;
   is_active: string;
   createdate?: string | null;
@@ -30,7 +31,8 @@ interface ManageUnitOfMeasurementPayload {
   description?: string;
   category?: string;
   symbol?: string;
-  sub_unit?: 'case' | 'pcs';
+  subunit_id?: number | string;
+  sub_unit?: string;
   conversion_rate?: number;
   is_active?: string;
 }
@@ -40,7 +42,8 @@ interface UpdateUnitOfMeasurementPayload {
   description?: string;
   category?: string;
   symbol?: string;
-  sub_unit?: 'case' | 'pcs';
+  subunit_id?: number | string;
+  sub_unit?: string;
   conversion_rate?: number;
   is_active?: string;
 }

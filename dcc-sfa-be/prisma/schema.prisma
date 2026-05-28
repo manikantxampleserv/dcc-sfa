@@ -1675,8 +1675,9 @@ model unit_of_measurement {
   log_inst                     Int?
   conversion_rate              Float?
   sub_unit                     String?    @db.NVarChar(50)
+  subunit_id                   Int?
   product_unit_of_measurement  products[]
-  subunits_unit_of_measurement subunits[]
+  subunit                      subunits?
 }
 
 model promotion_customer_types {
@@ -2961,7 +2962,7 @@ model subunits {
   name                         String              @db.NVarChar(255)
   code                         String              @unique @db.NVarChar(100)
   description                  String?             @db.NVarChar(500)
-  unit_of_measurement_id       Int
+  unit_of_measurement_id       Int                 @unique
   is_active                    String              @default("Y") @db.Char(1)
   createdate                   DateTime?           @default(now()) @db.DateTime
   createdby                    Int
@@ -2969,7 +2970,7 @@ model subunits {
   updatedby                    Int?
   log_inst                     Int?
   subunits_products            products[]
-  subunits_unit_of_measurement unit_of_measurement @relation(fields: [unit_of_measurement_id], references: [id], onUpdate: NoAction)
+  unit_of_measurement          unit_of_measurement @relation(fields: [unit_of_measurement_id], references: [id], onUpdate: NoAction, onDelete: NoAction)
 }
 
 model password_reset_otps {
