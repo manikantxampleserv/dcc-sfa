@@ -3196,7 +3196,40 @@ export const visitsController = {
       const visit = await prisma.visits.findUnique({
         where: { id: Number(id) },
         include: {
-          visit_customers: true,
+          visit_customers: {
+            select: {
+              id: true,
+              name: true,
+              code: true,
+              type: true,
+              contact_person: true,
+              phone_number: true,
+              email: true,
+              address: true,
+              city: true,
+              state: true,
+              zipcode: true,
+              outstanding_amount: true,
+              credit_limit: true,
+              is_active: true,
+              route_id: true,
+              zones_id: true,
+              customer_routes: {
+                select: {
+                  id: true,
+                  name: true,
+                  code: true,
+                },
+              },
+              customer_zones: {
+                select: {
+                  id: true,
+                  name: true,
+                  code: true,
+                },
+              },
+            },
+          },
           visits_salesperson: true,
           visit_routes: true,
           visit_zones: true,
@@ -3243,6 +3276,20 @@ export const visitsController = {
         },
       });
 
+      const allInvoices = await prisma.invoices.findMany({
+        where: {
+          customer_id: visit.customer_id,
+          is_active: 'Y',
+        },
+        include: {
+          invoice_items: {
+            include: {
+              invoice_items_products: true,
+            },
+          },
+        },
+      });
+
       const visitTime = visit.createdate
         ? new Date(visit.createdate).getTime()
         : 0;
@@ -3266,6 +3313,14 @@ export const visitsController = {
         return diffCreated <= 300000 || diffUpdated <= 300000;
       });
 
+      const invoices = allInvoices.filter(invoice => {
+        if (!invoice.createdate) return false;
+        const invoiceTime = new Date(invoice.createdate).getTime();
+        const diffCreated = Math.abs(invoiceTime - visitTime);
+        const diffUpdated = Math.abs(invoiceTime - visitUpdateTime);
+        return diffCreated <= 300000 || diffUpdated <= 300000;
+      });
+
       const totalAmountCollected = payments.reduce(
         (sum, p) => sum + Number(p.total_amount || 0),
         0
@@ -3284,8 +3339,10 @@ export const visitsController = {
         message: 'Visit retrieved successfully',
         data: {
           ...visit,
+          route_id: visit.visit_customers?.route_id || visit.route_id,
+          zones_id: visit.visit_customers?.zones_id || visit.zones_id,
           amount_collected: String(totalAmountCollected),
-          orders_created: orders.length,
+          invoices_created: invoices.length,
           customer: visit.visit_customers
             ? {
                 ...visit.visit_customers,
@@ -3300,10 +3357,15 @@ export const visitsController = {
                 email: visit.visits_salesperson.email,
               }
             : null,
-          route: visit.visit_routes || null,
-          zone: visit.visit_zones || null,
+          route:
+            visit.visit_customers?.customer_routes ||
+            visit.visit_routes ||
+            null,
+          zone:
+            visit.visit_customers?.customer_zones || visit.visit_zones || null,
           orders: orders,
           payments: payments,
+          invoices: invoices,
           cooler_inspections: visit.cooler_inspections || [],
           survey_responses: surveyResponses,
           visit_customers: undefined,

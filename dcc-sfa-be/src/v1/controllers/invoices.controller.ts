@@ -48,6 +48,11 @@ interface InvoiceSerialized {
     code: string;
     type: string;
   };
+  salesperson?: {
+    id: number;
+    name: string;
+    email?: string;
+  };
   currency?: {
     id: number;
     name: string;
@@ -104,6 +109,16 @@ const serializeInvoice = (invoice: any): InvoiceSerialized => ({
   updatedate: invoice.updatedate?.toISOString(),
   updatedby: invoice.updatedby,
   log_inst: invoice.log_inst,
+  salesperson: invoice.invoices_salesperson
+    ? {
+        id: invoice.invoices_salesperson.id,
+        name:
+          invoice.invoices_salesperson.name ||
+          invoice.invoices_salesperson.full_name ||
+          '',
+        email: invoice.invoices_salesperson.email || null,
+      }
+    : undefined,
   customer: invoice.invoices_customers
     ? {
         id: invoice.invoices_customers.id,
@@ -113,6 +128,7 @@ const serializeInvoice = (invoice: any): InvoiceSerialized => ({
           invoice.invoices_customers.customer_type_customer?.type_name || null,
       }
     : undefined,
+
   currency: invoice.currencies
     ? {
         id: invoice.currencies.id,
@@ -230,6 +246,8 @@ export const invoicesController = {
                 email: true,
               },
             },
+            invoices_salesperson: true,
+
             currencies: true,
             orders: true,
           },
@@ -427,6 +445,8 @@ export const invoicesController = {
             },
           },
           currencies: true,
+          invoices_salesperson: true,
+
           orders: true,
           invoice_items: {
             include: {
@@ -466,7 +486,9 @@ export const invoicesController = {
       const limit_num = parseInt(limit as string, 10);
       const searchLower = (search as string).toLowerCase();
 
-      const timeBasedDateFilter = getTimeFilter(time_filter as string | undefined);
+      const timeBasedDateFilter = getTimeFilter(
+        time_filter as string | undefined
+      );
 
       const filters: any = {
         is_active: is_active as string,
@@ -486,17 +508,17 @@ export const invoicesController = {
         ...(timeBasedDateFilter
           ? { invoice_date: timeBasedDateFilter }
           : invoice_date_from || invoice_date_to
-          ? {
-              invoice_date: {
-                ...(invoice_date_from && {
-                  gte: new Date(invoice_date_from as string),
-                }),
-                ...(invoice_date_to && {
-                  lte: new Date(invoice_date_to as string),
-                }),
-              },
-            }
-          : {}),
+            ? {
+                invoice_date: {
+                  ...(invoice_date_from && {
+                    gte: new Date(invoice_date_from as string),
+                  }),
+                  ...(invoice_date_to && {
+                    lte: new Date(invoice_date_to as string),
+                  }),
+                },
+              }
+            : {}),
       };
 
       const totalInvoices = await prisma.invoices.count({ where: filters });
@@ -537,6 +559,8 @@ export const invoicesController = {
               email: true,
             },
           },
+          invoices_salesperson: true,
+
           currencies: true,
           orders: true,
           invoice_items: {
@@ -583,6 +607,8 @@ export const invoicesController = {
           },
           currencies: true,
           orders: true,
+          invoices_salesperson: true,
+
           invoice_items: {
             include: {
               invoice_items_products: true,
@@ -797,6 +823,8 @@ export const invoicesController = {
           },
           currencies: true,
           orders: true,
+          invoices_salesperson: true,
+
           invoice_items: {
             include: {
               invoice_items_products: true,
