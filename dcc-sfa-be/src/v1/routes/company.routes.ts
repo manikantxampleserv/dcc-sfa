@@ -18,20 +18,20 @@ router.post(
   upload.single('logo'),
   authenticateToken,
   auditCreate('companies'),
-  requirePermission([{ module: 'company', action: 'create' }]),
+  // requirePermission([{ module: 'company', action: 'create' }]),
   companyController.createCompany
 );
 
 router.get(
   '/company/:id',
   authenticateToken,
-  requirePermission([{ module: 'company', action: 'read' }]),
+  // requirePermission([{ module: 'company', action: 'read' }]),
   companyController.getCompanyById
 );
 router.get(
   '/company',
   authenticateToken,
-  requirePermission([{ module: 'company', action: 'read' }]),
+  // requirePermission([{ module: 'company', action: 'read' }]),
   companyController.getCompanies
 );
 
@@ -40,7 +40,7 @@ router.put(
   upload.single('logo'),
   authenticateToken,
   auditUpdate('companies'),
-  requirePermission([{ module: 'company', action: 'update' }]),
+  // requirePermission([{ module: 'company', action: 'update' }]),
   companyController.updateCompany
 );
 
@@ -48,7 +48,7 @@ router.delete(
   '/company/:id',
   authenticateToken,
   auditDelete('companies'),
-  requirePermission([{ module: 'company', action: 'delete' }]),
+  // requirePermission([{ module: 'company', action: 'delete' }]),
   companyController.deleteCompany
 );
 

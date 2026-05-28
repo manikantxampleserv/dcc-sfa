@@ -10,28 +10,28 @@ const router = Router();
 router.get(
   '/dashboard/statistics',
   authenticateToken,
-  requirePermission([{ module: 'dashboard', action: 'read' }]),
+  requirePermission([{ module: 'executive-dashboard', action: 'read' }]),
   executiveDashboardController.getStatistics
 );
 
 router.get(
   '/dashboard/sales-performance',
   authenticateToken,
-  requirePermission([{ module: 'dashboard', action: 'read' }]),
+  requirePermission([{ module: 'executive-dashboard', action: 'read' }]),
   executiveDashboardController.getSalesPerformance
 );
 
 router.get(
   '/dashboard/top-products',
   authenticateToken,
-  requirePermission([{ module: 'dashboard', action: 'read' }]),
+  requirePermission([{ module: 'executive-dashboard', action: 'read' }]),
   executiveDashboardController.getTopProducts
 );
 
 router.get(
   '/dashboard/order-status',
   authenticateToken,
-  requirePermission([{ module: 'dashboard', action: 'read' }]),
+  requirePermission([{ module: 'executive-dashboard', action: 'read' }]),
   executiveDashboardController.getOrderStatus
 );
 

@@ -21,7 +21,8 @@ const prisma_client_1 = __importDefault(require("../../configs/prisma.client"));
  * @type {Record<string, string>}
  */
 const MODULE_MAPPING = {
-    dashboard: 'Dashboard',
+    'executive-dashboard': 'Executive Dashboard',
+    'grading-dashboard': 'Grading Dashboard',
     company: 'Company Master',
     user: 'User Management',
     role: 'Role & Permission',
@@ -149,6 +150,8 @@ const ACTIONS = [
  */
 const READ_ONLY_MODULES = [
     'dashboard',
+    'executive-dashboard',
+    'grading-dashboard',
     'report',
     'location',
     'route-effectiveness',

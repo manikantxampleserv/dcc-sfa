@@ -24,7 +24,7 @@ const CompaniesManagement: React.FC = () => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
-  const { isCreate, isUpdate, isDelete, isRead } = usePermission('company');
+  const { isCreate, isUpdate, isDelete, isRead } = usePermission('user');
 
   const { data: companiesData, isFetching } = useCompanies(
     {

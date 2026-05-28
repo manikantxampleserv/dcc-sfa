@@ -16,18 +16,29 @@ router.post(
   '/cities',
   authenticateToken,
   auditCreate('cities'),
+  requirePermission([{ module: 'city', action: 'create' }]),
   citiesController.createCities
 );
 
-router.get('/cities/:id', authenticateToken, citiesController.getCitiesById);
+router.get(
+  '/cities/:id',
+  authenticateToken,
+  requirePermission([{ module: 'city', action: 'read' }]),
+  citiesController.getCitiesById
+);
 
-router.get('/cities', authenticateToken, citiesController.getAllCities);
+router.get(
+  '/cities',
+  authenticateToken,
+  requirePermission([{ module: 'city', action: 'read' }]),
+  citiesController.getAllCities
+);
 
 router.put(
   '/cities/:id',
   authenticateToken,
   auditUpdate('cities'),
-  requirePermission([{ module: 'role', action: 'update' }]),
+  requirePermission([{ module: 'city', action: 'update' }]),
   citiesController.updateCities
 );
 
@@ -35,7 +46,7 @@ router.delete(
   '/cities/:id',
   authenticateToken,
   auditDelete('cities'),
-  requirePermission([{ module: 'role', action: 'delete' }]),
+  requirePermission([{ module: 'city', action: 'delete' }]),
   citiesController.deleteCities
 );
 
