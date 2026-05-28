@@ -954,7 +954,9 @@ const InventoryDetail = () => {
                 <h2 className="text-lg font-bold text-gray-900">
                   {salespersonData?.salesperson_name || 'Unknown'}
                 </h2>
-                <p className="text-gray-500 text-sm">Sales Representative</p>
+                <p className="text-gray-500 text-sm">
+                  {salespersonData?.salesperson_role || 'Unknown'}
+                </p>
               </div>
               <Chip
                 label="Active"
@@ -967,18 +969,20 @@ const InventoryDetail = () => {
               <div className="flex items-center gap-2 text-gray-600">
                 <Mail className="w-4 h-4" />
                 <span className="text-sm">
-                  {salespersonData?.salesperson_email || 'N/A'}
+                  {salespersonData?.salesperson_email || 'No Email'}
                 </span>
               </div>
               <div className="flex items-center gap-2 text-gray-600">
                 <Phone className="w-4 h-4" />
                 <span className="text-sm">
-                  {salespersonData?.salesperson_phone || 'N/A'}
+                  {salespersonData?.salesperson_phone || 'No Phone Number'}
                 </span>
               </div>
               <div className="flex items-center gap-2 text-gray-600">
                 <MapPin className="w-4 h-4" />
-                <span className="text-sm">Region: North Zone</span>
+                <span className="text-sm">
+                  {salespersonData?.salesperson_address || 'No Address'}
+                </span>
               </div>
             </div>
           </div>
