@@ -41,27 +41,27 @@ This project uses a **monorepo architecture** managed with Concurrently:
 │                    DCC-SFA Monorepo                     │
 ├─────────────────────────────────────────────────────────┤
 │                                                         │
-│  ┌──────────────────┐         ┌──────────────────┐    │
-│  │   Frontend (FE)  │ ◄─────► │   Backend (BE)   │    │
-│  │                  │  REST   │                  │    │
-│  │  React + Vite    │  API    │  Express + TS    │    │
-│  │  TypeScript      │         │  Prisma ORM      │    │
-│  │  Material-UI     │         │  GraphQL         │    │
-│  │  TanStack Query  │         │  JWT Auth        │    │
-│  └──────────────────┘         └──────────────────┘    │
-│                                        │               │
-│                                        ▼               │
-│                              ┌──────────────────┐     │
-│                              │  SQL Server DB   │     │
-│                              │  (MS SQL)        │     │
-│                              └──────────────────┘     │
-│                                                        │
-│  ┌──────────────────────────────────────────────┐    │
-│  │         External Services                    │    │
-│  │  • Backblaze B2 (File Storage)              │    │
-│  │  • SMTP (Email Notifications)               │    │
-│  │  • GPS Tracking                             │    │
-│  └──────────────────────────────────────────────┘    │
+│  ┌──────────────────┐         ┌──────────────────┐      │
+│  │   Frontend (FE)  │ ◄─────► │   Backend (BE)   │      │
+│  │                  │  REST   │                  │      │
+│  │  React + Vite    │  API    │  Express + TS    │      │
+│  │  TypeScript      │         │  Prisma ORM      │      │
+│  │  Material-UI     │         │  GraphQL         │      │
+│  │  TanStack Query  │         │  JWT Auth        │      │
+│  └──────────────────┘         └──────────────────┘      │
+│                                        │                │
+│                                        ▼                │
+│                              ┌──────────────────┐       │
+│                              │  SQL Server DB   │       │
+│                              │  (MS SQL)        │       │
+│                              └──────────────────┘       │
+│                                                         │
+│  ┌──────────────────────────────────────────────┐       │
+│  │         External Services                    │       │
+│  │  • Backblaze B2 (File Storage)               │       │
+│  │  • SMTP (Email Notifications)                │       │
+│  │  • GPS Tracking                              │       │
+│  └──────────────────────────────────────────────┘       │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -78,37 +78,37 @@ This project uses a **monorepo architecture** managed with Concurrently:
 
 ### Backend (`dcc-sfa-be`)
 
-| Technology | Purpose |
-|------------|---------|
-| **Node.js** | Runtime environment |
-| **Express.js** | Web framework |
-| **TypeScript** | Type-safe development |
-| **Prisma** | ORM for database operations |
-| **Apollo Server** | GraphQL server |
-| **JWT** | Authentication & authorization |
-| **Winston** | Logging |
-| **Bcrypt** | Password hashing |
-| **Nodemailer** | Email notifications |
-| **ExcelJS** | Excel report generation |
-| **PDFKit** | PDF generation |
-| **Multer** | File upload handling |
-| **Helmet** | Security headers |
+| Technology        | Purpose                        |
+| ----------------- | ------------------------------ |
+| **Node.js**       | Runtime environment            |
+| **Express.js**    | Web framework                  |
+| **TypeScript**    | Type-safe development          |
+| **Prisma**        | ORM for database operations    |
+| **Apollo Server** | GraphQL server                 |
+| **JWT**           | Authentication & authorization |
+| **Winston**       | Logging                        |
+| **Bcrypt**        | Password hashing               |
+| **Nodemailer**    | Email notifications            |
+| **ExcelJS**       | Excel report generation        |
+| **PDFKit**        | PDF generation                 |
+| **Multer**        | File upload handling           |
+| **Helmet**        | Security headers               |
 
 ### Frontend (`dcc-sfa-fe`)
 
-| Technology | Purpose |
-|------------|---------|
-| **React 19** | UI library |
-| **TypeScript** | Type-safe development |
-| **Vite** | Build tool & dev server |
-| **Material-UI (MUI)** | Component library |
-| **TanStack Query** | Data fetching & caching |
-| **React Router** | Client-side routing |
-| **Formik + Yup** | Form handling & validation |
-| **Axios** | HTTP client |
-| **Chart.js** | Data visualization |
-| **Day.js** | Date manipulation |
-| **Tailwind CSS** | Utility-first CSS |
+| Technology            | Purpose                    |
+| --------------------- | -------------------------- |
+| **React 19**          | UI library                 |
+| **TypeScript**        | Type-safe development      |
+| **Vite**              | Build tool & dev server    |
+| **Material-UI (MUI)** | Component library          |
+| **TanStack Query**    | Data fetching & caching    |
+| **React Router**      | Client-side routing        |
+| **Formik + Yup**      | Form handling & validation |
+| **Axios**             | HTTP client                |
+| **Chart.js**          | Data visualization         |
+| **Day.js**            | Date manipulation          |
+| **Tailwind CSS**      | Utility-first CSS          |
 
 ### Database
 
@@ -151,6 +151,7 @@ npm run setup
 ```
 
 This command will:
+
 - Install root dependencies
 - Install backend dependencies
 - Install frontend dependencies
@@ -238,6 +239,7 @@ npm run dev
 ```
 
 This will start:
+
 - **Backend**: http://localhost:4000
 - **Frontend**: http://localhost:5173
 - **GraphQL Playground**: http://localhost:4000/graphql
@@ -402,6 +404,7 @@ dcc-sfa/
 ## ✨ Key Features
 
 ### 1. User Management & Authentication
+
 - Role-based access control (RBAC)
 - JWT authentication
 - Multi-level user hierarchy
@@ -409,6 +412,7 @@ dcc-sfa/
 - API token management
 
 ### 2. Customer Relationship Management
+
 - Customer master data
 - Customer categorization & grading
 - Customer complaints management
@@ -416,6 +420,7 @@ dcc-sfa/
 - Customer documents & contracts
 
 ### 3. Sales & Orders
+
 - Order management with approval workflows
 - Price lists & discounts
 - Promotions & offers
@@ -424,6 +429,7 @@ dcc-sfa/
 - Credit notes & returns
 
 ### 4. Inventory Management
+
 - Multi-warehouse inventory
 - Van inventory for field sales
 - Stock movements & transfers
@@ -432,6 +438,7 @@ dcc-sfa/
 - Serial number tracking
 
 ### 5. Asset Management
+
 - Asset tracking (coolers, equipment)
 - Asset maintenance records
 - Asset movements
@@ -440,6 +447,7 @@ dcc-sfa/
 - NFC/Barcode scanning
 
 ### 6. Field Force Management
+
 - GPS tracking
 - Attendance management (punch in/out)
 - Route planning
@@ -448,6 +456,7 @@ dcc-sfa/
 - Survey responses
 
 ### 7. Approval Workflows
+
 - Multi-level approval system
 - Configurable workflow steps
 - Order approvals
@@ -456,6 +465,7 @@ dcc-sfa/
 - Asset movement approvals
 
 ### 8. Reports & Analytics
+
 - Executive dashboard
 - Sales reports
 - Inventory reports
@@ -465,12 +475,14 @@ dcc-sfa/
 - Excel & PDF export
 
 ### 9. Notifications
+
 - Real-time notifications
 - Email notifications
 - Approval notifications
 - System alerts
 
 ### 10. Import/Export
+
 - Bulk data import (Excel)
 - Data export (Excel, PDF)
 - Error handling & validation
@@ -551,18 +563,21 @@ Access GraphQL Playground at: `http://localhost:4000/graphql`
 The application uses Microsoft SQL Server with Prisma ORM. Key tables include:
 
 ### Core Tables
+
 - `users` - User accounts and authentication
 - `roles` - User roles
 - `permissions` - Permission definitions
 - `role_permissions` - Role-permission mapping
 
 ### Customer Management
+
 - `customers` - Customer master data
 - `customer_category` - Customer categories
 - `customer_complaints` - Customer complaints
 - `visits` - Customer visits
 
 ### Sales & Orders
+
 - `orders` - Sales orders
 - `order_items` - Order line items
 - `invoices` - Invoice records
@@ -570,23 +585,27 @@ The application uses Microsoft SQL Server with Prisma ORM. Key tables include:
 - `payments` - Payment records
 
 ### Inventory
+
 - `products` - Product master
 - `inventory_stock` - Stock levels
 - `van_inventory` - Van stock
 - `stock_movements` - Stock transactions
 
 ### Assets
+
 - `asset_master` - Asset records
 - `asset_types` - Asset type definitions
 - `asset_maintenance` - Maintenance records
 - `asset_movements` - Asset transfers
 
 ### Workflows
+
 - `approval_workflows` - Workflow instances
 - `workflow_steps` - Workflow step definitions
 - `sfa_d_requests` - Dynamic requests
 
 ### Tracking
+
 - `attendance` - Attendance records
 - `gps_logs` - GPS tracking data
 - `routes` - Route definitions
@@ -608,6 +627,7 @@ cd dcc-sfa-fe && npm run build:production
 ### Backend Deployment
 
 1. **Build the application**:
+
 ```bash
 cd dcc-sfa-be
 npm run build:production
@@ -616,11 +636,13 @@ npm run build:production
 2. **Set environment variables** in `.env.production`
 
 3. **Run migrations**:
+
 ```bash
 npx prisma migrate deploy
 ```
 
 4. **Start the server**:
+
 ```bash
 npm run start:production
 ```
@@ -628,6 +650,7 @@ npm run start:production
 ### Frontend Deployment
 
 1. **Build the application**:
+
 ```bash
 cd dcc-sfa-fe
 npm run build:production
@@ -675,40 +698,40 @@ CMD ["node", "dist-production/index.js"]
 
 ### Root Scripts
 
-| Script | Description |
-|--------|-------------|
-| `npm run setup` | Install all dependencies and generate Prisma client |
-| `npm run dev` | Start both frontend and backend in development mode |
-| `npm run build` | Build both packages for production |
-| `npm run start` | Start production servers |
-| `npm run format` | Format code with Prettier |
-| `npm run clean` | Clean build artifacts |
+| Script           | Description                                         |
+| ---------------- | --------------------------------------------------- |
+| `npm run setup`  | Install all dependencies and generate Prisma client |
+| `npm run dev`    | Start both frontend and backend in development mode |
+| `npm run build`  | Build both packages for production                  |
+| `npm run start`  | Start production servers                            |
+| `npm run format` | Format code with Prettier                           |
+| `npm run clean`  | Clean build artifacts                               |
 
 ### Backend Scripts
 
-| Script | Description |
-|--------|-------------|
-| `npm run dev` | Start development server with hot reload |
-| `npm run build` | Build for development |
-| `npm run build:staging` | Build for staging |
-| `npm run build:production` | Build for production |
-| `npm run start` | Start development build |
-| `npm run start:production` | Start production build |
-| `npm run prisma:generate` | Generate Prisma client |
-| `npm run seed:all` | Seed database with initial data |
-| `npm run seed:clean` | Clear database |
+| Script                     | Description                              |
+| -------------------------- | ---------------------------------------- |
+| `npm run dev`              | Start development server with hot reload |
+| `npm run build`            | Build for development                    |
+| `npm run build:staging`    | Build for staging                        |
+| `npm run build:production` | Build for production                     |
+| `npm run start`            | Start development build                  |
+| `npm run start:production` | Start production build                   |
+| `npm run prisma:generate`  | Generate Prisma client                   |
+| `npm run seed:all`         | Seed database with initial data          |
+| `npm run seed:clean`       | Clear database                           |
 
 ### Frontend Scripts
 
-| Script | Description |
-|--------|-------------|
-| `npm run dev` | Start Vite dev server |
-| `npm run build` | Build for development |
-| `npm run build:staging` | Build for staging |
-| `npm run build:production` | Build for production |
-| `npm run preview` | Preview development build |
-| `npm run preview:production` | Preview production build |
-| `npm run lint` | Run ESLint |
+| Script                         | Description                   |
+| ------------------------------ | ----------------------------- |
+| `npm run dev`                  | Start Vite dev server         |
+| `npm run build`                | Build for development         |
+| `npm run build:staging`        | Build for staging             |
+| `npm run build:production`     | Build for production          |
+| `npm run preview`              | Preview development build     |
+| `npm run preview:production`   | Preview production build      |
+| `npm run lint`                 | Run ESLint                    |
 | `npm run generate:permissions` | Generate permission constants |
 
 ## 🔧 Troubleshooting
@@ -720,6 +743,7 @@ CMD ["node", "dist-production/index.js"]
 **Problem**: Cannot connect to SQL Server
 
 **Solution**:
+
 ```bash
 # Check DATABASE_URL in .env file
 # Ensure SQL Server is running
@@ -734,6 +758,7 @@ npx prisma db pull
 **Problem**: `@prisma/client` not found
 
 **Solution**:
+
 ```bash
 cd dcc-sfa-be
 npm run prisma:generate
@@ -744,6 +769,7 @@ npm run prisma:generate
 **Problem**: Port 4000 or 5173 already in use
 
 **Solution**:
+
 ```bash
 # Windows
 netstat -ano | findstr :4000
@@ -763,6 +789,7 @@ taskkill /PID <PID> /F
 **Problem**: TypeScript compilation errors
 
 **Solution**:
+
 ```bash
 # Clear node_modules and reinstall
 rm -rf node_modules package-lock.json
@@ -785,17 +812,20 @@ npm run build
 ### Development Workflow
 
 1. **Create a feature branch**:
+
 ```bash
 git checkout -b feature/your-feature-name
 ```
 
 2. **Make your changes** and commit:
+
 ```bash
 git add .
 git commit -m "feat: add your feature description"
 ```
 
 3. **Push and create a pull request**:
+
 ```bash
 git push origin feature/your-feature-name
 ```
@@ -832,6 +862,7 @@ MIT License - see LICENSE file for details
 ## 📞 Support
 
 For support and questions:
+
 - Email: manikant.sharma@ampleserv.com
 - GitHub Issues: [Create an issue](https://github.com/manikantxampleserv/dcc-sfa/issues)
 

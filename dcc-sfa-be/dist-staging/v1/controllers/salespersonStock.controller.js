@@ -45,6 +45,7 @@ exports.salespersonStockController = {
                     email: true,
                     phone_number: true,
                     profile_image: true,
+                    address: true,
                     user_role: { select: { name: true } },
                 },
             });
@@ -61,7 +62,7 @@ exports.salespersonStockController = {
                 where: {
                     user_id: salespersonIdNum,
                     is_active: 'Y',
-                    ...(parsedDepotId ? { location_id: parsedDepotId } : {})
+                    ...(parsedDepotId ? { location_id: parsedDepotId } : {}),
                 },
                 select: { location_id: true },
                 distinct: ['location_id'],
@@ -325,9 +326,11 @@ exports.salespersonStockController = {
                 data: {
                     salesperson_id: salesperson.id,
                     salesperson_name: salesperson.name,
+                    salesperson_role: salesperson.user_role?.name || 'Unknown',
                     salesperson_email: salesperson.email,
                     salesperson_phone: salesperson.phone_number,
                     salesperson_profile_image: salesperson.profile_image,
+                    salesperson_address: salesperson.address,
                     total_van_inventories: locationIds.length,
                     total_products: products.length,
                     total_quantity: totalRemainingQty,
@@ -370,6 +373,7 @@ async function handleAllSalespersons(req, res, pageNum, limitNum) {
             email: true,
             phone_number: true,
             profile_image: true,
+            address: true,
             user_role: { select: { name: true } },
         },
     });
@@ -388,7 +392,7 @@ async function handleAllSalespersons(req, res, pageNum, limitNum) {
             where: {
                 user_id: sp.id,
                 is_active: 'Y',
-                ...(parsedDepotId ? { location_id: parsedDepotId } : {})
+                ...(parsedDepotId ? { location_id: parsedDepotId } : {}),
             },
             select: { location_id: true },
             distinct: ['location_id'],
@@ -438,6 +442,7 @@ async function handleAllSalespersons(req, res, pageNum, limitNum) {
             salesperson_email: sp.email,
             salesperson_phone: sp.phone_number,
             salesperson_profile_image: sp.profile_image,
+            salesperson_address: sp.address,
             total_van_inventories: locationIds.length,
             total_products: productStockMap.size,
             total_quantity: totalQty,
@@ -473,9 +478,11 @@ function buildEmptyResponse(salesperson) {
     return {
         salesperson_id: salesperson.id,
         salesperson_name: salesperson.name,
+        salesperson_role: salesperson.user_role?.name || 'Unknown',
         salesperson_email: salesperson.email,
         salesperson_phone: salesperson.phone_number,
         salesperson_profile_image: salesperson.profile_image,
+        salesperson_address: salesperson.address,
         total_van_inventories: 0,
         total_products: 0,
         total_quantity: 0,

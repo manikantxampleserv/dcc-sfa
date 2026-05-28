@@ -24,19 +24,21 @@ const serializeUnit = (unit) => ({
         id: p.id,
         name: p.name,
     })) || [],
-    subunits: unit.subunits_unit_of_measurement?.map((subunit) => ({
-        id: subunit.id,
-        name: subunit.name,
-        code: subunit.code,
-        description: subunit.description,
-        subunits_products: subunit.subunits_products
-            ? {
-                id: subunit.subunits_products.id,
-                name: subunit.subunits_products.name,
-                code: subunit.subunits_products.code,
-            }
-            : null,
-    })) || [],
+    subunit: unit.subunit
+        ? {
+            id: unit.subunit.id,
+            name: unit.subunit.name,
+            code: unit.subunit.code,
+            description: unit.subunit.description,
+            subunits_products: unit.subunit.subunits_products
+                ? {
+                    id: unit.subunit.subunits_products.id,
+                    name: unit.subunit.subunits_products.name,
+                    code: unit.subunit.subunits_products.code,
+                }
+                : null,
+        }
+        : null,
 });
 exports.unitMeasurementController = {
     async createUnitMeasurement(req, res) {
@@ -54,9 +56,21 @@ exports.unitMeasurementController = {
                     createdate: new Date(),
                     createdby: req.user?.id || data.createdby || 1,
                     log_inst: data.log_inst || 1,
+                    subunit: {
+                        create: {
+                            name: data.name,
+                            code: data.code || data.name.toUpperCase().replace(/\s/g, '_'),
+                            description: data.description || null,
+                            is_active: data.is_active || 'Y',
+                            createdate: new Date(),
+                            createdby: req.user?.id || data.createdby || 1,
+                            log_inst: data.log_inst || 1,
+                        },
+                    },
                 },
                 include: {
                     product_unit_of_measurement: true,
+                    subunit: true,
                 },
             });
             res.status(201).json({
@@ -96,7 +110,7 @@ exports.unitMeasurementController = {
                 orderBy: { createdate: 'desc' },
                 include: {
                     product_unit_of_measurement: true,
-                    subunits_unit_of_measurement: {
+                    subunit: {
                         include: {
                             subunits_products: true,
                         },
@@ -140,7 +154,7 @@ exports.unitMeasurementController = {
                 where: { id: Number(id) },
                 include: {
                     product_unit_of_measurement: true,
-                    subunits_unit_of_measurement: {
+                    subunit: {
                         include: {
                             subunits_products: true,
                         },
@@ -164,6 +178,9 @@ exports.unitMeasurementController = {
             const { id } = req.params;
             const existingUnit = await prisma_client_1.default.unit_of_measurement.findUnique({
                 where: { id: Number(id) },
+                include: {
+                    subunit: true,
+                },
             });
             if (!existingUnit)
                 return res.status(404).json({ message: 'Unit not found' });
@@ -180,14 +197,36 @@ exports.unitMeasurementController = {
             };
             const unit = await prisma_client_1.default.unit_of_measurement.update({
                 where: { id: Number(id) },
-                data,
+                data: {
+                    ...data,
+                    subunit: existingUnit.subunit
+                        ? {
+                            update: {
+                                name: req.body.name,
+                                code: req.body.code ||
+                                    req.body.name.toUpperCase().replace(/\s/g, '_'),
+                                description: req.body.description || null,
+                                is_active: req.body.is_active || 'Y',
+                                updatedate: new Date(),
+                                updatedby: req.user?.id,
+                            },
+                        }
+                        : {
+                            create: {
+                                name: req.body.name,
+                                code: req.body.code ||
+                                    req.body.name.toUpperCase().replace(/\s/g, '_'),
+                                description: req.body.description || null,
+                                is_active: req.body.is_active || 'Y',
+                                createdate: new Date(),
+                                createdby: req.user?.id || 1,
+                                log_inst: 1,
+                            },
+                        },
+                },
                 include: {
                     product_unit_of_measurement: true,
-                    subunits_unit_of_measurement: {
-                        include: {
-                            subunits_products: true,
-                        },
-                    },
+                    subunit: true,
                 },
             });
             res.json({
@@ -203,81 +242,52 @@ exports.unitMeasurementController = {
     async getSubunitsByUnitMeasurement(req, res) {
         try {
             const { id } = req.params;
-            const { page, limit, search, isActive } = req.query;
-            const pageNum = parseInt(page, 10) || 1;
-            const limitNum = parseInt(limit, 10) || 10;
-            const searchLower = search ? search.toLowerCase() : '';
             const unit = await prisma_client_1.default.unit_of_measurement.findUnique({
                 where: { id: Number(id) },
+                include: {
+                    subunit: {
+                        include: {
+                            subunits_products: true,
+                        },
+                    },
+                },
             });
             if (!unit) {
                 return res
                     .status(404)
                     .json({ message: 'Unit of measurement not found' });
             }
-            const filters = {
-                unit_of_measurement_id: Number(id),
-                ...(searchLower && {
-                    OR: [
-                        { name: { contains: searchLower } },
-                        { code: { contains: searchLower } },
-                        { description: { contains: searchLower } },
-                    ],
-                }),
-                ...(isActive && { is_active: isActive }),
-            };
-            const { data, pagination } = await (0, paginate_1.paginate)({
-                model: prisma_client_1.default.subunits,
-                filters,
-                page: pageNum,
-                limit: limitNum,
-                orderBy: { createdate: 'desc' },
-                include: {
-                    subunits_unit_of_measurement: true,
+            if (!unit.subunit) {
+                return res.json({
+                    message: 'No subunit found for this unit',
+                    data: null,
+                });
+            }
+            res.json({
+                message: 'Subunit retrieved successfully',
+                data: {
+                    id: unit.subunit.id,
+                    name: unit.subunit.name,
+                    code: unit.subunit.code,
+                    description: unit.subunit.description,
+                    unit_of_measurement_id: unit.subunit.unit_of_measurement_id,
+                    is_active: unit.subunit.is_active,
+                    createdate: unit.subunit.createdate,
+                    createdby: unit.subunit.createdby,
+                    updatedate: unit.subunit.updatedate,
+                    updatedby: unit.subunit.updatedby,
+                    log_inst: unit.subunit.log_inst,
+                    subunits_products: unit.subunit.subunits_products,
+                    unit_of_measurement: {
+                        id: unit.id,
+                        name: unit.name,
+                        symbol: unit.symbol,
+                    },
                 },
-            });
-            // Get statistics
-            const totalSubunits = await prisma_client_1.default.subunits.count({
-                where: { unit_of_measurement_id: Number(id) },
-            });
-            const activeSubunits = await prisma_client_1.default.subunits.count({
-                where: {
-                    unit_of_measurement_id: Number(id),
-                    is_active: 'Y',
-                },
-            });
-            const inactiveSubunits = await prisma_client_1.default.subunits.count({
-                where: {
-                    unit_of_measurement_id: Number(id),
-                    is_active: 'N',
-                },
-            });
-            res.success('Subunits retrieved successfully', data.map((subunit) => ({
-                id: subunit.id,
-                name: subunit.name,
-                code: subunit.code,
-                description: subunit.description,
-                unit_of_measurement_id: subunit.unit_of_measurement_id,
-                is_active: subunit.is_active,
-                createdate: subunit.createdate,
-                createdby: subunit.createdby,
-                updatedate: subunit.updatedate,
-                updatedby: subunit.updatedby,
-                log_inst: subunit.log_inst,
-                subunits_unit_of_measurement: subunit.subunits_unit_of_measurement,
-            })), 200, pagination, {
-                unit_of_measurement: {
-                    id: unit.id,
-                    name: unit.name,
-                    symbol: unit.symbol,
-                },
-                total_subunits: totalSubunits,
-                active_subunits: activeSubunits,
-                inactive_subunits: inactiveSubunits,
             });
         }
         catch (error) {
-            console.error('Get Subunits by Unit Measurement Error:', error);
+            console.error('Get Subunit by Unit Measurement Error:', error);
             res.status(500).json({ message: error.message });
         }
     },
@@ -286,11 +296,23 @@ exports.unitMeasurementController = {
             const { id } = req.params;
             const existingUnit = await prisma_client_1.default.unit_of_measurement.findUnique({
                 where: { id: Number(id) },
+                include: {
+                    subunit: true,
+                },
             });
             if (!existingUnit)
                 return res.status(404).json({ message: 'Unit not found' });
-            await prisma_client_1.default.unit_of_measurement.delete({ where: { id: Number(id) } });
-            res.json({ message: 'Unit deleted successfully' });
+            if (existingUnit.subunit) {
+                await prisma_client_1.default.subunits.delete({
+                    where: { id: existingUnit.subunit.id },
+                });
+            }
+            await prisma_client_1.default.unit_of_measurement.delete({
+                where: { id: Number(id) },
+            });
+            res.json({
+                message: 'Unit deleted successfully',
+            });
         }
         catch (error) {
             console.error('Delete Unit Error:', error);

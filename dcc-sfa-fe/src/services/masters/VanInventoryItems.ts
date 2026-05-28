@@ -91,6 +91,7 @@ export interface SalespersonSummary {
 }
 
 export interface SalespersonInventoryData {
+  salesperson_role: string;
   salesperson_id: number;
   salesperson_name: string;
   salesperson_email: string;
