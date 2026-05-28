@@ -2916,6 +2916,18 @@ export const visitsController = {
 
       console.log(` Fetched ${visitOrders.length} orders`);
 
+      const visitInvoices =
+        customerIds.length > 0
+          ? await prisma.invoices.findMany({
+              where: {
+                customer_id: { in: customerIds },
+                is_active: 'Y',
+              },
+            })
+          : [];
+
+      console.log(` Fetched ${visitInvoices.length} invoices`);
+
       let visitSurveys: any[] = [];
 
       try {
@@ -2950,6 +2962,16 @@ export const visitsController = {
         }
 
         ordersByCustomer.get(order.parent_id).push(order);
+      });
+
+      const invoicesByCustomer = new Map();
+
+      visitInvoices.forEach(invoice => {
+        if (!invoicesByCustomer.has(invoice.customer_id)) {
+          invoicesByCustomer.set(invoice.customer_id, []);
+        }
+
+        invoicesByCustomer.get(invoice.customer_id).push(invoice);
       });
 
       const surveysByVisit = new Map();
@@ -3053,10 +3075,25 @@ export const visitsController = {
           return diffCreated <= 300000 || diffUpdated <= 300000;
         });
 
+        const customerInvoices = (
+          invoicesByCustomer.get(visit.customer_id) || []
+        ).filter((invoice: any) => {
+          if (
+            invoice.salesperson_id &&
+            invoice.salesperson_id !== visit.sales_person_id
+          )
+            return false;
+          if (!invoice.invoice_date) return false;
+          const invoiceTime = new Date(invoice.invoice_date).getTime();
+          const diffCreated = Math.abs(invoiceTime - visitTime);
+          const diffUpdated = Math.abs(invoiceTime - visitUpdateTime);
+          return diffCreated <= 300000 || diffUpdated <= 300000;
+        });
+
         const visitSurveyResponses = surveysByVisit.get(visit.id) || [];
 
         console.log(
-          ` Visit ${visit.id} (Customer ${visit.customer_id}) has ${customerPayments.length} payments and ${customerOrders.length} orders`
+          ` Visit ${visit.id} (Customer ${visit.customer_id}) has ${customerPayments.length} payments, ${customerOrders.length} orders, and ${customerInvoices.length} invoices`
         );
 
         const totalAmountCollected = customerPayments.reduce(
@@ -3069,6 +3106,7 @@ export const visitsController = {
           amount_collected: String(totalAmountCollected),
           orders_created: customerOrders.length,
           payments: customerPayments,
+          invoices: customerInvoices,
           survey_responses: visitSurveyResponses,
         };
 
@@ -3118,6 +3156,7 @@ export const visitsController = {
       });
     }
   },
+
   async getVisitsById(req: Request, res: Response) {
     try {
       const { id } = req.params;
