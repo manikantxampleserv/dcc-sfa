@@ -39,7 +39,7 @@ const CreditNotesManagement: React.FC = () => {
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
-  const { isCreate, isUpdate, isDelete, isRead } = usePermission('credit-note');
+  const { isCreate, isUpdate, isDelete, isRead } = usePermission('invoice');
 
   const {
     data: creditNotesResponse,

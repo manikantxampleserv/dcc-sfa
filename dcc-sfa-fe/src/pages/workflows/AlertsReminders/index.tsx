@@ -36,7 +36,7 @@ const AlertsReminders: React.FC = () => {
   const [priorityFilter, setPriorityFilter] = useState('all');
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
-  const { isRead } = usePermission('alert');
+  const { isRead } = usePermission('user');
 
   const isFetching = false;
   const alertsReminders: AlertReminder[] = [];

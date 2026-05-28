@@ -42,7 +42,7 @@ const BatchLotsPage: React.FC = () => {
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
-  const { isCreate, isUpdate, isDelete, isRead } = usePermission('batch-lots');
+  const { isCreate, isUpdate, isDelete, isRead } = usePermission('product');
 
   // Get system settings and currencies for dynamic currency formatting
   const { data: settingsResponse } = useSettings();
@@ -352,38 +352,38 @@ const BatchLotsPage: React.FC = () => {
     },
     ...(isUpdate || isDelete || isRead
       ? [
-        {
-          id: 'action',
-          label: 'Actions',
-          sortable: false,
-          render: (_value: any, row: BatchLot) => (
-            <div className="!flex !gap-2 !items-center">
-              {isRead && (
-                <ActionButton
-                  onClick={() => handleViewBatchLot(row.id)}
-                  tooltip={`View ${row.batch_number}`}
-                  icon={<Visibility fontSize="small" />}
-                  color="info"
-                />
-              )}
-              {isUpdate && (
-                <EditButton
-                  onClick={() => handleEditBatchLot(row)}
-                  tooltip={`Edit ${row.batch_number}`}
-                />
-              )}
-              {isDelete && (
-                <DeleteButton
-                  onClick={() => handleDeleteBatchLot(row.id)}
-                  tooltip={`Delete ${row.batch_number}`}
-                  itemName={row.batch_number}
-                  confirmDelete={true}
-                />
-              )}
-            </div>
-          ),
-        },
-      ]
+          {
+            id: 'action',
+            label: 'Actions',
+            sortable: false,
+            render: (_value: any, row: BatchLot) => (
+              <div className="!flex !gap-2 !items-center">
+                {isRead && (
+                  <ActionButton
+                    onClick={() => handleViewBatchLot(row.id)}
+                    tooltip={`View ${row.batch_number}`}
+                    icon={<Visibility fontSize="small" />}
+                    color="info"
+                  />
+                )}
+                {isUpdate && (
+                  <EditButton
+                    onClick={() => handleEditBatchLot(row)}
+                    tooltip={`Edit ${row.batch_number}`}
+                  />
+                )}
+                {isDelete && (
+                  <DeleteButton
+                    onClick={() => handleDeleteBatchLot(row.id)}
+                    tooltip={`Delete ${row.batch_number}`}
+                    itemName={row.batch_number}
+                    confirmDelete={true}
+                  />
+                )}
+              </div>
+            ),
+          },
+        ]
       : []),
   ];
 

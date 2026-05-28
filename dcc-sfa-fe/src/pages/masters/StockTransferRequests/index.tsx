@@ -31,7 +31,7 @@ const StockTransferRequestsManagement: React.FC = () => {
   const [limit] = useState(10);
 
   const { isCreate, isUpdate, isDelete, isRead } =
-    usePermission('stock-transfer');
+    usePermission('stock-movement');
 
   const {
     data: requestsResponse,

@@ -45,6 +45,15 @@ class UnitOfMeasurementImportExportService extends import_export_service_1.Impor
     displayName = 'Unit of Measurement';
     uniqueFields = ['name'];
     searchFields = ['name', 'description', 'category', 'symbol'];
+    masterTableConfigs = [
+        {
+            masterTable: 'unit_of_measurement',
+            masterKey: 'id',
+            masterDisplayFields: ['id', 'name', 'symbol'],
+            sheetName: 'Ref - Sub Units',
+            description: 'Use the ID from this sheet in the Sub Unit ID column',
+        },
+    ];
     columns = [
         {
             key: 'name',
@@ -107,6 +116,30 @@ class UnitOfMeasurementImportExportService extends import_export_service_1.Impor
             description: 'Symbol for the unit (optional, max 10 characters)',
         },
         {
+            key: 'sub_unit',
+            header: 'Sub Unit',
+            width: 20,
+            type: 'string',
+            transform: value => (value ? value.toString().trim() : null),
+            description: 'Name of the sub unit (optional)',
+        },
+        {
+            key: 'subunit_id',
+            header: 'Sub Unit ID',
+            width: 15,
+            type: 'number',
+            transform: value => (value ? Number(value) : null),
+            description: 'ID of the sub unit (optional)',
+        },
+        {
+            key: 'conversion_rate',
+            header: 'Conversion Rate',
+            width: 15,
+            type: 'number',
+            transform: value => (value ? Number(value) : null),
+            description: 'Conversion rate relative to sub unit (optional)',
+        },
+        {
             key: 'is_active',
             header: 'Is Active',
             width: 12,
@@ -127,20 +160,29 @@ class UnitOfMeasurementImportExportService extends import_export_service_1.Impor
                 description: 'Unit of mass in the metric system',
                 category: 'Weight',
                 symbol: 'kg',
+                sub_unit: 'Gram',
+                subunit_id: 2,
+                conversion_rate: 1000,
                 is_active: 'Y',
             },
             {
-                name: 'Liter',
-                description: 'Unit of volume in the metric system',
-                category: 'Volume',
-                symbol: 'L',
+                name: 'Gram',
+                description: 'Small unit of mass',
+                category: 'Weight',
+                symbol: 'g',
+                sub_unit: '',
+                subunit_id: null,
+                conversion_rate: 1,
                 is_active: 'Y',
             },
             {
-                name: 'Meter',
-                description: 'Unit of length in the metric system',
-                category: 'Length',
-                symbol: 'm',
+                name: 'Box of 12',
+                description: 'Box containing 12 pieces',
+                category: 'Package',
+                symbol: 'box12',
+                sub_unit: 'Piece',
+                subunit_id: 4,
+                conversion_rate: 12,
                 is_active: 'Y',
             },
             {
@@ -148,14 +190,10 @@ class UnitOfMeasurementImportExportService extends import_export_service_1.Impor
                 description: 'Unit for counting individual items',
                 category: 'Count',
                 symbol: 'pcs',
+                sub_unit: '',
+                subunit_id: null,
+                conversion_rate: 1,
                 is_active: 'Y',
-            },
-            {
-                name: 'Box',
-                description: 'Unit for packaged items',
-                category: 'Package',
-                symbol: 'box',
-                is_active: 'N',
             },
         ];
     }
@@ -170,6 +208,9 @@ class UnitOfMeasurementImportExportService extends import_export_service_1.Impor
 - **Description**: Description of the unit (max 500 characters)
 - **Category**: Category of the unit (max 50 characters)
 - **Symbol**: Symbol for the unit (max 10 characters)
+- **Sub Unit**: Name of the sub unit
+- **Sub Unit ID**: Internal ID of the sub unit
+- **Conversion Rate**: Conversion rate relative to the sub unit
 - **Is Active**: Whether the unit is active (Y/N, defaults to Y)
 
 ## Notes:
@@ -186,6 +227,9 @@ class UnitOfMeasurementImportExportService extends import_export_service_1.Impor
             description: unit.description || '',
             category: unit.category || '',
             symbol: unit.symbol || '',
+            sub_unit: unit.sub_unit || '',
+            subunit_id: unit.subunit_id || '',
+            conversion_rate: unit.conversion_rate || '',
             is_active: unit.is_active || 'Y',
             createdate: unit.createdate?.toISOString().split('T')[0] || '',
             createdby: unit.createdby || '',
@@ -211,14 +255,25 @@ class UnitOfMeasurementImportExportService extends import_export_service_1.Impor
             description: data.description || null,
             category: data.category || null,
             symbol: data.symbol || null,
+            sub_unit: data.sub_unit || null,
+            subunit_id: data.subunit_id ? Number(data.subunit_id) : null,
+            conversion_rate: data.conversion_rate ? Number(data.conversion_rate) : null,
             is_active: data.is_active || 'Y',
             createdate: new Date(),
             createdby: userId,
             log_inst: 1,
         };
     }
-    async validateForeignKeys(data) {
-        // Unit of measurement doesn't have foreign key dependencies
+    async validateForeignKeys(data, tx) {
+        const prismaClient = tx || prisma_client_1.default;
+        if (data.subunit_id) {
+            const existing = await prismaClient.unit_of_measurement.findUnique({
+                where: { id: parseInt(data.subunit_id) }
+            });
+            if (!existing) {
+                return `Sub Unit with ID ${data.subunit_id} does not exist`;
+            }
+        }
         return null;
     }
     async prepareDataForImport(data, userId) {

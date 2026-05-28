@@ -16,18 +16,21 @@ router.post(
   '/districts',
   authenticateToken,
   auditCreate('districts'),
+  requirePermission([{ module: 'district', action: 'create' }]),
   districtsController.createDistricts
 );
 
 router.get(
   '/districts/:id',
   authenticateToken,
+  requirePermission([{ module: 'district', action: 'read' }]),
   districtsController.getDistrictsById
 );
 
 router.get(
   '/districts',
   authenticateToken,
+  requirePermission([{ module: 'district', action: 'read' }]),
   districtsController.getAllDistricts
 );
 
@@ -35,7 +38,7 @@ router.put(
   '/districts/:id',
   authenticateToken,
   auditUpdate('districts'),
-  requirePermission([{ module: 'role', action: 'update' }]),
+  requirePermission([{ module: 'district', action: 'update' }]),
   districtsController.updateDistricts
 );
 
@@ -43,7 +46,7 @@ router.delete(
   '/districts/:id',
   authenticateToken,
   auditDelete('districts'),
-  requirePermission([{ module: 'role', action: 'delete' }]),
+  requirePermission([{ module: 'district', action: 'delete' }]),
   districtsController.deleteDistricts
 );
 

@@ -115,8 +115,8 @@ export const hasAllModulePermissions = (
  * @description Matches the module keys from permissions.seeder.ts MODULE_MAPPING
  */
 export type Modules =
-  | 'dashboard'
-  | 'company'
+  | 'executive-dashboard'
+  | 'grading-dashboard'
   | 'user'
   | 'role'
   | 'depot'
@@ -129,13 +129,11 @@ export type Modules =
   | 'asset-type'
   | 'asset-sub-types'
   | 'asset-master'
-  | 'warehouse'
   | 'vehicle'
   | 'brand'
   | 'product-category'
   | 'product-sub-category'
   | 'unit-of-measurement'
-  | 'sub-unit-of-measurement'
   | 'product-flavour'
   | 'product-volume'
   | 'product-shelf-life'
@@ -148,11 +146,9 @@ export type Modules =
   | 'survey'
   | 'promotions'
   | 'order'
-  | 'delivery'
   | 'return'
   | 'payment'
   | 'invoice'
-  | 'credit-note'
   | 'visit'
   | 'asset-movement'
   | 'maintenance'
@@ -160,21 +156,15 @@ export type Modules =
   | 'inspection'
   | 'van-stock'
   | 'stock-movement'
-  | 'stock-transfer'
-  | 'batch-lots'
-  | 'inventory-management'
   | 'competitor'
   | 'customer-complaint'
   | 'customer-category'
   | 'customer-type'
   | 'location'
   | 'route-effectiveness'
-  | 'erp-sync'
   | 'report'
   | 'approval'
   | 'exception'
-  | 'alert'
-  | 'profile'
   | 'login-history'
   | 'token'
   | 'setting'
@@ -182,7 +172,12 @@ export type Modules =
   | 'product-target-group'
   | 'product-web-order'
   | 'inventory-items'
-  | 'asset-master-brands';
+  | 'asset-master-brands'
+  | 'region'
+  | 'district'
+  | 'city'
+  | 'tax-master'
+  | 'templates';
 
 /**
  * @type Actions
@@ -197,8 +192,8 @@ export type Actions = 'read' | 'create' | 'update' | 'delete';
  * @type {Record<string, string>}
  */
 const MODULE_DISPLAY_NAMES: Record<string, string> = {
-  dashboard: 'Dashboard',
-  company: 'Company',
+  'executive-dashboard': 'Executive Dashboard',
+  'grading-dashboard': 'Grading Dashboard',
   user: 'User',
   role: 'Role',
   depot: 'Depot',
@@ -211,13 +206,11 @@ const MODULE_DISPLAY_NAMES: Record<string, string> = {
   'asset-type': 'Asset Type',
   'asset-sub-types': 'Asset Sub Types',
   'asset-master': 'Asset Master',
-  warehouse: 'Warehouse',
   vehicle: 'Vehicle',
   brand: 'Brand',
   'product-category': 'Product Category',
   'product-sub-category': 'Product Sub Category',
   'unit-of-measurement': 'Unit Of Measurement',
-  'sub-unit-of-measurement': 'Sub Unit Of Measurement',
   'product-flavour': 'Product Flavour',
   'product-volume': 'Product Volume',
   'product-shelf-life': 'Product Shelf Life',
@@ -230,11 +223,9 @@ const MODULE_DISPLAY_NAMES: Record<string, string> = {
   survey: 'Survey',
   promotions: 'Promotions',
   order: 'Order',
-  delivery: 'Delivery',
   return: 'Return',
   payment: 'Payment',
   invoice: 'Invoice',
-  'credit-note': 'Credit Note',
   visit: 'Visit',
   'asset-movement': 'Asset Movement',
   maintenance: 'Maintenance',
@@ -242,8 +233,6 @@ const MODULE_DISPLAY_NAMES: Record<string, string> = {
   inspection: 'Inspection',
   'van-stock': 'Van Stock',
   'stock-movement': 'Stock Movement',
-  'stock-transfer': 'Stock Transfer',
-  'batch-lots': 'Batch & Lot Management',
   'inventory-management': 'Inventory Management',
   competitor: 'Competitor',
   'customer-complaint': 'Customer Complaint',
@@ -251,12 +240,9 @@ const MODULE_DISPLAY_NAMES: Record<string, string> = {
   'customer-type': 'Customer Type',
   location: 'Location',
   'route-effectiveness': 'Route Effectiveness',
-  'erp-sync': 'ERP Sync',
   report: 'Report',
   approval: 'Approval',
   exception: 'Exception',
-  alert: 'Alert',
-  profile: 'Profile',
   'login-history': 'Login History',
   token: 'Token',
   setting: 'Setting',
@@ -264,6 +250,11 @@ const MODULE_DISPLAY_NAMES: Record<string, string> = {
   'product-target-group': 'Product Target Group',
   'product-web-order': 'Product Web Order',
   'inventory-items': 'Inventory Items',
+  region: 'Region',
+  district: 'District',
+  city: 'City',
+  'tax-master': 'Tax Master',
+  templates: 'Email Templates',
 };
 
 /**

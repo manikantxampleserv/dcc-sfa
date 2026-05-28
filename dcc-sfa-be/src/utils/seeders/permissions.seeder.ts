@@ -25,7 +25,8 @@ interface MockPermission {
  * @type {Record<string, string>}
  */
 const MODULE_MAPPING: Record<string, string> = {
-  dashboard: 'Dashboard',
+  'executive-dashboard': 'Executive Dashboard',
+  'grading-dashboard': 'Grading Dashboard',
   company: 'Company Master',
   user: 'User Management',
   role: 'Role & Permission',
@@ -156,6 +157,8 @@ const ACTIONS: Array<{ key: string; name: string; description: string }> = [
  */
 const READ_ONLY_MODULES: string[] = [
   'dashboard',
+  'executive-dashboard',
+  'grading-dashboard',
   'report',
   'location',
   'route-effectiveness',

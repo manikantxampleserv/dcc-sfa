@@ -49,6 +49,7 @@ export const salespersonStockController = {
           email: true,
           phone_number: true,
           profile_image: true,
+          address: true,
           user_role: { select: { name: true } },
         },
       });
@@ -65,10 +66,10 @@ export const salespersonStockController = {
       }
 
       const vanLocations = await prisma.van_inventory.findMany({
-        where: { 
-          user_id: salespersonIdNum, 
+        where: {
+          user_id: salespersonIdNum,
           is_active: 'Y',
-          ...(parsedDepotId ? { location_id: parsedDepotId } : {})
+          ...(parsedDepotId ? { location_id: parsedDepotId } : {}),
         },
         select: { location_id: true },
         distinct: ['location_id'],
@@ -91,7 +92,6 @@ export const salespersonStockController = {
           pagination: buildPagination(pageNum, limitNum, 0),
         });
       }
-
       const stockWhere: any = {
         location_id: { in: locationIds },
         is_active: 'Y',
@@ -358,9 +358,11 @@ export const salespersonStockController = {
         data: {
           salesperson_id: salesperson.id,
           salesperson_name: salesperson.name,
+          salesperson_role: salesperson.user_role?.name || 'Unknown',
           salesperson_email: salesperson.email,
           salesperson_phone: salesperson.phone_number,
           salesperson_profile_image: salesperson.profile_image,
+          salesperson_address: salesperson.address,
           total_van_inventories: locationIds.length,
           total_products: products.length,
           total_quantity: totalRemainingQty,
@@ -398,7 +400,8 @@ async function handleAllSalespersons(
   pageNum: number,
   limitNum: number
 ) {
-  const { product_id, batch_status, serial_status, depot_id, supervisor_id } = req.query;
+  const { product_id, batch_status, serial_status, depot_id, supervisor_id } =
+    req.query;
 
   const usersWhere: any = {};
   if (supervisor_id) {
@@ -413,6 +416,7 @@ async function handleAllSalespersons(
       email: true,
       phone_number: true,
       profile_image: true,
+      address: true,
       user_role: { select: { name: true } },
     },
   });
@@ -431,10 +435,10 @@ async function handleAllSalespersons(
 
   for (const sp of allSalespersons) {
     const vanLocations = await prisma.van_inventory.findMany({
-      where: { 
-        user_id: sp.id, 
+      where: {
+        user_id: sp.id,
         is_active: 'Y',
-        ...(parsedDepotId ? { location_id: parsedDepotId } : {})
+        ...(parsedDepotId ? { location_id: parsedDepotId } : {}),
       },
       select: { location_id: true },
       distinct: ['location_id'],
@@ -495,6 +499,7 @@ async function handleAllSalespersons(
       salesperson_email: sp.email,
       salesperson_phone: sp.phone_number,
       salesperson_profile_image: sp.profile_image,
+      salesperson_address: sp.address,
       total_van_inventories: locationIds.length,
       total_products: productStockMap.size,
       total_quantity: totalQty,
@@ -529,13 +534,27 @@ async function handleAllSalespersons(
   });
 }
 
-function buildEmptyResponse(salesperson: any) {
+interface SalespersonData {
+  id: number;
+  name: string;
+  email: string | null;
+  phone_number: string | null;
+  profile_image: string | null;
+  address: string | null;
+  user_role: {
+    name: string;
+  } | null;
+}
+
+function buildEmptyResponse(salesperson: SalespersonData) {
   return {
     salesperson_id: salesperson.id,
     salesperson_name: salesperson.name,
+    salesperson_role: salesperson.user_role?.name || 'Unknown',
     salesperson_email: salesperson.email,
     salesperson_phone: salesperson.phone_number,
     salesperson_profile_image: salesperson.profile_image,
+    salesperson_address: salesperson.address,
     total_van_inventories: 0,
     total_products: 0,
     total_quantity: 0,

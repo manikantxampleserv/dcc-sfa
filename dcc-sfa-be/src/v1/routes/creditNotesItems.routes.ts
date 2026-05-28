@@ -17,7 +17,6 @@ router.post(
   '/transaction/credit-note-items',
   authenticateToken,
   auditCreate('credit_note_items'),
-  requirePermission([{ module: 'credit-note', action: 'create' }]),
   createCreditNoteItemsValidator,
   validate,
   creditNoteItemsController.createCreditNoteItems
@@ -25,27 +24,23 @@ router.post(
 router.get(
   '/transaction/credit-note-items',
   authenticateToken,
-  requirePermission([{ module: 'credit-note', action: 'read' }]),
   creditNoteItemsController.getAllCreditNoteItems
 );
 router.get(
   '/transaction/credit-note-items/:id',
   authenticateToken,
-  requirePermission([{ module: 'credit-note', action: 'read' }]),
   creditNoteItemsController.getCreditNoteItemById
 );
 router.put(
   '/transaction/credit-note-items/:id',
   authenticateToken,
   auditUpdate('credit_note_items'),
-  requirePermission([{ module: 'credit-note', action: 'update' }]),
   creditNoteItemsController.updateCreditNoteItem
 );
 router.delete(
   '/transaction/credit-note-items/:id',
   authenticateToken,
   auditDelete('credit_note_items'),
-  requirePermission([{ module: 'credit-note', action: 'delete' }]),
   creditNoteItemsController.deleteCreditNoteItem
 );
 

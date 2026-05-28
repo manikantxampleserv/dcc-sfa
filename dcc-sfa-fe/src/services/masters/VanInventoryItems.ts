@@ -82,6 +82,7 @@ export interface SalespersonSummary {
   salesperson_email: string;
   salesperson_phone: string | null;
   salesperson_profile_image: string | null;
+  salesperson_address?: string | null;
   total_van_inventories: number;
   total_products: number;
   total_quantity: number;
@@ -90,11 +91,13 @@ export interface SalespersonSummary {
 }
 
 export interface SalespersonInventoryData {
+  salesperson_role: string;
   salesperson_id: number;
   salesperson_name: string;
   salesperson_email: string;
   salesperson_phone: string | null;
   salesperson_profile_image: string | null;
+  salesperson_address?: string | null;
   total_van_inventories: number;
   total_products: number;
   total_remaining_quantity: number;

@@ -756,7 +756,15 @@ exports.userController = {
                 res.error('User not found', 404);
                 return;
             }
-            res.success('User profile fetched successfully', serializeUser(user), 200);
+            const serializedUser = serializeUser(user);
+            const depotIds = user.users_depots_users
+                ?.map((ud) => ud.user_depots_depot_id?.id)
+                .filter((id) => id !== undefined) || [];
+            const response = {
+                ...serializedUser,
+                // depot_id: depotIds.length > 0 ? depotIds[0] : null,
+            };
+            res.success('User profile fetched successfully', response, 200);
         }
         catch (error) {
             console.error('Error fetching user profile:', error);
