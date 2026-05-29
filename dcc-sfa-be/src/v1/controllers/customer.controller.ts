@@ -40,7 +40,10 @@ const generateCustomerCode = async (depotId: number) => {
   const code = `${depotPrefix}${newNumber.toString().padStart(2, '0')}`;
   return code;
 };
-const serializeCustomer = async (customer: any) => {
+const serializeCustomer = async (
+  customer: any,
+  defaultOutletIdSet?: Set<number>
+) => {
   if (!customer) {
     return {};
   }
@@ -169,10 +172,13 @@ const serializeCustomer = async (customer: any) => {
           code: d.code,
         }))
       : [],
-    is_default_outlet:
-      customer.default_for_depots && customer.default_for_depots.length > 0
-        ? 'Y'
-        : 'N',
+    is_default_outlet: (
+      defaultOutletIdSet
+        ? defaultOutletIdSet.has(customer.id)
+        : customer.default_for_depots?.length > 0
+    )
+      ? 'Y'
+      : 'N',
     outlet_images: (customer.outlet_images_customers || []).map((img: any) => ({
       id: img.id,
       image_url: img.image_url,
@@ -2131,11 +2137,7 @@ export const customerController = {
           id: { in: defaultOutletIds },
         };
 
-        if (salesperson_id && routeIds.length > 0) {
-          defaultOutletWhere.route_id = {
-            in: routeIds,
-          };
-        } else if (salesperson_id && routeIds.length === 0) {
+        if (salesperson_id && routeIds.length === 0) {
           defaultOutletWhere.route_id = -1;
         }
 
@@ -2329,10 +2331,10 @@ export const customerController = {
         },
       });
 
+      const defaultOutletIdSet = new Set(defaultOutletIds);
       const serializedData = await Promise.all(
-        mergedData.map((c: any) => serializeCustomer(c))
+        mergedData.map((c: any) => serializeCustomer(c, defaultOutletIdSet))
       );
-
       res.success(
         'Customers retrieved successfully',
         serializedData,
