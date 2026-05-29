@@ -22,6 +22,7 @@ interface StockMovementSerialized {
   updatedate?: Date | null;
   updatedby?: number | null;
   log_inst?: number | null;
+  custom_location_key?: string | null;
   van_inventory_id?: number | null;
   product?: { id: number; name: string; code: string } | null;
   from_location?: { id: number; name: string } | null;
@@ -128,6 +129,7 @@ export const stockMovementsController = {
           stock_movements_to_location: true,
           van_inventory_stock_movements: {
             include: {
+              van_inventory_depot: true,
               van_inventory_items_inventory: {
                 include: {
                   van_inventory_items_products: true,
@@ -151,12 +153,15 @@ export const stockMovementsController = {
 
   async getAllStockMovements(req: any, res: any) {
     try {
-      const { page, limit, search, status, movement_type, time_filter } = req.query;
+      const { page, limit, search, status, movement_type, time_filter } =
+        req.query;
       const pageNum = parseInt(page as string, 10) || 1;
       const limitNum = parseInt(limit as string, 10) || 10;
       const searchLower = search ? (search as string).toLowerCase() : '';
 
-      const movementDateFilter = getTimeFilter(time_filter as string | undefined);
+      const movementDateFilter = getTimeFilter(
+        time_filter as string | undefined
+      );
 
       const filters: any = {
         ...(search && {
@@ -187,6 +192,7 @@ export const stockMovementsController = {
           stock_movements_to_location: true,
           van_inventory_stock_movements: {
             include: {
+              van_inventory_depot: true,
               van_inventory_items_inventory: {
                 include: {
                   van_inventory_items_products: true,
@@ -197,6 +203,70 @@ export const stockMovementsController = {
           },
         },
       });
+
+      const invoiceIds = data
+        .filter(
+          (m: any) =>
+            m.reference_type === 'INVOICE' &&
+            m.reference_id !== null &&
+            m.reference_id !== undefined
+        )
+        .map((m: any) => m.reference_id);
+
+      const invoices = invoiceIds.length
+        ? await prisma.invoices.findMany({
+            where: {
+              id: {
+                in: invoiceIds,
+              },
+            },
+            include: {
+              invoices_customers: true,
+            },
+          })
+        : [];
+
+      const invoiceMap = new Map(
+        invoices.map((invoice: any) => [
+          invoice.id,
+          invoice.invoices_customers?.name || null,
+        ])
+      );
+      const vanInventoryIds = [
+        ...new Set(
+          data
+            .filter(
+              (m: any) =>
+                m.reference_type === 'VAN_INVENTORY' &&
+                m.reference_id !== null &&
+                m.reference_id !== undefined
+            )
+            .map((m: any) => Number(m.reference_id))
+        ),
+      ];
+
+      const vanInventories = vanInventoryIds.length
+        ? await prisma.van_inventory.findMany({
+            where: {
+              id: {
+                in: vanInventoryIds,
+              },
+            },
+            include: {
+              van_inventory_depot: true,
+            },
+          })
+        : [];
+
+      const vanInventoryMap = new Map(
+        vanInventories.map((vanInventory: any) => [
+          vanInventory.id,
+          vanInventory.van_inventory_depot?.name ||
+            (vanInventory.location_id
+              ? `Location ${vanInventory.location_id}`
+              : null),
+        ])
+      );
 
       // Calculate statistics
       const [
@@ -218,6 +288,7 @@ export const stockMovementsController = {
             },
           },
         }),
+
         prisma.stock_movements.count({ where: { movement_type: 'IN' } }),
         prisma.stock_movements.count({ where: { movement_type: 'OUT' } }),
         prisma.stock_movements.count({ where: { movement_type: 'TRANSFER' } }),
@@ -235,7 +306,30 @@ export const stockMovementsController = {
 
       res.success(
         'Stock Movements retrieved successfully',
-        data.map((sm: any) => serializeStockMovement(sm)),
+        data.map((sm: any) => {
+          let custom_location_key: string | null = null;
+
+          if (sm.reference_type === 'INVOICE') {
+            custom_location_key = invoiceMap.get(sm.reference_id) || null;
+          } else if (sm.reference_type === 'VAN_INVENTORY') {
+            custom_location_key =
+              sm.stock_movements_from_location?.name ||
+              sm.stock_movements_to_location?.name ||
+              sm.van_inventory_stock_movements?.van_inventory_depot?.name ||
+              vanInventoryMap.get(sm.reference_id) ||
+              null;
+          } else {
+            custom_location_key =
+              sm.stock_movements_from_location?.name ||
+              sm.stock_movements_to_location?.name ||
+              null;
+          }
+
+          return {
+            ...serializeStockMovement(sm),
+            custom_location_key,
+          };
+        }),
         200,
         pagination,
         stats
@@ -251,12 +345,14 @@ export const stockMovementsController = {
       const { id } = req.params;
       const movement = await prisma.stock_movements.findUnique({
         where: { id: Number(id) },
+
         include: {
           stock_movements_products: true,
           stock_movements_from_location: true,
           stock_movements_to_location: true,
           van_inventory_stock_movements: {
             include: {
+              van_inventory_depot: true,
               van_inventory_items_inventory: {
                 include: {
                   van_inventory_items_products: true,
@@ -268,12 +364,19 @@ export const stockMovementsController = {
         },
       });
 
-      if (!movement)
-        return res.status(404).json({ message: 'Stock Movement not found' });
+      if (!movement) {
+        return res.status(404).json({
+          message: 'Stock Movement not found',
+        });
+      }
+      let custom_location_key: string | null = null;
 
       res.json({
         message: 'Stock Movement fetched successfully',
-        data: serializeStockMovement(movement),
+        data: {
+          ...serializeStockMovement(movement),
+          custom_location_key,
+        },
       });
     } catch (error: any) {
       console.error('Get Stock Movement Error:', error);
@@ -309,6 +412,8 @@ export const stockMovementsController = {
           stock_movements_to_location: true,
           van_inventory_stock_movements: {
             include: {
+              van_inventory_depot: true,
+
               van_inventory_items_inventory: {
                 include: {
                   van_inventory_items_products: true,
