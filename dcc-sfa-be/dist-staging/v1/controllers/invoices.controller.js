@@ -41,6 +41,15 @@ const serializeInvoice = (invoice) => ({
     updatedate: invoice.updatedate?.toISOString(),
     updatedby: invoice.updatedby,
     log_inst: invoice.log_inst,
+    salesperson: invoice.invoices_salesperson
+        ? {
+            id: invoice.invoices_salesperson.id,
+            name: invoice.invoices_salesperson.name ||
+                invoice.invoices_salesperson.full_name ||
+                '',
+            email: invoice.invoices_salesperson.email || null,
+        }
+        : undefined,
     customer: invoice.invoices_customers
         ? {
             id: invoice.invoices_customers.id,
@@ -154,6 +163,7 @@ exports.invoicesController = {
                                 email: true,
                             },
                         },
+                        invoices_salesperson: true,
                         currencies: true,
                         orders: true,
                     },
@@ -316,6 +326,7 @@ exports.invoicesController = {
                         },
                     },
                     currencies: true,
+                    invoices_salesperson: true,
                     orders: true,
                     invoice_items: {
                         include: {
@@ -405,6 +416,7 @@ exports.invoicesController = {
                             email: true,
                         },
                     },
+                    invoices_salesperson: true,
                     currencies: true,
                     orders: true,
                     invoice_items: {
@@ -450,6 +462,7 @@ exports.invoicesController = {
                     },
                     currencies: true,
                     orders: true,
+                    invoices_salesperson: true,
                     invoice_items: {
                         include: {
                             invoice_items_products: true,
@@ -631,6 +644,7 @@ exports.invoicesController = {
                     },
                     currencies: true,
                     orders: true,
+                    invoices_salesperson: true,
                     invoice_items: {
                         include: {
                             invoice_items_products: true,

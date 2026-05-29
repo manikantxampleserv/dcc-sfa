@@ -12,8 +12,8 @@ function serializeVisit(visit) {
         id: visit.id,
         customer_id: visit.customer_id,
         sales_person_id: visit.sales_person_id,
-        route_id: visit.route_id,
-        zones_id: visit.zones_id,
+        route_id: visit.visit_customers?.route_id || visit.route_id,
+        zones_id: visit.visit_customers?.zones_id || visit.zones_id,
         visit_date: visit.visit_date,
         visit_time: visit.visit_time,
         purpose: visit.purpose,
@@ -27,7 +27,7 @@ function serializeVisit(visit) {
         end_longitude: visit.end_longitude,
         check_in_time: visit.check_in_time,
         check_out_time: visit.check_out_time,
-        orders_created: visit.orders_created,
+        invoices_created: visit.invoices_created,
         amount_collected: visit.amount_collected,
         visit_notes: visit.visit_notes,
         customer_feedback: visit.customer_feedback,
@@ -88,8 +88,8 @@ function serializeVisit(visit) {
                 email: visit.visits_salesperson.email,
             }
             : null,
-        route: visit.visit_routes,
-        zone: visit.visit_zones,
+        route: visit.visit_customers?.customer_routes || visit.visit_routes,
+        zone: visit.visit_customers?.customer_zones || visit.visit_zones,
         payments: visit.payments?.map((payment) => ({
             id: payment.id,
             payment_number: payment.payment_number,
@@ -2048,7 +2048,40 @@ exports.visitsController = {
                 limit: limitNum,
                 orderBy: { createdate: 'desc' },
                 include: {
-                    visit_customers: true,
+                    visit_customers: {
+                        select: {
+                            id: true,
+                            name: true,
+                            code: true,
+                            type: true,
+                            contact_person: true,
+                            phone_number: true,
+                            email: true,
+                            address: true,
+                            city: true,
+                            state: true,
+                            zipcode: true,
+                            outstanding_amount: true,
+                            credit_limit: true,
+                            is_active: true,
+                            route_id: true,
+                            zones_id: true,
+                            customer_routes: {
+                                select: {
+                                    id: true,
+                                    name: true,
+                                    code: true,
+                                },
+                            },
+                            customer_zones: {
+                                select: {
+                                    id: true,
+                                    name: true,
+                                    code: true,
+                                },
+                            },
+                        },
+                    },
                     visits_salesperson: true,
                     visit_routes: true,
                     visit_zones: true,
@@ -2088,6 +2121,15 @@ exports.visitsController = {
                 })
                 : [];
             console.log(` Fetched ${visitOrders.length} orders`);
+            const visitInvoices = customerIds.length > 0
+                ? await prisma_client_1.default.invoices.findMany({
+                    where: {
+                        customer_id: { in: customerIds },
+                        is_active: 'Y',
+                    },
+                })
+                : [];
+            console.log(` Fetched ${visitInvoices.length} invoices`);
             let visitSurveys = [];
             try {
                 if (visitIds.length > 0) {
@@ -2115,6 +2157,13 @@ exports.visitsController = {
                     ordersByCustomer.set(order.parent_id, []);
                 }
                 ordersByCustomer.get(order.parent_id).push(order);
+            });
+            const invoicesByCustomer = new Map();
+            visitInvoices.forEach(invoice => {
+                if (!invoicesByCustomer.has(invoice.customer_id)) {
+                    invoicesByCustomer.set(invoice.customer_id, []);
+                }
+                invoicesByCustomer.get(invoice.customer_id).push(invoice);
             });
             const surveysByVisit = new Map();
             visitSurveys.forEach(survey => {
@@ -2193,14 +2242,26 @@ exports.visitsController = {
                     const diffUpdated = Math.abs(orderTime - visitUpdateTime);
                     return diffCreated <= 300000 || diffUpdated <= 300000;
                 });
+                const customerInvoices = (invoicesByCustomer.get(visit.customer_id) || []).filter((invoice) => {
+                    if (invoice.salesperson_id &&
+                        invoice.salesperson_id !== visit.sales_person_id)
+                        return false;
+                    if (!invoice.invoice_date)
+                        return false;
+                    const invoiceTime = new Date(invoice.invoice_date).getTime();
+                    const diffCreated = Math.abs(invoiceTime - visitTime);
+                    const diffUpdated = Math.abs(invoiceTime - visitUpdateTime);
+                    return diffCreated <= 300000 || diffUpdated <= 300000;
+                });
                 const visitSurveyResponses = surveysByVisit.get(visit.id) || [];
-                console.log(` Visit ${visit.id} (Customer ${visit.customer_id}) has ${customerPayments.length} payments and ${customerOrders.length} orders`);
+                console.log(` Visit ${visit.id} (Customer ${visit.customer_id}) has ${customerPayments.length} payments, ${customerOrders.length} orders, and ${customerInvoices.length} invoices`);
                 const totalAmountCollected = customerPayments.reduce((sum, p) => sum + Number(p.total_amount || 0), 0);
                 const visitWithRelations = {
                     ...visit,
                     amount_collected: String(totalAmountCollected),
-                    orders_created: customerOrders.length,
+                    invoices_created: customerInvoices.length,
                     payments: customerPayments,
+                    invoices: customerInvoices,
                     survey_responses: visitSurveyResponses,
                 };
                 const serialized = serializeVisit(visitWithRelations);
@@ -2240,7 +2301,40 @@ exports.visitsController = {
             const visit = await prisma_client_1.default.visits.findUnique({
                 where: { id: Number(id) },
                 include: {
-                    visit_customers: true,
+                    visit_customers: {
+                        select: {
+                            id: true,
+                            name: true,
+                            code: true,
+                            type: true,
+                            contact_person: true,
+                            phone_number: true,
+                            email: true,
+                            address: true,
+                            city: true,
+                            state: true,
+                            zipcode: true,
+                            outstanding_amount: true,
+                            credit_limit: true,
+                            is_active: true,
+                            route_id: true,
+                            zones_id: true,
+                            customer_routes: {
+                                select: {
+                                    id: true,
+                                    name: true,
+                                    code: true,
+                                },
+                            },
+                            customer_zones: {
+                                select: {
+                                    id: true,
+                                    name: true,
+                                    code: true,
+                                },
+                            },
+                        },
+                    },
                     visits_salesperson: true,
                     visit_routes: true,
                     visit_zones: true,
@@ -2282,6 +2376,19 @@ exports.visitsController = {
                     is_active: 'Y',
                 },
             });
+            const allInvoices = await prisma_client_1.default.invoices.findMany({
+                where: {
+                    customer_id: visit.customer_id,
+                    is_active: 'Y',
+                },
+                include: {
+                    invoice_items: {
+                        include: {
+                            invoice_items_products: true,
+                        },
+                    },
+                },
+            });
             const visitTime = visit.createdate
                 ? new Date(visit.createdate).getTime()
                 : 0;
@@ -2304,6 +2411,14 @@ exports.visitsController = {
                 const diffUpdated = Math.abs(paymentTime - visitUpdateTime);
                 return diffCreated <= 300000 || diffUpdated <= 300000;
             });
+            const invoices = allInvoices.filter(invoice => {
+                if (!invoice.createdate)
+                    return false;
+                const invoiceTime = new Date(invoice.createdate).getTime();
+                const diffCreated = Math.abs(invoiceTime - visitTime);
+                const diffUpdated = Math.abs(invoiceTime - visitUpdateTime);
+                return diffCreated <= 300000 || diffUpdated <= 300000;
+            });
             const totalAmountCollected = payments.reduce((sum, p) => sum + Number(p.total_amount || 0), 0);
             let surveyResponses = [];
             try {
@@ -2318,8 +2433,10 @@ exports.visitsController = {
                 message: 'Visit retrieved successfully',
                 data: {
                     ...visit,
+                    route_id: visit.visit_customers?.route_id || visit.route_id,
+                    zones_id: visit.visit_customers?.zones_id || visit.zones_id,
                     amount_collected: String(totalAmountCollected),
-                    orders_created: orders.length,
+                    invoices_created: invoices.length,
                     customer: visit.visit_customers
                         ? {
                             ...visit.visit_customers,
@@ -2334,10 +2451,13 @@ exports.visitsController = {
                             email: visit.visits_salesperson.email,
                         }
                         : null,
-                    route: visit.visit_routes || null,
-                    zone: visit.visit_zones || null,
+                    route: visit.visit_customers?.customer_routes ||
+                        visit.visit_routes ||
+                        null,
+                    zone: visit.visit_customers?.customer_zones || visit.visit_zones || null,
                     orders: orders,
                     payments: payments,
+                    invoices: invoices,
                     cooler_inspections: visit.cooler_inspections || [],
                     survey_responses: surveyResponses,
                     visit_customers: undefined,

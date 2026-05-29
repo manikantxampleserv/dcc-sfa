@@ -275,7 +275,7 @@ const OrdersInvoicesReturnsReport: React.FC = () => {
       render: (_value, row) => (
         <Box>
           <Typography variant="body2" className="!text-gray-900 !font-medium">
-            Total: {formatCurrency(row.total_amount || 0)}
+            Total: {formatCurrency(row.total_amount + row.tax_amount || 0)}
           </Typography>
           <Typography
             variant="caption"
@@ -527,7 +527,6 @@ const OrdersInvoicesReturnsReport: React.FC = () => {
         open={invoiceDetailDrawerOpen}
         onClose={() => {
           setInvoiceDetailDrawerOpen(false);
-          setSelectedInvoice(null);
         }}
         invoice={selectedInvoice}
       />

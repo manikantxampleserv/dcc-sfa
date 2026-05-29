@@ -41,6 +41,7 @@ const BreadCrumbs: React.FC<BreadCrumbsProps> = ({ navItem, navLink, id }) => {
   };
 
   useEffect(() => {
+    if (navLink === '/') return;
     setBreadCrumbs(prev => {
       const existingByName = prev.findIndex(item => item.navItem === navItem);
       if (existingByName !== -1) {

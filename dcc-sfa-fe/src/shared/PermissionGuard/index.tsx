@@ -25,8 +25,9 @@ const PermissionGuard: React.FC<PermissionGuardProps> = ({
   const isExpired = tokenService.isTokenExpired();
   const currentPath = location.pathname;
   const isAuthPage =
-    currentPath.includes('/login') ||
-    currentPath.includes('/auth') ||
+    currentPath === '/login' ||
+    currentPath.startsWith('/login/') ||
+    currentPath.startsWith('/auth') ||
     currentPath === '/';
 
   if (

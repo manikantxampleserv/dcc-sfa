@@ -39,7 +39,9 @@ const VisitDetail: React.FC = () => {
   } = useVisit(Number(id));
   const visit = visitResponse?.data;
 
-  const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
+  const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(
+    null
+  );
   const [expandedOrderId, setExpandedOrderId] = useState<number | null>(null);
 
   const handleOpenImage = (index: number) => {
@@ -55,7 +57,9 @@ const VisitDetail: React.FC = () => {
     const attachments = visit?.visit_attachments;
     if (!attachments || attachments.length === 0) return;
     setSelectedImageIndex(prev =>
-      prev === null ? null : (prev - 1 + attachments.length) % attachments.length
+      prev === null
+        ? null
+        : (prev - 1 + attachments.length) % attachments.length
     );
   };
 
@@ -397,7 +401,10 @@ const VisitDetail: React.FC = () => {
     </div>
   );
 
-  const activeAttachment = selectedImageIndex !== null ? visit?.visit_attachments?.[selectedImageIndex] : null;
+  const activeAttachment =
+    selectedImageIndex !== null
+      ? visit?.visit_attachments?.[selectedImageIndex]
+      : null;
 
   return (
     <div className="flex flex-col gap-4 pb-8">
@@ -407,8 +414,9 @@ const VisitDetail: React.FC = () => {
           <div className="!bg-white !rounded-lg !shadow !border !border-gray-200 !p-6 !text-center !relative">
             <div className="absolute top-3 right-3">
               <div
-                className={`!w-2.5 !h-2.5 !rounded-full ${visit.is_active === 'Y' ? '!bg-green-400' : '!bg-gray-400'
-                  }`}
+                className={`!w-2.5 !h-2.5 !rounded-full ${
+                  visit.is_active === 'Y' ? '!bg-green-400' : '!bg-gray-400'
+                }`}
               ></div>
             </div>
 
@@ -606,64 +614,64 @@ const VisitDetail: React.FC = () => {
             visit.start_longitude ||
             visit.end_latitude ||
             visit.end_longitude) && (
-              <InfoCard title="Location Details" icon={MapPin}>
-                <div className="!space-y-4">
-                  {(visit.start_latitude || visit.start_longitude) && (
-                    <div className="!p-3 !bg-gray-50 !rounded-md !border !border-gray-200">
+            <InfoCard title="Location Details" icon={MapPin}>
+              <div className="!space-y-4">
+                {(visit.start_latitude || visit.start_longitude) && (
+                  <div className="!p-3 !bg-gray-50 !rounded-md !border !border-gray-200">
+                    <Typography
+                      variant="body2"
+                      className="!font-semibold !text-gray-900 !mb-2"
+                    >
+                      Start Location
+                    </Typography>
+                    {visit.start_latitude && (
                       <Typography
-                        variant="body2"
-                        className="!font-semibold !text-gray-900 !mb-2"
+                        variant="caption"
+                        className="!text-gray-600 !block"
                       >
-                        Start Location
+                        Latitude: {visit.start_latitude}
                       </Typography>
-                      {visit.start_latitude && (
-                        <Typography
-                          variant="caption"
-                          className="!text-gray-600 !block"
-                        >
-                          Latitude: {visit.start_latitude}
-                        </Typography>
-                      )}
-                      {visit.start_longitude && (
-                        <Typography
-                          variant="caption"
-                          className="!text-gray-600 !block"
-                        >
-                          Longitude: {visit.start_longitude}
-                        </Typography>
-                      )}
-                    </div>
-                  )}
+                    )}
+                    {visit.start_longitude && (
+                      <Typography
+                        variant="caption"
+                        className="!text-gray-600 !block"
+                      >
+                        Longitude: {visit.start_longitude}
+                      </Typography>
+                    )}
+                  </div>
+                )}
 
-                  {(visit.end_latitude || visit.end_longitude) && (
-                    <div className="!p-3 !bg-gray-50 !rounded-md !border !border-gray-200">
+                {(visit.end_latitude || visit.end_longitude) && (
+                  <div className="!p-3 !bg-gray-50 !rounded-md !border !border-gray-200">
+                    <Typography
+                      variant="body2"
+                      className="!font-semibold !text-gray-900 !mb-2"
+                    >
+                      End Location
+                    </Typography>
+                    {visit.end_latitude && (
                       <Typography
-                        variant="body2"
-                        className="!font-semibold !text-gray-900 !mb-2"
+                        variant="caption"
+                        className="!text-gray-600 !block"
                       >
-                        End Location
+                        Latitude: {visit.end_latitude}
                       </Typography>
-                      {visit.end_latitude && (
-                        <Typography
-                          variant="caption"
-                          className="!text-gray-600 !block"
-                        >
-                          Latitude: {visit.end_latitude}
-                        </Typography>
-                      )}
-                      {visit.end_longitude && (
-                        <Typography
-                          variant="caption"
-                          className="!text-gray-600 !block"
-                        >
-                          Longitude: {visit.end_longitude}
-                        </Typography>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </InfoCard>
-            )}
+                    )}
+                    {visit.end_longitude && (
+                      <Typography
+                        variant="caption"
+                        className="!text-gray-600 !block"
+                      >
+                        Longitude: {visit.end_longitude}
+                      </Typography>
+                    )}
+                  </div>
+                )}
+              </div>
+            </InfoCard>
+          )}
         </div>
 
         {/* Right Column (Main Content - 2/3) */}
@@ -817,8 +825,8 @@ const VisitDetail: React.FC = () => {
                 </div>
               )}
 
-              {visit.orders_created !== null &&
-                visit.orders_created !== undefined && (
+              {visit.invoices_created !== null &&
+                visit.invoices_created !== undefined && (
                   <div className="!space-y-0.5">
                     <Typography
                       variant="caption"
@@ -830,7 +838,7 @@ const VisitDetail: React.FC = () => {
                       variant="body2"
                       className="!font-semibold !text-gray-900"
                     >
-                      {visit.orders_created}
+                      {visit.invoices_created}
                     </Typography>
                   </div>
                 )}
@@ -1142,7 +1150,6 @@ const VisitDetail: React.FC = () => {
             </InfoCard>
           )}
 
-
           {(visit?.visit_attachments?.length ?? 0) > 0 && (
             <InfoCard title="Visit Attachments" icon={ImageIcon}>
               <div className="!grid !grid-cols-2 sm:!grid-cols-3 md:!grid-cols-4 !gap-4">
@@ -1155,7 +1162,9 @@ const VisitDetail: React.FC = () => {
                     <div className="!relative !w-full !aspect-square !bg-gray-100 !overflow-hidden">
                       <img
                         src={attachment.file_url || ''}
-                        alt={attachment.description || attachment.file_name || ''}
+                        alt={
+                          attachment.description || attachment.file_name || ''
+                        }
                         className="!w-full !h-full !object-cover !transition-transform !duration-500 group-hover:!scale-110"
                       />
                       <div className="!absolute !inset-0 !bg-gradient-to-t !from-black/60 !via-transparent !to-transparent !opacity-0 group-hover:!opacity-100 !transition-opacity !duration-300 !flex !items-end !p-2">
@@ -1189,7 +1198,6 @@ const VisitDetail: React.FC = () => {
             </InfoCard>
           )}
         </div>
-
       </div>
 
       {visit.orders && visit.orders.length > 0 && (
@@ -1227,10 +1235,7 @@ const VisitDetail: React.FC = () => {
                 >
                   Orders Created
                 </Typography>
-                <Typography
-                  variant="h5"
-                  className="!font-bold !text-blue-900"
-                >
+                <Typography variant="h5" className="!font-bold !text-blue-900">
                   {visit.orders.length}{' '}
                   {visit.orders.length === 1 ? 'Order' : 'Orders'}
                 </Typography>
@@ -1240,7 +1245,7 @@ const VisitDetail: React.FC = () => {
 
           {/* Orders List */}
           <div className="!space-y-4">
-            {visit.orders?.map((order) => {
+            {visit.orders?.map(order => {
               const isExpanded = expandedOrderId === order.id;
               return (
                 <div
@@ -1298,7 +1303,8 @@ const VisitDetail: React.FC = () => {
                           variant="body2"
                           className="!font-semibold !text-gray-700 !capitalize"
                         >
-                          {order.payment_method} ({order.payment_terms || 'N/A'})
+                          {order.payment_method} ({order.payment_terms || 'N/A'}
+                          )
                         </Typography>
                       </div>
 
@@ -1355,7 +1361,7 @@ const VisitDetail: React.FC = () => {
                             </tr>
                           </thead>
                           <tbody className="!divide-y !divide-gray-100">
-                            {order.order_items.map((item) => (
+                            {order.order_items.map(item => (
                               <tr
                                 key={item.id}
                                 className="hover:!bg-gray-50/50"
@@ -1378,9 +1384,7 @@ const VisitDetail: React.FC = () => {
                                   {formatCurrency(Number(item.unit_price))}
                                 </td>
                                 <td className="!py-3 !text-sm !text-gray-500 !text-right">
-                                  {formatCurrency(
-                                    Number(item.tax_amount || 0)
-                                  )}
+                                  {formatCurrency(Number(item.tax_amount || 0))}
                                 </td>
                                 <td className="!py-3 !text-sm !font-bold !text-gray-900 !text-right">
                                   {formatCurrency(Number(item.total_amount))}
@@ -1404,10 +1408,7 @@ const VisitDetail: React.FC = () => {
                             <div className="!flex !justify-between !text-xs !text-red-500">
                               <span>Discount</span>
                               <span>
-                                -
-                                {formatCurrency(
-                                  Number(order.discount_amount)
-                                )}
+                                -{formatCurrency(Number(order.discount_amount))}
                               </span>
                             </div>
                           )}
@@ -1423,9 +1424,7 @@ const VisitDetail: React.FC = () => {
                             <div className="!flex !justify-between !text-xs !text-gray-500">
                               <span>Shipping</span>
                               <span>
-                                {formatCurrency(
-                                  Number(order.shipping_amount)
-                                )}
+                                {formatCurrency(Number(order.shipping_amount))}
                               </span>
                             </div>
                           )}
@@ -1479,7 +1478,11 @@ const VisitDetail: React.FC = () => {
             <div className="flex flex-col items-center max-w-full">
               <img
                 src={activeAttachment.file_url || ''}
-                alt={activeAttachment.description || activeAttachment.file_name || ''}
+                alt={
+                  activeAttachment.description ||
+                  activeAttachment.file_name ||
+                  ''
+                }
                 className="max-h-[75vh] max-w-full object-contain rounded-lg shadow-2xl border border-white/10"
               />
 

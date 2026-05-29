@@ -40,6 +40,7 @@ interface VisitAttachment {
 }
 
 interface Visit {
+  invoices_created: number;
   id: number;
   customer_id: number;
   sales_person_id: number;

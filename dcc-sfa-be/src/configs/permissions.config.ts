@@ -127,6 +127,7 @@ export type Modules =
   | 'outlet'
   | 'outlet-group'
   | 'asset-type'
+  | 'asset-brand'
   | 'asset-sub-types'
   | 'asset-master'
   | 'vehicle'
@@ -134,11 +135,7 @@ export type Modules =
   | 'product-category'
   | 'product-sub-category'
   | 'unit-of-measurement'
-  | 'product-flavour'
-  | 'product-volume'
-  | 'product-shelf-life'
   | 'product'
-  | 'pricelist'
   | 'sales-target-group'
   | 'sales-target'
   | 'sales-bonus-rule'
@@ -156,28 +153,36 @@ export type Modules =
   | 'inspection'
   | 'van-stock'
   | 'stock-movement'
+  | 'inventory-management'
   | 'competitor'
   | 'customer-complaint'
   | 'customer-category'
   | 'customer-type'
+  | 'customer-channel'
+  | 'product-flavour'
+  | 'product-volume'
+  | 'product-shelf-life'
+  | 'product-type'
+  | 'product-target-group'
+  | 'product-web-order'
+  | 'inventory-items'
   | 'location'
   | 'route-effectiveness'
   | 'report'
   | 'approval'
   | 'exception'
+  | 'tax-master'
   | 'login-history'
   | 'token'
   | 'setting'
-  | 'product-type'
-  | 'product-target-group'
-  | 'product-web-order'
-  | 'inventory-items'
-  | 'asset-master-brands'
+  | 'templates'
   | 'region'
   | 'district'
   | 'city'
-  | 'tax-master'
-  | 'templates';
+  | 'pricelist'
+  | 'audit-log'
+  | 'attendance'
+  | 'request';
 
 /**
  * @type Actions
@@ -194,28 +199,26 @@ export type Actions = 'read' | 'create' | 'update' | 'delete';
 const MODULE_DISPLAY_NAMES: Record<string, string> = {
   'executive-dashboard': 'Executive Dashboard',
   'grading-dashboard': 'Grading Dashboard',
-  user: 'User',
-  role: 'Role',
+  user: 'User Management',
+  role: 'Role & Permission',
   depot: 'Depot',
   zone: 'Zone',
   currency: 'Currency',
   route: 'Route',
   'route-type': 'Route Type',
-  outlet: 'Outlet',
+  outlet: 'Outlet Master',
   'outlet-group': 'Outlet Group',
   'asset-type': 'Asset Type',
+  'asset-brand': 'Asset Brand',
   'asset-sub-types': 'Asset Sub Types',
   'asset-master': 'Asset Master',
+  'asset-master-brands': 'Asset Master Brands',
   vehicle: 'Vehicle',
   brand: 'Brand',
   'product-category': 'Product Category',
   'product-sub-category': 'Product Sub Category',
   'unit-of-measurement': 'Unit Of Measurement',
-  'product-flavour': 'Product Flavour',
-  'product-volume': 'Product Volume',
-  'product-shelf-life': 'Product Shelf Life',
   product: 'Product',
-  pricelist: 'Price List',
   'sales-target-group': 'Sales Target Group',
   'sales-target': 'Sales Target',
   'sales-bonus-rule': 'Sales Bonus Rule',
@@ -228,33 +231,41 @@ const MODULE_DISPLAY_NAMES: Record<string, string> = {
   invoice: 'Invoice',
   visit: 'Visit',
   'asset-movement': 'Asset Movement',
-  maintenance: 'Maintenance',
-  installation: 'Installation',
-  inspection: 'Inspection',
-  'van-stock': 'Van Stock',
+  maintenance: 'Asset Maintenance',
+  installation: 'Cooler Installation',
+  inspection: 'Cooler Inspection',
+  'van-stock': 'Van Inventory',
   'stock-movement': 'Stock Movement',
   'inventory-management': 'Inventory Management',
-  competitor: 'Competitor',
+  competitor: 'Competitor Activity',
   'customer-complaint': 'Customer Complaint',
-  'customer-category': 'Customer Category',
-  'customer-type': 'Customer Type',
-  location: 'Location',
-  'route-effectiveness': 'Route Effectiveness',
-  report: 'Report',
-  approval: 'Approval',
-  exception: 'Exception',
-  'login-history': 'Login History',
-  token: 'Token',
-  setting: 'Setting',
+  'customer-category': 'Outlet Category',
+  'customer-type': 'Outlet Type',
+  'customer-channel': 'Outlet Channel',
+  'product-flavour': 'Product Flavour',
+  'product-volume': 'Product Volume',
+  'product-shelf-life': 'Product Shelf Life',
   'product-type': 'Product Type',
   'product-target-group': 'Product Target Group',
   'product-web-order': 'Product Web Order',
   'inventory-items': 'Inventory Items',
-  region: 'Region',
-  district: 'District',
-  city: 'City',
+  location: 'GPS Tracking',
+  'route-effectiveness': 'Route Effectiveness',
+  report: 'Report',
+  approval: 'Approval Workflow',
+  exception: 'Exception',
   'tax-master': 'Tax Master',
+  'login-history': 'Login History',
+  token: 'Token',
+  setting: 'Setting',
   templates: 'Email Templates',
+  region: 'Region Master',
+  district: 'District Master',
+  city: 'City Master',
+  pricelist: 'Price List',
+  'audit-log': 'Audit Log',
+  attendance: 'Attendance',
+  request: 'Request',
 };
 
 /**

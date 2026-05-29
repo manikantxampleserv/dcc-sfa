@@ -30,7 +30,7 @@ const CustomerChannelPage: React.FC = () => {
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
   const { isCreate, isUpdate, isDelete, isRead } =
-    usePermission('customer-channel');
+    usePermission('outlet-channel');
 
   const {
     data: customerChannelsResponse,
@@ -179,30 +179,30 @@ const CustomerChannelPage: React.FC = () => {
     },
     ...(isUpdate || isDelete || isRead
       ? [
-        {
-          id: 'action',
-          label: 'Actions',
-          sortable: false,
-          render: (_value: any, row: CustomerChannel) => (
-            <div className="!flex !gap-2 !items-center">
-              {isUpdate && (
-                <EditButton
-                  onClick={() => handleEditCustomerChannel(row)}
-                  tooltip={`Edit ${row.channel_name}`}
-                />
-              )}
-              {isDelete && (
-                <DeleteButton
-                  onClick={() => handleDeleteCustomerChannel(row.id)}
-                  tooltip={`Delete ${row.channel_name}`}
-                  itemName={row.channel_name}
-                  confirmDelete={true}
-                />
-              )}
-            </div>
-          ),
-        },
-      ]
+          {
+            id: 'action',
+            label: 'Actions',
+            sortable: false,
+            render: (_value: any, row: CustomerChannel) => (
+              <div className="!flex !gap-2 !items-center">
+                {isUpdate && (
+                  <EditButton
+                    onClick={() => handleEditCustomerChannel(row)}
+                    tooltip={`Edit ${row.channel_name}`}
+                  />
+                )}
+                {isDelete && (
+                  <DeleteButton
+                    onClick={() => handleDeleteCustomerChannel(row.id)}
+                    tooltip={`Delete ${row.channel_name}`}
+                    itemName={row.channel_name}
+                    confirmDelete={true}
+                  />
+                )}
+              </div>
+            ),
+          },
+        ]
       : []),
   ];
 

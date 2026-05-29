@@ -181,7 +181,7 @@ const VisitLogging: React.FC = () => {
             </Typography>
             <Typography
               variant="caption"
-              className="!text-gray-500 !text-xs !block !mt-0.5"
+              className="!text-gray-500 !capitalize !text-xs !block !mt-0.5"
             >
               {row.purpose || 'No purpose specified'}
             </Typography>
@@ -263,12 +263,12 @@ const VisitLogging: React.FC = () => {
       ),
     },
     {
-      id: 'orders_amount',
-      label: 'Orders & Amount',
+      id: 'amount_collected',
+      label: 'Invoice & Amount',
       render: (_value, row) => (
         <Box>
           <Typography variant="caption" className="!text-gray-600 !block">
-            Orders: {row.orders_created || 0}
+            Invoice: {row.invoices_created || 0}
           </Typography>
           <Typography variant="caption" className="!text-gray-600 !block">
             Amount: {row.amount_collected || 'N/A'}

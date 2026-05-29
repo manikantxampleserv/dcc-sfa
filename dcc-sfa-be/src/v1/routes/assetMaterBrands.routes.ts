@@ -12,21 +12,20 @@ router.post(
   '/asset-master-brands',
   authenticateToken,
   auditCreate('asset_master_brands'),
-  requirePermission([{ module: 'asset-master-brands', action: 'create' }]),
   assetBrandsController.createAssetBrand
 );
 
 router.get(
   '/asset-master-brands',
   authenticateToken,
-  requirePermission([{ module: 'asset-master-brands', action: 'read' }]),
+  requirePermission([{ module: 'asset-brand', action: 'read' }]),
   assetBrandsController.getAssetBrands
 );
 
 router.get(
   '/asset-master-brands/:id',
   authenticateToken,
-  requirePermission([{ module: 'asset-master-brands', action: 'read' }]),
+  requirePermission([{ module: 'asset-brand', action: 'read' }]),
   assetBrandsController.getAssetBrandById
 );
 
@@ -34,14 +33,14 @@ router.put(
   '/asset-master-brands/:id',
   authenticateToken,
   auditUpdate('asset_master_brands'),
-  requirePermission([{ module: 'asset-master-brands', action: 'update' }]),
+  requirePermission([{ module: 'asset-brand', action: 'update' }]),
   assetBrandsController.updateAssetBrand
 );
 
 router.delete(
   '/asset-master-brands/:id',
   authenticateToken,
-  requirePermission([{ module: 'asset-master-brands', action: 'delete' }]),
+  requirePermission([{ module: 'asset-brand', action: 'delete' }]),
   assetBrandsController.deleteAssetBrand
 );
 
