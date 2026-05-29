@@ -7,7 +7,7 @@ const NoPermission: React.FC = () => {
   };
 
   const handleGoHome = () => {
-    window.location.href = '/dashboard/executive';
+    window.location.href = '/';
   };
 
   return (

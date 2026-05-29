@@ -1054,11 +1054,7 @@ const router = createBrowserRouter(
         },
         {
           path: '/profile',
-          element: (
-            <PermissionGuard module="profile" action="read">
-              <Profile />
-            </PermissionGuard>
-          ),
+          element: <Profile />,
         },
         {
           path: '*',

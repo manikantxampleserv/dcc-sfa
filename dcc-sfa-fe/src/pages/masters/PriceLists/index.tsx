@@ -204,7 +204,7 @@ const PriceListsManagement: React.FC = () => {
       label: 'Items',
       render: (_value, row) => (
         <Chip
-          label={`${row.pricelist_item?.length || 0} items`}
+          label={`${row.pricelist_item?.filter(p => Number(p.unit_price) > 0)?.length || 0} items`}
           size="small"
           variant="outlined"
           color="primary"
@@ -226,37 +226,37 @@ const PriceListsManagement: React.FC = () => {
     },
     ...(isUpdate || isDelete || isRead
       ? [
-        {
-          id: 'action',
-          label: 'Action',
-          sortable: false,
-          render: (_value: any, row: PriceList) => (
-            <div className="!flex !gap-2 justify-center !items-center">
-              <ActionButton
-                onClick={() => navigate(`/masters/price-lists/${row.id}`)}
-                tooltip={`View ${row.name} details`}
-                icon={<Visibility fontSize="small" />}
-                color="info"
-              />
-              {isUpdate && (
-                <EditButton
-                  onClick={() => handleEditPriceList(row)}
-                  tooltip={`Edit ${row.name}`}
+          {
+            id: 'action',
+            label: 'Action',
+            sortable: false,
+            render: (_value: any, row: PriceList) => (
+              <div className="!flex !gap-2 justify-center !items-center">
+                <ActionButton
+                  onClick={() => navigate(`/masters/price-lists/${row.id}`)}
+                  tooltip={`View ${row.name} details`}
+                  icon={<Visibility fontSize="small" />}
+                  color="info"
                 />
-              )}
+                {isUpdate && (
+                  <EditButton
+                    onClick={() => handleEditPriceList(row)}
+                    tooltip={`Edit ${row.name}`}
+                  />
+                )}
 
-              {isUpdate && (
-                <DeleteButton
-                  onClick={() => handleDeletePriceList(row.id)}
-                  tooltip={`Delete ${row.name}`}
-                  itemName={row.name}
-                  confirmDelete={true}
-                />
-              )}
-            </div>
-          ),
-        },
-      ]
+                {isUpdate && (
+                  <DeleteButton
+                    onClick={() => handleDeletePriceList(row.id)}
+                    tooltip={`Delete ${row.name}`}
+                    itemName={row.name}
+                    confirmDelete={true}
+                  />
+                )}
+              </div>
+            ),
+          },
+        ]
       : []),
   ];
 

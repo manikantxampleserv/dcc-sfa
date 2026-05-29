@@ -176,6 +176,28 @@ const UnitOfMeasurementPage: React.FC = () => {
       ),
     },
     {
+      id: 'sub_unit',
+      label: 'Sub Unit',
+      render: (_value, row) => (
+        <Typography variant="body2" className="!text-gray-900 !capitalize">
+          {row.sub_unit || (
+            <span className="italic text-gray-400 text-xs">None</span>
+          )}
+        </Typography>
+      ),
+    },
+    {
+      id: 'conversion_rate',
+      label: 'Conversion Rate',
+      render: (_value, row) => (
+        <Typography variant="body2" className="!text-gray-900">
+          {row.conversion_rate || (
+            <span className="italic text-gray-400 text-xs">N/A</span>
+          )}
+        </Typography>
+      ),
+    },
+    {
       id: 'is_active',
       label: 'Status',
       render: is_active => (
@@ -198,30 +220,30 @@ const UnitOfMeasurementPage: React.FC = () => {
     },
     ...(isUpdate || isDelete || isRead
       ? [
-        {
-          id: 'action',
-          label: 'Actions',
-          sortable: false,
-          render: (_value: any, row: UnitOfMeasurement) => (
-            <div className="!flex !gap-2 !items-center">
-              {isUpdate && (
-                <EditButton
-                  onClick={() => handleEditUnit(row)}
-                  tooltip={`Edit ${row.name}`}
-                />
-              )}
-              {isDelete && (
-                <DeleteButton
-                  onClick={() => handleDeleteUnit(row.id)}
-                  tooltip={`Delete ${row.name}`}
-                  itemName={row.name}
-                  confirmDelete={true}
-                />
-              )}
-            </div>
-          ),
-        },
-      ]
+          {
+            id: 'action',
+            label: 'Actions',
+            sortable: false,
+            render: (_value: any, row: UnitOfMeasurement) => (
+              <div className="!flex !gap-2 !items-center">
+                {isUpdate && (
+                  <EditButton
+                    onClick={() => handleEditUnit(row)}
+                    tooltip={`Edit ${row.name}`}
+                  />
+                )}
+                {isDelete && (
+                  <DeleteButton
+                    onClick={() => handleDeleteUnit(row.id)}
+                    tooltip={`Delete ${row.name}`}
+                    itemName={row.name}
+                    confirmDelete={true}
+                  />
+                )}
+              </div>
+            ),
+          },
+        ]
       : []),
   ];
 

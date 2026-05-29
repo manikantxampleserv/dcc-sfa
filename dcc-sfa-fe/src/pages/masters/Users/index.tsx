@@ -10,7 +10,12 @@ import {
 } from '@mui/material';
 import classNames from 'classnames';
 import { usePermission } from 'hooks/usePermission';
-import { useDeleteUser, useUsers, useUsersDropdown, type User } from 'hooks/useUsers';
+import {
+  useDeleteUser,
+  useUsers,
+  useUsersDropdown,
+  type User,
+} from 'hooks/useUsers';
 import { useExportToExcel } from 'hooks/useImportExport';
 import { useRolesDropdown } from 'hooks/useRoles';
 import { useDepots } from 'hooks/useDepots';
@@ -51,7 +56,8 @@ const UsersManagement: React.FC = () => {
     setSteps([
       {
         target: '#user-management-title',
-        content: 'This is the User Management page where you can manage all system users.',
+        content:
+          'This is the User Management page where you can manage all system users.',
       },
       {
         target: '#stats-cards-container',
@@ -71,13 +77,17 @@ const UsersManagement: React.FC = () => {
       },
       {
         target: '#users-table',
-        content: 'View and manage user details here. You can edit or delete users from the actions column.',
+        content:
+          'View and manage user details here. You can edit or delete users from the actions column.',
       },
     ]);
   }, [setSteps]);
 
   const { data: rolesResponse } = useRolesDropdown({ enabled: isRead });
-  const { data: depotsResponse } = useDepots({ isActive: 'Y', limit: 1000 }, { enabled: isRead });
+  const { data: depotsResponse } = useDepots(
+    { isActive: 'Y', limit: 1000 },
+    { enabled: isRead }
+  );
   const { data: managersResponse } = useUsersDropdown({}, { enabled: isRead });
 
   const roles = rolesResponse?.data || [];
@@ -207,7 +217,7 @@ const UsersManagement: React.FC = () => {
       render: value =>
         value ? (
           <Tooltip title={value} placement="top" arrow>
-            <span className="truncate text-ellipsis max-w-72">{value}</span>
+            <div className="truncate max-w-72">{value}</div>
           </Tooltip>
         ) : (
           <span className="italic text-xs text-gray-400"> No Address </span>
@@ -218,7 +228,7 @@ const UsersManagement: React.FC = () => {
       label: 'Join Date',
       render: (_value, row) =>
         formatDate(row.joining_date) || (
-          <span className="italic text-xs text-gray-400"> No Date </span>
+          <span className="italic text-xs text-gray-400">No Date </span>
         ),
     },
     {
@@ -226,35 +236,35 @@ const UsersManagement: React.FC = () => {
       label: 'Reports To',
       render: (_value, row) =>
         row.reporting_manager?.name || (
-          <span className="italic text-xs text-gray-400"> No Reports To </span>
+          <span className="italic text-xs text-gray-400">No Reports To </span>
         ),
     },
     ...(isUpdate || isDelete
       ? [
-        {
-          id: 'action',
-          label: 'Actions',
-          sortable: false,
-          render: (_value: any, row: User) => (
-            <div className="!flex !gap-2 !items-center">
-              {isUpdate && (
-                <EditButton
-                  onClick={() => handleEditUser(row)}
-                  tooltip={`Edit ${row.name}`}
-                />
-              )}
-              {isDelete && (
-                <DeleteButton
-                  onClick={() => handleDeleteUser(row.id)}
-                  tooltip={`Delete ${row.name}`}
-                  itemName={row.name}
-                  confirmDelete={true}
-                />
-              )}
-            </div>
-          ),
-        },
-      ]
+          {
+            id: 'action',
+            label: 'Actions',
+            sortable: false,
+            render: (_value: any, row: User) => (
+              <div className="!flex !gap-2 !items-center">
+                {isUpdate && (
+                  <EditButton
+                    onClick={() => handleEditUser(row)}
+                    tooltip={`Edit ${row.name}`}
+                  />
+                )}
+                {isDelete && (
+                  <DeleteButton
+                    onClick={() => handleDeleteUser(row.id)}
+                    tooltip={`Delete ${row.name}`}
+                    itemName={row.name}
+                    confirmDelete={true}
+                  />
+                )}
+              </div>
+            ),
+          },
+        ]
       : []),
   ];
 
@@ -267,11 +277,14 @@ const UsersManagement: React.FC = () => {
     setDrawerOpen(true);
   }, [stopTour]);
 
-  const handleEditUser = useCallback((user: User) => {
-    stopTour();
-    setSelectedUser(user);
-    setDrawerOpen(true);
-  }, [stopTour]);
+  const handleEditUser = useCallback(
+    (user: User) => {
+      stopTour();
+      setSelectedUser(user);
+      setDrawerOpen(true);
+    },
+    [stopTour]
+  );
 
   const handleDeleteUser = useCallback(
     (id: number) => {
@@ -328,7 +341,10 @@ const UsersManagement: React.FC = () => {
 
   return (
     <>
-      <Box className="!mb-3 !flex !justify-between !items-center" id="user-management-title">
+      <Box
+        className="!mb-3 !flex !justify-between !items-center"
+        id="user-management-title"
+      >
         <Box>
           <p className="!font-bold text-xl !text-gray-900">Users Management</p>
           <p className="!text-gray-500 text-sm">
@@ -337,7 +353,10 @@ const UsersManagement: React.FC = () => {
         </Box>
       </Box>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4" id="stats-cards-container">
+      <div
+        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4"
+        id="stats-cards-container"
+      >
         <StatsCard
           title="Total Users"
           value={usersResponse?.stats?.total_users || 0}
@@ -472,7 +491,10 @@ const UsersManagement: React.FC = () => {
                 )}
               </div>
               {isCreate && (
-                <div className="flex items-center gap-2" id="action-buttons-container">
+                <div
+                  className="flex items-center gap-2"
+                  id="action-buttons-container"
+                >
                   {isRead && (
                     <PopConfirm
                       title="Export Users"
