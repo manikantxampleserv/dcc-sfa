@@ -28,7 +28,7 @@ interface StockMovement {
   updatedby?: number | null;
   log_inst?: number | null;
   van_inventory_id?: number | null;
-
+  custom_location_key: string;
   product?: {
     id: number;
     name: string;

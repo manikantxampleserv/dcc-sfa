@@ -415,8 +415,14 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
       const aHasRGB = subCatA.toUpperCase().includes('RGB');
       const bHasRGB = subCatB.toUpperCase().includes('RGB');
 
+      const aIsBulk = subCatA.toUpperCase().includes('BULK KDW');
+      const bIsBulk = subCatB.toUpperCase().includes('BULK KDW');
+
       if (aHasRGB && !bHasRGB) return -1;
       if (!aHasRGB && bHasRGB) return 1;
+
+      if (aIsBulk && !bIsBulk) return 1;
+      if (!aIsBulk && bIsBulk) return -1;
 
       return subCatA.localeCompare(subCatB);
     });

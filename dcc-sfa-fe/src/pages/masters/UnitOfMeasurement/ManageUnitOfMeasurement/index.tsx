@@ -38,13 +38,11 @@ const ManageUnitOfMeasurement: React.FC<ManageUnitOfMeasurementProps> = ({
   const handleSubUnitChange = (e: any) => {
     const value = e.target.value;
     formik.setFieldValue('subunit_id', value);
-
     const selected = availableUnits.find(
       (u: UnitOfMeasurement) => String(u.id) === String(value)
     );
     formik.setFieldValue('sub_unit', selected ? selected.name : '');
-
-    if (!value) {
+    if (!value || value === 'none') {
       formik.setFieldValue('conversion_rate', 1);
     } else if (formik.values.conversion_rate === 1) {
       formik.setFieldValue('conversion_rate', '');
@@ -66,11 +64,15 @@ const ManageUnitOfMeasurement: React.FC<ManageUnitOfMeasurementProps> = ({
       category: selectedUnit?.category || '',
       symbol: selectedUnit?.symbol || '',
       sub_unit: selectedUnit?.sub_unit || '',
-      subunit_id: selectedUnit?.subunit_id
-        ? String(selectedUnit.subunit_id)
-        : '',
+      subunit_id: selectedUnit?.sub_unit
+        ? units.find(
+            (u: UnitOfMeasurement) =>
+              u.name?.trim().toLowerCase() ===
+              selectedUnit.sub_unit?.trim().toLowerCase()
+          )?.id || 'none'
+        : 'none',
       conversion_rate: selectedUnit
-        ? selectedUnit.conversion_rate || (selectedUnit.subunit_id ? '' : 1)
+        ? selectedUnit.conversion_rate || (selectedUnit.sub_unit ? '' : 1)
         : 1,
       is_active: selectedUnit?.is_active || 'Y',
     },
@@ -83,8 +85,11 @@ const ManageUnitOfMeasurement: React.FC<ManageUnitOfMeasurementProps> = ({
           description: values.description,
           category: values.category,
           symbol: values.symbol,
-          subunit_id: values.subunit_id ? Number(values.subunit_id) : undefined,
-          sub_unit: values.sub_unit || undefined,
+          subunit_id:
+            values.subunit_id && values.subunit_id !== 'none'
+              ? Number(values.subunit_id)
+              : undefined,
+          sub_unit: values.sub_unit || 'none',
           conversion_rate: values.conversion_rate
             ? Number(values.conversion_rate)
             : undefined,
@@ -137,7 +142,7 @@ const ManageUnitOfMeasurement: React.FC<ManageUnitOfMeasurementProps> = ({
               formik={formik}
               onChange={handleSubUnitChange}
             >
-              <MenuItem value="">None</MenuItem>
+              <MenuItem value="none">None</MenuItem>
               {availableUnits.map((unit: UnitOfMeasurement) => (
                 <MenuItem key={unit.id} value={String(unit.id)}>
                   {unit.name}
@@ -151,8 +156,13 @@ const ManageUnitOfMeasurement: React.FC<ManageUnitOfMeasurementProps> = ({
               placeholder="Enter conversion rate"
               type="number"
               formik={formik}
-              required={!!formik.values.subunit_id}
-              disabled={!formik.values.subunit_id}
+              required={
+                !!formik.values.subunit_id &&
+                formik.values.subunit_id !== 'none'
+              }
+              disabled={
+                !formik.values.subunit_id || formik.values.subunit_id === 'none'
+              }
             />
 
             <Box className="md:!col-span-2">

@@ -2,21 +2,13 @@ import { Avatar, Chip, Skeleton, Typography } from '@mui/material';
 import classNames from 'classnames';
 import { useCurrency } from 'hooks/useCurrency';
 import { useSurveyResponse } from 'hooks/useSurveyResponses';
-import {
-  AlertTriangle,
-  ArrowLeft,
-  BarChart3,
-  FileText,
-  User,
-} from 'lucide-react';
+import { AlertTriangle, BarChart3, FileText, User } from 'lucide-react';
 import React from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import Button from 'shared/Button';
+import { useParams } from 'react-router-dom';
 import { formatDate } from 'utils/dateUtils';
 
 const SurveyResponseDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
   const { formatCurrency } = useCurrency();
 
   const {
@@ -26,28 +18,20 @@ const SurveyResponseDetail: React.FC = () => {
     isFetching,
   } = useSurveyResponse(Number(id));
 
-  const handleBack = () => {
-    navigate('/reports/survey-responses');
-  };
-
   const formatAnswer = (answer: string | null) => {
     if (!answer) return null;
 
     try {
-      // Try to parse as JSON array
       const parsed = JSON.parse(answer);
 
-      // If it's an array, format it nicely
       if (Array.isArray(parsed)) {
         return parsed.join(', ');
       }
 
-      // If it's an object, stringify it nicely
       if (typeof parsed === 'object' && parsed !== null) {
         return JSON.stringify(parsed, null, 2);
       }
 
-      // Otherwise return as-is
       return answer;
     } catch {
       // If parsing fails, return as-is
@@ -280,14 +264,6 @@ const SurveyResponseDetail: React.FC = () => {
             problem persists.
           </Typography>
         </div>
-        <Button
-          variant="outlined"
-          startIcon={<ArrowLeft />}
-          onClick={handleBack}
-          className="mt-4"
-        >
-          Back to Survey Responses
-        </Button>
       </div>
     );
   }
@@ -759,7 +735,7 @@ const SurveyResponseDetail: React.FC = () => {
                 )}
 
                 {customer.address && (
-                  <div className="!space-y-0.5 md:!col-span-2 lg:!col-span-3">
+                  <div className="!space-y-0.5 md:!col-span-2 lg:!col-span-2">
                     <Typography
                       variant="caption"
                       className="!text-gray-500 !text-xs !uppercase !tracking-wide"
@@ -824,16 +800,6 @@ const SurveyResponseDetail: React.FC = () => {
           })()}
         </InfoCard>
       )}
-
-      <div className="!mt-4">
-        <Button
-          variant="outlined"
-          startIcon={<ArrowLeft />}
-          onClick={handleBack}
-        >
-          Back to Survey Responses
-        </Button>
-      </div>
     </>
   );
 };

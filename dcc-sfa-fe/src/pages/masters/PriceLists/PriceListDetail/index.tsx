@@ -20,6 +20,7 @@ import type { PriceListItem, SpecialPrice } from 'services/masters/PriceLists';
 import { ActionButton } from 'shared/ActionButton';
 import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
+import { useProducts } from 'hooks/useProducts';
 
 const PriceListDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -28,8 +29,37 @@ const PriceListDetail: React.FC = () => {
     useState<PriceListItem | null>(null);
 
   const { data: priceList, isLoading } = usePriceListById(Number(id));
+  const { data: productsResponse, isLoading: isLoadingProducts } = useProducts({
+    limit: 1000,
+  });
+  const products = productsResponse?.data || [];
 
   const items = priceList?.pricelist_item || [];
+
+  const sortItems = (itemsList: PriceListItem[]) => {
+    return [...itemsList].sort((a, b) => {
+      const productA = products.find((p: any) => p.id === a.product_id);
+      const productB = products.find((p: any) => p.id === b.product_id);
+      const subCatA = productA?.product_sub_category?.sub_category_name || '';
+      const subCatB = productB?.product_sub_category?.sub_category_name || '';
+
+      const aHasRGB = subCatA.toUpperCase().includes('RGB');
+      const bHasRGB = subCatB.toUpperCase().includes('RGB');
+
+      const aIsBulk = subCatA.toUpperCase().includes('BULK KDW');
+      const bIsBulk = subCatB.toUpperCase().includes('BULK KDW');
+
+      if (aHasRGB && !bHasRGB) return -1;
+      if (!aHasRGB && bHasRGB) return 1;
+
+      if (aIsBulk && !bIsBulk) return 1;
+      if (!aIsBulk && bIsBulk) return -1;
+
+      return subCatA.localeCompare(subCatB);
+    });
+  };
+
+  const sortedItems = sortItems(items);
 
   const itemColumns: TableColumn<PriceListItem>[] = [
     {
@@ -63,11 +93,19 @@ const PriceListDetail: React.FC = () => {
     {
       id: 'sub_unit_price',
       label: 'Sub-unit Price',
-      render: (_v, row) => (
-        <span className="text-sm text-gray-700">
-          {row.sub_unit_price ? Number(row.sub_unit_price).toFixed(2) : '-'}
-        </span>
-      ),
+      render: (_v, row) => {
+        const product = products.find((p: any) => p.id === row.product_id);
+        const isRGB = product?.product_sub_category?.sub_category_name
+          ?.toUpperCase()
+          ?.includes('RGB');
+        if (!isRGB) return <span className="text-sm text-gray-700">-</span>;
+
+        return (
+          <span className="text-sm text-gray-700">
+            {row.sub_unit_price ? Number(row.sub_unit_price).toFixed(2) : '-'}
+          </span>
+        );
+      },
     },
     {
       id: 'special_prices',
@@ -147,11 +185,21 @@ const PriceListDetail: React.FC = () => {
     {
       id: 'original_subunit',
       label: 'Orig. Subunit',
-      render: () => (
-        <span className="text-xs">
-          {specialPricesItem?.sub_unit_price || '0.00'}
-        </span>
-      ),
+      render: () => {
+        const product = products.find(
+          (p: any) => p.id === specialPricesItem?.product_id
+        );
+        const isRGB = product?.product_sub_category?.sub_category_name
+          ?.toUpperCase()
+          ?.includes('RGB');
+        if (!isRGB) return <span className="text-xs">-</span>;
+
+        return (
+          <span className="text-xs">
+            {specialPricesItem?.sub_unit_price || '0.00'}
+          </span>
+        );
+      },
     },
     {
       id: 'sale_price',
@@ -165,11 +213,22 @@ const PriceListDetail: React.FC = () => {
     {
       id: 'sale_sub_unit_price',
       label: 'Sale Subunit',
-      render: (_v, row) => (
-        <span className="text-sm font-medium text-gray-900">
-          {row.sale_sub_unit_price || '-'}
-        </span>
-      ),
+      render: (_v, row) => {
+        const product = products.find(
+          (p: any) => p.id === specialPricesItem?.product_id
+        );
+        const isRGB = product?.product_sub_category?.sub_category_name
+          ?.toUpperCase()
+          ?.includes('RGB');
+        if (!isRGB)
+          return <span className="text-sm font-medium text-gray-900">-</span>;
+
+        return (
+          <span className="text-sm font-medium text-gray-900">
+            {row.sale_sub_unit_price || '-'}
+          </span>
+        );
+      },
     },
     {
       id: 'tax_percent',
@@ -266,11 +325,23 @@ const PriceListDetail: React.FC = () => {
         </div>
         <div>
           <Table
-            data={items}
+            data={sortedItems}
             columns={itemColumns}
-            loading={isLoading}
+            loading={isLoading || isLoadingProducts}
             pagination={false}
             sortable={false}
+            groupBy={row => {
+              const product = products.find(
+                (p: any) => p.id === row.product_id
+              );
+              return (
+                product?.product_sub_category?.sub_category_name ||
+                'Uncategorized'
+              );
+            }}
+            renderGroupHeader={group => (
+              <span className="text-sm font-bold uppercase">{group}</span>
+            )}
           />
         </div>
       </div>

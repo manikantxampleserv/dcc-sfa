@@ -108,7 +108,6 @@ export const useMenuPermissions = () => {
   const approvalPerms = usePermission('approval' as BackendModule);
   const exceptionPerms = usePermission('exception' as BackendModule);
   const alertPerms = usePermission('alert' as BackendModule);
-  const profilePerms = usePermission('profile' as BackendModule);
   const loginHistoryPerms = usePermission('login-history' as BackendModule);
   const tokenPerms = usePermission('token' as BackendModule);
   const settingPerms = usePermission('setting' as BackendModule);
@@ -181,7 +180,6 @@ export const useMenuPermissions = () => {
       approval: approvalPerms,
       exception: exceptionPerms,
       alert: alertPerms,
-      profile: profilePerms,
       'login-history': loginHistoryPerms,
       token: tokenPerms,
       setting: settingPerms,
@@ -253,7 +251,6 @@ export const useMenuPermissions = () => {
       approvalPerms,
       exceptionPerms,
       alertPerms,
-      profilePerms,
       loginHistoryPerms,
       tokenPerms,
       settingPerms,

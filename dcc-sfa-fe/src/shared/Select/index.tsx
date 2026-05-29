@@ -152,11 +152,14 @@ const Select: React.FC<CustomSelectProps> = ({
   const handleChange = useCallback(
     (_event: any, newValue: Option | null) => {
       const newValueToSet = newValue?.value ?? null;
+      
       if (formik && name) {
         formik.setFieldValue(name, newValueToSet);
       } else if (setValue) {
         setValue(newValueToSet);
-      } else if (onChange) {
+      }
+      
+      if (onChange) {
         const syntheticEvent = {
           target: {
             name: name,
