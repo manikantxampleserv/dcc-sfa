@@ -1,0 +1,1 @@
+{"version":3,"file":"customerChannels.controller.d.ts","sourceRoot":"","sources":["../../../src/v1/controllers/customerChannels.controller.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,OAAO,EAAE,QAAQ,EAAE,MAAM,SAAS,CAAC;AA8C5C,eAAO,MAAM,0BAA0B;gCACH,GAAG,OAAO,GAAG;gCAkCb,GAAG,OAAO,GAAG;iCAoEZ,OAAO,OAAO,QAAQ;gCA0BvB,GAAG,OAAO,GAAG;gCAmCb,OAAO,OAAO,QAAQ;CAyBzD,CAAC"}

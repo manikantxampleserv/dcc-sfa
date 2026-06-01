@@ -3,11 +3,10 @@ import {
   Block,
   CheckCircle,
   Download,
-  Pause,
   PlayArrow,
   Settings,
   Upload,
-  Visibility,
+  Visibility
 } from '@mui/icons-material';
 import { Alert, Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
 import { useExportToExcel } from 'hooks/useImportExport';
@@ -221,7 +220,7 @@ const SurveyBuilder: React.FC = () => {
       label: 'Status',
       render: (_value, row) => (
         <Box className="flex gap-2 items-center">
-          <Chip
+          {/* <Chip
             icon={
               Boolean(row.is_published) ? (
                 <PlayArrow fontSize="small" />
@@ -233,7 +232,7 @@ const SurveyBuilder: React.FC = () => {
             size="small"
             variant="outlined"
             color={Boolean(row.is_published) ? 'success' : 'warning'}
-          />
+          /> */}
           <Chip
             icon={
               row.is_active === 'Y' ? (
@@ -272,38 +271,38 @@ const SurveyBuilder: React.FC = () => {
     },
     ...(isUpdate || isDelete || isRead
       ? [
-          {
-            id: 'action',
-            label: 'Actions',
-            sortable: false,
-            render: (_value: any, row: Survey) => (
-              <div className="!flex !gap-2 !items-center">
-                {isRead && (
-                  <ActionButton
-                    onClick={() => handleViewSurvey(row)}
-                    tooltip={`View ${row.title}`}
-                    icon={<Visibility fontSize="small" />}
-                    color="info"
-                  />
-                )}
-                {isUpdate && (
-                  <EditButton
-                    onClick={() => handleEditSurvey(row)}
-                    tooltip={`Edit ${row.title}`}
-                  />
-                )}
-                {isDelete && (
-                  <DeleteButton
-                    onClick={() => handleDeleteSurvey(row.id)}
-                    tooltip={`Delete ${row.title}`}
-                    itemName={row.title}
-                    confirmDelete={true}
-                  />
-                )}
-              </div>
-            ),
-          },
-        ]
+        {
+          id: 'action',
+          label: 'Actions',
+          sortable: false,
+          render: (_value: any, row: Survey) => (
+            <div className="!flex !gap-2 !items-center">
+              {isRead && (
+                <ActionButton
+                  onClick={() => handleViewSurvey(row)}
+                  tooltip={`View ${row.title}`}
+                  icon={<Visibility fontSize="small" />}
+                  color="info"
+                />
+              )}
+              {isUpdate && (
+                <EditButton
+                  onClick={() => handleEditSurvey(row)}
+                  tooltip={`Edit ${row.title}`}
+                />
+              )}
+              {isDelete && (
+                <DeleteButton
+                  onClick={() => handleDeleteSurvey(row.id)}
+                  tooltip={`Delete ${row.title}`}
+                  itemName={row.title}
+                  confirmDelete={true}
+                />
+              )}
+            </div>
+          ),
+        },
+      ]
       : []),
   ];
 
@@ -318,7 +317,7 @@ const SurveyBuilder: React.FC = () => {
         </Box>
       </Box>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
         <StatsCard
           title="Total Surveys"
           value={totalSurveys}
@@ -374,7 +373,6 @@ const SurveyBuilder: React.FC = () => {
                   <Select
                     value={statusFilter}
                     onChange={e => setStatusFilter(e.target.value)}
-                    className="!w-32"
                     disableClearable
                   >
                     <MenuItem value="all">All Status</MenuItem>
@@ -386,7 +384,7 @@ const SurveyBuilder: React.FC = () => {
                   <Select
                     value={categoryFilter}
                     onChange={e => setCategoryFilter(e.target.value)}
-                    className="!w-68"
+                    className="!w-72"
                     disableClearable
                   >
                     <MenuItem value="all">All Categories</MenuItem>

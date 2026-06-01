@@ -1,10 +1,11 @@
 import cron from 'node-cron';
 import prisma from '../../configs/prisma.client';
+import logger from '../../configs/logger';
 
 export class AttendanceCronService {
   static startAutoPunchOut() {
     cron.schedule('0 0 * * *', async () => {
-      console.log('Running auto punch-out check...', new Date().toISOString());
+      logger.info(`Running auto punch-out check... Time: ${new Date().toISOString()}`);
       try {
         const yesterday = new Date();
         yesterday.setDate(yesterday.getDate() - 1);
@@ -102,20 +103,19 @@ export class AttendanceCronService {
               },
             });
           } catch (historyError) {
-            console.error('History creation error:', historyError);
+            logger.error(`History creation error: ${historyError}`);
           }
         }
       } catch (error) {
-        console.error('Auto punch-out error:', error);
+        logger.error(`Auto punch-out error: ${error}`);
       }
     });
   }
 
   static startMidnightStatusReset() {
     cron.schedule('0 0 * * *', async () => {
-      console.log(
-        'Running midnight status reset to not_punch...',
-        new Date().toISOString()
+      logger.info(
+        `Running midnight status reset to not_punch... Time: ${new Date().toISOString()}`
       );
       try {
         const today = new Date();
@@ -137,11 +137,11 @@ export class AttendanceCronService {
           },
         });
 
-        console.log(
+        logger.info(
           `Status reset completed. Updated ${result.count} attendance records.`
         );
       } catch (error) {
-        console.error('Midnight status reset error:', error);
+        logger.error(`Midnight status reset error: ${error}`);
       }
     });
   }

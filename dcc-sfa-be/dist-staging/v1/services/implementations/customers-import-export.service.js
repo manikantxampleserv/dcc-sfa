@@ -37,9 +37,9 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CustomersImportExportService = void 0;
-const import_export_service_1 = require("../base/import-export.service");
 const client_1 = require("@prisma/client");
 const prisma_client_1 = __importDefault(require("../../../configs/prisma.client"));
+const import_export_service_1 = require("../base/import-export.service");
 class CustomersImportExportService extends import_export_service_1.ImportExportService {
     modelName = 'customers';
     displayName = 'Customers';
@@ -52,44 +52,58 @@ class CustomersImportExportService extends import_export_service_1.ImportExportS
         'city',
         'contact_person',
     ];
-    async generateCustomerCode(name, tx) {
-        try {
-            const client = tx || prisma_client_1.default;
-            const prefix = name
-                .slice(0, 3)
-                .toUpperCase()
-                .replace(/[^A-Z]/g, 'X');
-            const lastCustomer = await client.customers.findFirst({
-                orderBy: { id: 'desc' },
-                select: { code: true },
-            });
-            let newNumber = 1;
-            if (lastCustomer && lastCustomer.code) {
-                const match = lastCustomer.code.match(/(\d+)$/);
-                if (match) {
-                    newNumber = parseInt(match[1], 10) + 1;
-                }
-            }
-            const code = `${prefix}${newNumber.toString().padStart(3, '0')}`;
-            const existingCode = await client.customers.findFirst({
-                where: { code: code },
-            });
-            if (existingCode) {
-                newNumber++;
-                return `${prefix}${newNumber.toString().padStart(3, '0')}`;
-            }
-            return code;
-        }
-        catch (error) {
-            console.error('Error generating customer code:', error);
-            const prefix = name
-                .slice(0, 3)
-                .toUpperCase()
-                .replace(/[^A-Z]/g, 'X');
-            const timestamp = Date.now().toString().slice(-6);
-            return `${prefix}${timestamp}`;
-        }
-    }
+    validationCache = new Map();
+    masterTableConfigs = [
+        {
+            masterTable: 'zones',
+            masterKey: 'id',
+            masterDisplayFields: ['id', 'name', 'code'],
+            sheetName: 'Ref - Zones',
+            description: 'Use the ID from this sheet in the Zone ID column',
+        },
+        {
+            masterTable: 'customer_type',
+            masterKey: 'id',
+            masterDisplayFields: ['id', 'type_name', 'type_code'],
+            sheetName: 'Ref - Customer Types',
+            description: 'Use the ID from this sheet in the Customer Type ID column',
+        },
+        {
+            masterTable: 'customer_channel',
+            masterKey: 'id',
+            masterDisplayFields: ['id', 'channel_name', 'channel_code'],
+            sheetName: 'Ref - Customer Channels',
+            description: 'Use the ID from this sheet in the Customer Channel ID column',
+        },
+        {
+            masterTable: 'routes',
+            masterKey: 'id',
+            masterDisplayFields: ['id', 'name', 'code'],
+            sheetName: 'Ref - Routes',
+            description: 'Use the ID from this sheet in the Route ID column',
+        },
+        {
+            masterTable: 'users',
+            masterKey: 'id',
+            masterDisplayFields: ['id', 'name', 'email', 'employee_id'],
+            sheetName: 'Ref - Salespersons',
+            description: 'Use the ID from this sheet in the Salesperson ID column',
+        },
+        {
+            masterTable: 'depots',
+            masterKey: 'id',
+            masterDisplayFields: ['id', 'name', 'code'],
+            sheetName: 'Ref - Depots',
+            description: 'Use the ID from this sheet in the Depot ID column',
+        },
+        {
+            masterTable: 'customer_category',
+            masterKey: 'id',
+            masterDisplayFields: ['id', 'category_name', 'category_code'],
+            sheetName: 'Ref - Customer Categories',
+            description: 'Use the ID from this sheet in the Customer Category ID column',
+        },
+    ];
     columns = [
         {
             key: 'name',
@@ -117,12 +131,44 @@ class CustomersImportExportService extends import_export_service_1.ImportExportS
             description: 'Short name of the customer (optional, max 50 chars)',
         },
         {
+            key: 'code',
+            header: 'Code',
+            width: 15,
+            required: true,
+            type: 'string',
+            validation: value => {
+                if (!value)
+                    return true;
+                if (value.length > 50)
+                    return 'Code must be less than 50 characters';
+                return true;
+            },
+            transform: value => (value ? value.toString().trim() : null),
+            description: 'Customer code (optional, will be auto-generated if not provided, max 50 chars)',
+        },
+        {
             key: 'zones_id',
             header: 'Zone ID',
             width: 15,
             type: 'number',
             transform: value => (value ? parseInt(value) : null),
             description: 'ID of the zone this customer belongs to (optional)',
+        },
+        {
+            key: 'depot_id',
+            header: 'Depot ID',
+            width: 15,
+            type: 'number',
+            transform: value => (value ? parseInt(value) : null),
+            description: 'ID of the depot this customer belongs to (optional) - see Ref - Depots sheet',
+        },
+        {
+            key: 'customer_category_id',
+            header: 'Customer Category ID',
+            width: 22,
+            type: 'number',
+            transform: value => (value ? parseInt(value) : null),
+            description: 'ID of the customer category (optional) - see Ref - Customer Categories sheet',
         },
         {
             key: 'customer_type_id',
@@ -169,26 +215,6 @@ class CustomersImportExportService extends import_export_service_1.ImportExportS
             description: 'Type of customer: Retailer, Wholesaler, Distributor, Direct, Online, Corporate, or Individual (optional)',
         },
         {
-            key: 'internal_code_one',
-            header: 'Internal Code One',
-            width: 20,
-            type: 'string',
-            validation: value => !value ||
-                value.length <= 50 ||
-                'Internal code one must be less than 50 characters',
-            description: 'First internal code (optional, max 50 chars)',
-        },
-        {
-            key: 'internal_code_two',
-            header: 'Internal Code Two',
-            width: 20,
-            type: 'string',
-            validation: value => !value ||
-                value.length <= 50 ||
-                'Internal code two must be less than 50 characters',
-            description: 'Second internal code (optional, max 50 chars)',
-        },
-        {
             key: 'contact_person',
             header: 'Contact Person',
             width: 30,
@@ -208,7 +234,7 @@ class CustomersImportExportService extends import_export_service_1.ImportExportS
                     return true;
                 if (value.length > 20)
                     return 'Phone number must be less than 20 characters';
-                const phoneRegex = /^[\d\s\-\+KATEX_INLINE_OPENKATEX_INLINE_CLOSEext.]+$/i;
+                const phoneRegex = /^[\d\s\-\+ext.]+$/i;
                 return phoneRegex.test(value) || 'Invalid phone number format';
             },
             description: 'Contact phone number (optional, max 20 chars)',
@@ -359,14 +385,6 @@ class CustomersImportExportService extends import_export_service_1.ImportExportS
             description: 'ID of the assigned route (optional)',
         },
         {
-            key: 'salesperson_id',
-            header: 'Salesperson ID',
-            width: 15,
-            type: 'number',
-            transform: value => (value ? parseInt(value) : null),
-            description: 'ID of the assigned salesperson/user (optional)',
-        },
-        {
             key: 'nfc_tag_code',
             header: 'NFC Tag Code',
             width: 20,
@@ -451,10 +469,13 @@ class CustomersImportExportService extends import_export_service_1.ImportExportS
     }
     async transformDataForExport(data) {
         return data.map(customer => ({
+            id: customer.id,
             name: customer.name,
             short_name: customer.short_name || '',
             code: customer.code,
             zones_id: customer.zones_id || '',
+            depot_id: customer.depot_id || '',
+            customer_category_id: customer.customer_category_id || '',
             customer_type_id: customer.customer_type_id || '',
             customer_channel_id: customer.customer_channel_id || '',
             type: customer.type || '',
@@ -494,93 +515,70 @@ class CustomersImportExportService extends import_export_service_1.ImportExportS
     }
     async checkDuplicate(data, tx) {
         const model = tx ? tx.customers : prisma_client_1.default.customers;
-        if (data.name && data.city) {
-            const existingNameCity = await model.findFirst({
-                where: {
-                    name: data.name,
-                    city: data.city,
-                },
-            });
-            if (existingNameCity) {
-                return `Customer with name "${data.name}" already exists in city "${data.city}"`;
-            }
+        // We only need to find IF it exists to trigger the base class's duplicate handling
+        const existing = await model.findFirst({
+            where: {
+                OR: [
+                    ...(data.code ? [{ code: data.code }] : []),
+                    {
+                        name: data.name,
+                        city: data.city || undefined,
+                    },
+                ],
+            },
+        });
+        if (existing) {
+            return `Duplicate record found (Code: ${existing.code || 'N/A'}, Name: ${existing.name})`;
         }
         return null;
     }
     async validateForeignKeys(data, tx) {
         const prismaClient = tx || prisma_client_1.default;
-        if (data.zones_id) {
-            try {
-                const zone = await prismaClient.zones.findUnique({
+        const cacheKey = (type, id) => `${type}_${id}`;
+        const checkForeignKey = async (type, id, validator) => {
+            if (!id)
+                return null;
+            const key = cacheKey(type, id);
+            if (this.validationCache.has(key))
+                return this.validationCache.get(key);
+            const isValid = await validator();
+            const result = isValid ? null : `${type} with ID ${id} does not exist`;
+            this.validationCache.set(key, result);
+            return result;
+        };
+        const validations = [
+            data.zones_id &&
+                checkForeignKey('Zone', data.zones_id, async () => !!(await prismaClient.zones.findUnique({
                     where: { id: data.zones_id },
-                });
-                if (!zone) {
-                    return `Zone with ID ${data.zones_id} does not exist`;
-                }
-            }
-            catch (error) {
-                return `Invalid Zone ID ${data.zones_id}`;
-            }
-        }
-        if (data.customer_type_id) {
-            try {
-                const customerType = await prismaClient.customer_type.findUnique({
+                }))),
+            data.customer_type_id &&
+                checkForeignKey('Customer Type', data.customer_type_id, async () => !!(await prismaClient.customer_type.findUnique({
                     where: { id: data.customer_type_id },
-                });
-                if (!customerType) {
-                    return `Customer Type with ID ${data.customer_type_id} does not exist`;
-                }
-            }
-            catch (error) {
-                return `Invalid Customer Type ID ${data.customer_type_id}`;
-            }
-        }
-        if (data.customer_channel_id) {
-            try {
-                const customerChannel = await prismaClient.customer_channel.findUnique({
+                }))),
+            data.customer_channel_id &&
+                checkForeignKey('Customer Channel', data.customer_channel_id, async () => !!(await prismaClient.customer_channel.findUnique({
                     where: { id: data.customer_channel_id },
-                });
-                if (!customerChannel) {
-                    return `Customer Channel with ID ${data.customer_channel_id} does not exist`;
-                }
-            }
-            catch (error) {
-                return `Invalid Customer Channel ID ${data.customer_channel_id}`;
-            }
-        }
-        if (data.route_id) {
-            try {
-                const route = await prismaClient.routes.findUnique({
+                }))),
+            data.route_id &&
+                checkForeignKey('Route', data.route_id, async () => !!(await prismaClient.routes.findUnique({
                     where: { id: data.route_id },
-                });
-                if (!route) {
-                    return `Route with ID ${data.route_id} does not exist`;
-                }
-            }
-            catch (error) {
-                return `Invalid Route ID ${data.route_id}`;
-            }
-        }
-        if (data.salesperson_id) {
-            try {
-                const salesperson = await prismaClient.users.findUnique({
+                }))),
+            data.salesperson_id &&
+                checkForeignKey('Salesperson', data.salesperson_id, async () => !!(await prismaClient.users.findUnique({
                     where: { id: data.salesperson_id },
-                });
-                if (!salesperson) {
-                    return `Salesperson with ID ${data.salesperson_id} does not exist`;
-                }
-            }
-            catch (error) {
-                return `Invalid Salesperson ID ${data.salesperson_id}`;
-            }
-        }
-        return null;
+                }))),
+        ];
+        const results = await Promise.all(validations);
+        return results.find(r => r !== null) || null;
     }
     async prepareDataForImport(data, userId) {
         const preparedData = {
             name: data.name,
             short_name: data.short_name || null,
+            code: data.code,
             zones_id: data.zones_id || null,
+            depot_id: data.depot_id || null,
+            customer_category_id: data.customer_category_id || null,
             customer_type_id: data.customer_type_id || null,
             customer_channel_id: data.customer_channel_id || null,
             type: data.type || null,
@@ -616,87 +614,33 @@ class CustomersImportExportService extends import_export_service_1.ImportExportS
             : 0);
         return preparedData;
     }
-    async importData(data, userId, options = {}) {
-        let success = 0;
-        let failed = 0;
-        const errors = [];
-        const importedData = [];
-        const detailedErrors = [];
-        for (const [index, row] of data.entries()) {
-            const rowNum = index + 2;
-            try {
-                const result = await prisma_client_1.default.$transaction(async (tx) => {
-                    const duplicateCheck = await this.checkDuplicate(row, tx);
-                    if (duplicateCheck) {
-                        if (options.skipDuplicates) {
-                            throw new Error(`Skipped - ${duplicateCheck}`);
-                        }
-                        else if (options.updateExisting) {
-                            return await this.updateExisting(row, userId, tx);
-                        }
-                        else {
-                            throw new Error(duplicateCheck);
-                        }
-                    }
-                    const fkValidation = await this.validateForeignKeys(row, tx);
-                    if (fkValidation) {
-                        throw new Error(fkValidation);
-                    }
-                    const preparedData = await this.prepareDataForImport(row, userId);
-                    const generatedCode = await this.generateCustomerCode(row.name, tx);
-                    preparedData.code = generatedCode;
-                    const created = await tx.customers.create({
-                        data: preparedData,
-                    });
-                    return created;
-                });
-                if (result) {
-                    importedData.push(result);
-                    success++;
-                }
-            }
-            catch (error) {
-                failed++;
-                const errorMessage = error.message || 'Unknown error';
-                errors.push(`Row ${rowNum}: ${errorMessage}`);
-                detailedErrors.push({
-                    row: rowNum,
-                    errors: [
-                        {
-                            type: errorMessage.includes('does not exist')
-                                ? 'foreign_key'
-                                : errorMessage.includes('already exists')
-                                    ? 'duplicate'
-                                    : 'validation',
-                            message: errorMessage,
-                            action: 'rejected',
-                        },
-                    ],
-                });
-            }
-        }
-        return {
-            success,
-            failed,
-            errors,
-            data: importedData,
-            detailedErrors: detailedErrors.length > 0 ? detailedErrors : undefined,
-        };
-    }
     async updateExisting(data, userId, tx) {
         const model = tx ? tx.customers : prisma_client_1.default.customers;
+        // Use exactly the same logic as checkDuplicate to find the record
         const existing = await model.findFirst({
             where: {
-                name: data.name,
-                city: data.city || undefined,
+                OR: [
+                    ...(data.code ? [{ code: data.code }] : []),
+                    {
+                        name: data.name,
+                        city: data.city || undefined,
+                    },
+                ],
             },
+            select: { id: true, code: true, name: true, short_name: true }, // Keep it light
         });
-        if (!existing)
+        if (!existing) {
+            console.warn(`[Import] updateExisting: Record not found for ${data.code || data.name}`);
             return null;
+        }
         const updateData = {
             name: data.name,
             short_name: data.short_name !== undefined ? data.short_name : existing.short_name,
             zones_id: data.zones_id !== undefined ? data.zones_id : existing.zones_id,
+            depot_id: data.depot_id !== undefined ? data.depot_id : existing.depot_id,
+            customer_category_id: data.customer_category_id !== undefined
+                ? data.customer_category_id
+                : existing.customer_category_id,
             customer_type_id: data.customer_type_id !== undefined
                 ? data.customer_type_id
                 : existing.customer_type_id,
@@ -762,6 +706,18 @@ class CustomersImportExportService extends import_export_service_1.ImportExportS
                         code: true,
                     },
                 },
+                customer_depot: {
+                    select: {
+                        name: true,
+                        code: true,
+                    },
+                },
+                customer_category_customer: {
+                    select: {
+                        category_name: true,
+                        category_code: true,
+                    },
+                },
                 customer_type_customer: {
                     select: {
                         type_name: true,
@@ -806,9 +762,12 @@ class CustomersImportExportService extends import_export_service_1.ImportExportS
         const workbook = new ExcelJS.Workbook();
         const worksheet = workbook.addWorksheet(this.displayName);
         const exportColumns = [
+            { header: 'ID', key: 'id', width: 12 },
             { header: 'Customer Code', key: 'code', width: 20 },
             ...this.columns,
             { header: 'Zone Name', key: 'zone_name', width: 25 },
+            { header: 'Depot Name', key: 'depot_name', width: 25 },
+            { header: 'Category Name', key: 'category_name', width: 25 },
             { header: 'Customer Type Name', key: 'customer_type_name', width: 25 },
             {
                 header: 'Customer Channel Name',
@@ -846,6 +805,9 @@ class CustomersImportExportService extends import_export_service_1.ImportExportS
         exportData.forEach((row, index) => {
             const customer = data[index];
             row.zone_name = customer.customer_zones?.name || '';
+            row.depot_name = customer.customer_depot?.name || '';
+            row.category_name =
+                customer.customer_category_customer?.category_name || '';
             row.customer_type_name = customer.customer_type_customer?.type_name || '';
             row.customer_channel_name =
                 customer.customer_channel_customer?.channel_name || '';

@@ -30,9 +30,7 @@ const EmailTemplates: React.FC = () => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
-  const { isCreate, isUpdate, isDelete, isRead } = usePermission(
-    'asset-type' as any
-  );
+  const { isCreate, isUpdate, isDelete, isRead } = usePermission('templates');
 
   const {
     data: templatesResponse,
@@ -263,7 +261,6 @@ const EmailTemplates: React.FC = () => {
                         setStatusFilter(e.target.value);
                         setPage(1);
                       }}
-                      className="!w-32"
                       disableClearable
                     >
                       <MenuItem value="all">All Status</MenuItem>

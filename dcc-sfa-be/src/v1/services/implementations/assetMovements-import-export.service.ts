@@ -12,7 +12,36 @@ export class AssetMovementsImportExportService extends ImportExportService<any> 
     'movement_type',
     'notes',
   ];
-
+  protected masterTableConfigs = [
+    {
+      masterTable: 'asset_master' as any,
+      masterKey: 'id',
+      masterDisplayFields: ['id', 'name', 'serial_number', 'asset_code'],
+      sheetName: 'Ref - Assets',
+      description: 'Use the ID from this sheet in the Asset ID column',
+    },
+    {
+      masterTable: 'users' as any,
+      masterKey: 'id',
+      masterDisplayFields: ['id', 'name', 'email', 'employee_id'],
+      sheetName: 'Ref - Users',
+      description: 'Use the ID from this sheet in the Performed By ID column',
+    },
+    {
+      masterTable: 'depots' as any,
+      masterKey: 'id',
+      masterDisplayFields: ['id', 'name', 'code'],
+      sheetName: 'Ref - Depots',
+      description: 'Use the ID from this sheet for depot locations',
+    },
+    {
+      masterTable: 'customers' as any,
+      masterKey: 'id',
+      masterDisplayFields: ['id', 'name', 'code'],
+      sheetName: 'Ref - Customers',
+      description: 'Use the ID from this sheet for customer locations',
+    },
+  ];
   protected columns: ColumnDefinition[] = [
     {
       key: 'asset_id',

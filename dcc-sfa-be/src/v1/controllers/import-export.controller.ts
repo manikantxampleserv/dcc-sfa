@@ -68,11 +68,11 @@ export const importExportController = {
   async importData(req: Request, res: Response, next: NextFunction) {
     try {
       const { table } = req.params;
-      const {
-        batchSize = 100,
-        skipDuplicates = false,
-        updateExisting = false,
-      } = req.body;
+      const batchSize = req.body.batchSize ? parseInt(req.body.batchSize) : 100;
+      const skipDuplicates =
+        req.body.skipDuplicates === true || req.body.skipDuplicates === 'true';
+      const updateExisting =
+        req.body.updateExisting === true || req.body.updateExisting === 'true';
 
       const service = ImportExportFactory.getService(table);
 

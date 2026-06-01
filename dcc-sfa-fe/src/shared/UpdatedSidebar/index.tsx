@@ -1,4 +1,4 @@
-import { ChevronRight } from '@mui/icons-material';
+import { ChevronRight, Search } from '@mui/icons-material';
 import { Collapse, ListItemButton, Skeleton } from '@mui/material';
 import { useMenuPermissions } from 'hooks/useMenuPermissions';
 import type { MenuItem } from 'mock/sidebar';
@@ -160,12 +160,15 @@ const Sidebar: React.FC = () => {
           </span>
         </div>
       </div>
-      <div className="">
+      <div className="flex items-center gap-1 px-2.5 border-b border-gray-200">
+        <div className="w-9.5 h-8 flex items-center justify-center rounded bg-gray-100">
+          <Search className="w-4 h-4 text-gray-500" />
+        </div>
         <input
           type="text"
           placeholder="Search menu..."
           value={searchQuery}
-          className="!w-full !p-2 px-2.5 placeholder:text-sm rounded-none outline-none border-b border-gray-200"
+          className="!w-full !py-2 !px-1 placeholder:text-sm rounded-none outline-none"
           onChange={e => setSearchQuery(e.target.value)}
         />
       </div>

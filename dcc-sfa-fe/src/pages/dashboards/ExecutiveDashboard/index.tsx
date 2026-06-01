@@ -87,7 +87,9 @@ const ExecutiveDashboard: React.FC = () => {
 
   const handleModalClose = () => {
     setApprovalModalOpen(false);
-    setSelectedRequest(null);
+    setTimeout(() => {
+      setSelectedRequest(null);
+    }, 200);
   };
 
   const CHART_COLORS = {
@@ -156,9 +158,9 @@ const ExecutiveDashboard: React.FC = () => {
       color: 'blue',
       progress: stats
         ? Math.min(
-            (stats.totalOrders.thisMonth / stats.totalOrders.value) * 100,
-            100
-          )
+          (stats.totalOrders.thisMonth / stats.totalOrders.value) * 100,
+          100
+        )
         : 0,
     },
     {
@@ -188,9 +190,9 @@ const ExecutiveDashboard: React.FC = () => {
       color: 'pink',
       progress: stats
         ? Math.min(
-            (stats.activeOutlets.thisMonth / stats.activeOutlets.value) * 100,
-            100
-          )
+          (stats.activeOutlets.thisMonth / stats.activeOutlets.value) * 100,
+          100
+        )
         : 0,
     },
   ];
@@ -425,12 +427,12 @@ const ExecutiveDashboard: React.FC = () => {
   // Header Skeleton Component
   const HeaderSkeleton = () => (
     <div className="bg-white shadow-sm p-5 rounded-lg border border-gray-100">
-      <div className="flex justify-between items-center">
+      <div className="lg:flex justify-between items-center">
         <div className="flex-1">
           <Skeleton variant="text" width={280} height={32} className="!mb-2" />
           <Skeleton variant="text" width={400} height={20} />
         </div>
-        <div className="flex gap-3">
+        <div className="flex lg:mt-0 mt-3 gap-3">
           <Skeleton
             variant="rectangular"
             width={140}
@@ -668,7 +670,7 @@ const ExecutiveDashboard: React.FC = () => {
   return (
     <div className="flex flex-col gap-4">
       <div className="bg-white shadow-sm p-5 rounded-lg border border-gray-100">
-        <div className="flex justify-between items-center">
+        <div className="lg:flex justify-between items-center">
           <div>
             <h2 className="text-2xl font-semibold text-blue-600 mb-1">
               Executive Dashboard
@@ -677,7 +679,7 @@ const ExecutiveDashboard: React.FC = () => {
               Track your sales performance, orders, and field operations
             </p>
           </div>
-          <div className="flex gap-3">
+          <div className="flex lg:mt-0 mt-3 gap-3">
             <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
               {formatCurrency(
                 stats?.salesRevenue.value || 0,
@@ -688,17 +690,12 @@ const ExecutiveDashboard: React.FC = () => {
             <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
               {stats?.totalOrders.value.toLocaleString() || '0'} Orders
             </span>
-            <span className="px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-sm font-medium">
-              {stats?.deliveries.successRate || '0'}% Delivery Success
-            </span>
           </div>
         </div>
       </div>
-
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {stats_cards.map(stat => {
           const colors = getColorClasses(stat.color);
-
           return (
             <div
               key={stat.title}
@@ -789,21 +786,56 @@ const ExecutiveDashboard: React.FC = () => {
                     );
 
                   // Get reference number
-                  let referenceNumber = `#${request.reference_id}`;
-                  if (request.reference_details) {
-                    if (
-                      request.request_type === 'ORDER_APPROVAL' &&
-                      request.reference_details.order_number
-                    ) {
-                      referenceNumber = request.reference_details.order_number;
-                    } else if (
-                      request.request_type === 'ASSET_MOVEMENT_APPROVAL' &&
-                      request.reference_details.movement_number
-                    ) {
-                      referenceNumber =
-                        request.reference_details.movement_number;
+                  const getReferenceNumber = (req: Request): string => {
+                    if (req.reference_details) {
+                      if (
+                        req.request_type === 'ORDER_APPROVAL' &&
+                        req.reference_details.order_number
+                      ) {
+                        return req.reference_details.order_number;
+                      }
+                      if (
+                        req.request_type === 'ASSET_MOVEMENT_APPROVAL' &&
+                        req.reference_details.movement_number
+                      ) {
+                        return req.reference_details.movement_number;
+                      }
+                      if (
+                        req.request_type === 'LOCATION_RESET' &&
+                        req.reference_details.customer_code
+                      ) {
+                        return req.reference_details.customer_code;
+                      }
                     }
-                  }
+
+                    if (req.request_data) {
+                      try {
+                        const data = JSON.parse(req.request_data);
+                        if (req.request_type === 'CUSTOMER_CREATION') {
+                          return (
+                            data.customer_data?.code ||
+                            req.reference_details?.customer_code ||
+                            `NEW-CUST-${req.id}`
+                          );
+                        }
+                        if (req.request_type === 'LOCATION_RESET') {
+                          return (
+                            data.customer_code ||
+                            req.reference_details?.customer_code ||
+                            `LOC-${req.reference_id || req.id}`
+                          );
+                        }
+                      } catch (e) {
+                        console.error('Error parsing request data:', e);
+                      }
+                    }
+
+                    return req.reference_id
+                      ? `#${req.reference_id}`
+                      : `REQ-${req.id}`;
+                  };
+
+                  const referenceNumber = getReferenceNumber(request);
 
                   const approvalStatus =
                     request.approvals?.[0]?.status || request.status;
@@ -843,6 +875,24 @@ const ExecutiveDashboard: React.FC = () => {
                             {' '}
                             for asset movement{' '}
                             <span className="font-semibold text-green-600">
+                              {referenceNumber}
+                            </span>
+                          </>
+                        )}
+                        {request.request_type === 'CUSTOMER_CREATION' && (
+                          <>
+                            {' '}
+                            for new customer{' '}
+                            <span className="font-semibold text-purple-600">
+                              {referenceNumber}
+                            </span>
+                          </>
+                        )}
+                        {request.request_type === 'LOCATION_RESET' && (
+                          <>
+                            {' '}
+                            for relocation{' '}
+                            <span className="font-semibold text-orange-600">
                               {referenceNumber}
                             </span>
                           </>

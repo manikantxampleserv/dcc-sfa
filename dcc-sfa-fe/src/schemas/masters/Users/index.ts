@@ -12,11 +12,14 @@ const validationSchema = Yup.object({
     /^[0-9+\-\s()]+$/,
     'Invalid phone number format'
   ),
-  employee_id: Yup.string().max(
-    50,
-    'Employee Code must not exceed 50 characters'
-  ),
-  reporting_to: Yup.number().required('Reporting to is required'),
+  employee_id: Yup.string()
+    .required('User Code is required')
+    .matches(/^[a-zA-Z0-9]+$/, 'User Code must only contain letters and numbers')
+    .max(50, 'User Code must not exceed 50 characters'),
+  reporting_to: Yup.number().required('Reporting manager is required'),
+  depot_ids: Yup.array()
+    .min(1, 'At least one depot is required')
+    .required('Depot is required'),
   password: Yup.string().when('isEdit', {
     is: false,
     then: schema =>

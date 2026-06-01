@@ -574,6 +574,7 @@ export class CreditNotesImportExportService extends ImportExportService<any> {
 
     const exportColumns = [
       ...this.columns,
+      { header: 'ID', key: 'id', width: 12 },
       { header: 'Customer Name', key: 'customer_name', width: 25 },
       { header: 'Order Number', key: 'order_number', width: 20 },
       { header: 'Currency Code', key: 'currency_code', width: 15 },

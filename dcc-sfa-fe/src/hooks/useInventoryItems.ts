@@ -16,6 +16,8 @@ import {
 
 export type GetInventoryItemsParams = GetSalespersonInventoryParams & {
   salesperson_id?: number;
+  depot_id?: number;
+  supervisor_id?: number;
 };
 
 export const inventoryItemsQueryKeys = {
@@ -48,6 +50,8 @@ export const useInventoryItems = (
         include_expired_batches: params?.include_expired_batches,
         batch_status: params?.batch_status,
         serial_status: params?.serial_status,
+        depot_id: params?.depot_id,
+        supervisor_id: params?.supervisor_id,
       };
 
       if (params?.salesperson_id) {

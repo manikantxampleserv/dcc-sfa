@@ -18,7 +18,6 @@ router.post(
   '/warehouses',
   authenticateToken,
   auditCreate('warehouses'),
-  requirePermission([{ module: 'warehouse', action: 'create' }]),
   createWarehouseValidation,
   validate,
   warehousesController.createWarehouse
@@ -27,14 +26,12 @@ router.post(
 router.get(
   '/warehouses/:id',
   authenticateToken,
-  requirePermission([{ module: 'warehouse', action: 'read' }]),
   validate,
   warehousesController.getWarehouseById
 );
 router.get(
   '/warehouses',
   authenticateToken,
-  requirePermission([{ module: 'warehouse', action: 'read' }]),
   warehousesController.getWarehouses
 );
 
@@ -42,7 +39,6 @@ router.put(
   '/warehouses/:id',
   authenticateToken,
   auditUpdate('warehouses'),
-  requirePermission([{ module: 'warehouse', action: 'update' }]),
   warehousesController.updateWarehouse
 );
 
@@ -50,7 +46,6 @@ router.delete(
   '/warehouses/:id',
   authenticateToken,
   auditDelete('warehouses'),
-  requirePermission([{ module: 'warehouse', action: 'delete' }]),
   warehousesController.deleteWarehouse
 );
 

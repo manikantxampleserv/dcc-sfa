@@ -67,4 +67,5 @@ export { clearVehicles, seedVehicles } from './vehicles.seeder';
 export { clearVisits, seedVisits } from './visits.seeder';
 export { clearWarehouses, seedWarehouses } from './warehouses.seeder';
 export { clearZones, seedZones } from './zones.seeder';
+export { clearEmailTemplates, seedEmailTemplates, } from './emailTemplates.seeder';
 //# sourceMappingURL=index.d.ts.map

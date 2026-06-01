@@ -7,6 +7,7 @@ import { OrdersImportExportService } from './implementations/orders-import-expor
 import { CurrenciesImportExportService } from './implementations/currencies.import-export.service';
 import { VisitsImportExportService } from './implementations/visits.import-export.service';
 import { AssetTypesImportExportService } from './implementations/assetTypes-import-export.service';
+import { AssetBrandsImportExportService } from './implementations/assetBrands-import-export.service';
 import { AssetSubTypesImportExportService } from './implementations/assetSubTypes-import-export.service';
 import { AssetMasterImportExportService } from './implementations/assetMaster-import-export.service';
 import { WarehousesImportExportService } from './implementations/warehouses-import-export.service';
@@ -60,6 +61,9 @@ import { OutletTypesImportExportService } from './implementations/outletTypes-im
 import { CustomerChannelsImportExportService } from './implementations/customerChannels-import-export.service';
 import { OutletCategoriesImportExportService } from './implementations/outletCategories-import-export.service';
 import { AuditLogsImportExportService } from './implementations/auditLogs-import-export.service';
+import { RegionsImportExportService } from './implementations/regions-import-export.service';
+import { DistrictsImportExportService } from './implementations/districts-import-export.service';
+import { CitiesImportExportService } from './implementations/cities-import-export.service';
 
 type ServiceConstructor = new () => ImportExportService<any>;
 
@@ -76,6 +80,7 @@ export class ImportExportFactory {
     ['currencies', CurrenciesImportExportService],
     ['visits', VisitsImportExportService],
     ['asset_types', AssetTypesImportExportService],
+    ['asset_brands', AssetBrandsImportExportService],
     ['asset_sub_types', AssetSubTypesImportExportService],
     ['asset_master', AssetMasterImportExportService],
     ['warehouses', WarehousesImportExportService],
@@ -131,6 +136,9 @@ export class ImportExportFactory {
     ['outlet_channels', CustomerChannelsImportExportService],
     ['customer_channel', CustomerChannelsImportExportService],
     ['customer_category', OutletCategoriesImportExportService],
+    ['regions', RegionsImportExportService],
+    ['districts', DistrictsImportExportService],
+    ['cities', CitiesImportExportService],
     ['audit_logs', AuditLogsImportExportService],
   ]);
 

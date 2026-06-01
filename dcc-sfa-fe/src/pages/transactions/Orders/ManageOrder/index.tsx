@@ -7,6 +7,10 @@ import {
 } from 'hooks/useInventoryItems';
 import { useCreateOrder, useOrder, useUpdateOrder } from 'hooks/useOrders';
 import { useCurrency } from 'hooks/useCurrency';
+import {
+  usePriceListByCustomer,
+  type CustomerPriceListResult,
+} from 'hooks/usePriceLists';
 import type { ProductBatch, ProductSerial } from 'hooks/useVanInventory';
 import { Plus } from 'lucide-react';
 import React, {
@@ -103,10 +107,8 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
             toast.error(`Item ${i + 1}: Please enter a valid quantity`);
             return;
           }
-
           const quantity = Number(item.quantity);
           const trackingType = (item.tracking_type || '').toLowerCase();
-
           if (trackingType === 'batch' && quantity > 0) {
             const rawBatches = item.product_batches || [];
             const nonZeroBatches = rawBatches.filter(b => {
@@ -173,6 +175,11 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
           }
         }
 
+        const appliedPricelistId =
+          customerPriceLists && customerPriceLists.length > 0
+            ? (customerPriceLists[0].pricelist_id ?? null)
+            : null;
+
         const submitData = {
           ...values,
           order_date: new Date(values.order_date).toISOString(),
@@ -184,6 +191,7 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
           delivery_date: new Date(values.delivery_date).toISOString(),
           notes: values.notes,
           shipping_address: values.shipping_address,
+          pricelist_id: appliedPricelistId,
           order_items: orderItems
             .filter(
               item => typeof item.product_id === 'number' && item.product_id > 0
@@ -191,6 +199,8 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
             .map(item => {
               const unitPrice = Number(item.unit_price) || 0;
               const quantity = Number(item.quantity) || 0;
+              const conversionRate = item.conversion_rate || 1;
+
               return {
                 tracking_type: item.tracking_type || null,
                 product_id: Number(item.product_id),
@@ -199,8 +209,12 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
                 quantity: quantity,
                 unit_price: unitPrice,
                 notes: item.notes,
-                product_batches: item.product_batches,
+                product_batches: item.product_batches?.map(batch => ({
+                  ...batch,
+                  quantity: Number(batch.quantity) || 0,
+                })) || [],
                 product_serials: item.product_serials,
+                conversion_rate: conversionRate,
               };
             }),
         };
@@ -223,6 +237,112 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
   const salespersonId = formik.values.salesperson_id
     ? Number(formik.values.salesperson_id)
     : 0;
+
+  const { data: customerPriceLists } = usePriceListByCustomer(
+    formik.values.parent_id || undefined,
+    formik.values.order_date || undefined,
+    { enabled: open }
+  );
+
+  useEffect(() => {
+    if (orderItems.length > 0 && !formik.values.parent_id) {
+      const updatedItems = orderItems.map(item => ({
+        ...item,
+        unit_price: '0',
+        conversion_rate: 1,
+      }));
+      setOrderItems(updatedItems);
+      formik.setFieldValue('order_items', updatedItems, false);
+      formikSyncRef.current = JSON.stringify(updatedItems);
+    } else if (
+      orderItems.length > 0 &&
+      formik.values.parent_id &&
+      customerPriceLists
+    ) {
+      const updatedItems = orderItems.map(item => {
+        if (!item.product_id) return item;
+
+        const unit = item.unit || 'CASE';
+        const conversionRate = getProductConversionRate(item.product_id);
+        const resolvedPrice =
+          resolvePrice(item.product_id, customerPriceLists, unit) ?? '0';
+
+        return {
+          ...item,
+          unit_price: resolvedPrice,
+          conversion_rate: conversionRate,
+        };
+      });
+      setOrderItems(updatedItems);
+      formik.setFieldValue('order_items', updatedItems, false);
+      formikSyncRef.current = JSON.stringify(updatedItems);
+    }
+  }, [formik.values.parent_id, formik.values.order_date, customerPriceLists]);
+
+  /**
+   * Resolves the effective unit_price for a product from the SP pricelist result.
+   * Only uses price list API pricing - no fallback to product base prices.
+   * For CASE: uses unit_price from price list.
+   * For PIECE: uses sub_unit_price from price list, falls back to calculated price.
+   */
+  const resolvePrice = (
+    productId: number,
+    priceLists: CustomerPriceListResult[] | undefined,
+    unit: 'CASE' | 'PCS' = 'CASE'
+  ): string | null => {
+    if (
+      !priceLists ||
+      priceLists.length === 0 ||
+      !formik.values.parent_id ||
+      !productId
+    )
+      return null;
+
+    const customerId = Number(formik.values.parent_id);
+    let casePrice: number | null = null;
+
+    for (const pl of priceLists) {
+      const item = pl.pricelist_items?.find(i => i.product_id === productId);
+      if (!item) continue;
+
+      const specials = item.special_prices ?? [];
+
+      const customerSp = specials.find(sp => sp.customer_id === customerId);
+      if (customerSp) {
+        casePrice = Number(customerSp.sale_price);
+        break;
+      }
+
+      const otherSp = specials.find(
+        sp => sp.route_id != null || sp.customer_category_id != null
+      );
+      if (otherSp) {
+        casePrice = Number(otherSp.sale_price);
+        break;
+      }
+
+      casePrice = Number(item.unit_price);
+      break;
+    }
+
+    if (casePrice === null) return null;
+
+    if (unit === 'PCS') {
+      for (const pl of priceLists) {
+        const item = pl.pricelist_items?.find(i => i.product_id === productId);
+        if (item && item.sub_unit_price) {
+          return String(item.sub_unit_price);
+        }
+      }
+
+      const conversionRate = getProductConversionRate(productId);
+      if (conversionRate <= 0) return String(casePrice);
+      const piecePrice = casePrice / conversionRate;
+      return String(Math.round(piecePrice * 100) / 100);
+    }
+
+    return String(casePrice);
+  };
 
   useEffect(() => {
     if (order && open) {
@@ -337,17 +457,38 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
       orderResponse.data
     ) {
       const items =
-        orderResponse.data.order_items?.map(item => ({
-          product_id: item.product_id,
-          product_name: item.product_name || null,
-          unit: item.unit || null,
-          tracking_type: item.tracking_type || null,
-          quantity: item.quantity.toString(),
-          unit_price: item.unit_price.toString(),
-          notes: item.notes || '',
-          product_batches: [],
-          product_serials: [],
-        })) || [];
+        orderResponse.data.order_items?.map(item => {
+          // Use existing conversion_factor if available, otherwise fallback to 1
+          const conversionRate = item.conversion_factor || 1;
+          let displayQuantity = item.quantity;
+
+          // For PIECE units, displayQuantity is the raw piece count stored in base_quantity
+          if (item.unit === 'PCS') {
+            displayQuantity = item.base_quantity || 0;
+          }
+
+          return {
+            product_id: item.product_id,
+            product_name: item.product_name || null,
+            unit: (item.unit as any) || 'CASE',
+            tracking_type: item.tracking_type || null,
+            quantity: displayQuantity.toString(),
+            base_quantity: item.base_quantity || 0,
+            unit_price: item.unit_price.toString(),
+            notes: item.notes || '',
+            isLoaded: true, // Mark as loaded from existing order
+            product_batches:
+              item.product_batches?.map(batch => ({
+                ...batch,
+                quantity:
+                  item.unit === 'PCS'
+                    ? (batch.quantity || 0) * conversionRate
+                    : batch.quantity || 0,
+              })) || [],
+            product_serials: item.product_serials || [],
+            conversion_rate: conversionRate,
+          };
+        }) || [];
 
       const itemsStr = JSON.stringify(items);
 
@@ -389,13 +530,14 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
     const newItem: OrderItemFormData = {
       product_id: 0,
       product_name: '',
-      unit: '',
+      unit: 'CASE',
       tracking_type: null,
       quantity: '1',
       unit_price: '0',
       notes: '',
       product_batches: [],
       product_serials: [],
+      conversion_rate: getProductConversionRate(0), // Use actual product conversion rate
     };
 
     const updatedItems = [...orderItems, newItem];
@@ -411,10 +553,10 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
     formikSyncRef.current = JSON.stringify(updatedItems);
   };
 
-  const updateOrderItem = (
+  const updateOrderItem = <K extends keyof OrderItemFormData>(
     index: number,
-    field: keyof OrderItemFormData,
-    value: string
+    field: K,
+    value: OrderItemFormData[K]
   ) => {
     const updatedItems = [...orderItems];
     updatedItems[index] = { ...updatedItems[index], [field]: value };
@@ -422,6 +564,74 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
     formik.setFieldValue('order_items', updatedItems, false);
     formikSyncRef.current = JSON.stringify(updatedItems);
   };
+
+  /**
+   * Get product conversion rate from inventory data
+   */
+  const getProductConversionRate = useCallback(
+    (productId: number): number => {
+      if (!inventoryData?.data) return 1;
+      const responseData = inventoryData.data;
+      const salespersonData = responseData as SalespersonInventoryData;
+      const product = salespersonData.products?.find(
+        p => p.product_id === productId
+      );
+      return product?.product_unit_of_measurement?.conversion_rate ?? 1;
+    },
+    [inventoryData]
+  );
+
+  /**
+   * Update price when unit changes (CASE/PIECE)
+   */
+  const handleUnitChange = useCallback(
+    (rowIndex: number, unit: 'CASE' | 'PCS') => {
+      const item = orderItems[rowIndex];
+
+      const isSerialTracked = item.tracking_type?.toLowerCase() === 'serial';
+      if (isSerialTracked && unit === 'PCS') {
+        return;
+      }
+
+      const conversionRate = getProductConversionRate(item.product_id);
+      let resolvedPrice = resolvePrice(
+        item.product_id,
+        customerPriceLists,
+        unit
+      );
+
+      if (!resolvedPrice) {
+        resolvedPrice = '0';
+      }
+
+      const updatedItems = [...orderItems];
+      const previousUnit = item.unit || 'CASE';
+
+      const updatedBatches =
+        item.product_batches?.map(batch => {
+          let newQty = Number(batch.quantity) || 0;
+          if (previousUnit === 'CASE' && unit === 'PCS') {
+            newQty = newQty * conversionRate;
+          } else if (previousUnit === 'PCS' && unit === 'CASE') {
+            newQty = newQty / conversionRate;
+          }
+          return { ...batch, quantity: newQty };
+        }) || [];
+
+      updatedItems[rowIndex] = {
+        ...updatedItems[rowIndex],
+        unit,
+        unit_price: resolvedPrice,
+        conversion_rate: conversionRate,
+        product_batches: updatedBatches,
+      };
+
+      setOrderItems(updatedItems);
+      formik.setFieldValue('order_items', updatedItems, false);
+      formikSyncRef.current = JSON.stringify(updatedItems);
+    },
+    [orderItems, customerPriceLists, getProductConversionRate]
+  );
 
   const handleProductChange = useCallback(
     (rowIndex: number, _event: any, product: any) => {
@@ -433,12 +643,23 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
       const isBatchOrSerial =
         trackingLower === 'batch' || trackingLower === 'serial';
 
+      const currentItem = updatedItems[rowIndex];
+      const isSerialTracked = trackingType?.toLowerCase() === 'serial';
+      const unit = isSerialTracked ? 'CASE' : currentItem?.unit || 'CASE';
+      const conversionRate = getProductConversionRate(product?.product_id || 0);
+
+      const resolvedPrice = product
+        ? (resolvePrice(product.product_id, customerPriceLists, unit) ?? '0')
+        : '0';
+
       updatedItems[rowIndex] = {
         ...updatedItems[rowIndex],
         product_id: product ? product.product_id : 0,
         product_name: product ? product.name : '',
         tracking_type: trackingType,
-        unit_price: product ? String(product.unit_price) : '0',
+        unit: unit,
+        unit_price: resolvedPrice,
+        conversion_rate: conversionRate,
         quantity:
           product && isBatchOrSerial
             ? '0'
@@ -451,7 +672,12 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
       formik.setFieldValue('order_items', updatedItems);
       formikSyncRef.current = JSON.stringify(updatedItems);
     },
-    [orderItems]
+    [
+      orderItems,
+      customerPriceLists,
+      formik.values.parent_id,
+      getProductConversionRate,
+    ]
   );
 
   const orderItemsWithIndex = orderItems.map((item, index) => ({
@@ -462,139 +688,188 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
   const orderItemsColumns: TableColumn<
     OrderItemFormData & { _index: number }
   >[] = [
-    {
-      id: 'product_id',
-      label: 'Product',
-      render: (_value, row) => (
-        <SalesItemsSelect
-          salespersonId={salespersonId}
-          value={row.product_id}
-          onChange={(_event, product) =>
-            handleProductChange(row._index, _event, product)
-          }
-          size="small"
-          placeholder="Search for a product"
-          label=""
-          disabled={!formik.values.salesperson_id}
-          className="!min-w-72"
-        />
-      ),
-    },
-    {
-      id: 'tracking_type',
-      label: 'Tracking',
-      render: (_value, row) => {
-        const tracking = (row.tracking_type || '').toString().toLowerCase();
-        const canManage =
-          tracking === 'batch' || tracking === 'serial' ? tracking : null;
-
-        return (
-          <Box className="!flex !justify-between !items-center !min-w-52">
-            <Typography
-              variant="body2"
-              className={`!text-gray-700 !uppercase !text-xs`}
-            >
-              {tracking || 'none'}
-            </Typography>
-
-            {canManage && (
-              <Button
-                type="button"
-                startIcon={<Tag />}
-                variant="text"
-                size="small"
-                onClick={() => {
-                  const index = row._index;
-                  const item = orderItems[index];
-                  if (!item || !item.product_id) {
-                    toast.error('Please select a product first');
-                    return;
-                  }
-                  setSelectedRowIndex(index);
-                  if (canManage === 'batch') {
-                    setIsBatchSelectorOpen(true);
-                  } else {
-                    setIsSerialSelectorOpen(true);
-                  }
-                }}
-              >
-                {canManage === 'batch' ? 'Select Batches' : 'Select Serials'}
-              </Button>
-            )}
-          </Box>
-        );
-      },
-    },
-    {
-      id: 'quantity',
-      label: 'Quantity',
-      render: (_value, row) => {
-        const tracking = (row.tracking_type || '').toString().toLowerCase();
-        const isNoneTracking = !tracking || tracking === 'none';
-        return (
-          <Input
-            value={row.quantity}
-            onChange={e =>
-              updateOrderItem(row._index, 'quantity', e.target.value)
+      {
+        id: 'product_id',
+        label: 'Product',
+        render: (
+          _value: any,
+          row: OrderItemFormData & { _index: number }
+        ): React.ReactNode => (
+          <SalesItemsSelect
+            salespersonId={salespersonId}
+            value={row.product_id}
+            onChange={(_event, product) =>
+              handleProductChange(row._index, _event, product)
             }
-            placeholder="1"
+            size="small"
+            placeholder="Search for a product"
+            label=""
+            disabled={!formik.values.salesperson_id}
+            className="!min-w-72"
+          />
+        ),
+      },
+      {
+        id: 'uom',
+        label: 'Case/PCs',
+        render: (_value, row) => {
+          const currentValue = ['CASE', 'PCS'].includes(row.unit)
+            ? row.unit
+            : 'CASE';
+
+          const isSerialTracked = row.tracking_type?.toLowerCase() === 'serial';
+
+          return (
+            <Box className="!min-w-28">
+              <Select
+                value={currentValue}
+                onChange={(e: any) => {
+                  const unit = e.target.value as 'CASE' | 'PCS';
+                  handleUnitChange(row._index, unit);
+                }}
+                size="small"
+                disableClearable
+                label=""
+                disabled={isSerialTracked}
+              >
+                <MenuItem value="CASE">CASE</MenuItem>
+                {!isSerialTracked && <MenuItem value="PCS">PIECE</MenuItem>}
+              </Select>
+            </Box>
+          );
+        },
+      },
+      {
+        id: 'tracking_type',
+        label: 'Tracking',
+        render: (_value, row) => {
+          const tracking = (row.tracking_type || '').toString().toLowerCase();
+          const canManage =
+            tracking === 'batch' || tracking === 'serial' ? tracking : null;
+          return (
+            <Box className="!flex !min-w-48 !items-center !justify-between">
+              <Typography
+                variant="body2"
+                className={`!text-gray-700 !uppercase !text-xs`}
+              >
+                {tracking || 'none'}
+              </Typography>
+              {canManage && (
+                <Button
+                  type="button"
+                  startIcon={<Tag />}
+                  variant="text"
+                  size="small"
+                  onClick={() => {
+                    const index = row._index;
+                    const item = orderItems[index];
+                    if (!item || !item.product_id) {
+                      toast.error('Please select a product first');
+                      return;
+                    }
+                    setSelectedRowIndex(index);
+                    if (canManage === 'batch') {
+                      setIsBatchSelectorOpen(true);
+                    } else {
+                      setIsSerialSelectorOpen(true);
+                    }
+                  }}
+                >
+                  {canManage === 'batch' ? 'Select Batches' : 'Select Serials'}
+                </Button>
+              )}
+            </Box>
+          );
+        },
+      },
+      {
+        id: 'quantity',
+        label: orderItems.some(item => item.unit === 'PCS')
+          ? 'Quantity (pieces)'
+          : 'Quantity (cases)',
+        render: (_value, row) => {
+          const tracking = (row.tracking_type || '').toString().toLowerCase();
+          const isNoneTracking = !tracking || tracking === 'none';
+          const unit = row.unit || 'CASE';
+          const displayQuantity = Number(row.quantity) || 0;
+
+          return (
+            <Input
+              value={displayQuantity.toString()}
+              onChange={e => {
+                updateOrderItem(row._index, 'quantity', e.target.value);
+              }}
+              placeholder={
+                unit.toUpperCase() === 'PCS' ? 'Enter pieces' : 'Enter cases'
+              }
+              type="number"
+              size="small"
+              className="!min-w-20"
+              disabled={!isNoneTracking}
+            />
+          );
+        },
+      },
+      {
+        id: 'unit_price',
+        label: 'Unit Price',
+        render: (_value, row) => (
+          <Input
+            value={row.unit_price}
+            onChange={e =>
+              updateOrderItem(row._index, 'unit_price', e.target.value)
+            }
+            placeholder="0.00"
             type="number"
             size="small"
-            className="!min-w-20"
-            disabled={!isNoneTracking}
+            className="!min-w-32"
           />
-        );
+        ),
       },
-    },
-    {
-      id: 'unit_price',
-      label: 'Unit Price',
-      render: (_value, row) => (
-        <Input
-          value={row.unit_price}
-          onChange={e =>
-            updateOrderItem(row._index, 'unit_price', e.target.value)
-          }
-          placeholder="0.00"
-          type="number"
-          size="small"
-          className="!min-w-32"
-        />
-      ),
-    },
-    {
-      id: 'actions',
-      label: 'Actions',
-      sortable: false,
-      render: (_value, row) => (
-        <DeleteButton
-          onClick={() => removeOrderItem(row._index)}
-          tooltip="Remove item"
-          confirmDelete={true}
-          size="medium"
-          itemName="order item"
-        />
-      ),
-    },
-  ];
+      {
+        id: 'actions',
+        label: 'Actions',
+        sortable: false,
+        render: (_value, row) => (
+          <DeleteButton
+            onClick={() => removeOrderItem(row._index)}
+            tooltip="Remove item"
+            confirmDelete={true}
+            size="medium"
+            itemName="order item"
+          />
+        ),
+      },
+    ];
 
-  const calculateOrderTotals = () => {
+  const totals = useMemo(() => {
     const subtotal = orderItems.reduce((sum, item) => {
       const qty = Number(item.quantity) || 0;
       const price = Number(item.unit_price) || 0;
       return sum + qty * price;
     }, 0);
-    const shippingAmount = 0;
+    const shippingAmount = formik.values.shipping_amount || 0;
     const totalAmount = subtotal + shippingAmount;
-
     return {
       subtotal,
       shipping_amount: shippingAmount,
       total_amount: totalAmount,
     };
-  };
+  }, [orderItems, formik.values.shipping_amount]);
 
-  const totals = calculateOrderTotals();
+  useEffect(() => {
+    if (formik.values.subtotal !== totals.subtotal) {
+      formik.setFieldValue('subtotal', totals.subtotal, false);
+    }
+    if (formik.values.total_amount !== totals.total_amount) {
+      formik.setFieldValue('total_amount', totals.total_amount, false);
+    }
+  }, [
+    totals,
+    formik.setFieldValue,
+    formik.values.subtotal,
+    formik.values.total_amount,
+  ]);
 
   return (
     <CustomDrawer
@@ -605,7 +880,7 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
     >
       <Box className="!p-5">
         <form onSubmit={formik.handleSubmit} className="!space-y-5">
-          <Box className="!grid !grid-cols-1 md:!grid-cols-2 !gap-5">
+          <Box className="!grid !grid-cols-1 !gap-5 md:!grid-cols-2">
             <CustomerSelect
               name="parent_id"
               label="Customer"
@@ -629,19 +904,19 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
               slotProps={{ inputLabel: { shrink: true } }}
             />
             <Select name="status" label="Status" formik={formik} required>
-              <MenuItem value="draft">Draft</MenuItem>
-              <MenuItem value="pending">Pending</MenuItem>
-              <MenuItem value="confirmed">Confirmed</MenuItem>
-              <MenuItem value="processing">Processing</MenuItem>
-              <MenuItem value="shipped">Shipped</MenuItem>
-              <MenuItem value="delivered">Delivered</MenuItem>
-              <MenuItem value="cancelled">Cancelled</MenuItem>
+              <MenuItem value="draft"> Draft </MenuItem>
+              <MenuItem value="pending"> Pending </MenuItem>
+              <MenuItem value="confirmed"> Confirmed </MenuItem>
+              <MenuItem value="processing"> Processing </MenuItem>
+              <MenuItem value="shipped"> Shipped </MenuItem>
+              <MenuItem value="delivered"> Delivered </MenuItem>
+              <MenuItem value="cancelled"> Cancelled </MenuItem>
             </Select>
             <Select name="priority" label="Priority" formik={formik} required>
-              <MenuItem value="low">Low</MenuItem>
-              <MenuItem value="medium">Medium</MenuItem>
-              <MenuItem value="high">High</MenuItem>
-              <MenuItem value="urgent">Urgent</MenuItem>
+              <MenuItem value="low"> Low </MenuItem>
+              <MenuItem value="medium"> Medium </MenuItem>
+              <MenuItem value="high"> High </MenuItem>
+              <MenuItem value="urgent"> Urgent </MenuItem>
             </Select>
             <Select
               name="order_type"
@@ -649,10 +924,10 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
               formik={formik}
               required
             >
-              <MenuItem value="regular">Regular</MenuItem>
-              <MenuItem value="urgent">Urgent</MenuItem>
-              <MenuItem value="promotional">Promotional</MenuItem>
-              <MenuItem value="sample">Sample</MenuItem>
+              <MenuItem value="regular"> Regular </MenuItem>
+              <MenuItem value="urgent"> Urgent </MenuItem>
+              <MenuItem value="promotional"> Promotional </MenuItem>
+              <MenuItem value="sample"> Sample </MenuItem>
             </Select>
             <Select
               name="payment_method"
@@ -660,10 +935,10 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
               formik={formik}
               required
             >
-              <MenuItem value="cash">Cash</MenuItem>
-              <MenuItem value="credit">Credit</MenuItem>
-              <MenuItem value="cheque">Cheque</MenuItem>
-              <MenuItem value="bank_transfer">Bank Transfer</MenuItem>
+              <MenuItem value="cash"> Cash </MenuItem>
+              <MenuItem value="credit"> Credit </MenuItem>
+              <MenuItem value="cheque"> Cheque </MenuItem>
+              <MenuItem value="bank_transfer"> Bank Transfer </MenuItem>
             </Select>
             <Input
               name="payment_terms"
@@ -694,7 +969,7 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
           </Box>
 
           <Box className="!space-y-4">
-            <Box className="!flex !justify-between !items-center">
+            <Box className="!flex !items-center !justify-between">
               <Typography
                 variant="h6"
                 className="!font-semibold !text-gray-900"
@@ -727,7 +1002,7 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
             />
 
             {orderItems.length > 0 && (
-              <Box className="!bg-gray-50 !rounded-lg !mt-4">
+              <Box className="!mt-4 !rounded-lg !bg-gray-50">
                 <Box className="!flex !justify-between">
                   <Typography variant="subtitle2" className="!font-bold">
                     Total:

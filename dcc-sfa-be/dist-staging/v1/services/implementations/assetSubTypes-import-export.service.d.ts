@@ -5,7 +5,15 @@ export declare class AssetSubTypesImportExportService extends ImportExportServic
     protected displayName: string;
     protected uniqueFields: string[];
     protected searchFields: string[];
+    protected masterTableConfigs: {
+        masterTable: any;
+        masterKey: string;
+        masterDisplayFields: string[];
+        sheetName: string;
+        description: string;
+    }[];
     private codeCounters;
+    private validationCache;
     protected columns: ColumnDefinition[];
     protected getSampleData(): Promise<any[]>;
     protected getColumnDescription(key: string): string;
@@ -13,15 +21,8 @@ export declare class AssetSubTypesImportExportService extends ImportExportServic
     protected checkDuplicate(data: any, tx?: any): Promise<string | null>;
     protected validateForeignKeys(data: any, tx?: any): Promise<string | null>;
     private generateCode;
-    /**
-     * Initialize counters with existing codes to avoid conflicts
-     * This should be called once at the beginning of the import process
-     */
     private initializeCodeCounters;
-    protected prepareDataForImport(data: any, userId: number): Promise<any>;
-    /**
-     * Override importData to initialize code counters before transaction starts
-     */
+    protected prepareDataForImport(data: any, userId: number, tx?: any): Promise<any>;
     importData(data: any[], userId: number, options?: ImportOptions): Promise<ImportResult>;
     protected updateExisting(data: any, userId: number, tx?: any): Promise<any>;
 }

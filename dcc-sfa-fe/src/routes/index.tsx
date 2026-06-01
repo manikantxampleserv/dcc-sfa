@@ -1,53 +1,60 @@
-import ProtectedRoute from 'components/ProtectedRoute';
+import { Box, CircularProgress } from '@mui/material';
 import ErrorBoundary from 'components/ErrorBoundary';
-import PermissionGuard from 'shared/PermissionGuard';
+import ProtectedRoute from 'components/ProtectedRoute';
+import { useMenuPermissions } from 'hooks/useMenuPermissions';
 import Layout from 'layout';
 import Login from 'pages/auth/Login';
 import PrivacyPolicy from 'pages/auth/PrivacyPolicy';
 import ExecutiveDashboard from 'pages/dashboards/ExecutiveDashboard';
+import GradingDashboard from 'pages/dashboards/GradingDashboard';
 import ApiTokensPage from 'pages/masters/ApiTokens';
+import AssetBrandsManagement from 'pages/masters/AssetBrands';
 import AssetMaintenanceManagement from 'pages/masters/AssetMaintenance';
 import AssetMasterManagement from 'pages/masters/AssetMaster';
+import AssetDetailsPage from 'pages/masters/AssetMaster/AssetDetails';
 import AssetMovementManagement from 'pages/masters/AssetMovement';
-import AssetTypesManagement from 'pages/masters/AssetTypes';
 import AssetSubTypesPage from 'pages/masters/AssetSubTypes';
+import AssetTypesManagement from 'pages/masters/AssetTypes';
 import BatchLotsManagement from 'pages/masters/BatchLots';
 import BatchLotDetail from 'pages/masters/BatchLots/BatchLotDetail';
 import BrandsManagement from 'pages/masters/Brands';
+import CitiesPage from 'pages/masters/City';
 import CompaniesManagement from 'pages/masters/Companies';
 import CompetitorActivityManagement from 'pages/masters/CompetitorActivity';
+import CoolerSubTypesManagement from 'pages/masters/CoolerSubTypes';
+import CoolerTypesManagement from 'pages/masters/CoolerTypes';
+import CurrenciesManagement from 'pages/masters/Currencies';
 import CustomerCategoryPage from 'pages/masters/CustomerCategory';
-import CustomerTypePage from 'pages/masters/CustomerType';
 import CustomerChannelPage from 'pages/masters/CustomerChannel';
 import CustomerComplaintsPage from 'pages/masters/CustomerComplaints';
-import CurrenciesManagement from 'pages/masters/Currencies';
+import CustomerTypePage from 'pages/masters/CustomerType';
 import DepotsManagement from 'pages/masters/Depot';
 import DepotDetail from 'pages/masters/Depot/DepotDetail';
+import DistrictsPage from 'pages/masters/District';
+import InventoryItems from 'pages/masters/InvetoryItems';
+import InventoryDetail from 'pages/masters/InvetoryItems/InventoryDetail';
 import KpiTargetsManagement from 'pages/masters/KpiTargets';
 import LoginHistoryPage from 'pages/masters/LoginHistory';
 import OutletsManagement from 'pages/masters/Outlet';
 import OutletDetail from 'pages/masters/Outlet/OutletDetail';
 import OutletGroupsManagement from 'pages/masters/OutletGroups';
 import PriceListsManagement from 'pages/masters/PriceLists';
+import PriceListDetail from 'pages/masters/PriceLists/PriceListDetail';
 import ProductCategoriesManagement from 'pages/masters/ProductCategories';
+import ProductFlavoursManagement from 'pages/masters/ProductFlavours';
 import ProductsManagement from 'pages/masters/Products';
 import ProductDetail from 'pages/masters/Products/ProductDetail';
+import ProductShelfLifeManagement from 'pages/masters/ProductShelfLife';
+import ProductSubCategoriesManagement from 'pages/masters/ProductSubCategories';
+import ProductTargetGroupsManagement from 'pages/masters/ProductTargetGroups';
+import ProductTypesManagement from 'pages/masters/ProductTypes';
+import ProductVolumesManagement from 'pages/masters/ProductVolumes';
+import ProductWebOrdersManagement from 'pages/masters/ProductWebOrders';
 import PromotionsManagement from 'pages/masters/Promotions';
 import PromotionDetail from 'pages/masters/Promotions/PromotionDetail';
-import ProductSubCategoriesManagement from 'pages/masters/ProductSubCategories';
-import ProductFlavoursManagement from 'pages/masters/ProductFlavours';
-import ProductVolumesManagement from 'pages/masters/ProductVolumes';
-import ProductShelfLifeManagement from 'pages/masters/ProductShelfLife';
-import ProductTypesManagement from 'pages/masters/ProductTypes';
-import ProductTargetGroupsManagement from 'pages/masters/ProductTargetGroups';
-import ProductWebOrdersManagement from 'pages/masters/ProductWebOrders';
-import CoolerTypesManagement from 'pages/masters/CoolerTypes';
-import CoolerSubTypesManagement from 'pages/masters/CoolerSubTypes';
-import TaxMasterPage from 'pages/masters/TaxMaster';
+import RegionsPage from 'pages/masters/Region';
 import RolePermissions from 'pages/masters/RolePermissions';
 import RoutesManagement from 'pages/masters/Routes';
-import RouteAssignmentManagement from 'pages/transactions/RouteAssignment';
-import RouteAssignmentDetail from 'pages/transactions/RouteAssignment/RouteAssignmentDetail';
 import RouteDetail from 'pages/masters/Routes/RouteDetail';
 import RouteTypesManagement from 'pages/masters/RouteTypes';
 import SalesBonusRulesManagement from 'pages/masters/SalesBonusRules';
@@ -55,10 +62,13 @@ import SalesTargetGroupsManagement from 'pages/masters/SalesTargetGroups';
 import SalesTargetsManagement from 'pages/masters/SalesTargets';
 import StockMovementsManagement from 'pages/masters/StockMovements';
 import StockTransferRequestsManagement from 'pages/masters/StockTransferRequests';
+import SubUnitOfMeasurementManagement from 'pages/masters/SubUnitOfMeasurement';
 import SurveyBuilder from 'pages/masters/SurveyBuilder';
 import SurveyDetail from 'pages/masters/SurveyBuilder/SurveyDetail';
+import TaxMasterPage from 'pages/masters/TaxMaster';
 import UnitOfMeasurementManagement from 'pages/masters/UnitOfMeasurement';
-import SubUnitOfMeasurementManagement from 'pages/masters/SubUnitOfMeasurement';
+import UpdatedPromotionsManagement from 'pages/masters/UpdatedPromotions';
+import UpdatedPromotionDetail from 'pages/masters/UpdatedPromotions/UpdatedPromotionDetail';
 import Users from 'pages/masters/Users';
 import UserDetail from 'pages/masters/Users/UserDetail';
 import VanStockManagement from 'pages/masters/VanStock';
@@ -80,6 +90,8 @@ import SalesVsTargetReport from 'pages/reports/SalesVsTargetReport';
 import SurveyResponses from 'pages/reports/SurveyResponses';
 import SurveyResponseDetail from 'pages/reports/SurveyResponses/SurveyResponseDetail';
 import VisitFrequencyCompletionReport from 'pages/reports/VisitFrequencyCompletionReport';
+import EmailTemplates from 'pages/settings/EmailTemplates';
+import SystemSettings from 'pages/settings/SystemSettings';
 import RepLocationTracking from 'pages/tracking/RepLocationTracking';
 import RouteEffectiveness from 'pages/tracking/RouteEffectiveness';
 import CoolerInspectionsManagement from 'pages/transactions/CoolerInspections';
@@ -95,6 +107,8 @@ import PaymentCollection from 'pages/transactions/PaymentCollection';
 import PaymentDetail from 'pages/transactions/PaymentCollection/PaymentDetail';
 import ReturnRequests from 'pages/transactions/ReturnRequests';
 import ReturnRequestDetail from 'pages/transactions/ReturnRequests/ReturnRequestDetail';
+import RouteAssignmentManagement from 'pages/transactions/RouteAssignment';
+import RouteAssignmentDetail from 'pages/transactions/RouteAssignment/RouteAssignmentDetail';
 import SurveyAnswers from 'pages/transactions/VisitLogging';
 import VisitDetail from 'pages/transactions/VisitLogging/VisitDetail';
 import AlertsReminders from 'pages/workflows/AlertsReminders';
@@ -102,13 +116,51 @@ import ApprovalSetup from 'pages/workflows/ApprovalSetup';
 import ApprovalWorkflows from 'pages/workflows/ApprovalWorkflows';
 import RouteExceptions from 'pages/workflows/RouteExceptions';
 import React from 'react';
-import { createBrowserRouter, RouterProvider } from 'react-router-dom';
-import SystemSettings from 'pages/settings/SystemSettings';
-import UpdatedPromotionsManagement from 'pages/masters/UpdatedPromotions';
-import UpdatedPromotionDetail from 'pages/masters/UpdatedPromotions/UpdatedPromotionDetail';
-import InventoryItems from 'pages/masters/InvetoryItems';
-import InventoryDetail from 'pages/masters/InvetoryItems/InventoryDetail';
-import EmailTemplates from 'pages/settings/EmailTemplates';
+import {
+  createBrowserRouter,
+  Navigate,
+  RouterProvider,
+} from 'react-router-dom';
+import PermissionGuard from 'shared/PermissionGuard';
+import menuItems from '../mock/sidebar';
+
+const RootRedirect = () => {
+  const { filterMenuItems, isLoading } = useMenuPermissions();
+
+  if (isLoading) {
+    return (
+      <Box
+        display="flex"
+        justifyContent="center"
+        alignItems="center"
+        height="100vh"
+      >
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  const allowedItems = filterMenuItems(menuItems);
+
+  const getFirstHref = (items: any[]): string | null => {
+    for (const item of items) {
+      if (item.href) return item.href;
+      if (item.children && item.children.length > 0) {
+        const childHref = getFirstHref(item.children);
+        if (childHref) return childHref;
+      }
+    }
+    return null;
+  };
+
+  const firstHref = getFirstHref(allowedItems);
+
+  if (firstHref) {
+    return <Navigate to={firstHref} replace />;
+  }
+
+  return <Navigate to="/login" replace />;
+};
 
 const router = createBrowserRouter(
   [
@@ -131,11 +183,23 @@ const router = createBrowserRouter(
       children: [
         {
           path: '/',
-          element: <ExecutiveDashboard />,
+          element: <RootRedirect />,
         },
         {
           path: '/dashboard/executive',
-          element: <ExecutiveDashboard />,
+          element: (
+            <PermissionGuard module="executive-dashboard" action="read">
+              <ExecutiveDashboard />
+            </PermissionGuard>
+          ),
+        },
+        {
+          path: '/dashboard/grading-dashboard',
+          element: (
+            <PermissionGuard module="grading-dashboard" action="read">
+              <GradingDashboard />
+            </PermissionGuard>
+          ),
         },
 
         {
@@ -199,6 +263,30 @@ const router = createBrowserRouter(
           element: (
             <PermissionGuard module="zone" action="read">
               <ZonesManagement />
+            </PermissionGuard>
+          ),
+        },
+        {
+          path: '/masters/regions',
+          element: (
+            <PermissionGuard module="region" action="read">
+              <RegionsPage />
+            </PermissionGuard>
+          ),
+        },
+        {
+          path: '/masters/districts',
+          element: (
+            <PermissionGuard module="district" action="read">
+              <DistrictsPage />
+            </PermissionGuard>
+          ),
+        },
+        {
+          path: '/masters/cities',
+          element: (
+            <PermissionGuard module="city" action="read">
+              <CitiesPage />
             </PermissionGuard>
           ),
         },
@@ -277,7 +365,7 @@ const router = createBrowserRouter(
         {
           path: '/masters/outlet-category',
           element: (
-            <PermissionGuard module="customer-category" action="read">
+            <PermissionGuard module="outlet-category" action="read">
               <CustomerCategoryPage />
             </PermissionGuard>
           ),
@@ -285,7 +373,7 @@ const router = createBrowserRouter(
         {
           path: '/masters/outlet-type',
           element: (
-            <PermissionGuard module="customer-type" action="read">
+            <PermissionGuard module="outlet-type" action="read">
               <CustomerTypePage />
             </PermissionGuard>
           ),
@@ -293,7 +381,7 @@ const router = createBrowserRouter(
         {
           path: '/masters/outlet-channel',
           element: (
-            <PermissionGuard module="customer-channel" action="read">
+            <PermissionGuard module="outlet-channel" action="read">
               <CustomerChannelPage />
             </PermissionGuard>
           ),
@@ -307,9 +395,17 @@ const router = createBrowserRouter(
           ),
         },
         {
+          path: '/masters/asset-brands',
+          element: (
+            <PermissionGuard module="asset-brand" action="read">
+              <AssetBrandsManagement />
+            </PermissionGuard>
+          ),
+        },
+        {
           path: '/masters/asset-sub-types',
           element: (
-            <PermissionGuard module="asset-type" action="read">
+            <PermissionGuard module="asset-sub-types" action="read">
               <AssetSubTypesPage />
             </PermissionGuard>
           ),
@@ -319,6 +415,14 @@ const router = createBrowserRouter(
           element: (
             <PermissionGuard module="asset-master" action="read">
               <AssetMasterManagement />
+            </PermissionGuard>
+          ),
+        },
+        {
+          path: '/masters/asset-master/:id',
+          element: (
+            <PermissionGuard module="asset-master" action="read">
+              <AssetDetailsPage />
             </PermissionGuard>
           ),
         },
@@ -397,7 +501,7 @@ const router = createBrowserRouter(
         {
           path: '/masters/sub-unit-of-measurement',
           element: (
-            <PermissionGuard module="unit-of-measurement" action="read">
+            <PermissionGuard module="subunit-of-measurement" action="read">
               <SubUnitOfMeasurementManagement />
             </PermissionGuard>
           ),
@@ -477,7 +581,7 @@ const router = createBrowserRouter(
         {
           path: '/masters/cooler-types',
           element: (
-            <PermissionGuard module="cooler-type" action="read">
+            <PermissionGuard module="asset-type" action="read">
               <CoolerTypesManagement />
             </PermissionGuard>
           ),
@@ -485,16 +589,24 @@ const router = createBrowserRouter(
         {
           path: '/masters/cooler-sub-types',
           element: (
-            <PermissionGuard module="cooler-sub-type" action="read">
+            <PermissionGuard module="asset-sub-types" action="read">
               <CoolerSubTypesManagement />
             </PermissionGuard>
           ),
         },
         {
-          path: '/masters/pricelists',
+          path: '/masters/price-lists',
           element: (
             <PermissionGuard module="pricelist" action="read">
               <PriceListsManagement />
+            </PermissionGuard>
+          ),
+        },
+        {
+          path: '/masters/price-lists/:id',
+          element: (
+            <PermissionGuard module="pricelist" action="read">
+              <PriceListDetail />
             </PermissionGuard>
           ),
         },
@@ -517,7 +629,7 @@ const router = createBrowserRouter(
         {
           path: '/masters/updated-promotions',
           element: (
-            <PermissionGuard module="updated-promotion" action="read">
+            <PermissionGuard module="promotions" action="read">
               <UpdatedPromotionsManagement />
             </PermissionGuard>
           ),
@@ -525,7 +637,7 @@ const router = createBrowserRouter(
         {
           path: '/masters/updated-promotions/:id',
           element: (
-            <PermissionGuard module="updated-promotion" action="read">
+            <PermissionGuard module="promotions" action="read">
               <UpdatedPromotionDetail />
             </PermissionGuard>
           ),
@@ -918,7 +1030,7 @@ const router = createBrowserRouter(
         {
           path: '/settings/email-templates',
           element: (
-            <PermissionGuard module="email-templates" action="read">
+            <PermissionGuard module="templates" action="read">
               <EmailTemplates />
             </PermissionGuard>
           ),
@@ -942,11 +1054,7 @@ const router = createBrowserRouter(
         },
         {
           path: '/profile',
-          element: (
-            <PermissionGuard module="profile" action="read">
-              <Profile />
-            </PermissionGuard>
-          ),
+          element: <Profile />,
         },
         {
           path: '*',
@@ -957,7 +1065,7 @@ const router = createBrowserRouter(
   ],
   {
     future: {
-      v7_startTransition: true,
+      v7_startTransition: false,
       v7_relativeSplatPath: true,
     },
   }

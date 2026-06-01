@@ -24,6 +24,9 @@ interface Depot {
   coordinator_id?: number | null;
   latitude?: number | null;
   longitude?: number | null;
+  region_id?: number | null;
+  city_id?: number | null;
+  district_id?: number | null;
   is_active: string;
   created_by: number;
   createdate?: string | null;
@@ -54,11 +57,19 @@ interface Depot {
     name: string;
     email: string;
   } | null;
-  // Additional computed fields for display
+  depots_region?: { id: number; name: string; code?: string } | null;
+  depots_city?: { id: number; name: string; code?: string } | null;
+  depots_district?: { id: number; name: string; code?: string } | null;
   company_name?: string;
   manager_name?: string;
   supervisor_name?: string;
   coordinator_name?: string;
+  default_outlet_id?: number | null;
+  default_outlet?: {
+    id: number;
+    name: string;
+    code: string;
+  } | null;
 }
 
 interface ManageDepotPayload {
@@ -75,8 +86,12 @@ interface ManageDepotPayload {
   coordinator_id?: number;
   latitude?: number;
   longitude?: number;
+  region_id?: number;
+  district_id?: number;
+  city_id?: number;
   is_active?: string;
   createdby?: number;
+  default_outlet_id?: number | null;
 }
 
 interface UpdateDepotPayload {
@@ -94,8 +109,12 @@ interface UpdateDepotPayload {
   coordinator_id?: number;
   latitude?: number;
   longitude?: number;
+  region_id?: number;
+  district_id?: number;
+  city_id?: number;
   is_active?: string;
   updatedby?: number;
+  default_outlet_id?: number | null;
 }
 
 interface GetDepotsParams {
@@ -105,6 +124,7 @@ interface GetDepotsParams {
   isActive?: string;
   parent_id?: number;
   depot_id?: number;
+  user_id?: number;
 }
 
 interface PaginationMeta {

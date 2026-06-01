@@ -4,7 +4,7 @@ import {
   Droppable,
   type DropResult,
 } from '@hello-pangea/dnd';
-import { Box, MenuItem, Typography, Avatar } from '@mui/material';
+import { Box, MenuItem, Typography, Avatar, Skeleton } from '@mui/material';
 import { useFormik } from 'formik';
 import { useAssetMaster, type AssetMaster } from 'hooks/useAssetMaster';
 import {
@@ -25,6 +25,7 @@ import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import UserSelect from 'shared/UserSelect';
 import { formatForDateInput } from 'utils/dateUtils';
+import { useAuth } from 'context/AuthContext';
 
 interface ManageAssetMovementProps {
   selectedMovement?: AssetMovement | null;
@@ -33,63 +34,24 @@ interface ManageAssetMovementProps {
   setDrawerOpen: (drawerOpen: boolean) => void;
 }
 
+const EMPTY_ASSETS: AssetMaster[] = [];
+const EMPTY_IDS: number[] = [];
+
 const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
   selectedMovement,
   setSelectedMovement,
   drawerOpen,
   setDrawerOpen,
 }) => {
+  const { user } = useAuth();
   const isEdit = !!selectedMovement;
   const [selectedAssetIds, setSelectedAssetIds] = useState<number[]>([]);
   const [availableSearch, setAvailableSearch] = useState('');
-
-  useEffect(() => {
-    if (selectedMovement?.asset_ids) {
-      setSelectedAssetIds(selectedMovement.asset_ids);
-    } else {
-      setSelectedAssetIds([]);
-    }
-  }, [selectedMovement]);
-
-  const { data: assetsResponse } = useAssetMaster({
-    page: 1,
-    limit: 1000,
-    status: 'active',
-  });
-  const assets: AssetMaster[] = assetsResponse?.data || [];
+  const [page, setPage] = useState(1);
+  const [displayedAssets, setDisplayedAssets] = useState<AssetMaster[]>([]);
 
   const createAssetMovementMutation = useCreateAssetMovement();
   const updateAssetMovementMutation = useUpdateAssetMovement();
-
-  const assetMap = useMemo(
-    () => new Map(assets.map((asset: AssetMaster) => [asset.id, asset])),
-    [assets]
-  );
-
-  const selectedAssets = useMemo(
-    () =>
-      selectedAssetIds
-        .map(id => assetMap.get(id))
-        .filter(Boolean) as AssetMaster[],
-    [assetMap, selectedAssetIds]
-  );
-
-  const availableAssets = useMemo(() => {
-    const selectedIds = new Set(selectedAssetIds);
-    const searchLower = availableSearch.trim().toLowerCase();
-    return assets.filter(asset => {
-      if (selectedIds.has(asset.id)) return false;
-      if (!searchLower) return true;
-      const name = asset.name?.toLowerCase() || '';
-      const serial = asset.serial_number?.toLowerCase() || '';
-      const type = asset.asset_master_asset_types?.name?.toLowerCase() || '';
-      return (
-        name.includes(searchLower) ||
-        serial.includes(searchLower) ||
-        type.includes(searchLower)
-      );
-    });
-  }, [availableSearch, assets, selectedAssetIds]);
 
   const handleCancel = () => {
     setSelectedMovement(null);
@@ -99,56 +61,8 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
     formik.resetForm();
   };
 
-  const handleDragEnd = useCallback(
-    (result: DropResult) => {
-      const { destination, source, draggableId } = result;
-      if (!destination) return;
-
-      if (
-        destination.droppableId === source.droppableId &&
-        destination.index === source.index
-      ) {
-        return;
-      }
-
-      const assetId = parseInt(draggableId, 10);
-      if (Number.isNaN(assetId)) return;
-
-      if (
-        source.droppableId === 'available-assets' &&
-        destination.droppableId === 'selected-assets'
-      ) {
-        if (selectedAssetIds.includes(assetId)) return;
-        const updated = Array.from(selectedAssetIds);
-        updated.splice(destination.index, 0, assetId);
-        setSelectedAssetIds(updated);
-        return;
-      }
-
-      if (
-        source.droppableId === 'selected-assets' &&
-        destination.droppableId === 'available-assets'
-      ) {
-        setSelectedAssetIds(selectedAssetIds.filter(id => id !== assetId));
-        return;
-      }
-
-      if (
-        source.droppableId === 'selected-assets' &&
-        destination.droppableId === 'selected-assets'
-      ) {
-        const updated = Array.from(selectedAssetIds);
-        const [moved] = updated.splice(source.index, 1);
-        updated.splice(destination.index, 0, moved);
-        setSelectedAssetIds(updated);
-      }
-    },
-    [selectedAssetIds, setSelectedAssetIds]
-  );
-
   const handleDirectionChange = (fieldName: string, value: string) => {
     formik.setFieldValue(fieldName, value);
-
     if (fieldName === 'from_direction') {
       formik.setFieldValue('from_outlet', '');
       formik.setFieldValue('from_depot', '');
@@ -169,7 +83,7 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
       to_depot: selectedMovement?.to_depot_id?.toString() || '',
       movement_type: selectedMovement?.movement_type || '',
       movement_date: formatForDateInput(selectedMovement?.movement_date),
-      performed_by: selectedMovement?.performed_by?.toString() || '',
+      performed_by: selectedMovement?.performed_by?.toString() || user?.id?.toString() || '',
       notes: selectedMovement?.notes || '',
       is_active: selectedMovement?.is_active || 'Y',
       priority: 'medium',
@@ -222,7 +136,175 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
     },
   });
 
-  // Update formik asset_ids when selectedAssetIds changes
+  const handleDragEnd = useCallback(
+    (result: DropResult) => {
+      const { destination, source, draggableId } = result;
+      if (!destination) return;
+
+      if (
+        destination.droppableId === source.droppableId &&
+        destination.index === source.index
+      ) {
+        return;
+      }
+
+      const assetId = parseInt(draggableId, 10);
+      if (Number.isNaN(assetId)) return;
+
+      if (
+        source.droppableId === 'available-assets' &&
+        destination.droppableId === 'selected-assets'
+      ) {
+        if (selectedAssetIds.includes(assetId)) return;
+        const updated = Array.from(selectedAssetIds);
+        updated.splice(destination.index, 0, assetId);
+        setSelectedAssetIds(updated);
+        return;
+      }
+
+      if (
+        source.droppableId === 'selected-assets' &&
+        destination.droppableId === 'available-assets'
+      ) {
+        setSelectedAssetIds(selectedAssetIds.filter(id => id !== assetId));
+        return;
+      }
+
+      if (
+        source.droppableId === 'selected-assets' &&
+        destination.droppableId === 'selected-assets'
+      ) {
+        const updated = Array.from(selectedAssetIds);
+        const [moved] = updated.splice(source.index, 1);
+        updated.splice(destination.index, 0, moved);
+        setSelectedAssetIds(updated);
+      }
+    },
+    [selectedAssetIds, setSelectedAssetIds]
+  );
+
+  useEffect(() => {
+    if (selectedMovement?.asset_ids) {
+      setSelectedAssetIds(selectedMovement.asset_ids);
+    } else if (selectedAssetIds.length > 0) {
+      setSelectedAssetIds(EMPTY_IDS);
+    }
+  }, [selectedMovement]);
+
+  useEffect(() => {
+    setPage(1);
+    if (displayedAssets.length > 0) {
+      setDisplayedAssets(EMPTY_ASSETS);
+    }
+  }, [availableSearch, formik.values.from_direction, formik.values.from_depot, formik.values.from_outlet]);
+
+  const [knownAssetsMap, setKnownAssetsMap] = useState<Map<number, AssetMaster>>(new Map());
+
+  const isSourceSelected = !!(
+    (formik.values.from_direction === 'depot' && formik.values.from_depot) ||
+    (formik.values.from_direction === 'outlet' && formik.values.from_outlet)
+  );
+
+  const { data: assetsResponse, isFetching } = useAssetMaster(
+    {
+      page,
+      limit: 100,
+      status: 'active',
+      search: availableSearch,
+      depot_id:
+        formik.values.from_direction === 'depot' && formik.values.from_depot
+          ? Number(formik.values.from_depot)
+          : undefined,
+      outlet_id:
+        formik.values.from_direction === 'outlet' && formik.values.from_outlet
+          ? Number(formik.values.from_outlet)
+          : undefined,
+    },
+    {
+      enabled: isSourceSelected,
+    }
+  );
+
+  const assets: AssetMaster[] = useMemo(() => {
+    return assetsResponse?.data || EMPTY_ASSETS;
+  }, [assetsResponse?.data]);
+
+  useEffect(() => {
+    if (assets.length > 0) {
+      if (page === 1) {
+        setDisplayedAssets(assets);
+      } else {
+        setDisplayedAssets(prev => {
+          const newAssets = assets.filter(a => !prev.some(p => p.id === a.id));
+          return [...prev, ...newAssets];
+        });
+      }
+    } else if (page === 1 && displayedAssets.length > 0) {
+      setDisplayedAssets(EMPTY_ASSETS);
+    }
+  }, [assets, page]);
+
+  useEffect(() => {
+    setKnownAssetsMap(prev => {
+      const newMap = new Map(prev);
+      displayedAssets.forEach(asset => newMap.set(asset.id, asset));
+
+      if (selectedMovement?.asset_movement_assets) {
+        selectedMovement.asset_movement_assets.forEach((item: any) => {
+          if (item.asset) {
+            newMap.set(item.asset.id, item.asset);
+          } else if (item.asset_master) {
+            newMap.set(item.asset_master.id, item.asset_master);
+          }
+        });
+      }
+      return newMap;
+    });
+  }, [displayedAssets, selectedMovement]);
+
+  const selectedAssets = useMemo(
+    () =>
+      selectedAssetIds
+        .map(
+          id =>
+            knownAssetsMap.get(id) ||
+            ({ id, name: `Loading Asset ${id}...` } as any)
+        )
+        .filter(Boolean) as AssetMaster[],
+    [knownAssetsMap, selectedAssetIds]
+  );
+
+  const availableAssets = useMemo(() => {
+    const selectedIds = new Set(selectedAssetIds);
+    return displayedAssets.filter(asset => !selectedIds.has(asset.id));
+  }, [displayedAssets, selectedAssetIds]);
+
+  const emptyStateMessage = useMemo(() => {
+    if (!isSourceSelected) {
+      return 'Please select From Direction and Source first';
+    }
+    if (availableSearch) {
+      return 'No assets match your search';
+    }
+    if (displayedAssets.length === 0) {
+      return 'No assets available in this source';
+    }
+    return 'All assets are selected';
+  }, [isSourceSelected, availableSearch, displayedAssets.length]);
+
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLDivElement;
+    if (
+      target.scrollHeight - target.scrollTop <= target.clientHeight + 50 &&
+      !isFetching &&
+      assetsResponse?.meta?.page &&
+      assetsResponse?.meta?.totalPages &&
+      assetsResponse.meta.page < assetsResponse.meta.totalPages
+    ) {
+      setPage(p => p + 1);
+    }
+  };
+
   useEffect(() => {
     formik.setFieldValue('asset_ids', selectedAssetIds);
   }, [selectedAssetIds, formik.setFieldValue]);
@@ -235,6 +317,17 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
     { value: 'disposal', label: 'Disposal' },
     { value: 'return', label: 'Return' },
   ];
+
+  const AssetCardSkeleton = () => (
+    <Box className="!flex !items-center !gap-3 !p-2 !pr-3 !bg-white !border !border-gray-200 !rounded-lg !mb-2">
+      <GripVertical className="!w-5 !h-5 !text-gray-400 !cursor-grab !flex-shrink-0" />
+      <Skeleton variant="circular" width={36} height={36} className="!flex-shrink-0" />
+      <Box className="!flex-1">
+        <Skeleton variant="text" width="60%" />
+        <Skeleton variant="text" width="40%" />
+      </Box>
+    </Box>
+  );
 
   const AssetCard = ({ asset }: { asset: AssetMaster; showIndex?: number }) => (
     <div className="!flex !items-center !gap-3 !p-2 !pr-3 !bg-white !border !border-gray-200 !rounded-lg !mb-2 hover:!border-blue-300 hover:!shadow-md">
@@ -323,6 +416,10 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
                 label="From Depot"
                 formik={formik}
                 required
+                onChange={(_, selectedDepot) => {
+                  formik.setFieldValue('from_depot', selectedDepot ? selectedDepot.id : '');
+                  formik.setFieldValue('to_outlet', '');
+                }}
               />
             )}
 
@@ -332,6 +429,11 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
                 label="To Outlet"
                 formik={formik}
                 required
+                depotId={
+                  formik.values.from_direction === 'depot' && formik.values.from_depot
+                    ? Number(formik.values.from_depot)
+                    : undefined
+                }
               />
             )}
 
@@ -357,7 +459,7 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
               name="performed_by"
               label="Performed By"
               formik={formik}
-              required
+              disabled={true}
             />
             <Box className="col-span-2">
               <DragDropContext onDragEnd={handleDragEnd}>
@@ -368,7 +470,7 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
                         variant="subtitle1"
                         className="!font-semibold !text-blue-600"
                       >
-                        Available Assets ({availableAssets.length})
+                        Available Assets ({assetsResponse?.meta?.total || availableAssets.length})
                       </Typography>
                       <p className="!text-gray-500 !text-xs !block !mt-1">
                         Drag assets from the left panel to select
@@ -388,14 +490,18 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
                           <div
                             {...provided.droppableProps}
                             ref={provided.innerRef}
-                            className={`!h-full !p-2 !overflow-y-auto ${
-                              snapshot.isDraggingOver ? '!bg-blue-50' : ''
-                            }`}
+                            onScroll={handleScroll}
+                            className={`!h-full !p-2 !overflow-y-auto ${snapshot.isDraggingOver ? '!bg-blue-50' : ''
+                              }`}
                             style={{
                               transition: 'background-color 0.2s ease',
                             }}
                           >
-                            {availableAssets.length > 0 ? (
+                            {isFetching && page === 1 ? (
+                              Array.from({ length: 5 }).map((_, i) => (
+                                <AssetCardSkeleton key={i} />
+                              ))
+                            ) : availableAssets.length > 0 ? (
                               availableAssets.map(
                                 (asset: AssetMaster, index: number) => (
                                   <Draggable
@@ -425,10 +531,13 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
                                   variant="body2"
                                   className="!text-gray-500"
                                 >
-                                  {availableSearch
-                                    ? 'No assets found'
-                                    : 'All assets are selected'}
+                                  {emptyStateMessage}
                                 </Typography>
+                              </Box>
+                            )}
+                            {isFetching && page > 1 && (
+                              <Box className="!py-2">
+                                <AssetCardSkeleton />
                               </Box>
                             )}
                             {provided.placeholder}
@@ -456,9 +565,8 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
                           <div
                             {...provided.droppableProps}
                             ref={provided.innerRef}
-                            className={`!h-full !p-2 !overflow-y-auto ${
-                              snapshot.isDraggingOver ? '!bg-green-50' : ''
-                            }`}
+                            className={`!h-full !p-2 !overflow-y-auto ${snapshot.isDraggingOver ? '!bg-green-50' : ''
+                              }`}
                             style={{
                               transition: 'background-color 0.2s ease',
                             }}
@@ -546,7 +654,7 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
               }
             >
               {createAssetMovementMutation.isPending ||
-              updateAssetMovementMutation.isPending
+                updateAssetMovementMutation.isPending
                 ? isEdit
                   ? 'Updating...'
                   : 'Creating...'

@@ -36,7 +36,7 @@ const AlertsReminders: React.FC = () => {
   const [priorityFilter, setPriorityFilter] = useState('all');
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
-  const { isRead } = usePermission('alert');
+  const { isRead } = usePermission('user');
 
   const isFetching = false;
   const alertsReminders: AlertReminder[] = [];
@@ -184,7 +184,7 @@ const AlertsReminders: React.FC = () => {
       </div>
 
       {isRead && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
           <StatsCard
             title="Total Alerts"
             value={totalAlerts}

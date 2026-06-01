@@ -13,6 +13,7 @@ export type {
   Brand,
   ManageBrandPayload,
   UpdateBrandPayload,
+  UpdateBrandRequest,
   GetBrandsParams,
 } from '../services/masters/Brands';
 
@@ -87,7 +88,7 @@ export const useUpdateBrand = () => {
       data,
     }: {
       id: number;
-      data: brandsService.UpdateBrandPayload;
+      data: brandsService.UpdateBrandPayload | FormData;
     }) => brandsService.updateBrand(id, data),
     invalidateQueries: ['brands'],
     loadingMessage: 'Updating brand...',

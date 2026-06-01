@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.stockMovementsController = void 0;
 const paginate_1 = require("../../utils/paginate");
 const prisma_client_1 = __importDefault(require("../../configs/prisma.client"));
+const dateFilters_1 = require("../../utils/dateFilters");
 const serializeStockMovement = (sm) => ({
     id: sm.id,
     product_id: sm.product_id,
@@ -94,6 +95,7 @@ exports.stockMovementsController = {
                     stock_movements_to_location: true,
                     van_inventory_stock_movements: {
                         include: {
+                            van_inventory_depot: true,
                             van_inventory_items_inventory: {
                                 include: {
                                     van_inventory_items_products: true,
@@ -116,10 +118,11 @@ exports.stockMovementsController = {
     },
     async getAllStockMovements(req, res) {
         try {
-            const { page, limit, search, status, movement_type } = req.query;
+            const { page, limit, search, status, movement_type, time_filter } = req.query;
             const pageNum = parseInt(page, 10) || 1;
             const limitNum = parseInt(limit, 10) || 10;
             const searchLower = search ? search.toLowerCase() : '';
+            const movementDateFilter = (0, dateFilters_1.getTimeFilter)(time_filter);
             const filters = {
                 ...(search && {
                     OR: [
@@ -134,6 +137,7 @@ exports.stockMovementsController = {
                 ...(movement_type && {
                     movement_type: movement_type,
                 }),
+                ...(movementDateFilter && { movement_date: movementDateFilter }),
             };
             const { data, pagination } = await (0, paginate_1.paginate)({
                 model: prisma_client_1.default.stock_movements,
@@ -147,6 +151,7 @@ exports.stockMovementsController = {
                     stock_movements_to_location: true,
                     van_inventory_stock_movements: {
                         include: {
+                            van_inventory_depot: true,
                             van_inventory_items_inventory: {
                                 include: {
                                     van_inventory_items_products: true,
@@ -157,6 +162,53 @@ exports.stockMovementsController = {
                     },
                 },
             });
+            const invoiceIds = data
+                .filter((m) => m.reference_type === 'INVOICE' &&
+                m.reference_id !== null &&
+                m.reference_id !== undefined)
+                .map((m) => m.reference_id);
+            const invoices = invoiceIds.length
+                ? await prisma_client_1.default.invoices.findMany({
+                    where: {
+                        id: {
+                            in: invoiceIds,
+                        },
+                    },
+                    include: {
+                        invoices_customers: true,
+                    },
+                })
+                : [];
+            const invoiceMap = new Map(invoices.map((invoice) => [
+                invoice.id,
+                invoice.invoices_customers?.name || null,
+            ]));
+            const vanInventoryIds = [
+                ...new Set(data
+                    .filter((m) => m.reference_type === 'VAN_INVENTORY' &&
+                    m.reference_id !== null &&
+                    m.reference_id !== undefined)
+                    .map((m) => Number(m.reference_id))),
+            ];
+            const vanInventories = vanInventoryIds.length
+                ? await prisma_client_1.default.van_inventory.findMany({
+                    where: {
+                        id: {
+                            in: vanInventoryIds,
+                        },
+                    },
+                    include: {
+                        van_inventory_depot: true,
+                    },
+                })
+                : [];
+            const vanInventoryMap = new Map(vanInventories.map((vanInventory) => [
+                vanInventory.id,
+                vanInventory.van_inventory_depot?.name ||
+                    (vanInventory.location_id
+                        ? `Location ${vanInventory.location_id}`
+                        : null),
+            ]));
             // Calculate statistics
             const [totalStockMovements, activeStockMovements, inactiveStockMovements, stockMovementsThisMonth, totalInMovements, totalOutMovements, totalTransferMovements,] = await Promise.all([
                 prisma_client_1.default.stock_movements.count(),
@@ -182,7 +234,30 @@ exports.stockMovementsController = {
                 total_out_movements: totalOutMovements,
                 total_transfer_movements: totalTransferMovements,
             };
-            res.success('Stock Movements retrieved successfully', data.map((sm) => serializeStockMovement(sm)), 200, pagination, stats);
+            res.success('Stock Movements retrieved successfully', data.map((sm) => {
+                let custom_location_key = null;
+                if (sm.reference_type === 'INVOICE') {
+                    custom_location_key = invoiceMap.get(sm.reference_id) || null;
+                }
+                else if (sm.reference_type === 'VAN_INVENTORY') {
+                    custom_location_key =
+                        sm.stock_movements_from_location?.name ||
+                            sm.stock_movements_to_location?.name ||
+                            sm.van_inventory_stock_movements?.van_inventory_depot?.name ||
+                            vanInventoryMap.get(sm.reference_id) ||
+                            null;
+                }
+                else {
+                    custom_location_key =
+                        sm.stock_movements_from_location?.name ||
+                            sm.stock_movements_to_location?.name ||
+                            null;
+                }
+                return {
+                    ...serializeStockMovement(sm),
+                    custom_location_key,
+                };
+            }), 200, pagination, stats);
         }
         catch (error) {
             console.error('Get All Stock Movements Error:', error);
@@ -200,6 +275,7 @@ exports.stockMovementsController = {
                     stock_movements_to_location: true,
                     van_inventory_stock_movements: {
                         include: {
+                            van_inventory_depot: true,
                             van_inventory_items_inventory: {
                                 include: {
                                     van_inventory_items_products: true,
@@ -210,11 +286,18 @@ exports.stockMovementsController = {
                     },
                 },
             });
-            if (!movement)
-                return res.status(404).json({ message: 'Stock Movement not found' });
+            if (!movement) {
+                return res.status(404).json({
+                    message: 'Stock Movement not found',
+                });
+            }
+            let custom_location_key = null;
             res.json({
                 message: 'Stock Movement fetched successfully',
-                data: serializeStockMovement(movement),
+                data: {
+                    ...serializeStockMovement(movement),
+                    custom_location_key,
+                },
             });
         }
         catch (error) {
@@ -247,6 +330,7 @@ exports.stockMovementsController = {
                     stock_movements_to_location: true,
                     van_inventory_stock_movements: {
                         include: {
+                            van_inventory_depot: true,
                             van_inventory_items_inventory: {
                                 include: {
                                     van_inventory_items_products: true,

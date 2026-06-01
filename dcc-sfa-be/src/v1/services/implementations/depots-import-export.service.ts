@@ -9,6 +9,25 @@ export class DepotsImportExportService extends ImportExportService<any> {
   protected uniqueFields = ['code'];
   protected searchFields = ['name', 'code', 'address', 'city', 'email'];
 
+  protected masterTableConfigs = [
+    {
+      masterTable: 'companies' as any,
+      masterKey: 'id',
+      masterDisplayFields: ['id', 'name', 'code'],
+      sheetName: 'Ref - Companies',
+      description: 'Use the ID from this sheet in the Company ID column',
+    },
+    {
+      masterTable: 'users' as any,
+      masterKey: 'id',
+      masterDisplayFields: ['id', 'name', 'email', 'employee_id'],
+      sheetName: 'Ref - Users',
+      description: 'Use the ID from this sheet for Manager ID, Supervisor ID, Coordinator ID columns',
+    },
+  ];
+
+  private validationCache: Map<string, string | null> = new Map();
+
   protected columns: ColumnDefinition[] = [
     {
       key: 'parent_id',
@@ -26,12 +45,11 @@ export class DepotsImportExportService extends ImportExportService<any> {
       required: true,
       type: 'string',
       validation: value => {
-        if (!value || value.length < 2)
-          return 'Name must be at least 2 characters';
-        if (value.length > 255) return 'Name must be less than 255 characters';
+        if (!value || value.length < 2) return 'Name too short';
+        if (value.length > 255) return 'Name too long';
         return true;
       },
-      description: 'Name of the depot (required, 2-255 characters)',
+      description: 'Name of the depot (required)',
     },
     {
       key: 'code',
@@ -41,90 +59,54 @@ export class DepotsImportExportService extends ImportExportService<any> {
       type: 'string',
       validation: value => {
         if (!value) return 'Code is required';
-        if (value.length > 50) return 'Code must be less than 50 characters';
-        if (!/^[A-Z0-9_-]+$/i.test(value))
-          return 'Code can only contain letters, numbers, hyphens and underscores';
+        if (!/^[A-Z0-9_-]+$/i.test(value)) return 'Invalid code format';
         return true;
       },
       transform: value => value.toUpperCase().trim(),
-      description: 'Unique depot code (required, max 50 chars, alphanumeric)',
+      description: 'Unique depot code (required)',
     },
     {
       key: 'address',
       header: 'Address',
       width: 40,
       type: 'string',
-      validation: value =>
-        !value ||
-        value.length <= 500 ||
-        'Address must be less than 500 characters',
-      description: 'Street address of the depot (optional, max 500 chars)',
+      description: 'Address (optional)',
     },
     {
       key: 'city',
       header: 'City',
       width: 25,
       type: 'string',
-      validation: value =>
-        !value ||
-        value.length <= 100 ||
-        'City must be less than 100 characters',
-      description: 'City where depot is located (optional, max 100 chars)',
+      description: 'City (optional)',
     },
     {
       key: 'state',
       header: 'State',
       width: 20,
       type: 'string',
-      validation: value =>
-        !value ||
-        value.length <= 100 ||
-        'State must be less than 100 characters',
-      description:
-        'State/Province where depot is located (optional, max 100 chars)',
+      description: 'State (optional)',
     },
     {
       key: 'zipcode',
       header: 'Zip Code',
       width: 15,
       type: 'string',
-      validation: value => {
-        if (!value) return true;
-        if (value.length > 20)
-          return 'Zip code must be less than 20 characters';
-        if (!/^[A-Z0-9\s-]+$/i.test(value)) return 'Invalid zip code format';
-        return true;
-      },
-      description: 'Postal/Zip code (optional, max 20 chars)',
+      description: 'Zip code (optional)',
     },
     {
       key: 'phone_number',
       header: 'Phone Number',
       width: 20,
       type: 'string',
-      validation: value => {
-        if (!value) return true;
-        if (value.length > 20)
-          return 'Phone number must be less than 20 characters';
-        const phoneRegex =
-          /^[\d\s\-\+KATEX_INLINE_OPENKATEX_INLINE_CLOSEext.]+$/i;
-        return phoneRegex.test(value) || 'Invalid phone number format';
-      },
-      description: 'Contact phone number (optional, max 20 chars)',
+      description: 'Phone number (optional)',
     },
     {
       key: 'email',
       header: 'Email',
       width: 30,
       type: 'email',
-      validation: value => {
-        if (!value) return true;
-        if (value.length > 255) return 'Email must be less than 255 characters';
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        return emailRegex.test(value) || 'Invalid email format';
-      },
       transform: value => (value ? value.toLowerCase().trim() : null),
-      description: 'Contact email address (optional, valid email format)',
+      description: 'Email (optional)',
     },
     {
       key: 'manager_id',
@@ -132,7 +114,7 @@ export class DepotsImportExportService extends ImportExportService<any> {
       width: 15,
       type: 'number',
       transform: value => (value ? parseInt(value) : null),
-      description: 'ID of the depot manager user (optional)',
+      description: 'Manager User ID (optional)',
     },
     {
       key: 'supervisor_id',
@@ -140,7 +122,7 @@ export class DepotsImportExportService extends ImportExportService<any> {
       width: 15,
       type: 'number',
       transform: value => (value ? parseInt(value) : null),
-      description: 'ID of the depot supervisor user (optional)',
+      description: 'Supervisor User ID (optional)',
     },
     {
       key: 'coordinator_id',
@@ -148,38 +130,23 @@ export class DepotsImportExportService extends ImportExportService<any> {
       width: 15,
       type: 'number',
       transform: value => (value ? parseInt(value) : null),
-      description: 'ID of the depot coordinator user (optional)',
+      description: 'Coordinator User ID (optional)',
     },
     {
       key: 'latitude',
       header: 'Latitude',
       width: 15,
       type: 'number',
-      validation: value => {
-        if (!value) return true;
-        const lat = parseFloat(value);
-        if (isNaN(lat)) return 'Latitude must be a number';
-        if (lat < -90 || lat > 90) return 'Latitude must be between -90 and 90';
-        return true;
-      },
       transform: value => (value ? parseFloat(value) : null),
-      description: 'Geographic latitude (-90 to 90)',
+      description: 'Latitude (optional)',
     },
     {
       key: 'longitude',
       header: 'Longitude',
       width: 15,
       type: 'number',
-      validation: value => {
-        if (!value) return true;
-        const lng = parseFloat(value);
-        if (isNaN(lng)) return 'Longitude must be a number';
-        if (lng < -180 || lng > 180)
-          return 'Longitude must be between -180 and 180';
-        return true;
-      },
       transform: value => (value ? parseFloat(value) : null),
-      description: 'Geographic longitude (-180 to 180)',
+      description: 'Longitude (optional)',
     },
     {
       key: 'is_active',
@@ -187,67 +154,19 @@ export class DepotsImportExportService extends ImportExportService<any> {
       width: 12,
       type: 'string',
       defaultValue: 'Y',
-      validation: value => {
-        const upperValue = value ? value.toString().toUpperCase() : 'Y';
-        return ['Y', 'N'].includes(upperValue) || 'Must be Y or N';
-      },
       transform: value => (value ? value.toString().toUpperCase() : 'Y'),
-      description: 'Active status - Y for Yes, N for No (defaults to Y)',
+      description: 'Active status (Y/N)',
     },
   ];
 
   protected async getSampleData(): Promise<any[]> {
+    const company = await prisma.companies.findFirst({ select: { id: true } });
     return [
       {
-        parent_id: 1,
-        name: 'Main Depot - North Region',
-        code: 'DEP-NORTH-001',
-        address: '123 Industrial Park, Building A',
-        city: 'New York',
-        state: 'NY',
-        zipcode: '10001',
-        phone_number: '+1-212-555-0100',
-        email: 'north.depot@company.com',
-        manager_id: 1,
-        supervisor_id: 2,
-        coordinator_id: 3,
-        latitude: 40.7128,
-        longitude: -74.006,
+        name: 'Main Depot',
+        code: 'DEP001',
+        parent_id: company?.id || 1,
         is_active: 'Y',
-      },
-      {
-        parent_id: 1,
-        name: 'Secondary Depot - South Region',
-        code: 'DEP-SOUTH-001',
-        address: '456 Logistics Avenue, Suite 200',
-        city: 'Atlanta',
-        state: 'GA',
-        zipcode: '30301',
-        phone_number: '+1-404-555-0200',
-        email: 'south.depot@company.com',
-        manager_id: 4,
-        supervisor_id: 5,
-        coordinator_id: 6,
-        latitude: 33.749,
-        longitude: -84.388,
-        is_active: 'Y',
-      },
-      {
-        parent_id: 1,
-        name: 'Warehouse Depot - West Region',
-        code: 'DEP-WEST-001',
-        address: '789 Distribution Center Blvd',
-        city: 'Los Angeles',
-        state: 'CA',
-        zipcode: '90001',
-        phone_number: '+1-213-555-0300',
-        email: 'west.depot@company.com',
-        manager_id: 7,
-        supervisor_id: 8,
-        coordinator_id: '',
-        latitude: 34.0522,
-        longitude: -118.2437,
-        is_active: 'N',
       },
     ];
   }
@@ -259,51 +178,25 @@ export class DepotsImportExportService extends ImportExportService<any> {
 
   protected async transformDataForExport(data: any[]): Promise<any[]> {
     return data.map(depot => ({
-      parent_id: depot.parent_id,
       name: depot.name,
       code: depot.code,
-      address: depot.address || '',
-      city: depot.city || '',
-      state: depot.state || '',
-      zipcode: depot.zipcode || '',
-      phone_number: depot.phone_number || '',
-      email: depot.email || '',
-      manager_id: depot.manager_id || '',
-      supervisor_id: depot.supervisor_id || '',
-      coordinator_id: depot.coordinator_id || '',
-      latitude: depot.latitude ? depot.latitude.toString() : '',
-      longitude: depot.longitude ? depot.longitude.toString() : '',
-      is_active: depot.is_active || 'Y',
-      created_date: depot.createdate?.toISOString().split('T')[0] || '',
-      created_by: depot.createdby || '',
-      updated_date: depot.updatedate?.toISOString().split('T')[0] || '',
-      updated_by: depot.updatedby || '',
+      parent_id: depot.parent_id,
+      manager_id: depot.manager_id,
+      supervisor_id: depot.supervisor_id,
+      coordinator_id: depot.coordinator_id,
+      address: depot.address,
+      city: depot.city,
+      state: depot.state,
+      phone_number: depot.phone_number,
+      email: depot.email,
+      is_active: depot.is_active,
     }));
   }
 
   protected async checkDuplicate(data: any, tx?: any): Promise<string | null> {
     const model = tx ? tx.depots : prisma.depots;
-
-    const existingCode = await model.findFirst({
-      where: { code: data.code },
-    });
-
-    if (existingCode) {
-      return `Depot with code ${data.code} already exists`;
-    }
-
-    const existingName = await model.findFirst({
-      where: {
-        name: data.name,
-        parent_id: data.parent_id,
-      },
-    });
-
-    if (existingName) {
-      return `Depot with name ${data.name} already exists in this company`;
-    }
-
-    return null;
+    const existing = await model.findFirst({ where: { code: data.code } });
+    return existing ? `Depot code "${data.code}" already exists` : null;
   }
 
   protected async validateForeignKeys(
@@ -312,38 +205,43 @@ export class DepotsImportExportService extends ImportExportService<any> {
   ): Promise<string | null> {
     const prismaClient = tx || prisma;
 
-    const company = await prismaClient.companies.findUnique({
-      where: { id: data.parent_id },
+    const checkCache = async (type: string, id: any, validator: () => Promise<string | null>) => {
+      if (!id) return null;
+      const cacheKey = `${type}_${id}`;
+      if (this.validationCache.has(cacheKey)) return this.validationCache.get(cacheKey)!;
+      const result = await validator();
+      this.validationCache.set(cacheKey, result);
+      return result;
+    };
+
+    const errorCompany = await checkCache('company', data.parent_id, async () => {
+      const company = await prismaClient.companies.findUnique({ where: { id: data.parent_id } });
+      return company ? null : `Company ID ${data.parent_id} not found`;
     });
-    if (!company) {
-      return `Company with ID ${data.parent_id} does not exist`;
-    }
+    if (errorCompany) return errorCompany;
 
     if (data.manager_id) {
-      const manager = await prismaClient.users.findUnique({
-        where: { id: data.manager_id },
+      const error = await checkCache('user', data.manager_id, async () => {
+        const user = await prismaClient.users.findUnique({ where: { id: data.manager_id } });
+        return user ? null : `Manager ID ${data.manager_id} not found`;
       });
-      if (!manager) {
-        return `Manager with ID ${data.manager_id} does not exist`;
-      }
+      if (error) return error;
     }
 
     if (data.supervisor_id) {
-      const supervisor = await prismaClient.users.findUnique({
-        where: { id: data.supervisor_id },
+      const error = await checkCache('user', data.supervisor_id, async () => {
+        const user = await prismaClient.users.findUnique({ where: { id: data.supervisor_id } });
+        return user ? null : `Supervisor ID ${data.supervisor_id} not found`;
       });
-      if (!supervisor) {
-        return `Supervisor with ID ${data.supervisor_id} does not exist`;
-      }
+      if (error) return error;
     }
 
     if (data.coordinator_id) {
-      const coordinator = await prismaClient.users.findUnique({
-        where: { id: data.coordinator_id },
+      const error = await checkCache('user', data.coordinator_id, async () => {
+        const user = await prismaClient.users.findUnique({ where: { id: data.coordinator_id } });
+        return user ? null : `Coordinator ID ${data.coordinator_id} not found`;
       });
-      if (!coordinator) {
-        return `Coordinator with ID ${data.coordinator_id} does not exist`;
-      }
+      if (error) return error;
     }
 
     return null;
@@ -351,7 +249,8 @@ export class DepotsImportExportService extends ImportExportService<any> {
 
   protected async prepareDataForImport(
     data: any,
-    userId: number
+    userId: number,
+    tx?: any
   ): Promise<any> {
     const preparedData: any = {
       ...data,
@@ -363,7 +262,6 @@ export class DepotsImportExportService extends ImportExportService<any> {
     if (data.latitude !== null && data.latitude !== undefined) {
       preparedData.latitude = new Prisma.Decimal(data.latitude);
     }
-
     if (data.longitude !== null && data.longitude !== undefined) {
       preparedData.longitude = new Prisma.Decimal(data.longitude);
     }
@@ -377,11 +275,7 @@ export class DepotsImportExportService extends ImportExportService<any> {
     tx?: any
   ): Promise<any> {
     const model = tx ? tx.depots : prisma.depots;
-
-    const existing = await model.findFirst({
-      where: { code: data.code },
-    });
-
+    const existing = await model.findFirst({ where: { code: data.code } });
     if (!existing) return null;
 
     const updateData: any = {
@@ -393,7 +287,6 @@ export class DepotsImportExportService extends ImportExportService<any> {
     if (data.latitude !== null && data.latitude !== undefined) {
       updateData.latitude = new Prisma.Decimal(data.latitude);
     }
-
     if (data.longitude !== null && data.longitude !== undefined) {
       updateData.longitude = new Prisma.Decimal(data.longitude);
     }
@@ -402,140 +295,5 @@ export class DepotsImportExportService extends ImportExportService<any> {
       where: { id: existing.id },
       data: updateData,
     });
-  }
-
-  async getDepotsWithRelations(filters?: any): Promise<any[]> {
-    return await prisma.depots.findMany({
-      where: filters,
-      include: {
-        depot_companies: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-        zone_depots: {
-          select: {
-            id: true,
-            name: true,
-            code: true,
-          },
-        },
-        route_depots: {
-          select: {
-            id: true,
-            name: true,
-            code: true,
-          },
-        },
-        _count: {
-          select: {
-            promotion_depot: true,
-            serial_numbers: true,
-            user_depot: true,
-          },
-        },
-      },
-      orderBy: { createdate: 'desc' },
-    });
-  }
-
-  async exportToExcel(options: any = {}): Promise<Buffer> {
-    const query: any = {
-      where: options.filters,
-      orderBy: options.orderBy || { id: 'desc' },
-      include: {
-        depot_companies: {
-          select: {
-            name: true,
-          },
-        },
-        _count: {
-          select: {
-            zone_depots: true,
-            route_depots: true,
-            inventory_stock: true,
-            user_depot: true,
-          },
-        },
-      },
-    };
-
-    if (options.limit) query.take = options.limit;
-
-    const data = await this.getModel().findMany(query);
-
-    const workbook = new (await import('exceljs')).Workbook();
-    const worksheet = workbook.addWorksheet(this.displayName);
-
-    const exportColumns = [
-      ...this.columns,
-      { header: 'Company Name', key: 'company_name', width: 30 },
-      { header: 'Total Zones', key: 'total_zones', width: 15 },
-      { header: 'Total Routes', key: 'total_routes', width: 15 },
-      { header: 'Total Stock Items', key: 'total_stock', width: 18 },
-      { header: 'Total Users', key: 'total_users', width: 15 },
-    ];
-
-    worksheet.columns = exportColumns.map(col => ({
-      header: col.header,
-      key: col.key,
-      width: col.width || 20,
-    }));
-
-    const headerRow = worksheet.getRow(1);
-    headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
-    headerRow.fill = {
-      type: 'pattern',
-      pattern: 'solid',
-      fgColor: { argb: 'FF4472C4' },
-    };
-    headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
-    headerRow.height = 25;
-
-    const exportData = await this.transformDataForExport(data);
-    exportData.forEach((row: any, index: number) => {
-      const depot = data[index] as any;
-      row.company_name = depot.depot_companies?.name || '';
-      row.total_zones = depot._count?.zone_depots || 0;
-      row.total_routes = depot._count?.route_depots || 0;
-      row.total_stock = depot._count?.inventory_stock || 0;
-      row.total_users = depot._count?.user_depot || 0;
-
-      const excelRow = worksheet.addRow(row);
-
-      if (index % 2 === 0) {
-        excelRow.fill = {
-          type: 'pattern',
-          pattern: 'solid',
-          fgColor: { argb: 'FFF2F2F2' },
-        };
-      }
-
-      excelRow.eachCell((cell: any) => {
-        cell.border = {
-          top: { style: 'thin' },
-          left: { style: 'thin' },
-          bottom: { style: 'thin' },
-          right: { style: 'thin' },
-        };
-      });
-    });
-
-    if (data.length > 0) {
-      worksheet.autoFilter = {
-        from: 'A1',
-        to: `${String.fromCharCode(64 + exportColumns.length)}${data.length + 1}`,
-      };
-    }
-
-    const summaryRow = worksheet.addRow([]);
-    summaryRow.getCell(1).value = `Total Depots: ${data.length}`;
-    summaryRow.getCell(1).font = { bold: true };
-
-    worksheet.views = [{ state: 'frozen', ySplit: 1 }];
-
-    const buffer = await workbook.xlsx.writeBuffer();
-    return Buffer.from(buffer);
   }
 }

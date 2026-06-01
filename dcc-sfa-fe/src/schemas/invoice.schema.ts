@@ -1,24 +1,32 @@
 import * as Yup from 'yup';
 
 export const invoiceValidationSchema = Yup.object({
-  invoice_number: Yup.string()
-    .optional()
-    .max(50, 'Invoice number must not exceed 50 characters'),
+  invoice_method: Yup.string()
+    .required('Invoice method is required')
+    .oneOf(['order', 'direct'], 'Please select a valid invoice method'),
 
   parent_id: Yup.number()
-    .required('Order is required')
+    .when(['invoice_method'], (values: any[], schema: Yup.NumberSchema) => {
+      const [invoice_method] = values;
+      return invoice_method === 'order'
+        ? schema.required('Order is required when based on order')
+        : schema.optional();
+    })
     .positive('Order must be a positive number'),
 
   customer_id: Yup.number()
-    .required('Customer is required')
+    .when(['invoice_method'], (values: any[], schema: Yup.NumberSchema) => {
+      const [invoice_method] = values;
+      return invoice_method === 'direct'
+        ? schema.required('Customer is required when direct invoice')
+        : schema.optional();
+    })
     .positive('Customer must be a positive number'),
 
   currency_id: Yup.number()
     .optional()
     .positive('Currency must be a positive number'),
-
   invoice_date: Yup.string().required('Invoice date is required'),
-
   due_date: Yup.string()
     .optional()
     .test(
@@ -27,7 +35,14 @@ export const invoiceValidationSchema = Yup.object({
       function (value) {
         const { invoice_date } = this.parent;
         if (!value || !invoice_date) return true;
-        return new Date(value) >= new Date(invoice_date);
+        const dueDate = new Date(value.split('/').reverse().join('-'));
+        const invDate = new Date(invoice_date.split('/').reverse().join('-'));
+        if (isNaN(dueDate.getTime())) {
+          const isoDueDate = new Date(value);
+          const isoInvDate = new Date(invoice_date);
+          return isoDueDate >= isoInvDate;
+        }
+        return dueDate >= invDate;
       }
     ),
 

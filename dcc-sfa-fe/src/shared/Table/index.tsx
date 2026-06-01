@@ -20,10 +20,13 @@ import {
 import { visuallyHidden } from '@mui/utils';
 import classNames from 'classnames';
 import { ArrowUpDown, Lock } from 'lucide-react';
-import React, { useMemo, useState, type ReactNode } from 'react';
-import { useLocalStorage } from '../../hooks/useLocalStorage';
+import React, { useMemo, useState, useEffect, type ReactNode } from 'react';
+import {
+  useUserPreferences,
+  useSaveUserPreferences,
+} from '../../hooks/useUserPreferences';
 import { generateTableId } from '../../utils/generateTableId';
-import { CustomSwitch } from '../CustomSwitch';
+import CustomSwitch from '../CustomSwitch';
 
 /**
  * Configuration for a table column
@@ -101,6 +104,8 @@ export interface TableProps<T = any> {
   stickyHeader?: boolean;
   /** Maximum height of the table container */
   maxHeight?: string | number;
+  /** Minimum height of the table container */
+  minHeight?: string | number;
   /** Total count of records (for backend pagination) */
   totalCount?: number;
   /** Current page number (controlled) */
@@ -131,6 +136,12 @@ export interface TableProps<T = any> {
   tableId?: string;
   /** Unique identifier for this table (used for localStorage persistence) */
   filterColunm?: boolean;
+  /** Optional ID for DOM targeting (e.g., for guided tours) */
+  id?: string;
+  /** Function to group rows by a string key */
+  groupBy?: (row: T) => string;
+  /** Function to render the group header content */
+  renderGroupHeader?: (group: string, rows: T[]) => ReactNode;
 }
 
 /** Sort order type with three states */
@@ -201,6 +212,7 @@ interface TableHeadProps<T> {
   orderBy: string;
   columns: TableColumn<T>[];
   sortable: boolean;
+  compact?: boolean;
   columnVisibility?: Record<string, boolean>;
 }
 
@@ -211,8 +223,15 @@ interface TableHeadProps<T> {
  * @returns Table header JSX element
  */
 function TableHead<T>(props: TableHeadProps<T>) {
-  const { order, orderBy, onRequestSort, columns, sortable, columnVisibility } =
-    props;
+  const {
+    order,
+    orderBy,
+    onRequestSort,
+    columns,
+    sortable,
+    compact,
+    columnVisibility,
+  } = props;
 
   const createSortHandler =
     (property: keyof T | string) => (event: React.MouseEvent<unknown>) => {
@@ -241,6 +260,7 @@ function TableHead<T>(props: TableHeadProps<T>) {
               column.className,
               '!border-b !px-1.5 !border-gray-200 !bg-blue-50 !font-semibold',
               '!whitespace-nowrap !text-gray-700 !p-4 !text-sm',
+              compact ? '!py-3 !text-xs' : '',
               column.numeric && '!justify-end'
             )}
             style={{ width: column.width }}
@@ -357,6 +377,7 @@ export default function Table<T extends Record<string, any>>(
     initialOrder = 'none',
     stickyHeader = false,
     maxHeight,
+    minHeight,
     totalCount = 0,
     page = 0,
     rowsPerPage = 6,
@@ -366,6 +387,7 @@ export default function Table<T extends Record<string, any>>(
     compact = false,
     tableId,
     filterColunm = true,
+    id,
   } = props;
 
   const [order, setOrder] = useState<Order>(initialOrder);
@@ -388,15 +410,26 @@ export default function Table<T extends Record<string, any>>(
     initialColumnVisibility[String(column.id)] = column.isVisible !== false;
   });
 
-  // Generate unique table ID automatically
   const autoTableId = useMemo(() => generateTableId(columns), [columns]);
+  const activeTableId = tableId || autoTableId;
 
-  const [columnVisibility, setColumnVisibility] = useLocalStorage<
+  const { data: preferencesResponse } = useUserPreferences();
+  const savePreferences = useSaveUserPreferences();
+
+  const [columnVisibility, setColumnVisibility] = useState<
     Record<string, boolean>
-  >(
-    `table-column-visibility-${tableId || autoTableId}`,
-    initialColumnVisibility
-  );
+  >(initialColumnVisibility);
+
+  useEffect(() => {
+    if (preferencesResponse?.data) {
+      const savedPref = preferencesResponse.data.find(
+        p => p.route === activeTableId
+      );
+      if (savedPref) {
+        setColumnVisibility(savedPref.preferences);
+      }
+    }
+  }, [preferencesResponse, activeTableId]);
 
   const [columnFilterAnchorEl, setColumnFilterAnchorEl] =
     useState<null | HTMLElement>(null);
@@ -404,10 +437,8 @@ export default function Table<T extends Record<string, any>>(
 
   const visibleColumns = useMemo(() => {
     if (loading) {
-      // Show all columns during loading
       return columns.filter(column => column.isVisible !== false);
     }
-    // Apply column visibility filter after loading
     return columns.filter(column => {
       const columnId = String(column.id);
       return columnVisibility[columnId] !== false && column.isVisible !== false;
@@ -468,6 +499,10 @@ export default function Table<T extends Record<string, any>>(
   ) => {
     const newVisibility = { ...columnVisibility, [columnId]: isVisible };
     setColumnVisibility(newVisibility);
+    savePreferences.mutate({
+      route: activeTableId,
+      preferences: newVisibility,
+    });
   };
 
   const visibleRows = useMemo(() => {
@@ -505,6 +540,7 @@ export default function Table<T extends Record<string, any>>(
           stickyHeader={stickyHeader}
         >
           <TableHead
+            compact={compact}
             order={order}
             orderBy={orderBy ? String(orderBy) : ''}
             onRequestSort={() => {}}
@@ -525,6 +561,7 @@ export default function Table<T extends Record<string, any>>(
         stickyHeader={stickyHeader}
       >
         <TableHead
+          compact={compact}
           order={order}
           orderBy={orderBy ? String(orderBy) : ''}
           onRequestSort={handleRequestSort}
@@ -546,31 +583,65 @@ export default function Table<T extends Record<string, any>>(
               </MuiTableCell>
             </MuiTableRow>
           ) : (
-            visibleRows.map((row, index) => {
-              const rowId = getRowId(row, index);
-              return (
-                <MuiTableRow
-                  hover
-                  onClick={event => handleClick(event, row, index)}
-                  tabIndex={-1}
-                  key={String(rowId)}
-                  className="!whitespace-nowrap last:!border-b-0 !cursor-pointer hover:!bg-gray-50"
-                >
-                  {visibleColumns.map(column => (
+            (() => {
+              const renderRow = (row: T, index: number) => {
+                const rowId = getRowId(row, index);
+                return (
+                  <MuiTableRow
+                    hover
+                    onClick={event => handleClick(event, row, index)}
+                    tabIndex={-1}
+                    key={String(rowId)}
+                    className="!whitespace-nowrap last:!border-b-0 !cursor-pointer hover:!bg-gray-50"
+                  >
+                    {visibleColumns.map(column => (
+                      <MuiTableCell
+                        key={String(column.id)}
+                        align={column.numeric ? 'right' : 'left'}
+                        padding={column.disablePadding ? 'none' : 'normal'}
+                        className="!border-b !p-1.5 !border-gray-100 !text-gray-700 !whitespace-nowrap !text-sm"
+                      >
+                        {column.render
+                          ? column.render(row[column.id], row, index)
+                          : String(row[column.id] || '')}
+                      </MuiTableCell>
+                    ))}
+                  </MuiTableRow>
+                );
+              };
+
+              if (!props.groupBy) {
+                return visibleRows.map((row, index) => renderRow(row, index));
+              }
+
+              const groups: { group: string; rows: T[] }[] = [];
+              const groupMap = new Map<string, T[]>();
+              visibleRows.forEach(row => {
+                const group = props.groupBy!(row);
+                if (!groupMap.has(group)) {
+                  const newGroup: T[] = [];
+                  groupMap.set(group, newGroup);
+                  groups.push({ group, rows: newGroup });
+                }
+                groupMap.get(group)!.push(row);
+              });
+
+              return groups.map(({ group, rows }) => (
+                <React.Fragment key={`group-${group}`}>
+                  <MuiTableRow className="!bg-gray-200">
                     <MuiTableCell
-                      key={String(column.id)}
-                      align={column.numeric ? 'right' : 'left'}
-                      padding={column.disablePadding ? 'none' : 'normal'}
-                      className="!border-b !p-1.5 !border-gray-100 !text-gray-700 !whitespace-nowrap !text-sm"
+                      colSpan={visibleColumns.length}
+                      className="!py-2 !px-4 !font-bold !text-gray-800"
                     >
-                      {column.render
-                        ? column.render(row[column.id], row, index)
-                        : String(row[column.id] || '')}
+                      {props.renderGroupHeader
+                        ? props.renderGroupHeader(group, rows)
+                        : group}
                     </MuiTableCell>
-                  ))}
-                </MuiTableRow>
-              );
-            })
+                  </MuiTableRow>
+                  {rows.map((row, index) => renderRow(row, index))}
+                </React.Fragment>
+              ));
+            })()
           )}
         </MuiTableBody>
       </MuiTable>
@@ -578,16 +649,22 @@ export default function Table<T extends Record<string, any>>(
   };
 
   return (
-    <Box className="!w-full">
+    <Box className="!w-full" id={id}>
       <Paper
         elevation={0}
         className="!bg-white !shadow-sm !rounded-lg !border !border-gray-100"
       >
         {props.actions && !Array.isArray(props.actions) && (
           <>
-            <Box className="!p-3 flex items-start justify-between gap-2">
+            <Box
+              className={classNames(
+                '!p-3 flex gap-2',
+                filterColunm ? 'justify-between items-start' : 'items-start'
+              )}
+            >
               {props.actions}{' '}
               {filterColunm &&
+                isPermission &&
                 hideableColumns &&
                 hideableColumns.length > 0 && (
                   <Box className="!relative">
@@ -663,7 +740,7 @@ export default function Table<T extends Record<string, any>>(
             </Box>
           </Box>
         </Menu>
-        <MuiTableContainer style={{ maxHeight }}>
+        <MuiTableContainer style={{ maxHeight, minHeight }}>
           {renderTableContent()}
         </MuiTableContainer>
         {pagination && isPermission && (

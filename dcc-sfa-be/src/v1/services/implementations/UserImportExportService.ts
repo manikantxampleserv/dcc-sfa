@@ -9,6 +9,46 @@ export class UserImportExportService extends ImportExportService<any> {
   protected uniqueFields = ['email', 'employee_id'];
   protected searchFields = ['name', 'email', 'employee_id', 'phone_number'];
 
+  private validationCache: Map<string, string | null> = new Map();
+
+  protected masterTableConfigs = [
+    {
+      masterTable: 'roles' as any,
+      masterKey: 'id',
+      masterDisplayFields: ['id', 'name', 'description'],
+      sheetName: 'Ref - Roles',
+      description: 'Use the ID from this sheet in the Role ID column',
+    },
+    {
+      masterTable: 'depots' as any,
+      masterKey: 'id',
+      masterDisplayFields: ['id', 'name', 'code'],
+      sheetName: 'Ref - Depots',
+      description: 'Use the ID from this sheet in the Depot ID column',
+    },
+    {
+      masterTable: 'companies' as any,
+      masterKey: 'id',
+      masterDisplayFields: ['id', 'name', 'code'],
+      sheetName: 'Ref - Companies',
+      description: 'Use the ID from this sheet in the Company ID column',
+    },
+    {
+      masterTable: 'zones' as any,
+      masterKey: 'id',
+      masterDisplayFields: ['id', 'name', 'code'],
+      sheetName: 'Ref - Zones',
+      description: 'Use the ID from this sheet in the Zone ID column',
+    },
+    {
+      masterTable: 'users' as any,
+      masterKey: 'id',
+      masterDisplayFields: ['id', 'name', 'email', 'employee_id'],
+      sheetName: 'Ref - Managers',
+      description: 'Use the ID from this sheet in the Reporting To column',
+    },
+  ];
+
   protected columns: ColumnDefinition[] = [
     {
       key: 'email',
@@ -203,6 +243,25 @@ export class UserImportExportService extends ImportExportService<any> {
       transform: value => (value ? value.toString().toUpperCase() : 'Y'),
       description: 'Active status - Y for Yes, N for No (defaults to Y)',
     },
+    {
+      key: 'platform',
+      header: 'Platform',
+      width: 15,
+      type: 'string',
+      required: false,
+      validation: value => {
+        if (!value) return true;
+        if (value.length > 20)
+          return 'Platform must be less than 20 characters';
+        const validPlatforms = ['Web', 'Mobile', 'API', 'Desktop'];
+        if (!validPlatforms.includes(value)) {
+          return `Platform must be one of: ${validPlatforms.join(', ')}`;
+        }
+        return true;
+      },
+      transform: value => (value ? value.toString().trim() : null),
+      description: 'User platform - Web, Mobile, API, or Desktop (optional)',
+    },
   ];
 
   protected async getSampleData(): Promise<any[]> {
@@ -262,6 +321,7 @@ export class UserImportExportService extends ImportExportService<any> {
         joining_date: '2024-01-15',
         address: '123 Main Street, City',
         is_active: 'Y',
+        platform: 'web',
       },
       {
         email: 'jane.smith@example.com',
@@ -277,6 +337,7 @@ export class UserImportExportService extends ImportExportService<any> {
         joining_date: '2024-02-01',
         address: '456 Park Avenue, City',
         is_active: 'Y',
+        platform: 'mobile',
       },
     ];
   }
@@ -320,6 +381,7 @@ export class UserImportExportService extends ImportExportService<any> {
         ? new Date(user.updatedate).toISOString().split('T')[0]
         : '',
       updated_by: user.updatedby || '',
+      platform: user.platform || '',
     }));
   }
 
@@ -361,92 +423,77 @@ export class UserImportExportService extends ImportExportService<any> {
   ): Promise<string | null> {
     const prismaClient = tx || prisma;
 
+    const checkCache = async (
+      type: string,
+      id: any,
+      validator: () => Promise<string | null>
+    ) => {
+      if (!id) return null;
+      const cacheKey = `${type}_${id}`;
+      if (this.validationCache.has(cacheKey)) {
+        return this.validationCache.get(cacheKey)!;
+      }
+      const result = await validator();
+      this.validationCache.set(cacheKey, result);
+      return result;
+    };
+
     if (data.role_id) {
-      try {
+      const error = await checkCache('role', data.role_id, async () => {
         const role = await prismaClient.roles.findUnique({
           where: { id: data.role_id },
         });
-
-        if (!role) {
-          const availableRoles = await prismaClient.roles.findMany({
-            where: {
-              OR: [{ isactive: 'Y' }, { is_active: 'Y' }],
-            },
-            select: { id: true, name: true },
-            take: 10,
-            orderBy: { id: 'asc' },
-          });
-
-          if (availableRoles.length === 0) {
-            return `No active roles found in the system. Please create roles first.`;
-          }
-
-          const rolesList = availableRoles
-            .map((r: { id: number; name: string }) => `${r.id} (${r.name})`)
-            .join(', ');
-          return `Role ID ${data.role_id} does not exist. Available role IDs: ${rolesList}`;
-        }
-
+        if (!role) return `Role ID ${data.role_id} does not exist`;
         const isActive = (role as any).isactive || (role as any).is_active;
-        if (isActive !== 'Y') {
-          return `Role with ID ${data.role_id} is inactive`;
-        }
-      } catch (error) {
-        return `Invalid Role ID ${data.role_id}`;
-      }
+        if (isActive !== 'Y') return `Role with ID ${data.role_id} is inactive`;
+        return null;
+      });
+      if (error) return error;
     }
 
     if (data.depot_id) {
-      try {
+      const error = await checkCache('depot', data.depot_id, async () => {
         const depot = await prismaClient.depots.findUnique({
           where: { id: data.depot_id },
         });
-        if (!depot) {
-          return `Depot with ID ${data.depot_id} does not exist`;
-        }
+        if (!depot) return `Depot with ID ${data.depot_id} does not exist`;
         const isActive = (depot as any).isactive || (depot as any).is_active;
-        if (isActive !== 'Y') {
+        if (isActive !== 'Y')
           return `Depot with ID ${data.depot_id} is inactive`;
-        }
-      } catch (error) {
-        return `Invalid Depot ID ${data.depot_id}`;
-      }
+        return null;
+      });
+      if (error) return error;
     }
 
     if (data.parent_id) {
-      try {
+      const error = await checkCache('company', data.parent_id, async () => {
         const company = await prismaClient.companies.findUnique({
           where: { id: data.parent_id },
         });
-        if (!company) {
-          return `Company with ID ${data.parent_id} does not exist`;
-        }
+        if (!company) return `Company with ID ${data.parent_id} does not exist`;
         const isActive =
           (company as any).isactive || (company as any).is_active;
-        if (isActive !== 'Y') {
+        if (isActive !== 'Y')
           return `Company with ID ${data.parent_id} is inactive`;
-        }
-      } catch (error) {
-        return `Invalid Company ID ${data.parent_id}`;
-      }
+        return null;
+      });
+      if (error) return error;
     }
 
     if (data.reporting_to) {
-      try {
+      const error = await checkCache('manager', data.reporting_to, async () => {
         const manager = await prismaClient.users.findUnique({
           where: { id: data.reporting_to },
         });
-        if (!manager) {
+        if (!manager)
           return `Reporting Manager with ID ${data.reporting_to} does not exist`;
-        }
         const isActive =
           (manager as any).is_active || (manager as any).isactive;
-        if (isActive !== 'Y') {
+        if (isActive !== 'Y')
           return `Reporting Manager with ID ${data.reporting_to} is inactive`;
-        }
-      } catch (error) {
-        return `Invalid Reporting Manager ID ${data.reporting_to}`;
-      }
+        return null;
+      });
+      if (error) return error;
     }
 
     return null;
@@ -454,7 +501,8 @@ export class UserImportExportService extends ImportExportService<any> {
 
   protected async prepareDataForImport(
     data: any,
-    userId: number
+    userId: number,
+    tx?: any
   ): Promise<any> {
     const password = data.password || 'Welcome@123';
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -474,6 +522,7 @@ export class UserImportExportService extends ImportExportService<any> {
       reporting_to: data.reporting_to || null,
       profile_image: null,
       is_active: data.is_active || 'Y',
+      platform: data.platform || null,
       createdby: userId,
       createdate: new Date(),
       log_inst: 1,
@@ -520,6 +569,7 @@ export class UserImportExportService extends ImportExportService<any> {
           ? data.reporting_to
           : existing.reporting_to,
       is_active: data.is_active || existing.is_active,
+      platform: data.platform !== undefined ? data.platform : existing.platform,
       updatedby: userId,
       updatedate: new Date(),
     };
@@ -597,6 +647,7 @@ export class UserImportExportService extends ImportExportService<any> {
       { header: 'Created By', key: 'created_by', width: 15 },
       { header: 'Updated Date', key: 'updated_date', width: 20 },
       { header: 'Updated By', key: 'updated_by', width: 15 },
+      { header: 'Platform', key: 'platform', width: 15 },
     ];
 
     worksheet.columns = exportColumns.map(col => ({

@@ -226,20 +226,73 @@ export const routesController = {
       const searchLower = (search as string).toLowerCase();
 
       const userFilters: any = {
-        is_active: 'Y',
-        ...(search && {
+        AND: [
+          { is_active: 'Y' },
+          {
+            user_role: {
+              OR: [
+                { name: { contains: 'Salesman' } },
+                { name: { contains: 'Salesperson' } },
+                { role_key: { contains: 'salesman' } },
+                { role_key: { contains: 'salesperson' } },
+              ],
+            },
+          },
+        ],
+      };
+
+      if (search) {
+        userFilters.AND.push({
           OR: [
             { name: { contains: searchLower } },
             { email: { contains: searchLower } },
             { employee_id: { contains: searchLower } },
           ],
-        }),
-        user_role: {
-          name: { contains: 'Sales' },
-        },
-        ...(depot_id && { depot_id: parseInt(depot_id as string, 10) }),
-        ...(zone_id && { zone_id: parseInt(zone_id as string, 10) }),
-      };
+        });
+      }
+
+      if (depot_id) {
+        userFilters.AND.push({
+          OR: [
+            {
+              users_depots_users: {
+                some: {
+                  depot_id: parseInt(depot_id as string, 10),
+                  is_active: 'Y',
+                },
+              },
+            },
+            {
+              route_salespersons: {
+                some: {
+                  route: {
+                    depot_id: parseInt(depot_id as string, 10),
+                  },
+                  is_active: 'Y',
+                },
+              },
+            },
+          ],
+        });
+      }
+
+      if (zone_id) {
+        userFilters.AND.push({
+          OR: [
+            { zone_id: parseInt(zone_id as string, 10) },
+            {
+              route_salespersons: {
+                some: {
+                  route: {
+                    parent_id: parseInt(zone_id as string, 10),
+                  },
+                  is_active: 'Y',
+                },
+              },
+            },
+          ],
+        });
+      }
 
       const { data, pagination } = await paginate({
         model: prisma.users,
@@ -249,7 +302,21 @@ export const routesController = {
         orderBy: { createdate: 'desc' },
         include: {
           route_salespersons: {
-            where: { is_active: 'Y' },
+            where: {
+              is_active: 'Y',
+              ...(depot_id || zone_id
+                ? {
+                    route: {
+                      ...(depot_id && {
+                        depot_id: parseInt(depot_id as string, 10),
+                      }),
+                      ...(zone_id && {
+                        parent_id: parseInt(zone_id as string, 10),
+                      }),
+                    },
+                  }
+                : {}),
+            },
             include: {
               route: {
                 select: { id: true, name: true, code: true },
@@ -263,6 +330,7 @@ export const routesController = {
         id: u.id,
         name: u.name,
         email: u.email,
+        code: u.employee,
         profile_image: u.profile_image,
         depot_id: u.depot_id,
         zone_id: u.zone_id,
@@ -278,17 +346,30 @@ export const routesController = {
       const totalSalespersons = await prisma.users.count({
         where: userFilters,
       });
+
       const totalRoutes = await prisma.routes.count({
-        where: { is_active: 'Y' },
+        where: {
+          is_active: 'Y',
+          ...(depot_id && { depot_id: parseInt(depot_id as string, 10) }),
+          ...(zone_id && { parent_id: parseInt(zone_id as string, 10) }),
+        },
       });
+
       const assignedRoutesDistinct = await prisma.route_salespersons.findMany({
-        where: { is_active: 'Y' },
+        where: {
+          is_active: 'Y',
+          route: {
+            ...(depot_id && { depot_id: parseInt(depot_id as string, 10) }),
+            ...(zone_id && { parent_id: parseInt(zone_id as string, 10) }),
+          },
+        },
         distinct: ['route_id'],
         select: { route_id: true },
       });
+
       const totalAssignedRoutes = assignedRoutesDistinct.length;
       const totalUnassignedRoutes = Math.max(
-        totalRoutes - assignedRoutesDistinct.length,
+        totalRoutes - totalAssignedRoutes,
         0
       );
 

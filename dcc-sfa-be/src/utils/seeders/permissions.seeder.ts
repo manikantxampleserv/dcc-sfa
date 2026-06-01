@@ -25,8 +25,8 @@ interface MockPermission {
  * @type {Record<string, string>}
  */
 const MODULE_MAPPING: Record<string, string> = {
-  dashboard: 'Dashboard',
-  company: 'Company Master',
+  'executive-dashboard': 'Executive Dashboard',
+  'grading-dashboard': 'Grading Dashboard',
   user: 'User Management',
   role: 'Role & Permission',
   depot: 'Depot',
@@ -37,15 +37,14 @@ const MODULE_MAPPING: Record<string, string> = {
   outlet: 'Outlet Master',
   'outlet-group': 'Outlet Group',
   'asset-type': 'Asset Type',
+  'asset-brand': 'Asset Brand',
   'asset-sub-types': 'Asset Sub Types',
   'asset-master': 'Asset Master',
-  warehouse: 'Warehouse',
   vehicle: 'Vehicle',
   brand: 'Brand',
   'product-category': 'Product Category',
   'product-sub-category': 'Product Sub Category',
   'unit-of-measurement': 'Unit Of Measurement',
-  'subunit-of-measurement': 'Subunit Of Measurement',
   product: 'Product',
   'sales-target-group': 'Sales Target Group',
   'sales-target': 'Sales Target',
@@ -54,10 +53,8 @@ const MODULE_MAPPING: Record<string, string> = {
   survey: 'Survey',
   promotions: 'Promotions',
   order: 'Order',
-  return: 'Return Request',
   payment: 'Payment',
   invoice: 'Invoice',
-  'credit-note': 'Credit Note',
   visit: 'Visit',
   'asset-movement': 'Asset Movement',
   maintenance: 'Asset Maintenance',
@@ -65,14 +62,11 @@ const MODULE_MAPPING: Record<string, string> = {
   inspection: 'Cooler Inspection',
   'van-stock': 'Van Inventory',
   'stock-movement': 'Stock Movement',
-  'stock-transfer': 'Stock Transfer Request',
-  'batch-lots': 'Batch & Lot Management',
-  'inventory-management': 'Inventory Management',
   competitor: 'Competitor Activity',
   'customer-complaint': 'Customer Complaint',
-  'customer-category': 'Customer Category',
-  'customer-type': 'Customer Type',
-  'customer-channel': 'Customer Channel',
+  'customer-category': 'Outlet Category',
+  'customer-type': 'Outlet Type',
+  'customer-channel': 'Outlet Channel',
   'product-flavour': 'Product Flavour',
   'product-volume': 'Product Volume',
   'product-shelf-life': 'Product Shelf Life',
@@ -80,17 +74,22 @@ const MODULE_MAPPING: Record<string, string> = {
   'product-target-group': 'Product Target Group',
   'product-web-order': 'Product Web Order',
   'inventory-items': 'Inventory Items',
-  coolers: 'Coolers',
   location: 'GPS Tracking',
   'route-effectiveness': 'Route Effectiveness',
   report: 'Report',
   approval: 'Approval Workflow',
-  profile: 'Profile',
+  exception: 'Exception',
   'tax-master': 'Tax Master',
   'login-history': 'Login History',
   token: 'Token',
   setting: 'Setting',
-  templates: 'email-templates',
+  templates: 'Email Templates',
+  region: 'Region Master',
+  district: 'District Master',
+  city: 'City Master',
+  pricelist: 'Price List',
+  'audit-log': 'Audit Log',
+  attendance: 'Attendance',
 };
 
 /**
@@ -118,12 +117,13 @@ const ACTIONS: Array<{ key: string; name: string; description: string }> = [
  * @type {string[]}
  */
 const READ_ONLY_MODULES: string[] = [
-  'dashboard',
+  'executive-dashboard',
+  'grading-dashboard',
   'report',
   'location',
   'route-effectiveness',
-  'profile',
   'login-history',
+  'inventory-items',
 ];
 
 /**
@@ -134,7 +134,7 @@ const mockPermissions: MockPermission[] = [];
 
 MODULES.forEach(moduleKey => {
   ACTIONS.forEach(action => {
-    if (READ_ONLY_MODULES.includes(moduleKey) && action.key === 'delete') {
+    if (READ_ONLY_MODULES.includes(moduleKey) && action.key !== 'read') {
       return;
     }
 

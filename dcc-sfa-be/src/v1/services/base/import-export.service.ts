@@ -11,6 +11,7 @@ import { ParseResultWithErrors } from '../../../types/import-export-errors.types
 import { ImportExportErrorHandler } from './import-export-error.service';
 import prisma from '../../../configs/prisma.client';
 import { PrismaClient } from '@prisma/client';
+import { config } from 'dotenv';
 
 export abstract class ImportExportService<T> {
   protected abstract modelName: keyof PrismaClient;
@@ -39,6 +40,20 @@ export abstract class ImportExportService<T> {
 
   getSearchFields(): string[] {
     return this.searchFields;
+  }
+
+  protected translatePrismaError(error: any): string {
+    if (error.code === 'P2025') {
+      return 'Related record not found (Asset Type, Category, Zone, etc.). Please check if the IDs or codes in your Excel exist in the system.';
+    }
+    if (error.code === 'P2002') {
+      const target = error.meta?.target;
+      return `A record with this ${Array.isArray(target) ? target.join(', ') : target || 'unique value'} already exists.`;
+    }
+    if (error.message && error.message.includes('Foreign key constraint failed')) {
+      return 'Referenced record not found. Please ensure all related IDs (like Zone ID, Type ID, etc.) are valid.';
+    }
+    return error.message;
   }
 
   async parseExcelFile(buffer: Buffer): Promise<ParseResultWithErrors> {
@@ -234,6 +249,52 @@ export abstract class ImportExportService<T> {
       }
     });
 
+    for (const config of this.masterTableConfigs) {
+      const masterData = await this.getMasterTableData(config);
+      console.log(
+        `[Template] ${this.displayName}: Generated sheet '${config.sheetName}' with ${masterData.length} reference records`
+      );
+
+      const masterSheet = workbook.addWorksheet(config.sheetName);
+
+      const masterColumns = config.masterDisplayFields.map(field => ({
+        header: field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+        key: field,
+        width: 20,
+      }));
+
+      masterSheet.columns = masterColumns;
+
+      const masterHeader = masterSheet.getRow(1);
+      masterHeader.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+      masterHeader.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FF4472C4' },
+      };
+      masterHeader.alignment = { vertical: 'middle', horizontal: 'center' };
+      masterHeader.height = 25;
+
+      masterData.forEach((data, index) => {
+        const row = masterSheet.addRow(data);
+        row.eachCell(cell => {
+          cell.border = {
+            top: { style: 'thin' },
+            left: { style: 'thin' },
+            bottom: { style: 'thin' },
+            right: { style: 'thin' },
+          };
+        });
+        if (index % 2 === 0) {
+          row.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFF2F2F2' },
+          };
+        }
+      });
+    }
+
     const instructionSheet = workbook.addWorksheet('Instructions');
     instructionSheet.columns = [
       { header: 'Field', key: 'field', width: 25 },
@@ -266,6 +327,26 @@ export abstract class ImportExportService<T> {
         };
       }
     });
+
+    if (this.masterTableConfigs.length > 0) {
+      instructionSheet.addRow([]);
+      instructionSheet.addRow(['MASTER TABLE REFERENCES:', '', '', '']);
+      instructionSheet.addRow([
+        'Use the following sheets for reference data:',
+        '',
+        '',
+        '',
+      ]);
+
+      this.masterTableConfigs.forEach(config => {
+        instructionSheet.addRow([
+          `- ${config.sheetName}: ${config.description}`,
+          '',
+          '',
+          '',
+        ]);
+      });
+    }
 
     instructionSheet.addRow([]);
     instructionSheet.addRow(['GENERAL INSTRUCTIONS:', '', '', '']);
@@ -535,11 +616,17 @@ export abstract class ImportExportService<T> {
                   message: duplicateCheck,
                   action: 'skipped',
                 });
+                console.log(
+                  `[Import] ${this.displayName}: Row ${rowNum} skipped (Duplicate)`
+                );
               } else if (options.updateExisting) {
                 const updated = await this.updateExisting(row, userId, tx);
                 if (updated) {
                   importedData.push(updated);
                   success++;
+                  console.log(
+                    `[Import] ${this.displayName}: Row ${rowNum} updated successfully`
+                  );
                   continue;
                 } else {
                   failed++;
@@ -548,6 +635,9 @@ export abstract class ImportExportService<T> {
                     message: 'Failed to update existing record',
                     action: 'failed',
                   });
+                  console.error(
+                    `[Import] ${this.displayName}: Row ${rowNum} failed to update existing record`
+                  );
                 }
               } else {
                 failed++;
@@ -556,6 +646,9 @@ export abstract class ImportExportService<T> {
                   message: duplicateCheck,
                   action: 'rejected',
                 });
+                console.warn(
+                  `[Import] ${this.displayName}: Row ${rowNum} rejected (Duplicate - ${duplicateCheck})`
+                );
               }
 
               if (rowErrors.errors.length > 0) {
@@ -575,25 +668,39 @@ export abstract class ImportExportService<T> {
               });
               detailedErrors.push(rowErrors);
               errors.push(`Row ${rowNum}: ${fkValidation}`);
+              console.warn(
+                `[Import] ${this.displayName}: Row ${rowNum} failed validation - ${fkValidation}`
+              );
               continue;
             }
 
-            const preparedData = await this.prepareDataForImport(row, userId);
+            const preparedData = await this.prepareDataForImport(
+              row,
+              userId,
+              tx
+            );
             const created = await (tx as any)[this.modelName].create({
               data: preparedData,
             });
 
             importedData.push(created);
             success++;
+            console.log(
+              `[Import] ${this.displayName}: Row ${rowNum} imported successfully`
+            );
           } catch (error: any) {
             failed++;
+            const readableError = this.translatePrismaError(error);
             rowErrors.errors.push({
               type: 'system',
-              message: error.message,
+              message: readableError,
               action: 'failed',
             });
             detailedErrors.push(rowErrors);
-            errors.push(`Row ${rowNum}: ${error.message}`);
+            errors.push(`Row ${rowNum}: ${readableError}`);
+            console.error(
+              `[Import] ${this.displayName}: Row ${rowNum} failed - ${error.message}`
+            );
           }
         }
 
@@ -606,7 +713,7 @@ export abstract class ImportExportService<T> {
             detailedErrors.length > 0 ? detailedErrors : undefined,
         };
       },
-      { timeout: 300000 }
+      { timeout: 600000, maxWait: 600000 }
     );
 
     return results;
@@ -659,6 +766,72 @@ export abstract class ImportExportService<T> {
     };
   }
 
+  protected masterTableConfigs: Array<{
+    masterTable: keyof PrismaClient;
+    masterKey: string;
+    masterDisplayFields: string[];
+    sheetName: string;
+    description: string;
+  }> = [];
+
+  protected async getMasterTableData(config: any): Promise<any[]> {
+    const { masterTable, masterDisplayFields } = config;
+
+    try {
+      const model = (prisma as any)[masterTable];
+
+      if (!model || typeof model.findMany !== 'function') {
+        console.warn(`getMasterTableData: model '${masterTable}' not found`);
+        return [];
+      }
+
+      const selectFields = masterDisplayFields.reduce(
+        (acc: Record<string, boolean>, field: string) => ({
+          ...acc,
+          [field]: true,
+        }),
+        {}
+      );
+
+      try {
+        const whereClause =
+          masterTable === 'asset_master' ? {} : { is_active: 'Y' };
+
+        const result = await model.findMany({
+          select: selectFields,
+          where: whereClause,
+          orderBy: { id: 'asc' },
+        });
+        return result;
+      } catch (e1) {
+        console.warn(
+          `getMasterTableData [${masterTable}] failed with is_active filter:`,
+          (e1 as any)?.message
+        );
+      }
+
+      try {
+        const result = await model.findMany({
+          select: selectFields,
+          orderBy: { id: 'asc' },
+        });
+        return result;
+      } catch (e2) {
+        console.warn(
+          `getMasterTableData [${masterTable}] failed without filter:`,
+          (e2 as any)?.message
+        );
+      }
+
+      return [];
+    } catch (error) {
+      console.warn(
+        `getMasterTableData [${masterTable}] outer error:`,
+        (error as any)?.message
+      );
+      return [];
+    }
+  }
   protected abstract getSampleData(): Promise<any[]>;
   protected abstract getColumnDescription(key: string): string;
   protected abstract transformDataForExport(data: any[]): Promise<any[]>;
@@ -672,7 +845,8 @@ export abstract class ImportExportService<T> {
   ): Promise<string | null>;
   protected abstract prepareDataForImport(
     data: any,
-    userId: number
+    userId: number,
+    tx?: any
   ): Promise<any>;
   protected abstract updateExisting(
     data: any,

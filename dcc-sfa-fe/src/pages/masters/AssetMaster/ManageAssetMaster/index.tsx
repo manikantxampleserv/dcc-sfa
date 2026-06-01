@@ -8,6 +8,8 @@ import {
 } from 'hooks/useAssetMaster';
 import { useAssetTypes } from 'hooks/useAssetTypes';
 import { useAssetSubTypes } from 'hooks/useAssetSubTypes';
+import { useAssetBrands } from 'hooks/useAssetBrands';
+import { useDepots } from 'hooks/useDepots';
 import React, { useEffect, useRef, useState } from 'react';
 import { assetMasterValidationSchema } from 'schemas/assetMaster.schema';
 import ActiveInactiveField from 'shared/ActiveInactiveField';
@@ -15,7 +17,17 @@ import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
 import Select from 'shared/Select';
-import UserSelect from 'shared/UserSelect';
+import DepotSelect from 'shared/DepotSelect';
+
+export const statusOptions = [
+  { value: 'Available', label: 'Available' },
+  { value: 'Installed', label: 'Installed' },
+  { value: 'Under Maintenance', label: 'Under Maintenance' },
+  { value: 'Under Investigation', label: 'Under Investigation' },
+  { value: 'Retired', label: 'Retired' },
+  { value: 'Lost', label: 'Lost' },
+  { value: 'Damaged', label: 'Damaged' },
+];
 
 interface ManageAssetMasterProps {
   selectedAsset?: AssetMaster | null;
@@ -42,12 +54,29 @@ const ManageAssetMaster: React.FC<ManageAssetMasterProps> = ({
   });
   const assetTypes = assetTypesResponse?.data || [];
 
+  const { data: assetBrandsResponse } = useAssetBrands({
+    page: 1,
+    limit: 1000,
+    isActive: 'Y',
+  });
+  const assetBrands = assetBrandsResponse?.data || [];
+
+  const { data: depotsResponse } = useDepots({
+    page: 1,
+    limit: 1000,
+    isActive: 'Y',
+  });
+  const depots = depotsResponse?.data || [];
+
   const formik = useFormik({
     initialValues: {
       name: selectedAsset?.name || '',
       asset_type_id: selectedAsset?.asset_type_id || 0,
       asset_sub_type_id: selectedAsset?.asset_sub_type_id || 0,
+      asset_brand_id: selectedAsset?.asset_brand_id || 0,
       serial_number: selectedAsset?.serial_number || '',
+      barcode: selectedAsset?.barcode || '',
+      nfc_tag_code: selectedAsset?.nfc_tag_code || '',
       purchase_date: selectedAsset?.purchase_date
         ? selectedAsset.purchase_date.split('T')[0]
         : null,
@@ -55,9 +84,8 @@ const ManageAssetMaster: React.FC<ManageAssetMasterProps> = ({
         ? selectedAsset.warranty_expiry.split('T')[0]
         : null,
       warranty_period: '1',
-      current_location: selectedAsset?.current_location || '',
       current_status: selectedAsset?.current_status || 'Available',
-      assigned_to: selectedAsset?.assigned_to || '',
+      depot_id: selectedAsset?.depot_id || '',
       is_active: selectedAsset?.is_active || 'Y',
     },
     validationSchema: assetMasterValidationSchema,
@@ -70,11 +98,13 @@ const ManageAssetMaster: React.FC<ManageAssetMasterProps> = ({
           asset_sub_type_id: values.asset_sub_type_id
             ? Number(values.asset_sub_type_id)
             : null,
+          asset_brand_id: values.asset_brand_id
+            ? Number(values.asset_brand_id)
+            : null,
           purchase_date: values.purchase_date || null,
           warranty_expiry: values.warranty_expiry || null,
-          current_location: values.current_location || null,
           current_status: values.current_status || null,
-          assigned_to: values.assigned_to || null,
+          depot_id: values.depot_id ? Number(values.depot_id) : null,
         };
 
         if (isEdit && selectedAsset) {
@@ -95,11 +125,9 @@ const ManageAssetMaster: React.FC<ManageAssetMasterProps> = ({
     },
   });
 
-  const selectedAssetTypeId = formik.values.asset_type_id;
   const { data: assetSubTypesResponse } = useAssetSubTypes({
     page: 1,
     limit: 1000,
-    assetTypeId: selectedAssetTypeId ? Number(selectedAssetTypeId) : undefined,
   });
   const assetSubTypes = assetSubTypesResponse?.data || [];
 
@@ -187,14 +215,17 @@ const ManageAssetMaster: React.FC<ManageAssetMasterProps> = ({
     }
   }, [formik.values.asset_type_id]);
 
-  const statusOptions = [
-    { value: 'Available', label: 'Available' },
-    { value: 'Installed', label: 'Installed' },
-    { value: 'Under Maintenance', label: 'Under Maintenance' },
-    { value: 'Retired', label: 'Retired' },
-    { value: 'Lost', label: 'Lost' },
-    { value: 'Damaged', label: 'Damaged' },
-  ];
+  useEffect(() => {
+    if (!isEdit && drawerOpen && depots.length > 0 && !formik.values.depot_id) {
+      const moshiDepot = depots.find(
+        (depot: any) => depot.name?.toUpperCase() === 'MOSHI'
+      );
+      if (moshiDepot) {
+        formik.setFieldValue('depot_id', moshiDepot.id.toString());
+      }
+    }
+  }, [depots, isEdit, drawerOpen, formik.values.depot_id]);
+
 
   return (
     <CustomDrawer
@@ -230,11 +261,18 @@ const ManageAssetMaster: React.FC<ManageAssetMasterProps> = ({
               name="asset_sub_type_id"
               label="Asset Sub Type"
               formik={formik}
-              disabled={!selectedAssetTypeId}
             >
               {assetSubTypes.map(subType => (
                 <MenuItem key={subType.id} value={subType.id}>
                   {subType.name}
+                </MenuItem>
+              ))}
+            </Select>
+
+            <Select name="asset_brand_id" label="Asset Brand" formik={formik}>
+              {assetBrands.map((brand: any) => (
+                <MenuItem key={brand.id} value={brand.id}>
+                  {brand.name}
                 </MenuItem>
               ))}
             </Select>
@@ -248,45 +286,20 @@ const ManageAssetMaster: React.FC<ManageAssetMasterProps> = ({
             />
 
             <Input
-              name="purchase_date"
-              label="Purchase Date"
-              type="date"
+              name="barcode"
+              label="Asset Barcode"
+              placeholder="Enter asset barcode"
               formik={formik}
-              slotProps={{ inputLabel: { shrink: true } }}
-            />
-
-            <Select
-              name="warranty_period"
-              label="Warranty Period"
-              formik={formik}
-            >
-              <MenuItem value="1">1 Year</MenuItem>
-              <MenuItem value="2">2 Years</MenuItem>
-              <MenuItem value="3">3 Years</MenuItem>
-              <MenuItem value="4">4 Years</MenuItem>
-              <MenuItem value="5">5 Years</MenuItem>
-            </Select>
-
-            <Input
-              name="warranty_expiry"
-              label="Warranty Expiry"
-              type="date"
-              formik={formik}
-              slotProps={{ inputLabel: { shrink: true } }}
             />
 
             <Input
-              name="current_location"
-              label="Current Location"
-              placeholder="Enter current location"
+              name="nfc_tag_code"
+              label="NFC Tag"
+              placeholder="Enter NFC Tag"
               formik={formik}
             />
 
-            <Select
-              name="current_status"
-              label="Current Status"
-              formik={formik}
-            >
+            <Select name="current_status" label="Asset Status" formik={formik}>
               {statusOptions.map(option => (
                 <MenuItem key={option.value} value={option.value}>
                   {option.label}
@@ -294,14 +307,19 @@ const ManageAssetMaster: React.FC<ManageAssetMasterProps> = ({
               ))}
             </Select>
 
-            <UserSelect
-              name="assigned_to"
-              label="Assigned To"
+            <DepotSelect
+              name="depot_id"
+              label="Depot"
               formik={formik}
-              placeholder="Search user..."
+              placeholder="Select depot"
             />
 
-            <ActiveInactiveField name="is_active" formik={formik} required />
+            <ActiveInactiveField
+              name="is_active"
+              formik={formik}
+              required
+              className="col-span-2"
+            />
           </Box>
 
           <Box className="!space-y-3">
@@ -423,7 +441,7 @@ const ManageAssetMaster: React.FC<ManageAssetMasterProps> = ({
               }
             >
               {createAssetMasterMutation.isPending ||
-              updateAssetMasterMutation.isPending
+                updateAssetMasterMutation.isPending
                 ? isEdit
                   ? 'Updating...'
                   : 'Creating...'

@@ -24,7 +24,7 @@ import {
   type VanInventory,
 } from '../../../hooks/useVanInventory';
 import UserSelect from '../../../shared/UserSelect';
-import { formatDate } from '../../../utils/dateUtils';
+import { formatDateTime } from '../../../utils/dateUtils';
 import ImportVanInventory from './ImportVanInventory';
 import ManageVanInventory from './ManageVanInventory';
 import VanInventoryDetail from './VanInventoryDetail';
@@ -272,7 +272,7 @@ const VanStockPage: React.FC = () => {
       id: 'document_date',
       label: 'Document Date',
       render: (_value, row) =>
-        formatDate(row.document_date) || (
+        formatDateTime(row.document_date) || (
           <span className="italic text-gray-400">No Date</span>
         ),
     },
@@ -293,7 +293,7 @@ const VanStockPage: React.FC = () => {
       id: 'last_updated',
       label: 'Last Updated',
       render: (_value, row) => {
-        const formattedDate = formatDate(row.last_updated);
+        const formattedDate = formatDateTime(row.last_updated);
         return formattedDate ? (
           <span>{formattedDate}</span>
         ) : (
@@ -354,7 +354,7 @@ const VanStockPage: React.FC = () => {
         </Box>
       </Box>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
         <StatsCard
           title="Total Records"
           value={totalVanInventory}
@@ -410,7 +410,6 @@ const VanStockPage: React.FC = () => {
                   <Select
                     value={statusFilter}
                     onChange={e => handleStatusFilterChange(e.target.value)}
-                    className="!w-32"
                     disableClearable
                   >
                     <MenuItem value="all">All Status</MenuItem>
@@ -420,14 +419,13 @@ const VanStockPage: React.FC = () => {
                   <Select
                     value={typeFilter}
                     onChange={e => handleTypeFilterChange(e.target.value)}
-                    className="!w-32"
                     disableClearable
                   >
                     <MenuItem value="all">All Types</MenuItem>
                     <MenuItem value="load">Load</MenuItem>
                     <MenuItem value="unload">Unload</MenuItem>
                   </Select>
-                  <Box className="!w-70">
+                  <Box className="!w-72">
                     <UserSelect
                       label=""
                       placeholder="Select User"

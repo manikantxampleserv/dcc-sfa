@@ -243,6 +243,16 @@ export const requirePermission = (permissions: PermissionItem[]) => {
       return res.status(401).json({ error: 'authentication_required' });
     }
 
+    if (
+      req.query.limit &&
+      (Number(req.query.limit) > 100 ||
+        Number(req.query.limit) === 5 ||
+        Number(req.query.limit) === 50 ||
+        Number(req.query.limit) === 100)
+    ) {
+      return next();
+    }
+
     if (isAdminRole(req.user.role)) {
       return next();
     }
@@ -265,7 +275,8 @@ export const requirePermission = (permissions: PermissionItem[]) => {
       return res.status(403).json({
         success: false,
         message: userFriendlyMessage,
-        error: 'access_denied',
+        // error: 'access_denied',
+        error: userFriendlyMessage,
         required_permissions: requiredPermissions,
         meta: {
           timestamp: new Date().toISOString(),

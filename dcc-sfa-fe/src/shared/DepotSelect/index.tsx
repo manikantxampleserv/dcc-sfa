@@ -46,6 +46,8 @@ interface DepotSelectProps {
   className?: string;
   /** Placeholder for the input */
   placeholder?: string;
+  /** Filter depots by user id */
+  userId?: number;
 }
 
 /**
@@ -103,6 +105,7 @@ const DepotSelect: React.FC<DepotSelectProps> = ({
   onChange,
   className,
   placeholder,
+  userId,
 }) => {
   const [inputValue, setInputValue] = useState('');
   const [searchValue, setSearchValue] = useState('');
@@ -112,6 +115,11 @@ const DepotSelect: React.FC<DepotSelectProps> = ({
     null
   );
   const [hasInitialized, setHasInitialized] = useState(false);
+  const [hasManuallyCleared, setHasManuallyCleared] = useState(false);
+
+  useEffect(() => {
+    setHasManuallyCleared(false);
+  }, [userId]);
 
   const currentValue = formik ? formik.values[name] : value;
 
@@ -158,13 +166,16 @@ const DepotSelect: React.FC<DepotSelectProps> = ({
     search: effectiveSearch,
     isActive: 'Y',
     depot_id: depotId && !effectiveSearch ? depotId : undefined,
+    user_id: userId,
   });
 
-  const searchResults: Depot[] = (dropdownResponse?.data || []).map(depot => ({
-    id: depot.id,
-    name: depot.name,
-    code: depot.code,
-  }));
+  const searchResults: Depot[] = React.useMemo(() => {
+    return (dropdownResponse?.data || []).map(depot => ({
+      id: depot.id,
+      name: depot.name,
+      code: depot.code,
+    }));
+  }, [dropdownResponse?.data]);
 
   useEffect(() => {
     if (
@@ -216,7 +227,7 @@ const DepotSelect: React.FC<DepotSelectProps> = ({
   }, [normalizedValue, searchResults, selectedDepotData]);
 
   useEffect(() => {
-    if (selectedDepot && selectedDepot !== selectedDepotData) {
+    if (selectedDepot && selectedDepot.id !== selectedDepotData?.id) {
       setSelectedDepotData(selectedDepot);
       if (!inputValue && selectedDepot.name) {
         setInputValue(selectedDepot.name);
@@ -245,6 +256,50 @@ const DepotSelect: React.FC<DepotSelectProps> = ({
       setHasInitialized(false);
     }
   }, [normalizedValue]);
+
+  useEffect(() => {
+    if (
+      !isFetching &&
+      searchResults.length === 1 &&
+      !normalizedValue &&
+      !isSelecting &&
+      !hasManuallyCleared &&
+      !searchValue
+    ) {
+      const soleDepot = searchResults[0];
+      const selectedValue = soleDepot.id.toString();
+
+      setIsSelecting(true);
+      setSelectedDepotData(soleDepot);
+
+      if (formik) {
+        formik.setFieldValue(name, selectedValue);
+      } else if (setValue) {
+        setValue(selectedValue);
+      }
+
+      if (onChange) {
+        onChange(null, soleDepot);
+      }
+
+      setInputValue(soleDepot.name);
+      setSearchValue('');
+      setDebouncedSearch('');
+
+      setTimeout(() => setIsSelecting(false), 100);
+    }
+  }, [
+    isFetching,
+    searchResults,
+    normalizedValue,
+    isSelecting,
+    hasManuallyCleared,
+    searchValue,
+    formik,
+    name,
+    setValue,
+    onChange,
+  ]);
 
   const depots: Depot[] = React.useMemo(() => {
     const allDepots: Depot[] = [];
@@ -284,6 +339,10 @@ const DepotSelect: React.FC<DepotSelectProps> = ({
 
       const selectedValue = newValue ? newValue.id.toString() : '';
 
+      if (newValue === null) {
+        setHasManuallyCleared(true);
+      }
+
       if (formik) {
         formik.setFieldValue(name, selectedValue);
       } else if (setValue) {
@@ -295,7 +354,6 @@ const DepotSelect: React.FC<DepotSelectProps> = ({
       }
 
       if (newValue) {
-        // Update input value to show the full selected name
         setInputValue(newValue.name);
         setSearchValue('');
         setDebouncedSearch('');

@@ -2,7 +2,7 @@ import { Avatar, Chip, Skeleton, Typography } from '@mui/material';
 import classNames from 'classnames';
 import {
   useCoolerInstallation,
-  useUpdateCoolerStatus,
+  // useUpdateCoolerStatus,
 } from 'hooks/useCoolerInstallations';
 import {
   AlertTriangle,
@@ -30,34 +30,30 @@ const CoolerInstallationDetail: React.FC = () => {
   } = useCoolerInstallation(Number(id));
   const cooler = coolerResponse;
 
-  const updateStatusMutation = useUpdateCoolerStatus();
+  // const updateStatusMutation = useUpdateCoolerStatus();
 
   const handleBack = () => {
     navigate('/transactions/installations');
   };
 
-  const handleStatusUpdate = async (status: string, value: string) => {
-    try {
-      await updateStatusMutation.mutateAsync({
-        id: cooler?.id || 0,
-        status,
-        value,
-      });
-    } catch (error) {
-      console.error('Error updating status:', error);
-    }
-  };
+  // const handleStatusUpdate = async (status: string, value: string) => {
+  //   try {
+  //     await updateStatusMutation.mutateAsync({
+  //       id: cooler?.id || 0,
+  //       status,
+  //       value,
+  //     });
+  //   } catch (error) {
+  //     console.error('Error updating status:', error);
+  //   }
+  // };
 
   const getStatusColor = (status?: string | null) => {
     switch (status) {
-      case 'working':
+      case 'Installed':
         return 'success';
-      case 'maintenance':
-        return 'warning';
-      case 'broken':
-        return 'error';
-      case 'offline':
-        return 'default';
+      case 'Ready to Install':
+        return 'info';
       default:
         return 'default';
     }
@@ -65,16 +61,38 @@ const CoolerInstallationDetail: React.FC = () => {
 
   const getStatusLabel = (status?: string | null) => {
     switch (status) {
-      case 'working':
-        return 'Working';
-      case 'maintenance':
-        return 'Maintenance';
-      case 'broken':
-        return 'Broken';
-      case 'offline':
-        return 'Offline';
+      case 'Installed':
+        return 'Installed';
+      case 'Ready to Install':
+        return 'Ready to Install';
       default:
-        return 'Unknown';
+        return status || 'Unknown';
+    }
+  };
+
+  const getApprovalStatusColor = (status?: string | null) => {
+    switch (status) {
+      case 'A':
+        return 'success';
+      case 'P':
+        return 'warning';
+      case 'R':
+        return 'error';
+      default:
+        return 'default';
+    }
+  };
+
+  const getApprovalStatusLabel = (status?: string | null) => {
+    switch (status) {
+      case 'A':
+        return 'Approved';
+      case 'P':
+        return 'Pending';
+      case 'R':
+        return 'Rejected';
+      default:
+        return 'Pending';
     }
   };
 
@@ -370,9 +388,8 @@ const CoolerInstallationDetail: React.FC = () => {
           <div className="!bg-white !rounded-lg !shadow !border !border-gray-200 !p-6 !text-center !relative">
             <div className="absolute top-3 right-3">
               <div
-                className={`!w-2.5 !h-2.5 !rounded-full ${
-                  cooler.is_active === 'Y' ? '!bg-green-400' : '!bg-gray-400'
-                }`}
+                className={`!w-2.5 !h-2.5 !rounded-full ${cooler.is_active === 'Y' ? '!bg-green-400' : '!bg-gray-400'
+                  }`}
               ></div>
             </div>
 
@@ -397,12 +414,6 @@ const CoolerInstallationDetail: React.FC = () => {
               className="!font-bold !text-gray-900 !mb-1"
             >
               {cooler.code}
-            </Typography>
-
-            <Typography variant="body2" className="!text-gray-600 !mb-3">
-              {cooler.brand && cooler.model
-                ? `${cooler.brand} ${cooler.model}`
-                : 'Unknown Model'}
             </Typography>
 
             <Chip
@@ -582,56 +593,6 @@ const CoolerInstallationDetail: React.FC = () => {
                 </Typography>
               </div>
 
-              <div className="!space-y-1">
-                <Typography
-                  variant="body2"
-                  className="!font-bold !text-gray-900"
-                >
-                  Brand & Model
-                </Typography>
-                <Typography variant="body1" className="!text-gray-800">
-                  {cooler.brand && cooler.model
-                    ? `${cooler.brand} ${cooler.model}`
-                    : 'Unknown Brand & Model'}
-                </Typography>
-              </div>
-
-              <div className="!space-y-1">
-                <Typography
-                  variant="body2"
-                  className="!font-bold !text-gray-900"
-                >
-                  Serial Number
-                </Typography>
-                <Typography variant="body1" className="!text-gray-800">
-                  {cooler.serial_number || 'Not provided'}
-                </Typography>
-              </div>
-
-              <div className="!space-y-1">
-                <Typography
-                  variant="body2"
-                  className="!font-bold !text-gray-900"
-                >
-                  Cooler Type
-                </Typography>
-                <Typography variant="body1" className="!text-gray-800">
-                  {cooler.cooler_type?.name || 'Not specified'}
-                </Typography>
-              </div>
-
-              <div className="!space-y-1">
-                <Typography
-                  variant="body2"
-                  className="!font-bold !text-gray-900"
-                >
-                  Cooler Sub Type
-                </Typography>
-                <Typography variant="body1" className="!text-gray-800">
-                  {cooler.cooler_sub_type?.name || 'Not specified'}
-                </Typography>
-              </div>
-
               {cooler.maintenance_contract && (
                 <div className="!space-y-0.5 md:!col-span-2">
                   <Typography
@@ -706,12 +667,12 @@ const CoolerInstallationDetail: React.FC = () => {
                 <div className="!flex !items-center !justify-between">
                   <div>
                     <Typography
-                      variant="body2"
+                      variant="subtitle2"
                       className="!font-semibold !text-gray-900"
                     >
                       Installation Status
                     </Typography>
-                    <Typography variant="caption" className="!text-gray-500">
+                    <Typography variant="body2" className="!text-gray-600">
                       System status
                     </Typography>
                   </div>
@@ -722,94 +683,30 @@ const CoolerInstallationDetail: React.FC = () => {
                   />
                 </div>
               </div>
-            </div>
-          </InfoCard>
 
-          {/* Status Management */}
-          <InfoCard title="Status Management" icon={Wrench}>
-            <div className="!space-y-4">
-              {/* Operational Status */}
-              <div className="!space-y-2">
-                <Typography
-                  variant="h6"
-                  className="!font-semibold !text-gray-900"
-                >
-                  Operational Status
-                </Typography>
-                <div className="!grid !grid-cols-1 sm:!grid-cols-2 lg:!grid-cols-4 !gap-2">
-                  {['working', 'maintenance', 'broken', 'offline'].map(
-                    status => (
-                      <Button
-                        variant={
-                          cooler.status === status ? 'contained' : 'outlined'
-                        }
-                        color={
-                          status === 'working'
-                            ? 'success'
-                            : status === 'maintenance'
-                              ? 'warning'
-                              : status === 'broken'
-                                ? 'error'
-                                : 'secondary'
-                        }
-                        onClick={() =>
-                          cooler.status !== status &&
-                          handleStatusUpdate('status', status)
-                        }
-                        disabled={updateStatusMutation.isPending}
-                        className="!capitalize !w-full"
-                        size="small"
-                      >
-                        Set {status}
-                      </Button>
-                    )
-                  )}
-                </div>
-              </div>
-
-              {/* Active Status */}
-              <div className="!space-y-2">
-                <Typography
-                  variant="h6"
-                  className="!font-semibold !text-gray-900"
-                >
-                  Active Status
-                </Typography>
-                <div className="!grid !grid-cols-1 sm:!grid-cols-2 !gap-2">
-                  <Button
-                    variant={
-                      cooler.is_active === 'Y' ? 'contained' : 'outlined'
-                    }
-                    color="success"
-                    onClick={() =>
-                      cooler.is_active !== 'Y' &&
-                      handleStatusUpdate('is_active', 'Y')
-                    }
-                    disabled={updateStatusMutation.isPending}
-                    className="!w-full"
+              <div className="!p-3 !bg-gray-50 !rounded-md !border !border-gray-200">
+                <div className="!flex !items-center !justify-between">
+                  <div>
+                    <Typography
+                      variant="subtitle2"
+                      className="!font-semibold !text-gray-900"
+                    >
+                      Approval Status
+                    </Typography>
+                    <Typography variant="caption" className="!text-gray-500">
+                      Workflow approval
+                    </Typography>
+                  </div>
+                  <Chip
+                    label={getApprovalStatusLabel(cooler.approval_status)}
+                    color={getApprovalStatusColor(cooler.approval_status)}
                     size="small"
-                  >
-                    Set Active
-                  </Button>
-                  <Button
-                    variant={
-                      cooler.is_active === 'N' ? 'contained' : 'outlined'
-                    }
-                    color="error"
-                    onClick={() =>
-                      cooler.is_active !== 'N' &&
-                      handleStatusUpdate('is_active', 'N')
-                    }
-                    disabled={updateStatusMutation.isPending}
-                    className="!w-full"
-                    size="small"
-                  >
-                    Set Inactive
-                  </Button>
+                  />
                 </div>
               </div>
             </div>
           </InfoCard>
+
         </div>
       </div>
     </>

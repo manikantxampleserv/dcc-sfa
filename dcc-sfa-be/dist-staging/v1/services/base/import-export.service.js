@@ -60,6 +60,19 @@ class ImportExportService {
     getSearchFields() {
         return this.searchFields;
     }
+    translatePrismaError(error) {
+        if (error.code === 'P2025') {
+            return 'Related record not found (Asset Type, Category, Zone, etc.). Please check if the IDs or codes in your Excel exist in the system.';
+        }
+        if (error.code === 'P2002') {
+            const target = error.meta?.target;
+            return `A record with this ${Array.isArray(target) ? target.join(', ') : target || 'unique value'} already exists.`;
+        }
+        if (error.message && error.message.includes('Foreign key constraint failed')) {
+            return 'Referenced record not found. Please ensure all related IDs (like Zone ID, Type ID, etc.) are valid.';
+        }
+        return error.message;
+    }
     async parseExcelFile(buffer) {
         const errorHandler = new import_export_error_service_1.ImportExportErrorHandler(this.columns);
         const validData = [];
@@ -216,6 +229,44 @@ class ImportExportService {
                 };
             }
         });
+        for (const config of this.masterTableConfigs) {
+            const masterData = await this.getMasterTableData(config);
+            console.log(`[Template] ${this.displayName}: Generated sheet '${config.sheetName}' with ${masterData.length} reference records`);
+            const masterSheet = workbook.addWorksheet(config.sheetName);
+            const masterColumns = config.masterDisplayFields.map(field => ({
+                header: field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+                key: field,
+                width: 20,
+            }));
+            masterSheet.columns = masterColumns;
+            const masterHeader = masterSheet.getRow(1);
+            masterHeader.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+            masterHeader.fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: 'FF4472C4' },
+            };
+            masterHeader.alignment = { vertical: 'middle', horizontal: 'center' };
+            masterHeader.height = 25;
+            masterData.forEach((data, index) => {
+                const row = masterSheet.addRow(data);
+                row.eachCell(cell => {
+                    cell.border = {
+                        top: { style: 'thin' },
+                        left: { style: 'thin' },
+                        bottom: { style: 'thin' },
+                        right: { style: 'thin' },
+                    };
+                });
+                if (index % 2 === 0) {
+                    row.fill = {
+                        type: 'pattern',
+                        pattern: 'solid',
+                        fgColor: { argb: 'FFF2F2F2' },
+                    };
+                }
+            });
+        }
         const instructionSheet = workbook.addWorksheet('Instructions');
         instructionSheet.columns = [
             { header: 'Field', key: 'field', width: 25 },
@@ -245,6 +296,24 @@ class ImportExportService {
                 };
             }
         });
+        if (this.masterTableConfigs.length > 0) {
+            instructionSheet.addRow([]);
+            instructionSheet.addRow(['MASTER TABLE REFERENCES:', '', '', '']);
+            instructionSheet.addRow([
+                'Use the following sheets for reference data:',
+                '',
+                '',
+                '',
+            ]);
+            this.masterTableConfigs.forEach(config => {
+                instructionSheet.addRow([
+                    `- ${config.sheetName}: ${config.description}`,
+                    '',
+                    '',
+                    '',
+                ]);
+            });
+        }
         instructionSheet.addRow([]);
         instructionSheet.addRow(['GENERAL INSTRUCTIONS:', '', '', '']);
         const instructions = [
@@ -464,12 +533,14 @@ class ImportExportService {
                                 message: duplicateCheck,
                                 action: 'skipped',
                             });
+                            console.log(`[Import] ${this.displayName}: Row ${rowNum} skipped (Duplicate)`);
                         }
                         else if (options.updateExisting) {
                             const updated = await this.updateExisting(row, userId, tx);
                             if (updated) {
                                 importedData.push(updated);
                                 success++;
+                                console.log(`[Import] ${this.displayName}: Row ${rowNum} updated successfully`);
                                 continue;
                             }
                             else {
@@ -479,6 +550,7 @@ class ImportExportService {
                                     message: 'Failed to update existing record',
                                     action: 'failed',
                                 });
+                                console.error(`[Import] ${this.displayName}: Row ${rowNum} failed to update existing record`);
                             }
                         }
                         else {
@@ -488,6 +560,7 @@ class ImportExportService {
                                 message: duplicateCheck,
                                 action: 'rejected',
                             });
+                            console.warn(`[Import] ${this.displayName}: Row ${rowNum} rejected (Duplicate - ${duplicateCheck})`);
                         }
                         if (rowErrors.errors.length > 0) {
                             detailedErrors.push(rowErrors);
@@ -505,24 +578,28 @@ class ImportExportService {
                         });
                         detailedErrors.push(rowErrors);
                         errors.push(`Row ${rowNum}: ${fkValidation}`);
+                        console.warn(`[Import] ${this.displayName}: Row ${rowNum} failed validation - ${fkValidation}`);
                         continue;
                     }
-                    const preparedData = await this.prepareDataForImport(row, userId);
+                    const preparedData = await this.prepareDataForImport(row, userId, tx);
                     const created = await tx[this.modelName].create({
                         data: preparedData,
                     });
                     importedData.push(created);
                     success++;
+                    console.log(`[Import] ${this.displayName}: Row ${rowNum} imported successfully`);
                 }
                 catch (error) {
                     failed++;
+                    const readableError = this.translatePrismaError(error);
                     rowErrors.errors.push({
                         type: 'system',
-                        message: error.message,
+                        message: readableError,
                         action: 'failed',
                     });
                     detailedErrors.push(rowErrors);
-                    errors.push(`Row ${rowNum}: ${error.message}`);
+                    errors.push(`Row ${rowNum}: ${readableError}`);
+                    console.error(`[Import] ${this.displayName}: Row ${rowNum} failed - ${error.message}`);
                 }
             }
             return {
@@ -532,7 +609,7 @@ class ImportExportService {
                 data: importedData,
                 detailedErrors: detailedErrors.length > 0 ? detailedErrors : undefined,
             };
-        }, { timeout: 300000 });
+        }, { timeout: 600000, maxWait: 600000 });
         return results;
     }
     async batchImport(data, userId, batchSize = 100, options = {}) {
@@ -568,6 +645,48 @@ class ImportExportService {
             data: allImportedData,
             detailedErrors: allDetailedErrors.length > 0 ? allDetailedErrors : undefined,
         };
+    }
+    masterTableConfigs = [];
+    async getMasterTableData(config) {
+        const { masterTable, masterDisplayFields } = config;
+        try {
+            const model = prisma_client_1.default[masterTable];
+            if (!model || typeof model.findMany !== 'function') {
+                console.warn(`getMasterTableData: model '${masterTable}' not found`);
+                return [];
+            }
+            const selectFields = masterDisplayFields.reduce((acc, field) => ({
+                ...acc,
+                [field]: true,
+            }), {});
+            try {
+                const whereClause = masterTable === 'asset_master' ? {} : { is_active: 'Y' };
+                const result = await model.findMany({
+                    select: selectFields,
+                    where: whereClause,
+                    orderBy: { id: 'asc' },
+                });
+                return result;
+            }
+            catch (e1) {
+                console.warn(`getMasterTableData [${masterTable}] failed with is_active filter:`, e1?.message);
+            }
+            try {
+                const result = await model.findMany({
+                    select: selectFields,
+                    orderBy: { id: 'asc' },
+                });
+                return result;
+            }
+            catch (e2) {
+                console.warn(`getMasterTableData [${masterTable}] failed without filter:`, e2?.message);
+            }
+            return [];
+        }
+        catch (error) {
+            console.warn(`getMasterTableData [${masterTable}] outer error:`, error?.message);
+            return [];
+        }
     }
 }
 exports.ImportExportService = ImportExportService;

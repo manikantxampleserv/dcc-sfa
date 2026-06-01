@@ -160,7 +160,7 @@ exports.zonesController = {
     },
     async getZones(req, res) {
         try {
-            const { page, limit, search, isActive } = req.query;
+            const { page, limit, search, isActive, parent_id } = req.query;
             const pageNum = parseInt(page, 10) || 1;
             const limitNum = parseInt(limit, 10) || 10;
             const searchLower = search ? search.toLowerCase() : '';
@@ -172,6 +172,7 @@ exports.zonesController = {
                     ],
                 }),
                 ...(isActive && { is_active: isActive }),
+                ...(parent_id && { parent_id: Number(parent_id) }),
             };
             const { data, pagination } = await (0, paginate_1.paginate)({
                 model: prisma_client_1.default.zones,

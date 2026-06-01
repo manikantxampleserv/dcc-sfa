@@ -30,7 +30,7 @@ const WarehousesPage: React.FC = () => {
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
-  const { isCreate, isUpdate, isDelete, isRead } = usePermission('warehouse');
+  const { isCreate, isUpdate, isDelete, isRead } = usePermission('depot');
 
   const {
     data: warehousesResponse,
@@ -216,7 +216,7 @@ const WarehousesPage: React.FC = () => {
         </Box>
       </Box>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
         <StatsCard
           title="Total Warehouses"
           value={totalWarehouses}
@@ -273,7 +273,6 @@ const WarehousesPage: React.FC = () => {
                     <Select
                       value={statusFilter}
                       onChange={e => setStatusFilter(e.target.value)}
-                      className="!w-32"
                     >
                       <MenuItem value="all">All Status</MenuItem>
                       <MenuItem value="active">Active</MenuItem>

@@ -156,15 +156,13 @@ const StockMovementsManagement: React.FC = () => {
               variant="body1"
               className="!text-gray-900 !leading-tight !font-medium"
             >
-              {formatLabel(row.movement_type)}
+              Movement #{row.id}
             </Typography>
             <Typography
               variant="caption"
-              className="!text-gray-500 !text-xs !block !mt-0.5"
+              className="!text-gray-500 !text-xs !block"
             >
-              {row.reference_type
-                ? `${formatLabel(row.reference_type)} #${String(row.reference_id)}`
-                : 'Direct Movement'}
+              {formatLabel(row.movement_type)}
             </Typography>
           </Box>
         </Box>
@@ -189,47 +187,15 @@ const StockMovementsManagement: React.FC = () => {
       label: 'Quantity',
       render: (_value, row) => (
         <Box className="!text-center">
-          <Typography
-            variant="body2"
-            className={`${
-              row.movement_type?.toUpperCase() === 'IN'
-                ? '!text-green-600'
-                : row.movement_type?.toUpperCase() === 'OUT'
-                  ? '!text-red-600'
-                  : '!text-blue-600'
-            }`}
-          >
-            {row.movement_type?.toUpperCase() === 'IN'
-              ? '+'
-              : row.movement_type?.toUpperCase() === 'OUT'
-                ? '-'
-                : '±'}{' '}
-            {row.quantity}
-          </Typography>
+          <Typography variant="body2">{row.quantity}</Typography>
         </Box>
       ),
     },
     {
-      id: 'locations',
+      id: 'custom_location_key',
       label: 'Locations',
       render: (_value, row) => (
-        <Box>
-          {row.from_location && (
-            <Typography variant="caption" className="!text-gray-500 !block">
-              From: {row.from_location.name}
-            </Typography>
-          )}
-          {row.to_location && (
-            <Typography variant="caption" className="!text-gray-500 !block">
-              To: {row.to_location.name}
-            </Typography>
-          )}
-          {!row.from_location && !row.to_location && (
-            <Typography variant="caption" className="!text-gray-400 !italic">
-              No location specified
-            </Typography>
-          )}
-        </Box>
+        <span>{row?.custom_location_key || 'No location'}</span>
       ),
     },
     {
@@ -305,7 +271,7 @@ const StockMovementsManagement: React.FC = () => {
         </Box>
       </Box>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
         <StatsCard
           title="Total Movements"
           value={totalMovements}
@@ -362,7 +328,6 @@ const StockMovementsManagement: React.FC = () => {
                   <Select
                     value={statusFilter}
                     onChange={e => setStatusFilter(e.target.value)}
-                    className="!min-w-32"
                     size="small"
                     disableClearable
                   >
@@ -370,18 +335,6 @@ const StockMovementsManagement: React.FC = () => {
                     <MenuItem value="active">Active</MenuItem>
                     <MenuItem value="inactive">Inactive</MenuItem>
                   </Select>
-                  {/* <Select
-                    value={movementTypeFilter}
-                    onChange={e => setMovementTypeFilter(e.target.value)}
-                    className="!min-w-32"
-                    size="small"
-                    disableClearable
-                  >
-                    <MenuItem value="all">All Types</MenuItem>
-                    <MenuItem value="IN">Stock In</MenuItem>
-                    <MenuItem value="OUT">Stock Out</MenuItem>
-                    <MenuItem value="TRANSFER">Transfer</MenuItem>
-                  </Select> */}
                 </div>
               )}
               <div className="flex items-center flex-wrap gap-2">

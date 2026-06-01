@@ -1,33 +1,40 @@
 /**
  * @fileoverview Auto-Generated Menu Permissions Hook
  * @description Generated automatically from menu items and backend modules
- * @generated-at 2026-03-12T11:28:09.839Z
+ * @generated-at 2026-04-01T12:26:16.708Z
  */
 
 import { useCallback, useMemo } from 'react';
-import { usePermission } from './usePermission';
+import type { MenuItem } from '../mock/sidebar';
 import {
   AUTO_PERMISSION_MAPPINGS,
   type BackendModule,
 } from '../utils/permission-auto-generator';
-import type { MenuItem } from '../mock/sidebar';
+import { usePermission } from './usePermission';
 
 export const useMenuPermissions = () => {
-  const dashboardPerms = usePermission('dashboard' as BackendModule);
-  const companyPerms = usePermission('company' as BackendModule);
+  const executiveDashboardPerms = usePermission(
+    'executive-dashboard' as BackendModule
+  );
+  const gradingDashboardPerms = usePermission(
+    'grading-dashboard' as BackendModule
+  );
   const userPerms = usePermission('user' as BackendModule);
   const rolePerms = usePermission('role' as BackendModule);
   const depotPerms = usePermission('depot' as BackendModule);
   const zonePerms = usePermission('zone' as BackendModule);
+  const regionPerms = usePermission('region' as BackendModule);
+  const districtPerms = usePermission('district' as BackendModule);
+  const cityPerms = usePermission('city' as BackendModule);
   const currencyPerms = usePermission('currency' as BackendModule);
   const routePerms = usePermission('route' as BackendModule);
   const routeTypePerms = usePermission('route-type' as BackendModule);
   const outletPerms = usePermission('outlet' as BackendModule);
   const outletGroupPerms = usePermission('outlet-group' as BackendModule);
   const assetTypePerms = usePermission('asset-type' as BackendModule);
+  const assetBrandPerms = usePermission('asset-brand' as BackendModule);
   const assetSubTypesPerms = usePermission('asset-sub-types' as BackendModule);
   const assetMasterPerms = usePermission('asset-master' as BackendModule);
-  const warehousePerms = usePermission('warehouse' as BackendModule);
   const vehiclePerms = usePermission('vehicle' as BackendModule);
   const brandPerms = usePermission('brand' as BackendModule);
   const productCategoryPerms = usePermission(
@@ -38,9 +45,6 @@ export const useMenuPermissions = () => {
   );
   const unitOfMeasurementPerms = usePermission(
     'unit-of-measurement' as BackendModule
-  );
-  const subunitOfMeasurementPerms = usePermission(
-    'subunit-of-measurement' as BackendModule
   );
   const productPerms = usePermission('product' as BackendModule);
   const pricelistPerms = usePermission('pricelist' as BackendModule);
@@ -59,7 +63,6 @@ export const useMenuPermissions = () => {
   const returnPerms = usePermission('return' as BackendModule);
   const paymentPerms = usePermission('payment' as BackendModule);
   const invoicePerms = usePermission('invoice' as BackendModule);
-  const creditNotePerms = usePermission('credit-note' as BackendModule);
   const visitPerms = usePermission('visit' as BackendModule);
   const assetMovementPerms = usePermission('asset-movement' as BackendModule);
   const maintenancePerms = usePermission('maintenance' as BackendModule);
@@ -77,13 +80,9 @@ export const useMenuPermissions = () => {
   const customerComplaintPerms = usePermission(
     'customer-complaint' as BackendModule
   );
-  const customerCategoryPerms = usePermission(
-    'customer-category' as BackendModule
-  );
-  const customerTypePerms = usePermission('customer-type' as BackendModule);
-  const customerChannelPerms = usePermission(
-    'customer-channel' as BackendModule
-  );
+  const outletCategoryPerms = usePermission('outlet-category' as BackendModule);
+  const outletTypePerms = usePermission('outlet-type' as BackendModule);
+  const outletChannelPerms = usePermission('outlet-channel' as BackendModule);
   const productFlavourPerms = usePermission('product-flavour' as BackendModule);
   const productVolumePerms = usePermission('product-volume' as BackendModule);
   const productShelfLifePerms = usePermission(
@@ -101,12 +100,10 @@ export const useMenuPermissions = () => {
   const routeEffectivenessPerms = usePermission(
     'route-effectiveness' as BackendModule
   );
-  const erpSyncPerms = usePermission('erp-sync' as BackendModule);
   const reportPerms = usePermission('report' as BackendModule);
   const approvalPerms = usePermission('approval' as BackendModule);
   const exceptionPerms = usePermission('exception' as BackendModule);
   const alertPerms = usePermission('alert' as BackendModule);
-  const profilePerms = usePermission('profile' as BackendModule);
   const loginHistoryPerms = usePermission('login-history' as BackendModule);
   const tokenPerms = usePermission('token' as BackendModule);
   const settingPerms = usePermission('setting' as BackendModule);
@@ -114,27 +111,29 @@ export const useMenuPermissions = () => {
 
   const permissions = useMemo(
     () => ({
-      dashboard: dashboardPerms,
-      company: companyPerms,
+      'executive-dashboard': executiveDashboardPerms,
+      'grading-dashboard': gradingDashboardPerms,
       user: userPerms,
       role: rolePerms,
       depot: depotPerms,
       zone: zonePerms,
+      region: regionPerms,
+      district: districtPerms,
+      city: cityPerms,
       currency: currencyPerms,
       route: routePerms,
       'route-type': routeTypePerms,
       outlet: outletPerms,
       'outlet-group': outletGroupPerms,
       'asset-type': assetTypePerms,
+      'asset-brand': assetBrandPerms,
       'asset-sub-types': assetSubTypesPerms,
       'asset-master': assetMasterPerms,
-      warehouse: warehousePerms,
       vehicle: vehiclePerms,
       brand: brandPerms,
       'product-category': productCategoryPerms,
       'product-sub-category': productSubCategoryPerms,
       'unit-of-measurement': unitOfMeasurementPerms,
-      'subunit-of-measurement': subunitOfMeasurementPerms,
       product: productPerms,
       pricelist: pricelistPerms,
       'sales-target-group': salesTargetGroupPerms,
@@ -148,7 +147,6 @@ export const useMenuPermissions = () => {
       return: returnPerms,
       payment: paymentPerms,
       invoice: invoicePerms,
-      'credit-note': creditNotePerms,
       visit: visitPerms,
       'asset-movement': assetMovementPerms,
       maintenance: maintenancePerms,
@@ -162,9 +160,9 @@ export const useMenuPermissions = () => {
       'inventory-management': inventoryManagementPerms,
       competitor: competitorPerms,
       'customer-complaint': customerComplaintPerms,
-      'customer-category': customerCategoryPerms,
-      'customer-type': customerTypePerms,
-      'customer-channel': customerChannelPerms,
+      'outlet-category': outletCategoryPerms,
+      'outlet-type': outletTypePerms,
+      'outlet-channel': outletChannelPerms,
       'product-flavour': productFlavourPerms,
       'product-volume': productVolumePerms,
       'product-shelf-life': productShelfLifePerms,
@@ -174,39 +172,39 @@ export const useMenuPermissions = () => {
       'tax-master': taxMasterPerms,
       location: locationPerms,
       'route-effectiveness': routeEffectivenessPerms,
-      'erp-sync': erpSyncPerms,
       report: reportPerms,
       approval: approvalPerms,
       exception: exceptionPerms,
       alert: alertPerms,
-      profile: profilePerms,
       'login-history': loginHistoryPerms,
       token: tokenPerms,
       setting: settingPerms,
       templates: templatesPerms,
     }),
     [
-      dashboardPerms,
-      companyPerms,
+      executiveDashboardPerms,
+      gradingDashboardPerms,
       userPerms,
       rolePerms,
       depotPerms,
       zonePerms,
+      regionPerms,
+      districtPerms,
+      cityPerms,
       currencyPerms,
       routePerms,
       routeTypePerms,
       outletPerms,
       outletGroupPerms,
       assetTypePerms,
+      assetBrandPerms,
       assetSubTypesPerms,
       assetMasterPerms,
-      warehousePerms,
       vehiclePerms,
       brandPerms,
       productCategoryPerms,
       productSubCategoryPerms,
       unitOfMeasurementPerms,
-      subunitOfMeasurementPerms,
       productPerms,
       pricelistPerms,
       salesTargetGroupPerms,
@@ -220,7 +218,6 @@ export const useMenuPermissions = () => {
       returnPerms,
       paymentPerms,
       invoicePerms,
-      creditNotePerms,
       visitPerms,
       assetMovementPerms,
       maintenancePerms,
@@ -234,9 +231,9 @@ export const useMenuPermissions = () => {
       inventoryManagementPerms,
       competitorPerms,
       customerComplaintPerms,
-      customerCategoryPerms,
-      customerTypePerms,
-      customerChannelPerms,
+      outletCategoryPerms,
+      outletTypePerms,
+      outletChannelPerms,
       productFlavourPerms,
       productVolumePerms,
       productShelfLifePerms,
@@ -246,15 +243,14 @@ export const useMenuPermissions = () => {
       taxMasterPerms,
       locationPerms,
       routeEffectivenessPerms,
-      erpSyncPerms,
       reportPerms,
       approvalPerms,
       exceptionPerms,
       alertPerms,
-      profilePerms,
       loginHistoryPerms,
       tokenPerms,
       settingPerms,
+      templatesPerms,
     ]
   );
 
@@ -268,13 +264,7 @@ export const useMenuPermissions = () => {
 
       const modulePermission =
         permissions[requiredModule as keyof typeof permissions];
-      return (
-        modulePermission?.isRead ||
-        modulePermission?.isCreate ||
-        modulePermission?.isUpdate ||
-        modulePermission?.isDelete ||
-        false
-      );
+      return modulePermission?.isRead || modulePermission?.isCreate || false;
     },
     [permissions]
   );

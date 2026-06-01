@@ -7,7 +7,29 @@ export class VanInventoryImportExportService extends ImportExportService<any> {
   protected displayName = 'Van Inventory';
   protected uniqueFields = ['id'];
   protected searchFields = ['user_id', 'status', 'loading_type'];
-
+  protected masterTableConfigs = [
+    {
+      masterTable: 'users' as any,
+      masterKey: 'id',
+      masterDisplayFields: ['id', 'name', 'email', 'employee_id'],
+      sheetName: 'Ref - Users',
+      description: 'Use the ID from this sheet in the User ID column',
+    },
+    {
+      masterTable: 'vehicles' as any,
+      masterKey: 'id',
+      masterDisplayFields: ['id', 'vehicle_number', 'make', 'model', 'type'],
+      sheetName: 'Ref - Vehicles',
+      description: 'Use the ID from this sheet for vehicle references',
+    },
+    {
+      masterTable: 'depots' as any,
+      masterKey: 'id',
+      masterDisplayFields: ['id', 'name', 'code'],
+      sheetName: 'Ref - Depots',
+      description: 'Use the ID from this sheet for depot references',
+    },
+  ];
   protected columns: ColumnDefinition[] = [
     {
       key: 'user_id',
@@ -600,6 +622,7 @@ export class VanInventoryImportExportService extends ImportExportService<any> {
 
     const exportColumns = [
       ...this.columns,
+      { header: 'ID', key: 'id', width: 12 },
       { header: 'User Name', key: 'user_name', width: 20 },
       { header: 'Vehicle Number', key: 'vehicle_number', width: 20 },
       { header: 'Location Name', key: 'location_name', width: 20 },

@@ -13,6 +13,7 @@ import { tokenService, type UserData } from './tokenService';
  */
 export interface LoginRequest {
   email: string;
+  platform: 'web' | 'mobile';
   password: string;
 }
 

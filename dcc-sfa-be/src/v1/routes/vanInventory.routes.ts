@@ -30,6 +30,13 @@ router.get(
   vanInventoryController.getAllVanInventory
 );
 router.get(
+  '/van-inventory/products',
+  authenticateToken,
+  requirePermission([{ module: 'van-stock', action: 'read' }]),
+  vanInventoryController.getProducts
+);
+
+router.get(
   '/van-inventory/:id',
   authenticateToken,
   requirePermission([{ module: 'van-stock', action: 'read' }]),
@@ -98,6 +105,13 @@ router.get(
 router.post(
   '/products/batches/bulk',
   vanInventoryController.getBulkProductBatches
+);
+router.post(
+  '/van-inventory/unload',
+  authenticateToken,
+  auditUpdate('van_inventory'),
+  requirePermission([{ module: 'van-stock', action: 'update' }]),
+  vanInventoryController.unloadVanInventory
 );
 
 export default router;

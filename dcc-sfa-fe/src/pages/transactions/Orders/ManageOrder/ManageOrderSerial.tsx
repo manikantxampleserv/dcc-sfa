@@ -185,8 +185,8 @@ const ManageOrderSerial: React.FC<ManageOrderSerialProps> = ({
         },
       }}
     >
-      <div className="flex justify-between items-center !p-2">
-        <p className="!font-semibold text-lg !text-gray-900">
+      <div className="flex items-center justify-between !p-2">
+        <p className="text-lg !font-semibold !text-gray-900">
           Serial Information ({productSerials.length})
         </p>
         <ActionButton
@@ -197,14 +197,14 @@ const ManageOrderSerial: React.FC<ManageOrderSerialProps> = ({
         />
       </div>
       <Divider />
-      <Box className="!p-2 min-h-[40vh]">
-        <div className="max-h-[50vh] overflow-y-auto flex flex-col gap-2">
+      <Box className="min-h-[40vh] !p-2">
+        <div className="flex max-h-[50vh] flex-col gap-2 overflow-y-auto">
           {productSerials.map((row, rowIndex) => {
             const serial = row as ProductSerial & { selected?: boolean };
             return (
               <div
                 key={`${row.serial_number}-${rowIndex}`}
-                className="flex items-center justify-between border border-gray-200 rounded px-2 py-1"
+                className="flex items-center justify-between rounded border border-gray-200 px-2 py-1"
               >
                 <div className="flex items-center gap-2">
                   <Checkbox
@@ -219,7 +219,7 @@ const ManageOrderSerial: React.FC<ManageOrderSerialProps> = ({
           })}
         </div>
       </Box>
-      <Box className="!p-2 !flex !justify-end !border-t gap-2 !border-gray-300">
+      <Box className="!flex !justify-end gap-2 !border-t !border-gray-300 !p-2">
         <Button variant="outlined" color="info" onClick={handleClose}>
           Cancel
         </Button>

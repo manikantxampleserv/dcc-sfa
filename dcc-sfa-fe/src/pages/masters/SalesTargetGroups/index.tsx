@@ -223,7 +223,7 @@ const SalesTargetGroupsManagement: React.FC = () => {
         </Box>
       </Box>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
         <StatsCard
           title="Total Groups"
           value={totalGroups}
@@ -281,7 +281,6 @@ const SalesTargetGroupsManagement: React.FC = () => {
                     <Select
                       value={statusFilter}
                       onChange={e => setStatusFilter(e.target.value)}
-                      className="!min-w-32"
                       size="small"
                       disableClearable
                     >

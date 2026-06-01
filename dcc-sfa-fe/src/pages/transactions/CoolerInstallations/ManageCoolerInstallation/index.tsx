@@ -5,12 +5,11 @@ import {
   useUpdateCoolerInstallation,
   type CoolerInstallation,
 } from 'hooks/useCoolerInstallations';
-import { useAssetMaster } from 'hooks/useAssetMaster';
-import type { AssetMaster } from 'services/masters/AssetMaster';
 import React from 'react';
 import { coolerInstallationValidationSchema } from 'schemas/coolerInstallation.schema';
 import Button from 'shared/Button';
 import CustomerSelect from 'shared/CustomerSelect';
+import AssetSelect from 'shared/AssetSelect';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
 import Select from 'shared/Select';
@@ -45,7 +44,7 @@ const ManageCoolerInstallation: React.FC<ManageCoolerInstallationProps> = ({
   const formik = useFormik({
     initialValues: {
       customer_id: selectedInstallation?.customer_id || '',
-      asset_master_id: selectedInstallation?.asset_master_id || '',
+      asset_master_id: selectedInstallation?.asset_master_id,
       brand: selectedInstallation?.brand || '',
       model: selectedInstallation?.model || '',
       serial_number: selectedInstallation?.serial_number || '',
@@ -59,7 +58,7 @@ const ManageCoolerInstallation: React.FC<ManageCoolerInstallationProps> = ({
       next_service_due: selectedInstallation?.next_service_due
         ? formatForDateInput(selectedInstallation.next_service_due)
         : '',
-      status: selectedInstallation?.status || 'working',
+      status: selectedInstallation?.status || 'Ready to Install',
       temperature: selectedInstallation?.temperature || '',
       energy_rating: selectedInstallation?.energy_rating || '',
       warranty_expiry: selectedInstallation?.warranty_expiry
@@ -118,62 +117,34 @@ const ManageCoolerInstallation: React.FC<ManageCoolerInstallationProps> = ({
     },
   });
 
-  const { data: assetMasterData } = useAssetMaster({
-    page: 1,
-    limit: 1000,
-    status: 'active',
-  });
-
-  const assets = assetMasterData?.data || [];
   return (
     <CustomDrawer
       open={drawerOpen}
       setOpen={handleCancel}
       title={isEdit ? 'Edit Cooler Installation' : 'Create Cooler Installation'}
+      size='large'
     >
       <Box className="!p-6">
         <form onSubmit={formik.handleSubmit} className="!space-y-6">
           <Box className="!grid !grid-cols-1 md:!grid-cols-2 !gap-6">
-            <Select
+
+            <AssetSelect
               name="asset_master_id"
               label="Cooler"
               formik={formik}
               required
-            >
-              {assets.map((asset: AssetMaster) => (
-                <MenuItem key={asset.id} value={asset.id}>
-                  {asset.serial_number} - {asset.current_status}
-                </MenuItem>
-              ))}
-            </Select>
+              onlyAvailable={true}
+              placeholder="Select Cooler"
+              nameToSearch={selectedInstallation?.asset_master?.name || ''}
+            />
 
             <CustomerSelect
               name="customer_id"
               label="Outlet"
               formik={formik}
               required
+              nameToSearch={selectedInstallation?.customer?.name}
             />
-
-            {/* <Input
-              name="brand"
-              label="Brand"
-              placeholder="Enter cooler brand"
-              formik={formik}
-            />
-
-            <Input
-              name="model"
-              label="Model"
-              placeholder="Enter cooler model"
-              formik={formik}
-            />
-
-            <Input
-              name="serial_number"
-              label="Serial Number"
-              placeholder="Enter serial number"
-              formik={formik}
-            /> */}
 
             <Input
               name="capacity"
@@ -191,10 +162,8 @@ const ManageCoolerInstallation: React.FC<ManageCoolerInstallationProps> = ({
             />
 
             <Select name="status" label="Status" formik={formik}>
-              <MenuItem value="working">Working</MenuItem>
-              <MenuItem value="maintenance">Under Maintenance</MenuItem>
-              <MenuItem value="damaged">Damaged</MenuItem>
-              <MenuItem value="retired">Retired</MenuItem>
+              <MenuItem value="Ready to Install">Ready to Install</MenuItem>
+              <MenuItem value="Installed">Installed</MenuItem>
             </Select>
 
             <Input
@@ -238,6 +207,7 @@ const ManageCoolerInstallation: React.FC<ManageCoolerInstallationProps> = ({
               label="Technician"
               formik={formik}
               placeholder="Search technician..."
+              nameToSearch={selectedInstallation?.technician?.name}
             />
 
             <Input
@@ -288,7 +258,7 @@ const ManageCoolerInstallation: React.FC<ManageCoolerInstallationProps> = ({
               }
             >
               {createCoolerInstallationMutation.isPending ||
-              updateCoolerInstallationMutation.isPending
+                updateCoolerInstallationMutation.isPending
                 ? isEdit
                   ? 'Updating...'
                   : 'Creating...'

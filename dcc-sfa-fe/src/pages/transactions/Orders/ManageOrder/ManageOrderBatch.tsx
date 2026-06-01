@@ -50,6 +50,7 @@ const ManageOrderBatch: React.FC<ManageOrderBatchProps> = ({
     const existing = (item.product_batches as ProductBatch[] | undefined) || [];
 
     if (existing.length > 0) {
+      // Load existing batches but allow user to modify quantities
       setProductBatches(existing);
       return;
     }
@@ -66,7 +67,7 @@ const ManageOrderBatch: React.FC<ManageOrderBatchProps> = ({
       const initialBatches = inventoryByProductId[productId].batches.map(
         batch => ({
           ...batch,
-          quantity: batch.batch_remaining_quantity || batch.quantity || 0,
+          quantity: 0,
         })
       );
       setProductBatches(initialBatches);
@@ -123,7 +124,11 @@ const ManageOrderBatch: React.FC<ManageOrderBatchProps> = ({
       0
     );
 
-    if (activeBatches.length === 0 || totalQty <= 0) {
+
+
+    const finalQuantity = totalQty;
+
+    if (activeBatches.length === 0 || finalQuantity <= 0) {
       toast.error('Total batch quantity must be greater than 0.');
       return;
     }
@@ -161,7 +166,7 @@ const ManageOrderBatch: React.FC<ManageOrderBatchProps> = ({
     const updatedItems = [...orderItems];
     updatedItems[selectedRowIndex] = {
       ...updatedItems[selectedRowIndex],
-      quantity: String(totalQty),
+      quantity: String(finalQuantity),
       product_batches: productBatches.map(b => ({
         ...b,
         batch_number: (b.batch_number || '').trim(),
@@ -218,10 +223,15 @@ const ManageOrderBatch: React.FC<ManageOrderBatchProps> = ({
     return true;
   }, [selectedRowIndex, productBatches]);
 
-  const totalBatchQuantity = React.useMemo(
-    () => productBatches.reduce((sum, b) => sum + (Number(b.quantity) || 0), 0),
-    [productBatches]
-  );
+  const totalBatchQuantity = React.useMemo(() => {
+    const baseTotal = productBatches.reduce(
+      (sum, b) => sum + (Number(b.quantity) || 0),
+      0
+    );
+
+
+    return baseTotal;
+  }, [productBatches, selectedRowIndex, orderItems]);
 
   const columns: TableColumn<ProductBatch>[] = React.useMemo(
     () => [
@@ -254,46 +264,91 @@ const ManageOrderBatch: React.FC<ManageOrderBatchProps> = ({
       },
       {
         id: 'total_quantity',
-        label: 'Total Quantity',
-        render: (_value, row) => (
-          <Typography variant="body2" className="!text-gray-600">
-            {row.batch_remaining_quantity}
-          </Typography>
-        ),
+        label:
+          selectedRowIndex !== null &&
+            orderItems[selectedRowIndex]?.unit?.toUpperCase() === 'PCS'
+            ? 'Total Available (pieces)'
+            : 'Total Available (cases)',
+        render: (_value, row) => {
+          const currentItem =
+            selectedRowIndex !== null ? orderItems[selectedRowIndex] : null;
+          const unit = currentItem?.unit || '';
+          const conversionRate = currentItem?.conversion_rate || 1;
+
+          let displayQuantity = row.batch_remaining_quantity || 0;
+
+          if (unit.toUpperCase() === 'PCS') {
+            displayQuantity =
+              (row.batch_remaining_quantity || 0) * conversionRate;
+          }
+
+          return (
+            <Typography variant="body2" className="!text-gray-600">
+              {displayQuantity}{' '}
+              {unit.toUpperCase() === 'PCS' ? 'pieces' : 'cases'}
+            </Typography>
+          );
+        },
       },
       {
         id: 'quantity',
-        label: 'Quantity',
-        render: (_value, row, rowIndex) => (
-          <Input
-            type="number"
-            value={row.quantity}
-            onChange={e => {
-              const raw = Number(e.target.value);
-              const max = Number(
-                row.batch_remaining_quantity ?? row.quantity ?? 0
-              );
-              if (!Number.isFinite(raw)) {
-                handleBatchChange('quantity', rowIndex, 0);
-                return;
-              }
-              const nonNegative = raw >= 0 ? raw : 0;
-              const limited =
-                Number.isFinite(max) && max > 0
-                  ? Math.min(nonNegative, max)
-                  : nonNegative;
+        label:
+          selectedRowIndex !== null &&
+            orderItems[selectedRowIndex]?.unit?.toUpperCase() === 'PCS'
+            ? 'Quantity (pieces)'
+            : 'Quantity (cases)',
+        render: (_value, row, rowIndex) => {
+          const currentItem =
+            selectedRowIndex !== null ? orderItems[selectedRowIndex] : null;
+          const unit = currentItem?.unit || '';
+          const conversionRate = currentItem?.conversion_rate || 1;
 
-              handleBatchChange('quantity', rowIndex, limited);
-            }}
-            size="small"
-            className="!w-40"
-            placeholder="Enter quantity"
-            fullWidth
-          />
-        ),
+          let displayValue = row.quantity || 0;
+          let maxValue = row.batch_remaining_quantity || 0;
+
+          if (unit.toUpperCase() === 'PCS') {
+            displayValue = (row.quantity || 0) * conversionRate;
+            maxValue = (row.batch_remaining_quantity || 0) * conversionRate;
+          }
+
+          return (
+            <Input
+              type="number"
+              value={displayValue}
+              onChange={e => {
+                const raw = Number(e.target.value);
+                const max = maxValue;
+
+                if (!Number.isFinite(raw)) {
+                  // Convert back to base quantity for storage
+                  const baseQuantity =
+                    unit.toUpperCase() === 'PCS' ? 0 / conversionRate : 0;
+                  handleBatchChange('quantity', rowIndex, baseQuantity);
+                  return;
+                }
+
+                const nonNegative = raw >= 0 ? raw : 0;
+                const limited =
+                  Number.isFinite(max) && max > 0
+                    ? Math.min(nonNegative, max)
+                    : nonNegative;
+
+                // Convert back to base quantity for storage
+                const baseQuantity = limited;
+                handleBatchChange('quantity', rowIndex, baseQuantity);
+              }}
+              size="small"
+              className="!w-40"
+              placeholder={
+                unit.toUpperCase() === 'PCS' ? 'Enter pieces' : 'Enter cases'
+              }
+              fullWidth
+            />
+          );
+        },
       },
     ],
-    [handleBatchChange, handleDelete]
+    [handleBatchChange, handleDelete, selectedRowIndex, orderItems]
   );
 
   return (
@@ -308,7 +363,12 @@ const ManageOrderBatch: React.FC<ManageOrderBatchProps> = ({
     >
       <div className="flex justify-between items-center !p-2">
         <p className="!font-semibold text-lg !text-gray-900">
-          Batch Information ({totalBatchQuantity})
+          Batch Information ({totalBatchQuantity}{' '}
+          {selectedRowIndex !== null &&
+            orderItems[selectedRowIndex]?.unit?.toUpperCase() === 'PCS'
+            ? 'pieces'
+            : 'cases'}
+          )
         </p>
         <ActionButton
           icon={<Close />}

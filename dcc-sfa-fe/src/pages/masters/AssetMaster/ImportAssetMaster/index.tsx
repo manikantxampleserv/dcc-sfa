@@ -1,10 +1,10 @@
-import { CloudUpload, TableChart, Download } from '@mui/icons-material';
+import { CloudUpload, Download, TableChart } from '@mui/icons-material';
 import { Alert, Box, LinearProgress, Typography } from '@mui/material';
 import { useFormik } from 'formik';
 import React, { useRef, useState } from 'react';
-import * as Yup from 'yup';
 import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
+import * as Yup from 'yup';
 import {
   useDownloadTemplate,
   useImportData,
@@ -28,9 +28,9 @@ const ImportAssetMaster: React.FC<ImportAssetMasterProps> = ({
   const [importResults, setImportResults] = useState<ImportResult | null>(null);
   const [step, setStep] = useState<'upload' | 'import' | 'results'>('upload');
 
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // API hooks
   const downloadTemplateMutation = useDownloadTemplate();
   const importDataMutation = useImportData({
     onSuccess: data => {
@@ -50,6 +50,7 @@ const ImportAssetMaster: React.FC<ImportAssetMasterProps> = ({
   const formik = useFormik({
     initialValues: {
       file: null,
+      updateExisting: true,
     },
     validationSchema: importValidationSchema,
     onSubmit: async () => {
@@ -90,10 +91,9 @@ const ImportAssetMaster: React.FC<ImportAssetMasterProps> = ({
         options: {
           batchSize: 100,
           skipDuplicates: false,
-          updateExisting: false,
+          updateExisting: formik.values.updateExisting,
         },
       });
-      // Results are handled in the mutation onSuccess callback
     } catch (error) {
       console.error('Import failed:', error);
     }
@@ -109,12 +109,48 @@ const ImportAssetMaster: React.FC<ImportAssetMasterProps> = ({
     }
   };
 
+  const handleDownloadErrorLog = () => {
+    if (
+      !importResults ||
+      !importResults.errors ||
+      importResults.errors.length === 0
+    )
+      return;
+
+    let currentOffset = 0;
+    let lastRow = 0;
+    const fixedErrors = importResults.errors.map(err => {
+      const match = err.match(/^Row (\d+):/);
+      if (match) {
+        const row = parseInt(match[1]);
+        if (row < lastRow) {
+          currentOffset += 100;
+        }
+        lastRow = row;
+        const absoluteRow = row + currentOffset;
+        return err.replace(/^Row \d+:/, `Row ${absoluteRow}:`);
+      }
+      return err;
+    });
+
+    const errorText = fixedErrors.join('\n');
+    const blob = new Blob([errorText], { type: 'text/plain' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `import_errors_${uploadedFile?.name || 'log'
+      }_${Date.now()}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  };
+
   return (
     <CustomDrawer
       open={drawerOpen}
       setOpen={handleCancel}
       title="Import Assets"
-      size="large"
     >
       <Box className="!p-5">
         <form onSubmit={formik.handleSubmit} className="!space-y-6">
@@ -149,6 +185,33 @@ const ImportAssetMaster: React.FC<ImportAssetMasterProps> = ({
                 Download
               </Button>
             </Box>
+          </Box>
+
+          {/* Import Options Section */}
+          <Box className="!p-4 !border !border-gray-200 !rounded-lg">
+            <Typography variant="subtitle1" className="!font-medium !mb-3">
+              Import Options
+            </Typography>
+            <Box className="!flex !items-center !gap-2">
+              <input
+                type="checkbox"
+                id="updateExisting"
+                name="updateExisting"
+                checked={formik.values.updateExisting}
+                onChange={(e) => formik.setFieldValue('updateExisting', e.target.checked)}
+                className="!w-4 !h-4 !cursor-pointer"
+              />
+              <label
+                htmlFor="updateExisting"
+                className="!text-sm !text-gray-700 !cursor-pointer"
+              >
+                Update existing records if serial number matches
+              </label>
+            </Box>
+            <Typography variant="caption" className="!text-gray-500 !block !mt-1">
+              If checked, existing assets with the same serial number will be
+              updated instead of showing an error.
+            </Typography>
           </Box>
 
           {/* Upload Section */}
@@ -272,12 +335,23 @@ const ImportAssetMaster: React.FC<ImportAssetMasterProps> = ({
                     {importResults.errors &&
                       importResults.errors.length > 0 && (
                         <Box className="!mt-3">
-                          <Typography
-                            variant="subtitle2"
-                            className="!font-medium !mb-2 !text-red-700"
-                          >
-                            Import Errors ({importResults.errors.length}):
-                          </Typography>
+                          <div className='flex justify-between !mb-2 items-center'>
+                            <Typography
+                              variant="subtitle2"
+                              className="!font-medium !text-red-700"
+                            >
+                              Import Errors ({importResults.errors.length}):
+                            </Typography>
+                            <Button
+                              variant="outlined"
+                              color="error"
+                              size="small"
+                              startIcon={<Download />}
+                              onClick={handleDownloadErrorLog}
+                            >
+                              Download Error Log ({importResults.errors.length} errors)
+                            </Button>
+                          </div>
                           <Box className="!bg-red-50 !rounded-lg !max-h-32 !overflow-y-auto !p-2">
                             {importResults.errors
                               .slice(0, 10)
@@ -325,7 +399,7 @@ const ImportAssetMaster: React.FC<ImportAssetMasterProps> = ({
                 disabled={!uploadedFile || importDataMutation.isPending}
                 loading={importDataMutation.isPending}
               >
-                {importDataMutation.isPending ? 'Importing...' : 'Import Data'}
+                {importDataMutation.isPending ? 'Importing...' : 'Import'}
               </Button>
             )}
 

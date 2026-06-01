@@ -1,10 +1,10 @@
 import type { Request, Response } from 'express';
 export declare const assetMovementsController: {
-    createAssetMovements(req: Request, res: Response): Promise<Response<any, Record<string, any>> | undefined>;
+    createAssetMovements(req: Request, res: Response): Promise<Response<any, Record<string, any>>>;
     getAllAssetMovements(req: any, res: any): Promise<void>;
     getAssetMovementsById(req: Request, res: Response): Promise<Response<any, Record<string, any>> | undefined>;
     updateAssetMovements(req: any, res: any): Promise<any>;
-    deleteAssetMovements(req: Request, res: Response): Promise<Response<any, Record<string, any>> | undefined>;
+    deleteAssetMovements(req: Request, res: Response): Promise<Response<any, Record<string, any>>>;
     generateContract(req: Request, res: Response): Promise<Response<any, Record<string, any>> | undefined>;
     downloadContract(req: Request, res: Response): Promise<Response<any, Record<string, any>> | undefined>;
     getContractInfo(req: Request, res: Response): Promise<Response<any, Record<string, any>> | undefined>;

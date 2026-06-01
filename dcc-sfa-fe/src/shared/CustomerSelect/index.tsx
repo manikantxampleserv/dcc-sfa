@@ -20,11 +20,13 @@ interface CustomerSelectProps {
   label: string;
   required?: boolean;
   fullWidth?: boolean;
+  disabled?: boolean;
   formik?: FormikProps<any>;
   setValue?: (value: any) => void;
   value?: string | number;
   onChange?: (event: any, value: Customer | null) => void;
   nameToSearch?: string;
+  depotId?: number;
 }
 
 const CustomerSelect: React.FC<CustomerSelectProps> = ({
@@ -32,11 +34,13 @@ const CustomerSelect: React.FC<CustomerSelectProps> = ({
   label,
   required = false,
   fullWidth = true,
+  disabled = false,
   formik,
   setValue,
   value,
   nameToSearch = '',
   onChange,
+  depotId,
 }) => {
   const [inputValue, setInputValue] = useState('');
   const [searchValue, setSearchValue] = useState('');
@@ -91,6 +95,7 @@ const CustomerSelect: React.FC<CustomerSelectProps> = ({
   const { data: dropdownResponse, isFetching } = useCustomersDropdown({
     search: effectiveSearch,
     customer_id: customerId && !effectiveSearch ? customerId : undefined,
+    depot_id: depotId,
   });
 
   const searchResults: Customer[] = (dropdownResponse?.data || []).map(
@@ -101,13 +106,12 @@ const CustomerSelect: React.FC<CustomerSelectProps> = ({
     })
   );
 
-  // Initialize selected customer from search results - FIXED to prevent loops
   useEffect(() => {
     if (isInitializingRef.current) return;
 
     if (
       normalizedValue &&
-      !selectedCustomerData &&
+      (!selectedCustomerData || selectedCustomerData.id.toString() !== normalizedValue) &&
       !isFetching &&
       searchResults.length > 0
     ) {
@@ -117,17 +121,16 @@ const CustomerSelect: React.FC<CustomerSelectProps> = ({
       if (found) {
         isInitializingRef.current = true;
         setSelectedCustomerData(found);
-        if (!inputValue) {
+        if (!inputValue || inputValue !== found.name) {
           setInputValue(found.name);
         }
         setHasInitialized(true);
-        // Reset the flag after a short delay
         setTimeout(() => {
           isInitializingRef.current = false;
         }, 100);
       }
     }
-  }, [normalizedValue, isFetching, searchResults.length]);
+  }, [normalizedValue, isFetching, searchResults, selectedCustomerData, inputValue]);
 
   // Get selected customer from state or search results
   const selectedCustomer = React.useMemo(() => {
@@ -150,7 +153,13 @@ const CustomerSelect: React.FC<CustomerSelectProps> = ({
 
   // Reset when value is cleared - SIMPLIFIED to prevent loops
   useEffect(() => {
-    if (!normalizedValue && (selectedCustomerData || inputValue)) {
+    if (!normalizedValue) {
+      if (selectedCustomerData || inputValue || hasInitialized) {
+        setInputValue('');
+        setSelectedCustomerData(null);
+        setHasInitialized(false);
+      }
+    } else if (selectedCustomerData && selectedCustomerData.id.toString() !== normalizedValue) {
       setInputValue('');
       setSelectedCustomerData(null);
       setHasInitialized(false);
@@ -252,6 +261,7 @@ const CustomerSelect: React.FC<CustomerSelectProps> = ({
       }
       size="small"
       fullWidth={fullWidth}
+      disabled={disabled}
       filterOptions={options => options}
       renderOption={(props, option: Customer) => (
         <Box

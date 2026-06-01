@@ -33,7 +33,12 @@ const productInclude = {
 const generateProductsCode = async (name) => {
     const prefix = name.slice(0, 3).toUpperCase();
     const lastProduct = await prisma_client_1.default.products.findFirst({
-        orderBy: { id: 'desc' },
+        where: {
+            code: {
+                startsWith: prefix,
+            },
+        },
+        orderBy: { code: 'desc' },
         select: { code: true },
     });
     let newNumber = 1;
@@ -203,25 +208,42 @@ const serializeProduct = (product) => ({
         }
         : null,
 });
-async function createDefaultInventoryStock(tx, productId, locationId, userId) {
-    const finalLocationId = locationId || 1;
-    await tx.inventory_stock.create({
-        data: {
-            product_id: productId,
-            location_id: finalLocationId,
-            current_stock: 0,
-            reserved_stock: 0,
-            available_stock: 0,
-            minimum_stock: 0,
-            maximum_stock: 0,
-            batch_id: null,
-            is_active: 'Y',
-            createdate: new Date(),
-            createdby: userId,
-            log_inst: 1,
-        },
-    });
-}
+// async function createDefaultInventoryStock(
+//   tx: any,
+//   productId: number,
+//   locationId: number | null,
+//   userId: number
+// ): Promise<void> {
+//   if (!locationId) {
+//     // Find a valid depot if no locationId is provided
+//     const firstDepot = await tx.depots.findFirst({
+//       where: { is_active: 'Y' },
+//       select: { id: true },
+//     });
+//     if (!firstDepot) {
+//       // If no active depot exists, skip inventory stock creation
+//       console.log('No active depot found, skipping inventory stock creation');
+//       return;
+//     }
+//     locationId = firstDepot.id;
+//   }
+//   await tx.inventory_stock.create({
+//     data: {
+//       product_id: productId,
+//       location_id: locationId,
+//       current_stock: 0,
+//       reserved_stock: 0,
+//       available_stock: 0,
+//       minimum_stock: 0,
+//       maximum_stock: 0,
+//       batch_id: null,
+//       is_active: 'Y',
+//       createdate: new Date(),
+//       createdby: userId,
+//       log_inst: 1,
+//     },
+//   });
+// }
 exports.productsController = {
     // async createProduct(req: Request, res: Response) {
     //   try {
@@ -430,9 +452,14 @@ exports.productsController = {
                         });
                     }
                 }
-                if (product.tracking_type === 'none') {
-                    await createDefaultInventoryStock(tx, product.id, data.location_id || null, userId);
-                }
+                // if (product.tracking_type === 'none') {
+                //   await createDefaultInventoryStock(
+                //     tx,
+                //     product.id,
+                //     data.location_id || null,
+                //     userId
+                //   );
+                // }
                 return product;
             });
             const completeProduct = await prisma_client_1.default.products.findUnique({
@@ -582,7 +609,6 @@ exports.productsController = {
             }
             const { code, batch_lots, subunit_id, ...restData } = req.body;
             const batchLots = batch_lots || [];
-            // Validation for tracking_type === 'NONE'
             if (restData.tracking_type === 'NONE' && batchLots.length > 0) {
                 return res.status(400).json({
                     message: 'Batch lots are not allowed for products with tracking_type NONE',
@@ -606,20 +632,6 @@ exports.productsController = {
                     return res
                         .status(400)
                         .json({ message: 'Product code already exists' });
-                }
-            }
-            if (updateData.subunit_id !== undefined &&
-                updateData.subunit_id !== null) {
-                const subunitExists = await prisma_client_1.default.unit_of_measurement.findFirst({
-                    where: {
-                        id: Number(updateData.subunit_id || undefined),
-                        is_active: 'Y',
-                    },
-                });
-                if (!subunitExists) {
-                    return res.status(400).json({
-                        message: 'Invalid subunit. The specified subunit does not exist or is inactive.',
-                    });
                 }
             }
             if (batch_lots !== undefined) {

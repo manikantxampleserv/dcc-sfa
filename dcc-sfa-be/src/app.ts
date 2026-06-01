@@ -1,37 +1,31 @@
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
-import express, { Application } from 'express';
-import { responseHandler } from './middlewares/response.middleware';
-import routes from './routes';
-import { scheduleCustomerCategoryAssignment } from './jobs/customerCategoryAssignment.job';
 import dotenv from 'dotenv';
+import express, { Application } from 'express';
 import { resolve } from 'path';
 import { setupGraphQL } from './graphql/server';
-import swaggerUi from 'swagger-ui-express';
-import { swaggerSpec, swaggerUiOptions } from './configs/swagger';
+import { scheduleCustomerCategoryAssignment } from './jobs/customerCategoryAssignment.job';
+import { responseHandler } from './middlewares/response.middleware';
+import routes from './routes';
 
-// First check if DATABASE_URL is already set in environment variables
-if (!process.env.DATABASE_URL) {
-  // Load environment variables from the root directory
-  const possiblePaths = [
-    resolve(process.cwd(), '.env'), // Current working directory
-    resolve(__dirname, '../.env'), // Relative to compiled file
-    resolve(__dirname, '../../../.env'), // For production builds
-    '.env', // Fallback
-  ];
+const possiblePaths = [
+  resolve(process.cwd(), '.env'),
+  resolve(__dirname, '../.env'),
+  resolve(__dirname, '../../../.env'),
+  '.env',
+];
 
-  for (const path of possiblePaths) {
-    try {
-      const result = dotenv.config({ path, quiet: true });
-      if (result.error) {
-        continue;
-      }
-      if (process.env.DATABASE_URL) {
-        break;
-      }
-    } catch (error) {
+for (const path of possiblePaths) {
+  try {
+    const result = dotenv.config({ path, quiet: true });
+    if (result.error) {
       continue;
     }
+    if (process.env.DATABASE_URL) {
+      break;
+    }
+  } catch (error) {
+    continue;
   }
 }
 
@@ -57,12 +51,6 @@ export const createApp = async (): Promise<Application> => {
   app.use(responseHandler);
 
   app.use('/api', routes);
-
-  app.use(
-    '/api-docs',
-    swaggerUi.serve,
-    swaggerUi.setup(swaggerSpec, swaggerUiOptions)
-  );
 
   scheduleCustomerCategoryAssignment();
 

@@ -93,9 +93,17 @@ import subunitsRoutes from '../v1/routes/subunits.routes';
 import assetSubTypes from '../v1/routes/assetSubTypes.routes';
 import templates from '../v1/routes/templates.routes';
 import columnPreference from '../v1/routes/columnPreference.routes';
+import regions from '../v1/routes/regions.routes';
+import districts from '../v1/routes/districts.routes';
+import cities from '../v1/routes/cities.routes';
+import alerts from '../v1/routes/alerts.routes';
+import customerCategoryGrading from '../v1/controllers/customerCategoryGrading.routes';
+import assetMasterBrands from '../v1/routes/assetMaterBrands.routes';
+import barcode from '../v1/routes/barcode.routes';
 
 const routes = Router();
 
+routes.use('/v1', barcode);
 routes.use('/v1', auth);
 routes.use('/v1', user);
 routes.use('/v1', roles);
@@ -189,6 +197,12 @@ routes.use('/v1', subunitsRoutes);
 routes.use('/v1', assetSubTypes);
 routes.use('/v1', templates);
 routes.use('/v1', columnPreference);
+routes.use('/v1', regions);
+routes.use('/v1', districts);
+routes.use('/v1', cities);
+routes.use('/v1', alerts);
+routes.use('/v1', customerCategoryGrading);
+routes.use('/v1', assetMasterBrands);
 
 routes.get('/', (_: any, res: any) => {
   res.json({

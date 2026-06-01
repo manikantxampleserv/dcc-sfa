@@ -21,8 +21,10 @@ interface OrderSerialized {
   order_type?: string | null;
   payment_method?: string | null;
   payment_terms?: string | null;
-  subtotal?: number | null;
   promotion_id?: number | null;
+  pricelist_id?: number | null;
+  currency_id?: number | null;
+  subtotal?: number | null;
   discount_amount?: number | null;
   tax_amount?: number | null;
   shipping_amount?: number | null;
@@ -60,14 +62,19 @@ interface OrderSerialized {
     id: number;
     product_id: number;
     product_name?: string;
-    unit?: string;
+    unit?: 'CASE' | 'PCS';
     quantity: number;
+    base_quantity?: number | null;
+    conversion_factor?: number;
     unit_price: number;
     discount_amount?: number;
     tax_amount?: number;
     total_amount?: number;
     notes?: string;
     is_free_gift?: boolean;
+    tracking_type?: string | null;
+    product_batches?: any[];
+    product_serials?: any[];
   }[];
   invoices?: { id: number; invoice_number: string; amount: number }[];
   promotion_applied?: {
@@ -92,6 +99,8 @@ const serializeOrder = (order: any): OrderSerialized => ({
   payment_method: order.payment_method,
   payment_terms: order.payment_terms,
   promotion_id: order.promotion_id,
+  pricelist_id: order.pricelist_id ?? null,
+  currency_id: order.currency_id,
   subtotal: order.subtotal ? Number(order.subtotal) : null,
   discount_amount: order.discount_amount ? Number(order.discount_amount) : null,
   tax_amount: order.tax_amount ? Number(order.tax_amount) : null,
@@ -150,6 +159,10 @@ const serializeOrder = (order: any): OrderSerialized => ({
       product_name: oi.product_name,
       unit: oi.unit,
       quantity: oi.quantity,
+      base_quantity: oi.base_quantity,
+      conversion_factor: oi.conversion_factor
+        ? Number(oi.conversion_factor)
+        : 1,
       unit_price: Number(oi.unit_price),
       discount_amount: oi.discount_amount
         ? Number(oi.discount_amount)
@@ -159,6 +172,8 @@ const serializeOrder = (order: any): OrderSerialized => ({
       notes: oi.notes,
       is_free_gift: oi.is_free_gift || false,
       tracking_type: oi.products?.tracking_type || null,
+      product_batches: oi.product_batches || [],
+      product_serials: oi.product_serials || [],
     })) || [],
 
   invoices:
@@ -170,6 +185,61 @@ const serializeOrder = (order: any): OrderSerialized => ({
 
   promotion_applied: order.promotion_applied || null,
 });
+
+function calculateUnitConversion(
+  currentQuantity: number,
+  currentBaseQuantity: number,
+  conversionFactor: number,
+  usedQuantity: number,
+  unit: string,
+  movementType: 'SALE' | 'RETURN'
+): { newQuantity: number; newBaseQuantity: number } {
+  const factor = conversionFactor || 1;
+
+  if (unit === 'PCS') {
+    const totalCurrentPCS = currentQuantity * factor + currentBaseQuantity;
+
+    let newTotalPCS: number;
+    if (movementType === 'SALE') {
+      newTotalPCS = totalCurrentPCS - usedQuantity;
+    } else {
+      newTotalPCS = totalCurrentPCS + usedQuantity;
+    }
+
+    if (newTotalPCS < 0) {
+      throw new Error(
+        `Insufficient stock. Available: ${totalCurrentPCS} PCS (${currentQuantity} cases + ${currentBaseQuantity} pcs), Requested: ${usedQuantity} PCS`
+      );
+    }
+
+    const newQuantity = Math.floor(newTotalPCS / factor);
+    const newBaseQuantity = newTotalPCS % factor;
+
+    console.log(
+      `PCS conversion: ${currentQuantity} cases + ${currentBaseQuantity} pcs = ${totalCurrentPCS} PCS`
+    );
+    console.log(
+      `After ${movementType}: ${newTotalPCS} PCS = ${newQuantity} cases + ${newBaseQuantity} pcs`
+    );
+
+    return { newQuantity, newBaseQuantity };
+  } else {
+    let newQuantity: number;
+    if (movementType === 'SALE') {
+      newQuantity = currentQuantity - usedQuantity;
+    } else {
+      newQuantity = currentQuantity + usedQuantity;
+    }
+
+    if (newQuantity < 0) {
+      throw new Error(
+        `Insufficient stock. Available: ${currentQuantity} cases, Requested: ${usedQuantity} cases`
+      );
+    }
+
+    return { newQuantity, newBaseQuantity: currentBaseQuantity };
+  }
+}
 
 async function generateOrderNumber(tx: any): Promise<string> {
   const maxRetries = 10;
@@ -227,225 +297,986 @@ async function generateOrderNumber(tx: any): Promise<string> {
   return fallbackOrderNumber;
 }
 
-async function calculatePromotionsInternal(params: {
-  customer_id: number;
-  depot_id?: number;
-  salesman_id: number;
-  route_id?: number;
-  platform: string;
-  order_date: Date | string;
-  order_lines: Array<{
-    product_id: number;
-    category_id: number;
-    quantity: number;
-    unit_price: number;
-  }>;
-}) {
+async function processOrderItems(
+  tx: any,
+  params: {
+    items: any[];
+    originalOrderItems: any[];
+    order: any;
+    vanInventory: any;
+    van_inventory_id: any;
+    userId: number;
+    isUpdate: boolean;
+    customer: any;
+  }
+) {
   const {
-    customer_id,
-    depot_id,
-    salesman_id,
-    route_id,
-    platform,
-    order_date,
-    order_lines,
+    items,
+    originalOrderItems,
+    order,
+    vanInventory,
+    van_inventory_id,
+    userId,
+    isUpdate,
+    customer,
   } = params;
 
-  const checkDate = new Date(order_date);
-
-  const customer = await prisma.customers.findUnique({
-    where: { id: customer_id },
-    select: { type: true },
+  console.log('Processing order items with delta update:', {
+    isUpdate,
+    newItemsCount: items.length,
+    originalItemsCount: originalOrderItems.length,
   });
 
-  const promotionsQuery: Prisma.promotionsWhereInput = {
-    is_active: 'Y',
-    start_date: { lte: checkDate },
-    end_date: { gte: checkDate },
-  };
-
-  if (platform) {
-    promotionsQuery.promotion_channel_promotions = {
-      some: {
-        channel_type: platform,
-        is_active: 'Y',
-      },
-    };
+  if (!isUpdate) {
+    for (const item of items) {
+      await processSingleItem(tx, {
+        item,
+        order,
+        vanInventory,
+        van_inventory_id,
+        userId,
+        customer,
+        isNewItem: true,
+      });
+    }
+    return;
   }
 
-  const promotions = await prisma.promotions.findMany({
-    where: promotionsQuery,
-    include: {
-      promotion_depot_promotions: { where: { is_active: 'Y' } },
-      promotion_salesperson_promotions: { where: { is_active: 'Y' } },
-      promotion_routes_promotions: { where: { is_active: 'Y' } },
-      promotion_customer_category_promotions: { where: { is_active: 'Y' } },
-      promotion_customer_exclusion_promotions: true,
-      promotion_condition_promotions: {
-        where: { is_active: 'Y' },
-        include: {
-          promotion_condition_products: {
-            where: { is_active: 'Y' },
-            include: {
-              promotion_condition_productId: true,
-              promotion_condition_categories: true,
-            },
-          },
-        },
-      },
-      promotion_level_promotions: {
-        where: { is_active: 'Y' },
-        include: {
-          promotion_benefit_level: {
-            where: { is_active: 'Y' },
-            include: {
-              promotion_benefit_products: true,
-            },
-          },
-        },
-        orderBy: { threshold_value: 'desc' },
-      },
-    },
-  });
+  console.log(
+    'Original order items:',
+    originalOrderItems.map(oi => ({
+      id: oi.id,
+      product_id: oi.product_id,
+      unit: oi.unit,
+      quantity: oi.quantity,
+      key: `${oi.product_id}_${oi.unit}`,
+    }))
+  );
 
-  const eligiblePromotions: any[] = [];
+  console.log(
+    'New order items:',
+    items.map(ni => ({
+      product_id: ni.product_id,
+      unit: ni.unit || 'CASE',
+      quantity: ni.quantity,
+      key: `${ni.product_id}_${ni.unit || 'CASE'}`,
+    }))
+  );
 
-  for (const promo of promotions) {
-    const isExcluded = promo.promotion_customer_exclusion_promotions.find(
-      (exc: { customer_id: number; is_excluded: string }) =>
-        exc.customer_id === customer_id && exc.is_excluded === 'Y'
-    );
-    if (isExcluded) continue;
+  const originalItemsMap = new Map(
+    originalOrderItems.map(oi => [`${oi.product_id}_${oi.unit}`, oi])
+  );
 
-    let isEligible = false;
+  const newItemsMap = new Map(
+    items.map(ni => [`${ni.product_id}_${ni.unit || 'CASE'}`, ni])
+  );
 
-    if (
-      promo.promotion_depot_promotions.length === 0 &&
-      promo.promotion_salesperson_promotions.length === 0 &&
-      promo.promotion_routes_promotions.length === 0 &&
-      promo.promotion_customer_category_promotions.length === 0
-    ) {
-      isEligible = true;
-    } else {
-      if (depot_id && promo.promotion_depot_promotions.length > 0) {
-        if (
-          promo.promotion_depot_promotions.find(
-            (d: { depot_id: number }) => d.depot_id === depot_id
-          )
-        ) {
-          isEligible = true;
-        }
+  const itemsToRemove: any[] = [];
+  for (const [key, originalItem] of originalItemsMap) {
+    if (!newItemsMap.has(key)) {
+      itemsToRemove.push(originalItem);
+    }
+  }
+
+  const itemsToAdd: any[] = [];
+  for (const [key, newItem] of newItemsMap) {
+    if (!originalItemsMap.has(key)) {
+      itemsToAdd.push(newItem);
+    }
+  }
+
+  const itemsToUpdate: any[] = [];
+  for (const [key, newItem] of newItemsMap) {
+    const originalItem = originalItemsMap.get(key);
+    if (originalItem) {
+      let needsUpdate = false;
+      let updateReason = '';
+
+      if (parseInt(newItem.quantity) !== originalItem.quantity) {
+        needsUpdate = true;
+        updateReason += `quantity: ${originalItem.quantity}→${newItem.quantity} `;
       }
-      if (salesman_id && promo.promotion_salesperson_promotions.length > 0) {
-        if (
-          promo.promotion_salesperson_promotions.find(
-            (s: { salesperson_id: number }) => s.salesperson_id === salesman_id
-          )
-        ) {
-          isEligible = true;
-        }
+
+      const newPrice = Number(newItem.unit_price || newItem.price) || 0;
+      const originalPrice = Number(originalItem.unit_price) || 0;
+      if (newPrice !== originalPrice) {
+        needsUpdate = true;
+        updateReason += `price: ${originalPrice}→${newPrice} `;
       }
-      if (route_id && promo.promotion_routes_promotions.length > 0) {
-        if (
-          promo.promotion_routes_promotions.find(
-            (r: { route_id: number }) => r.route_id === route_id
-          )
-        ) {
-          isEligible = true;
-        }
-      }
-      if (
-        customer?.type &&
-        promo.promotion_customer_category_promotions.length > 0
-      ) {
-        for (const cat of promo.promotion_customer_category_promotions) {
-          const category = await prisma.customer_category.findUnique({
-            where: { id: cat.customer_category_id },
-          });
-          if (category && category.category_code === customer.type) {
-            isEligible = true;
-            break;
+
+      const newBatches = newItem.batches || newItem.product_batches || [];
+      const originalBatches = originalItem.product_batches || [];
+
+      if (newBatches.length !== originalBatches.length) {
+        needsUpdate = true;
+        updateReason += `batches count: ${originalBatches.length}→${newBatches.length} `;
+      } else {
+        const newBatchMap = new Map(
+          newBatches.map((b: any) => [b.batch_lot_id, parseInt(b.quantity)])
+        );
+        const originalBatchMap = new Map(
+          originalBatches.map((b: any) => [b.batch_lot_id, b.quantity])
+        );
+
+        for (const [batchId, newQty] of newBatchMap) {
+          const originalQty = originalBatchMap.get(batchId);
+          if (originalQty !== newQty) {
+            needsUpdate = true;
+            updateReason += `batch ${batchId}: ${originalQty}→${newQty} `;
           }
         }
       }
-    }
 
-    if (!isEligible) continue;
+      const newSerials = newItem.serials || newItem.product_serials || [];
+      const originalSerials = originalItem.product_serials || [];
 
-    for (const condition of promo.promotion_condition_promotions) {
-      let totalQty = new Prisma.Decimal(0);
-      let totalValue = new Prisma.Decimal(0);
-
-      for (const line of order_lines) {
-        const productMatch = condition.promotion_condition_products.find(
-          (cp: { product_id: number | null; category_id: number | null }) =>
-            cp.product_id === line.product_id ||
-            cp.category_id === line.category_id
+      if (newSerials.length !== originalSerials.length) {
+        needsUpdate = true;
+        updateReason += `serials count: ${originalSerials.length}→${newSerials.length} `;
+      } else {
+        const newSerialSet = new Set(
+          newSerials.map((s: any) =>
+            typeof s === 'string' ? s : s.serial_number
+          )
+        );
+        const originalSerialSet = new Set(
+          originalSerials.map((s: any) => s.serial_number)
         );
 
-        if (productMatch) {
-          const lineQty = new Prisma.Decimal(line.quantity || 0);
-          const linePrice = new Prisma.Decimal(line.unit_price || 0);
-          const lineValue = lineQty.mul(linePrice);
-
-          totalQty = totalQty.add(lineQty);
-          totalValue = totalValue.add(lineValue);
+        if (
+          newSerialSet.size !== originalSerialSet.size ||
+          ![...newSerialSet].every(serial => originalSerialSet.has(serial))
+        ) {
+          needsUpdate = true;
+          updateReason += 'serials changed ';
         }
       }
 
-      const minValue = new Prisma.Decimal(condition.min_value || 0);
-      if (!totalValue.gte(minValue)) continue;
+      if (needsUpdate) {
+        const originalDisplayQty =
+          originalItem.unit === 'PCS'
+            ? originalItem.base_quantity
+            : originalItem.quantity;
+        const newDisplayQty = parseInt(newItem.quantity, 10);
 
-      const applicableLevel = promo.promotion_level_promotions.find(
-        (lvl: { threshold_value: Prisma.Decimal | number }) =>
-          new Prisma.Decimal(lvl.threshold_value).lte(totalValue)
+        console.log(
+          `Item ${originalItem.product_id} needs update: ${updateReason}`
+        );
+        itemsToUpdate.push({
+          originalItem,
+          newItem,
+          quantityDiff: newDisplayQty - originalDisplayQty,
+          priceChanged: updateReason.includes('price'),
+          batchesChanged:
+            JSON.stringify(newBatches) !== JSON.stringify(originalBatches),
+          serialsChanged:
+            JSON.stringify(newSerials) !== JSON.stringify(originalSerials),
+        });
+      }
+    }
+  }
+
+  console.log('Delta analysis:', {
+    itemsToRemove: itemsToRemove.length,
+    itemsToAdd: itemsToAdd.length,
+    itemsToUpdate: itemsToUpdate.length,
+  });
+
+  for (const removedItem of itemsToRemove) {
+    await restoreInventoryForItem(tx, {
+      item: removedItem,
+      order,
+      vanInventory,
+      van_inventory_id,
+      userId,
+      customer,
+    });
+
+    await tx.order_items.delete({
+      where: { id: removedItem.id },
+    });
+
+    console.log(
+      `Removed item: ${removedItem.product_name}, restored ${removedItem.quantity} units`
+    );
+  }
+
+  for (const addedItem of itemsToAdd) {
+    await processSingleItem(tx, {
+      item: addedItem,
+      order,
+      vanInventory,
+      van_inventory_id,
+      userId,
+      customer,
+      isNewItem: true,
+    });
+
+    console.log(
+      `Added item: ${addedItem.product_id}, quantity: ${addedItem.quantity}`
+    );
+  }
+
+  for (const {
+    originalItem,
+    newItem,
+    quantityDiff,
+    priceChanged,
+    batchesChanged,
+    serialsChanged,
+  } of itemsToUpdate) {
+    const product = await tx.products.findUnique({
+      where: { id: Number(newItem.product_id) },
+    });
+
+    if (!product) {
+      throw new Error(`Product ${newItem.product_id} not found`);
+    }
+
+    const trackingType = product.tracking_type?.toUpperCase() || 'NONE';
+
+    if (quantityDiff > 0) {
+      console.log(`Increasing quantity for ${product.name} by ${quantityDiff}`);
+      await processInventoryChange(tx, {
+        product,
+        trackingType,
+        quantity: quantityDiff,
+        item: newItem,
+        order,
+        van_inventory_id,
+        userId,
+        customer,
+        movementType: 'SALE',
+      });
+    } else if (quantityDiff < 0) {
+      console.log(
+        `Decreasing quantity for ${product.name} by ${Math.abs(quantityDiff)}`
+      );
+      await processInventoryChange(tx, {
+        product,
+        trackingType,
+        quantity: Math.abs(quantityDiff),
+        item: originalItem,
+        order,
+        van_inventory_id,
+        userId,
+        customer,
+        movementType: 'RETURN',
+      });
+    }
+
+    if (batchesChanged || serialsChanged) {
+      console.log(
+        `Restoring original inventory for ${product.name} due to batch/serial changes`
       );
 
-      if (!applicableLevel) continue;
+      if (batchesChanged && trackingType === 'BATCH') {
+        const originalBatchData = originalItem.product_batches || [];
 
-      let discountAmount = new Prisma.Decimal(0);
+        for (const originalBatch of originalBatchData) {
+          await processInventoryChange(tx, {
+            product,
+            trackingType,
+            quantity: originalBatch.quantity,
+            item: { ...originalItem, batches: [originalBatch] },
+            order,
+            van_inventory_id,
+            userId,
+            customer,
+            movementType: 'RETURN',
+          });
+        }
 
-      if (applicableLevel.discount_type === 'PERCENTAGE') {
-        const discountPercent = new Prisma.Decimal(
-          applicableLevel.discount_value || 0
-        );
-        discountAmount = totalValue.mul(discountPercent).div(100);
-      } else if (applicableLevel.discount_type === 'FIXED_AMOUNT') {
-        discountAmount = new Prisma.Decimal(
-          applicableLevel.discount_value || 0
-        );
+        const newBatchData = newItem.batches || newItem.product_batches || [];
+        for (const newBatch of newBatchData) {
+          await processInventoryChange(tx, {
+            product,
+            trackingType,
+            quantity: parseInt(newBatch.quantity),
+            item: { ...newItem, batches: [newBatch] },
+            order,
+            van_inventory_id,
+            userId,
+            customer,
+            movementType: 'SALE',
+          });
+        }
+      } else if (serialsChanged && trackingType === 'SERIAL') {
+        const originalSerialData = originalItem.product_serials || [];
+        for (const originalSerial of originalSerialData) {
+          await processInventoryChange(tx, {
+            product,
+            trackingType,
+            quantity: 1,
+            item: { ...originalItem, serials: [originalSerial.serial_number] },
+            order,
+            van_inventory_id,
+            userId,
+            customer,
+            movementType: 'RETURN',
+          });
+        }
+
+        const newSerialData = newItem.serials || newItem.product_serials || [];
+        for (const newSerial of newSerialData) {
+          const serialNumber =
+            typeof newSerial === 'string' ? newSerial : newSerial.serial_number;
+          await processInventoryChange(tx, {
+            product,
+            trackingType,
+            quantity: 1,
+            item: { ...newItem, serials: [serialNumber] },
+            order,
+            van_inventory_id,
+            userId,
+            customer,
+            movementType: 'SALE',
+          });
+        }
+        const originalDisplayQty =
+          originalItem.unit === 'PCS'
+            ? originalItem.base_quantity
+            : originalItem.quantity;
+
+        await processInventoryChange(tx, {
+          product,
+          trackingType,
+          quantity: originalDisplayQty,
+          item: originalItem,
+          order,
+          van_inventory_id,
+          userId,
+          customer,
+          movementType: 'RETURN',
+        });
+
+        await processInventoryChange(tx, {
+          product,
+          trackingType,
+          quantity: parseInt(newItem.quantity),
+          item: newItem,
+          order,
+          van_inventory_id,
+          userId,
+          customer,
+          movementType: 'SALE',
+        });
+      }
+    }
+
+    const unit = (newItem.unit || 'CASE').toUpperCase();
+
+    await tx.order_items.update({
+      where: { id: originalItem.id },
+      data: {
+        unit,
+        quantity: unit === 'PCS' ? 0 : parseInt(newItem.quantity),
+        base_quantity: unit === 'PCS' ? parseInt(newItem.quantity) : 0,
+
+        conversion_factor:
+          Number(newItem.conversion_factor) ||
+          Number(newItem.conversion_rate) ||
+          1,
+
+        unit_price: Number(newItem.unit_price || newItem.price) || 0,
+        discount_amount: Number(newItem.discount_amount) || 0,
+        tax_amount: Number(newItem.tax_amount) || 0,
+        total_amount:
+          parseInt(newItem.quantity) *
+          (Number(newItem.unit_price || newItem.price) || 0),
+        notes: newItem.notes || originalItem.notes,
+      },
+    });
+    console.log(
+      `Updated item ${originalItem.product_id}: qty=${originalItem.quantity}→${newItem.quantity}, price=${Number(originalItem.unit_price)}→${Number(newItem.unit_price || newItem.price)}`
+    );
+  }
+}
+
+async function processSingleItem(
+  tx: any,
+  params: {
+    item: any;
+    order: any;
+    vanInventory: any;
+    van_inventory_id: any;
+    userId: number;
+    customer: any;
+    isNewItem: boolean;
+  }
+) {
+  const { item, order, vanInventory, van_inventory_id, userId, customer } =
+    params;
+
+  const product = await tx.products.findUnique({
+    where: { id: Number(item.product_id) },
+    select: {
+      id: true,
+      name: true,
+      tracking_type: true,
+    },
+  });
+
+  if (!product) {
+    throw new Error(`Product ${item.product_id} not found`);
+  }
+
+  const trackingType = product.tracking_type?.toUpperCase() || 'NONE';
+
+  const quantity = parseInt(item.quantity, 10);
+  const unit = (item.unit || 'CASE').toUpperCase();
+  const conversionFactor =
+    Number(item.conversion_factor) || Number(item.conversion_rate) || 1;
+
+  console.log(`processSingleItem: product=${product.name}`, {
+    unit,
+    quantity,
+    conversionFactor,
+    trackingType,
+  });
+
+  await processInventoryChange(tx, {
+    product,
+    trackingType,
+    quantity,
+    item,
+    order,
+    userId,
+    customer,
+    movementType: 'SALE',
+    unit,
+    conversionFactor,
+  });
+
+  await tx.order_items.create({
+    data: {
+      parent_id: order.id,
+      product_id: product.id,
+      product_name: product.name,
+      unit: unit,
+      quantity: unit === 'PCS' ? 0 : quantity,
+      base_quantity: unit === 'PCS' ? quantity : 0,
+      conversion_factor: conversionFactor,
+      unit_price: Number(item.unit_price || item.price) || 0,
+      discount_amount: Number(item.discount_amount) || 0,
+      tax_amount: Number(item.tax_amount) || 0,
+      total_amount: quantity * (Number(item.unit_price || item.price) || 0),
+      notes: item.notes || null,
+      is_free_gift: false,
+    },
+  });
+
+  console.log(
+    `Created order item: product=${product.name}, unit=${unit}, quantity=${quantity}, conversionFactor=${conversionFactor}`
+  );
+}
+
+async function restoreInventoryForItem(
+  tx: any,
+  params: {
+    item: any;
+    order: any;
+    vanInventory: any;
+    van_inventory_id: any;
+    userId: number;
+    customer: any;
+  }
+) {
+  const { item, order, vanInventory, van_inventory_id, userId, customer } =
+    params;
+
+  const product = await tx.products.findUnique({
+    where: { id: Number(item.product_id) },
+    select: {
+      id: true,
+      name: true,
+      tracking_type: true,
+    },
+  });
+
+  if (!product) {
+    throw new Error(`Product ${item.product_id} not found`);
+  }
+
+  const trackingType = product.tracking_type?.toUpperCase() || 'NONE';
+  const unit = (item.unit || 'CASE').toUpperCase();
+
+  const conversionFactor =
+    Number(item.conversion_factor) || Number(product.conversion_factor) || 1;
+
+  const restoreQuantity =
+    unit === 'PCS' ? item.base_quantity || item.quantity : item.quantity;
+
+  await processInventoryChange(tx, {
+    product,
+    trackingType,
+    quantity: restoreQuantity,
+    item,
+    order,
+    van_inventory_id,
+    userId,
+    customer,
+    movementType: 'RETURN',
+    unit,
+    conversionFactor,
+  });
+}
+
+async function processInventoryChange(
+  tx: any,
+  params: {
+    product: any;
+    trackingType: string;
+    quantity: number;
+    item: any;
+    order: any;
+    van_inventory_id?: any;
+    userId: number;
+    customer: any;
+    movementType: 'SALE' | 'RETURN';
+    unit?: string;
+    conversionFactor?: number;
+  }
+) {
+  const {
+    product,
+    trackingType,
+    quantity,
+    item,
+    order,
+    van_inventory_id,
+    userId,
+    customer,
+    movementType,
+  } = params;
+
+  const unit = (params.unit || item.unit || 'CASE').toUpperCase();
+  const conversionFactor =
+    params.conversionFactor ||
+    Number(item.conversion_factor) ||
+    Number(item.conversion_rate) ||
+    1;
+
+  console.log(`Processing ${movementType} for ${product.name}`, {
+    unit,
+    quantity,
+    conversionFactor,
+    trackingType,
+  });
+
+  if (trackingType === 'BATCH') {
+    const batchData = item.batches || item.product_batches;
+
+    if (!batchData || !Array.isArray(batchData) || batchData.length === 0) {
+      throw new Error(`Batches are required for "${product.name}"`);
+    }
+
+    const seen = new Set<number>();
+    const uniqueBatches = batchData.filter((b: any) => {
+      if (seen.has(b.batch_lot_id)) return false;
+      seen.add(b.batch_lot_id);
+      return true;
+    });
+
+    for (const batch of uniqueBatches) {
+      const batchQty = parseInt(batch.quantity, 10);
+
+      const batchLot = await tx.batch_lots.findUnique({
+        where: { id: batch.batch_lot_id },
+      });
+
+      if (!batchLot) {
+        throw new Error(`Batch ${batch.batch_lot_id} not found`);
       }
 
-      const freeProducts: any[] = [];
-      for (const benefit of applicableLevel.promotion_benefit_level) {
-        if (benefit.benefit_type === 'FREE_PRODUCT') {
-          freeProducts.push({
-            product_id: benefit.product_id,
-            product_name: benefit.promotion_benefit_products?.name || null,
-            product_code: benefit.promotion_benefit_products?.code || null,
-            quantity: benefit.benefit_value.toNumber(),
-            gift_limit: benefit.gift_limit || 0,
+      if (unit === 'PCS') {
+        const calc = (currentQty: number, currentBase: number) =>
+          calculateUnitConversion(
+            currentQty,
+            currentBase,
+            conversionFactor,
+            batchQty,
+            'PCS',
+            movementType
+          );
+
+        const batchRes = calc(
+          Number(batchLot.remaining_quantity) || 0,
+          Number(batchLot.base_quantity) || 0
+        );
+        await tx.batch_lots.update({
+          where: { id: batch.batch_lot_id },
+          data: {
+            remaining_quantity: batchRes.newQuantity,
+            base_quantity: batchRes.newBaseQuantity,
+            updatedate: new Date(),
+          },
+        });
+
+        const productBatch = await tx.product_batches.findFirst({
+          where: {
+            product_id: product.id,
+            batch_lot_id: batch.batch_lot_id,
+            is_active: 'Y',
+          },
+        });
+        if (productBatch) {
+          const pbRes = calc(
+            Number(productBatch.quantity) || 0,
+            Number(productBatch.base_quantity) || 0
+          );
+          await tx.product_batches.update({
+            where: { id: productBatch.id },
+            data: {
+              quantity: pbRes.newQuantity,
+              base_quantity: pbRes.newBaseQuantity,
+              updatedate: new Date(),
+            },
+          });
+        }
+
+        const vanItem = await tx.van_inventory_items.findFirst({
+          where: {
+            product_id: product.id,
+            batch_lot_id: batch.batch_lot_id,
+            van_inventory_items_inventory: { is_active: 'Y' },
+          },
+        });
+        if (!vanItem && movementType === 'SALE') {
+          throw new Error(
+            `No van stock for ${product.name}, batch ${batch.batch_lot_id}`
+          );
+        }
+        if (vanItem) {
+          const vanRes = calc(
+            Number(vanItem.quantity) || 0,
+            Number(vanItem.base_quantity) || 0
+          );
+          if (vanRes.newQuantity === 0 && vanRes.newBaseQuantity === 0) {
+            await tx.van_inventory_items.delete({ where: { id: vanItem.id } });
+          } else {
+            await tx.van_inventory_items.update({
+              where: { id: vanItem.id },
+              data: {
+                quantity: vanRes.newQuantity,
+                base_quantity: vanRes.newBaseQuantity,
+              },
+            });
+          }
+          console.log(
+            ` VAN PCS → cases=${vanRes.newQuantity}, pcs=${vanRes.newBaseQuantity}`
+          );
+        }
+
+        const stock = await tx.inventory_stock.findFirst({
+          where: { product_id: product.id, batch_id: batch.batch_lot_id },
+        });
+        if (stock) {
+          const stockRes = calc(
+            Number(stock.current_stock) || 0,
+            Number(stock.base_quantity) || 0
+          );
+          await tx.inventory_stock.update({
+            where: { id: stock.id },
+            data: {
+              current_stock: stockRes.newQuantity,
+              available_stock: stockRes.newQuantity,
+              base_quantity: stockRes.newBaseQuantity,
+              updatedate: new Date(),
+              updatedby: userId,
+            },
+          });
+        }
+      } else {
+        const change = movementType === 'SALE' ? -batchQty : batchQty;
+
+        await tx.batch_lots.update({
+          where: { id: batch.batch_lot_id },
+          data: {
+            remaining_quantity: Number(batchLot.remaining_quantity) + change,
+            updatedate: new Date(),
+          },
+        });
+
+        const productBatch = await tx.product_batches.findFirst({
+          where: {
+            product_id: product.id,
+            batch_lot_id: batch.batch_lot_id,
+            is_active: 'Y',
+          },
+        });
+        if (productBatch) {
+          await tx.product_batches.update({
+            where: { id: productBatch.id },
+            data: {
+              quantity: Number(productBatch.quantity) + change,
+              updatedate: new Date(),
+            },
+          });
+        }
+
+        const vanItem = await tx.van_inventory_items.findFirst({
+          where: {
+            product_id: product.id,
+            batch_lot_id: batch.batch_lot_id,
+            van_inventory_items_inventory: { is_active: 'Y' },
+          },
+        });
+        if (!vanItem && movementType === 'SALE') {
+          throw new Error(`No van stock for ${product.name}`);
+        }
+        if (vanItem) {
+          const newQty = Number(vanItem.quantity) + change;
+          if (newQty === 0) {
+            await tx.van_inventory_items.delete({ where: { id: vanItem.id } });
+          } else if (newQty > 0) {
+            await tx.van_inventory_items.update({
+              where: { id: vanItem.id },
+              data: { quantity: newQty },
+            });
+          } else {
+            throw new Error(`Insufficient van stock for ${product.name}`);
+          }
+          console.log(`VAN CASE → cases=${newQty}`);
+        }
+
+        const stock = await tx.inventory_stock.findFirst({
+          where: { product_id: product.id, batch_id: batch.batch_lot_id },
+        });
+        if (stock) {
+          await tx.inventory_stock.update({
+            where: { id: stock.id },
+            data: {
+              current_stock: Number(stock.current_stock) + change,
+              available_stock: Number(stock.available_stock) + change,
+              updatedate: new Date(),
+              updatedby: userId,
+            },
           });
         }
       }
 
-      eligiblePromotions.push({
-        promotion_id: promo.id,
-        promotion_name: promo.name,
-        promotion_code: promo.code,
-        level_number: applicableLevel.level_number,
-        discount_type: applicableLevel.discount_type,
-        discount_amount: discountAmount.toNumber(),
-        free_products: freeProducts,
-        qualified_quantity: totalQty.toNumber(),
-        qualified_value: totalValue.toNumber(),
+      await tx.stock_movements.create({
+        data: {
+          product_id: product.id,
+          batch_id: batch.batch_lot_id,
+          serial_id: null,
+          movement_type: movementType,
+          reference_type: 'ORDER',
+          reference_id: order.id,
+          quantity: batchQty,
+          movement_date: new Date(),
+          remarks: `${movementType} ${batchQty} ${unit} - Batch: ${batchLot.batch_number}`,
+          createdby: userId,
+          createdate: new Date(),
+          is_active: 'Y',
+          van_inventory_id: van_inventory_id ? Number(van_inventory_id) : null,
+        },
+      });
+    }
+  } else if (trackingType === 'SERIAL') {
+    const serialData = item.serials || item.product_serials;
+
+    if (!serialData || !Array.isArray(serialData) || serialData.length === 0) {
+      throw new Error(`Serial numbers required for "${product.name}"`);
+    }
+
+    for (const serialInput of serialData) {
+      const serialNumber =
+        typeof serialInput === 'string'
+          ? serialInput
+          : serialInput.serial_number;
+
+      if (!serialNumber) throw new Error('Serial number is required');
+
+      const serial = await tx.serial_numbers.findUnique({
+        where: { serial_number: serialNumber },
+      });
+      if (!serial) throw new Error(`Serial ${serialNumber} not found`);
+
+      await tx.serial_numbers.update({
+        where: { id: serial.id },
+        data: {
+          status: movementType === 'SALE' ? 'sold' : 'available',
+          customer_id: movementType === 'SALE' ? customer?.id || null : null,
+          sold_date: movementType === 'SALE' ? new Date() : null,
+          updatedate: new Date(),
+          updatedby: userId,
+        },
       });
 
-      break;
-    }
-  }
+      const inventoryStock = await tx.inventory_stock.findFirst({
+        where: { product_id: product.id, serial_number_id: serial.id },
+      });
+      if (inventoryStock) {
+        const qChange = movementType === 'SALE' ? -1 : 1;
+        await tx.inventory_stock.update({
+          where: { id: inventoryStock.id },
+          data: {
+            current_stock: inventoryStock.current_stock + qChange,
+            available_stock: inventoryStock.available_stock + qChange,
+            updatedate: new Date(),
+            updatedby: userId,
+          },
+        });
+      }
 
-  return eligiblePromotions;
+      const vanItem = await tx.van_inventory_items.findFirst({
+        where: {
+          product_id: product.id,
+          serial_id: serial.id,
+          van_inventory_items_inventory: { is_active: 'Y' },
+        },
+      });
+      if (vanItem) {
+        const qChange = movementType === 'SALE' ? -1 : 1;
+        const newQty = vanItem.quantity + qChange;
+        if (newQty > 0) {
+          await tx.van_inventory_items.update({
+            where: { id: vanItem.id },
+            data: { quantity: newQty },
+          });
+        } else if (newQty === 0) {
+          await tx.van_inventory_items.delete({ where: { id: vanItem.id } });
+        } else if (movementType === 'SALE') {
+          throw new Error(`Insufficient quantity for serial ${serialNumber}`);
+        }
+      } else if (movementType === 'SALE') {
+        throw new Error(`Serial ${serialNumber} not found in van inventory`);
+      }
+
+      await tx.stock_movements.create({
+        data: {
+          product_id: product.id,
+          batch_id: null,
+          serial_id: serial.id,
+          movement_type: movementType,
+          reference_type: 'ORDER',
+          reference_id: order.id,
+          quantity: 1,
+          movement_date: new Date(),
+          remarks: `${movementType} Serial: ${serialNumber}`,
+          createdby: userId,
+          createdate: new Date(),
+          is_active: 'Y',
+          van_inventory_id: van_inventory_id ? Number(van_inventory_id) : null,
+        },
+      });
+    }
+  } else {
+    const qChange = movementType === 'SALE' ? -quantity : quantity;
+
+    const vanItem = await tx.van_inventory_items.findFirst({
+      where: {
+        product_id: product.id,
+        van_inventory_items_inventory: { is_active: 'Y' },
+      },
+    });
+
+    if (vanItem) {
+      if (unit === 'PCS') {
+        const vanRes = calculateUnitConversion(
+          Number(vanItem.quantity) || 0,
+          Number(vanItem.base_quantity) || 0,
+          conversionFactor,
+          quantity,
+          'PCS',
+          movementType
+        );
+
+        if (vanRes.newQuantity === 0 && vanRes.newBaseQuantity === 0) {
+          await tx.van_inventory_items.delete({ where: { id: vanItem.id } });
+        } else {
+          await tx.van_inventory_items.update({
+            where: { id: vanItem.id },
+            data: {
+              quantity: vanRes.newQuantity,
+              base_quantity: vanRes.newBaseQuantity,
+            },
+          });
+        }
+        console.log(
+          `VAN NONE PCS → cases=${vanRes.newQuantity}, pcs=${vanRes.newBaseQuantity}`
+        );
+      } else {
+        const newQty = Number(vanItem.quantity) + qChange;
+        if (newQty > 0) {
+          await tx.van_inventory_items.update({
+            where: { id: vanItem.id },
+            data: { quantity: newQty },
+          });
+        } else if (newQty === 0) {
+          await tx.van_inventory_items.delete({ where: { id: vanItem.id } });
+        } else if (movementType === 'SALE') {
+          throw new Error(`Insufficient quantity for "${product.name}"`);
+        }
+      }
+    } else if (movementType === 'SALE') {
+      console.log(
+        `No van item for NONE tracking product ${product.name} - skipping van update`
+      );
+    }
+
+    const stock = await tx.inventory_stock.findFirst({
+      where: {
+        product_id: product.id,
+        batch_id: null,
+        serial_number_id: null,
+      },
+    });
+
+    if (stock) {
+      if (unit === 'PCS') {
+        const stockRes = calculateUnitConversion(
+          Number(stock.current_stock) || 0,
+          Number(stock.base_quantity) || 0,
+          conversionFactor,
+          quantity,
+          'PCS',
+          movementType
+        );
+
+        await tx.inventory_stock.update({
+          where: { id: stock.id },
+          data: {
+            current_stock: stockRes.newQuantity,
+            available_stock: stockRes.newQuantity,
+            base_quantity: stockRes.newBaseQuantity,
+            updatedate: new Date(),
+            updatedby: userId,
+          },
+        });
+      } else {
+        await tx.inventory_stock.update({
+          where: { id: stock.id },
+          data: {
+            current_stock: Number(stock.current_stock) + qChange,
+            available_stock: Number(stock.available_stock) + qChange,
+            updatedate: new Date(),
+            updatedby: userId,
+          },
+        });
+      }
+    }
+
+    await tx.stock_movements.create({
+      data: {
+        product_id: product.id,
+        batch_id: null,
+        serial_id: null,
+        movement_type: movementType,
+        reference_type: 'ORDER',
+        reference_id: order.id,
+        quantity: Math.abs(quantity),
+        movement_date: new Date(),
+        remarks: `${movementType} ${quantity} ${unit} - ${product.name}`,
+        createdby: userId,
+        createdate: new Date(),
+        is_active: 'Y',
+        van_inventory_id: van_inventory_id ? Number(van_inventory_id) : null,
+      },
+    });
+  }
 }
 
 export const ordersController = {
@@ -828,6 +1659,9 @@ export const ordersController = {
             promotion_id: selected_promotion_id
               ? parseInt(selected_promotion_id)
               : null,
+            pricelist_id: orderData.pricelist_id
+              ? Number(orderData.pricelist_id)
+              : null,
           };
 
           if (isUpdate && orderId) {
@@ -857,487 +1691,27 @@ export const ordersController = {
           }
 
           if (items && items.length > 0) {
+            let originalOrderItems: any[] = [];
+
             if (isUpdate && orderId) {
-              await tx.order_items.deleteMany({
+              originalOrderItems = await tx.order_items.findMany({
                 where: { parent_id: orderId },
+                include: {
+                  products: true,
+                },
               });
             }
 
-            for (const item of items) {
-              const product = await tx.products.findUnique({
-                where: { id: Number(item.product_id) },
-              });
-
-              if (!product) {
-                throw new Error(`Product ${item.product_id} not found`);
-              }
-
-              const trackingType =
-                product.tracking_type?.toUpperCase() || 'NONE';
-              const quantity = parseInt(item.quantity, 10);
-
-              if (trackingType === 'BATCH') {
-                console.log('Going to BATCH branch');
-
-                const batchData = item.batches || item.product_batches;
-
-                if (!batchData || !Array.isArray(batchData)) {
-                  throw new Error(
-                    `Batches are required for product "${product.name}"`
-                  );
-                }
-
-                let totalOrderedQty = 0;
-                for (const batchOrder of batchData) {
-                  const batchQty = parseInt(batchOrder.quantity, 10);
-                  totalOrderedQty += batchQty;
-
-                  const batchLot = await tx.batch_lots.findUnique({
-                    where: { id: batchOrder.batch_lot_id },
-                  });
-
-                  if (!batchLot) {
-                    throw new Error(
-                      `Batch lot ${batchOrder.batch_lot_id} not found`
-                    );
-                  }
-
-                  const vanItem = await tx.van_inventory_items.findFirst({
-                    where: {
-                      product_id: product.id,
-                      batch_lot_id: batchOrder.batch_lot_id,
-                      van_inventory_items_inventory: {
-                        is_active: 'Y',
-                      },
-                    },
-                    include: {
-                      van_inventory_items_inventory: true,
-                    },
-                  });
-
-                  if (!vanItem) {
-                    throw new Error(
-                      `Batch ${batchOrder.batch_lot_id} not found in any van inventory for product "${product.name}"`
-                    );
-                  }
-
-                  if (vanItem.quantity < batchQty) {
-                    throw new Error(
-                      `Insufficient quantity in van for batch. Available: ${vanItem.quantity}, Requested: ${batchQty}`
-                    );
-                  }
-
-                  const newVanItemQuantity = vanItem.quantity - batchQty;
-                  if (newVanItemQuantity > 0) {
-                    await tx.van_inventory_items.update({
-                      where: { id: vanItem.id },
-                      data: { quantity: newVanItemQuantity },
-                    });
-                    console.log(
-                      ` Updated van_inventory_items for batch ${batchLot.batch_number}: ${vanItem.quantity}→${newVanItemQuantity}`
-                    );
-                  } else {
-                    await tx.van_inventory_items.delete({
-                      where: { id: vanItem.id },
-                    });
-                    console.log(
-                      ` Deleted van_inventory_items for batch ${batchLot.batch_number} (quantity reached zero)`
-                    );
-                  }
-
-                  if (batchLot.remaining_quantity < batchQty) {
-                    throw new Error(
-                      `Insufficient quantity in batch lot. Available: ${batchLot.remaining_quantity}, Requested: ${batchQty}`
-                    );
-                  }
-
-                  await tx.batch_lots.update({
-                    where: { id: batchOrder.batch_lot_id },
-                    data: {
-                      remaining_quantity:
-                        batchLot.remaining_quantity - batchQty,
-                      updatedate: new Date(),
-                    },
-                  });
-
-                  const productBatch = await tx.product_batches.findFirst({
-                    where: {
-                      product_id: product.id,
-                      batch_lot_id: batchOrder.batch_lot_id,
-                      is_active: 'Y',
-                    },
-                  });
-
-                  if (productBatch) {
-                    if (productBatch.quantity < batchQty) {
-                      throw new Error(
-                        `Insufficient quantity in product batch. Available: ${productBatch.quantity}, Requested: ${batchQty}`
-                      );
-                    }
-
-                    await tx.product_batches.update({
-                      where: { id: productBatch.id },
-                      data: {
-                        quantity: productBatch.quantity - batchQty,
-                        updatedate: new Date(),
-                      },
-                    });
-                  }
-
-                  const inventoryStock = await tx.inventory_stock.findFirst({
-                    where: {
-                      product_id: product.id,
-                      batch_id: batchOrder.batch_lot_id,
-                    },
-                  });
-
-                  if (inventoryStock) {
-                    const currentStock = inventoryStock.current_stock ?? 0;
-                    const availableStock = inventoryStock.available_stock ?? 0;
-
-                    if (currentStock < batchQty) {
-                      throw new Error(
-                        `Insufficient inventory stock for batch. Available: ${currentStock}, Requested: ${batchQty}`
-                      );
-                    }
-
-                    await tx.inventory_stock.update({
-                      where: { id: inventoryStock.id },
-                      data: {
-                        current_stock: currentStock - batchQty,
-                        available_stock: availableStock - batchQty,
-                        updatedate: new Date(),
-                        updatedby: userId,
-                      },
-                    });
-                  } else {
-                    throw new Error(
-                      `Inventory stock not found for product ${product.name} and batch ${batchOrder.batch_lot_id}`
-                    );
-                  }
-
-                  await tx.stock_movements.create({
-                    data: {
-                      product_id: product.id,
-                      batch_id: batchOrder.batch_lot_id,
-                      serial_id: null,
-                      movement_type: 'SALE',
-                      reference_type: 'ORDER',
-                      reference_id: order.id,
-                      from_location_id: vanInventory?.location_id || null,
-                      to_location_id: null,
-                      quantity: batchQty,
-                      movement_date: new Date(),
-                      remarks: `Sold via order ${order.order_number} - Batch: ${batchLot.batch_number}`,
-                      is_active: 'Y',
-                      createdate: new Date(),
-                      createdby: userId,
-                      log_inst: 1,
-                      van_inventory_id: van_inventory_id
-                        ? Number(van_inventory_id)
-                        : null,
-                    },
-                  });
-
-                  console.log(
-                    ` Deducted ${batchQty} from batch ${batchLot.batch_number}`
-                  );
-                }
-
-                if (totalOrderedQty !== quantity) {
-                  throw new Error(
-                    `Total batch quantity (${totalOrderedQty}) does not match ordered quantity (${quantity})`
-                  );
-                }
-
-                await tx.order_items.create({
-                  data: {
-                    parent_id: order.id,
-                    product_id: product.id,
-                    product_name: product.name,
-                    unit: item.unit || 'pcs',
-                    quantity: totalOrderedQty,
-                    unit_price: Number(item.unit_price || item.price) || 0,
-                    discount_amount: Number(item.discount_amount) || 0,
-                    tax_amount: Number(item.tax_amount) || 0,
-                    total_amount:
-                      totalOrderedQty *
-                      (Number(item.unit_price || item.price) || 0),
-                    notes: `Batches: ${batchData.map((b: any) => b.batch_lot_id).join(', ')}`,
-                    is_free_gift: false,
-                  },
-                });
-              } else if (trackingType === 'SERIAL') {
-                console.log(' Going to SERIAL branch');
-                const serialData = item.serials || item.product_serials;
-
-                if (
-                  !serialData ||
-                  !Array.isArray(serialData) ||
-                  serialData.length === 0
-                ) {
-                  throw new Error(
-                    `Serial numbers required for "${product.name}"`
-                  );
-                }
-
-                for (const serialInput of serialData) {
-                  const serialNumber =
-                    typeof serialInput === 'string'
-                      ? serialInput
-                      : serialInput.serial_number;
-
-                  if (!serialNumber) {
-                    throw new Error('Serial number is required');
-                  }
-
-                  const serial = await tx.serial_numbers.findUnique({
-                    where: { serial_number: serialNumber },
-                  });
-
-                  if (!serial) {
-                    throw new Error(`Serial number ${serialNumber} not found`);
-                  }
-
-                  await tx.serial_numbers.update({
-                    where: { id: serial.id },
-                    data: {
-                      status: 'sold',
-                      customer_id: customer?.id || null,
-                      sold_date: new Date(),
-                      updatedate: new Date(),
-                      updatedby: userId,
-                    },
-                  });
-                  console.log(` Serial ${serialNumber} marked as SOLD`);
-
-                  const inventoryStock = await tx.inventory_stock.findFirst({
-                    where: {
-                      product_id: product.id,
-                      serial_number_id: serial.id,
-                    },
-                  });
-
-                  if (inventoryStock) {
-                    const oldCurrent = inventoryStock.current_stock || 0;
-                    const oldAvailable = inventoryStock.available_stock || 0;
-                    const newCurrentStock = Math.max(0, oldCurrent - 1);
-                    const newAvailableStock = Math.max(0, oldAvailable - 1);
-
-                    await tx.inventory_stock.update({
-                      where: { id: inventoryStock.id },
-                      data: {
-                        current_stock: newCurrentStock,
-                        available_stock: newAvailableStock,
-                        updatedate: new Date(),
-                        updatedby: userId,
-                      },
-                    });
-                    console.log(
-                      ` DECREASED inventory_stock for ${serialNumber}: current ${oldCurrent}→${newCurrentStock}, available ${oldAvailable}→${newAvailableStock}`
-                    );
-                  } else {
-                    console.warn(
-                      ` No inventory_stock found for serial ${serialNumber}`
-                    );
-                  }
-
-                  const vanItem = await tx.van_inventory_items.findFirst({
-                    where: {
-                      product_id: product.id,
-                      serial_id: serial.id,
-                      van_inventory_items_inventory: {
-                        is_active: 'Y',
-                      },
-                    },
-                    include: {
-                      van_inventory_items_inventory: true,
-                    },
-                  });
-
-                  if (vanItem && vanItem.quantity > 0) {
-                    const newVanItemQuantity = vanItem.quantity - 1;
-                    if (newVanItemQuantity > 0) {
-                      await tx.van_inventory_items.update({
-                        where: { id: vanItem.id },
-                        data: { quantity: newVanItemQuantity },
-                      });
-                      console.log(
-                        ` DECREASED van_inventory_items for ${serialNumber}: ${vanItem.quantity}→${newVanItemQuantity}`
-                      );
-                    } else {
-                      await tx.van_inventory_items.delete({
-                        where: { id: vanItem.id },
-                      });
-                      console.log(
-                        ` DELETED van_inventory_items for ${serialNumber} (quantity reached zero)`
-                      );
-                    }
-                  }
-
-                  await tx.stock_movements.create({
-                    data: {
-                      product_id: product.id,
-                      batch_id: null,
-                      serial_id: serial.id,
-                      movement_type: 'SALE',
-                      reference_type: 'ORDER',
-                      reference_id: order.id,
-                      from_location_id: vanInventory?.location_id || null,
-                      to_location_id: null,
-                      quantity: 1,
-                      movement_date: new Date(),
-                      remarks: `Sold via order ${order.order_number} - Serial ${serialNumber}`,
-                      is_active: 'Y',
-                      createdate: new Date(),
-                      createdby: userId,
-                      log_inst: 1,
-                      van_inventory_id: van_inventory_id
-                        ? Number(van_inventory_id)
-                        : null,
-                    },
-                  });
-                  console.log(
-                    ` SALE stock_movement created for ${serialNumber}`
-                  );
-                }
-
-                await tx.order_items.create({
-                  data: {
-                    parent_id: order.id,
-                    product_id: product.id,
-                    product_name: product.name,
-                    unit: 'pcs',
-                    quantity: serialData.length,
-                    unit_price: Number(item.unit_price || item.price) || 0,
-                    discount_amount: Number(item.discount_amount || 0),
-                    tax_amount: Number(item.tax_amount || 0),
-                    total_amount:
-                      serialData.length *
-                      (Number(item.unit_price || item.price) || 0),
-                    notes: `Serials: ${serialData.map((s: any) => (typeof s === 'string' ? s : s.serial_number)).join(', ')}`,
-                    is_free_gift: false,
-                  },
-                });
-                console.log(
-                  `Order item created for ${serialData.length} serials`
-                );
-              } else {
-                console.log(' Going to NONE branch');
-
-                if (vanInventory) {
-                  const vanItem =
-                    vanInventory.van_inventory_items_inventory.find(
-                      vi => vi.product_id === product.id
-                    );
-
-                  if (!vanItem) {
-                    throw new Error(
-                      `Product "${product.name}" not found in van inventory`
-                    );
-                  }
-
-                  if (vanItem.quantity < quantity) {
-                    throw new Error(
-                      `Insufficient quantity in van for "${product.name}". Available: ${vanItem.quantity}, Requested: ${quantity}`
-                    );
-                  }
-
-                  // Update van inventory item quantity
-                  const newVanItemQuantity = vanItem.quantity - quantity;
-                  if (newVanItemQuantity > 0) {
-                    await tx.van_inventory_items.update({
-                      where: { id: vanItem.id },
-                      data: { quantity: newVanItemQuantity },
-                    });
-                    console.log(
-                      ` Updated van_inventory_items for ${product.name}: ${vanItem.quantity}→${newVanItemQuantity}`
-                    );
-                  } else {
-                    // Delete van inventory item if quantity becomes zero
-                    await tx.van_inventory_items.delete({
-                      where: { id: vanItem.id },
-                    });
-                    console.log(
-                      ` Deleted van_inventory_items for ${product.name} (quantity reached zero)`
-                    );
-                  }
-                }
-
-                const inventoryStock = await tx.inventory_stock.findFirst({
-                  where: {
-                    product_id: product.id,
-                    batch_id: null,
-                    serial_number_id: null,
-                  },
-                });
-
-                if (inventoryStock) {
-                  const newCurrentStock = Math.max(
-                    0,
-                    (inventoryStock.current_stock || 0) - 1
-                  );
-                  const newAvailableStock = Math.max(
-                    0,
-                    (inventoryStock.available_stock || 0) - 1
-                  );
-
-                  await tx.inventory_stock.update({
-                    where: { id: inventoryStock.id },
-                    data: {
-                      current_stock: newCurrentStock,
-                      available_stock: newAvailableStock,
-                      updatedate: new Date(),
-                      updatedby: userId,
-                    },
-                  });
-                } else {
-                  throw new Error(
-                    `Inventory stock not found for product ${product.name}`
-                  );
-                }
-
-                await tx.stock_movements.create({
-                  data: {
-                    product_id: product.id,
-                    batch_id: null,
-                    serial_id: null,
-                    movement_type: 'SALE',
-                    reference_type: 'ORDER',
-                    reference_id: order.id,
-                    from_location_id: vanInventory?.location_id || null,
-                    to_location_id: null,
-                    quantity: quantity,
-                    movement_date: new Date(),
-                    remarks: `Sold via order ${order.order_number}`,
-                    is_active: 'Y',
-                    createdate: new Date(),
-                    createdby: userId,
-                    log_inst: 1,
-                    van_inventory_id: van_inventory_id
-                      ? Number(van_inventory_id)
-                      : null,
-                  },
-                });
-
-                await tx.order_items.create({
-                  data: {
-                    parent_id: order.id,
-                    product_id: product.id,
-                    product_name: product.name,
-                    unit: item.unit || 'pcs',
-                    quantity: quantity,
-                    unit_price: Number(item.unit_price || item.price) || 0,
-                    discount_amount: Number(item.discount_amount) || 0,
-                    tax_amount: Number(item.tax_amount) || 0,
-                    total_amount:
-                      quantity * (Number(item.unit_price || item.price) || 0),
-                    notes: item.notes || null,
-                    is_free_gift: false,
-                  },
-                });
-              }
-            }
+            await processOrderItems(tx, {
+              items,
+              originalOrderItems,
+              order,
+              vanInventory,
+              van_inventory_id,
+              userId,
+              isUpdate,
+              customer,
+            });
 
             if (freeProducts.length > 0) {
               for (const freeProduct of freeProducts) {
@@ -1346,7 +1720,7 @@ export const ordersController = {
                     parent_id: order.id,
                     product_id: freeProduct.product_id,
                     product_name: freeProduct.product_name || null,
-                    unit: null,
+                    unit: freeProduct.unit || 'CASE',
                     quantity: freeProduct.quantity,
                     unit_price: 0,
                     discount_amount: 0,
@@ -1378,8 +1752,8 @@ export const ordersController = {
           return finalOrder;
         },
         {
-          maxWait: 10000,
-          timeout: 20000,
+          maxWait: 200000000,
+          timeout: 200000000,
         }
       );
 
@@ -1410,15 +1784,85 @@ export const ordersController = {
             userId
           );
 
-          await createRequest({
-            requester_id: result.salesperson_id,
-            request_type: 'ORDER_APPROVAL',
-            reference_id: result.id,
-            createdby: userId,
-            log_inst: 1,
+          const salesperson = await prisma.users.findUnique({
+            where: { id: result.salesperson_id },
+            select: {
+              id: true,
+              zone_id: true,
+              depot_id: true,
+            },
           });
+
+          if (salesperson) {
+            let workflowSteps = null;
+
+            if (salesperson.zone_id && salesperson.depot_id) {
+              workflowSteps = await prisma.approval_work_flow.findMany({
+                where: {
+                  request_type: 'ORDER_APPROVAL',
+                  zone_id: salesperson.zone_id,
+                  depot_id: salesperson.depot_id,
+                  is_active: 'Y',
+                },
+              });
+            }
+
+            if (
+              (!workflowSteps || workflowSteps.length === 0) &&
+              salesperson.zone_id
+            ) {
+              workflowSteps = await prisma.approval_work_flow.findMany({
+                where: {
+                  request_type: 'ORDER_APPROVAL',
+                  zone_id: salesperson.zone_id,
+                  depot_id: null,
+                  is_active: 'Y',
+                },
+              });
+            }
+
+            if (
+              (!workflowSteps || workflowSteps.length === 0) &&
+              salesperson.depot_id
+            ) {
+              workflowSteps = await prisma.approval_work_flow.findMany({
+                where: {
+                  request_type: 'ORDER_APPROVAL',
+                  depot_id: salesperson.depot_id,
+                  zone_id: null,
+                  is_active: 'Y',
+                },
+              });
+            }
+
+            if (!workflowSteps || workflowSteps.length === 0) {
+              workflowSteps = await prisma.approval_work_flow.findMany({
+                where: {
+                  request_type: 'ORDER_APPROVAL',
+                  zone_id: null,
+                  depot_id: null,
+                  is_active: 'Y',
+                },
+              });
+            }
+
+            if (workflowSteps && workflowSteps.length > 0) {
+              await createRequest({
+                requester_id: result.salesperson_id,
+                request_type: 'ORDER_APPROVAL',
+                reference_id: result.id,
+                createdby: userId,
+                log_inst: 1,
+              });
+              console.log('Approval request created - workflow found');
+            } else {
+              console.log(
+                'No approval workflow found - order processed without approval'
+              );
+            }
+          }
         } catch (error: any) {
-          console.error('Error creating approval request:', error);
+          console.error('Error checking approval workflow:', error);
         }
       }
 
@@ -1426,7 +1870,7 @@ export const ordersController = {
         success: true,
         message: orderId
           ? 'Order updated successfully'
-          : 'Order created successfully and sent for approval',
+          : 'Order created successfully',
         data: {
           ...serializeOrder(result),
           promotion_applied: appliedPromotion,
@@ -1895,7 +2339,7 @@ export const ordersController = {
           active_orders: activeOrders,
           inactive_orders: inactiveOrders,
           orders_this_month: ordersThisMonth,
-          ...(routeStats && { route_statistics: routeStats }),
+          ...(routeStats ? { route_statistics: routeStats } : {}),
           filters_applied: {
             route_id: route_id || null,
             route_ids: route_ids || null,
@@ -1955,7 +2399,71 @@ export const ordersController = {
 
       if (!order) return res.status(404).json({ message: 'Order not found' });
 
+      const stockMovements = await prisma.stock_movements.findMany({
+        where: {
+          reference_type: 'ORDER',
+          reference_id: order.id,
+        },
+        include: {
+          batch_lots: true,
+          serial_numbers: true,
+        },
+      });
+
+      console.log('stockMovements count:', stockMovements.length);
+
+      if (order.order_items) {
+        order.order_items = order.order_items.map((item: any) => {
+          console.log(
+            'Mapping item:',
+            item.id,
+            item.product_id,
+            item.product_name
+          );
+
+          const itemMovements = stockMovements.filter(
+            (sm: any) => sm.product_id === item.product_id
+          );
+
+          const batches = itemMovements
+            .filter((sm: any) => sm.batch_id != null && sm.batch_lots)
+            .map((sm: any) => ({
+              batch_lot_id: sm.batch_id,
+              batch_number: sm.batch_lots.batch_number,
+              lot_number: sm.batch_lots.lot_number,
+              manufacturing_date: sm.batch_lots.manufacturing_date,
+              expiry_date: sm.batch_lots.expiry_date,
+              quantity: sm.quantity,
+              batch_remaining_quantity: sm.batch_lots.remaining_quantity,
+            }));
+
+          const serials = itemMovements
+            .filter((sm: any) => sm.serial_id != null && sm.serial_numbers)
+            .map((sm: any) => ({
+              id: sm.serial_id,
+              serial_number: sm.serial_numbers.serial_number,
+              selected: true,
+            }));
+
+          return {
+            ...item,
+            product_batches: batches.length > 0 ? batches : [],
+            product_serials: serials.length > 0 ? serials : [],
+          };
+        }) as any;
+      }
+
+      console.log(
+        'After mapping order_items count:',
+        order.order_items?.length
+      );
+
       const serialized = serializeOrder(order);
+
+      console.log(
+        'After serialized order_items count:',
+        serialized.order_items?.length
+      );
 
       if (order.promotion_id && order.orders_promotion) {
         serialized.promotion_applied = {
@@ -1971,7 +2479,8 @@ export const ordersController = {
               .map((item: any) => ({
                 product_id: item.product_id,
                 product_name: item.product_name,
-                quantity: item.quantity,
+                quantity:
+                  item.unit === 'PCS' ? item.base_quantity : item.quantity,
               })) || [],
         };
       }
@@ -2027,9 +2536,11 @@ export const ordersController = {
             shipping_address: orderData.shipping_address || null,
             approval_status: orderData.approval_status,
             is_active: orderData.is_active,
+            pricelist_id: orderData.pricelist_id
+              ? Number(orderData.pricelist_id)
+              : null,
             updatedate: new Date(),
             updatedby: userId,
-
             log_inst: { increment: 1 },
           };
 
@@ -2047,6 +2558,7 @@ export const ordersController = {
               const unitPrice =
                 parseFloat(item.unit_price || item.price || '0') || 0;
               const quantity = parseInt(item.quantity) || 1;
+              const unit = (item.unit || 'CASE').toUpperCase();
               const discountAmount =
                 parseFloat(item.discount_amount || '0') || 0;
               const taxAmount = parseFloat(item.tax_amount || '0') || 0;
@@ -2058,8 +2570,13 @@ export const ordersController = {
                 parent_id: order.id,
                 product_id: item.product_id,
                 product_name: item.product_name || null,
-                unit: item.unit || null,
-                quantity: quantity,
+                unit,
+                quantity: unit === 'PCS' ? 0 : quantity,
+                base_quantity: unit === 'PCS' ? quantity : 0,
+                conversion_factor:
+                  Number(item.conversion_factor) ||
+                  Number(item.conversion_rate) ||
+                  1,
                 unit_price: unitPrice,
                 discount_amount: discountAmount,
                 tax_amount: taxAmount,
@@ -2310,14 +2827,55 @@ export const ordersController = {
   async deleteOrders(req: Request, res: Response) {
     try {
       const { id } = req.params;
+      const orderId = Number(id);
+
       const existingOrder = await prisma.orders.findUnique({
-        where: { id: Number(id) },
+        where: { id: orderId },
+        include: {
+          order_items: true,
+          invoices: true,
+        },
       });
 
       if (!existingOrder)
         return res.status(404).json({ message: 'Order not found' });
 
-      await prisma.orders.delete({ where: { id: Number(id) } });
+      await prisma.$transaction(async tx => {
+        await tx.stock_movements.deleteMany({
+          where: {
+            reference_type: 'ORDER',
+            reference_id: orderId,
+          },
+        });
+
+        await tx.order_items.deleteMany({
+          where: {
+            parent_id: orderId,
+          },
+        });
+
+        await tx.invoices.deleteMany({
+          where: {
+            parent_id: orderId,
+          },
+        });
+
+        await tx.delivery_schedules.deleteMany({
+          where: {
+            order_id: orderId,
+          },
+        });
+
+        await tx.digital_signatures.deleteMany({
+          where: {
+            document_id: orderId,
+          },
+        });
+
+        await tx.orders.delete({
+          where: { id: orderId },
+        });
+      });
 
       res.json({ message: 'Order deleted successfully' });
     } catch (error: any) {

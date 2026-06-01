@@ -45,6 +45,12 @@ const menuItems: MenuItem[] = [
         icon: MdDashboard,
         href: '/dashboard/executive',
       },
+      {
+        id: 'grading-dashboard',
+        label: 'Grading Dashboard',
+        icon: MdBarChart,
+        href: '/dashboard/grading-dashboard',
+      },
     ],
   },
   {
@@ -56,11 +62,6 @@ const menuItems: MenuItem[] = [
         label: 'Organization Setup',
         icon: MdBusiness,
         children: [
-          // {
-          //   id: 'company-master',
-          //   label: 'Company Master',
-          //   href: '/masters/company',
-          // },
           { id: 'user-master', label: 'User Master', href: '/masters/users' },
           {
             id: 'role-permission',
@@ -69,6 +70,13 @@ const menuItems: MenuItem[] = [
           },
           { id: 'depots', label: 'Depots', href: '/masters/depots' },
           { id: 'zones', label: 'Zones', href: '/masters/zones' },
+          { id: 'region-master', label: 'Regions', href: '/masters/regions' },
+          {
+            id: 'district-master',
+            label: 'Districts',
+            href: '/masters/districts',
+          },
+          { id: 'city-master', label: 'Cities', href: '/masters/cities' },
           { id: 'currency', label: 'Currency', href: '/masters/currency' },
         ],
       },
@@ -77,11 +85,6 @@ const menuItems: MenuItem[] = [
         label: 'Operations & Logistics',
         icon: MdLocalShipping,
         children: [
-          // {
-          //   id: 'warehouse-master',
-          //   label: 'Warehouse Master',
-          //   href: '/masters/warehouses',
-          // },
           {
             id: 'vehicle-master',
             label: 'Vehicle Master',
@@ -91,6 +94,11 @@ const menuItems: MenuItem[] = [
             id: 'asset-types',
             label: 'Asset Types',
             href: '/masters/asset-types',
+          },
+          {
+            id: 'asset-brands',
+            label: 'Asset Brands',
+            href: '/masters/asset-brands',
           },
           {
             id: 'asset-sub-types',
@@ -116,16 +124,6 @@ const menuItems: MenuItem[] = [
         icon: MdStore,
         children: [
           {
-            id: 'outlet-groups',
-            label: 'Outlet Groups',
-            href: '/masters/outlet-groups',
-          },
-          {
-            id: 'outlet-master',
-            label: 'Outlet Master',
-            href: '/masters/outlets',
-          },
-          {
             id: 'outlet-type',
             label: 'Outlet Type',
             href: '/masters/outlet-type',
@@ -139,6 +137,16 @@ const menuItems: MenuItem[] = [
             id: 'outlet-category',
             label: 'Outlet Category',
             href: '/masters/outlet-category',
+          },
+          {
+            id: 'outlet-master',
+            label: 'Outlet Master',
+            href: '/masters/outlets',
+          },
+          {
+            id: 'outlet-groups',
+            label: 'Outlet Groups',
+            href: '/masters/outlet-groups',
           },
         ],
       },
@@ -167,11 +175,11 @@ const menuItems: MenuItem[] = [
             label: 'Unit of Measurement',
             href: '/masters/unit-of-measurement',
           },
-          {
-            id: 'sub-unit-of-measurement',
-            label: 'Sub Unit of Measurement',
-            href: '/masters/sub-unit-of-measurement',
-          },
+          // {
+          //   id: 'sub-unit-of-measurement',
+          //   label: 'Sub Unit of Measurement',
+          //   href: '/masters/sub-unit-of-measurement',
+          // },
           {
             id: 'product-flavours',
             label: 'Flavours',
@@ -217,11 +225,11 @@ const menuItems: MenuItem[] = [
           //   label: 'Batch & Lot Management',
           //   href: '/masters/batch-lots',
           // },
-          // {
-          //   id: 'pricelists',
-          //   label: 'Pricelists',
-          //   href: '/masters/pricelists',
-          // },
+          {
+            id: 'pricelists',
+            label: 'Price List Management',
+            href: '/masters/price-lists',
+          },
         ],
       },
       {

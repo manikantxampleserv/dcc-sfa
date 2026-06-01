@@ -14,6 +14,9 @@ interface UnitOfMeasurement {
   description?: string | null;
   category?: string | null;
   symbol?: string | null;
+  subunit_id?: number | string | null;
+  sub_unit?: string | null;
+  conversion_rate?: number | null;
   is_active: string;
   createdate?: string | null;
   createdby: number;
@@ -28,6 +31,9 @@ interface ManageUnitOfMeasurementPayload {
   description?: string;
   category?: string;
   symbol?: string;
+  subunit_id?: number | string;
+  sub_unit?: string;
+  conversion_rate?: number;
   is_active?: string;
 }
 
@@ -36,6 +42,9 @@ interface UpdateUnitOfMeasurementPayload {
   description?: string;
   category?: string;
   symbol?: string;
+  subunit_id?: number | string;
+  sub_unit?: string;
+  conversion_rate?: number;
   is_active?: string;
 }
 

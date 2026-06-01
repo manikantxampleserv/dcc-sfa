@@ -17,10 +17,10 @@ import {
   useUnitOfMeasurement,
   type UnitOfMeasurement,
 } from 'hooks/useUnitOfMeasurement';
-import {
-  useSubUnitOfMeasurements,
-  type SubUnitOfMeasurement,
-} from 'hooks/useSubUnitOfMeasurement';
+// import {
+//   useSubUnitOfMeasurements,
+//   type SubUnitOfMeasurement,
+// } from 'hooks/useSubUnitOfMeasurement';
 import React, { useRef, useState } from 'react';
 import { productValidationSchema } from 'schemas/product.schema';
 import {
@@ -91,27 +91,42 @@ const ManageProduct: React.FC<ManageProductProps> = ({
   const createProductMutation = useCreateProduct();
   const updateProductMutation = useUpdateProduct();
 
-  const { data: subCategoriesResponse } = useProductSubCategories({
-    limit: 1000,
-    status: 'active',
-  });
+  const { data: subCategoriesResponse } = useProductSubCategories(
+    {
+      limit: 1000,
+      status: 'active',
+    },
+    { enabled: drawerOpen }
+  );
 
-  const { data: brandsResponse } = useBrands({ limit: 1000, status: 'active' });
+  const { data: brandsResponse } = useBrands(
+    { limit: 1000, status: 'active' },
+    { enabled: drawerOpen }
+  );
 
-  const { data: unitsResponse } = useUnitOfMeasurement({
-    limit: 1000,
-    status: 'active',
-  });
+  const { data: unitsResponse } = useUnitOfMeasurement(
+    {
+      limit: 1000,
+      status: 'active',
+    },
+    { enabled: drawerOpen }
+  );
 
-  const { data: routeTypesResponse } = useRouteTypes({
-    limit: 1000,
-    status: 'active',
-  });
+  const { data: routeTypesResponse } = useRouteTypes(
+    {
+      limit: 1000,
+      status: 'active',
+    },
+    { enabled: drawerOpen }
+  );
 
-  const { data: taxMastersResponse } = useTaxMasters({
-    limit: 1000,
-    isActive: 'Y',
-  });
+  const { data: taxMastersResponse } = useTaxMasters(
+    {
+      limit: 1000,
+      isActive: 'Y',
+    },
+    { enabled: drawerOpen }
+  );
 
   const subCategories = subCategoriesResponse?.data || [];
   const brands = brandsResponse?.data || [];
@@ -122,31 +137,37 @@ const ManageProduct: React.FC<ManageProductProps> = ({
   const { data: productTypesResponse } = useQuery({
     queryKey: ['product-types-dropdown'],
     queryFn: () => fetchProductTypesDropdown(),
+    enabled: drawerOpen,
   });
 
   const { data: productTargetGroupsResponse } = useQuery({
     queryKey: ['product-target-groups-dropdown'],
     queryFn: () => fetchProductTargetGroupsDropdown(),
+    enabled: drawerOpen,
   });
 
   const { data: productWebOrdersResponse } = useQuery({
     queryKey: ['product-web-orders-dropdown'],
     queryFn: () => fetchProductWebOrdersDropdown(),
+    enabled: drawerOpen,
   });
 
   const { data: productVolumesResponse } = useQuery({
     queryKey: ['product-volumes-dropdown'],
     queryFn: () => fetchProductVolumesDropdown(),
+    enabled: drawerOpen,
   });
 
   const { data: productFlavoursResponse } = useQuery({
     queryKey: ['product-flavours-dropdown'],
     queryFn: () => fetchProductFlavoursDropdown(),
+    enabled: drawerOpen,
   });
 
   const { data: productShelfLifeResponse } = useQuery({
     queryKey: ['product-shelf-life-dropdown'],
     queryFn: () => fetchProductShelfLifeDropdown(),
+    enabled: drawerOpen,
   });
 
   const productTypes = productTypesResponse?.data || [];
@@ -159,6 +180,7 @@ const ManageProduct: React.FC<ManageProductProps> = ({
   const formik = useFormik({
     initialValues: {
       name: selectedProduct?.name || '',
+      code: selectedProduct?.code || '',
       description: selectedProduct?.description || '',
       category_id: selectedProduct?.category_id || '',
       sub_category_id: selectedProduct?.sub_category_id || '',
@@ -192,6 +214,7 @@ const ManageProduct: React.FC<ManageProductProps> = ({
       try {
         const productData = {
           name: values.name,
+          code: values.code || undefined,
           description: values.description,
           category_id: Number(values.category_id),
           sub_category_id: Number(values.sub_category_id),
@@ -257,20 +280,20 @@ const ManageProduct: React.FC<ManageProductProps> = ({
   });
 
   // Sub Units hook that depends on selected unit of measurement
-  const { data: subUnitsResponse } = useSubUnitOfMeasurements(
-    formik.values.unit_of_measurement
-      ? {
-          limit: 1000,
-          isActive: 'Y',
-          unitOfMeasurementId: Number(formik.values.unit_of_measurement),
-        }
-      : {
-          limit: 1000,
-          isActive: 'Y',
-        }
-  );
+  // const { data: subUnitsResponse } = useSubUnitOfMeasurements(
+  //   formik.values.unit_of_measurement
+  //     ? {
+  //         limit: 1000,
+  //         isActive: 'Y',
+  //         unitOfMeasurementId: Number(formik.values.unit_of_measurement),
+  //       }
+  //     : {
+  //         limit: 1000,
+  //         isActive: 'Y',
+  //       }
+  // );
 
-  const subUnits = subUnitsResponse?.data || [];
+  // const subUnits = subUnitsResponse?.data || [];
 
   const handleUnitChange = (event: any) => {
     const newUnitId = event.target.value;
@@ -295,6 +318,13 @@ const ManageProduct: React.FC<ManageProductProps> = ({
               required
             />
 
+            <Input
+              name="code"
+              label="Product Code"
+              placeholder="Enter product code (optional)"
+              formik={formik}
+            />
+
             <ProductCategorySelect
               name="category_id"
               label="Category"
@@ -304,7 +334,7 @@ const ManageProduct: React.FC<ManageProductProps> = ({
 
             <Select
               name="sub_category_id"
-              label="Sub-Category"
+              label="Sub Category"
               formik={formik}
               required
             >
@@ -332,12 +362,14 @@ const ManageProduct: React.FC<ManageProductProps> = ({
             >
               {units.map((unit: UnitOfMeasurement) => (
                 <MenuItem key={unit.id} value={unit.id}>
-                  {unit.name} {unit.symbol && `(${unit.symbol})`}
+                  {unit.name}
+                  {unit.conversion_rate &&
+                    `(${unit.conversion_rate}${unit.sub_unit})`}
                 </MenuItem>
               ))}
             </Select>
 
-            <Select
+            {/* <Select
               name="subunit_id"
               label="Sub Unit of Measurement"
               formik={formik}
@@ -349,7 +381,7 @@ const ManageProduct: React.FC<ManageProductProps> = ({
                   {subUnit.name} {subUnit.code && `(${subUnit.code})`}
                 </MenuItem>
               ))}
-            </Select>
+            </Select> */}
 
             <Input
               name="base_price"

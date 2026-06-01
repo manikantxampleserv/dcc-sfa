@@ -2,6 +2,7 @@ import axiosInstance from 'configs/axio.config';
 import type { ApiResponse } from '../../../types/api.types';
 
 interface Product {
+  uom_id: string;
   id: number;
   name: string;
   code: string;
@@ -69,6 +70,7 @@ interface Product {
 
 interface ManageProductPayload {
   name: string;
+  code?: string;
   description?: string;
   category_id: number;
   sub_category_id: number;
@@ -95,6 +97,7 @@ interface ManageProductPayload {
 
 interface UpdateProductPayload {
   name?: string;
+  code?: string;
   description?: string;
   category_id?: number;
   sub_category_id?: number;

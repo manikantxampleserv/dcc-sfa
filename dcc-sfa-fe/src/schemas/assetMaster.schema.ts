@@ -24,6 +24,21 @@ export const assetMasterValidationSchema = Yup.object({
       return value;
     }),
 
+  asset_brand_id: Yup.number()
+    .nullable()
+    .positive('Asset brand must be valid')
+    .transform((value, originalValue) => {
+      if (
+        originalValue === '' ||
+        originalValue === null ||
+        originalValue === undefined ||
+        originalValue === 0
+      ) {
+        return null;
+      }
+      return value;
+    }),
+
   serial_number: Yup.string()
     .required('Serial number is required')
     .min(1, 'Serial number must be at least 1 character')
@@ -32,6 +47,32 @@ export const assetMasterValidationSchema = Yup.object({
       /^[A-Za-z0-9\-_]+$/,
       'Serial number can only contain letters, numbers, hyphens, and underscores'
     ),
+
+  barcode: Yup.string()
+    .nullable()
+    .max(100, 'Barcode must not exceed 100 characters')
+    .transform((value, originalValue) => {
+      if (
+        originalValue === '' ||
+        originalValue === null ||
+        originalValue === undefined
+      )
+        return null;
+      return value;
+    }),
+
+  nfc_tag_code: Yup.string()
+    .nullable()
+    .max(100, 'NFC tag code must not exceed 100 characters')
+    .transform((value, originalValue) => {
+      if (
+        originalValue === '' ||
+        originalValue === null ||
+        originalValue === undefined
+      )
+        return null;
+      return value;
+    }),
 
   purchase_date: Yup.date()
     .nullable()
@@ -82,6 +123,7 @@ export const assetMasterValidationSchema = Yup.object({
         'Available',
         'Installed',
         'Under Maintenance',
+        'Under Investigation',
         'Retired',
         'Lost',
         'Damaged',
@@ -90,13 +132,25 @@ export const assetMasterValidationSchema = Yup.object({
       'Invalid status selected'
     ),
 
-  assigned_to: Yup.string()
-    .nullable()
-    .max(100, 'Assigned to must not exceed 100 characters'),
 
   warranty_period: Yup.string()
     .oneOf(['1', '2', '3', '4', '5'], 'Invalid warranty period selected')
     .default('1'),
+
+  depot_id: Yup.number()
+    .nullable()
+    .positive('Depot must be valid')
+    .transform((value, originalValue) => {
+      if (
+        originalValue === '' ||
+        originalValue === null ||
+        originalValue === undefined ||
+        originalValue === 0
+      ) {
+        return null;
+      }
+      return value;
+    }),
 
   is_active: Yup.string()
     .oneOf(['Y', 'N'], 'Status must be Y or N')

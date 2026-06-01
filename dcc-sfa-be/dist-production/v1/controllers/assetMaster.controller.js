@@ -27,8 +27,15 @@ const serializeAssetMaster = (asset) => ({
     id: asset.id,
     name: asset.name,
     code: asset.code,
+    outlet_id: asset.outlet_id,
     asset_type_id: asset.asset_type_id,
     asset_sub_type_id: asset.asset_sub_type_id,
+    installation_date: asset.installation_date ?? null,
+    last_scanned_date: asset.last_scanned_date ?? null,
+    last_read_by: asset.last_read_by ?? null,
+    asset_brand_id: asset.asset_brand_id,
+    barcode: asset.barcode,
+    nfc_tag: asset.nfc_tag,
     serial_number: asset.serial_number,
     purchase_date: asset.purchase_date ? new Date(asset.purchase_date) : null,
     warranty_expiry: asset.warranty_expiry
@@ -37,6 +44,7 @@ const serializeAssetMaster = (asset) => ({
     current_location: asset.current_location,
     current_status: asset.current_status,
     assigned_to: asset.assigned_to,
+    depot_id: asset.depot_id,
     is_active: asset.is_active,
     createdate: asset.createdate,
     createdby: asset.createdby,
@@ -45,15 +53,58 @@ const serializeAssetMaster = (asset) => ({
     log_inst: asset.log_inst,
     asset_master_image: asset.asset_master_image || [],
     asset_maintenance_master: asset.asset_maintenance_master || [],
-    asset_movement_assets_asset: asset.asset_movement_assets_asset || [],
+    asset_movement_assets_asset: asset.asset_movement_assets_asset?.map((m) => ({
+        id: m.asset_movement_assets_movement?.id,
+        movement_type: m.asset_movement_assets_movement?.movement_type,
+        movement_date: m.asset_movement_assets_movement?.movement_date,
+        from_direction: m.asset_movement_assets_movement?.from_direction,
+        to_direction: m.asset_movement_assets_movement?.to_direction,
+        notes: m.asset_movement_assets_movement?.notes,
+    })) || [],
     asset_master_warranty_claims: asset.asset_master_warranty_claims || [],
     asset_master_asset_types: asset.asset_master_asset_types || null,
     asset_master_asset_sub_types: asset.asset_master_asset_sub_types || null,
+    asset_brand: asset.asset_master_brands
+        ? {
+            id: asset.asset_master_brands.id,
+            name: asset.asset_master_brands.name,
+            code: asset.asset_master_brands.code,
+        }
+        : null,
+    last_read_user: asset.asset_master_last_read
+        ? {
+            id: asset.asset_master_last_read.id,
+            name: asset.asset_master_last_read.name,
+            email: asset.asset_master_last_read.email,
+        }
+        : null,
+    asset_master_depot: asset.asset_master_depot
+        ? {
+            id: asset.asset_master_depot.id,
+            name: asset.asset_master_depot.name,
+            code: asset.asset_master_depot.code,
+        }
+        : null,
+    asset_master_outlet: asset.asset_master_outlet
+        ? {
+            id: asset.asset_master_outlet.id,
+            name: asset.asset_master_outlet.name,
+            code: asset.asset_master_outlet.code,
+        }
+        : null,
+    inspections: asset.inspections?.map((ins) => ({
+        inspected_by: ins.users
+            ? { id: ins.users.id, name: ins.users.name, email: ins.users.email }
+            : null,
+        inspection_date: ins.inspection_date
+            ? ins.inspection_date.toISOString()
+            : null,
+    })) || [],
 });
 exports.assetMasterController = {
     async createAssetMaster(req, res) {
         try {
-            const { name, code, asset_type_id, asset_sub_type_id, serial_number, purchase_date, warranty_expiry, current_location, current_status, assigned_to, is_active, } = req.body;
+            const { name, code, asset_type_id, asset_sub_type_id, barcode, nfc_tag, installation_date, last_scanned_date, last_read_by, serial_number, purchase_date, warranty_expiry, current_location, current_status, assigned_to, asset_brand_id, depot_id, is_active, } = req.body;
             let assetImages = [];
             if (req.body.assetImages) {
                 try {
@@ -67,6 +118,26 @@ exports.assetMasterController = {
                 return res.status(400).json({
                     message: 'name, asset_type_id and serial_number are required',
                 });
+            }
+            if (barcode) {
+                const existingBarcode = await prisma_client_1.default.asset_master.findFirst({
+                    where: { barcode: barcode },
+                });
+                if (existingBarcode) {
+                    return res.status(409).json({
+                        message: 'Asset with this barcode already exists',
+                    });
+                }
+            }
+            if (nfc_tag) {
+                const existingNfcTag = await prisma_client_1.default.asset_master.findFirst({
+                    where: { nfc_tag: nfc_tag },
+                });
+                if (existingNfcTag) {
+                    return res.status(409).json({
+                        message: 'Asset with this NFC tag already exists',
+                    });
+                }
             }
             let assetCode;
             if (code && code.trim() !== '') {
@@ -96,16 +167,6 @@ exports.assetMasterController = {
                         .json({ message: 'Unable to generate unique asset code' });
                 }
             }
-            const duplicateAsset = await prisma_client_1.default.asset_master.findFirst({
-                where: {
-                    asset_type_id: Number(asset_type_id),
-                },
-            });
-            if (duplicateAsset) {
-                return res.status(409).json({
-                    message: 'Asset with this asset type  already exists',
-                });
-            }
             const existingSerial = await prisma_client_1.default.asset_master.findFirst({
                 where: {
                     serial_number: serial_number,
@@ -119,8 +180,14 @@ exports.assetMasterController = {
             const assetData = {
                 name,
                 code: assetCode,
-                asset_type_id: Number(asset_type_id),
-                asset_sub_type_id: asset_sub_type_id ? Number(asset_sub_type_id) : null,
+                installation_date: installation_date
+                    ? new Date(installation_date)
+                    : null,
+                last_scanned_date: last_scanned_date
+                    ? new Date(last_scanned_date)
+                    : null,
+                barcode: barcode || null,
+                nfc_tag: nfc_tag || null,
                 serial_number,
                 purchase_date: purchase_date ? new Date(purchase_date) : null,
                 warranty_expiry: warranty_expiry ? new Date(warranty_expiry) : null,
@@ -131,6 +198,21 @@ exports.assetMasterController = {
                 createdby: req.user?.id || 1,
                 is_active: is_active || 'Y',
                 log_inst: 1,
+                asset_master_asset_types: {
+                    connect: { id: Number(asset_type_id) },
+                },
+                asset_master_asset_sub_types: asset_sub_type_id
+                    ? { connect: { id: Number(asset_sub_type_id) } }
+                    : undefined,
+                asset_master_brands: asset_brand_id
+                    ? { connect: { id: Number(asset_brand_id) } }
+                    : undefined,
+                asset_master_depot: depot_id
+                    ? { connect: { id: Number(depot_id) } }
+                    : undefined,
+                asset_master_last_read: last_read_by
+                    ? { connect: { id: Number(last_read_by) } }
+                    : undefined,
             };
             const newAsset = await prisma_client_1.default.asset_master.create({
                 data: assetData,
@@ -164,6 +246,21 @@ exports.assetMasterController = {
                     asset_master_warranty_claims: true,
                     asset_master_asset_types: true,
                     asset_master_asset_sub_types: true,
+                    asset_master_brand: true,
+                    asset_master_brands: {
+                        select: {
+                            id: true,
+                            name: true,
+                            code: true,
+                        },
+                    },
+                    asset_master_last_read: {
+                        select: {
+                            id: true,
+                            name: true,
+                            email: true,
+                        },
+                    },
                 },
             });
             res.status(201).json({
@@ -178,7 +275,7 @@ exports.assetMasterController = {
     },
     async getAllAssetMaster(req, res) {
         try {
-            const { page, limit, search, status } = req.query;
+            const { page, limit, search, status, depot_id, outlet_id, only_available, } = req.query;
             const pageNum = parseInt(page, 10) || 1;
             const limitNum = parseInt(limit, 10) || 10;
             const searchLower = search ? search.toLowerCase() : '';
@@ -189,6 +286,8 @@ exports.assetMasterController = {
                         { name: { contains: searchLower } },
                         { code: { contains: searchLower } },
                         { serial_number: { contains: searchLower } },
+                        { barcode: { contains: searchLower } },
+                        { nfc_tag: { contains: searchLower } },
                         { current_location: { contains: searchLower } },
                         { current_status: { contains: searchLower } },
                         { assigned_to: { contains: searchLower } },
@@ -196,6 +295,9 @@ exports.assetMasterController = {
                 }),
                 ...(statusLower === 'active' && { is_active: 'Y' }),
                 ...(statusLower === 'inactive' && { is_active: 'N' }),
+                ...(depot_id && { depot_id: parseInt(depot_id, 10) }),
+                ...(outlet_id && { outlet_id: parseInt(outlet_id, 10) }),
+                ...(only_available === 'true' && { outlet_id: null }),
             };
             const { data, pagination } = await (0, paginate_1.paginate)({
                 model: prisma_client_1.default.asset_master,
@@ -223,6 +325,35 @@ exports.assetMasterController = {
                     asset_master_warranty_claims: true,
                     asset_master_asset_types: true,
                     asset_master_asset_sub_types: true,
+                    asset_master_brand: true,
+                    asset_master_depot: {
+                        select: {
+                            id: true,
+                            name: true,
+                            code: true,
+                        },
+                    },
+                    asset_master_outlet: {
+                        select: {
+                            id: true,
+                            name: true,
+                            code: true,
+                        },
+                    },
+                    asset_master_brands: {
+                        select: {
+                            id: true,
+                            name: true,
+                            code: true,
+                        },
+                    },
+                    asset_master_last_read: {
+                        select: {
+                            id: true,
+                            name: true,
+                            email: true,
+                        },
+                    },
                 },
             });
             const totalAssets = await prisma_client_1.default.asset_master.count();
@@ -263,13 +394,62 @@ exports.assetMasterController = {
                 include: {
                     asset_master_image: true,
                     asset_maintenance_master: true,
+                    asset_movement_assets_asset: {
+                        include: {
+                            asset_movement_assets_movement: {
+                                select: {
+                                    id: true,
+                                    movement_type: true,
+                                    movement_date: true,
+                                    from_direction: true,
+                                    to_direction: true,
+                                    notes: true,
+                                },
+                            },
+                        },
+                    },
                     asset_master_warranty_claims: true,
                     asset_master_asset_types: true,
                     asset_master_asset_sub_types: true,
+                    asset_master_brand: true,
+                    asset_master_brands: {
+                        select: {
+                            id: true,
+                            name: true,
+                        },
+                    },
+                    asset_master_outlet: {
+                        select: {
+                            id: true,
+                            name: true,
+                            code: true,
+                        },
+                    },
+                    asset_master_depot: {
+                        select: {
+                            id: true,
+                            name: true,
+                            code: true,
+                        },
+                    },
+                    asset_master_last_read: {
+                        select: {
+                            id: true,
+                            name: true,
+                            email: true,
+                        },
+                    },
                 },
             });
             if (!asset)
                 return res.status(404).json({ message: 'Asset not found' });
+            const inspections = await prisma_client_1.default.cooler_inspections.findMany({
+                where: { coolers: { asset_master_id: Number(id) } },
+                include: {
+                    users: { select: { id: true, name: true, email: true } },
+                },
+            });
+            asset.inspections = inspections;
             res.json({
                 message: 'Asset fetched successfully',
                 data: serializeAssetMaster(asset),
@@ -288,14 +468,45 @@ exports.assetMasterController = {
                 include: {
                     asset_master_asset_types: true,
                     asset_master_asset_sub_types: true,
+                    asset_master_brand: true,
                 },
             });
             if (!existingAsset)
                 return res.status(404).json({ message: 'Asset not found' });
+            if (req.body.barcode &&
+                req.body.barcode !== '' &&
+                req.body.barcode !== existingAsset.barcode) {
+                const existingBarcode = await prisma_client_1.default.asset_master.findFirst({
+                    where: { barcode: req.body.barcode },
+                });
+                if (existingBarcode) {
+                    return res
+                        .status(409)
+                        .json({ message: 'Asset with this barcode already exists' });
+                }
+            }
+            if (req.body.nfc_tag &&
+                req.body.nfc_tag !== '' &&
+                req.body.nfc_tag !== existingAsset.nfc_tag) {
+                const existingNfcTag = await prisma_client_1.default.asset_master.findFirst({
+                    where: { nfc_tag: req.body.nfc_tag },
+                });
+                if (existingNfcTag) {
+                    return res
+                        .status(409)
+                        .json({ message: 'Asset with this NFC tag already exists' });
+                }
+            }
             const data = {
                 name: req.body.name,
                 code: req.body.code,
                 serial_number: req.body.serial_number,
+                barcode: req.body.barcode !== undefined && req.body.barcode !== ''
+                    ? req.body.barcode
+                    : existingAsset.barcode,
+                nfc_tag: req.body.nfc_tag !== undefined && req.body.nfc_tag !== ''
+                    ? req.body.nfc_tag
+                    : existingAsset.nfc_tag,
                 assigned_to: req.body.assigned_to
                     ? String(req.body.assigned_to)
                     : existingAsset.assigned_to,
@@ -311,15 +522,36 @@ exports.assetMasterController = {
                 updatedate: new Date(),
                 updatedby: req.user?.id,
             };
-            if (req.body.asset_type_id) {
+            if (req.body.asset_type_id !== undefined) {
                 data.asset_master_asset_types = {
                     connect: { id: Number(req.body.asset_type_id) },
                 };
             }
-            if (req.body.asset_sub_type_id) {
-                data.asset_master_asset_sub_types = {
-                    connect: { id: Number(req.body.asset_sub_type_id) },
-                };
+            if (req.body.asset_sub_type_id !== undefined) {
+                data.asset_master_asset_sub_types = req.body.asset_sub_type_id
+                    ? { connect: { id: Number(req.body.asset_sub_type_id) } }
+                    : { disconnect: true };
+            }
+            if (req.body.asset_brand_id !== undefined) {
+                data.asset_master_brands = req.body.asset_brand_id
+                    ? { connect: { id: Number(req.body.asset_brand_id) } }
+                    : { disconnect: true };
+            }
+            if (req.body.depot_id !== undefined) {
+                data.asset_master_depot = req.body.depot_id
+                    ? { connect: { id: Number(req.body.depot_id) } }
+                    : { disconnect: true };
+                if (req.body.depot_id) {
+                    data.asset_master_outlet = { disconnect: true };
+                }
+            }
+            if (req.body.asset_brand_id) {
+                const assetBrandExists = await prisma_client_1.default.asset_brands.findUnique({
+                    where: { id: Number(req.body.asset_brand_id) },
+                });
+                if (!assetBrandExists) {
+                    return res.status(400).json({ message: 'Asset brand not found' });
+                }
             }
             const asset = await prisma_client_1.default.asset_master.update({
                 where: { id: Number(id) },
@@ -330,11 +562,86 @@ exports.assetMasterController = {
                     asset_master_warranty_claims: true,
                     asset_master_asset_types: true,
                     asset_master_asset_sub_types: true,
+                    asset_master_brand: true,
+                    asset_master_brands: {
+                        select: {
+                            id: true,
+                            name: true,
+                            code: true,
+                        },
+                    },
+                    asset_master_last_read: {
+                        select: {
+                            id: true,
+                            name: true,
+                            email: true,
+                        },
+                    },
+                },
+            });
+            if (req.files && req.files.length > 0) {
+                const files = req.files;
+                let assetImages = [];
+                if (req.body.assetImages) {
+                    try {
+                        assetImages = JSON.parse(req.body.assetImages);
+                    }
+                    catch {
+                        assetImages = [];
+                    }
+                }
+                const existingImages = await prisma_client_1.default.asset_images.findMany({
+                    where: { asset_id: asset.id },
+                });
+                for (const img of existingImages) {
+                    if (img.image_url) {
+                        await (0, blackbaze_1.deleteFile)(img.image_url);
+                    }
+                }
+                await prisma_client_1.default.asset_images.deleteMany({
+                    where: { asset_id: asset.id },
+                });
+                for (let i = 0; i < files.length; i++) {
+                    const file = files[i];
+                    const caption = assetImages[i]?.caption || null;
+                    const fileName = `asset-images/${Date.now()}-${file.originalname}`;
+                    const imageUrl = await (0, blackbaze_1.uploadFile)(file.buffer, fileName, file.mimetype);
+                    await prisma_client_1.default.asset_images.create({
+                        data: {
+                            asset_id: asset.id,
+                            image_url: imageUrl,
+                            caption,
+                            uploaded_by: req.user?.name || 'Admin',
+                            uploaded_at: new Date(),
+                            is_active: 'Y',
+                            createdate: new Date(),
+                            createdby: req.user?.id || 1,
+                            log_inst: 1,
+                        },
+                    });
+                }
+            }
+            const updatedAsset = await prisma_client_1.default.asset_master.findUnique({
+                where: { id: Number(id) },
+                include: {
+                    asset_master_image: true,
+                    asset_maintenance_master: true,
+                    asset_master_warranty_claims: true,
+                    asset_master_asset_types: true,
+                    asset_master_asset_sub_types: true,
+                    asset_master_brand: true,
+                    asset_master_brands: {
+                        select: {
+                            id: true,
+                            name: true,
+                            code: true,
+                        },
+                    },
                 },
             });
             res.json({
                 message: 'Asset updated successfully',
-                data: serializeAssetMaster(asset),
+                data: serializeAssetMaster(updatedAsset),
             });
         }
         catch (error) {

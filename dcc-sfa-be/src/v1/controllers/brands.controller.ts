@@ -95,6 +95,7 @@ export const brandsController = {
       const limitNum = parseInt(limit as string, 10) || 10;
       const searchLower = search ? (search as string).toLowerCase() : '';
       const statusLower = status ? (status as string).toLowerCase() : '';
+
       const filters: any = {
         ...(search && {
           OR: [
@@ -124,6 +125,7 @@ export const brandsController = {
       const inactiveBrands = await prisma.brands.count({
         where: { is_active: 'N' },
       });
+
       const now = new Date();
       const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
       const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);

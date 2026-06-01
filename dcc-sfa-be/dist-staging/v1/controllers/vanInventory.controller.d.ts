@@ -84,5 +84,7 @@ export declare const vanInventoryController: {
     getBulkProductBatches(req: Request, res: Response): Promise<Response<any, Record<string, any>> | undefined>;
     getSalespersonInventory(req: Request, res: Response): Promise<Response<any, Record<string, any>> | undefined>;
     getinventoryItemSalesperson(req: Request, res: Response): Promise<Response<any, Record<string, any>> | undefined>;
+    unloadVanInventory(req: Request, res: Response): Promise<Response<any, Record<string, any>>>;
+    getProducts(req: Request, res: Response): Promise<Response<any, Record<string, any>> | undefined>;
 };
 //# sourceMappingURL=vanInventory.controller.d.ts.map

@@ -1,5 +1,5 @@
 import { DragDropContext, Draggable, Droppable } from '@hello-pangea/dnd';
-import { Avatar, Box, MenuItem, Typography } from '@mui/material';
+import { Avatar, Box, MenuItem, Skeleton, Typography } from '@mui/material';
 import classNames from 'classnames';
 import { useFormik } from 'formik';
 import {
@@ -9,8 +9,7 @@ import {
 import { useDepots } from 'hooks/useDepots';
 import { useRequestTypes, type RequestType } from 'hooks/useRequests';
 import { useUsers, type User } from 'hooks/useUsers';
-import { useZones } from 'hooks/useZones';
-import { GripVertical, UserPlus, Users } from 'lucide-react';
+import { GripVertical, UserPlus, Users, Search } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
 import type {
   ApprovalWorkflowSetup,
@@ -20,9 +19,11 @@ import Button from 'shared/Button';
 import Drawer from 'shared/Drawer';
 import Select from 'shared/Select';
 import * as Yup from 'yup';
+import toastService from 'utils/toast';
 
 interface ManageApprovalSetupProps {
   requestType: string | null;
+  initialDepotId?: number | null;
   drawerOpen: boolean;
   setDrawerOpen: (drawerOpen: boolean) => void;
 }
@@ -67,48 +68,66 @@ const formatEmployeeId = (employeeId: string | null | undefined): string => {
 
 const ManageApprovalSetup: React.FC<ManageApprovalSetupProps> = ({
   requestType,
+  initialDepotId,
   drawerOpen,
   setDrawerOpen,
 }) => {
   const [approvers, setApprovers] = useState<ApproverItem[]>([]);
-  const [selectedZoneId, setSelectedZoneId] = useState<number | null>(null);
   const [selectedDepotId, setSelectedDepotId] = useState<number | null>(null);
   const [availableUsersSearch, setAvailableUsersSearch] = useState('');
+  const [selectedRoleFilter, setSelectedRoleFilter] = useState('');
 
-  const { data: existingApprovers } = useApprovalWorkflowSetupsByRequest(
+  useEffect(() => {
+    if (drawerOpen) {
+      setSelectedDepotId(initialDepotId ?? null);
+    }
+  }, [initialDepotId, drawerOpen]);
+
+  const { data: existingApprovers, isFetching: isFetchingExisting } = useApprovalWorkflowSetupsByRequest(
     requestType || '',
-    selectedZoneId ?? undefined,
+    undefined,
     selectedDepotId ?? undefined
   );
 
-  const { data: zonesResponse } = useZones({ isActive: 'Y' });
-  const { data: depotsResponse } = useDepots({ isActive: 'Y' });
+  const { data: depotsResponse } = useDepots({ isActive: 'Y', limit: 10000 });
   const { data: requestTypesResponse } = useRequestTypes();
-  const { data: usersResponse } = useUsers({
+  const { data: usersResponse, isFetching: isFetchingUsers } = useUsers({
     page: 1,
-    limit: 1000,
-    search: availableUsersSearch,
+    limit: 10000,
     isActive: 'Y',
   });
 
   const createMutation = useCreateApprovalWorkflowSetup();
 
-  const zones = zonesResponse?.data || [];
   const depots = depotsResponse?.data || [];
   const requestTypes = requestTypesResponse?.data || [];
   const allUsers = usersResponse?.data || [];
 
-  // Filter available users (exclude already assigned)
+  const uniqueRoles = useMemo(() => {
+    if (!allUsers) return [];
+    const roles = allUsers.map(user => user.role?.name || 'General');
+    return Array.from(new Set(roles)).filter(Boolean);
+  }, [allUsers]);
+
   const availableUsers = useMemo(() => {
     if (!allUsers) return [];
     const selectedUserIds = approvers.map(item => item.approver_id) || [];
     return allUsers
       .filter(user => !selectedUserIds.includes(user.id))
-      .filter(user =>
-        user.name
-          ?.toLowerCase()
-          .includes(availableUsersSearch?.toLowerCase() || '')
-      )
+      .filter(user => {
+        if (!availableUsersSearch) return true;
+        const searchLower = availableUsersSearch.toLowerCase();
+        return (
+          user.name?.toLowerCase().includes(searchLower) ||
+          user.email?.toLowerCase().includes(searchLower) ||
+          user.employee_id?.toLowerCase().includes(searchLower)
+        );
+      })
+      .filter(user => {
+        if (!selectedRoleFilter) return true;
+        const roleName = user.role?.name || 'General';
+        return roleName === selectedRoleFilter;
+      })
       .map(user => ({
         id: user.id,
         name: user.name,
@@ -117,9 +136,8 @@ const ManageApprovalSetup: React.FC<ManageApprovalSetupProps> = ({
         employee_code: user.employee_id || '',
         department: user.role?.name || '',
       }));
-  }, [allUsers, approvers, availableUsersSearch]);
+  }, [allUsers, approvers, availableUsersSearch, selectedRoleFilter]);
 
-  // Map approvers with user data
   const approversWithUsers = useMemo(() => {
     return approvers.map(approver => {
       const user = allUsers.find(u => u.id === approver.approver_id);
@@ -130,8 +148,7 @@ const ManageApprovalSetup: React.FC<ManageApprovalSetupProps> = ({
   const formik = useFormik({
     initialValues: {
       request_type: requestType || '',
-      zone_id: '',
-      depot_id: '',
+      depot_id: initialDepotId?.toString() || '',
     },
     validationSchema: Yup.object({
       request_type: Yup.string().required('Request type is required'),
@@ -145,14 +162,14 @@ const ManageApprovalSetup: React.FC<ManageApprovalSetupProps> = ({
           request_type: values.request_type,
           sequence: index + 1,
           approver_id: approver.approver_id,
-          zone_id: values.zone_id ? Number(values.zone_id) : null,
+          zone_id: null,
           depot_id: values.depot_id ? Number(values.depot_id) : null,
           is_active: approver.is_active || 'Y',
         })
       );
 
       if (payloads.length === 0) {
-        alert('Please assign at least one approver');
+        toastService.warning('Please assign at least one approver');
         return;
       }
 
@@ -165,15 +182,18 @@ const ManageApprovalSetup: React.FC<ManageApprovalSetupProps> = ({
     },
   });
 
-  console.log('requestType', approvers);
+  useEffect(() => {
+    setSelectedDepotId(formik.values.depot_id ? Number(formik.values.depot_id) : null);
+  }, [formik.values.depot_id]);
+
 
   const handleCancel = () => {
     setDrawerOpen(false);
     formik.resetForm();
     setApprovers([]);
-    setSelectedZoneId(null);
     setSelectedDepotId(null);
     setAvailableUsersSearch('');
+    setSelectedRoleFilter('');
   };
 
   useEffect(() => {
@@ -214,9 +234,7 @@ const ManageApprovalSetup: React.FC<ManageApprovalSetupProps> = ({
             request_type: formik.values.request_type,
             sequence: destination.index + 1,
             approver_id: foundUser.id,
-            zone_id: formik.values.zone_id
-              ? Number(formik.values.zone_id)
-              : null,
+            zone_id: null,
             depot_id: formik.values.depot_id
               ? Number(formik.values.depot_id)
               : null,
@@ -256,6 +274,16 @@ const ManageApprovalSetup: React.FC<ManageApprovalSetupProps> = ({
       );
     }
   };
+
+  const SkeletonCard = () => (
+    <div className="!flex !items-center !gap-3 !p-2 !bg-white !border !border-gray-200 !rounded-lg !mb-2">
+      <Skeleton variant="circular" width={40} height={40} className="!flex-shrink-0" />
+      <Box className="!flex-1">
+        <Skeleton variant="text" width="60%" height={20} />
+        <Skeleton variant="text" width="40%" height={16} className="!mt-1" />
+      </Box>
+    </div>
+  );
 
   const UserCard = ({
     user,
@@ -318,7 +346,7 @@ const ManageApprovalSetup: React.FC<ManageApprovalSetupProps> = ({
     >
       <Box className="!p-4 select-none">
         <form onSubmit={formik.handleSubmit}>
-          <Box className="!grid !grid-cols-1 md:!grid-cols-2 lg:!grid-cols-3 !gap-6">
+          <Box className="!grid !grid-cols-1 lg:!grid-cols-2 !gap-4">
             <Select
               name="request_type"
               label="Request Type"
@@ -326,43 +354,17 @@ const ManageApprovalSetup: React.FC<ManageApprovalSetupProps> = ({
               required
               disabled={!!requestType}
             >
-              <MenuItem value="">Select Request Type</MenuItem>
               {requestTypes.map((type: RequestType) => (
                 <MenuItem key={type.value} value={type.value}>
                   {type.label}
                 </MenuItem>
               ))}
             </Select>
-
-            <Select
-              name="zone_id"
-              label="Zone (Optional)"
-              formik={formik}
-              onChange={e => {
-                formik.setFieldValue('zone_id', e.target.value);
-                setSelectedZoneId(
-                  e.target.value ? Number(e.target.value) : null
-                );
-              }}
-            >
-              <MenuItem value="">All Zones (Global)</MenuItem>
-              {zones.map((zone: any) => (
-                <MenuItem key={zone.id || 'global'} value={zone.id || ''}>
-                  {zone.name}
-                </MenuItem>
-              ))}
-            </Select>
-
             <Select
               name="depot_id"
               label="Depot (Optional)"
               formik={formik}
-              onChange={e => {
-                formik.setFieldValue('depot_id', e.target.value);
-                setSelectedDepotId(
-                  e.target.value ? Number(e.target.value) : null
-                );
-              }}
+              disabled={!!requestType}
             >
               <MenuItem value="">All Depots (Global)</MenuItem>
               {depots.map((depot: any) => (
@@ -390,6 +392,35 @@ const ManageApprovalSetup: React.FC<ManageApprovalSetupProps> = ({
                       Drag users from the left panel to assign
                     </p>
                   </Box>
+                  <Box className="!p-2 !border-b !border-gray-200 !bg-white !flex !gap-2 !items-center">
+                    <div className="!relative !w-[50%]">
+                      <Search className="!absolute !left-2 !top-[7px] !w-3.5 !h-3.5 !text-gray-400" />
+                      <input
+                        type="text"
+                        placeholder="Search users..."
+                        value={availableUsersSearch}
+                        onChange={e => setAvailableUsersSearch(e.target.value)}
+                        className="!w-full !pl-8 !pr-2 !h-[28px] !text-xs !border !border-gray-300 !rounded focus:!outline-none focus:!border-blue-500 focus:!ring-1 focus:!ring-blue-500"
+                      />
+                    </div>
+                    <div className="!w-[50%]">
+                      <Select
+                        value={selectedRoleFilter}
+                        setValue={setSelectedRoleFilter}
+                        placeholder="Filter by Role"
+                        compact
+                        fullWidth
+                        disableClearable
+                      >
+                        <MenuItem value="">All Roles</MenuItem>
+                        {uniqueRoles.map(role => (
+                          <MenuItem key={role} value={role}>
+                            {role}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </div>
+                  </Box>
                   <Box className="!flex-1 !overflow-hidden">
                     <Droppable droppableId="available-users">
                       {(provided, snapshot) => (
@@ -406,7 +437,11 @@ const ManageApprovalSetup: React.FC<ManageApprovalSetupProps> = ({
                             transition: 'background-color 0.2s ease',
                           }}
                         >
-                          {availableUsers.length > 0 ? (
+                          {isFetchingUsers ? (
+                            Array.from({ length: 4 }).map((_, idx) => (
+                              <SkeletonCard key={idx} />
+                            ))
+                          ) : availableUsers.length > 0 ? (
                             availableUsers.map((user, index) => (
                               <Draggable
                                 key={user.id}
@@ -476,7 +511,11 @@ const ManageApprovalSetup: React.FC<ManageApprovalSetupProps> = ({
                             transition: 'background-color 0.2s ease',
                           }}
                         >
-                          {approvers.length > 0 ? (
+                          {isFetchingExisting ? (
+                            Array.from({ length: 3 }).map((_, idx) => (
+                              <SkeletonCard key={idx} />
+                            ))
+                          ) : approvers.length > 0 ? (
                             approversWithUsers
                               .filter(
                                 (
@@ -510,10 +549,10 @@ const ManageApprovalSetup: React.FC<ManageApprovalSetupProps> = ({
                                             'No Role',
                                           role:
                                             typeof approver.user.role ===
-                                            'string'
+                                              'string'
                                               ? approver.user.role
                                               : approver.user.role?.name ||
-                                                'No Role',
+                                              'No Role',
                                         }}
                                         showSequence={approver.sequence}
                                       />

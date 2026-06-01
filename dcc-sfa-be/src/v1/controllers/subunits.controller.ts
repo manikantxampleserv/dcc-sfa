@@ -106,9 +106,6 @@ export const subunitsController = {
           log_inst: data.log_inst || 1,
           createdate: new Date(),
         },
-        include: {
-          subunits_unit_of_measurement: true,
-        },
       });
 
       res.status(201).json({
@@ -208,9 +205,6 @@ export const subunitsController = {
       const { id } = req.params;
       const subunit = await prisma.subunits.findUnique({
         where: { id: Number(id) },
-        include: {
-          subunits_unit_of_measurement: true,
-        },
       });
 
       if (!subunit) {
@@ -261,9 +255,6 @@ export const subunitsController = {
       const subunit = await prisma.subunits.update({
         where: { id: Number(id) },
         data: updateData,
-        include: {
-          subunits_unit_of_measurement: true,
-        },
       });
 
       res.json({

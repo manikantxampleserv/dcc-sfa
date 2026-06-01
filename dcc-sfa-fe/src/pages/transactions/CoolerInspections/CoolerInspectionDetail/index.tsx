@@ -1,8 +1,7 @@
 import { Avatar, Chip, Skeleton, Typography } from '@mui/material';
 import classNames from 'classnames';
 import {
-  useCoolerInspection,
-  useUpdateCoolerInspectionStatus,
+  useCoolerInspection
 } from 'hooks/useCoolerInspections';
 import {
   AlertTriangle,
@@ -29,20 +28,6 @@ const CoolerInspectionDetail: React.FC = () => {
     isFetching,
   } = useCoolerInspection(Number(id));
   const coolerInspection = coolerInspectionResponse;
-
-  const updateStatusMutation = useUpdateCoolerInspectionStatus();
-
-  const handleStatusUpdate = async (status: string, value: string) => {
-    try {
-      await updateStatusMutation.mutateAsync({
-        id: coolerInspection?.id || 0,
-        status,
-        value,
-      });
-    } catch (error) {
-      console.error('Error updating status:', error);
-    }
-  };
 
   const getWorkingStatusColor = (isWorking?: string | null) => {
     const colors = {
@@ -377,11 +362,10 @@ const CoolerInspectionDetail: React.FC = () => {
           <div className="!bg-white !rounded-lg !shadow !border !border-gray-200 !p-6 !text-center !relative">
             <div className="absolute top-3 right-3">
               <div
-                className={`!w-2.5 !h-2.5 !rounded-full ${
-                  coolerInspection.is_active === 'Y'
-                    ? '!bg-green-400'
-                    : '!bg-gray-400'
-                }`}
+                className={`!w-2.5 !h-2.5 !rounded-full ${coolerInspection.is_active === 'Y'
+                  ? '!bg-green-400'
+                  : '!bg-gray-400'
+                  }`}
               ></div>
             </div>
 
@@ -605,7 +589,7 @@ const CoolerInspectionDetail: React.FC = () => {
                 </Typography>
               </div>
 
-              <div className="!space-y-0.5">
+              <div >
                 <Typography
                   variant="caption"
                   className="!text-gray-500 !text-xs !uppercase !tracking-wide"
@@ -634,7 +618,7 @@ const CoolerInspectionDetail: React.FC = () => {
                   variant="body2"
                   className="!font-semibold !text-gray-900 !font-mono"
                 >
-                  {coolerInspection.cooler?.serial_number || 'Not provided'}
+                  {coolerInspection.cooler?.asset_master?.serial_number || 'Not provided'}
                 </Typography>
               </div>
 
@@ -749,148 +733,7 @@ const CoolerInspectionDetail: React.FC = () => {
             </div>
           </InfoCard>
 
-          {/* Status Management */}
-          <InfoCard title="Status Management" icon={Wrench}>
-            <div className="!space-y-4">
-              {/* Working Status */}
-              <div className="!space-y-2">
-                <Typography
-                  variant="subtitle2"
-                  className="!font-semibold !text-gray-900"
-                >
-                  Working Status
-                </Typography>
-                <div className="!grid !grid-cols-1 sm:!grid-cols-2 !gap-2">
-                  <Button
-                    variant={
-                      coolerInspection.is_working === 'Y'
-                        ? 'contained'
-                        : 'outlined'
-                    }
-                    color="success"
-                    onClick={() =>
-                      coolerInspection.is_working !== 'Y' &&
-                      handleStatusUpdate('is_working', 'Y')
-                    }
-                    disabled={updateStatusMutation.isPending}
-                    className="!w-full"
-                    size="small"
-                  >
-                    Set Working
-                  </Button>
-                  <Button
-                    variant={
-                      coolerInspection.is_working === 'N'
-                        ? 'contained'
-                        : 'outlined'
-                    }
-                    color="error"
-                    onClick={() =>
-                      coolerInspection.is_working !== 'N' &&
-                      handleStatusUpdate('is_working', 'N')
-                    }
-                    disabled={updateStatusMutation.isPending}
-                    className="!w-full"
-                    size="small"
-                  >
-                    Set Not Working
-                  </Button>
-                </div>
-              </div>
 
-              {/* Action Required */}
-              <div className="!space-y-2">
-                <Typography
-                  variant="subtitle2"
-                  className="!font-semibold !text-gray-900"
-                >
-                  Action Required
-                </Typography>
-                <div className="!grid !grid-cols-1 sm:!grid-cols-2 !gap-2">
-                  <Button
-                    variant={
-                      coolerInspection.action_required === 'N'
-                        ? 'contained'
-                        : 'outlined'
-                    }
-                    color="success"
-                    onClick={() =>
-                      coolerInspection.action_required !== 'N' &&
-                      handleStatusUpdate('action_required', 'N')
-                    }
-                    disabled={updateStatusMutation.isPending}
-                    className="!w-full"
-                    size="small"
-                  >
-                    Set No Action Required
-                  </Button>
-                  <Button
-                    variant={
-                      coolerInspection.action_required === 'Y'
-                        ? 'contained'
-                        : 'outlined'
-                    }
-                    color="warning"
-                    onClick={() =>
-                      coolerInspection.action_required !== 'Y' &&
-                      handleStatusUpdate('action_required', 'Y')
-                    }
-                    disabled={updateStatusMutation.isPending}
-                    className="!w-full"
-                    size="small"
-                  >
-                    Set Action Required
-                  </Button>
-                </div>
-              </div>
-
-              {/* Active Status */}
-              <div className="!space-y-2">
-                <Typography
-                  variant="subtitle2"
-                  className="!font-semibold !text-gray-900"
-                >
-                  Active Status
-                </Typography>
-                <div className="!grid !grid-cols-1 sm:!grid-cols-2 !gap-2">
-                  <Button
-                    variant={
-                      coolerInspection.is_active === 'Y'
-                        ? 'contained'
-                        : 'outlined'
-                    }
-                    color="success"
-                    onClick={() =>
-                      coolerInspection.is_active !== 'Y' &&
-                      handleStatusUpdate('is_active', 'Y')
-                    }
-                    disabled={updateStatusMutation.isPending}
-                    className="!w-full"
-                    size="small"
-                  >
-                    Set Active
-                  </Button>
-                  <Button
-                    variant={
-                      coolerInspection.is_active === 'N'
-                        ? 'contained'
-                        : 'outlined'
-                    }
-                    color="error"
-                    onClick={() =>
-                      coolerInspection.is_active !== 'N' &&
-                      handleStatusUpdate('is_active', 'N')
-                    }
-                    disabled={updateStatusMutation.isPending}
-                    className="!w-full"
-                    size="small"
-                  >
-                    Set Inactive
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </InfoCard>
         </div>
       </div>
     </>

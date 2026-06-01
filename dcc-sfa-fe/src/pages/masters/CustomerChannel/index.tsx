@@ -30,7 +30,7 @@ const CustomerChannelPage: React.FC = () => {
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
   const { isCreate, isUpdate, isDelete, isRead } =
-    usePermission('customer-channel');
+    usePermission('outlet-channel');
 
   const {
     data: customerChannelsResponse,
@@ -130,7 +130,7 @@ const CustomerChannelPage: React.FC = () => {
   const customerChannelColumns: TableColumn<CustomerChannel>[] = [
     {
       id: 'channel_name',
-      label: 'Channel Name',
+      label: 'Outlet Channel',
       render: (_value, row) => (
         <Box className="!flex !gap-2 !items-center">
           <Avatar
@@ -276,7 +276,6 @@ const CustomerChannelPage: React.FC = () => {
                     <Select
                       value={statusFilter}
                       onChange={e => setStatusFilter(e.target.value)}
-                      className="!w-32"
                       disableClearable
                     >
                       <MenuItem value="all">All Status</MenuItem>

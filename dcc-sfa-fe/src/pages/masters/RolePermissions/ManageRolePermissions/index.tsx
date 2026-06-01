@@ -16,7 +16,7 @@ import { useFormik } from 'formik';
 import { usePermissionsByModule } from 'hooks/usePermissions';
 import { useCreateRole, useUpdateRole, type Role } from 'hooks/useRoles';
 import React, { useState, useMemo } from 'react';
-import validationSchema from 'schemas/masters/RolePersmissions';
+import validationSchema from 'schemas/masters/RolePermissions';
 import ActiveInactiveField from 'shared/ActiveInactiveField';
 import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
@@ -46,21 +46,34 @@ const ManageRolePermissions: React.FC<ManageRolePermissionsProps> = ({
 
   const permissionsData = permissionsResponse?.data || [];
 
-  // Filter permissions based on search term
   const filteredPermissionsData = useMemo(() => {
+    let filteredData = permissionsData;
+
+    filteredData = filteredData.map(module => {
+      if (module.module === 'Dashboard') {
+        return {
+          ...module,
+          permissions: module.permissions.filter(
+            permission => permission.action === 'READ'
+          ),
+        };
+      }
+      return module;
+    });
+
     if (!searchTerm.trim()) {
-      return permissionsData;
+      return filteredData;
     }
 
     const lowerSearchTerm = searchTerm.toLowerCase();
-    return permissionsData
+    return filteredData
       .map(module => ({
         ...module,
         permissions: module.permissions.filter(permission =>
           permission.name.toLowerCase().includes(lowerSearchTerm)
         ),
       }))
-      .filter(module => module.permissions.length > 0); // Only show modules with matching permissions
+      .filter(module => module.permissions.length > 0);
   }, [permissionsData, searchTerm]);
 
   const createRoleMutation = useCreateRole({
@@ -209,6 +222,51 @@ const ManageRolePermissions: React.FC<ManageRolePermissionsProps> = ({
     return selectedCount > 0 && selectedCount < allPermissionIds.length;
   };
 
+  const handleSelectAllByAction = (action: string, checked: boolean) => {
+    const actionPermissionIds = filteredPermissionsData
+      .flatMap(module => module.permissions)
+      .filter(p => p.action === action)
+      .map(p => p.id);
+    const currentPermissions = formik.values.permissions;
+
+    if (checked) {
+      const newPermissions = [...currentPermissions];
+      actionPermissionIds.forEach(id => {
+        if (!newPermissions.includes(id)) {
+          newPermissions.push(id);
+        }
+      });
+      formik.setFieldValue('permissions', newPermissions);
+    } else {
+      formik.setFieldValue(
+        'permissions',
+        currentPermissions.filter(id => !actionPermissionIds.includes(id))
+      );
+    }
+  };
+
+  const isAllActionSelected = (action: string) => {
+    const actionPermissionIds = filteredPermissionsData
+      .flatMap(module => module.permissions)
+      .filter(p => p.action === action)
+      .map(p => p.id);
+    return (
+      actionPermissionIds.length > 0 &&
+      actionPermissionIds.every(id => formik.values.permissions.includes(id))
+    );
+  };
+
+  const isSomeActionSelected = (action: string) => {
+    const actionPermissionIds = filteredPermissionsData
+      .flatMap(module => module.permissions)
+      .filter(p => p.action === action)
+      .map(p => p.id);
+    const selectedCount = actionPermissionIds.filter(id =>
+      formik.values.permissions.includes(id)
+    ).length;
+    return selectedCount > 0 && selectedCount < actionPermissionIds.length;
+  };
+
   const handleSelectAllPermissions = (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
@@ -223,7 +281,7 @@ const ManageRolePermissions: React.FC<ManageRolePermissionsProps> = ({
   };
 
   return (
-    <div>
+    <>
       <Button
         variant="contained"
         className="!capitalize"
@@ -238,12 +296,12 @@ const ManageRolePermissions: React.FC<ManageRolePermissionsProps> = ({
         open={drawerOpen}
         setOpen={handleCancel}
         title={isEdit ? `Edit Role: ${selectedRole?.name}` : 'Create New Role'}
+        size="half"
       >
         <Box component="form" onSubmit={handleSubmit} className="p-4">
           {/* Role Basic Information */}
           <Box className="space-y-4">
             <p className="!font-semibold !text-gray-900">Role Information</p>
-
             <div className="flex sm:flex-row flex-col sm:gap-4 gap-2">
               <Input
                 name="name"
@@ -273,18 +331,17 @@ const ManageRolePermissions: React.FC<ManageRolePermissionsProps> = ({
 
           {/* Permissions Section */}
           <Box className="mb-6">
-            <div className="flex items-center justify-between py-3 mb-2">
+            <div className="flex items-center justify-between py-3">
               <p className="!font-semibold !text-gray-900">Permissions</p>
-
               {/* Search Permissions */}
               <Box>
                 <Input
                   name="permissionSearch"
                   label="Search Permissions"
-                  placeholder="Search by permission name..."
+                  placeholder="Permissions..."
                   value={searchTerm}
                   onChange={e => setSearchTerm(e.target.value)}
-                  className="!w-full"
+                  className="!w-60"
                 />
               </Box>
             </div>
@@ -331,10 +388,19 @@ const ManageRolePermissions: React.FC<ManageRolePermissionsProps> = ({
                     {getUniqueActions().map(action => (
                       <TableCell
                         key={action}
-                        align="center"
-                        className="!font-semibold !capitalize !text-gray-700 !py-3 !min-w-[100px]"
+                        className="!font-semibold !text-gray-700 !py-1 !text-center"
                       >
-                        {action}
+                        <div className="flex items-center justify-center gap-1">
+                          <Checkbox
+                            size="small"
+                            checked={isAllActionSelected(action)}
+                            indeterminate={isSomeActionSelected(action)}
+                            onChange={e =>
+                              handleSelectAllByAction(action, e.target.checked)
+                            }
+                          />
+                          <span className="capitalize">{action}</span>
+                        </div>
                       </TableCell>
                     ))}
                   </TableRow>
@@ -378,7 +444,7 @@ const ManageRolePermissions: React.FC<ManageRolePermissionsProps> = ({
                               className="!text-primary-600"
                             />
                             <span className="!font-medium !text-gray-900 !capitalize">
-                              {module.module}
+                              {module.module?.replaceAll('-', '')}
                             </span>
                           </div>
                         </TableCell>
@@ -432,12 +498,12 @@ const ManageRolePermissions: React.FC<ManageRolePermissionsProps> = ({
                 createRoleMutation.isPending || updateRoleMutation.isPending
               }
             >
-              {isEdit ? 'Update Role' : 'Create Role'}
+              {isEdit ? 'Update' : 'Create'}
             </Button>
           </div>
         </Box>
       </CustomDrawer>
-    </div>
+    </>
   );
 };
 

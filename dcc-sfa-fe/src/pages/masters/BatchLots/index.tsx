@@ -42,7 +42,7 @@ const BatchLotsPage: React.FC = () => {
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
-  const { isCreate, isUpdate, isDelete, isRead } = usePermission('batch-lots');
+  const { isCreate, isUpdate, isDelete, isRead } = usePermission('product');
 
   // Get system settings and currencies for dynamic currency formatting
   const { data: settingsResponse } = useSettings();
@@ -400,7 +400,7 @@ const BatchLotsPage: React.FC = () => {
         </Box>
       </Box>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
         <StatsCard
           title="Total Batch Lots"
           value={totalBatchLots}
@@ -460,7 +460,6 @@ const BatchLotsPage: React.FC = () => {
                         setStatusFilter(e.target.value);
                         setPage(1);
                       }}
-                      className="!w-32"
                       disableClearable
                     >
                       <MenuItem value="all">All Status</MenuItem>

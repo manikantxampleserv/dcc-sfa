@@ -56,40 +56,21 @@ export const priceListValidationSchema = Yup.object({
     .max(255, 'Description must not exceed 255 characters')
     .trim(),
 
-  currency_code: Yup.string()
-    .nullable()
-    .max(10, 'Currency code must not exceed 10 characters')
-    .trim()
-    .uppercase(),
+  customer_id: Yup.number().nullable(),
+  route_id: Yup.number().nullable(),
+  depot_id: Yup.number().required('Depot is required').nullable(),
+  base_pricelist_id: Yup.number().nullable(),
+  factor: Yup.number().min(0.0001, 'Factor must be greater than 0').default(1),
 
-  valid_from: Yup.date()
-    .nullable()
-    .transform((value, originalValue) => {
-      if (originalValue === '' || originalValue === null) return null;
-      return value;
-    }),
-
-  valid_to: Yup.date()
-    .nullable()
-    .transform((value, originalValue) => {
-      if (originalValue === '' || originalValue === null) return null;
-      return value;
-    })
-    .when('valid_from', (valid_from, schema) => {
-      if (valid_from && valid_from[0]) {
-        return schema.min(
-          valid_from[0],
-          'Valid to date must be after valid from date'
-        );
-      }
-      return schema;
-    }),
+  is_default: Yup.string()
+    .oneOf(['Y', 'N'], 'Default must be Y or N')
+    .default('N'),
 
   is_active: Yup.string()
     .oneOf(['Y', 'N'], 'Status must be Y or N')
     .default('Y'),
 
-  priceListItems: Yup.array().of(priceListItemSchema).nullable(),
+  pricelist_item: Yup.array().of(priceListItemSchema).nullable(),
 });
 
 export type PriceListFormData = Yup.InferType<typeof priceListValidationSchema>;

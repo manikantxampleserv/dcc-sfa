@@ -6,11 +6,17 @@ export const customerValidationSchema = yup.object().shape({
     .required('Outlet name is required')
     .min(2, 'Outlet name must be at least 2 characters')
     .max(100, 'Outlet name must be at most 100 characters'),
+  code: yup.string().required('Outlet code is required'),
   depot_id: yup
     .string()
     .required('Depot is required')
     .matches(/^\d+$/, 'Depot must be a valid number'),
   zones_id: yup.string().nullable(),
+  customer_channel_id: yup.string().nullable(),
+  customer_category_id: yup.string().nullable(),
+  region_id: yup.string().nullable(),
+  district_id: yup.string().nullable(),
+  city_id: yup.string().nullable(),
   type: yup.string().nullable(),
   contact_person: yup
     .string()
@@ -36,12 +42,12 @@ export const customerValidationSchema = yup.object().shape({
     .nullable(),
   latitude: yup
     .string()
-    .matches(/^-?([1-8]?[1-9]|[1-9]0)\.{1}\d{1,6}$/, 'Invalid latitude format')
+    .matches(/^-?([0-8]?[0-9]|90)(\.[0-9]{1,20})?$/, 'Invalid latitude format')
     .nullable(),
   longitude: yup
     .string()
     .matches(
-      /^-?([1]?[1-7][1-9]|[1]?[1-8][0]|[1-9]?[0-9])\.{1}\d{1,6}$/,
+      /^-?([0-9]{1,2}|1[0-7][0-9]|180)(\.[0-9]{1,20})?$/,
       'Invalid longitude format'
     )
     .nullable(),
@@ -60,4 +66,5 @@ export const customerValidationSchema = yup.object().shape({
     .string()
     .oneOf(['Y', 'N'], 'Status must be Y or N')
     .required('Status is required'),
+  is_default_for_depot: yup.boolean().nullable(),
 });

@@ -104,14 +104,22 @@ import { clearKPITargets, seedKPITargets } from './kpi-targets.seeder';
 import { clearOutletGroups, seedOutletGroups } from './outlet-groups.seeder';
 import { clearPricelists, seedPricelists } from './pricelists.seeder';
 import { clearTaxMaster, seedTaxMaster } from './taxMaster.seeder';
+import {
+  clearEmailTemplates,
+  seedEmailTemplates,
+} from './emailTemplates.seeder';
 
-// Seeder configuration
 const seeders = {
   roles: { seed: seedRoles, clear: clearRoles, name: 'Roles' },
   permissions: {
     seed: seedPermissions,
     clear: clearPermissions,
     name: 'Permissions',
+  },
+  'email-templates': {
+    seed: seedEmailTemplates,
+    clear: clearEmailTemplates,
+    name: 'Email Templates',
   },
   companies: { seed: seedCompanies, clear: clearCompanies, name: 'Companies' },
   depots: { seed: seedDepots, clear: clearDepots, name: 'Depots' },
@@ -333,6 +341,7 @@ export async function seedAll(): Promise<void> {
     await seedSection('roles');
     await seedSection('currencies');
     await seedSection('unit-of-measurement');
+    await seedSection('email-templates');
 
     // 2. Company and location hierarchy
     await seedSection('companies');
@@ -455,6 +464,7 @@ export async function clearAll(): Promise<void> {
     );
 
     // 1. Core system data (clear last - no dependencies)
+    await clearSection('email-templates');
     await clearSection('unit-of-measurement');
     await clearSection('currencies');
     // Skip permissions and roles as they may be referenced by admin user
@@ -646,6 +656,10 @@ export { clearVehicles, seedVehicles } from './vehicles.seeder';
 export { clearVisits, seedVisits } from './visits.seeder';
 export { clearWarehouses, seedWarehouses } from './warehouses.seeder';
 export { clearZones, seedZones } from './zones.seeder';
+export {
+  clearEmailTemplates,
+  seedEmailTemplates,
+} from './emailTemplates.seeder';
 
 async function main() {
   const command = process.argv[2];

@@ -50,6 +50,35 @@ class CoolerInstallationsImportExportService extends import_export_service_1.Imp
         'serial_number',
         'status',
     ];
+    masterTableConfigs = [
+        {
+            masterTable: 'customers',
+            masterKey: 'id',
+            masterDisplayFields: ['id', 'name', 'code'],
+            sheetName: 'Ref - Customers',
+            description: 'Use the ID from this sheet in the Customer ID column',
+        },
+        {
+            masterTable: 'asset_master',
+            masterKey: 'id',
+            masterDisplayFields: [
+                'id',
+                'name',
+                'code',
+                'serial_number',
+                'current_status',
+            ],
+            sheetName: 'Ref - Asset Master',
+            description: 'Use the ID from this sheet in the Asset Master ID column',
+        },
+        {
+            masterTable: 'users',
+            masterKey: 'id',
+            masterDisplayFields: ['id', 'name', 'email', 'employee_id'],
+            sheetName: 'Ref - Users',
+            description: 'Use the ID from this sheet in the Technician ID column',
+        },
+    ];
     columns = [
         {
             key: 'customer_id',
@@ -67,6 +96,22 @@ class CoolerInstallationsImportExportService extends import_export_service_1.Imp
             },
             transform: value => parseInt(value),
             description: 'ID of the customer (required)',
+        },
+        {
+            key: 'asset_master_id',
+            header: 'Asset Master ID',
+            width: 15,
+            type: 'number',
+            validation: value => {
+                if (!value)
+                    return true;
+                const id = parseInt(value);
+                if (isNaN(id) || id <= 0)
+                    return 'Asset Master ID must be a positive number';
+                return true;
+            },
+            transform: value => (value ? parseInt(value) : null),
+            description: 'ID of the linked asset (optional)',
         },
         {
             key: 'code',
@@ -180,11 +225,11 @@ class CoolerInstallationsImportExportService extends import_export_service_1.Imp
             header: 'Status',
             width: 20,
             type: 'string',
-            defaultValue: 'working',
+            defaultValue: 'Ready to Install',
             validation: value => !value ||
                 value.length <= 20 ||
                 'Status must be less than 20 characters',
-            description: 'Cooler status (optional, max 20 chars, defaults to "working")',
+            description: 'Cooler status (optional, max 20 chars, defaults to "Ready to Install")',
         },
         {
             key: 'temperature',
@@ -281,38 +326,6 @@ class CoolerInstallationsImportExportService extends import_export_service_1.Imp
             transform: value => (value ? value.toString().toUpperCase() : 'Y'),
             description: 'Active status - Y for Yes, N for No (defaults to Y)',
         },
-        {
-            key: 'cooler_type_id',
-            header: 'Cooler Type ID',
-            width: 18,
-            type: 'number',
-            validation: value => {
-                if (value !== null && value !== undefined && value !== '') {
-                    const id = parseInt(value);
-                    if (isNaN(id) || id <= 0)
-                        return 'Cooler Type ID must be a positive number';
-                }
-                return true;
-            },
-            transform: value => (value ? parseInt(value) : null),
-            description: 'ID of the cooler type (optional, must exist in system)',
-        },
-        {
-            key: 'cooler_sub_type_id',
-            header: 'Cooler Sub Type ID',
-            width: 22,
-            type: 'number',
-            validation: value => {
-                if (value !== null && value !== undefined && value !== '') {
-                    const id = parseInt(value);
-                    if (isNaN(id) || id <= 0)
-                        return 'Cooler Sub Type ID must be a positive number';
-                }
-                return true;
-            },
-            transform: value => (value ? parseInt(value) : null),
-            description: 'ID of the cooler sub type (optional, must exist in system)',
-        },
     ];
     async getSampleData() {
         const customers = await prisma_client_1.default.customers.findMany({
@@ -325,29 +338,13 @@ class CoolerInstallationsImportExportService extends import_export_service_1.Imp
             select: { id: true, name: true },
             orderBy: { id: 'asc' },
         });
-        const coolerTypes = await prisma_client_1.default.cooler_types.findMany({
-            take: 2,
-            select: { id: true, name: true },
-            orderBy: { id: 'asc' },
-        });
-        const coolerSubTypes = await prisma_client_1.default.cooler_sub_types.findMany({
-            take: 2,
-            select: { id: true, name: true, cooler_type_id: true },
-            orderBy: { id: 'asc' },
-        });
         const customerIds = customers.map(c => c.id);
         const userIds = users.map(u => u.id);
-        const coolerTypeIds = coolerTypes.map(ct => ct.id);
-        const coolerSubTypeIds = coolerSubTypes.map(cst => cst.id);
         const customerId1 = customerIds[0] || '';
         const customerId2 = customerIds[1] || '';
         const customerId3 = customerIds[2] || '';
         const userId1 = userIds[0] || '';
         const userId2 = userIds[1] || '';
-        const coolerTypeId1 = coolerTypeIds[0] || '';
-        const coolerTypeId2 = coolerTypeIds[1] || '';
-        const coolerSubTypeId1 = coolerSubTypeIds[0] || '';
-        const coolerSubTypeId2 = coolerSubTypeIds[1] || '';
         return [
             {
                 customer_id: customerId1,
@@ -359,7 +356,7 @@ class CoolerInstallationsImportExportService extends import_export_service_1.Imp
                 install_date: '2024-01-15',
                 last_service_date: '2024-06-15',
                 next_service_due: '2024-12-15',
-                status: 'working',
+                status: 'Installed',
                 temperature: 4.5,
                 energy_rating: 'A++',
                 warranty_expiry: '2026-01-15',
@@ -367,8 +364,7 @@ class CoolerInstallationsImportExportService extends import_export_service_1.Imp
                 technician_id: userId1,
                 last_scanned_date: '2024-10-15',
                 is_active: 'Y',
-                cooler_type_id: coolerTypeId1,
-                cooler_sub_type_id: coolerSubTypeId1,
+                asset_master_id: '',
             },
             {
                 customer_id: customerId2,
@@ -380,7 +376,7 @@ class CoolerInstallationsImportExportService extends import_export_service_1.Imp
                 install_date: '2024-02-20',
                 last_service_date: '2024-07-20',
                 next_service_due: '2025-01-20',
-                status: 'working',
+                status: 'Installed',
                 temperature: 3.8,
                 energy_rating: 'A+',
                 warranty_expiry: '2026-02-20',
@@ -388,8 +384,7 @@ class CoolerInstallationsImportExportService extends import_export_service_1.Imp
                 technician_id: userId2,
                 last_scanned_date: '2024-10-20',
                 is_active: 'Y',
-                cooler_type_id: coolerTypeId2,
-                cooler_sub_type_id: coolerSubTypeId2,
+                asset_master_id: '',
             },
             {
                 customer_id: customerId3,
@@ -401,7 +396,7 @@ class CoolerInstallationsImportExportService extends import_export_service_1.Imp
                 install_date: '2024-03-10',
                 last_service_date: '2024-08-10',
                 next_service_due: '2025-02-10',
-                status: 'maintenance',
+                status: 'Ready to Install',
                 temperature: 5.2,
                 energy_rating: 'A',
                 warranty_expiry: '2026-03-10',
@@ -409,8 +404,7 @@ class CoolerInstallationsImportExportService extends import_export_service_1.Imp
                 technician_id: userId1,
                 last_scanned_date: '2024-10-10',
                 is_active: 'Y',
-                cooler_type_id: coolerTypeId1,
-                cooler_sub_type_id: '',
+                asset_master_id: '',
             },
         ];
     }
@@ -423,6 +417,7 @@ class CoolerInstallationsImportExportService extends import_export_service_1.Imp
             customer_id: cooler.customer_id || '',
             customer_name: cooler.coolers_customers?.name || '',
             customer_code: cooler.coolers_customers?.code || '',
+            asset_master_id: cooler.asset_master_id || '',
             code: cooler.code || '',
             brand: cooler.brand || '',
             model: cooler.model || '',
@@ -437,7 +432,7 @@ class CoolerInstallationsImportExportService extends import_export_service_1.Imp
             next_service_due: cooler.next_service_due
                 ? new Date(cooler.next_service_due).toISOString().split('T')[0]
                 : '',
-            status: cooler.status || 'working',
+            status: cooler.status || 'Ready to Install',
             temperature: cooler.temperature || '',
             energy_rating: cooler.energy_rating || '',
             warranty_expiry: cooler.warranty_expiry
@@ -451,12 +446,6 @@ class CoolerInstallationsImportExportService extends import_export_service_1.Imp
                 ? new Date(cooler.last_scanned_date).toISOString().split('T')[0]
                 : '',
             is_active: cooler.is_active || 'Y',
-            cooler_type_id: cooler.cooler_type_id || '',
-            cooler_type_name: cooler.cooler_types?.name || '',
-            cooler_type_code: cooler.cooler_types?.code || '',
-            cooler_sub_type_id: cooler.cooler_sub_type_id || '',
-            cooler_sub_type_name: cooler.cooler_sub_types?.name || '',
-            cooler_sub_type_code: cooler.cooler_sub_types?.code || '',
             created_date: cooler.createdate
                 ? new Date(cooler.createdate).toISOString().split('T')[0]
                 : '',
@@ -507,34 +496,17 @@ class CoolerInstallationsImportExportService extends import_export_service_1.Imp
                 return `Invalid Technician ID ${data.technician_id}`;
             }
         }
-        if (data.cooler_type_id) {
+        if (data.asset_master_id) {
             try {
-                const coolerType = await prismaClient.cooler_types.findUnique({
-                    where: { id: data.cooler_type_id },
+                const assetMaster = await prismaClient.asset_master.findUnique({
+                    where: { id: data.asset_master_id },
                 });
-                if (!coolerType) {
-                    return `Cooler type with ID ${data.cooler_type_id} does not exist`;
+                if (!assetMaster) {
+                    return `Asset Master with ID ${data.asset_master_id} does not exist`;
                 }
             }
             catch (error) {
-                return `Invalid Cooler Type ID ${data.cooler_type_id}`;
-            }
-        }
-        if (data.cooler_sub_type_id) {
-            try {
-                const coolerSubType = await prismaClient.cooler_sub_types.findUnique({
-                    where: { id: data.cooler_sub_type_id },
-                });
-                if (!coolerSubType) {
-                    return `Cooler sub type with ID ${data.cooler_sub_type_id} does not exist`;
-                }
-                if (data.cooler_type_id &&
-                    coolerSubType.cooler_type_id !== data.cooler_type_id) {
-                    return `Cooler sub type ${data.cooler_sub_type_id} does not belong to cooler type ${data.cooler_type_id}`;
-                }
-            }
-            catch (error) {
-                return `Invalid Cooler Sub Type ID ${data.cooler_sub_type_id}`;
+                return `Invalid Asset Master ID ${data.asset_master_id}`;
             }
         }
         return null;
@@ -559,6 +531,7 @@ class CoolerInstallationsImportExportService extends import_export_service_1.Imp
         }
         return {
             customer_id: data.customer_id,
+            asset_master_id: data.asset_master_id || null,
             code: coolerCode,
             brand: data.brand || null,
             model: data.model || null,
@@ -567,7 +540,7 @@ class CoolerInstallationsImportExportService extends import_export_service_1.Imp
             install_date: data.install_date || null,
             last_service_date: data.last_service_date || null,
             next_service_due: data.next_service_due || null,
-            status: data.status || 'working',
+            status: data.status || 'Ready to Install',
             temperature: data.temperature || null,
             energy_rating: data.energy_rating || null,
             warranty_expiry: data.warranty_expiry || null,
@@ -575,8 +548,6 @@ class CoolerInstallationsImportExportService extends import_export_service_1.Imp
             technician_id: data.technician_id || null,
             last_scanned_date: data.last_scanned_date || null,
             is_active: data.is_active || 'Y',
-            cooler_type_id: data.cooler_type_id || null,
-            cooler_sub_type_id: data.cooler_sub_type_id || null,
             createdby: userId,
             createdate: new Date(),
             log_inst: 1,
@@ -593,6 +564,9 @@ class CoolerInstallationsImportExportService extends import_export_service_1.Imp
             where: { id: existing.id },
             data: {
                 customer_id: data.customer_id,
+                asset_master_id: data.asset_master_id !== undefined
+                    ? data.asset_master_id
+                    : existing.asset_master_id,
                 code: data.code,
                 brand: data.brand !== undefined ? data.brand : existing.brand,
                 model: data.model !== undefined ? data.model : existing.model,
@@ -629,12 +603,6 @@ class CoolerInstallationsImportExportService extends import_export_service_1.Imp
                     ? data.last_scanned_date
                     : existing.last_scanned_date,
                 is_active: data.is_active !== undefined ? data.is_active : existing.is_active,
-                cooler_type_id: data.cooler_type_id !== undefined
-                    ? data.cooler_type_id
-                    : existing.cooler_type_id,
-                cooler_sub_type_id: data.cooler_sub_type_id !== undefined
-                    ? data.cooler_sub_type_id
-                    : existing.cooler_sub_type_id,
                 updatedby: userId,
                 updatedate: new Date(),
             },
@@ -657,20 +625,6 @@ class CoolerInstallationsImportExportService extends import_export_service_1.Imp
                         email: true,
                     },
                 },
-                cooler_types: {
-                    select: {
-                        id: true,
-                        name: true,
-                        code: true,
-                    },
-                },
-                cooler_sub_types: {
-                    select: {
-                        id: true,
-                        name: true,
-                        code: true,
-                    },
-                },
             },
         };
         if (options.limit)
@@ -684,20 +638,9 @@ class CoolerInstallationsImportExportService extends import_export_service_1.Imp
             ...this.columns,
             { header: 'Customer Name', key: 'customer_name', width: 25 },
             { header: 'Customer Code', key: 'customer_code', width: 20 },
+            { header: 'Asset Master ID', key: 'asset_master_id', width: 15 },
             { header: 'Technician Name', key: 'technician_name', width: 25 },
             { header: 'Technician Email', key: 'technician_email', width: 30 },
-            { header: 'Cooler Type Name', key: 'cooler_type_name', width: 25 },
-            { header: 'Cooler Type Code', key: 'cooler_type_code', width: 20 },
-            {
-                header: 'Cooler Sub Type Name',
-                key: 'cooler_sub_type_name',
-                width: 30,
-            },
-            {
-                header: 'Cooler Sub Type Code',
-                key: 'cooler_sub_type_code',
-                width: 25,
-            },
             { header: 'Created Date', key: 'created_date', width: 20 },
             { header: 'Created By', key: 'created_by', width: 15 },
             { header: 'Updated Date', key: 'updated_date', width: 20 },
@@ -730,10 +673,6 @@ class CoolerInstallationsImportExportService extends import_export_service_1.Imp
             row.customer_code = cooler.coolers_customers?.code || '';
             row.technician_name = cooler.users?.name || '';
             row.technician_email = cooler.users?.email || '';
-            row.cooler_type_name = cooler.cooler_types?.name || '';
-            row.cooler_type_code = cooler.cooler_types?.code || '';
-            row.cooler_sub_type_name = cooler.cooler_sub_types?.name || '';
-            row.cooler_sub_type_code = cooler.cooler_sub_types?.code || '';
             totalCoolers++;
             if (cooler.is_active === 'Y')
                 activeCoolers++;
@@ -760,14 +699,11 @@ class CoolerInstallationsImportExportService extends import_export_service_1.Imp
                 };
             });
             const statusCell = excelRow.getCell('status');
-            if (cooler.status === 'working') {
+            if (cooler.status === 'Installed') {
                 statusCell.font = { color: { argb: 'FF008000' }, bold: true };
             }
-            else if (cooler.status === 'maintenance') {
-                statusCell.font = { color: { argb: 'FFFF8000' }, bold: true };
-            }
-            else if (cooler.status === 'broken') {
-                statusCell.font = { color: { argb: 'FFFF0000' }, bold: true };
+            else if (cooler.status === 'Ready to Install') {
+                statusCell.font = { color: { argb: 'FF0000FF' }, bold: true };
             }
         });
         if (data.length > 0) {

@@ -102,8 +102,14 @@ export const useUserProfile = (
  * @param options - React Query options
  * @returns Query result with users data
  */
+export interface GetUsersDropdownParams {
+  search?: string;
+  user_id?: number;
+  depot_id?: number;
+}
+
 export const useUsersDropdown = (
-  params?: { search?: string; user_id?: number },
+  params?: GetUsersDropdownParams,
   options?: Omit<
     UseQueryOptions<ApiResponse<userService.UserDropdown[]>>,
     'queryKey' | 'queryFn'
@@ -221,7 +227,7 @@ export const useUpdateUser = (options?: {
       userData: userService.UpdateUserPayload | FormData;
     }) => userService.updateUser(id, userData),
     loadingMessage: 'Updating user...',
-    invalidateQueries: ['users'],
+    invalidateQueries: ['users', 'route-assignments'],
     onSuccess: options?.onSuccess,
     onError: options?.onError,
   });
@@ -264,8 +270,7 @@ export const useUpdateUserProfile = (options?: {
     mutationFn: (profileData: userService.UpdateProfilePayload | FormData) =>
       userService.updateUserProfile(profileData),
     loadingMessage: 'Updating profile...',
-    invalidateQueries: ['users'],
+    invalidateQueries: ['users', 'route-assignments'],
     onSuccess: options?.onSuccess,
-    onError: options?.onError,
   });
 };

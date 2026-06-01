@@ -6,7 +6,7 @@ interface AssetSubTypeSerialized {
   id: number;
   name: string;
   code: string;
-  asset_type_id: number;
+  asset_type_id: number | null;
   description?: string | null;
   is_active: string;
   createdby: number;
@@ -46,9 +46,6 @@ export const assetSubTypesController = {
         return res
           .status(400)
           .json({ message: 'Asset sub type name is required' });
-      }
-      if (!data.asset_type_id) {
-        return res.status(400).json({ message: 'Asset type is required' });
       }
 
       const generateCode = async (name: string): Promise<string> => {
@@ -306,7 +303,7 @@ export const assetSubTypesController = {
           where: {
             code: req.body.code.trim(),
             id: {
-              not: Number(req.params.id), // Exclude current record
+              not: Number(req.params.id),
             },
           },
         });

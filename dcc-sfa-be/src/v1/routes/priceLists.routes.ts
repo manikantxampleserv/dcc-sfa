@@ -27,6 +27,10 @@ router.post(
   validate,
   priceListsController.upsertPriceList
 );
+router.get(
+  '/price-lists/customer',
+  priceListsController.getPriceListByCustomer
+);
 
 router.get(
   '/price-lists/:id',
@@ -34,6 +38,7 @@ router.get(
   requirePermission([{ module: 'pricelist', action: 'read' }]),
   priceListsController.getPriceListsById
 );
+
 router.get(
   '/price-lists',
   authenticateToken,
@@ -48,5 +53,6 @@ router.delete(
   requirePermission([{ module: 'pricelist', action: 'delete' }]),
   priceListsController.deletePriceLists
 );
+
 
 export default router;

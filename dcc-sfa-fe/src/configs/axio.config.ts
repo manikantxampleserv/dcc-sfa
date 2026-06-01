@@ -33,7 +33,7 @@ const BASE_URL = import.meta.env?.VITE_API_BASE_URL;
 /**
  * Request timeout in milliseconds
  */
-const REQUEST_TIMEOUT = 300000;
+const REQUEST_TIMEOUT = 6000000;
 
 let isSessionExpiredHandled = false;
 
@@ -338,8 +338,12 @@ function handleClientError(error: AxiosError): Promise<never> {
   const status = error.response?.status || 400;
   const data = error.response?.data as ApiError;
 
-  const message =
+  const rawMessage =
     data?.error || data?.message || error.message || 'Request failed';
+
+  const message = cleanErrorMessage(rawMessage);
+
+  mutateErrorData(error, message);
 
   const apiError =
     status === HttpStatusCode.UNPROCESSABLE_ENTITY
@@ -414,8 +418,12 @@ function handleRequestError(error: AxiosError): Promise<never> {
 function createApiError(error: AxiosError): ApiErrorClass {
   const status = error.response?.status || 0;
   const data = error.response?.data as ApiError;
-  const message =
+  const rawMessage =
     data?.error || data?.message || error.message || 'Unknown error';
+
+  const message = cleanErrorMessage(rawMessage);
+
+  mutateErrorData(error, message);
 
   let errorType: NetworkErrorTypeType = NetworkErrorType.SERVER_ERROR;
 
@@ -428,6 +436,68 @@ function createApiError(error: AxiosError): ApiErrorClass {
   const apiError = new ApiErrorClass(message, status, errorType, error);
   apiError.response = error.response;
   return apiError;
+}
+
+/**
+ * Error message patterns and their user-friendly equivalents
+ */
+const ERROR_MAPPINGS = [
+  {
+    patterns: ['p2003', 'foreign key constraint', '_fkey'],
+    message: 'This record is being used elsewhere and cannot be deleted.',
+  },
+  {
+    patterns: ['p2002', 'unique constraint'],
+    message: 'A record with this value already exists.',
+  },
+  {
+    patterns: ['p2025', 'record not found'],
+    message: 'The requested record was not found.',
+  },
+];
+
+const TECHNICAL_SIGNATURES = [
+  'prisma',
+  'database error',
+  'invocation in',
+  ...ERROR_MAPPINGS.flatMap(m => m.patterns),
+];
+
+/**
+ * Cleans technical database error messages for end users
+ * @param {string} message - Original error message
+ * @returns {string} User-friendly error message
+ */
+function cleanErrorMessage(message: string): string {
+  if (!message) return 'An unexpected error occurred';
+  const lowerMsg = String(message).toLowerCase();
+
+  // If the message doesn't contain any technical signatures, return it as is
+  if (!TECHNICAL_SIGNATURES.some(sig => lowerMsg.includes(sig))) {
+    return message;
+  }
+
+  // Find a specific mapping if one exists
+  const mapping = ERROR_MAPPINGS.find(m =>
+    m.patterns.some(p => lowerMsg.includes(p))
+  );
+
+  return mapping
+    ? mapping.message
+    : 'A database error occurred. Please try again later.';
+}
+
+/**
+ * Mutates the original response data to include the cleaned message
+ * @param {AxiosError} error - The axios error object
+ * @param {string} cleanMsg - The user-friendly message
+ */
+function mutateErrorData(error: AxiosError, cleanMsg: string): void {
+  if (error.response?.data) {
+    const responseData = error.response.data as any;
+    if (responseData.message) responseData.message = cleanMsg;
+    if (responseData.error) responseData.error = cleanMsg;
+  }
 }
 
 /**

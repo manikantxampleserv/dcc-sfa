@@ -1,58 +1,59 @@
 import { Box, Skeleton } from '@mui/material';
+import classNames from 'classnames';
 import React, { type ReactNode } from 'react';
 
-/**
- * Props for the StatsCard component
- */
 interface StatsCardProps {
-  /** The title/label displayed above the value */
   title: string;
-  /** The main statistic value to display */
   value: string | number;
-  /** Icon component to display in the card */
   icon: ReactNode;
-  /** Color theme for the card. Defaults to 'blue' */
   color?:
-    | 'blue'
-    | 'green'
-    | 'red'
-    | 'purple'
-    | 'orange'
-    | 'yellow'
-    | 'indigo'
-    | 'pink'
-    | 'teal'
-    | 'cyan'
-    | 'amber'
-    | 'lime'
-    | 'emerald'
-    | 'violet'
-    | 'fuchsia'
-    | 'rose'
-    | 'slate'
-    | 'gray';
-  /** Whether to show a loading skeleton instead of the value */
+  | 'blue'
+  | 'green'
+  | 'red'
+  | 'purple'
+  | 'orange'
+  | 'yellow'
+  | 'indigo'
+  | 'pink'
+  | 'teal'
+  | 'cyan'
+  | 'amber'
+  | 'lime'
+  | 'emerald'
+  | 'violet'
+  | 'fuchsia'
+  | 'rose'
+  | 'slate'
+  | 'gray';
   isLoading?: boolean;
 }
 
-/**
- * A reusable statistics card component that displays a title, value, and icon.
- * Supports multiple color themes and loading states.
- *
- * @param props - The StatsCard component props
- * @returns A styled card component with statistics information
- *
- * @example
- * ```tsx
- * <StatsCard
- *   title="Total Users"
- *   value={1234}
- *   icon={<Users />}
- *   color="blue"
- *   isLoading={false}
- * />
- * ```
- */
+type StatsCardColor = NonNullable<StatsCardProps['color']>;
+
+const COLOR_CLASSES: Record<
+  StatsCardColor,
+  { iconBg: string; iconText: string }
+> = {
+  blue: { iconBg: 'bg-blue-100', iconText: 'text-blue-600' },
+  green: { iconBg: 'bg-green-100', iconText: 'text-green-600' },
+  red: { iconBg: 'bg-red-100', iconText: 'text-red-600' },
+  purple: { iconBg: 'bg-purple-100', iconText: 'text-purple-600' },
+  orange: { iconBg: 'bg-orange-100', iconText: 'text-orange-600' },
+  yellow: { iconBg: 'bg-yellow-100', iconText: 'text-yellow-600' },
+  indigo: { iconBg: 'bg-indigo-100', iconText: 'text-indigo-600' },
+  pink: { iconBg: 'bg-pink-100', iconText: 'text-pink-600' },
+  teal: { iconBg: 'bg-teal-100', iconText: 'text-teal-600' },
+  cyan: { iconBg: 'bg-cyan-100', iconText: 'text-cyan-600' },
+  amber: { iconBg: 'bg-amber-100', iconText: 'text-amber-600' },
+  lime: { iconBg: 'bg-lime-100', iconText: 'text-lime-600' },
+  emerald: { iconBg: 'bg-emerald-100', iconText: 'text-emerald-600' },
+  violet: { iconBg: 'bg-violet-100', iconText: 'text-violet-600' },
+  fuchsia: { iconBg: 'bg-fuchsia-100', iconText: 'text-fuchsia-600' },
+  rose: { iconBg: 'bg-rose-100', iconText: 'text-rose-600' },
+  slate: { iconBg: 'bg-slate-100', iconText: 'text-slate-600' },
+  gray: { iconBg: 'bg-gray-100', iconText: 'text-gray-600' },
+};
+
 const StatsCard: React.FC<StatsCardProps> = ({
   title,
   value,
@@ -60,29 +61,30 @@ const StatsCard: React.FC<StatsCardProps> = ({
   color = 'blue',
   isLoading = false,
 }) => {
+  const colors = COLOR_CLASSES[color];
+
   return (
-    <Box className="rounded-lg shadow-sm border p-6 bg-white border-gray-200">
+    <Box className="bg-white rounded-lg shadow p-6 border border-gray-200">
       <Box className="flex items-center justify-between">
         <Box>
-          <p className={`text-sm font-medium text-${color}-500`}>{title}</p>
+          <p className={classNames('text-sm', colors.iconText)}>{title}</p>
           {isLoading ? (
             <Skeleton
               variant="text"
               width={64}
-              height={35}
-              className="mt-1"
+              height={28}
               sx={{ bgcolor: 'rgba(229, 231, 235, 1)' }}
             />
           ) : (
-            <p className={`text-2xl font-bold mt-1 text-${color}-600`}>
+            <p className={classNames('text-xl font-bold', colors.iconText)}>
               {value}
             </p>
           )}
         </Box>
         <Box
-          className={`w-12 h-12 rounded-full flex items-center justify-center bg-${color}-100`}
+          className={`h-10 w-10 rounded-full flex items-center justify-center ${colors.iconBg}`}
         >
-          <Box className={`text-${color}-600`}>{icon}</Box>
+          <Box className={colors.iconText}>{icon}</Box>
         </Box>
       </Box>
     </Box>

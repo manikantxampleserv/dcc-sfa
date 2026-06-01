@@ -12,18 +12,27 @@ export declare abstract class ImportExportService<T> {
     getDisplayName(): string;
     getColumns(): ColumnDefinition[];
     getSearchFields(): string[];
+    protected translatePrismaError(error: any): string;
     parseExcelFile(buffer: Buffer): Promise<ParseResultWithErrors>;
     generateTemplate(): Promise<Buffer>;
     exportToExcel(options?: ExportOptions): Promise<Buffer>;
     exportToPDF(options?: ExportOptions): Promise<Buffer>;
     importData(data: any[], userId: number, options?: ImportOptions): Promise<ImportResult>;
     batchImport(data: any[], userId: number, batchSize?: number, options?: ImportOptions): Promise<ImportResult>;
+    protected masterTableConfigs: Array<{
+        masterTable: keyof PrismaClient;
+        masterKey: string;
+        masterDisplayFields: string[];
+        sheetName: string;
+        description: string;
+    }>;
+    protected getMasterTableData(config: any): Promise<any[]>;
     protected abstract getSampleData(): Promise<any[]>;
     protected abstract getColumnDescription(key: string): string;
     protected abstract transformDataForExport(data: any[]): Promise<any[]>;
     protected abstract checkDuplicate(data: any, tx?: any): Promise<string | null>;
     protected abstract validateForeignKeys(data: any, tx?: any): Promise<string | null>;
-    protected abstract prepareDataForImport(data: any, userId: number): Promise<any>;
+    protected abstract prepareDataForImport(data: any, userId: number, tx?: any): Promise<any>;
     protected abstract updateExisting(data: any, userId: number, tx?: any): Promise<any>;
 }
 //# sourceMappingURL=import-export.service.d.ts.map

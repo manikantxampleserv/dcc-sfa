@@ -22,7 +22,7 @@ const ContextProvider: React.FC<{ children: React.ReactNode }> = ({
          * @param {Error} error - The error that occurred
          * @returns {boolean} True if should retry, false otherwise
          */
-        retry: (failureCount, error: any) => {
+        retry: (failureCount: number, error: any): boolean => {
           // Get status from multiple possible locations (AxiosError or ApiErrorClass)
           const status =
             error?.response?.status ||
@@ -57,7 +57,7 @@ const ContextProvider: React.FC<{ children: React.ReactNode }> = ({
          * @param {Error} error - The error that occurred
          * @returns {boolean} True if should retry, false otherwise
          */
-        retry: (failureCount, error: any) => {
+        retry: (failureCount: number, error: any): boolean => {
           // Get status from multiple possible locations (AxiosError or ApiErrorClass)
           const status =
             error?.response?.status ||

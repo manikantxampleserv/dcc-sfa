@@ -513,6 +513,7 @@ export class StockMovementsImportExportService extends ImportExportService<any> 
 
     const exportColumns = [
       ...this.columns,
+      { header: 'ID', key: 'id', width: 12 },
       { header: 'Product Name', key: 'product_name', width: 25 },
       { header: 'Product Code', key: 'product_code', width: 15 },
       { header: 'From Location Name', key: 'from_location_name', width: 25 },

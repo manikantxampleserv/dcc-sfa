@@ -78,9 +78,6 @@ exports.subunitsController = {
                     log_inst: data.log_inst || 1,
                     createdate: new Date(),
                 },
-                include: {
-                    subunits_unit_of_measurement: true,
-                },
             });
             res.status(201).json({
                 message: 'Subunit created successfully',
@@ -172,9 +169,6 @@ exports.subunitsController = {
             const { id } = req.params;
             const subunit = await prisma_client_1.default.subunits.findUnique({
                 where: { id: Number(id) },
-                include: {
-                    subunits_unit_of_measurement: true,
-                },
             });
             if (!subunit) {
                 return res.status(404).json({ message: 'Subunit not found' });
@@ -217,9 +211,6 @@ exports.subunitsController = {
             const subunit = await prisma_client_1.default.subunits.update({
                 where: { id: Number(id) },
                 data: updateData,
-                include: {
-                    subunits_unit_of_measurement: true,
-                },
             });
             res.json({
                 message: 'Subunit updated successfully',

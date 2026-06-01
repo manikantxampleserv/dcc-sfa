@@ -13,6 +13,7 @@ router.post('/van-inventory', auth_middleware_1.authenticateToken, (0, audit_mid
 // createVanInventoryValidation,
 validation_middleware_1.validate, vanInventory_controller_1.vanInventoryController.createOrUpdateVanInventory);
 router.get('/van-inventory', auth_middleware_1.authenticateToken, (0, auth_middleware_1.requirePermission)([{ module: 'van-stock', action: 'read' }]), vanInventory_controller_1.vanInventoryController.getAllVanInventory);
+router.get('/van-inventory/products', auth_middleware_1.authenticateToken, (0, auth_middleware_1.requirePermission)([{ module: 'van-stock', action: 'read' }]), vanInventory_controller_1.vanInventoryController.getProducts);
 router.get('/van-inventory/:id', auth_middleware_1.authenticateToken, (0, auth_middleware_1.requirePermission)([{ module: 'van-stock', action: 'read' }]), vanInventory_controller_1.vanInventoryController.getVanInventoryById);
 router.put('/van-inventory/:id', auth_middleware_1.authenticateToken, (0, audit_middleware_1.auditUpdate)('van_inventory'), (0, auth_middleware_1.requirePermission)([{ module: 'van-stock', action: 'update' }]), vanInventory_controller_1.vanInventoryController.updateVanInventory);
 router.delete('/van-inventory/:id', auth_middleware_1.authenticateToken, (0, audit_middleware_1.auditDelete)('van_inventory'), (0, auth_middleware_1.requirePermission)([{ module: 'van-stock', action: 'delete' }]), vanInventory_controller_1.vanInventoryController.deleteVanInventory);
@@ -24,5 +25,6 @@ router.put('/van-inventory/:vanInventoryId/items', auth_middleware_1.authenticat
 router.get('/products/:productId/batches', vanInventory_controller_1.vanInventoryController.getProductBatches);
 router.get('/products/:productId/batches/:batchId', vanInventory_controller_1.vanInventoryController.getProductBatchDetails);
 router.post('/products/batches/bulk', vanInventory_controller_1.vanInventoryController.getBulkProductBatches);
+router.post('/van-inventory/unload', auth_middleware_1.authenticateToken, (0, audit_middleware_1.auditUpdate)('van_inventory'), (0, auth_middleware_1.requirePermission)([{ module: 'van-stock', action: 'update' }]), vanInventory_controller_1.vanInventoryController.unloadVanInventory);
 exports.default = router;
 //# sourceMappingURL=vanInventory.routes.js.map

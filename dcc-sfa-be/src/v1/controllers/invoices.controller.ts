@@ -1,6 +1,18 @@
 import { Request, Response } from 'express';
 import { paginate } from '../../utils/paginate';
 import prisma from '../../configs/prisma.client';
+import { getTimeFilter } from '../../utils/dateFilters';
+
+function calculateUnitConversion(
+  quantity: number,
+  unit: string,
+  conversionRate: number
+): number {
+  if (unit?.toUpperCase() === 'PCS') {
+    return quantity / (conversionRate || 1);
+  }
+  return quantity;
+}
 
 interface InvoiceSerialized {
   id: number;
@@ -22,6 +34,9 @@ interface InvoiceSerialized {
   notes?: string;
   billing_address?: string;
   is_active: string;
+  invoice_method?: string;
+  pricelist_id?: number;
+  salesperson_id?: number;
   createdate?: string;
   createdby: number;
   updatedate?: string;
@@ -32,6 +47,11 @@ interface InvoiceSerialized {
     name: string;
     code: string;
     type: string;
+  };
+  salesperson?: {
+    id: number;
+    name: string;
+    email?: string;
   };
   currency?: {
     id: number;
@@ -50,6 +70,9 @@ interface InvoiceSerialized {
     discount_amount: number;
     tax_amount: number;
     notes?: string;
+    uom?: string;
+    conversion_factor?: number;
+    base_quantity?: number;
     product?: {
       id: number;
       name: string;
@@ -78,11 +101,24 @@ const serializeInvoice = (invoice: any): InvoiceSerialized => ({
   notes: invoice.notes,
   billing_address: invoice.billing_address,
   is_active: invoice.is_active,
+  invoice_method: invoice.parent_id ? 'order' : 'direct',
+  pricelist_id: invoice.pricelist_id,
+  salesperson_id: invoice.salesperson_id,
   createdate: invoice.createdate?.toISOString(),
   createdby: invoice.createdby,
   updatedate: invoice.updatedate?.toISOString(),
   updatedby: invoice.updatedby,
   log_inst: invoice.log_inst,
+  salesperson: invoice.invoices_salesperson
+    ? {
+        id: invoice.invoices_salesperson.id,
+        name:
+          invoice.invoices_salesperson.name ||
+          invoice.invoices_salesperson.full_name ||
+          '',
+        email: invoice.invoices_salesperson.email || null,
+      }
+    : undefined,
   customer: invoice.invoices_customers
     ? {
         id: invoice.invoices_customers.id,
@@ -92,6 +128,7 @@ const serializeInvoice = (invoice: any): InvoiceSerialized => ({
           invoice.invoices_customers.customer_type_customer?.type_name || null,
       }
     : undefined,
+
   currency: invoice.currencies
     ? {
         id: invoice.currencies.id,
@@ -113,11 +150,16 @@ const serializeInvoice = (invoice: any): InvoiceSerialized => ({
     discount_amount: Number(item.discount_amount),
     tax_amount: Number(item.tax_amount),
     notes: item.notes,
+    uom: item.uom,
+    conversion_factor: Number(item.conversion_factor) || 1,
+    base_quantity: Number(item.base_quantity) || 0,
+    tracking_type: item.invoice_items_products?.tracking_type || null,
     product: item.invoice_items_products
       ? {
           id: item.invoice_items_products.id,
           name: item.invoice_items_products.name,
           code: item.invoice_items_products.code,
+          tracking_type: item.invoice_items_products.tracking_type || null,
         }
       : undefined,
   })),
@@ -160,14 +202,21 @@ export const invoicesController = {
             'All invoice items must have product_id, quantity, and unit_price',
         });
       }
+
       const invoiceNumber = data.invoice_number || `INV-${Date.now()}`;
 
       const invoice = await prisma.$transaction(async tx => {
         const newInvoice = await tx.invoices.create({
           data: {
             invoice_number: invoiceNumber,
-            parent_id: data.parent_id ? Number(data.parent_id) : 0,
+            parent_id:
+              data.parent_id && data.invoice_method !== 'direct'
+                ? Number(data.parent_id)
+                : null,
             customer_id: Number(data.customer_id),
+            salesperson_id: data.salesperson_id
+              ? Number(data.salesperson_id)
+              : null,
             currency_id: data.currency_id ? Number(data.currency_id) : null,
             invoice_date: new Date(data.invoice_date),
             due_date: data.due_date ? new Date(data.due_date) : null,
@@ -183,6 +232,7 @@ export const invoicesController = {
             notes: data.notes || null,
             billing_address: data.billing_address || null,
             is_active: data.is_active || 'Y',
+            pricelist_id: data.pricelist_id ? Number(data.pricelist_id) : null,
             createdby: data.createdby ? Number(data.createdby) : 1,
             log_inst: data.log_inst || 1,
             createdate: new Date(),
@@ -196,6 +246,8 @@ export const invoicesController = {
                 email: true,
               },
             },
+            invoices_salesperson: true,
+
             currencies: true,
             orders: true,
           },
@@ -209,33 +261,172 @@ export const invoicesController = {
             where: { id: { in: productIds } },
             include: {
               product_unit_of_measurement: true,
+              product_tax_master: true,
             },
           });
 
+          let calculatedSubtotal = 0;
+          let calculatedTaxAmount = 0;
+          let calculatedDiscountAmount = 0;
+
           const productMap = new Map(products.map(p => [p.id, p]));
 
-          await tx.invoice_items.createMany({
-            data: data.invoiceItems.map((item: any) => {
-              const product = productMap.get(Number(item.product_id));
-              return {
+          for (const item of data.invoiceItems) {
+            const product = productMap.get(Number(item.product_id));
+            const quantity = Number(item.quantity);
+            const unitPrice = Number(item.unit_price);
+            const discountAmount = Number(item.discount_amount) || 0;
+            const itemSubtotal = quantity * unitPrice;
+            const taxRate = Number(product?.product_tax_master?.tax_rate) || 0;
+            const taxAmount =
+              Number(item.tax_amount) ||
+              ((itemSubtotal - discountAmount) * taxRate) / 100;
+            const totalAmount = itemSubtotal - discountAmount + taxAmount;
+
+            calculatedSubtotal += itemSubtotal;
+            calculatedDiscountAmount += discountAmount;
+            calculatedTaxAmount += taxAmount;
+
+            const conversionRate =
+              Number(product?.product_unit_of_measurement?.conversion_rate) ||
+              1;
+            const baseQuantity = calculateUnitConversion(
+              quantity,
+              item.unit,
+              conversionRate
+            );
+
+            let trackingNotes = '';
+            const trackingType = product?.tracking_type?.toUpperCase();
+
+            if (trackingType === 'BATCH' && item.product_batches) {
+              const batchData = Array.isArray(item.product_batches)
+                ? item.product_batches
+                : JSON.parse(item.product_batches || '[]');
+              trackingNotes = `Batches: ${batchData.map((b: any) => b.batch_number || b.batch_lot_id).join(', ')}`;
+
+              if (data.invoice_method !== 'order') {
+                for (const batch of batchData) {
+                  const rawBatchQty = Number(batch.quantity);
+                  const batchBaseQty = calculateUnitConversion(
+                    rawBatchQty,
+                    item.unit,
+                    conversionRate
+                  );
+
+                  if (batchBaseQty > 0) {
+                    const vanItem = await tx.van_inventory_items.findFirst({
+                      where: {
+                        product_id: product?.id,
+                        batch_lot_id: batch.batch_lot_id,
+                      },
+                    });
+                    if (vanItem) {
+                      await tx.van_inventory_items.update({
+                        where: { id: vanItem.id },
+                        data: { quantity: { decrement: batchBaseQty } },
+                      });
+                    }
+
+                    await tx.batch_lots.update({
+                      where: { id: batch.batch_lot_id },
+                      data: {
+                        remaining_quantity: { decrement: batchBaseQty },
+                      },
+                    });
+                  }
+                }
+              }
+            } else if (trackingType === 'SERIAL' && item.product_serials) {
+              const serialData = Array.isArray(item.product_serials)
+                ? item.product_serials
+                : JSON.parse(item.product_serials || '[]');
+              const selectedSerials = serialData.filter(
+                (s: any) => s.selected !== false
+              );
+              trackingNotes = `Serials: ${selectedSerials.map((s: any) => s.serial_number).join(', ')}`;
+
+              if (data.invoice_method !== 'order') {
+                for (const serial of selectedSerials) {
+                  await tx.serial_numbers.update({
+                    where: { id: serial.id },
+                    data: { status: 'sold', sold_date: new Date() },
+                  });
+
+                  await tx.van_inventory_items.deleteMany({
+                    where: {
+                      product_id: product?.id,
+                      serial_id: serial.id,
+                    },
+                  });
+                }
+              }
+            } else if (data.invoice_method !== 'order') {
+              const vanItem = await tx.van_inventory_items.findFirst({
+                where: {
+                  product_id: product?.id,
+                  batch_lot_id: null,
+                  serial_id: null,
+                },
+              });
+
+              if (vanItem) {
+                await tx.van_inventory_items.update({
+                  where: { id: vanItem.id },
+                  data: { quantity: { decrement: baseQuantity } },
+                });
+              }
+            }
+
+            await tx.invoice_items.create({
+              data: {
                 parent_id: newInvoice.id,
                 product_id: Number(item.product_id),
                 product_name: product?.name || '',
+                uom:
+                  item.uom ||
+                  product?.product_unit_of_measurement?.name ||
+                  product?.product_unit_of_measurement?.symbol ||
+                  'pcs',
                 unit:
                   product?.product_unit_of_measurement?.name ||
                   product?.product_unit_of_measurement?.symbol ||
                   'pcs',
-                quantity: Number(item.quantity),
-                unit_price: Number(item.unit_price),
-                discount_amount: Number(item.discount_amount) || 0,
-                tax_amount: Number(item.tax_amount) || 0,
-                total_amount:
-                  Number(item.quantity) * Number(item.unit_price) -
-                  (Number(item.discount_amount) || 0) +
-                  (Number(item.tax_amount) || 0),
-                notes: item.notes || null,
-              };
-            }),
+                quantity: quantity,
+                unit_price: unitPrice,
+                discount_amount: discountAmount,
+                tax_amount: taxAmount,
+                total_amount: totalAmount,
+                conversion_factor: conversionRate,
+                base_quantity: baseQuantity,
+                notes: item.notes
+                  ? `${item.notes}${trackingNotes ? ` (${trackingNotes})` : ''}`
+                  : trackingNotes || null,
+              },
+            });
+          }
+
+          const invoiceDiscount = Number(data.discount_amount) || 0;
+          const invoiceShipping = Number(data.shipping_amount) || 0;
+          const finalTotalAmount =
+            calculatedSubtotal -
+            calculatedDiscountAmount -
+            invoiceDiscount +
+            calculatedTaxAmount +
+            invoiceShipping;
+
+          await tx.invoices.update({
+            where: { id: newInvoice.id },
+            data: {
+              subtotal: calculatedSubtotal,
+              tax_amount: calculatedTaxAmount,
+              discount_amount: calculatedDiscountAmount + invoiceDiscount,
+              total_amount: finalTotalAmount,
+              balance_due:
+                data.status === 'paid'
+                  ? 0
+                  : finalTotalAmount - Number(data.amount_paid || 0),
+            },
           });
         }
 
@@ -254,6 +445,8 @@ export const invoicesController = {
             },
           },
           currencies: true,
+          invoices_salesperson: true,
+
           orders: true,
           invoice_items: {
             include: {
@@ -286,11 +479,16 @@ export const invoicesController = {
         invoice_date_to,
         currency_id,
         is_active = 'Y',
+        time_filter,
       } = req.query;
 
       const page_num = parseInt(page as string, 10);
       const limit_num = parseInt(limit as string, 10);
       const searchLower = (search as string).toLowerCase();
+
+      const timeBasedDateFilter = getTimeFilter(
+        time_filter as string | undefined
+      );
 
       const filters: any = {
         is_active: is_active as string,
@@ -307,18 +505,20 @@ export const invoicesController = {
         ...(status && { status: status as string }),
         ...(payment_method && { payment_method: payment_method as string }),
         ...(currency_id && { currency_id: Number(currency_id) }),
-        ...(invoice_date_from || invoice_date_to
-          ? {
-              invoice_date: {
-                ...(invoice_date_from && {
-                  gte: new Date(invoice_date_from as string),
-                }),
-                ...(invoice_date_to && {
-                  lte: new Date(invoice_date_to as string),
-                }),
-              },
-            }
-          : {}),
+        ...(timeBasedDateFilter
+          ? { invoice_date: timeBasedDateFilter }
+          : invoice_date_from || invoice_date_to
+            ? {
+                invoice_date: {
+                  ...(invoice_date_from && {
+                    gte: new Date(invoice_date_from as string),
+                  }),
+                  ...(invoice_date_to && {
+                    lte: new Date(invoice_date_to as string),
+                  }),
+                },
+              }
+            : {}),
       };
 
       const totalInvoices = await prisma.invoices.count({ where: filters });
@@ -359,6 +559,8 @@ export const invoicesController = {
               email: true,
             },
           },
+          invoices_salesperson: true,
+
           currencies: true,
           orders: true,
           invoice_items: {
@@ -405,6 +607,8 @@ export const invoicesController = {
           },
           currencies: true,
           orders: true,
+          invoices_salesperson: true,
+
           invoice_items: {
             include: {
               invoice_items_products: true,
@@ -440,7 +644,173 @@ export const invoicesController = {
         return res.status(404).json({ message: 'Invoice not found' });
       }
 
-      const completeInvoice = await prisma.invoices.findUnique({
+      await prisma.$transaction(async tx => {
+        await tx.invoices.update({
+          where: { id: Number(id) },
+          data: {
+            parent_id:
+              data.parent_id && data.invoice_method !== 'direct'
+                ? Number(data.parent_id)
+                : null,
+            customer_id: data.customer_id
+              ? Number(data.customer_id)
+              : undefined,
+            salesperson_id: data.salesperson_id
+              ? Number(data.salesperson_id)
+              : undefined,
+            currency_id: data.currency_id
+              ? Number(data.currency_id)
+              : undefined,
+            invoice_date: data.invoice_date
+              ? new Date(data.invoice_date)
+              : undefined,
+            due_date: data.due_date ? new Date(data.due_date) : undefined,
+            status: data.status,
+            payment_method: data.payment_method,
+            subtotal: data.subtotal !== undefined ? Number(data.subtotal) : 0,
+            discount_amount:
+              data.discount_amount !== undefined
+                ? Number(data.discount_amount)
+                : 0,
+            tax_amount:
+              data.tax_amount !== undefined ? Number(data.tax_amount) : 0,
+            shipping_amount:
+              data.shipping_amount !== undefined
+                ? Number(data.shipping_amount)
+                : 0,
+            total_amount:
+              data.total_amount !== undefined ? Number(data.total_amount) : 0,
+            amount_paid:
+              data.amount_paid !== undefined ? Number(data.amount_paid) : 0,
+            balance_due:
+              data.balance_due !== undefined ? Number(data.balance_due) : 0,
+            notes: data.notes !== undefined ? data.notes : undefined,
+            billing_address:
+              data.billing_address !== undefined
+                ? data.billing_address
+                : undefined,
+            is_active: data.is_active || 'Y',
+            pricelist_id:
+              data.pricelist_id !== undefined
+                ? data.pricelist_id
+                  ? Number(data.pricelist_id)
+                  : null
+                : undefined,
+            updatedate: new Date(),
+          },
+        });
+
+        if (data.invoiceItems && Array.isArray(data.invoiceItems)) {
+          await tx.invoice_items.deleteMany({
+            where: { parent_id: Number(id) },
+          });
+
+          if (data.invoiceItems.length > 0) {
+            const productIds = data.invoiceItems.map((item: any) =>
+              Number(item.product_id)
+            );
+            const products = await tx.products.findMany({
+              where: { id: { in: productIds } },
+              include: {
+                product_unit_of_measurement: true,
+                product_tax_master: true,
+              },
+            });
+
+            let calculatedSubtotal = 0;
+            let calculatedTaxAmount = 0;
+            let calculatedDiscountAmount = 0;
+
+            const productMap = new Map(products.map(p => [p.id, p]));
+
+            for (const item of data.invoiceItems) {
+              const product = productMap.get(Number(item.product_id));
+              const quantity = Number(item.quantity);
+              const unitPrice = Number(item.unit_price);
+              const discountAmount = Number(item.discount_amount) || 0;
+              const itemSubtotal = quantity * unitPrice;
+              const taxRate =
+                Number(product?.product_tax_master?.tax_rate) || 0;
+              const taxAmount =
+                Number(item.tax_amount) ||
+                ((itemSubtotal - discountAmount) * taxRate) / 100;
+              const totalAmount = itemSubtotal - discountAmount + taxAmount;
+              calculatedSubtotal += itemSubtotal;
+              calculatedDiscountAmount += discountAmount;
+              calculatedTaxAmount += taxAmount;
+
+              let trackingNotes = '';
+              const trackingType = product?.tracking_type?.toUpperCase();
+
+              if (trackingType === 'BATCH' && item.product_batches) {
+                const batchData = Array.isArray(item.product_batches)
+                  ? item.product_batches
+                  : JSON.parse(item.product_batches || '[]');
+                trackingNotes = `Batches: ${batchData.map((b: any) => b.batch_number || b.batch_lot_id).join(', ')}`;
+              } else if (trackingType === 'SERIAL' && item.product_serials) {
+                const serialData = Array.isArray(item.product_serials)
+                  ? item.product_serials
+                  : JSON.parse(item.product_serials || '[]');
+                const selectedSerials = serialData.filter(
+                  (s: any) => s.selected !== false
+                );
+                trackingNotes = `Serials: ${selectedSerials.map((s: any) => s.serial_number).join(', ')}`;
+              }
+              await tx.invoice_items.create({
+                data: {
+                  parent_id: Number(id),
+                  product_id: Number(item.product_id),
+                  product_name: product?.name || '',
+                  uom:
+                    item.uom ||
+                    product?.product_unit_of_measurement?.name ||
+                    product?.product_unit_of_measurement?.symbol ||
+                    'pcs',
+                  unit:
+                    product?.product_unit_of_measurement?.name ||
+                    product?.product_unit_of_measurement?.symbol ||
+                    'pcs',
+                  quantity: quantity,
+                  unit_price: unitPrice,
+                  discount_amount: discountAmount,
+                  tax_amount: taxAmount,
+                  total_amount: totalAmount,
+                  conversion_factor: Number(item.conversion_factor) || 1,
+                  base_quantity: Number(item.base_quantity) || 0,
+                  notes: item.notes
+                    ? `${item.notes}${trackingNotes ? ` (${trackingNotes})` : ''}`
+                    : trackingNotes || null,
+                },
+              });
+            }
+
+            const invoiceDiscount = Number(data.discount_amount) || 0;
+            const invoiceShipping = Number(data.shipping_amount) || 0;
+            const finalTotalAmount =
+              calculatedSubtotal -
+              calculatedDiscountAmount -
+              invoiceDiscount +
+              calculatedTaxAmount +
+              invoiceShipping;
+
+            await tx.invoices.update({
+              where: { id: Number(id) },
+              data: {
+                subtotal: calculatedSubtotal,
+                tax_amount: calculatedTaxAmount,
+                discount_amount: calculatedDiscountAmount + invoiceDiscount,
+                total_amount: finalTotalAmount,
+                balance_due:
+                  data.status === 'paid'
+                    ? 0
+                    : finalTotalAmount - Number(data.amount_paid || 0),
+              },
+            });
+          }
+        }
+      });
+
+      const updatedInvoice = await prisma.invoices.findUnique({
         where: { id: Number(id) },
         include: {
           invoices_customers: {
@@ -453,6 +823,8 @@ export const invoicesController = {
           },
           currencies: true,
           orders: true,
+          invoices_salesperson: true,
+
           invoice_items: {
             include: {
               invoice_items_products: true,
@@ -463,7 +835,7 @@ export const invoicesController = {
 
       res.json({
         message: 'Invoice updated successfully',
-        data: serializeInvoice(completeInvoice),
+        data: serializeInvoice(updatedInvoice),
       });
     } catch (error: any) {
       console.error('Update Invoice Error:', error);

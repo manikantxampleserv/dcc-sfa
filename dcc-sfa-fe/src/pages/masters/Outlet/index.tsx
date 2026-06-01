@@ -24,8 +24,6 @@ import {
   useDeleteCustomer,
   type Customer,
 } from '../../../hooks/useCustomers';
-import { useRoutes } from '../../../hooks/useRoutes';
-import { useZones } from '../../../hooks/useZones';
 import { useExportToExcel } from '../../../hooks/useImportExport';
 import ImportCustomers from './ImportCustomers';
 import ManageOutlet from './ManageOutlet';
@@ -75,21 +73,7 @@ const OutletsManagement: React.FC = () => {
     }
   );
 
-  const { data: routesResponse } = useRoutes({
-    page: 1,
-    limit: 100,
-    status: 'active',
-  });
-
-  const { data: zonesResponse } = useZones({
-    page: 1,
-    limit: 100,
-    isActive: 'Y',
-  });
-
   const customers = customersResponse?.data || [];
-  const routes = routesResponse?.data || [];
-  const zones = zonesResponse?.data || [];
   const totalCount = customersResponse?.meta?.total || 0;
   const currentPage = (customersResponse?.meta?.page || 1) - 1;
 
@@ -195,7 +179,7 @@ const OutletsManagement: React.FC = () => {
             </Typography>
             <Typography
               variant="caption"
-              className="!text-gray-500 !text-xs !block !mt-0.5"
+              className="!text-gray-400 !text-xs !block !mt-0.5"
             >
               {row.code}
             </Typography>
@@ -204,59 +188,128 @@ const OutletsManagement: React.FC = () => {
       ),
     },
     {
-      id: 'customer_type.type_name',
+      id: 'customer_type',
       label: 'Outlet Type',
-      render: (_value, row) => (
-        <Chip
-          icon={getBusinessTypeIcon(row.customer_type?.type_name || '')}
-          label={row.customer_type?.type_name || 'N/A'}
-          size="small"
-          variant="outlined"
-          className="!capitalize !px-1"
-          color={getBusinessTypeChipColor(row.customer_type?.type_name || '')}
-        />
-      ),
+      render: value =>
+        value ? (
+          <Chip
+            icon={getBusinessTypeIcon(value?.type_name || '')}
+            label={value?.type_name || 'N/A'}
+            size="small"
+            variant="outlined"
+            className="!capitalize !px-1"
+            color={getBusinessTypeChipColor(value?.type_name || '')}
+          />
+        ) : (
+          <span className="italic text-gray-400 text-xs">No Outlet Type</span>
+        ),
     },
 
     {
-      id: 'customer_channel.channel_name',
+      id: 'customer_channel',
       label: 'Outlet Channel',
-      render: (_value, row) => (
-        <Typography variant="body2" className="!text-gray-700">
-          {row.customer_channel?.channel_name || 'N/A'}
-        </Typography>
-      ),
+      render: value =>
+        value ? (
+          <Typography variant="body2" className="!text-gray-700">
+            {value?.channel_name || 'N/A'}
+          </Typography>
+        ) : (
+          <span className="italic text-gray-400 text-xs">
+            No Outlet Channel
+          </span>
+        ),
+    },
+    {
+      id: 'customer_category',
+      label: 'Category',
+      render: value =>
+        value ? (
+          <Chip
+            label={value?.category_name || 'Unassigned'}
+            size="small"
+            variant="filled"
+            className="!font-medium"
+          />
+        ) : (
+          <span className="italic text-gray-400 text-xs">
+            No Outlet Category
+          </span>
+        ),
+    },
+    {
+      id: 'depot',
+      label: 'Depot',
+      render: (value, row) =>
+        value ? (
+          <Box className="!flex !items-center !gap-1.5 flex-wrap">
+            <Typography variant="body2" className="!text-gray-700">
+              {value?.name || 'N/A'}
+            </Typography>
+            {row.default_for_depots && row.default_for_depots.length > 0 && (
+              <Chip
+                label="Default"
+                size="small"
+                variant="filled"
+                color="success"
+                className="!text-[10px] !h-4 !px-0.5 !font-semibold"
+              />
+            )}
+          </Box>
+        ) : (
+          <span className="italic text-gray-400 text-xs">No Depot</span>
+        ),
+    },
+    {
+      id: 'customer_zones',
+      label: 'Zone',
+      render: value =>
+        value ? (
+          <Typography variant="body2" className="!text-gray-700">
+            {value?.name || 'N/A'}
+          </Typography>
+        ) : (
+          <span className="italic text-gray-400 text-xs">No Zone</span>
+        ),
     },
     {
       id: 'email',
       label: 'Email',
-      render: (_value, row) => (
+      render: value => (
         <Typography variant="body2" className="!text-gray-700">
-          {row.email || (
-            <span className="!text-gray-500 !text-xs italic">No Email</span>
+          {value || (
+            <span className="!text-gray-400 !text-xs italic">No Email</span>
           )}
         </Typography>
       ),
     },
     {
-      id: 'row.city',
+      id: 'city_detail.name',
       label: 'Location',
-      render: (_value, row) => (
-        <Box>
-          <Box className="flex items-center text-gray-900">
-            <MapPin className="w-4 h-4 text-gray-400 mr-2" />
-            {row.city && row.state && row.zipcode
-              ? `${row.city}${row.state ? `, ${row.state}` : ''}${row.zipcode ? `, ${row.zipcode}` : ''}`
-              : row.city
-                ? row.city
-                : row.state
-                  ? row.state
-                  : row.zipcode
-                    ? row.zipcode
-                    : 'N/A'}
+      render: (_value, row) => {
+        const locationParts = [
+          row.customer_city?.name,
+          row.customer_district?.name,
+          row.customer_region?.name
+        ].filter(Boolean);
+        return (
+          <Box>
+            <Box className="flex items-center text-gray-900">
+              <MapPin className="w-4 h-4 text-gray-400 mr-2" />
+              {locationParts.length > 0 ? (
+                locationParts.join(', ')
+              ) : (
+                <Typography variant="body2" className="!text-gray-700">
+                  {row.address || (
+                    <span className="!text-gray-400 !text-xs italic">
+                      No Location
+                    </span>
+                  )}
+                </Typography>
+              )}
+            </Box>
           </Box>
-        </Box>
-      ),
+        );
+      },
     },
     {
       id: 'customer_routes.name',
@@ -264,20 +317,7 @@ const OutletsManagement: React.FC = () => {
       render: (_value, row) => (
         <Typography variant="body2" className="!text-gray-700">
           {row.customer_routes?.name || (
-            <span className="!text-gray-500 !text-xs italic">No Route</span>
-          )}
-        </Typography>
-      ),
-    },
-    {
-      id: 'customer_users.name',
-      label: 'Salesperson',
-      render: (_value, row) => (
-        <Typography variant="body2" className="!text-gray-700">
-          {row.customer_users?.name || (
-            <span className="!text-gray-500 !text-xs italic">
-              No Salesperson
-            </span>
+            <span className="!text-gray-400 !text-xs italic">No Route</span>
           )}
         </Typography>
       ),
@@ -315,30 +355,30 @@ const OutletsManagement: React.FC = () => {
     },
     ...(isUpdate || isDelete || isRead
       ? [
-          {
-            id: 'action',
-            label: 'Actions',
-            sortable: false,
-            render: (_value: any, row: Customer) => (
-              <div className="!flex !gap-2 !items-center">
-                {isUpdate && (
-                  <EditButton
-                    onClick={() => handleEditOutlet(row)}
-                    tooltip={`Edit ${row.name}`}
-                  />
-                )}
-                {isDelete && (
-                  <DeleteButton
-                    onClick={() => handleDeleteOutlet(row.id)}
-                    tooltip={`Delete ${row.name}`}
-                    itemName={row.name}
-                    confirmDelete={true}
-                  />
-                )}
-              </div>
-            ),
-          },
-        ]
+        {
+          id: 'action',
+          label: 'Actions',
+          sortable: false,
+          render: (_value: any, row: Customer) => (
+            <div className="!flex !gap-2 !items-center">
+              {isUpdate && (
+                <EditButton
+                  onClick={() => handleEditOutlet(row)}
+                  tooltip={`Edit ${row.name}`}
+                />
+              )}
+              {isDelete && (
+                <DeleteButton
+                  onClick={() => handleDeleteOutlet(row.id)}
+                  tooltip={`Delete ${row.name}`}
+                  itemName={row.name}
+                  confirmDelete={true}
+                />
+              )}
+            </div>
+          ),
+        },
+      ]
       : []),
   ];
 
@@ -349,13 +389,13 @@ const OutletsManagement: React.FC = () => {
           <p className="!font-bold text-xl !text-gray-900">
             Outlets Management
           </p>
-          <p className="!text-gray-500 text-sm">
+          <p className="!text-gray-400 text-sm">
             Manage customer outlets, distributors, retailers, and wholesalers
           </p>
         </Box>
       </Box>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
         <StatsCard
           title="Total Outlets"
           value={totalCustomers}
@@ -372,14 +412,20 @@ const OutletsManagement: React.FC = () => {
         />
         <StatsCard
           title="Total Credit Limit"
-          value={formatCurrency(totalCreditLimit.toString())}
+          value={formatCurrency(totalCreditLimit.toString()).replaceAll(
+            '.00',
+            ''
+          )}
           icon={<CreditCard className="w-6 h-6" />}
           color="purple"
           isLoading={isFetching}
         />
         <StatsCard
           title="Outstanding Amount"
-          value={formatCurrency(totalOutstanding.toString())}
+          value={formatCurrency(totalOutstanding.toString()).replaceAll(
+            '.00',
+            ''
+          )}
           icon={<AlertCircle className="w-6 h-6" />}
           color="red"
           isLoading={isFetching}
@@ -413,7 +459,6 @@ const OutletsManagement: React.FC = () => {
                     <Select
                       value={statusFilter}
                       onChange={e => setStatusFilter(e.target.value)}
-                      className="!min-w-32"
                       size="small"
                       disableClearable
                     >
@@ -508,8 +553,6 @@ const OutletsManagement: React.FC = () => {
         setSelectedOutlet={setSelectedOutlet}
         drawerOpen={drawerOpen}
         setDrawerOpen={setDrawerOpen}
-        routes={routes}
-        zones={zones}
       />
 
       <ImportCustomers

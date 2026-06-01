@@ -17,6 +17,7 @@ import React, { useMemo, useCallback } from 'react';
 interface InputProps extends Omit<TextFieldProps, 'onChange'> {
   formik?: FormikProps<any>;
   setValue?: (value: any) => void;
+  compact?: boolean;
   onChange?: (
     event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => void;
@@ -34,13 +35,14 @@ const Input: React.FC<InputProps> = ({
   fullWidth = true,
   slotProps,
   label,
+  compact = false,
+  sx: propsSx,
   ...rest
 }) => {
   const [isVisible, setIsVisible] = React.useState<{ [key: string]: boolean }>({
     [name || '']: false,
   });
 
-  // FIXED: Use useCallback to memoize handlers
   const handleChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
       const newValue = event.target.value;
@@ -53,7 +55,7 @@ const Input: React.FC<InputProps> = ({
       }
     },
     [formik, name, setValue, onChange]
-  ); // FIXED: Proper dependencies
+  );
 
   const handleDateChange = useCallback(
     (newValue: Dayjs | null) => {
@@ -84,21 +86,6 @@ const Input: React.FC<InputProps> = ({
     [formik, name, setValue]
   );
 
-  const handleDateBlur = useCallback(() => {
-    const syntheticEvent = {
-      target: {
-        name: name,
-        id: name,
-      },
-    } as React.FocusEvent<HTMLInputElement>;
-
-    if (formik?.handleBlur && name) {
-      formik.handleBlur(syntheticEvent);
-    } else if (onBlur) {
-      onBlur(syntheticEvent);
-    }
-  }, [formik, name, onBlur]);
-
   const handleDateTimeChange = useCallback(
     (newValue: Dayjs | null) => {
       const dateTimeValue = newValue ? newValue.format('YYYY-MM-DDTHH:mm') : '';
@@ -111,7 +98,6 @@ const Input: React.FC<InputProps> = ({
     [formik, name, setValue]
   );
 
-  // FIXED: Extract error state without watching entire formik
   const error = useMemo(() => {
     if (!formik || !name) return false;
     return formik.touched?.[name as string] && formik.errors?.[name as string];
@@ -123,12 +109,11 @@ const Input: React.FC<InputProps> = ({
 
   const errorMessage = typeof error === 'string' ? error : undefined;
 
-  // FIXED: Extract only the specific field value instead of watching entire formik object
   const currentValue = useMemo(() => {
     if (value !== undefined) return value;
     if (formik && name) return formik.values[name as string];
     return '';
-  }, [value, formik?.values[name as string], name]); // Only watch the specific field
+  }, [value, formik?.values[name as string], name]);
 
   const dateValue = useMemo(
     () =>
@@ -141,11 +126,97 @@ const Input: React.FC<InputProps> = ({
   const timeValue = useMemo(
     () =>
       currentValue &&
-      typeof currentValue === 'string' &&
-      currentValue.includes(':')
+        typeof currentValue === 'string' &&
+        currentValue.includes(':')
         ? dayjs(currentValue, 'HH:mm')
         : null,
     [currentValue]
+  );
+
+  const compactSx = useMemo(
+    () => ({
+      ...(compact && {
+        '& .MuiInputBase-root': {
+          height: '28px !important',
+          minHeight: '28px !important',
+          fontSize: '0.75rem',
+          paddingRight: '4px !important',
+          display: 'flex',
+          alignItems: 'center',
+          boxSizing: 'border-box',
+          fontFamily: "'Poppins', sans-serif !important",
+        },
+        '& .MuiInputBase-input': {
+          padding: '0px 8px !important',
+          height: '28px !important',
+          lineHeight: '28px !important',
+          boxSizing: 'border-box',
+          fontSize: '0.75rem',
+          fontFamily: "'Poppins', sans-serif !important",
+        },
+        '& .MuiOutlinedInput-root': {
+          height: '28px !important',
+          minHeight: '28px !important',
+          paddingRight: '4px !important',
+          '& fieldset': {
+            borderColor: 'rgba(0, 0, 0, 0.23)',
+          },
+        },
+        '& .MuiOutlinedInput-input': {
+          padding: '0px 8px !important',
+          height: '28px !important',
+          lineHeight: '28px !important',
+          boxSizing: 'border-box',
+        },
+        '& .MuiInputAdornment-root': {
+          margin: 0,
+          height: '28px !important',
+          maxHeight: '28px !important',
+          display: 'flex',
+          alignItems: 'center',
+          padding: '0 5px !important',
+          '& .MuiIconButton-root': {
+            padding: '2px !important',
+            '& .MuiSvgIcon-root': {
+              fontSize: '1rem !important',
+            },
+          },
+        },
+        '& .MuiInputLabel-root': {
+          fontSize: '0.75rem',
+          transform: 'translate(14px, 5px) scale(1)',
+          fontFamily: "'Poppins', sans-serif !important",
+        },
+        '& .MuiInputLabel-shrink': {
+          transform: 'translate(14px, -8px) scale(0.75)',
+        },
+        '& .MuiPickersInputBase-sectionsContainer': {
+          padding: '0 !important',
+          paddingTop: '1px !important',
+          display: 'flex !important',
+          flexWrap: 'nowrap !important',
+          overflow: 'hidden !important',
+          alignItems: 'center !important',
+          width: '111px !important',
+        },
+        '& .MuiPickersSectionList-root': {
+          padding: '0 !important',
+          width: '111px !important',
+        },
+        '& .MuiPickersSectionList-section': {
+          fontSize: '14px !important',
+          display: 'inline-block !important',
+          whiteSpace: 'nowrap !important',
+        },
+        '& .MuiPickersInputBase-section': {
+          fontSize: '14px !important',
+          display: 'inline-block !important',
+          whiteSpace: 'nowrap !important',
+        },
+      }),
+      ...propsSx,
+    }),
+    [compact, propsSx]
   );
 
   if (type === 'year') {
@@ -154,10 +225,10 @@ const Input: React.FC<InputProps> = ({
         label={label}
         value={dateValue}
         onChange={handleDateChange}
-        onClose={handleDateBlur}
         views={['year']}
         format="YYYY"
         disabled={rest.disabled}
+        sx={compactSx}
         slotProps={{
           desktopPaper: {
             elevation: 0,
@@ -175,12 +246,14 @@ const Input: React.FC<InputProps> = ({
               htmlInput: {
                 required: false,
               },
+              ...slotProps,
             },
             InputLabelProps: {
               shrink: true,
             },
             className: rest.className,
             ...rest,
+            sx: compactSx,
           },
         }}
       />
@@ -193,9 +266,9 @@ const Input: React.FC<InputProps> = ({
         label={label}
         value={dateValue}
         onChange={handleDateChange}
-        onClose={handleDateBlur}
         format="DD/MM/YYYY"
         disabled={rest.disabled}
+        sx={compactSx}
         slotProps={{
           desktopPaper: {
             elevation: 0,
@@ -213,12 +286,14 @@ const Input: React.FC<InputProps> = ({
               htmlInput: {
                 required: false,
               },
+              ...slotProps,
             },
             InputLabelProps: {
               shrink: true,
             },
             className: rest.className,
             ...rest,
+            sx: compactSx,
           },
         }}
       />
@@ -231,8 +306,8 @@ const Input: React.FC<InputProps> = ({
         label={label}
         value={timeValue}
         onChange={handleTimeChange}
-        onClose={handleDateBlur}
         disabled={rest.disabled}
+        sx={compactSx}
         slotProps={{
           textField: {
             fullWidth,
@@ -246,11 +321,13 @@ const Input: React.FC<InputProps> = ({
               htmlInput: {
                 required: false,
               },
+              ...slotProps,
             },
             InputLabelProps: {
               shrink: true,
             },
             ...rest,
+            sx: compactSx,
           },
         }}
       />
@@ -263,8 +340,8 @@ const Input: React.FC<InputProps> = ({
         label={label}
         value={dateValue}
         onChange={handleDateTimeChange}
-        onClose={handleDateBlur}
         disabled={rest.disabled}
+        sx={compactSx}
         slotProps={{
           textField: {
             fullWidth,
@@ -278,11 +355,13 @@ const Input: React.FC<InputProps> = ({
               htmlInput: {
                 required: false,
               },
+              ...slotProps,
             },
             InputLabelProps: {
               shrink: true,
             },
             ...rest,
+            sx: compactSx,
           },
         }}
       />
@@ -342,6 +421,7 @@ const Input: React.FC<InputProps> = ({
       onBlur={handleBlur}
       value={currentValue}
       onChange={handleChange}
+      sx={compactSx}
       {...rest}
     />
   );

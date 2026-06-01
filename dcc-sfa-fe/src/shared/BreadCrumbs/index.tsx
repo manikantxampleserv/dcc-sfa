@@ -41,6 +41,7 @@ const BreadCrumbs: React.FC<BreadCrumbsProps> = ({ navItem, navLink, id }) => {
   };
 
   useEffect(() => {
+    if (navLink === '/') return;
     setBreadCrumbs(prev => {
       const existingByName = prev.findIndex(item => item.navItem === navItem);
       if (existingByName !== -1) {
@@ -103,7 +104,7 @@ const BreadCrumbs: React.FC<BreadCrumbsProps> = ({ navItem, navLink, id }) => {
                     : 'Executive Dashboard'
                 }
                 className={classNames(
-                  '!rounded-md flex items-center !capitalize !text-white px-2 py-1',
+                  '!rounded-md flex items-center !py-[5px] !capitalize !text-white px-2',
                   item.id === id ? '!bg-blue-600' : '!bg-blue-300'
                 )}
                 onClick={() => navigate(item.navLink, { state: value })}

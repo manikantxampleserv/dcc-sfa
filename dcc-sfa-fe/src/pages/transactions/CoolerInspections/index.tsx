@@ -143,8 +143,8 @@ const CoolerInspectionsManagement: React.FC = () => {
         actionRequired: actionFilter === 'all' ? undefined : actionFilter,
         inspector_id:
           inspectorFilter === 'all' ||
-          inspectorFilter === '' ||
-          !inspectorFilter
+            inspectorFilter === '' ||
+            !inspectorFilter
             ? undefined
             : Number(inspectorFilter),
       };
@@ -201,7 +201,7 @@ const CoolerInspectionsManagement: React.FC = () => {
           <Box>
             <Typography
               variant="body1"
-              className="!text-gray-900 !leading-tight"
+              className="!text-gray-900 !leading-tight !font-medium"
             >
               {row.cooler?.code || 'Unknown Cooler'}
             </Typography>
@@ -209,9 +209,7 @@ const CoolerInspectionsManagement: React.FC = () => {
               variant="caption"
               className="!text-gray-500 !text-xs !block !mt-0.5"
             >
-              {row.cooler?.brand && row.cooler?.model
-                ? `${row.cooler.brand} ${row.cooler.model}`
-                : 'Unknown Model'}
+              {row.cooler?.asset_master?.name}
             </Typography>
           </Box>
         </Box>
@@ -329,7 +327,7 @@ const CoolerInspectionsManagement: React.FC = () => {
             {row.latitude && row.longitude ? (
               `${row.latitude.toFixed(4)}, ${row.longitude.toFixed(4)}`
             ) : (
-              <span className="italic text-sm">No Location</span>
+              <span className="italic text-xs text-gray-400">No Location</span>
             )}
           </span>
         </Box>
@@ -345,7 +343,7 @@ const CoolerInspectionsManagement: React.FC = () => {
             {row.next_inspection_due ? (
               formatDate(row.next_inspection_due)
             ) : (
-              <span className="italic text-sm">No Date</span>
+              <span className="italic text-gray-400 text-xs">No Date</span>
             )}
           </span>
         </Box>
@@ -366,38 +364,38 @@ const CoolerInspectionsManagement: React.FC = () => {
     },
     ...(isRead || isUpdate || isDelete
       ? [
-          {
-            id: 'action',
-            label: 'Actions',
-            sortable: false,
-            render: (_value: any, row: CoolerInspection) => (
-              <div className="!flex !gap-2 !items-center">
-                {isRead && (
-                  <ActionButton
-                    onClick={() => handleViewInspection(row)}
-                    tooltip="View cooler inspection details"
-                    icon={<Visibility />}
-                    color="success"
-                  />
-                )}
-                {isUpdate && (
-                  <EditButton
-                    onClick={() => handleEditInspection(row)}
-                    tooltip={`Edit Inspection ${row.id}`}
-                  />
-                )}
-                {isDelete && (
-                  <DeleteButton
-                    onClick={() => handleDeleteInspection(row.id)}
-                    tooltip={`Delete Inspection ${row.id}`}
-                    itemName={`Inspection ${row.id}`}
-                    confirmDelete={true}
-                  />
-                )}
-              </div>
-            ),
-          },
-        ]
+        {
+          id: 'action',
+          label: 'Actions',
+          sortable: false,
+          render: (_value: any, row: CoolerInspection) => (
+            <div className="!flex !gap-2 !items-center">
+              {isRead && (
+                <ActionButton
+                  onClick={() => handleViewInspection(row)}
+                  tooltip="View cooler inspection details"
+                  icon={<Visibility />}
+                  color="success"
+                />
+              )}
+              {isUpdate && (
+                <EditButton
+                  onClick={() => handleEditInspection(row)}
+                  tooltip={`Edit Inspection ${row.id}`}
+                />
+              )}
+              {isDelete && (
+                <DeleteButton
+                  onClick={() => handleDeleteInspection(row.id)}
+                  tooltip={`Delete Inspection ${row.id}`}
+                  itemName={`Inspection ${row.id}`}
+                  confirmDelete={true}
+                />
+              )}
+            </div>
+          ),
+        },
+      ]
       : []),
   ];
 
@@ -414,7 +412,7 @@ const CoolerInspectionsManagement: React.FC = () => {
         </Box>
       </Box>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
         <StatsCard
           title="Total Inspections"
           value={totalInspections}
@@ -491,7 +489,7 @@ const CoolerInspectionsManagement: React.FC = () => {
                     <Select
                       value={actionFilter}
                       onChange={e => setActionFilter(e.target.value)}
-                      className="!w-40"
+                      className="!w-52"
                       disableClearable
                     >
                       <MenuItem value="all">All Action</MenuItem>
@@ -514,36 +512,43 @@ const CoolerInspectionsManagement: React.FC = () => {
                   </>
                 )}
               </div>
-              {isRead && (
-                <div className="flex items-center gap-2">
-                  <PopConfirm
-                    title="Export Cooler Inspections"
-                    description="Are you sure you want to export the current cooler inspections data to Excel? This will include all filtered results."
-                    onConfirm={handleExportToExcel}
-                    confirmText="Export"
-                    cancelText="Cancel"
-                    placement="top"
-                  >
+
+              <div className="flex items-center gap-2">
+                {isRead && (
+                  <>
+                    <PopConfirm
+                      title="Export Cooler Inspections"
+                      description="Are you sure you want to export the current cooler inspections data to Excel? This will include all filtered results."
+                      onConfirm={handleExportToExcel}
+                      confirmText="Export"
+                      cancelText="Cancel"
+                      placement="top"
+                    >
+                      <Button
+                        variant="outlined"
+                        className="!capitalize"
+                        startIcon={<Download />}
+                        disabled={exportToExcelMutation.isPending}
+                      >
+                        {exportToExcelMutation.isPending
+                          ? 'Exporting...'
+                          : 'Export'}
+                      </Button>
+                    </PopConfirm>
+                  </>
+                )}
+
+                {isCreate && (
+                  <>
+
                     <Button
                       variant="outlined"
                       className="!capitalize"
-                      startIcon={<Download />}
-                      disabled={exportToExcelMutation.isPending}
+                      startIcon={<Upload />}
+                      onClick={() => setImportModalOpen(true)}
                     >
-                      {exportToExcelMutation.isPending
-                        ? 'Exporting...'
-                        : 'Export'}
+                      Import
                     </Button>
-                  </PopConfirm>
-                  <Button
-                    variant="outlined"
-                    className="!capitalize"
-                    startIcon={<Upload />}
-                    onClick={() => setImportModalOpen(true)}
-                  >
-                    Import
-                  </Button>
-                  {isCreate && (
                     <Button
                       variant="contained"
                       className="!capitalize"
@@ -553,9 +558,9 @@ const CoolerInspectionsManagement: React.FC = () => {
                     >
                       Create
                     </Button>
-                  )}
-                </div>
-              )}
+                  </>
+                )}
+              </div>
             </div>
           ) : (
             false

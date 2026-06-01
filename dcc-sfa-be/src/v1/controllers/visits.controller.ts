@@ -142,11 +142,11 @@ interface VisitSerialized {
     }>;
   }>;
 }
-
 interface BulkVisitInput {
   visit: {
     id?: number;
     visit_id?: number;
+    invoices?: any[];
     customer_id: number;
     sales_person_id: number;
     route_id?: number | null;
@@ -172,6 +172,53 @@ interface BulkVisitInput {
     is_active?: string;
     createdby?: number;
   };
+  invoices?: Array<{
+    createdby: number | undefined;
+    created_at: any;
+    invoice_id?: number;
+    visit_id?: number;
+    salesperson_id?: number | null;
+    invoice_number?: string;
+    invoice_date?: Date | string;
+    due_date?: Date | string;
+    status?: string;
+    payment_method?: string;
+    subtotal?: number;
+    discount_amount?: number;
+    tax_amount?: number;
+    shipping_amount?: number;
+    total_amount?: number;
+    amount_paid?: number;
+    balance_due?: number;
+    notes?: string;
+    billing_address?: string;
+    is_active?: string;
+    currency_id?: number;
+    slip_type?: string;
+    total_discount?: number;
+    total_quantity?: number;
+    total_volume?: number;
+    total_weight?: number;
+    item_count?: number;
+    is_synced?: boolean;
+    items?: Array<{
+      item_id?: number;
+      product_id: number;
+      product_name?: string;
+      unit?: string;
+      quantity: number;
+      unit_price: number;
+      discount_amount?: number;
+      tax_amount?: number;
+      total_amount?: number;
+      notes?: string;
+      tax_code?: string;
+      tax_rate?: number;
+      conversion_factor?: number;
+      base_quantity?: number;
+      expiry_date?: Date | string;
+    }>;
+  }>;
   orders?: Array<{
     order_id?: number;
     visit_id?: number;
@@ -208,6 +255,7 @@ interface BulkVisitInput {
     }>;
   }>;
   payments?: Array<{
+    createdby: any;
     payment_id?: number;
     visit_id?: number;
     payment_number?: string;
@@ -220,9 +268,14 @@ interface BulkVisitInput {
     notes?: string | null;
     is_active?: string;
     currency_id?: number;
+    slip_number?: string;
+    customer_name?: string;
+    is_auto?: boolean;
+    is_synced?: boolean;
   }>;
   cooler_inspections?: Array<{
     id?: number;
+    serial_number: string;
     visit_id?: number;
     inspected_by: number;
     inspection_date?: Date | string;
@@ -235,26 +288,11 @@ interface BulkVisitInput {
     action_required?: string;
     action_taken?: string;
     next_inspection_due?: Date | string;
-    cooler?: {
-      id?: number;
-      code?: string;
-      brand?: string;
-      model?: string;
-      serial_number?: string;
-      customer_id?: number;
-      capacity?: number | string;
-      install_date?: Date | string;
-      last_service_date?: Date | string;
-      next_service_due?: Date | string;
-      status?: string;
-      temperature?: number;
-      energy_rating?: string;
-      warranty_expiry?: Date | string;
-      maintenance_contract?: string;
-      technician_id?: number;
-      last_scanned_date?: Date | string;
-      is_active?: string;
-    };
+  }>;
+  cooler_installations?: Array<{
+    asset_serial_number?: string;
+    serial_number?: string;
+    status?: string;
   }>;
   survey?: {
     survey_response: {
@@ -281,8 +319,8 @@ function serializeVisit(visit: any) {
     id: visit.id,
     customer_id: visit.customer_id,
     sales_person_id: visit.sales_person_id,
-    route_id: visit.route_id,
-    zones_id: visit.zones_id,
+    route_id: visit.visit_customers?.route_id || visit.route_id,
+    zones_id: visit.visit_customers?.zones_id || visit.zones_id,
     visit_date: visit.visit_date,
     visit_time: visit.visit_time,
     purpose: visit.purpose,
@@ -296,7 +334,7 @@ function serializeVisit(visit: any) {
     end_longitude: visit.end_longitude,
     check_in_time: visit.check_in_time,
     check_out_time: visit.check_out_time,
-    orders_created: visit.orders_created,
+    invoices_created: visit.invoices_created,
     amount_collected: visit.amount_collected,
     visit_notes: visit.visit_notes,
     customer_feedback: visit.customer_feedback,
@@ -307,17 +345,31 @@ function serializeVisit(visit: any) {
     updatedate: visit.updatedate,
     updatedby: visit.updatedby,
     log_inst: visit.log_inst,
-
+    invoices: visit.invoices || [],
+    visit_attachments: visit.visit_attachments || [],
     images: {
-      self: visit.self_image ? visit.self_image.split(',').filter(Boolean) : [],
-      customer: visit.customer_image
-        ? visit.customer_image.split(',').filter(Boolean)
-        : [],
-      cooler: visit.cooler_image
-        ? visit.cooler_image.split(',').filter(Boolean)
-        : [],
+      self: visit.visit_attachments
+        ? visit.visit_attachments
+            .filter((att: any) => att.file_type === 'self_image')
+            .map((att: any) => att.file_url)
+        : visit.self_image
+          ? visit.self_image.split(',').filter(Boolean)
+          : [],
+      customer: visit.visit_attachments
+        ? visit.visit_attachments
+            .filter((att: any) => att.file_type === 'customer_image')
+            .map((att: any) => att.file_url)
+        : visit.customer_image
+          ? visit.customer_image.split(',').filter(Boolean)
+          : [],
+      cooler: visit.visit_attachments
+        ? visit.visit_attachments
+            .filter((att: any) => att.file_type === 'cooler_image')
+            .map((att: any) => att.file_url)
+        : visit.cooler_image
+          ? visit.cooler_image.split(',').filter(Boolean)
+          : [],
     },
-
     customer: visit.visit_customers
       ? {
           id: visit.visit_customers.id,
@@ -345,44 +397,8 @@ function serializeVisit(visit: any) {
         }
       : null,
 
-    route: visit.visit_routes,
-    zone: visit.visit_zones,
-
-    // orders:
-    //   visit.orders?.map((order: any) => ({
-    //     id: order.id,
-    //     order_number: order.order_number,
-    //     order_type: order.order_type,
-    //     order_date: order.order_date,
-    //     delivery_date: order.delivery_date,
-    //     status: order.status,
-    //     priority: order.priority,
-    //     payment_method: order.payment_method,
-    //     payment_terms: order.payment_terms,
-    //     subtotal: order.subtotal,
-    //     discount_amount: order.discount_amount,
-    //     tax_amount: order.tax_amount,
-    //     shipping_amount: order.shipping_amount,
-    //     total_amount: order.total_amount,
-    //     notes: order.notes,
-    //     shipping_address: order.shipping_address,
-    //     approval_status: order.approval_status,
-    //     is_active: order.is_active,
-    //     items:
-    //       order.order_items?.map((item: any) => ({
-    //         id: item.id,
-    //         product_id: item.product_id,
-    //         product_name: item.product_name,
-    //         unit: item.unit,
-    //         quantity: item.quantity,
-    //         unit_price: item.unit_price,
-    //         discount_amount: item.discount_amount,
-    //         tax_amount: item.tax_amount,
-    //         total_amount: item.total_amount,
-    //         notes: item.notes,
-    //       })) || [],
-    //   })) || [],
-
+    route: visit.visit_customers?.customer_routes || visit.visit_routes,
+    zone: visit.visit_customers?.customer_zones || visit.visit_zones,
     payments:
       visit.payments?.map((payment: any) => ({
         id: payment.id,
@@ -396,6 +412,24 @@ function serializeVisit(visit: any) {
         notes: payment.notes,
         is_active: payment.is_active,
         currency_id: payment.currency_id,
+      })) || [],
+
+    cooler_installations:
+      visit.cooler_installations?.map((cooler: any) => ({
+        id: cooler.id,
+        customer_id: cooler.customer_id,
+        code: cooler.code,
+        asset_master_id: cooler.asset_master_id,
+        brand: cooler.brand,
+        model: cooler.model,
+        serial_number: cooler.serial_number,
+        capacity: cooler.capacity,
+        install_date: cooler.install_date,
+        status: cooler.status,
+        approval_status: cooler.approval_status,
+        is_active: cooler.is_active,
+        createdate: cooler.createdate,
+        updatedate: cooler.updatedate,
       })) || [],
 
     cooler_inspections:
@@ -412,6 +446,7 @@ function serializeVisit(visit: any) {
         longitude: inspection.longitude,
         action_required: inspection.action_required,
         action_taken: inspection.action_taken,
+
         next_inspection_due: inspection.next_inspection_due,
         cooler: inspection.coolers
           ? {
@@ -517,6 +552,177 @@ const deleteOldImages = async (imageUrls: string | null): Promise<void> => {
   }
 };
 
+async function generateInvoiceNumberInTransaction(tx: any): Promise<string> {
+  const today = new Date().toISOString().split('T')[0].replace(/-/g, '');
+  const prefix = `INV-${today}`;
+
+  const existingCount = await tx.invoices.count({
+    where: {
+      invoice_number: {
+        startsWith: prefix,
+      },
+    },
+  });
+
+  const sequence = (existingCount + 1).toString().padStart(4, '0');
+  return `${prefix}-${sequence}`;
+}
+
+const validateAndGetLocationId = async (
+  tx: any,
+  locationId: number | null | undefined
+): Promise<number | null> => {
+  if (!locationId) {
+    return null;
+  }
+
+  try {
+    const locationExists = await tx.warehouses.findUnique({
+      where: { id: locationId },
+      select: { id: true },
+    });
+
+    if (!locationExists) {
+      console.warn(
+        `Location ID ${locationId} not found in warehouses, using null`
+      );
+      return null;
+    }
+
+    return locationId;
+  } catch (error) {
+    console.warn(`Error validating location ${locationId}, using null:`, error);
+    return null;
+  }
+};
+
+function getOrderedQuantities(item: any): {
+  orderedQty: number;
+  orderedPieces: number;
+  conversionFactor: number;
+  uom: string;
+} {
+  const conversionFactor = Number(item.conversion_factor) || 1;
+  const rawUnit = (item.uom || 'CASE').toUpperCase().trim();
+
+  const PCS_VARIANTS = [
+    'UNIT',
+    'PC',
+    'PIECE',
+    'PIECES',
+    'PSC',
+    'PEC',
+    'PCE',
+    'PICS',
+  ];
+  const CASE_VARIANTS = [
+    'CASE',
+    'CASES',
+    'CS',
+    'CTN',
+    'CARTON',
+    'BOX',
+    'BOXES',
+  ];
+
+  let normalizedUnit: string;
+  if (PCS_VARIANTS.includes(rawUnit)) {
+    normalizedUnit = 'UNIT';
+  } else if (CASE_VARIANTS.includes(rawUnit)) {
+    normalizedUnit = 'CASE';
+  } else {
+    console.warn(` Unknown unit "${rawUnit}" — defaulting to CASE`);
+    normalizedUnit = 'CASE';
+  }
+
+  const quantityInCases = Number(item.quantity) || 0;
+  const baseQuantityInPcs = Number(item.base_quantity) || 0;
+  const isPcsUnit = normalizedUnit === 'UNIT';
+
+  console.log(
+    `Unit normalize: "${rawUnit}" → "${normalizedUnit}" | ` +
+      `Cases: ${quantityInCases}, Pcs: ${baseQuantityInPcs}, CF: ${conversionFactor}`
+  );
+
+  if (isPcsUnit) {
+    return {
+      orderedQty: 0,
+      orderedPieces: baseQuantityInPcs,
+      conversionFactor,
+      uom: normalizedUnit,
+    };
+  } else {
+    return {
+      orderedQty: quantityInCases,
+      orderedPieces: quantityInCases * conversionFactor,
+      conversionFactor,
+      uom: normalizedUnit,
+    };
+  }
+}
+
+interface StockDeductionResult {
+  newQuantity: number;
+  newBaseQuantity: number;
+  totalAvailablePieces: number;
+  deductedPieces: number;
+}
+
+function calculateStockDeduction(
+  currentCases: number,
+  currentPcs: number,
+  piecesToDeduct: number,
+  conversionFactor: number,
+  unit?: string,
+  orderedCases?: number
+): StockDeductionResult {
+  const cf = conversionFactor || 1;
+  const unitUpper = (unit || 'CASE').toUpperCase();
+  const isPcsUnit = ['UNIT', 'PC', 'PIECE', 'PIECES'].includes(unitUpper);
+
+  const totalAvailablePieces = currentCases * cf + currentPcs;
+
+  if (isPcsUnit) {
+    if (piecesToDeduct > totalAvailablePieces) {
+      return {
+        newQuantity: -1,
+        newBaseQuantity: 0,
+        totalAvailablePieces,
+        deductedPieces: piecesToDeduct,
+      };
+    }
+
+    const remainingPieces = totalAvailablePieces - piecesToDeduct;
+    const newCases = Math.floor(remainingPieces / cf);
+    const newPcs = remainingPieces % cf;
+
+    return {
+      newQuantity: newCases,
+      newBaseQuantity: newPcs,
+      totalAvailablePieces,
+      deductedPieces: piecesToDeduct,
+    };
+  } else {
+    const casesToDeduct = orderedCases ?? Math.floor(piecesToDeduct / cf);
+
+    if (casesToDeduct > currentCases) {
+      return {
+        newQuantity: -1,
+        newBaseQuantity: currentPcs,
+        totalAvailablePieces,
+        deductedPieces: piecesToDeduct,
+      };
+    }
+
+    return {
+      newQuantity: currentCases - casesToDeduct,
+      newBaseQuantity: currentPcs,
+      totalAvailablePieces,
+      deductedPieces: piecesToDeduct,
+    };
+  }
+}
+
 export const visitsController = {
   async createVisits(req: Request, res: Response) {
     try {
@@ -592,16 +798,38 @@ export const visitsController = {
   async bulkUpsertVisits(req: Request, res: Response) {
     try {
       const inputData = req.body;
+      console.log('Received inputData:', JSON.stringify(inputData, null, 2));
       let dataArray: BulkVisitInput[] = [];
 
       if (typeof inputData.visits === 'string') {
         try {
-          dataArray = JSON.parse(inputData.visits);
+          const cleanVisitsData = inputData.visits.trim();
+          const parsed = JSON.parse(cleanVisitsData);
+          dataArray = Array.isArray(parsed) ? parsed : [parsed];
         } catch (e) {
           return res.status(400).json({
             success: false,
             message: 'Invalid visits JSON string',
             error: 'Please provide valid JSON in visits field',
+          });
+        }
+      } else if (typeof inputData.visit === 'string') {
+        try {
+          let rawVisit = inputData.visit.trim();
+          if (
+            rawVisit.startsWith('{') &&
+            !rawVisit.includes('"visit":') &&
+            rawVisit.includes('},"')
+          ) {
+            rawVisit = `{ "visit": ${rawVisit} }`;
+          }
+          const parsed = JSON.parse(rawVisit);
+          dataArray = Array.isArray(parsed) ? parsed : [parsed];
+        } catch (e) {
+          return res.status(400).json({
+            success: false,
+            message: 'Invalid visit JSON string',
+            error: e instanceof Error ? e.message : String(e),
           });
         }
       } else if (inputData.visits && Array.isArray(inputData.visits)) {
@@ -637,8 +865,10 @@ export const visitsController = {
             visit_id: item.visit_id,
           },
           orders: item.orders || [],
+          invoices: item.invoices || [],
           payments: item.payments || [],
           cooler_inspections: item.cooler_inspections || [],
+          cooler_installations: item.cooler_installations || [],
           survey: item.survey,
         }));
       } else if (Array.isArray(inputData)) {
@@ -648,8 +878,7 @@ export const visitsController = {
       } else {
         return res.status(400).json({
           success: false,
-          message:
-            'Invalid input format. Expected { visits: [...] }, { visit: [...] }, or [{ visit: {...} }]',
+          message: 'Invalid input format',
         });
       }
 
@@ -662,10 +891,7 @@ export const visitsController = {
 
       const organizedFiles = (req as any).organizedFiles || {};
 
-      console.log(`\n Starting bulk upsert for ${dataArray.length} visit(s)`);
-      console.log(
-        `📎 Files received: ${Object.keys(organizedFiles).length > 0 ? Object.keys(organizedFiles).join(', ') : 'None'}`
-      );
+      console.log(`\nStarting bulk upsert for ${dataArray.length} visit(s)`);
 
       const results = {
         created: [] as any[],
@@ -673,11 +899,30 @@ export const visitsController = {
         failed: [] as any[],
       };
 
+      dataArray = dataArray.map((item: any, idx: number) => {
+        if (typeof item === 'string') {
+          try {
+            return JSON.parse(item);
+          } catch (e) {
+            throw new Error(`Invalid JSON at visits[${idx}]`);
+          }
+        }
+        return item;
+      });
+
       for (let index = 0; index < dataArray.length; index++) {
         const data = dataArray[index];
 
         try {
-          const { visit, orders, payments, cooler_inspections, survey } = data;
+          const {
+            visit,
+            invoices,
+            orders,
+            payments,
+            cooler_inspections,
+            cooler_installations,
+            survey,
+          } = data;
 
           if (!visit) {
             results.failed.push({
@@ -699,6 +944,7 @@ export const visitsController = {
 
           const isUpdate = (visit.id ?? visit.visit_id ?? 0) > 0;
           const visitIdToUpdate = visit.id ?? visit.visit_id;
+
           console.log(
             `\nProcessing visit ${index + 1}/${dataArray.length} (Customer: ${visit.customer_id}${isUpdate ? `, Visit ID: ${visitIdToUpdate}` : ''})`
           );
@@ -709,10 +955,6 @@ export const visitsController = {
             organizedFiles[`visit_${index}_customer_images`] || [];
           const coolerImagesFiles =
             organizedFiles[`visit_${index}_cooler_images`] || [];
-
-          console.log(
-            ` Images: Self(${selfImagesFiles.length}) Customer(${customerImagesFiles.length}) Cooler(${coolerImagesFiles.length})`
-          );
 
           let selfImageUrls: string[] = [];
           let customerImageUrls: string[] = [];
@@ -728,7 +970,6 @@ export const visitsController = {
               );
               selfImageUrls = uploadedPath ? uploadedPath.split(',') : [];
               uploadedImagePaths.push(...selfImageUrls);
-              console.log(`Uploaded ${selfImagesFiles.length} self image(s)`);
             }
 
             if (customerImagesFiles.length > 0) {
@@ -739,9 +980,6 @@ export const visitsController = {
               );
               customerImageUrls = uploadedPath ? uploadedPath.split(',') : [];
               uploadedImagePaths.push(...customerImageUrls);
-              console.log(
-                `Uploaded ${customerImagesFiles.length} customer image(s)`
-              );
             }
 
             if (coolerImagesFiles.length > 0) {
@@ -752,12 +990,8 @@ export const visitsController = {
               );
               coolerImageUrls = uploadedPath ? uploadedPath.split(',') : [];
               uploadedImagePaths.push(...coolerImageUrls);
-              console.log(
-                `Uploaded ${coolerImagesFiles.length} cooler image(s)`
-              );
             }
           } catch (uploadError: any) {
-            console.error(`Image upload failed:`, uploadError.message);
             results.failed.push({
               visitIndex: index,
               data,
@@ -770,40 +1004,30 @@ export const visitsController = {
             customer_id: visit.customer_id,
             sales_person_id: visit.sales_person_id,
             ...(visit.route_id !== undefined &&
-              visit.route_id !== null && {
-                route_id: visit.route_id,
-              }),
+              visit.route_id !== null && { route_id: visit.route_id }),
             ...(visit.zones_id !== undefined &&
-              visit.zones_id !== null && {
-                zones_id: visit.zones_id,
-              }),
-            ...(visit.visit_date && {
-              visit_date: new Date(visit.visit_date),
-            }),
+              visit.zones_id !== null && { zones_id: visit.zones_id }),
+            ...(visit.visit_date && { visit_date: new Date(visit.visit_date) }),
             ...(visit.visit_time && { visit_time: visit.visit_time }),
             ...(visit.purpose && { purpose: visit.purpose }),
             ...(visit.status && { status: visit.status }),
-            ...(visit.start_time && {
-              start_time: new Date(visit.start_time),
-            }),
-            ...(visit.end_time && {
-              end_time: new Date(visit.end_time),
-            }),
+            ...(visit.start_time && { start_time: new Date(visit.start_time) }),
+            ...(visit.end_time && { end_time: new Date(visit.end_time) }),
             ...(visit.duration !== undefined && { duration: visit.duration }),
             ...(visit.start_latitude &&
-              visit.start_latitude.trim() !== '' && {
+              String(visit.start_latitude).trim() !== '' && {
                 start_latitude: parseFloat(visit.start_latitude),
               }),
             ...(visit.start_longitude &&
-              visit.start_longitude.trim() !== '' && {
+              String(visit.start_longitude).trim() !== '' && {
                 start_longitude: parseFloat(visit.start_longitude),
               }),
             ...(visit.end_latitude &&
-              visit.end_latitude.trim() !== '' && {
+              String(visit.end_latitude).trim() !== '' && {
                 end_latitude: parseFloat(visit.end_latitude),
               }),
             ...(visit.end_longitude &&
-              visit.end_longitude.trim() !== '' && {
+              String(visit.end_longitude).trim() !== '' && {
                 end_longitude: parseFloat(visit.end_longitude),
               }),
             ...(visit.check_in_time && {
@@ -816,7 +1040,7 @@ export const visitsController = {
               orders_created: visit.orders_created,
             }),
             ...(visit.amount_collected &&
-              visit.amount_collected.trim() !== '' && {
+              String(visit.amount_collected).trim() !== '' && {
                 amount_collected: parseFloat(visit.amount_collected),
               }),
             ...(visit.visit_notes && { visit_notes: visit.visit_notes }),
@@ -826,40 +1050,17 @@ export const visitsController = {
             ...(visit.next_visit_date && {
               next_visit_date: new Date(visit.next_visit_date),
             }),
-            ...(selfImageUrls.length > 0 && {
-              self_image: selfImageUrls.join(','),
-            }),
-            ...(customerImageUrls.length > 0 && {
-              customer_image: customerImageUrls.join(','),
-            }),
-            ...(coolerImageUrls.length > 0 && {
-              cooler_image: coolerImageUrls.join(','),
-            }),
             is_active: visit.is_active || 'Y',
           };
 
-          console.log(
-            ` Processing visit ${isUpdate ? 'update' : 'creation'} for customer ${visit.customer_id}`
-          );
-          console.log(` Payments to process: ${payments?.length || 0}`);
-          console.log(`Orders to process: ${orders?.length || 0}`);
-          console.log(
-            `Cooler inspections to process: ${cooler_inspections?.length || 0}`
-          );
-
-          let oldSelfImages: string | null = null;
-          let oldCustomerImages: string | null = null;
-          let oldCoolerImages: string | null = null;
+          let oldSelfImages: string[] = [];
+          let oldCustomerImages: string[] = [];
+          let oldCoolerImages: string[] = [];
 
           if (isUpdate) {
             const existingVisit = await prisma.visits.findUnique({
               where: { id: visitIdToUpdate },
-              select: {
-                id: true,
-                self_image: true,
-                customer_image: true,
-                cooler_image: true,
-              },
+              select: { id: true },
             });
 
             if (!existingVisit) {
@@ -871,18 +1072,32 @@ export const visitsController = {
               continue;
             }
 
-            oldSelfImages = existingVisit.self_image;
-            oldCustomerImages = existingVisit.customer_image;
-            oldCoolerImages = existingVisit.cooler_image;
+            const existingAttachments = await prisma.visit_attachments.findMany(
+              {
+                where: { visit_id: visitIdToUpdate },
+                select: { id: true, file_url: true, file_type: true },
+              }
+            );
+
+            oldSelfImages = existingAttachments
+              .filter(att => att.file_type === 'self_image' && att.file_url)
+              .map(att => att.file_url!);
+            oldCustomerImages = existingAttachments
+              .filter(att => att.file_type === 'customer_image' && att.file_url)
+              .map(att => att.file_url!);
+            oldCoolerImages = existingAttachments
+              .filter(att => att.file_type === 'cooler_image' && att.file_url)
+              .map(att => att.file_url!);
           }
 
           try {
             const result = await prisma.$transaction(
               async tx => {
-                const orderIds: number[] = [];
+                const invoiceIds: number[] = [];
                 const paymentIds: number[] = [];
                 const inspectionIds: number[] = [];
                 const surveyResponseIds: number[] = [];
+                const coolerInstallationIds: number[] = [];
 
                 let visitRecord;
 
@@ -908,312 +1123,1315 @@ export const visitsController = {
 
                 const visitId = visitRecord.id;
 
-                if (orders && orders.length > 0) {
-                  console.log(`Processing ${orders.length} order(s)...`);
+                if (isUpdate) {
+                  if (selfImageUrls.length > 0) {
+                    await tx.visit_attachments.deleteMany({
+                      where: { visit_id: visitId, file_type: 'self_image' },
+                    });
+                  }
+                  if (customerImageUrls.length > 0) {
+                    await tx.visit_attachments.deleteMany({
+                      where: { visit_id: visitId, file_type: 'customer_image' },
+                    });
+                  }
+                  if (coolerImageUrls.length > 0) {
+                    await tx.visit_attachments.deleteMany({
+                      where: { visit_id: visitId, file_type: 'cooler_image' },
+                    });
+                  }
+                }
 
-                  for (const orderData of orders) {
-                    const orderItems = orderData.items || [];
+                const attachmentData: any[] = [];
+                const userId = visit.createdby || (req as any).user?.id || 1;
 
-                    const processedOrderData = {
-                      order_number:
-                        orderData.order_number ||
-                        `ORD-${new Date().toISOString().split('T')[0].replace(/-/g, '')}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`,
-                      parent_id: visit.customer_id,
-                      salesperson_id: visit.sales_person_id,
-                      order_date: orderData.order_date
-                        ? new Date(orderData.order_date)
-                        : new Date(),
-                      delivery_date: orderData.delivery_date
-                        ? new Date(orderData.delivery_date)
+                selfImageUrls.forEach((url, idx) => {
+                  attachmentData.push({
+                    visit_id: visitId,
+                    file_name: `self_image_${idx + 1}`,
+                    file_url: url,
+                    file_type: 'self_image',
+                    description: 'Self image captured during visit',
+                    createdby: userId,
+                  });
+                });
+
+                customerImageUrls.forEach((url, idx) => {
+                  attachmentData.push({
+                    visit_id: visitId,
+                    file_name: `customer_image_${idx + 1}`,
+                    file_url: url,
+                    file_type: 'customer_image',
+                    description: 'Customer image captured during visit',
+                    createdby: userId,
+                  });
+                });
+
+                coolerImageUrls.forEach((url, idx) => {
+                  attachmentData.push({
+                    visit_id: visitId,
+                    file_name: `cooler_image_${idx + 1}`,
+                    file_url: url,
+                    file_type: 'cooler_image',
+                    description: 'Cooler image captured during visit',
+                    createdby: userId,
+                  });
+                });
+
+                if (attachmentData.length > 0) {
+                  await tx.visit_attachments.createMany({
+                    data: attachmentData,
+                  });
+                }
+
+                if (invoices && invoices.length > 0) {
+                  console.log(`Processing ${invoices.length} invoice(s)`);
+
+                  for (const invoiceData of invoices) {
+                    const invoiceItems = invoiceData.items || [];
+
+                    let invoiceNumber = invoiceData.invoice_number;
+                    if (!invoiceNumber) {
+                      invoiceNumber =
+                        await generateInvoiceNumberInTransaction(tx);
+                    }
+
+                    const processedInvoiceData = {
+                      customer_id: visit.customer_id,
+                      invoice_number: invoiceNumber,
+                      invoice_date: invoiceData.invoice_date
+                        ? new Date(invoiceData.invoice_date)
+                        : invoiceData.created_at
+                          ? new Date(invoiceData.created_at)
+                          : new Date(),
+                      due_date: invoiceData.due_date
+                        ? new Date(invoiceData.due_date)
                         : undefined,
-                      status: orderData.status || 'draft',
-                      priority: orderData.priority || 'medium',
-                      order_type: orderData.order_type || 'regular',
-                      payment_method: orderData.payment_method || 'credit',
-                      payment_terms: orderData.payment_terms || 'Net 30',
-                      subtotal: orderData.subtotal || 0,
-                      discount_amount: orderData.discount_amount || 0,
-                      tax_amount: orderData.tax_amount || 0,
-                      shipping_amount: orderData.shipping_amount || 0,
-                      total_amount: orderData.total_amount || 0,
-                      notes: orderData.notes,
-                      shipping_address: orderData.shipping_address,
-                      approval_status: orderData.approval_status || 'pending',
-                      approved_by: orderData.approved_by,
-                      approved_at: orderData.approved_at
-                        ? new Date(orderData.approved_at)
-                        : undefined,
-                      is_active: orderData.is_active || 'Y',
+                      status: invoiceData.status || 'draft',
+                      salesperson_id: invoiceData.salesperson_id || null,
+                      payment_method: invoiceData.payment_method || 'credit',
+                      subtotal: invoiceData.subtotal || 0,
+                      discount_amount:
+                        invoiceData.discount_amount ??
+                        invoiceData.total_discount ??
+                        0,
+                      tax_amount: invoiceData.tax_amount || 0,
+                      shipping_amount: invoiceData.shipping_amount || 0,
+                      total_amount: invoiceData.total_amount || 0,
+                      amount_paid: invoiceData.amount_paid || 0,
+                      balance_due: invoiceData.balance_due,
+                      notes: invoiceData.notes,
+                      billing_address: invoiceData.billing_address,
+                      is_active: invoiceData.is_active || 'Y',
+                      currency_id: invoiceData.currency_id,
+                      ...(invoiceData.slip_type && {
+                        slip_type: invoiceData.slip_type,
+                      }),
+                      ...(invoiceData.total_discount !== undefined && {
+                        total_discount: invoiceData.total_discount,
+                      }),
+                      ...(invoiceData.total_quantity !== undefined && {
+                        total_quantity: invoiceData.total_quantity,
+                      }),
+                      ...(invoiceData.total_volume !== undefined && {
+                        total_volume: invoiceData.total_volume,
+                      }),
+                      ...(invoiceData.total_weight !== undefined && {
+                        total_weight: invoiceData.total_weight,
+                      }),
+                      ...(invoiceData.item_count !== undefined && {
+                        item_count: invoiceData.item_count,
+                      }),
+                      ...(invoiceData.is_synced !== undefined && {
+                        is_synced: !!invoiceData.is_synced,
+                      }),
                     };
 
-                    let createdOrder: any = undefined;
+                    let createdInvoice: any;
 
-                    if (orderData.order_id || (orderData as any).id) {
-                      const orderIdToUpdate =
-                        (orderData as any).id || orderData.order_id;
-                      createdOrder = await tx.orders.update({
-                        where: { id: orderIdToUpdate },
+                    if (invoiceData.invoice_id || (invoiceData as any).id) {
+                      const invoiceIdToUpdate =
+                        (invoiceData as any).id || invoiceData.invoice_id;
+                      createdInvoice = await tx.invoices.update({
+                        where: { id: invoiceIdToUpdate },
                         data: {
-                          ...processedOrderData,
+                          ...processedInvoiceData,
                           updatedate: new Date(),
                           updatedby:
                             (req as any).user?.id || visit.createdby || 1,
                         },
                       });
-
-                      orderIds.push(createdOrder.id);
-
-                      if (orderItems.length > 0) {
-                        for (const item of orderItems) {
-                          const itemData = {
-                            product_id: item.product_id,
-                            product_name: item.product_name,
-                            unit: item.unit,
-                            quantity: item.quantity,
-                            unit_price: item.unit_price,
-                            discount_amount: item.discount_amount || 0,
-                            tax_amount: item.tax_amount || 0,
-                            total_amount: item.total_amount,
-                            notes: item.notes,
-                          };
-
-                          if (item.item_id || (item as any).id) {
-                            const itemIdToUpdate =
-                              (item as any).id || item.item_id;
-
-                            console.log(
-                              `Attempting to update order item ${itemIdToUpdate} for order ${createdOrder.id}`
-                            );
-
-                            // Check if item exists
-                            const existingItem = await tx.order_items.findFirst(
-                              {
-                                where: { id: itemIdToUpdate },
-                              }
-                            );
-
-                            console.log(`Order item exists: ${!!existingItem}`);
-                            if (existingItem) {
-                              console.log(`Item details:`, existingItem);
-                            }
-
-                            await tx.order_items.update({
-                              where: { id: itemIdToUpdate },
-                              data: itemData,
-                            });
-                          } else {
-                            await tx.order_items.create({
-                              data: {
-                                ...itemData,
-                                parent_id: createdOrder.id,
-                              },
-                            });
-                          }
-                        }
-                      }
                     } else {
-                      createdOrder = await tx.orders.create({
+                      createdInvoice = await tx.invoices.create({
                         data: {
-                          ...processedOrderData,
+                          ...processedInvoiceData,
                           createdate: new Date(),
                           createdby:
-                            visit.createdby || (req as any).user?.id || 1,
+                            invoiceData.createdby ||
+                            visit.createdby ||
+                            (req as any).user?.id ||
+                            1,
                           log_inst: 1,
                         },
                       });
+                    }
 
-                      orderIds.push(createdOrder.id);
+                    invoiceIds.push(createdInvoice.id);
 
-                      if (orderItems.length > 0) {
-                        await tx.order_items.createMany({
-                          data: orderItems.map(item => ({
-                            parent_id: createdOrder.id,
-                            product_id: item.product_id,
-                            product_name: item.product_name,
-                            unit: item.unit,
-                            quantity: item.quantity,
-                            unit_price: item.unit_price,
-                            discount_amount: item.discount_amount || 0,
-                            tax_amount: item.tax_amount || 0,
-                            total_amount: item.total_amount,
-                            notes: item.notes,
-                          })),
+                    if (invoiceItems.length > 0) {
+                      const referenceType = 'INVOICE';
+                      const referenceId = createdInvoice.id;
+                      const referenceLabel = `invoice ${createdInvoice.invoice_number}`;
+
+                      for (const item of invoiceItems) {
+                        const product = await tx.products.findUnique({
+                          where: { id: Number(item.product_id) },
+                          include: { product_unit_of_measurement: true },
                         });
+
+                        if (!product) {
+                          throw new Error(
+                            `Product ${item.product_id} not found`
+                          );
+                        }
+
+                        const trackingType =
+                          (product.tracking_type as string)?.toUpperCase() ||
+                          'NONE';
+
+                        const {
+                          orderedQty,
+                          orderedPieces,
+                          conversionFactor,
+                          uom: itemUnit,
+                        } = getOrderedQuantities(item);
+
+                        const isUnitPcs = itemUnit === 'UNIT';
+
+                        console.log(
+                          `Processing ${trackingType} - Product: ${product.name}, ` +
+                            `Unit: ${itemUnit}, ` +
+                            `Ordered Cases: ${orderedQty}, ` +
+                            `Ordered Pcs: ${orderedPieces}, ` +
+                            `ConversionFactor: ${conversionFactor}`
+                        );
+
+                        if (trackingType === 'BATCH') {
+                          const hasBatchNumber = !!(item as any).batch_number;
+                          const hasProductBatches =
+                            (item as any).product_batches &&
+                            Array.isArray((item as any).product_batches);
+
+                          let batchDeductions: Array<{
+                            batch_lot_id: number;
+                            pieces: number;
+                            uomQty: number;
+                          }> = [];
+
+                          if (hasBatchNumber) {
+                            const batchLot = await tx.batch_lots.findFirst({
+                              where: {
+                                batch_number: (item as any).batch_number,
+                                productsId: product.id,
+                              },
+                            });
+
+                            if (!batchLot) {
+                              throw new Error(
+                                `Batch "${(item as any).batch_number}" not found for product "${product.name}"`
+                              );
+                            }
+
+                            batchDeductions = [
+                              {
+                                batch_lot_id: batchLot.id,
+                                pieces: orderedPieces,
+                                uomQty: isUnitPcs ? orderedPieces : orderedQty,
+                              },
+                            ];
+                          } else if (hasProductBatches) {
+                            const batchData =
+                              (item as any).product_batches ||
+                              (item as any).batches;
+                            batchDeductions = batchData.map((b: any) => {
+                              const bUomQty = parseInt(b.quantity, 10);
+                              const bPieces = b.base_quantity
+                                ? parseInt(b.base_quantity, 10)
+                                : bUomQty * conversionFactor;
+                              return {
+                                batch_lot_id: b.batch_lot_id,
+                                pieces: bPieces,
+                                uomQty: bUomQty,
+                              };
+                            });
+                          } else {
+                            throw new Error(
+                              `No batch information for BATCH-tracked product "${product.name}"`
+                            );
+                          }
+
+                          let totalPiecesDeducted = 0;
+                          let totalUomDeducted = 0;
+
+                          for (const batchOrder of batchDeductions) {
+                            const piecesToDeduct = batchOrder.pieces;
+                            totalPiecesDeducted += piecesToDeduct;
+                            totalUomDeducted += batchOrder.uomQty;
+
+                            const batchLot = await tx.batch_lots.findUnique({
+                              where: { id: batchOrder.batch_lot_id },
+                            });
+
+                            if (!batchLot) {
+                              throw new Error(
+                                `Batch lot ${batchOrder.batch_lot_id} not found`
+                              );
+                            }
+
+                            const vanInventory =
+                              await tx.van_inventory.findFirst({
+                                where: {
+                                  user_id: visit.sales_person_id,
+                                  status: 'A',
+                                  is_active: 'Y',
+                                  van_inventory_items_inventory: {
+                                    some: {
+                                      product_id: product.id,
+                                      batch_lot_id: batchOrder.batch_lot_id,
+                                    },
+                                  },
+                                },
+                                include: {
+                                  van_inventory_items_inventory: true,
+                                },
+                                orderBy: { document_date: 'desc' },
+                              });
+
+                            const vanItem =
+                              await tx.van_inventory_items.findFirst({
+                                where: {
+                                  product_id: product.id,
+                                  batch_lot_id: batchOrder.batch_lot_id,
+                                  parent_id: vanInventory?.id,
+                                },
+                              });
+
+                            if (!vanItem) {
+                              throw new Error(
+                                `Batch ${batchOrder.batch_lot_id} not found in van for product "${product.name}"`
+                              );
+                            }
+
+                            const vanDeduction = calculateStockDeduction(
+                              vanItem.quantity || 0,
+                              vanItem.base_quantity || 0,
+                              piecesToDeduct,
+                              conversionFactor,
+                              itemUnit,
+                              orderedQty
+                            );
+
+                            if (vanDeduction.newQuantity < 0) {
+                              const availableMsg = isUnitPcs
+                                ? `${vanDeduction.totalAvailablePieces} pcs`
+                                : `${vanItem.quantity} cases`;
+                              const requestedMsg = isUnitPcs
+                                ? `${piecesToDeduct} pcs`
+                                : `${orderedQty} cases`;
+                              throw new Error(
+                                `Insufficient van quantity for batch "${batchLot.batch_number}". ` +
+                                  `Available: ${availableMsg}, Requested: ${requestedMsg}`
+                              );
+                            }
+
+                            console.log(
+                              `BATCH VAN [${itemUnit}]: ` +
+                                `${vanItem.quantity}cs + ${vanItem.base_quantity || 0}pc → ` +
+                                `${vanDeduction.newQuantity}cs + ${vanDeduction.newBaseQuantity}pc`
+                            );
+
+                            // if (
+                            //   vanDeduction.newQuantity > 0 ||
+                            //   vanDeduction.newBaseQuantity > 0
+                            // ) {
+                            //   await tx.van_inventory_items.update({
+                            //     where: { id: vanItem.id },
+                            //     data: {
+                            //       quantity: vanDeduction.newQuantity,
+                            //       base_quantity: vanDeduction.newBaseQuantity,
+                            //     },
+                            //   });
+                            // } else {
+                            //   await tx.van_inventory_items.delete({
+                            //     where: { id: vanItem.id },
+                            //   });
+                            // }
+
+                            const inventoryStock =
+                              await tx.inventory_stock.findFirst({
+                                where: {
+                                  product_id: product.id,
+                                  batch_id: batchOrder.batch_lot_id,
+                                },
+                              });
+
+                            if (inventoryStock) {
+                              const stockDeduction = calculateStockDeduction(
+                                inventoryStock.current_stock || 0,
+                                inventoryStock.base_quantity || 0,
+                                piecesToDeduct,
+                                conversionFactor,
+                                itemUnit,
+                                orderedQty
+                              );
+
+                              if (stockDeduction.newQuantity < 0) {
+                                const availableMsg = isUnitPcs
+                                  ? `${stockDeduction.totalAvailablePieces} pcs`
+                                  : `${inventoryStock.current_stock} cases`;
+                                const requestedMsg = isUnitPcs
+                                  ? `${piecesToDeduct} pcs`
+                                  : `${orderedQty} cases`;
+                                throw new Error(
+                                  `Insufficient inventory stock for batch "${batchLot.batch_number}". ` +
+                                    `Available: ${availableMsg}, Requested: ${requestedMsg}`
+                                );
+                              }
+
+                              let newAvailableQty: number;
+                              if (isUnitPcs) {
+                                const availableTotalPieces =
+                                  (inventoryStock.available_stock || 0) *
+                                    conversionFactor +
+                                  (inventoryStock.base_quantity || 0);
+                                const newAvailablePieces = Math.max(
+                                  0,
+                                  availableTotalPieces - piecesToDeduct
+                                );
+                                newAvailableQty = Math.floor(
+                                  newAvailablePieces / conversionFactor
+                                );
+                              } else {
+                                newAvailableQty = Math.max(
+                                  0,
+                                  (inventoryStock.available_stock || 0) -
+                                    orderedQty
+                                );
+                              }
+
+                              await tx.inventory_stock.update({
+                                where: { id: inventoryStock.id },
+                                data: {
+                                  current_stock: stockDeduction.newQuantity,
+                                  available_stock: newAvailableQty,
+                                  base_quantity: stockDeduction.newBaseQuantity,
+                                  updatedate: new Date(),
+                                  updatedby:
+                                    (req as any).user?.id ||
+                                    visit.createdby ||
+                                    1,
+                                },
+                              });
+
+                              console.log(
+                                `BATCH STOCK [${itemUnit}]: ` +
+                                  `${inventoryStock.current_stock}cs + ${inventoryStock.base_quantity || 0}pc → ` +
+                                  `${stockDeduction.newQuantity}cs + ${stockDeduction.newBaseQuantity}pc`
+                              );
+                            } else {
+                              throw new Error(
+                                `Inventory stock not found for product ${product.name} batch ${batchOrder.batch_lot_id}`
+                              );
+                            }
+
+                            const validatedFromLocationId =
+                              await validateAndGetLocationId(
+                                tx,
+                                vanInventory?.location_id
+                              );
+
+                            await tx.stock_movements.create({
+                              data: {
+                                product_id: product.id,
+                                batch_id: batchOrder.batch_lot_id,
+                                serial_id: null,
+                                movement_type: 'SALE',
+                                reference_type: referenceType,
+                                reference_id: referenceId,
+                                from_location_id: validatedFromLocationId,
+                                to_location_id: null,
+                                quantity: piecesToDeduct,
+                                movement_date: new Date(),
+                                remarks: isUnitPcs
+                                  ? `Sold via ${referenceLabel} - Batch: ${batchLot.batch_number} - ${piecesToDeduct} PCS`
+                                  : `Sold via ${referenceLabel} - Batch: ${batchLot.batch_number} - ${batchOrder.uomQty} CASE(S) (${piecesToDeduct} pieces)`,
+                                is_active: 'Y',
+                                createdate: new Date(),
+                                createdby:
+                                  (req as any).user?.id || visit.createdby || 1,
+                                log_inst: 1,
+                                van_inventory_id: vanInventory?.id || null,
+                              },
+                            });
+                          }
+
+                          if (totalPiecesDeducted !== orderedPieces) {
+                            throw new Error(
+                              `Total batch pieces (${totalPiecesDeducted}) does not match ordered pieces (${orderedPieces})`
+                            );
+                          }
+
+                          await tx.invoice_items.create({
+                            data: {
+                              parent_id: createdInvoice.id,
+                              product_id: product.id,
+                              product_name: item.product_name || product.name,
+                              unit: item.unit || 'CASE',
+                              quantity: isUnitPcs ? 0 : totalUomDeducted,
+                              unit_price: Number(item.unit_price) || 0,
+                              discount_amount:
+                                Number(item.discount_amount) || 0,
+                              tax_amount: Number(item.tax_amount) || 0,
+                              total_amount: isUnitPcs
+                                ? totalPiecesDeducted *
+                                  (Number(item.unit_price) || 0)
+                                : totalUomDeducted *
+                                  (Number(item.unit_price) || 0),
+                              notes: hasBatchNumber
+                                ? `Batch: ${(item as any).batch_number}`
+                                : `Batches: ${batchDeductions.map(b => b.batch_lot_id).join(', ')}`,
+                              ...(item.tax_code && { tax_code: item.tax_code }),
+                              ...(item.tax_rate !== undefined && {
+                                tax_rate: item.tax_rate,
+                              }),
+                              conversion_factor: conversionFactor,
+                              base_quantity: isUnitPcs
+                                ? totalPiecesDeducted
+                                : 0,
+                              ...(item.expiry_date && {
+                                expiry_date: new Date(item.expiry_date),
+                              }),
+                            },
+                          });
+                        } else if (trackingType === 'SERIAL') {
+                          const serialData =
+                            (item as any).product_serials ||
+                            (item as any).serials;
+
+                          if (
+                            !serialData ||
+                            !Array.isArray(serialData) ||
+                            serialData.length === 0
+                          ) {
+                            throw new Error(
+                              `Serial numbers required for "${product.name}"`
+                            );
+                          }
+
+                          for (const serialInput of serialData) {
+                            const serialNumber =
+                              typeof serialInput === 'string'
+                                ? serialInput
+                                : serialInput.serial_number;
+
+                            if (!serialNumber) {
+                              throw new Error('Serial number is required');
+                            }
+
+                            const serial = await tx.serial_numbers.findUnique({
+                              where: { serial_number: serialNumber },
+                            });
+
+                            if (!serial) {
+                              throw new Error(
+                                `Serial number ${serialNumber} not found`
+                              );
+                            }
+
+                            if (serial.product_id !== product.id) {
+                              throw new Error(
+                                `Serial ${serialNumber} belongs to product_id=${serial.product_id}, not product_id=${product.id}`
+                              );
+                            }
+
+                            if (serial.status !== 'in_van') {
+                              throw new Error(
+                                `Serial ${serialNumber} status is "${serial.status}", expected "in_van"`
+                              );
+                            }
+
+                            const vanItemWithSerial =
+                              await tx.van_inventory_items.findFirst({
+                                where: {
+                                  product_id: product.id,
+                                  serial_id: serial.id,
+                                  van_inventory_items_inventory: {
+                                    user_id: visit.sales_person_id,
+                                    is_active: 'Y',
+                                    status: 'A',
+                                  },
+                                },
+                                include: {
+                                  van_inventory_items_inventory: true,
+                                },
+                              });
+
+                            if (!vanItemWithSerial) {
+                              throw new Error(
+                                `Serial ${serialNumber} not found in van inventory for sales person ${visit.sales_person_id}`
+                              );
+                            }
+
+                            const vanInventory =
+                              vanItemWithSerial.van_inventory_items_inventory;
+
+                            console.log(
+                              `Van found for serial ${serialNumber}: van_id=${vanInventory.id}, van_item_id=${vanItemWithSerial.id}`
+                            );
+
+                            // if ((vanItemWithSerial.quantity || 0) > 1) {
+                            //   await tx.van_inventory_items.update({
+                            //     where: { id: vanItemWithSerial.id },
+                            //     data: {
+                            //       quantity:
+                            //         (vanItemWithSerial.quantity || 0) - 1,
+                            //     },
+                            //   });
+                            //   console.log(
+                            //     `VAN SERIAL [${serialNumber}]: qty ${vanItemWithSerial.quantity} → ${(vanItemWithSerial.quantity || 0) - 1}`
+                            //   );
+                            // } else {
+                            //   await tx.van_inventory_items.delete({
+                            //     where: { id: vanItemWithSerial.id },
+                            //   });
+                            //   console.log(
+                            //     `VAN SERIAL [${serialNumber}]: van_inventory_items row deleted (id=${vanItemWithSerial.id})`
+                            //   );
+                            // }
+
+                            // await tx.serial_numbers.update({
+                            //   where: { id: serial.id },
+                            //   data: {
+                            //     status: 'sold',
+                            //     customer_id: visit.customer_id,
+                            //     sold_date: new Date(),
+                            //     updatedate: new Date(),
+                            //     updatedby:
+                            //       (req as any).user?.id || visit.createdby || 1,
+                            //   },
+                            // });
+
+                            console.log(
+                              ` Serial ${serialNumber} marked as sold to customer ${visit.customer_id}`
+                            );
+
+                            let inventoryStock =
+                              await tx.inventory_stock.findFirst({
+                                where: {
+                                  product_id: product.id,
+                                  serial_number_id: serial.id,
+                                },
+                              });
+
+                            if (!inventoryStock) {
+                              inventoryStock =
+                                await tx.inventory_stock.findFirst({
+                                  where: {
+                                    product_id: product.id,
+                                    serial_number_id: null,
+                                    batch_id: null,
+                                    ...(vanInventory?.location_id && {
+                                      location_id: vanInventory.location_id,
+                                    }),
+                                  },
+                                });
+                            }
+
+                            if (!inventoryStock) {
+                              console.warn(
+                                `Inventory stock not found for serial ${serialNumber}`
+                              );
+                            } else {
+                              const newCurrent = Math.max(
+                                0,
+                                (inventoryStock.current_stock || 0) - 1
+                              );
+                              const newAvailable = Math.max(
+                                0,
+                                (inventoryStock.available_stock || 0) - 1
+                              );
+
+                              console.log(
+                                `STOCK SERIAL [${serialNumber}]: current ${inventoryStock.current_stock} → ${newCurrent}, available ${inventoryStock.available_stock} → ${newAvailable}`
+                              );
+
+                              await tx.inventory_stock.update({
+                                where: { id: inventoryStock.id },
+                                data: {
+                                  current_stock: newCurrent,
+                                  available_stock: newAvailable,
+                                  updatedate: new Date(),
+                                  updatedby:
+                                    (req as any).user?.id ||
+                                    visit.createdby ||
+                                    1,
+                                },
+                              });
+                            }
+
+                            const validatedFromLocationId =
+                              await validateAndGetLocationId(
+                                tx,
+                                vanInventory?.location_id
+                              );
+
+                            await tx.stock_movements.create({
+                              data: {
+                                product_id: product.id,
+                                batch_id: null,
+                                serial_id: serial.id,
+                                movement_type: 'SALE',
+                                reference_type: referenceType,
+                                reference_id: referenceId,
+                                from_location_id: validatedFromLocationId,
+                                to_location_id: null,
+                                quantity: 1,
+                                movement_date: new Date(),
+                                remarks: `Sold via ${referenceLabel} - Serial ${serialNumber}`,
+                                is_active: 'Y',
+                                createdate: new Date(),
+                                createdby:
+                                  (req as any).user?.id || visit.createdby || 1,
+                                log_inst: 1,
+                                van_inventory_id: vanInventory.id,
+                              },
+                            });
+
+                            console.log(
+                              `Stock movement created for serial ${serialNumber}`
+                            );
+                          }
+
+                          await tx.invoice_items.create({
+                            data: {
+                              parent_id: createdInvoice.id,
+                              product_id: product.id,
+                              product_name: item.product_name || product.name,
+                              unit: item.unit || 'pcs',
+                              quantity: serialData.length,
+                              unit_price: Number(item.unit_price) || 0,
+                              discount_amount:
+                                Number(item.discount_amount) || 0,
+                              tax_amount: Number(item.tax_amount) || 0,
+                              total_amount:
+                                serialData.length *
+                                (Number(item.unit_price) || 0),
+                              notes: `Serials: ${serialData
+                                .map((s: any) =>
+                                  typeof s === 'string' ? s : s.serial_number
+                                )
+                                .join(', ')}`,
+                              ...(item.tax_code && { tax_code: item.tax_code }),
+                              ...(item.tax_rate !== undefined && {
+                                tax_rate: item.tax_rate,
+                              }),
+                              conversion_factor: 1,
+                              base_quantity: serialData.length,
+                              ...(item.expiry_date && {
+                                expiry_date: new Date(item.expiry_date),
+                              }),
+                            },
+                          });
+                        } else {
+                          const vanInventory = await tx.van_inventory.findFirst(
+                            {
+                              where: {
+                                user_id: visit.sales_person_id,
+                                status: 'A',
+                                is_active: 'Y',
+                                van_inventory_items_inventory: {
+                                  some: {
+                                    product_id: product.id,
+                                    batch_lot_id: null,
+                                    serial_id: null,
+                                  },
+                                },
+                              },
+                              include: { van_inventory_items_inventory: true },
+                              orderBy: { document_date: 'desc' },
+                            }
+                          );
+
+                          const vanItem =
+                            await tx.van_inventory_items.findFirst({
+                              where: {
+                                product_id: product.id,
+                                parent_id: vanInventory?.id,
+                                batch_lot_id: null,
+                                serial_id: null,
+                              },
+                            });
+
+                          if (!vanItem) {
+                            throw new Error(
+                              `Product "${product.name}" not found in van inventory`
+                            );
+                          }
+
+                          const vanDeduction = calculateStockDeduction(
+                            vanItem.quantity || 0,
+                            vanItem.base_quantity || 0,
+                            orderedPieces,
+                            conversionFactor,
+                            itemUnit,
+                            orderedQty
+                          );
+
+                          if (vanDeduction.newQuantity < 0) {
+                            const availableMsg = isUnitPcs
+                              ? `${vanDeduction.totalAvailablePieces} pcs`
+                              : `${vanItem.quantity} cases`;
+                            const requestedMsg = isUnitPcs
+                              ? `${orderedPieces} pcs`
+                              : `${orderedQty} cases`;
+                            throw new Error(
+                              `Insufficient van quantity for "${product.name}". ` +
+                                `Available: ${availableMsg}, Requested: ${requestedMsg}`
+                            );
+                          }
+
+                          console.log(
+                            `NONE VAN [${itemUnit}]: ${vanItem.quantity}cs + ${vanItem.base_quantity || 0}pc → ` +
+                              `${vanDeduction.newQuantity}cs + ${vanDeduction.newBaseQuantity}pc`
+                          );
+
+                          // if (
+                          //   vanDeduction.newQuantity > 0 ||
+                          //   vanDeduction.newBaseQuantity > 0
+                          // ) {
+                          //   await tx.van_inventory_items.update({
+                          //     where: { id: vanItem.id },
+                          //     data: {
+                          //       quantity: vanDeduction.newQuantity,
+                          //       base_quantity: vanDeduction.newBaseQuantity,
+                          //     },
+                          //   });
+                          // } else {
+                          //   await tx.van_inventory_items.delete({
+                          //     where: { id: vanItem.id },
+                          //   });
+                          // }
+
+                          const inventoryStock =
+                            await tx.inventory_stock.findFirst({
+                              where: {
+                                product_id: product.id,
+                                batch_id: null,
+                                serial_number_id: null,
+                                ...(vanInventory?.location_id && {
+                                  location_id: vanInventory.location_id,
+                                }),
+                              },
+                            });
+
+                          if (inventoryStock) {
+                            const stockDeduction = calculateStockDeduction(
+                              inventoryStock.current_stock || 0,
+                              inventoryStock.base_quantity || 0,
+                              orderedPieces,
+                              conversionFactor,
+                              itemUnit,
+                              orderedQty
+                            );
+
+                            if (stockDeduction.newQuantity < 0) {
+                              const availableMsg = isUnitPcs
+                                ? `${stockDeduction.totalAvailablePieces} pcs`
+                                : `${inventoryStock.current_stock} cases`;
+                              const requestedMsg = isUnitPcs
+                                ? `${orderedPieces} pcs`
+                                : `${orderedQty} cases`;
+                              throw new Error(
+                                `Insufficient inventory stock for "${product.name}". ` +
+                                  `Available: ${availableMsg}, Requested: ${requestedMsg}`
+                              );
+                            }
+
+                            let newAvailableQty: number;
+                            if (isUnitPcs) {
+                              const availableTotalPieces =
+                                (inventoryStock.available_stock || 0) *
+                                  conversionFactor +
+                                (inventoryStock.base_quantity || 0);
+                              const newAvailablePieces = Math.max(
+                                0,
+                                availableTotalPieces - orderedPieces
+                              );
+                              newAvailableQty = Math.floor(
+                                newAvailablePieces / conversionFactor
+                              );
+                            } else {
+                              newAvailableQty = Math.max(
+                                0,
+                                (inventoryStock.available_stock || 0) -
+                                  orderedQty
+                              );
+                            }
+
+                            await tx.inventory_stock.update({
+                              where: { id: inventoryStock.id },
+                              data: {
+                                current_stock: stockDeduction.newQuantity,
+                                available_stock: newAvailableQty,
+                                base_quantity: stockDeduction.newBaseQuantity,
+                                updatedate: new Date(),
+                                updatedby:
+                                  (req as any).user?.id || visit.createdby || 1,
+                              },
+                            });
+
+                            console.log(
+                              `NONE STOCK [${itemUnit}]: ${inventoryStock.current_stock}cs + ` +
+                                `${inventoryStock.base_quantity || 0}pc → ` +
+                                `${stockDeduction.newQuantity}cs + ${stockDeduction.newBaseQuantity}pc`
+                            );
+                          } else {
+                            throw new Error(
+                              `Inventory stock not found for product ${product.name}`
+                            );
+                          }
+
+                          const validatedFromLocationId =
+                            await validateAndGetLocationId(
+                              tx,
+                              vanInventory?.location_id
+                            );
+
+                          await tx.stock_movements.create({
+                            data: {
+                              product_id: product.id,
+                              batch_id: null,
+                              serial_id: null,
+                              movement_type: 'SALE',
+                              reference_type: referenceType,
+                              reference_id: referenceId,
+                              from_location_id: validatedFromLocationId,
+                              to_location_id: null,
+                              quantity: orderedPieces,
+                              movement_date: new Date(),
+                              remarks: isUnitPcs
+                                ? `Sold via ${referenceLabel} - ${orderedPieces} PCS`
+                                : `Sold via ${referenceLabel} - ${orderedQty} CASE(S) (${orderedPieces} pieces)`,
+                              is_active: 'Y',
+                              createdate: new Date(),
+                              createdby:
+                                (req as any).user?.id || visit.createdby || 1,
+                              log_inst: 1,
+                              van_inventory_id: vanInventory?.id || null,
+                            },
+                          });
+
+                          await tx.invoice_items.create({
+                            data: {
+                              parent_id: createdInvoice.id,
+                              product_id: product.id,
+                              product_name: item.product_name || product.name,
+                              unit: item.unit || 'CASE',
+                              quantity: isUnitPcs ? 0 : orderedQty,
+                              unit_price: Number(item.unit_price) || 0,
+                              discount_amount:
+                                Number(item.discount_amount) || 0,
+                              tax_amount: Number(item.tax_amount) || 0,
+                              total_amount: isUnitPcs
+                                ? orderedPieces * (Number(item.unit_price) || 0)
+                                : orderedQty * (Number(item.unit_price) || 0),
+                              notes: item.notes || null,
+                              ...(item.tax_code && { tax_code: item.tax_code }),
+                              ...(item.tax_rate !== undefined && {
+                                tax_rate: item.tax_rate,
+                              }),
+                              conversion_factor: conversionFactor,
+                              base_quantity: isUnitPcs ? orderedPieces : 0,
+                              ...(item.expiry_date && {
+                                expiry_date: new Date(item.expiry_date),
+                              }),
+                            },
+                          });
+                        }
                       }
+
+                      const subtotal =
+                        (
+                          await tx.invoice_items.aggregate({
+                            where: { parent_id: createdInvoice.id },
+                            _sum: { total_amount: true },
+                          })
+                        )._sum.total_amount || 0;
+
+                      await tx.invoices.update({
+                        where: { id: createdInvoice.id },
+                        data: {
+                          subtotal: subtotal,
+                          total_amount: subtotal,
+                          updatedate: new Date(),
+                          updatedby:
+                            (req as any).user?.id || visit.createdby || 1,
+                        },
+                      });
                     }
 
-                    if (createdOrder) {
-                      console.log(
-                        `Order ${createdOrder.order_number} processed`
-                      );
-                    }
+                    console.log(
+                      `Invoice ${createdInvoice.invoice_number} processed`
+                    );
                   }
                 }
 
                 if (payments && payments.length > 0) {
-                  console.log(` Processing ${payments.length} payment(s)...`);
-
-                  for (const payment of payments) {
-                    try {
-                      let paymentNumber = payment.payment_number;
-                      if (!paymentNumber) {
-                        paymentNumber =
-                          await generatePaymentNumberInTransaction(tx);
+                  for (const paymentData of payments) {
+                    let paymentNumber = paymentData.payment_number;
+                    if (!paymentNumber) {
+                      paymentNumber =
+                        await generatePaymentNumberInTransaction(tx);
+                    } else {
+                      const existingPayment = await tx.payments.findFirst({
+                        where: { payment_number: paymentNumber },
+                      });
+                      if (existingPayment) {
+                        throw new Error(
+                          `Payment number ${paymentNumber} already exists`
+                        );
                       }
-
-                      const processedPaymentData = {
-                        payment_number: paymentNumber,
-                        customer_id: payment.customer_id || visit.customer_id,
-                        payment_date: payment.payment_date
-                          ? new Date(payment.payment_date)
-                          : new Date(),
-                        collected_by: payment.collected_by,
-                        method: payment.method,
-                        reference_number: payment.reference_number,
-                        total_amount: payment.total_amount,
-                        notes: payment.notes,
-                        is_active: payment.is_active || 'Y',
-                        currency_id: payment.currency_id,
-                      };
-
-                      let paymentRecord;
-
-                      if (payment.payment_id || (payment as any).id) {
-                        const paymentIdToUpdate =
-                          (payment as any).id || payment.payment_id;
-                        paymentRecord = await tx.payments.update({
-                          where: { id: paymentIdToUpdate },
-                          data: {
-                            ...processedPaymentData,
-                            updatedate: new Date(),
-                            updatedby:
-                              (req as any).user?.id || visit.createdby || 1,
-                          },
-                        });
-                      } else {
-                        paymentRecord = await tx.payments.upsert({
-                          where: {
-                            payment_number: processedPaymentData.payment_number,
-                          },
-                          update: {
-                            ...processedPaymentData,
-                            updatedate: new Date(),
-                            updatedby:
-                              (req as any).user?.id || visit.createdby || 1,
-                          },
-                          create: {
-                            ...processedPaymentData,
-                            createdate: new Date(),
-                            createdby:
-                              visit.createdby || (req as any).user?.id || 1,
-                            log_inst: 1,
-                          },
-                        });
-                      }
-
-                      paymentIds.push(paymentRecord.id);
-                      console.log(
-                        ` Payment ${paymentRecord.payment_number} processed (₹${paymentRecord.total_amount})`
-                      );
-                    } catch (paymentError: any) {
-                      console.error(
-                        'Payment processing failed:',
-                        paymentError.message
-                      );
-                      throw paymentError;
                     }
+
+                    const processedPaymentData = {
+                      customer_id: paymentData.customer_id || visit.customer_id,
+                      payment_number: paymentNumber,
+                      payment_date: paymentData.payment_date
+                        ? new Date(paymentData.payment_date)
+                        : new Date(),
+                      collected_by:
+                        paymentData.collected_by || visit.sales_person_id,
+                      method: paymentData.method || 'cash',
+                      reference_number: paymentData.reference_number || null,
+                      total_amount: paymentData.total_amount || 0,
+                      notes: paymentData.notes || null,
+                      is_active: paymentData.is_active || 'Y',
+                      currency_id: paymentData.currency_id,
+                      ...(paymentData.slip_number && {
+                        slip_number: paymentData.slip_number,
+                      }),
+                      ...(paymentData.customer_name && {
+                        customer_name: paymentData.customer_name,
+                      }),
+                      ...(paymentData.is_auto !== undefined && {
+                        is_auto: !!paymentData.is_auto,
+                      }),
+                      ...(paymentData.is_synced !== undefined && {
+                        is_synced: !!paymentData.is_synced,
+                      }),
+                    };
+
+                    let createdPayment: any;
+
+                    if (paymentData.payment_id || (paymentData as any).id) {
+                      const paymentIdToUpdate =
+                        (paymentData as any).id || paymentData.payment_id;
+                      createdPayment = await tx.payments.update({
+                        where: { id: paymentIdToUpdate },
+                        data: {
+                          ...processedPaymentData,
+                          updatedate: new Date(),
+                          updatedby:
+                            (req as any).user?.id || visit.createdby || 1,
+                        },
+                      });
+                    } else {
+                      createdPayment = await tx.payments.create({
+                        data: {
+                          ...processedPaymentData,
+                          createdate: new Date(),
+                          createdby:
+                            paymentData.createdby ||
+                            (req as any).user?.id ||
+                            visit.createdby ||
+                            1,
+                          log_inst: 1,
+                        },
+                      });
+                    }
+
+                    paymentIds.push(createdPayment.id);
                   }
                 }
 
+                if (cooler_installations && cooler_installations.length > 0) {
+                  for (const installation of cooler_installations) {
+                    const assetSerialNumber =
+                      installation.asset_serial_number ||
+                      installation.serial_number;
+
+                    if (!assetSerialNumber) {
+                      throw new Error('asset_serial_number is required');
+                    }
+
+                    const asset = await tx.asset_master.findFirst({
+                      where: {
+                        serial_number: assetSerialNumber,
+                      },
+                    });
+
+                    if (!asset) {
+                      throw new Error(
+                        `Asset with serial number ${assetSerialNumber} not found`
+                      );
+                    }
+
+                    const cooler = await tx.coolers.findFirst({
+                      where: {
+                        asset_master_id: asset.id,
+                      },
+                    });
+
+                    if (!cooler) {
+                      throw new Error(
+                        `Cooler linked with asset serial number ${assetSerialNumber} not found`
+                      );
+                    }
+
+                    const updatedCooler = await tx.coolers.update({
+                      where: {
+                        id: cooler.id,
+                      },
+                      data: {
+                        status: installation.status || 'installed',
+                        updatedate: new Date(),
+                        updatedby:
+                          (req as any).user?.id || visit.createdby || 1,
+                      },
+                    });
+
+                    coolerInstallationIds.push(updatedCooler.id);
+
+                    coolerInstallationIds.push(updatedCooler.id);
+
+                    await tx.asset_master.update({
+                      where: {
+                        id: asset.id,
+                      },
+                      data: {
+                        current_status:
+                          (installation.status || 'installed').toLowerCase() ===
+                          'installed'
+                            ? 'Installed'
+                            : installation.status || 'installed',
+                        updatedate: new Date(),
+                        updatedby:
+                          (req as any).user?.id || visit.createdby || 1,
+                      },
+                    });
+
+                    console.log(
+                      `Cooler ${updatedCooler.id} status updated to ${
+                        installation.status || 'installed'
+                      } using asset serial ${assetSerialNumber}`
+                    );
+                  }
+                }
+                // if (cooler_inspections && cooler_inspections.length > 0) {
+                //   for (const inspection of cooler_inspections) {
+                //     const coolerData = inspection.cooler || {};
+                //     let coolerId: number | undefined;
+
+                //     if (coolerData.id) {
+                //       const {
+                //         id,
+                //         customer_id,
+                //         technician_id,
+                //         capacity,
+                //         ...coolerUpdateData
+                //       } = coolerData;
+
+                //       const updatedCooler = await tx.coolers.update({
+                //         where: { id: coolerData.id },
+                //         data: {
+                //           ...coolerUpdateData,
+                //           ...(capacity !== undefined && {
+                //             capacity:
+                //               typeof capacity === 'string'
+                //                 ? parseFloat(capacity) || 0
+                //                 : capacity,
+                //           }),
+                //           updatedate: new Date(),
+                //           updatedby:
+                //             (req as any).user?.id || visit.createdby || 1,
+                //         },
+                //       });
+                //       coolerId = updatedCooler.id;
+                //       if (
+                //         updatedCooler.status?.toLowerCase() === 'installed' &&
+                //         updatedCooler.asset_master_id
+                //       ) {
+                //         await tx.asset_master.update({
+                //           where: { id: updatedCooler.asset_master_id },
+                //           data: {
+                //             current_status: 'Installed',
+                //             updatedate: new Date(),
+                //             updatedby:
+                //               (req as any).user?.id || visit.createdby || 1,
+                //           },
+                //         });
+                //       }
+                //     } else {
+                //       const {
+                //         id,
+                //         customer_id,
+                //         technician_id,
+                //         capacity,
+                //         code,
+                //         ...coolerCreateData
+                //       } = coolerData;
+
+                //       const newCooler = await tx.coolers.create({
+                //         data: {
+                //           ...coolerCreateData,
+                //           ...(capacity !== undefined && {
+                //             capacity:
+                //               typeof capacity === 'string'
+                //                 ? parseFloat(capacity) || 0
+                //                 : capacity,
+                //           }),
+                //           code:
+                //             code ||
+                //             `COOLER-${Date.now()}-${Math.random()
+                //               .toString(36)
+                //               .substr(2, 6)
+                //               .toUpperCase()}`,
+                //           createdate: new Date(),
+                //           createdby:
+                //             visit.createdby || (req as any).user?.id || 1,
+                //           log_inst: 1,
+                //           coolers_customers: {
+                //             connect: { id: visit.customer_id },
+                //           },
+                //         },
+                //       });
+                //       coolerId = newCooler.id;
+
+                //       if (
+                //         newCooler.status?.toLowerCase() === 'installed' &&
+                //         newCooler.asset_master_id
+                //       ) {
+                //         await tx.asset_master.update({
+                //           where: { id: newCooler.asset_master_id },
+                //           data: {
+                //             current_status: 'Installed',
+                //             updatedate: new Date(),
+                //             updatedby:
+                //               (req as any).user?.id || visit.createdby || 1,
+                //           },
+                //         });
+                //       }
+                //     }
+
+                //     const processedInspectionData = {
+                //       cooler_id: coolerId,
+                //       visit_id: visitId,
+                //       inspected_by: inspection.inspected_by,
+                //       inspection_date: inspection.inspection_date
+                //         ? new Date(inspection.inspection_date)
+                //         : new Date(),
+                //       temperature: inspection.temperature || undefined,
+                //       is_working: inspection.is_working || 'Y',
+                //       issues: inspection.issues,
+                //       images: inspection.images,
+                //       latitude: inspection.latitude || undefined,
+                //       longitude: inspection.longitude || undefined,
+                //       action_required: inspection.action_required || 'N',
+                //       action_taken: inspection.action_taken,
+                //       next_inspection_due: inspection.next_inspection_due
+                //         ? new Date(inspection.next_inspection_due)
+                //         : undefined,
+                //     };
+
+                //     if (inspection.id) {
+                //       const updatedInspection =
+                //         await tx.cooler_inspections.update({
+                //           where: { id: inspection.id },
+                //           data: {
+                //             ...processedInspectionData,
+                //             updatedate: new Date(),
+                //             updatedby:
+                //               (req as any).user?.id || visit.createdby || 1,
+                //           },
+                //         });
+                //       inspectionIds.push(updatedInspection.id);
+                //     } else {
+                //       const newInspection = await tx.cooler_inspections.create({
+                //         data: {
+                //           ...processedInspectionData,
+                //           createdate: new Date(),
+                //           createdby:
+                //             visit.createdby || (req as any).user?.id || 1,
+                //           log_inst: 1,
+                //         },
+                //       });
+                //       inspectionIds.push(newInspection.id);
+                //     }
+                //   }
+                // }
+
                 if (cooler_inspections && cooler_inspections.length > 0) {
-                  console.log(
-                    `   ❄️  Processing ${cooler_inspections.length} cooler inspection(s)...`
-                  );
-
                   for (const inspection of cooler_inspections) {
-                    let coolerId = inspection.cooler?.id;
-
-                    if (inspection.cooler) {
-                      const coolerData = inspection.cooler;
-
-                      const processedCoolerData = {
-                        code:
-                          coolerData.code ||
-                          `COOL-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
-                        brand: coolerData.brand,
-                        model: coolerData.model,
-                        serial_number: coolerData.serial_number,
-                        customer_id:
-                          coolerData.customer_id || visit.customer_id,
-                        capacity: coolerData.capacity
-                          ? typeof coolerData.capacity === 'number'
-                            ? coolerData.capacity
-                            : parseInt(
-                                String(coolerData.capacity).replace(
-                                  /[^0-9]/g,
-                                  ''
-                                )
-                              ) || null
-                          : null,
-                        install_date: coolerData.install_date
-                          ? new Date(coolerData.install_date)
-                          : undefined,
-                        last_service_date: coolerData.last_service_date
-                          ? new Date(coolerData.last_service_date)
-                          : undefined,
-                        next_service_due: coolerData.next_service_due
-                          ? new Date(coolerData.next_service_due)
-                          : undefined,
-                        status: coolerData.status || 'working',
-                        temperature: coolerData.temperature || undefined,
-                        energy_rating: coolerData.energy_rating,
-                        warranty_expiry: coolerData.warranty_expiry
-                          ? new Date(coolerData.warranty_expiry)
-                          : undefined,
-                        maintenance_contract: coolerData.maintenance_contract,
-                        technician_id: coolerData.technician_id,
-                        last_scanned_date: coolerData.last_scanned_date
-                          ? new Date(coolerData.last_scanned_date)
-                          : undefined,
-                        is_active: coolerData.is_active || 'Y',
-                      };
-
-                      if (coolerData.id) {
-                        await tx.coolers.update({
-                          where: { id: coolerData.id },
-                          data: {
-                            ...processedCoolerData,
-                            updatedate: new Date(),
-                            updatedby:
-                              (req as any).user?.id || visit.createdby || 1,
-                          },
-                        });
-                        coolerId = coolerData.id;
-                      } else {
-                        const newCooler = await tx.coolers.create({
-                          data: {
-                            ...processedCoolerData,
-                            createdate: new Date(),
-                            createdby:
-                              visit.createdby || (req as any).user?.id || 1,
-                            log_inst: 1,
-                          },
-                        });
-                        coolerId = newCooler.id;
-                      }
+                    if (!inspection.serial_number) {
+                      throw new Error(
+                        'serial_number is required for cooler inspection'
+                      );
                     }
 
-                    if (!coolerId) {
-                      throw new Error('Cooler ID is required for inspection');
+                    const asset = await tx.asset_master.findFirst({
+                      where: {
+                        serial_number: inspection.serial_number,
+                      },
+                    });
+
+                    if (!asset) {
+                      throw new Error(
+                        `Asset with serial number ${inspection.serial_number} not found`
+                      );
                     }
+
+                    const cooler = await tx.coolers.findFirst({
+                      where: {
+                        asset_master_id: asset.id,
+                      },
+                    });
+
+                    if (!cooler) {
+                      throw new Error(
+                        `Cooler linked with serial number ${inspection.serial_number} not found`
+                      );
+                    }
+
+                    const inspectionDate = inspection.inspection_date
+                      ? new Date(inspection.inspection_date)
+                      : new Date();
+
+                    await tx.coolers.update({
+                      where: {
+                        id: cooler.id,
+                      },
+                      data: {
+                        last_scanned_date: inspectionDate,
+                        updatedate: new Date(),
+                        updatedby:
+                          (req as any).user?.id || visit.createdby || 1,
+                      },
+                    });
 
                     const processedInspectionData = {
-                      cooler_id: coolerId,
+                      cooler_id: cooler.id,
                       visit_id: visitId,
                       inspected_by: inspection.inspected_by,
-                      inspection_date: inspection.inspection_date
-                        ? new Date(inspection.inspection_date)
-                        : new Date(),
+                      inspection_date: inspectionDate,
                       temperature: inspection.temperature || undefined,
                       is_working: inspection.is_working || 'Y',
                       issues: inspection.issues,
@@ -1253,16 +2471,10 @@ export const visitsController = {
 
                       inspectionIds.push(newInspection.id);
                     }
-
-                    console.log(
-                      `   Cooler inspection processed (Cooler ID: ${coolerId})`
-                    );
                   }
                 }
 
                 if (survey && survey.survey_response) {
-                  console.log(`    Processing survey response...`);
-
                   const { survey_response } = survey;
                   const surveyAnswers = survey_response.survey_answers || [];
 
@@ -1280,7 +2492,7 @@ export const visitsController = {
                     is_active: survey_response.is_active || 'Y',
                   };
 
-                  let surveyResponseRecord: any = undefined;
+                  let surveyResponseRecord: any;
 
                   if (survey_response.id) {
                     surveyResponseRecord = await tx.survey_responses.update({
@@ -1292,7 +2504,6 @@ export const visitsController = {
                           (req as any).user?.id || visit.createdby || 1,
                       },
                     });
-
                     surveyResponseIds.push(surveyResponseRecord.id);
 
                     if (surveyAnswers.length > 0) {
@@ -1302,16 +2513,13 @@ export const visitsController = {
                           field_id: answer.field_id,
                           answer: answer.answer,
                         };
-
                         if (answer.id) {
                           await tx.survey_answers.update({
                             where: { id: answer.id },
                             data: answerData,
                           });
                         } else {
-                          await tx.survey_answers.create({
-                            data: answerData,
-                          });
+                          await tx.survey_answers.create({ data: answerData });
                         }
                       }
                     }
@@ -1325,12 +2533,11 @@ export const visitsController = {
                         log_inst: 1,
                       },
                     });
-
                     surveyResponseIds.push(surveyResponseRecord.id);
 
                     if (surveyAnswers.length > 0) {
                       await tx.survey_answers.createMany({
-                        data: surveyAnswers.map(answer => ({
+                        data: surveyAnswers.map((answer: any) => ({
                           parent_id: surveyResponseRecord.id,
                           field_id: answer.field_id,
                           answer: answer.answer,
@@ -1338,8 +2545,6 @@ export const visitsController = {
                       });
                     }
                   }
-
-                  console.log(`Survey response processed`);
                 }
 
                 const visitWithBasicRelations = await tx.visits.findUnique({
@@ -1349,17 +2554,18 @@ export const visitsController = {
                     visits_salesperson: true,
                     visit_routes: true,
                     visit_zones: true,
+                    visit_attachments: true,
                   },
                 });
 
-                const relatedOrders =
-                  orderIds.length > 0
-                    ? await tx.orders.findMany({
-                        where: {
-                          id: { in: orderIds },
-                        },
+                const relatedInvoices =
+                  invoiceIds.length > 0
+                    ? await tx.invoices.findMany({
+                        where: { id: { in: invoiceIds } },
                         include: {
-                          order_items: true,
+                          invoice_items: {
+                            include: { invoice_items_products: true },
+                          },
                         },
                       })
                     : [];
@@ -1367,39 +2573,39 @@ export const visitsController = {
                 const relatedPayments =
                   paymentIds.length > 0
                     ? await tx.payments.findMany({
-                        where: {
-                          id: { in: paymentIds },
-                        },
+                        where: { id: { in: paymentIds } },
                       })
                     : [];
 
                 const relatedInspections =
                   inspectionIds.length > 0
                     ? await tx.cooler_inspections.findMany({
-                        where: {
-                          id: { in: inspectionIds },
-                        },
-                        include: {
-                          coolers: true,
-                        },
+                        where: { id: { in: inspectionIds } },
+                        include: { coolers: true },
                       })
                     : [];
 
+                const relatedCoolerInstallations =
+                  coolerInstallationIds.length > 0
+                    ? await tx.coolers.findMany({
+                        where: {
+                          id: {
+                            in: coolerInstallationIds,
+                          },
+                        },
+                      })
+                    : [];
                 const relatedSurveyResponses =
                   surveyResponseIds.length > 0
                     ? await tx.survey_responses.findMany({
-                        where: {
-                          id: { in: surveyResponseIds },
-                        },
+                        where: { id: { in: surveyResponseIds } },
                       })
                     : [];
 
                 const surveyAnswersData =
                   surveyResponseIds.length > 0
                     ? await tx.survey_answers.findMany({
-                        where: {
-                          parent_id: { in: surveyResponseIds },
-                        },
+                        where: { parent_id: { in: surveyResponseIds } },
                       })
                     : [];
 
@@ -1412,50 +2618,48 @@ export const visitsController = {
                   })
                 );
 
-                console.log(
-                  ` Visit ${isUpdate ? 'updated' : 'created'} successfully (ID: ${visitId})`
-                );
-                console.log(
-                  `Orders: ${orderIds.length}, Payments: ${paymentIds.length}, Inspections: ${inspectionIds.length}, Surveys: ${surveyResponseIds.length}`
-                );
+                const relatedAttachments = await tx.visit_attachments.findMany({
+                  where: { visit_id: visitId },
+                });
 
                 return {
                   ...visitWithBasicRelations,
-                  orders: relatedOrders,
+                  invoices: relatedInvoices,
                   payments: relatedPayments,
+                  cooler_installations: relatedCoolerInstallations,
+
                   cooler_inspections: relatedInspections,
                   survey_responses: surveyResponsesWithAnswers,
-                  images: {
-                    self: selfImageUrls,
-                    customer: customerImageUrls,
-                    cooler: coolerImageUrls,
-                  },
+                  visit_attachments: relatedAttachments,
                 };
               },
-              {
-                maxWait: 15000,
-                timeout: 90000,
-              }
+              { maxWait: 15000, timeout: 90000 }
             );
 
             if (isUpdate) {
-              if (selfImageUrls.length > 0 && oldSelfImages) {
-                console.log(`  Deleting old self images`);
-                await deleteOldImages(oldSelfImages).catch(err =>
-                  console.error('Failed to delete old self images:', err)
-                );
+              if (selfImageUrls.length > 0 && oldSelfImages.length > 0) {
+                for (const oldImage of oldSelfImages) {
+                  await deleteOldImages(oldImage).catch(err =>
+                    console.error('Failed to delete old self image:', err)
+                  );
+                }
               }
-              if (customerImageUrls.length > 0 && oldCustomerImages) {
-                console.log(`Deleting old customer images`);
-                await deleteOldImages(oldCustomerImages).catch(err =>
-                  console.error('Failed to delete old customer images:', err)
-                );
+              if (
+                customerImageUrls.length > 0 &&
+                oldCustomerImages.length > 0
+              ) {
+                for (const oldImage of oldCustomerImages) {
+                  await deleteOldImages(oldImage).catch(err =>
+                    console.error('Failed to delete old customer image:', err)
+                  );
+                }
               }
-              if (coolerImageUrls.length > 0 && oldCoolerImages) {
-                console.log(`Deleting old cooler images`);
-                await deleteOldImages(oldCoolerImages).catch(err =>
-                  console.error('Failed to delete old cooler images:', err)
-                );
+              if (coolerImageUrls.length > 0 && oldCoolerImages.length > 0) {
+                for (const oldImage of oldCoolerImages) {
+                  await deleteOldImages(oldImage).catch(err =>
+                    console.error('Failed to delete old cooler image:', err)
+                  );
+                }
               }
             }
 
@@ -1473,17 +2677,29 @@ export const visitsController = {
               });
             }
           } catch (transactionError: any) {
-            console.error(`Transaction failed, rolling back images...`);
+            console.error(
+              `Transaction failed for visit ${index + 1}, rolling back images...`
+            );
             for (const imagePath of uploadedImagePaths) {
               await deleteOldImages(imagePath).catch(err =>
                 console.error('Failed to cleanup uploaded image:', err)
               );
             }
-
-            throw transactionError;
+            results.failed.push({
+              visitIndex: index,
+              data: data?.visit || data,
+              constraint: transactionError.meta?.target,
+              meta: transactionError.meta,
+              error: transactionError.message || 'Transaction failed',
+              stack:
+                process.env.NODE_ENV === 'development'
+                  ? transactionError.stack
+                  : undefined,
+            });
+            continue;
           }
         } catch (error: any) {
-          console.error(` Visit ${index + 1} Processing Error:`, error.message);
+          console.error(`Visit ${index + 1} Processing Error:`, error.message);
           results.failed.push({
             visitIndex: index,
             data: data?.visit || data,
@@ -1507,7 +2723,7 @@ export const visitsController = {
               : 200;
 
       console.log(
-        `\n Bulk upsert completed: Created(${results.created.length}) Updated(${results.updated.length}) Failed(${results.failed.length})\n`
+        `\nBulk upsert completed: Created(${results.created.length}) Updated(${results.updated.length}) Failed(${results.failed.length})\n`
       );
 
       res.status(statusCode).json({
@@ -1526,7 +2742,7 @@ export const visitsController = {
         },
       });
     } catch (error: any) {
-      console.error(' Bulk Upsert Error:', error);
+      console.error('Bulk Upsert Error:', error);
       res.status(500).json({
         success: false,
         message: 'Internal server error',
@@ -1538,9 +2754,6 @@ export const visitsController = {
 
   async getAllVisits(req: any, res: any) {
     try {
-      console.log('Request Query:', req.query);
-      console.log('Request User:', req.user);
-
       const {
         page,
         limit,
@@ -1558,103 +2771,50 @@ export const visitsController = {
       );
       const searchLower = search ? (search as string).toLowerCase().trim() : '';
 
-      console.log('Parsed Pagination:', { pageNum, limitNum });
-      console.log('Search Term:', searchLower);
-
-      const allowedStatuses = [
-        'pending',
-        'completed',
-        'cancelled',
-        'in_progress',
-      ];
-      if (status && !allowedStatuses.includes(status as string)) {
-        console.log('Invalid status:', status);
-        return res.status(400).json({ message: 'Invalid status value' });
-      }
-
       if (isActive && !['Y', 'N'].includes(isActive as string)) {
         console.log('Invalid isActive:', isActive);
         return res.status(400).json({ message: 'Invalid isActive value' });
       }
 
       const filters: any = {};
-      const userRole = req.user?.role?.toLowerCase();
-      const userId = req.user?.id;
-
-      console.log('User Role:', userRole, 'User ID:', userId);
 
       if (sales_person_id) {
         const salesPersonIdNum = parseInt(sales_person_id as string, 10);
         if (isNaN(salesPersonIdNum)) {
           return res.status(400).json({ message: 'Invalid sales_person_id' });
         }
+
         filters.sales_person_id = salesPersonIdNum;
         console.log('Filtering by sales_person_id:', salesPersonIdNum);
-      } else {
-        if (userRole === 'technician') {
-          console.log('Applying Technician filters - inspection visits only');
-          filters.sales_person_id = userId;
-          filters.cooler_inspections = {
-            some: {},
-          };
-          console.log('Technician filters:', filters);
-        } else if (userRole === 'salesman' || userRole === 'salesperson') {
-          console.log(
-            'Applying Salesman/Salesperson filters - sales visits only'
-          );
-          filters.sales_person_id = userId;
-          filters.OR = [
-            { purpose: { contains: 'sales' } },
-            { purpose: { contains: 'order' } },
-            { purpose: { contains: 'follow_up' } },
-            { purpose: { contains: 'new_customer' } },
-          ];
-          console.log('Salesman filters:', filters);
-        } else if (userRole === 'merchandiser') {
-          console.log(
-            'Applying Merchandiser filters - merchandising visits only'
-          );
-          filters.sales_person_id = userId;
-          filters.OR = [
-            { purpose: { contains: 'merchandising' } },
-            { purpose: { contains: 'shelf_arrangement' } },
-            { purpose: { contains: 'stock_check' } },
-            { purpose: { contains: 'display_setup' } },
-          ];
-          console.log('Merchandiser filters:', filters);
-        } else if (userRole === 'supervisor') {
-          console.log('Applying Supervisor filters - own visits only');
-          filters.sales_person_id = userId;
-          console.log('Supervisor filters:', filters);
-        } else if (userRole === 'admin' || userRole === 'manager') {
-          console.log('Admin/Manager role - showing all visits');
-        } else {
-          console.log('Unknown role, restricting to own data');
-          filters.sales_person_id = parseInt(userId as string, 10);
-        }
       }
 
       if (startDate) {
         console.log('Processing startDate:', startDate);
+
         const start = new Date(startDate as string);
+
         if (isNaN(start.getTime())) {
           console.log('Invalid date format:', startDate);
+
           return res.status(400).json({
             message: 'Invalid date format. Please use YYYY-MM-DD',
           });
         }
 
         start.setHours(0, 0, 0, 0);
+
         const end = new Date(start);
         end.setDate(start.getDate() + 7);
         end.setHours(23, 59, 59, 999);
 
         filters.visit_date = { gte: start, lte: end };
+
         console.log('Date range filter:', { start, end });
       }
 
       if (searchLower) {
         console.log('Applying search filter for term:', searchLower);
+
         const searchOr = [
           { purpose: { contains: searchLower } },
           { status: { contains: searchLower } },
@@ -1674,9 +2834,11 @@ export const visitsController = {
 
         if (filters.OR) {
           console.log('Combining search with existing OR filters');
-          console.log('Existing OR:', filters.OR);
+
           filters.AND = [{ OR: filters.OR }, { OR: searchOr }];
+
           delete filters.OR;
+
           console.log('Combined AND filters:', filters.AND);
         } else {
           filters.OR = searchOr;
@@ -1703,7 +2865,40 @@ export const visitsController = {
         limit: limitNum,
         orderBy: { createdate: 'desc' },
         include: {
-          visit_customers: true,
+          visit_customers: {
+            select: {
+              id: true,
+              name: true,
+              code: true,
+              type: true,
+              contact_person: true,
+              phone_number: true,
+              email: true,
+              address: true,
+              city: true,
+              state: true,
+              zipcode: true,
+              outstanding_amount: true,
+              credit_limit: true,
+              is_active: true,
+              route_id: true,
+              zones_id: true,
+              customer_routes: {
+                select: {
+                  id: true,
+                  name: true,
+                  code: true,
+                },
+              },
+              customer_zones: {
+                select: {
+                  id: true,
+                  name: true,
+                  code: true,
+                },
+              },
+            },
+          },
           visits_salesperson: true,
           visit_routes: true,
           visit_zones: true,
@@ -1723,6 +2918,7 @@ export const visitsController = {
       console.log(`Fetched ${data.length} visits`);
 
       const visitIds = data.map((visit: any) => visit.id);
+
       const customerIds = data
         .filter((visit: any) => visit.customer_id)
         .map((visit: any) => visit.customer_id);
@@ -1741,7 +2937,32 @@ export const visitsController = {
 
       console.log(` Fetched ${visitPayments.length} payments`);
 
+      const visitOrders =
+        customerIds.length > 0
+          ? await prisma.orders.findMany({
+              where: {
+                parent_id: { in: customerIds },
+                is_active: 'Y',
+              },
+            })
+          : [];
+
+      console.log(` Fetched ${visitOrders.length} orders`);
+
+      const visitInvoices =
+        customerIds.length > 0
+          ? await prisma.invoices.findMany({
+              where: {
+                customer_id: { in: customerIds },
+                is_active: 'Y',
+              },
+            })
+          : [];
+
+      console.log(` Fetched ${visitInvoices.length} invoices`);
+
       let visitSurveys: any[] = [];
+
       try {
         if (visitIds.length > 0) {
           visitSurveys = await prisma.survey_responses.findMany({
@@ -1749,6 +2970,7 @@ export const visitsController = {
               parent_id: { in: visitIds },
             },
           });
+
           console.log(` Fetched ${visitSurveys.length} survey responses`);
         }
       } catch (error: any) {
@@ -1756,18 +2978,42 @@ export const visitsController = {
       }
 
       const paymentsByCustomer = new Map();
+
       visitPayments.forEach(payment => {
         if (!paymentsByCustomer.has(payment.customer_id)) {
           paymentsByCustomer.set(payment.customer_id, []);
         }
+
         paymentsByCustomer.get(payment.customer_id).push(payment);
       });
 
+      const ordersByCustomer = new Map();
+
+      visitOrders.forEach(order => {
+        if (!ordersByCustomer.has(order.parent_id)) {
+          ordersByCustomer.set(order.parent_id, []);
+        }
+
+        ordersByCustomer.get(order.parent_id).push(order);
+      });
+
+      const invoicesByCustomer = new Map();
+
+      visitInvoices.forEach(invoice => {
+        if (!invoicesByCustomer.has(invoice.customer_id)) {
+          invoicesByCustomer.set(invoice.customer_id, []);
+        }
+
+        invoicesByCustomer.get(invoice.customer_id).push(invoice);
+      });
+
       const surveysByVisit = new Map();
+
       visitSurveys.forEach(survey => {
         if (!surveysByVisit.has(survey.parent_id)) {
           surveysByVisit.set(survey.parent_id, []);
         }
+
         surveysByVisit.get(survey.parent_id).push(survey);
       });
 
@@ -1795,18 +3041,20 @@ export const visitsController = {
             })
           : [];
 
-      console.log(` Fetched ${customerCoolers.length} customer coolers`);
-
       const coolersByCustomer = new Map();
+
       customerCoolers.forEach(cooler => {
         if (!coolersByCustomer.has(cooler.customer_id)) {
           coolersByCustomer.set(cooler.customer_id, []);
         }
+
         coolersByCustomer.get(cooler.customer_id).push(cooler);
       });
 
       const now = new Date();
+
       const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
       const endOfMonth = new Date(
         now.getFullYear(),
         now.getMonth() + 1,
@@ -1830,50 +3078,91 @@ export const visitsController = {
           }),
         ]);
 
-      console.log('Statistics:', {
-        totalVisits,
-        activeVisits,
-        inactiveVisits,
-        newVisitsThisMonth,
-      });
+      const serializedData = data.map((visit: any) => {
+        const visitTime = visit.createdate
+          ? new Date(visit.createdate).getTime()
+          : 0;
+        const visitUpdateTime = visit.updatedate
+          ? new Date(visit.updatedate).getTime()
+          : 0;
 
-      const serializedData = data
-        .filter((visit: any) => visit.visit_customers)
-        .map((visit: any) => {
-          const customerPayments =
-            paymentsByCustomer.get(visit.customer_id) || [];
-          const visitSurveyResponses = surveysByVisit.get(visit.id) || [];
+        const customerPayments = (
+          paymentsByCustomer.get(visit.customer_id) || []
+        ).filter((payment: any) => {
+          if (payment.collected_by !== visit.sales_person_id) return false;
+          if (!payment.createdate) return false;
+          const paymentTime = new Date(payment.createdate).getTime();
+          const diffCreated = Math.abs(paymentTime - visitTime);
+          const diffUpdated = Math.abs(paymentTime - visitUpdateTime);
+          return diffCreated <= 300000 || diffUpdated <= 300000;
+        });
 
-          console.log(
-            ` Visit ${visit.id} (Customer ${visit.customer_id}) has ${customerPayments.length} payments`
-          );
+        const customerOrders = (
+          ordersByCustomer.get(visit.customer_id) || []
+        ).filter((order: any) => {
+          if (order.salesperson_id !== visit.sales_person_id) return false;
+          if (!order.createdate) return false;
+          const orderTime = new Date(order.createdate).getTime();
+          const diffCreated = Math.abs(orderTime - visitTime);
+          const diffUpdated = Math.abs(orderTime - visitUpdateTime);
+          return diffCreated <= 300000 || diffUpdated <= 300000;
+        });
 
-          const visitWithRelations = {
-            ...visit,
-            payments: customerPayments,
-            survey_responses: visitSurveyResponses,
+        const customerInvoices = (
+          invoicesByCustomer.get(visit.customer_id) || []
+        ).filter((invoice: any) => {
+          if (
+            invoice.salesperson_id &&
+            invoice.salesperson_id !== visit.sales_person_id
+          )
+            return false;
+          if (!invoice.invoice_date) return false;
+          const invoiceTime = new Date(invoice.invoice_date).getTime();
+          const diffCreated = Math.abs(invoiceTime - visitTime);
+          const diffUpdated = Math.abs(invoiceTime - visitUpdateTime);
+          return diffCreated <= 300000 || diffUpdated <= 300000;
+        });
+
+        const visitSurveyResponses = surveysByVisit.get(visit.id) || [];
+
+        console.log(
+          ` Visit ${visit.id} (Customer ${visit.customer_id}) has ${customerPayments.length} payments, ${customerOrders.length} orders, and ${customerInvoices.length} invoices`
+        );
+
+        const totalAmountCollected = customerPayments.reduce(
+          (sum: number, p: any) => sum + Number(p.total_amount || 0),
+          0
+        );
+
+        const visitWithRelations = {
+          ...visit,
+          amount_collected: String(totalAmountCollected),
+          invoices_created: customerInvoices.length,
+          payments: customerPayments,
+          invoices: customerInvoices,
+          survey_responses: visitSurveyResponses,
+        };
+
+        const serialized = serializeVisit(visitWithRelations);
+
+        if (serialized.customer) {
+          const customerCoolerList =
+            coolersByCustomer.get(visit.customer_id) || [];
+
+          const customerWithCoolers = {
+            ...serialized.customer,
+            coolers: customerCoolerList,
+            total_coolers: customerCoolerList.length,
           };
 
-          const serialized = serializeVisit(visitWithRelations);
+          return {
+            ...serialized,
+            customer: customerWithCoolers,
+          } as VisitSerialized;
+        }
 
-          if (serialized.customer) {
-            const customerCoolerList =
-              coolersByCustomer.get(visit.customer_id) || [];
-
-            const customerWithCoolers = {
-              ...serialized.customer,
-              coolers: customerCoolerList,
-              total_coolers: customerCoolerList.length,
-            };
-
-            return {
-              ...serialized,
-              customer: customerWithCoolers,
-            } as VisitSerialized;
-          }
-
-          return serialized;
-        });
+        return serialized;
+      });
 
       console.log(
         ` Serialized ${serializedData.length} visits with all relations`
@@ -1893,6 +3182,7 @@ export const visitsController = {
       );
     } catch (error: any) {
       console.error(' Get All Visits Error:', error);
+
       res.status(500).json({
         message: error.message,
         stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
@@ -1906,7 +3196,40 @@ export const visitsController = {
       const visit = await prisma.visits.findUnique({
         where: { id: Number(id) },
         include: {
-          visit_customers: true,
+          visit_customers: {
+            select: {
+              id: true,
+              name: true,
+              code: true,
+              type: true,
+              contact_person: true,
+              phone_number: true,
+              email: true,
+              address: true,
+              city: true,
+              state: true,
+              zipcode: true,
+              outstanding_amount: true,
+              credit_limit: true,
+              is_active: true,
+              route_id: true,
+              zones_id: true,
+              customer_routes: {
+                select: {
+                  id: true,
+                  name: true,
+                  code: true,
+                },
+              },
+              customer_zones: {
+                select: {
+                  id: true,
+                  name: true,
+                  code: true,
+                },
+              },
+            },
+          },
           visits_salesperson: true,
           visit_routes: true,
           visit_zones: true,
@@ -1930,11 +3253,10 @@ export const visitsController = {
         },
       });
 
-      const orders = await prisma.orders.findMany({
+      const allOrders = await prisma.orders.findMany({
         where: {
-          orders_customers: {
-            id: visit.customer_id,
-          },
+          parent_id: visit.customer_id,
+          salesperson_id: visit.sales_person_id,
           is_active: 'Y',
         },
         include: {
@@ -1946,14 +3268,63 @@ export const visitsController = {
         },
       });
 
-      const payments = await prisma.payments.findMany({
+      const allPayments = await prisma.payments.findMany({
         where: {
-          payments_customers: {
-            id: visit.customer_id,
-          },
+          customer_id: visit.customer_id,
+          collected_by: visit.sales_person_id,
           is_active: 'Y',
         },
       });
+
+      const allInvoices = await prisma.invoices.findMany({
+        where: {
+          customer_id: visit.customer_id,
+          is_active: 'Y',
+        },
+        include: {
+          invoice_items: {
+            include: {
+              invoice_items_products: true,
+            },
+          },
+        },
+      });
+
+      const visitTime = visit.createdate
+        ? new Date(visit.createdate).getTime()
+        : 0;
+      const visitUpdateTime = visit.updatedate
+        ? new Date(visit.updatedate).getTime()
+        : 0;
+
+      const orders = allOrders.filter(order => {
+        if (!order.createdate) return false;
+        const orderTime = new Date(order.createdate).getTime();
+        const diffCreated = Math.abs(orderTime - visitTime);
+        const diffUpdated = Math.abs(orderTime - visitUpdateTime);
+        return diffCreated <= 300000 || diffUpdated <= 300000;
+      });
+
+      const payments = allPayments.filter(payment => {
+        if (!payment.createdate) return false;
+        const paymentTime = new Date(payment.createdate).getTime();
+        const diffCreated = Math.abs(paymentTime - visitTime);
+        const diffUpdated = Math.abs(paymentTime - visitUpdateTime);
+        return diffCreated <= 300000 || diffUpdated <= 300000;
+      });
+
+      const invoices = allInvoices.filter(invoice => {
+        if (!invoice.createdate) return false;
+        const invoiceTime = new Date(invoice.createdate).getTime();
+        const diffCreated = Math.abs(invoiceTime - visitTime);
+        const diffUpdated = Math.abs(invoiceTime - visitUpdateTime);
+        return diffCreated <= 300000 || diffUpdated <= 300000;
+      });
+
+      const totalAmountCollected = payments.reduce(
+        (sum, p) => sum + Number(p.total_amount || 0),
+        0
+      );
 
       let surveyResponses: any[] = [];
       try {
@@ -1968,6 +3339,10 @@ export const visitsController = {
         message: 'Visit retrieved successfully',
         data: {
           ...visit,
+          route_id: visit.visit_customers?.route_id || visit.route_id,
+          zones_id: visit.visit_customers?.zones_id || visit.zones_id,
+          amount_collected: String(totalAmountCollected),
+          invoices_created: invoices.length,
           customer: visit.visit_customers
             ? {
                 ...visit.visit_customers,
@@ -1982,10 +3357,15 @@ export const visitsController = {
                 email: visit.visits_salesperson.email,
               }
             : null,
-          route: visit.visit_routes || null,
-          zone: visit.visit_zones || null,
+          route:
+            visit.visit_customers?.customer_routes ||
+            visit.visit_routes ||
+            null,
+          zone:
+            visit.visit_customers?.customer_zones || visit.visit_zones || null,
           orders: orders,
           payments: payments,
+          invoices: invoices,
           cooler_inspections: visit.cooler_inspections || [],
           survey_responses: surveyResponses,
           visit_customers: undefined,
@@ -2548,7 +3928,6 @@ export const visitsController = {
         ];
       }
 
-      // Build orderBy
       let orderBy: any = { createdate: 'desc' };
 
       if (sortByField === 'cooler_code') {

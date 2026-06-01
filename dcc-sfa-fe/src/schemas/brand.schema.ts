@@ -13,4 +13,15 @@ export const brandValidationSchema = Yup.object({
   is_active: Yup.string()
     .required('Status is required')
     .oneOf(['Y', 'N'], 'Status must be either Active or Inactive'),
+  logo: Yup.mixed()
+    .nullable()
+    .optional()
+    .test('fileSize', 'Logo file size must be less than 5MB', value => {
+      if (!value || !(value instanceof File)) return true;
+      return value.size <= 5 * 1024 * 1024;
+    })
+    .test('fileType', 'Logo must be an image file (JPG, PNG, GIF)', value => {
+      if (!value || !(value instanceof File)) return true;
+      return ['image/jpeg', 'image/png', 'image/gif'].includes(value.type);
+    }),
 });

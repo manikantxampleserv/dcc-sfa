@@ -24,8 +24,10 @@ interface User {
   phone_number?: string | null;
   address?: string | null;
   employee_id?: string | null;
+  sap_code?: string | null;
   joining_date?: string | null;
   reporting_to?: number | null;
+  platform?: string | null;
   profile_image?: string | null;
   last_login?: string | null;
   is_active: string;
@@ -46,6 +48,11 @@ interface User {
     name: string;
     code: string;
   } | null;
+  depots?: Array<{
+    id: number;
+    name: string;
+    code: string;
+  }> | null;
   zone?: {
     id: number;
     name: string;
@@ -58,6 +65,22 @@ interface User {
   } | null;
   permissions?: string[];
   recent_activities?: RecentActivity;
+  subordinate_count?: number;
+  manager_team_count?: number;
+  subordinates?: Array<{
+    id: number;
+    name: string;
+    email: string;
+    employee_id: string | null;
+    profile_image: string | null;
+  }>;
+  manager_team_members?: Array<{
+    id: number;
+    name: string;
+    email: string;
+    employee_id: string | null;
+    profile_image: string | null;
+  }>;
 }
 
 interface ManageUserPayload {
@@ -71,8 +94,10 @@ interface ManageUserPayload {
   phone_number?: string;
   address?: string;
   employee_id?: string;
+  sap_code?: string;
   joining_date?: string;
   reporting_to?: number;
+  platform?: string;
   profile_image?: string;
   is_active?: string;
 }
@@ -88,8 +113,10 @@ interface UpdateUserPayload {
   phone_number?: string;
   address?: string;
   employee_id?: string;
+  sap_code?: string;
   joining_date?: string;
   reporting_to?: number;
+  platform?: string;
   profile_image?: string;
   is_active?: string;
 }
@@ -102,6 +129,7 @@ interface GetUsersParams {
   role_id?: number;
   depot_id?: number;
   zone_id?: number;
+  reporting_to?: number;
 }
 
 interface UpdateProfilePayload {

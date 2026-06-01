@@ -25,14 +25,17 @@ export interface OrderFormValues {
 export interface OrderItemFormData {
   product_id: number;
   product_name?: string | null;
-  unit?: string | null;
+  unit: 'CASE' | 'PCS';
   tracking_type?: string | null;
   quantity: string;
   unit_price?: string;
   total_amount?: string;
   notes?: string;
+  conversion_rate?: number | null;
   product_batches?: any[];
   product_serials?: any[];
+  isLoaded?: boolean;
+  base_quantity?: number;
 }
 
 export const orderItemValidationSchema = yup.object().shape({
@@ -67,16 +70,8 @@ export const orderValidationSchema = yup.object().shape({
     .min(3, 'Order number must be at least 3 characters')
     .max(50, 'Order number must be at most 50 characters')
     .nullable(),
-  parent_id: yup
-    .number()
-    .typeError('Customer is required')
-    .required('Customer is required')
-    .positive('Customer ID must be positive'),
-  salesperson_id: yup
-    .number()
-    .typeError('Sales Person is required')
-    .required('Sales Person is required')
-    .positive('Sales Person ID must be positive'),
+  parent_id: yup.number().required('Customer is required'),
+  salesperson_id: yup.number().required('Sales Person is required'),
   currency_id: yup.number().positive('Currency ID must be positive').nullable(),
   order_date: yup.string().nullable(),
   delivery_date: yup.string().nullable(),

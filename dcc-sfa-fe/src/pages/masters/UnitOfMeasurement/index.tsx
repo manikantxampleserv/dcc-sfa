@@ -153,14 +153,6 @@ const UnitOfMeasurementPage: React.FC = () => {
                 Symbol: {row.symbol}
               </Typography>
             )}
-            {row.category && (
-              <Typography
-                variant="caption"
-                className="!text-gray-500 !text-xs !block !mt-0.5"
-              >
-                Category: {row.category}
-              </Typography>
-            )}
           </Box>
         </Box>
       ),
@@ -174,9 +166,35 @@ const UnitOfMeasurementPage: React.FC = () => {
             variant="body2"
             className="!text-gray-900 !max-w-xs !truncate"
           >
-            {row.description}
+            {row.description || (
+              <span className="italic text-gray-400 text-xs">
+                No Description
+              </span>
+            )}
           </Typography>
         </Tooltip>
+      ),
+    },
+    {
+      id: 'sub_unit',
+      label: 'Sub Unit',
+      render: (_value, row) => (
+        <Typography variant="body2" className="!text-gray-900 !capitalize">
+          {row.sub_unit || (
+            <span className="italic text-gray-400 text-xs">None</span>
+          )}
+        </Typography>
+      ),
+    },
+    {
+      id: 'conversion_rate',
+      label: 'Conversion Rate',
+      render: (_value, row) => (
+        <Typography variant="body2" className="!text-gray-900">
+          {row.conversion_rate || (
+            <span className="italic text-gray-400 text-xs">N/A</span>
+          )}
+        </Typography>
       ),
     },
     {
@@ -242,7 +260,7 @@ const UnitOfMeasurementPage: React.FC = () => {
         </Box>
       </Box>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
         <StatsCard
           title="Total Units"
           value={totalUnits}
@@ -301,7 +319,6 @@ const UnitOfMeasurementPage: React.FC = () => {
                       setStatusFilter(e.target.value);
                       setPage(1);
                     }}
-                    className="!w-32"
                     disableClearable
                   >
                     <MenuItem value="all">All Status</MenuItem>

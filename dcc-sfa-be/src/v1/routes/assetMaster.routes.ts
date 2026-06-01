@@ -45,6 +45,7 @@ router.get(
 router.put(
   '/asset-master/:id',
   authenticateToken,
+  upload.array('assetImages', 10),
   auditUpdate('asset_master'),
   requirePermission([{ module: 'asset-master', action: 'update' }]),
   updateAssetMasterValidation,

@@ -13,6 +13,7 @@ export interface CoolerInstallation {
   install_date?: string | null;
   last_service_date?: string | null;
   next_service_due?: string | null;
+  approval_status?: 'A' | 'R' | 'P';
   cooler_type_id?: number | null;
   cooler_sub_type_id?: number | null;
   status?: string | null;
@@ -37,6 +38,7 @@ export interface CoolerInstallation {
     name: string;
     email: string;
     profile_image?: string | null;
+    employee_id?: string | null;
   } | null;
   cooler_type?: {
     id: number;
@@ -50,10 +52,24 @@ export interface CoolerInstallation {
   } | null;
   asset_master?: {
     id: number;
+    name: string;
     serial_number: string;
     current_status: string;
     current_location: string;
+    asset_type?: {
+      id: number;
+      name: string;
+    } | null;
+    asset_sub_type?: {
+      id: number;
+      name: string;
+    } | null;
+    brand?: {
+      id: number;
+      name: string;
+    } | null;
   } | null;
+  current_approver?: string | null;
 }
 
 export interface CreateCoolerInstallationPayload {
@@ -110,6 +126,7 @@ export interface CoolerInstallationQueryParams {
   status?: string;
   customer_id?: number;
   technician_id?: number | null;
+  filter_status?: string;
 }
 
 export interface CoolerInstallationStats {

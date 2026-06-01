@@ -11,6 +11,7 @@ export interface BatchInfo {
   total_quantity: number;
   remaining_quantity: number;
   is_expired: boolean;
+  base_quantity: string;
   is_expiring_soon: boolean;
   days_until_expiry: number;
   status: 'active' | 'expiring_soon' | 'expired';
@@ -63,6 +64,13 @@ export interface ProductInventory {
   tracking_type: string;
   total_quantity: number;
   total_remaining_quantity: number;
+  total_base_quantity?: number;
+  total_remaining_base_quantity?: number;
+  product_unit_of_measurement?: {
+    id: number;
+    name: string;
+    conversion_rate?: number | null;
+  } | null;
   van_inventories: VanInventoryReference[];
   batches: BatchInfo[];
   serials: SerialInfo[];
@@ -74,6 +82,7 @@ export interface SalespersonSummary {
   salesperson_email: string;
   salesperson_phone: string | null;
   salesperson_profile_image: string | null;
+  salesperson_address?: string | null;
   total_van_inventories: number;
   total_products: number;
   total_quantity: number;
@@ -82,15 +91,19 @@ export interface SalespersonSummary {
 }
 
 export interface SalespersonInventoryData {
+  salesperson_role: string;
   salesperson_id: number;
   salesperson_name: string;
   salesperson_email: string;
   salesperson_phone: string | null;
   salesperson_profile_image: string | null;
+  salesperson_address?: string | null;
   total_van_inventories: number;
   total_products: number;
   total_remaining_quantity: number;
   total_quantity: number;
+  total_base_quantity?: number;
+  total_remaining_base_quantity?: number;
   total_batches: number;
   total_serials: number;
   products: ProductInventory[];
@@ -151,6 +164,8 @@ export interface GetSalespersonInventoryParams {
   include_expired_batches?: boolean;
   batch_status?: 'active' | 'expiring_soon' | 'expired';
   serial_status?: string;
+  depot_id?: number;
+  supervisor_id?: number;
 }
 
 export const fetchAllSalespersonsInventory = async (
@@ -173,6 +188,10 @@ export const fetchAllSalespersonsInventory = async (
     queryParams.append('batch_status', params.batch_status);
   if (params?.serial_status)
     queryParams.append('serial_status', params.serial_status);
+  if (params?.depot_id !== undefined)
+    queryParams.append('depot_id', params.depot_id.toString());
+  if (params?.supervisor_id !== undefined)
+    queryParams.append('supervisor_id', params.supervisor_id.toString());
 
   const qs = queryParams.toString();
   const url = `/inventory-item-salesperson${qs ? `?${qs}` : ''}`;
@@ -202,6 +221,10 @@ export const fetchSalespersonInventory = async (
     queryParams.append('batch_status', params.batch_status);
   if (params?.serial_status)
     queryParams.append('serial_status', params.serial_status);
+  if (params?.depot_id !== undefined)
+    queryParams.append('depot_id', params.depot_id.toString());
+  if (params?.supervisor_id !== undefined)
+    queryParams.append('supervisor_id', params.supervisor_id.toString());
 
   const qs = queryParams.toString();
   const url = `/inventory-item-salesperson/${salespersonId}${qs ? `?${qs}` : ''}`;
@@ -310,28 +333,5 @@ export const bulkUpdateVanInventoryItems = async (
     `/van-inventory/${vanInventoryId}/items`,
     payload
   );
-  return response.data;
-};
-
-export interface SalespersonInventoryItemDropdown {
-  id: number;
-  product_id: number;
-  name: string;
-  code: string;
-  unit_price: number;
-  tracking_type?: string | null;
-}
-
-export const fetchSalespersonInventoryItemsDropdown = async (
-  salespersonId: number,
-  search?: string
-): Promise<ApiResponse<SalespersonInventoryItemDropdown[]>> => {
-  const queryParams = new URLSearchParams();
-  if (search) queryParams.append('search', search);
-
-  const qs = queryParams.toString();
-  const url = `/inventory-items-dropdown/${salespersonId}${qs ? `?${qs}` : ''}`;
-
-  const response = await api.get(url);
   return response.data;
 };

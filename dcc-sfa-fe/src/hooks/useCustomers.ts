@@ -93,7 +93,7 @@ export const useCustomerRelations = (id: number) => {
  * @returns Query result with customers data
  */
 export const useCustomersDropdown = (
-  params?: { search?: string; customer_id?: number },
+  params?: { search?: string; customer_id?: number; depot_id?: number },
   options?: Omit<
     import('@tanstack/react-query').UseQueryOptions<
       import('../types/api.types').ApiResponse<CustomerDropdown[]>

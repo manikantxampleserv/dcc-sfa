@@ -310,12 +310,11 @@ const RouteDetail: React.FC = () => {
     <div className="flex flex-col gap-4">
       <div className="flex items-start gap-4">
         <div className="!flex-2 flex flex-col gap-4">
-          <div className="!bg-white !rounded-lg !pb-9 !shadow !border !border-gray-200 !p-6 !text-center !relative">
+          <div className="!bg-white !rounded-lg !shadow !border !border-gray-200 !p-6 !text-center !relative">
             <div className="absolute top-3 right-3">
               <div
-                className={`!w-2.5 !h-2.5 !rounded-full ${
-                  route.is_active === 'Y' ? '!bg-green-400' : '!bg-gray-400'
-                }`}
+                className={`!w-2.5 !h-2.5 !rounded-full ${route.is_active === 'Y' ? '!bg-green-400' : '!bg-gray-400'
+                  }`}
               ></div>
             </div>
 
@@ -361,7 +360,7 @@ const RouteDetail: React.FC = () => {
               />
             </div>
 
-            <div className="!space-y-1 !text-left !mt-4">
+            {/* <div className="!space-y-1 !text-left !mt-4">
               {route.route_depots && (
                 <div className="!p-1 !bg-gray-50 !rounded-md">
                   <Typography
@@ -399,7 +398,7 @@ const RouteDetail: React.FC = () => {
                   </Typography>
                 </div>
               )}
-            </div>
+            </div> */}
           </div>
         </div>
 
@@ -700,74 +699,74 @@ const RouteDetail: React.FC = () => {
                       customer.customer_zones ||
                       customer.customer_channel_customer ||
                       customer.customer_category_customer) && (
-                      <div className="!space-y-2">
-                        {customer.customer_depot && (
-                          <div className="!flex !items-center !gap-2">
-                            <Building className="w-4 h-4 text-gray-400" />
-                            <Typography
-                              variant="body2"
-                              className="!text-gray-600"
-                            >
-                              Depot:{' '}
-                              <span className="!font-semibold">
-                                {customer.customer_depot.name}
-                              </span>
-                            </Typography>
-                          </div>
-                        )}
+                        <div className="!space-y-2">
+                          {customer.customer_depot && (
+                            <div className="!flex !items-center !gap-2">
+                              <Building className="w-4 h-4 text-gray-400" />
+                              <Typography
+                                variant="body2"
+                                className="!text-gray-600"
+                              >
+                                Depot:{' '}
+                                <span className="!font-semibold">
+                                  {customer.customer_depot.name}
+                                </span>
+                              </Typography>
+                            </div>
+                          )}
 
-                        {customer.customer_zones && (
-                          <div className="!flex !items-center !gap-2">
-                            <MapPin className="w-4 h-4 text-gray-400" />
-                            <Typography
-                              variant="body2"
-                              className="!text-gray-600"
-                            >
-                              Zone:{' '}
-                              <span className="!font-semibold">
-                                {customer.customer_zones.name}
-                              </span>
-                            </Typography>
-                          </div>
-                        )}
+                          {customer.customer_zones && (
+                            <div className="!flex !items-center !gap-2">
+                              <MapPin className="w-4 h-4 text-gray-400" />
+                              <Typography
+                                variant="body2"
+                                className="!text-gray-600"
+                              >
+                                Zone:{' '}
+                                <span className="!font-semibold">
+                                  {customer.customer_zones.name}
+                                </span>
+                              </Typography>
+                            </div>
+                          )}
 
-                        {customer.customer_channel_customer && (
-                          <div className="!flex !items-center !gap-2">
-                            <Users className="w-4 h-4 text-gray-400" />
-                            <Typography
-                              variant="body2"
-                              className="!text-gray-600"
-                            >
-                              Channel:{' '}
-                              <span className="!font-semibold">
-                                {
-                                  customer.customer_channel_customer
-                                    .channel_name
-                                }
-                              </span>
-                            </Typography>
-                          </div>
-                        )}
+                          {customer.customer_channel_customer && (
+                            <div className="!flex !items-center !gap-2">
+                              <Users className="w-4 h-4 text-gray-400" />
+                              <Typography
+                                variant="body2"
+                                className="!text-gray-600"
+                              >
+                                Channel:{' '}
+                                <span className="!font-semibold">
+                                  {
+                                    customer.customer_channel_customer
+                                      .channel_name
+                                  }
+                                </span>
+                              </Typography>
+                            </div>
+                          )}
 
-                        {customer.customer_category_customer && (
-                          <div className="!flex !items-center !gap-2">
-                            <Tag className="w-4 h-4 text-gray-400" />
-                            <Typography
-                              variant="body2"
-                              className="!text-gray-600"
-                            >
-                              Category:{' '}
-                              <span className="!font-semibold">
-                                {
-                                  customer.customer_category_customer
-                                    .category_name
-                                }
-                              </span>
-                            </Typography>
-                          </div>
-                        )}
-                      </div>
-                    )}
+                          {customer.customer_category_customer && (
+                            <div className="!flex !items-center !gap-2">
+                              <Tag className="w-4 h-4 text-gray-400" />
+                              <Typography
+                                variant="body2"
+                                className="!text-gray-600"
+                              >
+                                Category:{' '}
+                                <span className="!font-semibold">
+                                  {
+                                    customer.customer_category_customer
+                                      .category_name
+                                  }
+                                </span>
+                              </Typography>
+                            </div>
+                          )}
+                        </div>
+                      )}
 
                     {/* Address */}
                     {(customer.city || customer.state || customer.address) && (

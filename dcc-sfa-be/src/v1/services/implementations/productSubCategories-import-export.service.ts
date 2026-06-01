@@ -255,6 +255,7 @@ export class ProductSubCategoriesImportExportService extends ImportExportService
 
     const exportColumns = [
       ...this.columns,
+      { header: 'ID', key: 'id', width: 12 },
       {
         header: 'Product Category Name',
         key: 'product_category_name',

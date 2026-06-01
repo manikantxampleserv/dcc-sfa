@@ -6,18 +6,32 @@ interface InvoiceItem {
   parent_id?: number;
   product_id: number;
   product_name?: string;
-  unit?: string;
+  unit: 'CASE' | 'PCS';
+  uom?: 'CASE' | 'PCS';
   quantity: number;
+  base_quantity?: number;
+  conversion_factor?: number;
   unit_price: number;
   discount_amount?: number;
   tax_amount?: number;
   total_amount?: number;
   notes?: string;
+  tracking_type?: string | null;
+  product?: {
+    id: number;
+    name: string;
+    code: string;
+    tracking_type?: string | null;
+  } | null;
+  product_batches?: any[];
+  product_serials?: any[];
 }
 
 interface Invoice {
   id: number;
   invoice_number: string;
+  invoice_method: 'order' | 'direct';
+  salesperson_id?: number | null;
   parent_id: number;
   customer_id: number;
   invoice_date?: string | null;
@@ -67,7 +81,7 @@ interface Invoice {
 
 interface ManageInvoicePayload {
   invoice_number?: string;
-  parent_id: number;
+  parent_id?: number | null;
   customer_id: number;
   currency_id?: number;
   invoice_date?: string;
@@ -89,7 +103,7 @@ interface ManageInvoicePayload {
 
 interface UpdateInvoicePayload {
   invoice_number?: string;
-  parent_id?: number;
+  parent_id?: number | null;
   customer_id?: number;
   currency_id?: number;
   invoice_date?: string;
@@ -122,6 +136,7 @@ interface GetInvoicesParams {
   due_date_from?: string;
   due_date_to?: string;
   is_active?: string;
+  time_filter?: string;
 }
 
 interface PaginationMeta {

@@ -1,34 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { PrismaMssql } from '@prisma/adapter-mssql';
-import { config as MssqlConfig } from 'mssql';
+import type { config as MssqlConfig } from 'mssql';
 import { config as appConfig } from './env';
-import dotenv from 'dotenv';
-import { resolve } from 'path';
-
-// First check if DATABASE_URL is already set in environment variables
-if (!process.env.DATABASE_URL) {
-  // Ensure environment variables are loaded (same as env.ts)
-  const possiblePaths = [
-    resolve(process.cwd(), '.env'), // Current working directory
-    resolve(__dirname, '../../.env'), // Relative to compiled file
-    resolve(__dirname, '../../../.env'), // For production builds
-    '.env', // Fallback
-  ];
-
-  for (const path of possiblePaths) {
-    try {
-      const result = dotenv.config({ path, quiet: true });
-      if (result.error) {
-        continue;
-      }
-      if (process.env.DATABASE_URL) {
-        break;
-      }
-    } catch (error) {
-      continue;
-    }
-  }
-}
 
 let prisma: PrismaClient | null = null;
 
@@ -75,7 +48,7 @@ const parseConnectionString = (connectionString: string): MssqlConfig => {
       enableArithAbort: true,
     },
     connectionTimeout: 30000,
-    requestTimeout: 60000,
+    requestTimeout: 6000000,
     pool: {
       max: 5,
       min: 1,

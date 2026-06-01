@@ -63,9 +63,6 @@ export const assetMovementValidationSchema = Yup.object({
   movement_date: Yup.date()
     .required('Movement date is required')
     .max(new Date(), 'Movement date cannot be in the future'),
-  performed_by: Yup.number()
-    .positive('Performed by must be a positive number')
-    .required('Performed by is required'),
   priority: Yup.string()
     .oneOf(
       ['low', 'medium', 'high', 'urgent'],

@@ -1,28 +1,42 @@
-import { Add, Block, CheckCircle, Download, Upload } from '@mui/icons-material';
+import {
+  Add,
+  Block,
+  CheckCircle,
+  FilterList,
+  Visibility,
+} from '@mui/icons-material';
 import { Alert, Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
-import { useExportToExcel } from 'hooks/useImportExport';
+import { useCustomerCategories } from 'hooks/useCustomerCategory';
 import { usePermission } from 'hooks/usePermission';
 import {
   useDeletePriceList,
   usePriceLists,
   type PriceList,
 } from 'hooks/usePriceLists';
-import { DollarSign, Calendar, TrendingUp, FileText } from 'lucide-react';
+import { useRoutes } from 'hooks/useRoutes';
+import { FileText, TrendingUp } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
-import { DeleteButton, EditButton } from 'shared/ActionButton';
+import { useNavigate } from 'react-router-dom';
+import { ActionButton, DeleteButton, EditButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
-import { PopConfirm } from 'shared/DeleteConfirmation';
+import CustomerSelect from 'shared/CustomerSelect';
+import DepotSelect from 'shared/DepotSelect';
 import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
-import { formatDate } from 'utils/dateUtils';
 import ImportPriceList from './ImportPriceList';
 import ManagePriceList from './ManagePriceList';
 
 const PriceListsManagement: React.FC = () => {
+  const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [depotId, setDepotId] = useState<string>('');
+  const [routeId, setRouteId] = useState<string>('');
+  const [categoryId, setCategoryId] = useState<string>('');
+  const [customerId, setCustomerId] = useState<string>('');
+
   const [selectedPriceList, setSelectedPriceList] = useState<PriceList | null>(
     null
   );
@@ -42,11 +56,26 @@ const PriceListsManagement: React.FC = () => {
       page,
       limit,
       status: statusFilter === 'all' ? undefined : statusFilter,
+      depot_id: depotId ? Number(depotId) : undefined,
+      route_id: routeId ? Number(routeId) : undefined,
+      customer_id: customerId ? Number(customerId) : undefined,
+      customer_category_id: categoryId ? Number(categoryId) : undefined,
+      include_items: true,
     },
-    {
-      enabled: isRead,
-    }
+    { enabled: isRead }
   );
+
+  const { data: routesResponse } = useRoutes({
+    limit: 1000,
+    status: 'active',
+  });
+  const { data: categoriesResponse } = useCustomerCategories({
+    limit: 1000,
+    is_active: 'Y',
+  });
+
+  const routes = routesResponse?.data || [];
+  const categories = categoriesResponse?.data || [];
 
   const priceLists = priceListsResponse?.data || [];
   const totalCount = priceListsResponse?.meta?.total || 0;
@@ -54,7 +83,6 @@ const PriceListsManagement: React.FC = () => {
   const stats = priceListsResponse?.stats || {};
 
   const deletePriceListMutation = useDeletePriceList();
-  const exportToExcelMutation = useExportToExcel();
 
   const totalPriceLists = stats.total_price_lists ?? priceLists.length;
   const activePriceLists =
@@ -95,22 +123,6 @@ const PriceListsManagement: React.FC = () => {
     setPage(newPage + 1);
   };
 
-  const handleExportToExcel = useCallback(async () => {
-    try {
-      const filters = {
-        search,
-        status: statusFilter === 'all' ? undefined : statusFilter,
-      };
-
-      await exportToExcelMutation.mutateAsync({
-        tableName: 'pricelists',
-        filters,
-      });
-    } catch (error) {
-      console.error('Error exporting price lists:', error);
-    }
-  }, [exportToExcelMutation, search, statusFilter]);
-
   const priceListsColumns: TableColumn<PriceList>[] = [
     {
       id: 'price_list_info',
@@ -143,57 +155,56 @@ const PriceListsManagement: React.FC = () => {
       ),
     },
     {
-      id: 'currency_code',
-      label: 'Currency',
-      render: (_value, row) => (
-        <Box className="flex items-center gap-1">
-          <DollarSign className="w-3 h-3 text-gray-400" />
-          <span className="text-xs font-medium">
-            {row.currency_code || 'INR'}
-          </span>
-        </Box>
-      ),
-    },
-    {
-      id: 'validity_period',
-      label: 'Validity Period',
-      render: (_value, row) => (
-        <Box className="flex items-center gap-1">
-          <Calendar className="w-3 h-3 text-gray-400" />
-          <Box className="text-xs">
-            {row.valid_from || row.valid_to ? (
-              <span>
-                {row.valid_from && row.valid_to ? (
-                  <>
-                    {formatDate(row.valid_from)}
-                    <span className="mx-1 text-gray-400">–</span>
-                    {formatDate(row.valid_to)}
-                  </>
-                ) : row.valid_from ? (
-                  <>
-                    <span className="text-gray-400">From</span>{' '}
-                    {formatDate(row.valid_from)}
-                  </>
-                ) : (
-                  <>
-                    <span className="text-gray-400">Until</span>{' '}
-                    {formatDate(row.valid_to)}
-                  </>
-                )}
-              </span>
-            ) : (
-              <span className="text-gray-400 italic">No validity period</span>
-            )}
-          </Box>
-        </Box>
-      ),
+      id: 'assignment',
+      label: 'Assignment',
+      render: (_value, row) => {
+        if (row.is_default === 'Y') {
+          return (
+            <Chip
+              label="Default"
+              size="small"
+              className="!bg-blue-50 !text-blue-700 !border-blue-200"
+              variant="outlined"
+            />
+          );
+        }
+        if (row.customer_id)
+          return (
+            <Typography variant="caption" className="text-gray-600">
+              Customer: {row.pricelists_customer?.name || row.customer_id}
+            </Typography>
+          );
+        if (row.route_id)
+          return (
+            <Typography variant="caption" className="text-gray-600">
+              Route: {row.pricelists_route?.name || row.route_id}
+            </Typography>
+          );
+        if (row.depot_id)
+          return (
+            <Typography variant="caption" className="text-gray-600">
+              Depot: {row.pricelists_depot?.name || row.depot_id}
+            </Typography>
+          );
+        if (row.customer_category_id)
+          return (
+            <Typography variant="caption" className="text-gray-600">
+              Category: {row.customer_category_id}
+            </Typography>
+          );
+        return (
+          <Typography variant="caption" className="text-gray-400 italic">
+            Global
+          </Typography>
+        );
+      },
     },
     {
       id: 'items_count',
       label: 'Items',
       render: (_value, row) => (
         <Chip
-          label={`${row.pricelist_item?.length || 0} items`}
+          label={`${row.pricelist_item?.filter(p => Number(p.unit_price) > 0)?.length || 0} items`}
           size="small"
           variant="outlined"
           color="primary"
@@ -217,17 +228,24 @@ const PriceListsManagement: React.FC = () => {
       ? [
           {
             id: 'action',
-            label: 'Actions',
+            label: 'Action',
             sortable: false,
             render: (_value: any, row: PriceList) => (
-              <div className="!flex !gap-2 !items-center">
+              <div className="!flex !gap-2 justify-center !items-center">
+                <ActionButton
+                  onClick={() => navigate(`/masters/price-lists/${row.id}`)}
+                  tooltip={`View ${row.name} details`}
+                  icon={<Visibility fontSize="small" />}
+                  color="info"
+                />
                 {isUpdate && (
                   <EditButton
                     onClick={() => handleEditPriceList(row)}
                     tooltip={`Edit ${row.name}`}
                   />
                 )}
-                {isDelete && (
+
+                {isUpdate && (
                   <DeleteButton
                     onClick={() => handleDeletePriceList(row.id)}
                     tooltip={`Delete ${row.name}`}
@@ -246,14 +264,16 @@ const PriceListsManagement: React.FC = () => {
     <>
       <Box className="!mb-3 !flex !justify-between !items-center">
         <Box>
-          <p className="!font-bold text-xl !text-gray-900">Price Lists</p>
+          <p className="!font-bold text-xl !text-gray-900">
+            Price List Management
+          </p>
           <p className="!text-gray-500 text-sm">
             Manage pricing lists and product pricing strategies
           </p>
         </Box>
       </Box>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
         <StatsCard
           title="Total Price Lists"
           value={totalPriceLists}
@@ -290,6 +310,74 @@ const PriceListsManagement: React.FC = () => {
         </Alert>
       )}
 
+      {isRead && (
+        <Box className="bg-white shadow-sm p-3 rounded-lg border border-gray-100 mb-4">
+          <Box className="flex items-center gap-2 mb-2">
+            <FilterList className="text-primary-500" />
+            <Typography variant="subtitle2" className="!font-bold">
+              Filters
+            </Typography>
+          </Box>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <DepotSelect
+              label="Depot"
+              value={depotId}
+              setValue={value => {
+                setDepotId(value);
+                setRouteId('');
+                setCustomerId('');
+                setPage(1);
+              }}
+            />
+
+            <Select
+              label="Route"
+              value={routeId}
+              onChange={e => {
+                setRouteId(e.target.value);
+                setCustomerId('');
+                setPage(1);
+              }}
+              placeholder="Select Route"
+              className="w-full"
+            >
+              {routes.map((route: any) => (
+                <MenuItem key={route.id} value={route.id.toString()}>
+                  {route.name}
+                </MenuItem>
+              ))}
+            </Select>
+
+            <Select
+              label="Customer Category"
+              value={categoryId}
+              onChange={e => {
+                setCategoryId(e.target.value);
+                setPage(1);
+              }}
+              placeholder="Select Category"
+              className="w-full"
+            >
+              {categories.map((category: any) => (
+                <MenuItem key={category.id} value={category.id.toString()}>
+                  {category.category_name}
+                </MenuItem>
+              ))}
+            </Select>
+
+            <CustomerSelect
+              name="customer_id"
+              label="Customer"
+              value={customerId}
+              setValue={value => {
+                setCustomerId(value);
+                setPage(1);
+              }}
+            />
+          </div>
+        </Box>
+      )}
+
       <Table
         data={priceLists}
         columns={priceListsColumns}
@@ -300,7 +388,7 @@ const PriceListsManagement: React.FC = () => {
                 {isRead && (
                   <>
                     <SearchInput
-                      placeholder="Search Price Lists..."
+                      placeholder={'Search Price Lists...'}
                       value={search}
                       onChange={handleSearchChange}
                       debounceMs={400}
@@ -310,7 +398,6 @@ const PriceListsManagement: React.FC = () => {
                     <Select
                       value={statusFilter}
                       onChange={e => setStatusFilter(e.target.value)}
-                      className="!w-32"
                     >
                       <MenuItem value="all">All Status</MenuItem>
                       <MenuItem value="active">Active</MenuItem>
@@ -320,37 +407,6 @@ const PriceListsManagement: React.FC = () => {
                 )}
               </div>
               <div className="flex items-center gap-2">
-                {isRead && (
-                  <PopConfirm
-                    title="Export Price Lists"
-                    description="Are you sure you want to export the current price lists data to Excel? This will include all filtered results."
-                    onConfirm={handleExportToExcel}
-                    confirmText="Export"
-                    cancelText="Cancel"
-                    placement="top"
-                  >
-                    <Button
-                      variant="outlined"
-                      className="!capitalize"
-                      startIcon={<Download />}
-                      disabled={exportToExcelMutation.isPending}
-                    >
-                      {exportToExcelMutation.isPending
-                        ? 'Exporting...'
-                        : 'Export'}
-                    </Button>
-                  </PopConfirm>
-                )}
-                {isCreate && (
-                  <Button
-                    variant="outlined"
-                    className="!capitalize"
-                    startIcon={<Upload />}
-                    onClick={() => setImportModalOpen(true)}
-                  >
-                    Import
-                  </Button>
-                )}
                 {isCreate && (
                   <Button
                     variant="contained"

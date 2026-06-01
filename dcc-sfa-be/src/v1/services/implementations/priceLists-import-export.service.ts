@@ -6,7 +6,7 @@ export class PriceListsImportExportService extends ImportExportService<any> {
   protected modelName = 'pricelists' as const;
   protected displayName = 'Price Lists';
   protected uniqueFields = ['name'];
-  protected searchFields = ['name', 'description', 'currency_code'];
+  protected searchFields = ['name', 'description'];
 
   protected columns: ColumnDefinition[] = [
     {
@@ -35,18 +35,6 @@ export class PriceListsImportExportService extends ImportExportService<any> {
         'Description must be less than 255 characters',
       transform: value => (value ? value.trim() : null),
       description: 'Description of the price list (optional, max 255 chars)',
-    },
-    {
-      key: 'currency_code',
-      header: 'Currency Code',
-      width: 15,
-      type: 'string',
-      validation: value =>
-        !value ||
-        value.length <= 10 ||
-        'Currency code must be less than 10 characters',
-      transform: value => (value ? value.trim().toUpperCase() : 'INR'),
-      description: 'Currency code (optional, max 10 chars, defaults to INR)',
     },
     {
       key: 'valid_from',
@@ -96,7 +84,6 @@ export class PriceListsImportExportService extends ImportExportService<any> {
       {
         name: 'Standard Price List',
         description: 'Default pricing for all products',
-        currency_code: 'INR',
         valid_from: '2024-01-01',
         valid_to: '2024-12-31',
         is_active: 'Y',
@@ -104,7 +91,6 @@ export class PriceListsImportExportService extends ImportExportService<any> {
       {
         name: 'Premium Price List',
         description: 'Premium pricing for VIP customers',
-        currency_code: 'USD',
         valid_from: '2024-01-01',
         valid_to: '2024-06-30',
         is_active: 'Y',
@@ -112,7 +98,6 @@ export class PriceListsImportExportService extends ImportExportService<any> {
       {
         name: 'Seasonal Price List',
         description: 'Special seasonal pricing',
-        currency_code: 'INR',
         valid_from: '2024-03-01',
         valid_to: '2024-05-31',
         is_active: 'N',
@@ -129,7 +114,6 @@ export class PriceListsImportExportService extends ImportExportService<any> {
     return data.map(priceList => ({
       name: priceList.name,
       description: priceList.description || '',
-      currency_code: priceList.currency_code || 'INR',
       valid_from: priceList.valid_from
         ? priceList.valid_from.toISOString().split('T')[0]
         : '',
@@ -165,7 +149,6 @@ export class PriceListsImportExportService extends ImportExportService<any> {
     return {
       name: data.name,
       description: data.description || null,
-      currency_code: data.currency_code || 'INR',
       valid_from: data.valid_from || null,
       valid_to: data.valid_to || null,
       is_active: data.is_active || 'Y',

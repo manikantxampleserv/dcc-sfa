@@ -16,8 +16,6 @@ export interface CreateNotificationParams {
  * @returns Created notification
  */
 export declare function createNotification(params: CreateNotificationParams): Promise<{
-    message: string;
-    data: string | null;
     id: number;
     createdate: Date | null;
     createdby: number;
@@ -30,6 +28,8 @@ export declare function createNotification(params: CreateNotificationParams): Pr
     type: string;
     category: string;
     title: string;
+    message: string;
+    data: string | null;
     is_read: string;
     action_url: string | null;
     read_at: Date | null;
@@ -40,8 +40,6 @@ export declare function createNotification(params: CreateNotificationParams): Pr
  * @returns Array of created notifications
  */
 export declare function createNotificationsForUsers(params: CreateNotificationParams[]): Promise<{
-    message: string;
-    data: string | null;
     id: number;
     createdate: Date | null;
     createdby: number;
@@ -54,6 +52,8 @@ export declare function createNotificationsForUsers(params: CreateNotificationPa
     type: string;
     category: string;
     title: string;
+    message: string;
+    data: string | null;
     is_read: string;
     action_url: string | null;
     read_at: Date | null;
@@ -62,8 +62,6 @@ export declare function createNotificationsForUsers(params: CreateNotificationPa
  * Create notification for a specific order event
  */
 export declare function createOrderNotification(userId: number, orderId: number, orderNumber: string, event: 'created' | 'updated' | 'approved' | 'rejected' | 'cancelled', createdBy?: number): Promise<{
-    message: string;
-    data: string | null;
     id: number;
     createdate: Date | null;
     createdby: number;
@@ -76,6 +74,8 @@ export declare function createOrderNotification(userId: number, orderId: number,
     type: string;
     category: string;
     title: string;
+    message: string;
+    data: string | null;
     is_read: string;
     action_url: string | null;
     read_at: Date | null;
@@ -84,8 +84,6 @@ export declare function createOrderNotification(userId: number, orderId: number,
  * Create notification for workflow events
  */
 export declare function createWorkflowNotification(userId: number, workflowId: number, referenceNumber: string, event: 'created' | 'approved' | 'rejected' | 'pending', createdBy?: number): Promise<{
-    message: string;
-    data: string | null;
     id: number;
     createdate: Date | null;
     createdby: number;
@@ -98,6 +96,8 @@ export declare function createWorkflowNotification(userId: number, workflowId: n
     type: string;
     category: string;
     title: string;
+    message: string;
+    data: string | null;
     is_read: string;
     action_url: string | null;
     read_at: Date | null;
@@ -106,8 +106,6 @@ export declare function createWorkflowNotification(userId: number, workflowId: n
  * Create notification for route exceptions
  */
 export declare function createRouteExceptionNotification(userId: number, exceptionId: number, routeName: string, exceptionType: string, description: string, severity?: 'low' | 'medium' | 'high', createdBy?: number): Promise<{
-    message: string;
-    data: string | null;
     id: number;
     createdate: Date | null;
     createdby: number;
@@ -120,6 +118,8 @@ export declare function createRouteExceptionNotification(userId: number, excepti
     type: string;
     category: string;
     title: string;
+    message: string;
+    data: string | null;
     is_read: string;
     action_url: string | null;
     read_at: Date | null;

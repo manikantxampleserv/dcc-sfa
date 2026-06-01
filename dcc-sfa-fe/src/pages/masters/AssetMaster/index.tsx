@@ -1,33 +1,35 @@
 import { Add, Block, CheckCircle, Download, Upload } from '@mui/icons-material';
 import { Alert, Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
+import {
+  useAssetMaster,
+  useDeleteAssetMaster,
+  type AssetMaster,
+} from 'hooks/useAssetMaster';
 import { useExportToExcel } from 'hooks/useImportExport';
 import { usePermission } from 'hooks/usePermission';
 import {
-  useDeleteAssetMaster,
-  useAssetMaster,
-  type AssetMaster,
-} from 'hooks/useAssetMaster';
-import {
-  Package,
+  Home,
   MapPin,
-  User,
-  Calendar,
+  Package,
   Settings,
-  Wrench,
+  Store,
+  Tag,
+  Wrench
 } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
-import { DeleteButton, EditButton } from 'shared/ActionButton';
+import { useNavigate } from 'react-router-dom';
+import { DeleteButton, EditButton, ViewButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
 import { PopConfirm } from 'shared/DeleteConfirmation';
 import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
-import { formatDate } from 'utils/dateUtils';
 import ImportAssetMaster from './ImportAssetMaster';
 import ManageAssetMaster from './ManageAssetMaster';
 
 const AssetMasterManagement: React.FC = () => {
+  const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedAsset, setSelectedAsset] = useState<AssetMaster | null>(null);
@@ -75,6 +77,13 @@ const AssetMasterManagement: React.FC = () => {
     setSelectedAsset(asset);
     setDrawerOpen(true);
   }, []);
+
+  const handleViewAsset = useCallback(
+    (id: number) => {
+      navigate(`/masters/asset-master/${id}`);
+    },
+    [navigate]
+  );
 
   const handleDeleteAsset = useCallback(
     async (id: number) => {
@@ -160,35 +169,75 @@ const AssetMasterManagement: React.FC = () => {
     },
     {
       id: 'asset_master_asset_types',
-      label: 'Asset Type',
-      render: value => (
-        <Box className="flex items-center gap-1">
-          <Settings className="w-3 h-3 text-gray-400" />
-          <span className="text-xs">{value?.name || 'Not specified'}</span>
+      label: 'Type / Sub Type',
+      render: (_value, row) => (
+        <Box className='flex items-center gap-2'>
+
+          <Avatar
+            alt={row.asset_master_asset_types?.name}
+            className="!rounded !bg-primary-100 !text-primary-500"
+          >
+            <Settings className="w-5 h-5" />
+          </Avatar>
+          <Box>
+            <Typography
+              variant="body1"
+              className="!text-gray-900 !leading-tight"
+            >
+              {row.asset_master_asset_types?.name || (
+                <span className="italic text-gray-400">Not specified</span>
+              )}
+            </Typography>
+            <Typography
+              variant="caption"
+              className="!text-gray-500 !text-xs !block !mt-0.5"
+            >
+              {row?.asset_master_asset_sub_types?.name}
+            </Typography>
+          </Box>
+
         </Box>
       ),
     },
     {
-      id: 'asset_master_asset_sub_types',
-      label: 'Asset Sub-Type',
+      id: 'asset_brand',
+      label: 'Brand',
       render: value => (
         <Box className="flex items-center gap-1">
-          <Wrench className="w-3 h-3 text-gray-400" />
-          <span className="text-xs">{value?.name || 'Not specified'}</span>
+          <Tag className="w-3 h-3 text-gray-400" />
+          <span className="text-xs">
+            {value?.name || (
+              <span className="italic text-gray-400">No brand</span>
+            )}
+          </span>
         </Box>
       ),
     },
     {
       id: 'current_location',
       label: 'Location',
-      render: (_value, row) => (
-        <Box className="flex items-center gap-1">
-          <MapPin className="w-3 h-3 text-gray-400" />
-          <span className="text-xs">
-            {row.current_location || 'Not specified'}
-          </span>
-        </Box>
-      ),
+      render: (_value, row) => {
+        const locationName =
+          row.asset_master_depot?.name ||
+          row.asset_master_outlet?.name ||
+          row.current_location;
+        const Icon = row.asset_master_depot
+          ? Home
+          : row.asset_master_outlet
+            ? Store
+            : MapPin;
+
+        return (
+          <Box className="flex items-center gap-1">
+            <Icon className="w-3 h-3 text-gray-400" />
+            <span className="text-xs">
+              {locationName || (
+                <span className="italic text-gray-400">No location</span>
+              )}
+            </span>
+          </Box>
+        );
+      },
     },
     {
       id: 'current_status',
@@ -199,30 +248,6 @@ const AssetMasterManagement: React.FC = () => {
           color={getStatusColor(row.current_status || 'Available')}
           size="small"
         />
-      ),
-    },
-    {
-      id: 'assigned_to',
-      label: 'Assigned To',
-      render: (_value, row) => (
-        <Box className="flex items-center gap-1">
-          <User className="w-3 h-3 text-gray-400" />
-          <span className="text-xs">{row.assigned_to || 'Unassigned'}</span>
-        </Box>
-      ),
-    },
-    {
-      id: 'warranty_expiry',
-      label: 'Warranty',
-      render: (_value, row) => (
-        <Box className="flex items-center gap-1">
-          <Calendar className="w-3 h-3 text-gray-400" />
-          <span className="text-xs">
-            {row.warranty_expiry
-              ? formatDate(row.warranty_expiry)
-              : 'No warranty'}
-          </span>
-        </Box>
       ),
     },
     {
@@ -240,30 +265,34 @@ const AssetMasterManagement: React.FC = () => {
     },
     ...(isUpdate || isDelete || isRead
       ? [
-          {
-            id: 'action',
-            label: 'Actions',
-            sortable: false,
-            render: (_value: any, row: AssetMaster) => (
-              <div className="!flex !gap-2 !items-center">
-                {isUpdate && (
-                  <EditButton
-                    onClick={() => handleEditAsset(row)}
-                    tooltip={`Edit ${row.serial_number}`}
-                  />
-                )}
-                {isDelete && (
-                  <DeleteButton
-                    onClick={() => handleDeleteAsset(row.id)}
-                    tooltip={`Delete ${row.serial_number}`}
-                    itemName={row.serial_number}
-                    confirmDelete={true}
-                  />
-                )}
-              </div>
-            ),
-          },
-        ]
+        {
+          id: 'action',
+          label: 'Actions',
+          sortable: false,
+          render: (_value: any, row: AssetMaster) => (
+            <div className="!flex !gap-2 !items-center">
+              <ViewButton
+                onClick={() => handleViewAsset(row.id)}
+                tooltip={`View ${row.serial_number}`}
+              />
+              {isUpdate && (
+                <EditButton
+                  onClick={() => handleEditAsset(row)}
+                  tooltip={`Edit ${row.serial_number}`}
+                />
+              )}
+              {isDelete && (
+                <DeleteButton
+                  onClick={() => handleDeleteAsset(row.id)}
+                  tooltip={`Delete ${row.serial_number}`}
+                  itemName={row.serial_number}
+                  confirmDelete={true}
+                />
+              )}
+            </div>
+          ),
+        },
+      ]
       : []),
   ];
 
@@ -335,7 +364,6 @@ const AssetMasterManagement: React.FC = () => {
                     <Select
                       value={statusFilter}
                       onChange={e => setStatusFilter(e.target.value)}
-                      className="!w-32"
                       disableClearable
                     >
                       <MenuItem value="all">All Status</MenuItem>

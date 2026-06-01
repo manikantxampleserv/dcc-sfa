@@ -1,18 +1,18 @@
-import { Box, MenuItem } from '@mui/material';
+import { Box } from '@mui/material';
+import React from 'react';
 import { useFormik } from 'formik';
-import { useAssetMaster, type AssetMaster } from 'hooks/useAssetMaster';
+import AssetSelect from 'shared/AssetSelect';
+import UserSelect from 'shared/UserSelect';
 import {
   useCreateAssetMaintenance,
   useUpdateAssetMaintenance,
   type AssetMaintenance,
 } from 'hooks/useAssetMaintenance';
-import { useUsers, type User } from 'hooks/useUsers';
-import React from 'react';
 import { assetMaintenanceValidationSchema } from 'schemas/assetMaintenance.schema';
 import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
-import Select from 'shared/Select';
+
 import { formatForDateInput } from 'utils/dateUtils';
 import ActiveInactiveField from 'shared/ActiveInactiveField';
 
@@ -31,19 +31,7 @@ const ManageAssetMaintenance: React.FC<ManageAssetMaintenanceProps> = ({
 }) => {
   const isEdit = !!selectedMaintenance;
 
-  const { data: assetsResponse } = useAssetMaster({
-    page: 1,
-    limit: 1000,
-    status: 'active',
-  });
-  const assets = assetsResponse?.data || [];
 
-  const { data: usersResponse } = useUsers({
-    page: 1,
-    limit: 1000,
-    isActive: 'Y',
-  });
-  const users = usersResponse?.data || [];
 
   const createAssetMaintenanceMutation = useCreateAssetMaintenance();
   const updateAssetMaintenanceMutation = useUpdateAssetMaintenance();
@@ -107,28 +95,21 @@ const ManageAssetMaintenance: React.FC<ManageAssetMaintenanceProps> = ({
       <Box className="!p-6">
         <form onSubmit={formik.handleSubmit} className="!space-y-6">
           <Box className="!grid !grid-cols-1 md:!grid-cols-2 !gap-6">
-            <Select name="asset_id" label="Asset" formik={formik} required>
-              <MenuItem value="">Select Asset</MenuItem>
-              {assets.map((asset: AssetMaster) => (
-                <MenuItem key={asset.id} value={asset.id?.toString() || ''}>
-                  {asset.asset_master_asset_types?.name} ({asset.serial_number})
-                </MenuItem>
-              ))}
-            </Select>
+            <AssetSelect
+              name="asset_id"
+              label="Asset"
+              formik={formik}
+              required
+              nameToSearch={selectedMaintenance?.asset_maintenance_master?.name}
+            />
 
-            <Select
+            <UserSelect
               name="technician_id"
               label="Technician"
               formik={formik}
               required
-            >
-              <MenuItem value="">Select Technician</MenuItem>
-              {users.map((user: User) => (
-                <MenuItem key={user.id} value={user.id?.toString() || ''}>
-                  {user.name} ({user.email})
-                </MenuItem>
-              ))}
-            </Select>
+              nameToSearch={selectedMaintenance?.asset_maintenance_technician?.name}
+            />
 
             <Input
               name="maintenance_date"
@@ -203,7 +184,7 @@ const ManageAssetMaintenance: React.FC<ManageAssetMaintenanceProps> = ({
               }
             >
               {createAssetMaintenanceMutation.isPending ||
-              updateAssetMaintenanceMutation.isPending
+                updateAssetMaintenanceMutation.isPending
                 ? isEdit
                   ? 'Updating...'
                   : 'Creating...'

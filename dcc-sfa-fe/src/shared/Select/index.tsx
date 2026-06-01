@@ -10,9 +10,8 @@
 import {
   Autocomplete,
   FormControl,
-  FormHelperText,
   TextField,
-  type AutocompleteProps,
+  type AutocompleteProps
 } from '@mui/material';
 import type { FormikProps } from 'formik';
 import React, { useCallback, useMemo } from 'react';
@@ -34,9 +33,11 @@ interface CustomSelectProps
   placeholder?: string;
   name?: string;
   label?: string;
+  loading?: boolean;
   children?: React.ReactNode;
   value?: any;
   required?: boolean;
+  compact?: boolean;
   disableClearable?: boolean;
 }
 
@@ -46,17 +47,31 @@ const Select: React.FC<CustomSelectProps> = ({
   size = 'small',
   setValue,
   label,
+  loading,
   value,
   required,
   children,
-  fullWidth = false,
+  fullWidth,
   placeholder,
   onBlur,
   onChange,
   disabled,
+  compact = false,
   disableClearable = false,
+  className,
   ...rest
 }) => {
+  const hasWidthClass = !!(
+    className &&
+    (className.includes('w-') || className.includes('width'))
+  );
+
+  const defaultMinWidth = hasWidthClass ? 'unset' : '160px';
+
+  const effectiveFullWidth =
+    fullWidth !== undefined
+      ? fullWidth
+      : !!(formik && !compact && !hasWidthClass);
   const options = useMemo(() => {
     if (!children) return [];
     const childrenArray = React.Children.toArray(children);
@@ -137,11 +152,14 @@ const Select: React.FC<CustomSelectProps> = ({
   const handleChange = useCallback(
     (_event: any, newValue: Option | null) => {
       const newValueToSet = newValue?.value ?? null;
+      
       if (formik && name) {
         formik.setFieldValue(name, newValueToSet);
       } else if (setValue) {
         setValue(newValueToSet);
-      } else if (onChange) {
+      }
+      
+      if (onChange) {
         const syntheticEvent = {
           target: {
             name: name,
@@ -176,8 +194,13 @@ const Select: React.FC<CustomSelectProps> = ({
   const errorMessage = typeof error === 'string' ? error : undefined;
 
   return (
-    <FormControl fullWidth={fullWidth} error={!!error}>
+    <FormControl
+      fullWidth={effectiveFullWidth}
+      error={!!error}
+      className={className}
+    >
       <Autocomplete
+        loading={loading}
         options={options}
         value={selectedOption}
         onChange={handleChange}
@@ -196,7 +219,7 @@ const Select: React.FC<CustomSelectProps> = ({
         getOptionDisabled={(option: Option) => option?.disabled || false}
         disabled={disabled}
         size={size}
-        fullWidth={fullWidth}
+        fullWidth={true}
         openOnFocus
         selectOnFocus
         clearOnBlur={false}
@@ -209,7 +232,7 @@ const Select: React.FC<CustomSelectProps> = ({
             option.label.toLowerCase().includes(state.inputValue.toLowerCase())
           );
         }}
-        sx={{ minWidth: '160px' }}
+        sx={{ minWidth: defaultMinWidth }}
         slotProps={{
           popper: {
             style: { zIndex: 1300 },
@@ -219,17 +242,83 @@ const Select: React.FC<CustomSelectProps> = ({
             style: { maxHeight: '300px' },
           },
         }}
-        renderInput={(params: any) => (
+        renderInput={params => (
           <TextField
             {...params}
+            name={name}
             label={label}
+            placeholder={selectedOption ? '' : placeholder}
             required={required}
             error={!!error}
+            helperText={errorMessage}
             size={size}
-            placeholder={selectedOption ? '' : placeholder}
-            inputProps={{
-              ...params.inputProps,
-              value: selectedOption ? params.inputProps.value : '',
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                minWidth: defaultMinWidth,
+              },
+              '&.MuiAutocomplete-hasPopupIcon.MuiAutocomplete-hasClearIcon .MuiOutlinedInput-root': {
+                paddingRight: '24px !important',
+              },
+              ...(compact && {
+                '& .MuiInputBase-root': {
+                  height: '28px !important',
+                  minHeight: '28px !important',
+                  paddingTop: '0px !important',
+                  paddingBottom: '0px !important',
+                  fontSize: '0.75rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                },
+                '& .MuiInputBase-input': {
+                  padding: '0px 8px !important',
+                  height: '28px !important',
+                  lineHeight: '28px !important',
+                  fontSize: '0.75rem',
+                  boxSizing: 'border-box',
+                },
+                '& .MuiOutlinedInput-input': {
+                  padding: '0px 8px !important',
+                  height: '28px !important',
+                  lineHeight: '28px !important',
+                },
+                '& .MuiInputLabel-root': {
+                  fontSize: '0.75rem',
+                  transform: 'translate(14px, 5px) scale(1)',
+                },
+                '& .MuiInputLabel-shrink': {
+                  transform: 'translate(14px, -8px) scale(0.75)',
+                },
+                '& .MuiAutocomplete-endAdornment': {
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  right: '4px !important',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0px',
+                  '& .MuiIconButton-root': {
+                    padding: '2px',
+                    margin: 0,
+                    '& .MuiSvgIcon-root': {
+                      fontSize: '1rem',
+                    },
+                  },
+                },
+                '& .MuiAutocomplete-clearIndicator': {
+                  marginRight: '-2px',
+                },
+                '& .MuiAutocomplete-popupIndicator': {
+                  marginRight: '0px',
+                },
+              }),
+            }}
+            slotProps={{
+              htmlInput: {
+                ...params.inputProps,
+                required: false,
+              },
+              inputLabel: {
+                shrink: compact ? true : undefined,
+              },
             }}
           />
         )}
@@ -241,7 +330,6 @@ const Select: React.FC<CustomSelectProps> = ({
         noOptionsText="No options available"
         {...rest}
       />
-      {errorMessage && <FormHelperText>{errorMessage}</FormHelperText>}
     </FormControl>
   );
 };

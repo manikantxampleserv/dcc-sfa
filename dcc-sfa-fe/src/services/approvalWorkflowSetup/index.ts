@@ -165,9 +165,19 @@ export const approvalWorkflowSetupService = {
    * @returns Promise<void>
    */
   async deleteApprovalWorkflowSetupByRequestType(
-    requestType: string
+    requestType: string,
+    depotId?: number | null
   ): Promise<void> {
-    await axioConfig.delete(`/approval-workflow-setup/${requestType}`);
+    const params = new URLSearchParams();
+    if (depotId !== undefined) {
+      params.append('depot_id', depotId === null ? 'null' : String(depotId));
+    }
+    const queryString = params.toString();
+    await axioConfig.delete(
+      `/approval-workflow-setup/${requestType}${
+        queryString ? `?${queryString}` : ''
+      }`
+    );
   },
 
   /**

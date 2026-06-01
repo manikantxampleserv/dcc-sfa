@@ -1,29 +1,25 @@
-import { Add, Download, Upload } from '@mui/icons-material';
-import { Alert, Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
-import { useExportToExcel } from 'hooks/useImportExport';
-import { usePermission } from 'hooks/usePermission';
-import { useDeleteInvoice, useInvoices, type Invoice } from 'hooks/useInvoices';
+import { Add, Download, Upload, Visibility } from '@mui/icons-material';
+import { Alert, Avatar, Box, MenuItem, Typography } from '@mui/material';
 import { useCurrency } from 'hooks/useCurrency';
+import { useExportToExcel } from 'hooks/useImportExport';
+import { useDeleteInvoice, useInvoices, type Invoice } from 'hooks/useInvoices';
+import { usePermission } from 'hooks/usePermission';
 import {
   AlertTriangle,
   Calendar,
   CheckCircle as CheckCircleIcon,
-  Clock,
-  CreditCard,
   DollarSign,
-  FileText,
-  Package,
   Receipt,
-  XCircle,
 } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
-import { ActionButton, DeleteButton, EditButton } from 'shared/ActionButton';
+import { ActionButton, DeleteButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
 import { PopConfirm } from 'shared/DeleteConfirmation';
 import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
+import { formatDateTime } from 'utils/dateUtils';
 import ImportInvoice from './ImportInvoice';
 import InvoiceDetail from './InvoiceDetail';
 import InvoiceItemsManagement from './InvoiceItemsManagement';
@@ -84,25 +80,20 @@ const InvoicesManagement: React.FC = () => {
     setDrawerOpen(true);
   }, []);
 
-  const handleEditInvoice = useCallback((invoice: Invoice) => {
-    setSelectedInvoice(invoice);
-    setDrawerOpen(true);
-  }, []);
-
   const handleViewInvoice = useCallback((invoice: Invoice) => {
     setSelectedInvoice(invoice);
     setDetailDrawerOpen(true);
   }, []);
 
-  const handleManageItems = useCallback((invoice: Invoice) => {
-    setSelectedInvoice(invoice);
-    setItemsDrawerOpen(true);
-  }, []);
+  // const handleManageItems = useCallback((invoice: Invoice) => {
+  //   setSelectedInvoice(invoice);
+  //   setItemsDrawerOpen(true);
+  // }, []);
 
-  const handlePaymentTracking = useCallback((invoice: Invoice) => {
-    setSelectedInvoice(invoice);
-    setPaymentTrackingDrawerOpen(true);
-  }, []);
+  // const handlePaymentTracking = useCallback((invoice: Invoice) => {
+  //   setSelectedInvoice(invoice);
+  //   setPaymentTrackingDrawerOpen(true);
+  // }, []);
 
   const handleDeleteInvoice = useCallback(
     async (id: number) => {
@@ -140,41 +131,6 @@ const InvoicesManagement: React.FC = () => {
     }
   }, [exportToExcelMutation, search, statusFilter]);
 
-  const getStatusColor = (status: string) => {
-    const colors = {
-      draft: '!bg-gray-100 !text-gray-800',
-      sent: '!bg-blue-100 !text-blue-800',
-      paid: '!bg-green-100 !text-green-800',
-      overdue: '!bg-red-100 !text-red-800',
-      cancelled: '!bg-gray-100 !text-gray-800',
-    };
-    return (
-      colors[status as keyof typeof colors] || '!bg-gray-100 !text-gray-800'
-    );
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'draft':
-        return <FileText className="w-4 h-4" />;
-      case 'sent':
-        return <Clock className="w-4 h-4" />;
-      case 'paid':
-        return <CheckCircleIcon className="w-4 h-4" />;
-      case 'overdue':
-        return <AlertTriangle className="w-4 h-4" />;
-      case 'cancelled':
-        return <XCircle className="w-4 h-4" />;
-      default:
-        return <FileText className="w-4 h-4" />;
-    }
-  };
-
-  const isOverdue = (invoice: Invoice) => {
-    if (!invoice.due_date || !invoice.balance_due) return false;
-    return new Date(invoice.due_date) < new Date() && invoice.balance_due > 0;
-  };
-
   const invoiceColumns: TableColumn<Invoice>[] = [
     {
       id: 'invoice_number',
@@ -198,7 +154,8 @@ const InvoicesManagement: React.FC = () => {
               variant="caption"
               className="!text-gray-500 !text-xs !block !mt-0.5"
             >
-              {row.invoice_items?.length || 0} items • Order #{row.parent_id}
+              {row.invoice_items?.length || 0} items
+              {row.parent_id && ` • Order #${row.parent_id}`}
             </Typography>
           </Box>
         </Box>
@@ -206,10 +163,13 @@ const InvoicesManagement: React.FC = () => {
     },
     {
       id: 'customer.name',
-      label: 'Customer',
+      label: 'Customer Info',
       render: (_value, row) => (
         <Box>
-          <Typography variant="body2" className="!text-gray-900 !font-medium">
+          <Typography
+            variant="body2"
+            className="!text-gray-900 !font-medium uppercase"
+          >
             {row.customer?.name || 'N/A'}
           </Typography>
           <Typography
@@ -222,44 +182,14 @@ const InvoicesManagement: React.FC = () => {
       ),
     },
     {
-      id: 'status',
-      label: 'Status',
-      render: (_value, row) => (
-        <Box className="flex !gap-2 items-center">
-          <Chip
-            icon={getStatusIcon(row.status || 'draft')}
-            label={row.status || 'draft'}
-            size="small"
-            className={`!text-xs !capitalize ${getStatusColor(row.status || 'draft')} !min-w-20`}
-          />
-          {isOverdue(row) && (
-            <Chip
-              label="OVERDUE"
-              size="small"
-              className="!text-xs !bg-red-100 !text-red-800 !font-bold"
-            />
-          )}
-        </Box>
-      ),
-    },
-    {
       id: 'invoice_date',
-      label: 'Dates',
+      label: 'Date',
       render: (_value, row) => (
         <Box>
           <Box className="flex items-center text-sm text-gray-900">
             <Calendar className="w-4 h-4 text-gray-400 mr-1" />
-            Invoice:{' '}
-            {row.invoice_date
-              ? new Date(row.invoice_date).toLocaleDateString()
-              : 'N/A'}
+            {row.invoice_date ? formatDateTime(row.invoice_date) : 'N/A'}
           </Box>
-          {row.due_date && (
-            <Box className="flex items-center text-sm text-gray-500 mt-1">
-              <Clock className="w-4 h-4 text-gray-400 mr-1" />
-              Due: {new Date(row.due_date).toLocaleDateString()}
-            </Box>
-          )}
         </Box>
       ),
     },
@@ -269,32 +199,18 @@ const InvoicesManagement: React.FC = () => {
       render: (_value, row) => (
         <Box>
           <Typography variant="body2" className="!text-gray-900 !font-medium">
-            Total: {formatCurrency(row.total_amount || 0)}
+            Total:{' '}
+            {formatCurrency(
+              Number(row.total_amount) + Number(row.tax_amount) || 0
+            )}
           </Typography>
           <Typography
             variant="caption"
-            className="!text-green-600 !text-xs !block !mt-0.5"
+            className="!text-gray-500 !text-xs !block !mt-0.5"
           >
-            Paid: {formatCurrency(row.amount_paid || 0)}
+            Tax: {formatCurrency(row.tax_amount || 0)}
           </Typography>
-          {row.balance_due && row.balance_due > 0 && (
-            <Typography
-              variant="caption"
-              className="!text-red-600 !text-xs !block !mt-0.5"
-            >
-              Balance: {formatCurrency(row.balance_due || 0)}
-            </Typography>
-          )}
         </Box>
-      ),
-    },
-    {
-      id: 'payment_method',
-      label: 'Payment Method',
-      render: (_value, row) => (
-        <Typography variant="body2" className="!text-gray-600 !capitalize">
-          {row.payment_method?.replaceAll('_', ' ') || 'N/A'}
-        </Typography>
       ),
     },
     ...(isRead || isUpdate || isDelete
@@ -310,29 +226,29 @@ const InvoicesManagement: React.FC = () => {
                     <ActionButton
                       onClick={() => handleViewInvoice(row)}
                       tooltip="View invoice details"
-                      icon={<FileText />}
+                      icon={<Visibility className="!text-[20px]" />}
                       color="success"
                     />
-                    <ActionButton
+                    {/* <ActionButton
                       onClick={() => handleManageItems(row)}
                       tooltip="Manage invoice items"
                       icon={<Package />}
                       color="info"
-                    />
-                    <ActionButton
+                    /> */}
+                    {/* <ActionButton
                       onClick={() => handlePaymentTracking(row)}
                       tooltip="Track payments"
                       icon={<CreditCard />}
                       color="secondary"
-                    />
+                    /> */}
                   </>
                 )}
-                {isUpdate && (
+                {/* {isUpdate && (
                   <EditButton
                     onClick={() => handleEditInvoice(row)}
                     tooltip={`Edit ${row.invoice_number}`}
                   />
-                )}
+                )} */}
                 {isDelete && (
                   <DeleteButton
                     onClick={() => handleDeleteInvoice(row.id)}
@@ -409,8 +325,8 @@ const InvoicesManagement: React.FC = () => {
         columns={invoiceColumns}
         actions={
           isRead || isCreate ? (
-            <div className="flex justify-between gap-3 items-center flex-wrap">
-              <div className="flex flex-wrap items-center gap-3">
+            <div className="flex justify-between w-full gap-3 items-center flex-wrap">
+              <div className="flex flex-wrap justify-between items-center gap-3">
                 {isRead && (
                   <>
                     <SearchInput

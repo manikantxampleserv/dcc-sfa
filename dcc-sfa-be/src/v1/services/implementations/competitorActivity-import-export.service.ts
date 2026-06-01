@@ -13,6 +13,22 @@ export class CompetitorActivityImportExportService extends ImportExportService<a
     'remarks',
   ];
 
+  protected masterTableConfigs = [
+    {
+      masterTable: 'customers' as any,
+      masterKey: 'id',
+      masterDisplayFields: ['id', 'name', 'code', 'email', 'phone_number'],
+      sheetName: 'Ref - Customers',
+      description: 'Use the ID from this sheet in the Customer ID column',
+    },
+    {
+      masterTable: 'visits' as any,
+      masterKey: 'id',
+      masterDisplayFields: ['id', 'visit_date', 'purpose', 'status'],
+      sheetName: 'Ref - Visits',
+      description: 'Use the ID from this sheet in the Visit ID column',
+    },
+  ];
   protected columns: ColumnDefinition[] = [
     {
       key: 'customer_id',

@@ -44,8 +44,8 @@ const VisitFrequencyCompletionReport: React.FC = () => {
     }
   );
 
-  const { data: customersData } = useCustomers();
-  const { data: usersData } = useUsers();
+  const { data: customersData } = useCustomers({ limit: 1000, isActive: 'Y' });
+  const { data: usersData } = useUsers({ limit: 1000, isActive: 'Y' });
 
   const customers = customersData?.data || [];
   const users = usersData?.data || [];

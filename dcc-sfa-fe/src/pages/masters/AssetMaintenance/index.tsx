@@ -124,24 +124,24 @@ const AssetMaintenanceManagement: React.FC = () => {
       label: 'Asset Info',
       sortable: false,
       render: (_value, row) => (
-        <Box className="!flex !gap-2 !items-center">
+        <Box className="!flex !items-center !gap-2">
           <Avatar
             alt={row.asset_maintenance_master?.serial_number || 'Asset'}
             className="!rounded !bg-primary-100 !text-primary-500"
           >
-            <Package className="w-5 h-5" />
+            <Package className="h-5 w-5" />
           </Avatar>
           <Box>
             <Typography
               variant="body1"
-              className="!text-gray-900 !leading-tight"
+              className="!leading-tight !text-gray-900"
             >
               {row.asset_maintenance_master?.asset_master_asset_types?.name ||
                 'Unknown Asset'}
             </Typography>
             <Typography
               variant="caption"
-              className="!text-gray-500 !text-xs !block !mt-0.5"
+              className="!mt-0.5 !block !text-xs !text-gray-500"
             >
               {row.asset_maintenance_master?.serial_number ||
                 `Asset #${row.asset_id}`}
@@ -157,13 +157,13 @@ const AssetMaintenanceManagement: React.FC = () => {
       render: (_value, row) => (
         <Box className="flex flex-col gap-1">
           <Box className="flex items-center gap-1">
-            <Wrench className="w-3 h-3 text-gray-400" />
+            <Wrench className="h-3 w-3 text-gray-400" />
             <span className="text-xs">
               {row.issue_reported || 'No issue reported'}
             </span>
           </Box>
           <Box className="flex items-center gap-1">
-            <FileText className="w-3 h-3 text-gray-400" />
+            <FileText className="h-3 w-3 text-gray-400" />
             <span className="text-xs">
               {row.action_taken || 'No action taken'}
             </span>
@@ -185,13 +185,13 @@ const AssetMaintenanceManagement: React.FC = () => {
           <Box>
             <Typography
               variant="body1"
-              className="!text-gray-900 !leading-tight"
+              className="!leading-tight !text-gray-900"
             >
               {row.asset_maintenance_technician?.name || 'Unknown Technician'}
             </Typography>
             <Typography
               variant="caption"
-              className="!text-gray-500 !text-xs !block !mt-0.5"
+              className="!mt-0.5 !block !text-xs !text-gray-500"
             >
               {row.asset_maintenance_technician?.email || 'Unknown Email'}
             </Typography>
@@ -205,7 +205,7 @@ const AssetMaintenanceManagement: React.FC = () => {
       sortable: true,
       render: (_value, row) => (
         <Box className="flex items-center gap-1">
-          <Calendar className="w-3 h-3 text-gray-400" />
+          <Calendar className="h-3 w-3 text-gray-400" />
           <span className="text-xs">{formatDate(row.maintenance_date)}</span>
         </Box>
       ),
@@ -232,9 +232,9 @@ const AssetMaintenanceManagement: React.FC = () => {
       sortable: true,
       render: (_value, row) => (
         <Box className="flex items-center gap-1">
-          <FileText className="w-3 h-3 text-gray-400" />
+          <FileText className="h-3 w-3 text-gray-400" />
           <Tooltip title={row.remarks || 'No remarks'} placement="top" arrow>
-            <span className="text-xs truncate max-w-32">
+            <span className="max-w-32 truncate text-xs">
               {row.remarks || 'No remarks'}
             </span>
           </Tooltip>
@@ -257,70 +257,70 @@ const AssetMaintenanceManagement: React.FC = () => {
     },
     ...(isUpdate || isDelete || isRead
       ? [
-          {
-            id: 'action',
-            label: 'Actions',
-            sortable: false,
-            render: (_value: any, row: AssetMaintenance) => (
-              <div className="!flex !gap-2 !items-center">
-                {isUpdate && (
-                  <EditButton
-                    onClick={() => handleEditMaintenance(row)}
-                    tooltip={`Edit Maintenance #${row.id}`}
-                  />
-                )}
-                {isDelete && (
-                  <DeleteButton
-                    onClick={() => handleDeleteMaintenance(row.id)}
-                    tooltip={`Delete Maintenance #${row.id}`}
-                    itemName={`Maintenance #${row.id}`}
-                    confirmDelete={true}
-                  />
-                )}
-              </div>
-            ),
-          },
-        ]
+        {
+          id: 'action',
+          label: 'Actions',
+          sortable: false,
+          render: (_value: any, row: AssetMaintenance) => (
+            <div className="!flex !items-center !gap-2">
+              {isUpdate && (
+                <EditButton
+                  onClick={() => handleEditMaintenance(row)}
+                  tooltip={`Edit Maintenance #${row.id}`}
+                />
+              )}
+              {isDelete && (
+                <DeleteButton
+                  onClick={() => handleDeleteMaintenance(row.id)}
+                  tooltip={`Delete Maintenance #${row.id}`}
+                  itemName={`Maintenance #${row.id}`}
+                  confirmDelete={true}
+                />
+              )}
+            </div>
+          ),
+        },
+      ]
       : []),
   ];
 
   return (
     <>
-      <Box className="!mb-3 !flex !justify-between !items-center">
+      <Box className="!mb-3 !flex !items-center !justify-between">
         <Box>
-          <p className="!font-bold text-xl !text-gray-900">Asset Maintenance</p>
-          <p className="!text-gray-500 text-sm">
+          <p className="text-xl !font-bold !text-gray-900">Asset Maintenance</p>
+          <p className="text-sm !text-gray-500">
             Track and manage asset maintenance records
           </p>
         </Box>
       </Box>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+      <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatsCard
           title="Total Maintenance"
           value={totalMaintenances}
-          icon={<Wrench className="w-6 h-6" />}
+          icon={<Wrench className="h-6 w-6" />}
           color="blue"
           isLoading={isFetching}
         />
         <StatsCard
           title="Active Maintenance"
           value={activeMaintenances}
-          icon={<CheckCircle className="w-6 h-6" />}
+          icon={<CheckCircle className="h-6 w-6" />}
           color="green"
           isLoading={isFetching}
         />
         <StatsCard
           title="Inactive Maintenance"
           value={inactiveMaintenances}
-          icon={<Block className="w-6 h-6" />}
+          icon={<Block className="h-6 w-6" />}
           color="red"
           isLoading={isFetching}
         />
         <StatsCard
           title="This Month"
           value={maintenancesThisMonth}
-          icon={<Calendar className="w-6 h-6" />}
+          icon={<Calendar className="h-6 w-6" />}
           color="purple"
           isLoading={isFetching}
         />
@@ -337,7 +337,7 @@ const AssetMaintenanceManagement: React.FC = () => {
         columns={assetMaintenanceColumns}
         actions={
           isRead || isCreate ? (
-            <div className="flex justify-between w-full items-center flex-wrap gap-2">
+            <div className="flex w-full flex-wrap items-center justify-between gap-2">
               {isRead && (
                 <div className="flex flex-wrap items-center gap-2">
                   <SearchInput
@@ -351,7 +351,6 @@ const AssetMaintenanceManagement: React.FC = () => {
                   <Select
                     value={statusFilter}
                     onChange={e => setStatusFilter(e.target.value)}
-                    className="!w-32"
                     disableClearable
                   >
                     <MenuItem value="all">All Status</MenuItem>

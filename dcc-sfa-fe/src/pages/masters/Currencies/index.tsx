@@ -7,7 +7,7 @@ import {
 } from 'hooks/useCurrencies';
 import { useExportToExcel } from 'hooks/useImportExport';
 import { usePermission } from 'hooks/usePermission';
-import { DollarSign, TrendingUp, XCircle } from 'lucide-react';
+import { DollarSign, XCircle } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { DeleteButton, EditButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
@@ -65,7 +65,6 @@ const CurrenciesManagement: React.FC = () => {
   const activeCurrencies = currenciesResponse?.stats?.active_currencies ?? 0;
   const inactiveCurrencies =
     currenciesResponse?.stats?.inactive_currencies ?? 0;
-  const baseCurrencies = currenciesResponse?.stats?.base_currencies ?? 0;
 
   const handleCreateCurrency = useCallback(() => {
     setSelectedCurrency(null);
@@ -140,7 +139,7 @@ const CurrenciesManagement: React.FC = () => {
             </Typography>
             <Typography
               variant="caption"
-              className="!text-gray-500 !text-xs !block !mt-0.5"
+              className="!text-gray-500 !text-xs !block"
             >
               {row.code}
             </Typography>
@@ -243,7 +242,7 @@ const CurrenciesManagement: React.FC = () => {
         </Box>
       </Box>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
         <StatsCard
           title="Total Currencies"
           value={totalCurrencies}
@@ -263,13 +262,6 @@ const CurrenciesManagement: React.FC = () => {
           value={inactiveCurrencies}
           icon={<XCircle className="w-6 h-6" />}
           color="red"
-          isLoading={isFetching}
-        />
-        <StatsCard
-          title="Base Currencies"
-          value={baseCurrencies}
-          icon={<TrendingUp className="w-6 h-6" />}
-          color="purple"
           isLoading={isFetching}
         />
       </div>
@@ -301,7 +293,6 @@ const CurrenciesManagement: React.FC = () => {
                     <Select
                       value={statusFilter}
                       onChange={e => setStatusFilter(e.target.value)}
-                      className="!min-w-32"
                       size="small"
                       disableClearable
                     >

@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 export declare const coolerInstallationsController: {
-    createCoolerInstallation(req: Request, res: Response): Promise<Response<any, Record<string, any>> | undefined>;
+    createCoolerInstallation(req: Request, res: Response): Promise<Response<any, Record<string, any>>>;
     getCoolerInstallations(req: Request, res: Response): Promise<void>;
     getCoolerInstallationById(req: Request, res: Response): Promise<Response<any, Record<string, any>> | undefined>;
     updateCoolerInstallation(req: Request, res: Response): Promise<Response<any, Record<string, any>> | undefined>;

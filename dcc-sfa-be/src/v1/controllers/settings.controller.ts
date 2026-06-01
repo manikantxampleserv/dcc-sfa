@@ -36,6 +36,7 @@ const serializeSettings = (
     'DCC SFA System',
   smtp_password: settings.smtp_password,
   currency_id: settings.currency_id,
+  customer_grading_cron_time: settings.customer_grading_cron_time,
   ...(includeCreatedAt && { created_date: settings.created_date }),
   ...(includeUpdatedAt && { updated_date: settings.updated_date }),
 
@@ -142,6 +143,7 @@ export const settingsController = {
         smtp_mail_from_address,
         smtp_mail_from_name,
         currency_id,
+        customer_grading_cron_time,
       } = req.body;
 
       const data: any = {
@@ -169,6 +171,7 @@ export const settingsController = {
         ...(currency_id !== undefined && {
           currency_id: currency_id ? Number(currency_id) : null,
         }),
+        ...(customer_grading_cron_time !== undefined && { customer_grading_cron_time }),
         updated_date: new Date(),
         updated_by: req.user?.id,
       };
@@ -195,6 +198,11 @@ export const settingsController = {
         } catch (deleteError) {
           console.error('Error deleting old logo:', deleteError);
         }
+      }
+
+      if (customer_grading_cron_time && customer_grading_cron_time !== existingCompany.customer_grading_cron_time) {
+        const { scheduleCustomerCategoryAssignment } = await import('../../jobs/customerCategoryAssignment.job');
+        scheduleCustomerCategoryAssignment();
       }
 
       res.success(

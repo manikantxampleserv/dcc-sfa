@@ -11,8 +11,17 @@ class AssetSubTypesImportExportService extends import_export_service_1.ImportExp
     displayName = 'Asset Sub Types';
     uniqueFields = ['name', 'asset_type_id'];
     searchFields = ['name', 'description', 'code'];
-    // Add code counters to avoid database queries during import
+    masterTableConfigs = [
+        {
+            masterTable: 'asset_types',
+            masterKey: 'id',
+            masterDisplayFields: ['id', 'name', 'description'],
+            sheetName: 'Ref - Asset Types',
+            description: 'Use the ID from this sheet in the Asset Type ID column',
+        },
+    ];
     codeCounters = new Map();
+    validationCache = new Map();
     columns = [
         {
             key: 'name',
@@ -22,12 +31,12 @@ class AssetSubTypesImportExportService extends import_export_service_1.ImportExp
             type: 'string',
             validation: value => {
                 if (!value || value.length < 2)
-                    return 'Name must be at least 2 characters';
+                    return 'Name too short';
                 if (value.length > 100)
-                    return 'Name must be less than 100 characters';
+                    return 'Name too long';
                 return true;
             },
-            description: 'Name of the asset sub type (required, 2-100 characters)',
+            description: 'Name of the asset sub type (required)',
         },
         {
             key: 'asset_type_id',
@@ -35,14 +44,6 @@ class AssetSubTypesImportExportService extends import_export_service_1.ImportExp
             width: 15,
             required: true,
             type: 'number',
-            validation: value => {
-                if (!value)
-                    return 'Asset Type ID is required';
-                const num = Number(value);
-                if (isNaN(num) || num <= 0)
-                    return 'Asset Type ID must be a positive number';
-                return true;
-            },
             transform: value => (value ? Number(value) : null),
             description: 'Foreign key reference to asset_types.id (required)',
         },
@@ -51,10 +52,7 @@ class AssetSubTypesImportExportService extends import_export_service_1.ImportExp
             header: 'Description',
             width: 40,
             type: 'string',
-            validation: value => !value ||
-                value.length <= 255 ||
-                'Description must be less than 255 characters',
-            description: 'Description of the asset sub type (optional, max 255 chars)',
+            description: 'Description (optional)',
         },
         {
             key: 'is_active',
@@ -62,35 +60,14 @@ class AssetSubTypesImportExportService extends import_export_service_1.ImportExp
             width: 12,
             type: 'string',
             defaultValue: 'Y',
-            validation: value => {
-                const upperValue = value ? value.toString().toUpperCase() : 'Y';
-                return ['Y', 'N'].includes(upperValue) || 'Must be Y or N';
-            },
             transform: value => (value ? value.toString().toUpperCase() : 'Y'),
-            description: 'Active status - Y for Yes, N for No (defaults to Y)',
+            description: 'Active status (Y/N)',
         },
     ];
     async getSampleData() {
-        // Sample assumes asset type IDs exist in the database
+        const type = await prisma_client_1.default.asset_types.findFirst({ select: { id: true } });
         return [
-            {
-                name: 'Single Door',
-                asset_type_id: 1,
-                description: 'Single door cooler subtype',
-                is_active: 'Y',
-            },
-            {
-                name: 'Double Door',
-                asset_type_id: 1,
-                description: 'Double door cooler subtype',
-                is_active: 'Y',
-            },
-            {
-                name: 'Counter Top',
-                asset_type_id: 2,
-                description: 'Counter top display subtype',
-                is_active: 'Y',
-            },
+            { name: 'Single Door', asset_type_id: type?.id || 1, description: 'Single door cooler', is_active: 'Y' },
         ];
     }
     getColumnDescription(key) {
@@ -110,73 +87,54 @@ class AssetSubTypesImportExportService extends import_export_service_1.ImportExp
         const existing = await model.findFirst({
             where: { name: data.name, asset_type_id: data.asset_type_id },
         });
-        if (existing) {
-            return `Asset sub type "${data.name}" already exists for asset type ID ${data.asset_type_id}`;
-        }
-        return null;
+        return existing ? `Asset sub type "${data.name}" already exists for this type` : null;
     }
     async validateForeignKeys(data, tx) {
         const prismaClient = tx || prisma_client_1.default;
+        const cacheKey = `assetType_${data.asset_type_id}`;
+        if (this.validationCache.has(cacheKey)) {
+            return this.validationCache.get(cacheKey);
+        }
         const assetType = await prismaClient.asset_types.findUnique({
             where: { id: data.asset_type_id },
         });
-        if (!assetType) {
-            return `Asset type with ID ${data.asset_type_id} does not exist`;
-        }
-        return null;
+        const result = assetType ? null : `Asset type ID ${data.asset_type_id} does not exist`;
+        this.validationCache.set(cacheKey, result);
+        return result;
     }
-    async generateCode(name, tx) {
+    async generateCode(name) {
         const words = name.toUpperCase().split(/\s+/);
         const firstWord = words[0];
-        let abbreviation = firstWord.substring(0, 4);
-        if (firstWord.length <= 4) {
-            abbreviation = firstWord;
-        }
+        const abbreviation = firstWord.substring(0, 4);
         const baseCode = `AST-${abbreviation}`;
-        // Use counter-based approach to avoid database queries during import
         const currentCount = this.codeCounters.get(baseCode) || 0;
         const nextCount = currentCount + 1;
         this.codeCounters.set(baseCode, nextCount);
         return `${baseCode}-${nextCount.toString().padStart(2, '0')}`;
     }
-    /**
-     * Initialize counters with existing codes to avoid conflicts
-     * This should be called once at the beginning of the import process
-     */
     async initializeCodeCounters(tx) {
         try {
             const model = tx ? tx.asset_sub_types : prisma_client_1.default.asset_sub_types;
-            // Get all existing codes and initialize counters
             const existingCodes = await model.findMany({
                 select: { code: true },
-                where: {
-                    code: {
-                        startsWith: 'AST-',
-                    },
-                },
+                where: { code: { startsWith: 'AST-' } },
             });
-            // Process each code to extract the base and number
             for (const item of existingCodes) {
-                const code = item.code;
-                const match = code.match(/^AST-([A-Z]+)-(\d+)$/);
+                const match = item.code?.match(/^AST-([A-Z]+)-(\d+)$/);
                 if (match) {
                     const baseCode = `AST-${match[1]}`;
                     const number = parseInt(match[2]);
-                    // Update counter to the maximum number found for this base
                     const currentMax = this.codeCounters.get(baseCode) || 0;
-                    if (number > currentMax) {
+                    if (number > currentMax)
                         this.codeCounters.set(baseCode, number);
-                    }
                 }
             }
         }
         catch (error) {
             console.error('Error initializing code counters:', error);
-            // If initialization fails, we'll start with empty counters
-            // This might cause conflicts but won't crash the import
         }
     }
-    async prepareDataForImport(data, userId) {
+    async prepareDataForImport(data, userId, tx) {
         const code = await this.generateCode(data.name);
         return {
             ...data,
@@ -186,13 +144,8 @@ class AssetSubTypesImportExportService extends import_export_service_1.ImportExp
             log_inst: 1,
         };
     }
-    /**
-     * Override importData to initialize code counters before transaction starts
-     */
     async importData(data, userId, options = {}) {
-        // Initialize code counters before starting the transaction to avoid timeouts
         await this.initializeCodeCounters();
-        // Call the parent importData method
         return super.importData(data, userId, options);
     }
     async updateExisting(data, userId, tx) {

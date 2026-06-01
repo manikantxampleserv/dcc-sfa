@@ -194,38 +194,38 @@ const PromotionsManagement: React.FC = () => {
     },
     ...(isUpdate || isDelete || isRead
       ? [
-          {
-            id: 'action',
-            label: 'Actions',
-            sortable: false,
-            render: (_value: any, row: Promotion) => (
-              <div className="!flex !gap-2 !items-center !justify-center">
-                {isUpdate && (
-                  <EditButton
-                    onClick={() => handleEditPromotion(row)}
-                    tooltip="Edit promotion"
-                  />
-                )}
-                {isRead && (
-                  <ActionButton
-                    onClick={() => navigate(`/masters/promotions/${row.id}`)}
-                    tooltip="View promotion"
-                    icon={<Visibility fontSize="small" />}
-                    color="info"
-                  />
-                )}
-                {isDelete && (
-                  <DeleteButton
-                    onClick={() => handleDeletePromotion(row.id)}
-                    tooltip="Delete promotion"
-                    confirmDelete={true}
-                    itemName="promotion"
-                  />
-                )}
-              </div>
-            ),
-          },
-        ]
+        {
+          id: 'action',
+          label: 'Actions',
+          sortable: false,
+          render: (_value: any, row: Promotion) => (
+            <div className="!flex !gap-2 !items-center !justify-center">
+              {isUpdate && (
+                <EditButton
+                  onClick={() => handleEditPromotion(row)}
+                  tooltip="Edit promotion"
+                />
+              )}
+              {isRead && (
+                <ActionButton
+                  onClick={() => navigate(`/masters/promotions/${row.id}`)}
+                  tooltip="View promotion"
+                  icon={<Visibility fontSize="small" />}
+                  color="info"
+                />
+              )}
+              {isDelete && (
+                <DeleteButton
+                  onClick={() => handleDeletePromotion(row.id)}
+                  tooltip="Delete promotion"
+                  confirmDelete={true}
+                  itemName="promotion"
+                />
+              )}
+            </div>
+          ),
+        },
+      ]
       : []),
   ];
 
@@ -243,7 +243,7 @@ const PromotionsManagement: React.FC = () => {
         </Box>
       </Box>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
         <StatsCard
           title="Total Promotions"
           value={totalPromotions}
@@ -303,7 +303,6 @@ const PromotionsManagement: React.FC = () => {
                         setStatusFilter(e.target.value);
                         setPage(1);
                       }}
-                      className="!w-32"
                       disableClearable
                     >
                       <MenuItem value="all">All Status</MenuItem>

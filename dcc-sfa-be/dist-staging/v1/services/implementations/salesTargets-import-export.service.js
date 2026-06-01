@@ -343,6 +343,7 @@ class SalesTargetsImportExportService extends import_export_service_1.ImportExpo
         const worksheet = workbook.addWorksheet(this.displayName);
         const exportColumns = [
             ...this.columns,
+            { header: 'ID', key: 'id', width: 12 },
             { header: 'Group Name', key: 'group_name', width: 25 },
             { header: 'Category Name', key: 'category_name', width: 25 },
             { header: 'Created Date', key: 'createdate', width: 20 },

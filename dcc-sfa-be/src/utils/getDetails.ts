@@ -1,95 +1,17 @@
 import prisma from '../configs/prisma.client';
 
-// const getRequestDetailsByType = async (
-//   request_type: string,
-//   reference_id: number | null
-// ): Promise<any> => {
-//   if (!reference_id) {
-//     return null;
-//   }
-
-//   try {
-//     switch (request_type) {
-//       case 'ORDER_APPROVAL':
-//         const order = await prisma.orders.findUnique({
-//           where: { id: reference_id },
-//           select: {
-//             id: true,
-//             order_number: true,
-//             parent_id: true,
-//             total_amount: true,
-//             status: true,
-//             order_date: true,
-//             delivery_date: true,
-//             payment_method: true,
-//             notes: true,
-//             orders_customers: {
-//               select: {
-//                 id: true,
-//                 name: true,
-//                 code: true,
-//                 phone_number: true,
-//               },
-//             },
-//             orders_salesperson_users: {
-//               select: {
-//                 id: true,
-//                 name: true,
-//                 email: true,
-//               },
-//             },
-//           },
-//         });
-
-//         if (order) {
-//           return {
-//             order_number: order.order_number || 'N/A',
-//             customer_name: order.orders_customers?.name || 'N/A',
-//             customer_code: order.orders_customers?.code || 'N/A',
-//             customer_phone: order.orders_customers?.phone_number || 'N/A',
-//             salesperson_name: order.orders_salesperson_users?.name || 'N/A',
-//             salesperson_email: order.orders_salesperson_users?.email || 'N/A',
-//             total_amount: `₹${order.total_amount?.toString() || '0'}`,
-//             order_date: order.order_date
-//               ? new Date(order.order_date).toLocaleDateString('en-IN')
-//               : 'N/A',
-//             delivery_date: order.delivery_date
-//               ? new Date(order.delivery_date).toLocaleDateString('en-IN')
-//               : 'N/A',
-//             payment_method: order.payment_method || 'N/A',
-//             status: order.status || 'PENDING',
-//             notes: order.notes || 'No additional notes',
-//           };
-//         }
-//         return null;
-
-//       default:
-//         console.log(`⚠ No handler for request_type: ${request_type}`);
-//         return {
-//           message: `Request type '${request_type}' is not yet implemented`,
-//           reference_id,
-//         };
-//     }
-//   } catch (error: any) {
-//     console.error('Error in getRequestDetailsByType:', error);
-//     return {
-//       error: 'Failed to fetch request details',
-//       message: error.message,
-//     };
-//   }
-// };
-
 async function getRequestDetailsByType(
   request_type: string,
-  reference_id: number | null
+  reference_id: number | null,
+  request_data?: string | null
 ): Promise<any> {
-  if (!reference_id) return {};
+  if (!reference_id && !request_data) return {};
 
   try {
     switch (request_type) {
       case 'ORDER_APPROVAL':
         const order = await prisma.orders.findUnique({
-          where: { id: reference_id },
+          where: { id: reference_id || 0 },
           include: {
             orders_customers: true,
             orders_salesperson_users: true,
@@ -113,10 +35,96 @@ async function getRequestDetailsByType(
           payment_method: order.payment_method || 'N/A',
           notes: order.notes || '',
         };
+        break;
 
+      case 'LOCATION_RESET':
+        const customer = await prisma.customers.findUnique({
+          where: { id: reference_id || 0 },
+          select: {
+            id: true,
+            code: true,
+            name: true,
+            email: true,
+            phone_number: true,
+            address: true,
+            city: true,
+            state: true,
+            zipcode: true,
+            contact_person: true,
+            type: true,
+            latitude: true,
+            longitude: true,
+            is_active: true,
+            createdate: true,
+          },
+        });
+
+        if (!customer) {
+          return {};
+        }
+
+        const result = {
+          customer_id: customer.id,
+          customer_code: customer.code || 'N/A',
+          customer_name: customer.name || 'N/A',
+          customer_email: customer.email || 'N/A',
+          customer_phone: customer.phone_number || 'N/A',
+          customer_address: customer.address || 'N/A',
+          customer_city: customer.city || 'N/A',
+          customer_state: customer.state || 'N/A',
+          customer_zipcode: customer.zipcode || 'N/A',
+          customer_contact_person: customer.contact_person || 'N/A',
+          customer_type: customer.type || 'N/A',
+          current_latitude: customer.latitude,
+          current_longitude: customer.longitude,
+          customer_status: customer.is_active || 'N/A',
+          created_date: customer.createdate
+            ? new Date(customer.createdate).toLocaleDateString()
+            : 'N/A',
+        };
+
+        return result;
+
+      case 'CUSTOMER_CREATION':
+        if (request_data) {
+          try {
+            const parsedData = JSON.parse(request_data);
+
+            const customerData = parsedData.customer_data;
+
+            if (customerData) {
+              const result = {
+                customer_status: 'Pending Creation',
+                customer_id: 'Pending',
+                customer_name: customerData.name || 'N/A',
+                customer_code: customerData.code || 'N/A',
+                customer_email: customerData.email || 'N/A',
+                customer_phone: customerData.phone_number || 'N/A',
+                customer_city: customerData.city || 'N/A',
+                customer_state: customerData.state || 'N/A',
+                platform_type: parsedData.platform_type || 'N/A',
+                requested_by: parsedData.requested_by || 'N/A',
+                requested_date: parsedData.requested_date || 'N/A',
+                message: 'Customer creation request - customer not yet created',
+              };
+              return result;
+            }
+          } catch (parseError) {
+            console.error(
+              'Error parsing customer creation request data:',
+              parseError
+            );
+          }
+        }
+
+        return {
+          customer_status: 'Pending Creation',
+          customer_id: 'Pending',
+          message: 'Customer creation request - customer not yet created',
+        };
       case 'ASSET_MOVEMENT_APPROVAL':
         const assetMovement = await prisma.asset_movements.findUnique({
-          where: { id: reference_id },
+          where: { id: reference_id || 0 },
           include: {
             asset_movement_assets: {
               include: {
@@ -185,6 +193,65 @@ async function getRequestDetailsByType(
           assets: assetList,
           notes: assetMovement.notes || '',
           approval_status: assetMovement.approval_status || 'P',
+        };
+
+      case 'ASSET_MASTER_APPROVAL':
+        const assetMaster = await prisma.asset_master.findUnique({
+          where: { id: reference_id || 0 },
+          include: {
+            asset_master_asset_types: {
+              select: { id: true, name: true },
+            },
+            asset_master_asset_sub_types: {
+              select: { id: true, name: true },
+            },
+            asset_master_brands: {
+              select: { id: true, name: true },
+            },
+            asset_master_depot: {
+              select: { id: true, name: true, code: true },
+            },
+            asset_master_outlet: {
+              select: { id: true, name: true, code: true },
+            },
+          },
+        });
+
+        if (!assetMaster) return {};
+
+        const parsedAssetData = request_data ? JSON.parse(request_data) : {};
+
+        return {
+          asset_id: assetMaster.id,
+          asset_name: assetMaster.name,
+          asset_code: assetMaster.code,
+          asset_serial_number: assetMaster.serial_number,
+          asset_type: assetMaster.asset_master_asset_types?.name || 'N/A',
+          asset_sub_type:
+            assetMaster.asset_master_asset_sub_types?.name || 'N/A',
+          asset_brand: assetMaster.asset_master_brands?.name || 'N/A',
+          current_status: assetMaster.current_status || 'N/A',
+          requested_status: parsedAssetData.requested_status || 'N/A',
+          previous_status: parsedAssetData.previous_status || 'N/A',
+          current_location: assetMaster.current_location || 'N/A',
+          depot_name: assetMaster.asset_master_depot?.name || 'N/A',
+          depot_code: assetMaster.asset_master_depot?.code || 'N/A',
+          customer_name: assetMaster.asset_master_outlet?.name || 'N/A',
+          customer_code: assetMaster.asset_master_outlet?.code || 'N/A',
+          requested_depot_id: parsedAssetData.depot_id || null,
+          requested_customer_id: parsedAssetData.customer_id || null,
+          barcode: assetMaster.barcode || 'N/A',
+          nfc_tag: assetMaster.nfc_tag || 'N/A',
+          purchase_date: assetMaster.purchase_date
+            ? new Date(assetMaster.purchase_date).toLocaleDateString()
+            : 'N/A',
+          warranty_expiry: assetMaster.warranty_expiry
+            ? new Date(assetMaster.warranty_expiry).toLocaleDateString()
+            : 'N/A',
+          is_active: assetMaster.is_active,
+          created_date: assetMaster.createdate
+            ? new Date(assetMaster.createdate).toLocaleDateString()
+            : 'N/A',
         };
 
       default:

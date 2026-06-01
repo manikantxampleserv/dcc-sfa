@@ -67,7 +67,7 @@ const OutletGroupsManagement: React.FC = () => {
     outletGroupsResponse?.stats?.inactive_groups ??
     outletGroups.filter(g => g.is_active === 'N').length;
   const avgDiscountPercentage =
-    Number(outletGroupsResponse?.stats?.avg_discount)?.toFixed(2) ?? 0;
+    outletGroupsResponse?.stats?.avg_discount?.toFixed(2) ?? 0;
 
   const handleCreateOutletGroup = useCallback(() => {
     setSelectedOutletGroup(null);
@@ -136,14 +136,17 @@ const OutletGroupsManagement: React.FC = () => {
     {
       id: 'description',
       label: 'Description',
-      render: (_value, row) => (
-        <Typography
-          variant="body2"
-          className="!text-gray-700 !max-w-xs !truncate"
-        >
-          {row.description || 'No Description'}
-        </Typography>
-      ),
+      render: value =>
+        value ? (
+          <Typography
+            variant="body2"
+            className="!text-gray-700 !max-w-xs !truncate"
+          >
+            {value}
+          </Typography>
+        ) : (
+          <span className="!text-gray-400 !text-xs italic">No Description</span>
+        ),
     },
     {
       id: 'discount_percentage',
@@ -176,7 +179,11 @@ const OutletGroupsManagement: React.FC = () => {
       label: 'Payment Terms',
       render: (_value, row) => (
         <Typography variant="body2" className="!text-gray-700">
-          {row.payment_terms || 'N/A'}
+          {row.payment_terms || (
+            <span className="!text-gray-400 !text-xs italic">
+              No payment terms
+            </span>
+          )}
         </Typography>
       ),
     },
@@ -185,7 +192,11 @@ const OutletGroupsManagement: React.FC = () => {
       label: 'Price Group',
       render: (_value, row) => (
         <Typography variant="body2" className="!text-gray-700">
-          {row.price_group || 'N/A'}
+          {row.price_group || (
+            <span className="!text-gray-400 !text-xs italic">
+              No price groups
+            </span>
+          )}
         </Typography>
       ),
     },
@@ -314,7 +325,6 @@ const OutletGroupsManagement: React.FC = () => {
                     <Select
                       value={statusFilter}
                       onChange={e => setStatusFilter(e.target.value)}
-                      className="!min-w-32"
                       size="small"
                       disableClearable
                     >

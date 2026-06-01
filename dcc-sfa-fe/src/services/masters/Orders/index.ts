@@ -2,12 +2,16 @@ import axiosInstance from 'configs/axio.config';
 import type { ApiResponse } from '../../../types/api.types';
 
 interface OrderItem {
+  base_quantity?: number;
+  conversion_factor?: number;
+  product_batches: any[] | undefined;
+  product_serials: any[] | undefined;
   tracking_type: string | null;
   id?: number;
   parent_id?: number;
   product_id: number;
   product_name?: string;
-  unit?: string;
+  unit: 'CASE' | 'PCS';
   quantity: number;
   unit_price: number;
   discount_amount?: number;

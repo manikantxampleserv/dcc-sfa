@@ -54,7 +54,7 @@ const NoConnection: React.FC = () => {
   };
 
   return (
-    <div className="flex items-center justify-center bg-white fixed inset-0 w-screen h-screen">
+    <div className="flex items-center justify-center bg-white z-[99999] fixed inset-0 w-screen h-screen">
       <div className="text-center max-w-lg w-full p-6">
         <div className="flex justify-center items-center">
           <NoConnectionIcon />

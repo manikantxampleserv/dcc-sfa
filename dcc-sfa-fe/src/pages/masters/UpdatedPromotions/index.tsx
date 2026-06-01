@@ -208,40 +208,40 @@ const UpdatedPromotionsManagement: React.FC = () => {
     },
     ...(isUpdate || isDelete || isRead
       ? [
-          {
-            id: 'action',
-            label: 'Actions',
-            sortable: false,
-            render: (_value: any, row: UpdatedPromotion) => (
-              <div className="!flex !gap-2 !items-center">
-                {isUpdate && (
-                  <EditButton
-                    onClick={() => handleEditPromotion(row)}
-                    tooltip="Edit updated promotion"
-                  />
-                )}
-                {isRead && (
-                  <ActionButton
-                    onClick={() =>
-                      navigate(`/masters/updated-promotions/${row.id}`)
-                    }
-                    tooltip="View updated promotion"
-                    icon={<Visibility fontSize="small" />}
-                    color="info"
-                  />
-                )}
-                {isDelete && (
-                  <DeleteButton
-                    onClick={() => handleDeletePromotion(row.id)}
-                    tooltip="Delete updated promotion"
-                    confirmDelete={true}
-                    itemName="updated promotion"
-                  />
-                )}
-              </div>
-            ),
-          },
-        ]
+        {
+          id: 'action',
+          label: 'Actions',
+          sortable: false,
+          render: (_value: any, row: UpdatedPromotion) => (
+            <div className="!flex !gap-2 !items-center">
+              {isUpdate && (
+                <EditButton
+                  onClick={() => handleEditPromotion(row)}
+                  tooltip="Edit updated promotion"
+                />
+              )}
+              {isRead && (
+                <ActionButton
+                  onClick={() =>
+                    navigate(`/masters/updated-promotions/${row.id}`)
+                  }
+                  tooltip="View updated promotion"
+                  icon={<Visibility fontSize="small" />}
+                  color="info"
+                />
+              )}
+              {isDelete && (
+                <DeleteButton
+                  onClick={() => handleDeletePromotion(row.id)}
+                  tooltip="Delete updated promotion"
+                  confirmDelete={true}
+                  itemName="updated promotion"
+                />
+              )}
+            </div>
+          ),
+        },
+      ]
       : []),
   ];
 
@@ -259,7 +259,7 @@ const UpdatedPromotionsManagement: React.FC = () => {
         </Box>
       </Box>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
         <StatsCard
           title="Total Promotions"
           value={totalPromotions}
@@ -319,7 +319,6 @@ const UpdatedPromotionsManagement: React.FC = () => {
                         setStatusFilter(e.target.value);
                         setPage(1);
                       }}
-                      className="!w-32"
                     >
                       <MenuItem value="all">All Status</MenuItem>
                       <MenuItem value="active">Active</MenuItem>

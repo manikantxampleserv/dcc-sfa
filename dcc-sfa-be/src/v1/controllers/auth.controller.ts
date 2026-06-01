@@ -1,16 +1,15 @@
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { jwtConfig } from '../../configs/jwt.config';
-import { getClientIP } from '../../utils/ipUtils';
 import prisma from '../../configs/prisma.client';
+import { getClientIP } from '../../utils/ipUtils';
+import { sendEmail } from '../../utils/mailer';
 import {
   generateOTP,
+  isValidEmail,
   storeOTP,
   verifyOTP,
-  isValidEmail,
 } from '../../utils/otp.util';
-import { generateEmailContent } from '../../utils/emailTemplates';
-import { sendEmail } from '../../utils/mailer';
 
 const truncateString = (str: string | undefined, maxLength: number): string => {
   if (!str) return 'Unknown';
@@ -94,7 +93,7 @@ export const register = async (req: any, res: any) => {
 
 export const login = async (req: any, res: any) => {
   try {
-    const { email, username, password } = req.body;
+    const { email, username, password, platform } = req.body;
 
     if (!password) {
       return res.error('Password is required', 400);
@@ -114,6 +113,10 @@ export const login = async (req: any, res: any) => {
       return res.error('Password must be a string', 400);
     }
 
+    if (platform && !['mobile', 'web'].includes(platform)) {
+      return res.error('Invalid platform. Must be "mobile" or "web"', 400);
+    }
+
     const user = await prisma.users.findFirst({
       where: {
         OR: [{ email: identifier }, { employee_id: identifier }],
@@ -128,6 +131,22 @@ export const login = async (req: any, res: any) => {
         `Failed login attempt for unknown user: ${identifier} from IP: ${getClientIP(req)}`
       );
       return res.error('User not found', 404);
+    }
+
+    if (user.platform) {
+      if (!platform) {
+        return res.error(
+          'Platform is required for this account. This account is restricted to specific platform access.',
+          400
+        );
+      }
+
+      if (user.platform !== platform) {
+        return res.error(
+          `Access denied: This account is restricted to ${user.platform} only. Cannot login from ${platform}.`,
+          400
+        );
+      }
     }
 
     if (user.is_active !== 'Y') {
@@ -155,7 +174,7 @@ export const login = async (req: any, res: any) => {
 
       return res.error(
         'Your account is inactive. Please contact administrator to activate your account.',
-        403
+        400
       );
     }
 
@@ -206,6 +225,13 @@ export const login = async (req: any, res: any) => {
     });
 
     try {
+      await prisma.users.update({
+        where: { id: user.id },
+        data: {
+          last_login: new Date(),
+        },
+      });
+
       await prisma.login_history.create({
         data: {
           user_id: user.id,
@@ -221,7 +247,7 @@ export const login = async (req: any, res: any) => {
         },
       });
     } catch (error) {
-      console.error('Error creating successful login history:', error);
+      console.error('Error updating login info:', error);
     }
 
     return res.success('Login successful', {

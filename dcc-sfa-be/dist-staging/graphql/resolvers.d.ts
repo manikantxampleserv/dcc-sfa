@@ -40,12 +40,11 @@ export declare const resolvers: {
                 updatedate: Date | null;
                 updatedby: number | null;
                 log_inst: number | null;
+                asset_type_id: number | null;
                 code: string;
-                asset_type_id: number;
                 description: string | null;
             } | null;
             asset_master_asset_types: {
-                brand: string | null;
                 name: string;
                 id: number;
                 is_active: string;
@@ -54,6 +53,7 @@ export declare const resolvers: {
                 updatedate: Date | null;
                 updatedby: number | null;
                 log_inst: number | null;
+                brand: string | null;
                 category: string | null;
                 description: string | null;
             };
@@ -66,15 +66,25 @@ export declare const resolvers: {
             updatedate: Date | null;
             updatedby: number | null;
             log_inst: number | null;
+            depot_id: number | null;
+            asset_type_id: number;
             code: string;
             serial_number: string;
-            warranty_expiry: Date | null;
-            asset_type_id: number;
-            assigned_to: string | null;
             purchase_date: Date | null;
+            warranty_expiry: Date | null;
             current_location: string | null;
             current_status: string | null;
+            assigned_to: string | null;
             asset_sub_type_id: number | null;
+            barcode: string | null;
+            nfc_tag: string | null;
+            brand_id: number | null;
+            outlet_id: number | null;
+            brand: string | null;
+            asset_brand_id: number | null;
+            installation_date: Date | null;
+            last_read_by: number | null;
+            last_scanned_date: Date | null;
         })[]>;
         assetMaster: (_: any, { id }: {
             id: number;
@@ -118,12 +128,11 @@ export declare const resolvers: {
                 updatedate: Date | null;
                 updatedby: number | null;
                 log_inst: number | null;
+                asset_type_id: number | null;
                 code: string;
-                asset_type_id: number;
                 description: string | null;
             } | null;
             asset_master_asset_types: {
-                brand: string | null;
                 name: string;
                 id: number;
                 is_active: string;
@@ -132,6 +141,7 @@ export declare const resolvers: {
                 updatedate: Date | null;
                 updatedby: number | null;
                 log_inst: number | null;
+                brand: string | null;
                 category: string | null;
                 description: string | null;
             };
@@ -144,15 +154,25 @@ export declare const resolvers: {
             updatedate: Date | null;
             updatedby: number | null;
             log_inst: number | null;
+            depot_id: number | null;
+            asset_type_id: number;
             code: string;
             serial_number: string;
-            warranty_expiry: Date | null;
-            asset_type_id: number;
-            assigned_to: string | null;
             purchase_date: Date | null;
+            warranty_expiry: Date | null;
             current_location: string | null;
             current_status: string | null;
+            assigned_to: string | null;
             asset_sub_type_id: number | null;
+            barcode: string | null;
+            nfc_tag: string | null;
+            brand_id: number | null;
+            outlet_id: number | null;
+            brand: string | null;
+            asset_brand_id: number | null;
+            installation_date: Date | null;
+            last_read_by: number | null;
+            last_scanned_date: Date | null;
         }) | null>;
         coolers: (_: any, { filter, limit, offset }: any) => Promise<({
             users: {
@@ -162,7 +182,6 @@ export declare const resolvers: {
                 role_id: number;
                 password_hash: string;
                 parent_id: number | null;
-                depot_id: number | null;
                 zone_id: number | null;
                 phone_number: string | null;
                 address: string | null;
@@ -177,6 +196,9 @@ export declare const resolvers: {
                 updatedate: Date | null;
                 updatedby: number | null;
                 log_inst: number | null;
+                platform: string | null;
+                sap_code: string | null;
+                depot_id: number | null;
             } | null;
             cooler_inspections: {
                 id: number;
@@ -225,30 +247,10 @@ export declare const resolvers: {
                 cooler_type_id: number;
                 description: string | null;
             } | null;
-            cooler_asset_master: {
-                name: string;
-                id: number;
-                is_active: string;
-                createdate: Date | null;
-                createdby: number;
-                updatedate: Date | null;
-                updatedby: number | null;
-                log_inst: number | null;
-                code: string;
-                serial_number: string;
-                warranty_expiry: Date | null;
-                asset_type_id: number;
-                assigned_to: string | null;
-                purchase_date: Date | null;
-                current_location: string | null;
-                current_status: string | null;
-                asset_sub_type_id: number | null;
-            } | null;
             coolers_customers: {
                 name: string;
                 id: number;
                 email: string | null;
-                depot_id: number | null;
                 phone_number: string | null;
                 address: string | null;
                 is_active: string;
@@ -257,9 +259,10 @@ export declare const resolvers: {
                 updatedate: Date | null;
                 updatedby: number | null;
                 log_inst: number | null;
+                depot_id: number | null;
+                code: string;
                 latitude: import("@prisma/client-runtime-utils").Decimal | null;
                 longitude: import("@prisma/client-runtime-utils").Decimal | null;
-                code: string;
                 short_name: string | null;
                 zones_id: number | null;
                 customer_type_id: number | null;
@@ -281,9 +284,40 @@ export declare const resolvers: {
                 last_visit_date: Date | null;
                 outlet_images: string | null;
                 profile_picture: string | null;
+                city_id: number | null;
+                district_id: number | null;
+                region_id: number | null;
             };
+            cooler_asset_master: {
+                name: string;
+                id: number;
+                is_active: string;
+                createdate: Date | null;
+                createdby: number;
+                updatedate: Date | null;
+                updatedby: number | null;
+                log_inst: number | null;
+                depot_id: number | null;
+                asset_type_id: number;
+                code: string;
+                serial_number: string;
+                purchase_date: Date | null;
+                warranty_expiry: Date | null;
+                current_location: string | null;
+                current_status: string | null;
+                assigned_to: string | null;
+                asset_sub_type_id: number | null;
+                barcode: string | null;
+                nfc_tag: string | null;
+                brand_id: number | null;
+                outlet_id: number | null;
+                brand: string | null;
+                asset_brand_id: number | null;
+                installation_date: Date | null;
+                last_read_by: number | null;
+                last_scanned_date: Date | null;
+            } | null;
         } & {
-            brand: string | null;
             model: string | null;
             id: number;
             is_active: string;
@@ -294,11 +328,16 @@ export declare const resolvers: {
             log_inst: number | null;
             status: string | null;
             technician_id: number | null;
+            code: string;
+            serial_number: string | null;
+            warranty_expiry: Date | null;
+            brand: string | null;
+            last_scanned_date: Date | null;
+            approval_status: string | null;
             temperature: import("@prisma/client-runtime-utils").Decimal | null;
             customer_id: number;
-            code: string;
             asset_master_id: number | null;
-            serial_number: string | null;
+            asset_movement_id: number | null;
             capacity: number | null;
             install_date: Date | null;
             last_service_date: Date | null;
@@ -306,9 +345,7 @@ export declare const resolvers: {
             cooler_type_id: number | null;
             cooler_sub_type_id: number | null;
             energy_rating: string | null;
-            warranty_expiry: Date | null;
             maintenance_contract: string | null;
-            last_scanned_date: Date | null;
         })[]>;
         cooler: (_: any, { id }: {
             id: number;
@@ -320,7 +357,6 @@ export declare const resolvers: {
                 role_id: number;
                 password_hash: string;
                 parent_id: number | null;
-                depot_id: number | null;
                 zone_id: number | null;
                 phone_number: string | null;
                 address: string | null;
@@ -335,6 +371,9 @@ export declare const resolvers: {
                 updatedate: Date | null;
                 updatedby: number | null;
                 log_inst: number | null;
+                platform: string | null;
+                sap_code: string | null;
+                depot_id: number | null;
             } | null;
             cooler_inspections: {
                 id: number;
@@ -383,30 +422,10 @@ export declare const resolvers: {
                 cooler_type_id: number;
                 description: string | null;
             } | null;
-            cooler_asset_master: {
-                name: string;
-                id: number;
-                is_active: string;
-                createdate: Date | null;
-                createdby: number;
-                updatedate: Date | null;
-                updatedby: number | null;
-                log_inst: number | null;
-                code: string;
-                serial_number: string;
-                warranty_expiry: Date | null;
-                asset_type_id: number;
-                assigned_to: string | null;
-                purchase_date: Date | null;
-                current_location: string | null;
-                current_status: string | null;
-                asset_sub_type_id: number | null;
-            } | null;
             coolers_customers: {
                 name: string;
                 id: number;
                 email: string | null;
-                depot_id: number | null;
                 phone_number: string | null;
                 address: string | null;
                 is_active: string;
@@ -415,9 +434,10 @@ export declare const resolvers: {
                 updatedate: Date | null;
                 updatedby: number | null;
                 log_inst: number | null;
+                depot_id: number | null;
+                code: string;
                 latitude: import("@prisma/client-runtime-utils").Decimal | null;
                 longitude: import("@prisma/client-runtime-utils").Decimal | null;
-                code: string;
                 short_name: string | null;
                 zones_id: number | null;
                 customer_type_id: number | null;
@@ -439,9 +459,40 @@ export declare const resolvers: {
                 last_visit_date: Date | null;
                 outlet_images: string | null;
                 profile_picture: string | null;
+                city_id: number | null;
+                district_id: number | null;
+                region_id: number | null;
             };
+            cooler_asset_master: {
+                name: string;
+                id: number;
+                is_active: string;
+                createdate: Date | null;
+                createdby: number;
+                updatedate: Date | null;
+                updatedby: number | null;
+                log_inst: number | null;
+                depot_id: number | null;
+                asset_type_id: number;
+                code: string;
+                serial_number: string;
+                purchase_date: Date | null;
+                warranty_expiry: Date | null;
+                current_location: string | null;
+                current_status: string | null;
+                assigned_to: string | null;
+                asset_sub_type_id: number | null;
+                barcode: string | null;
+                nfc_tag: string | null;
+                brand_id: number | null;
+                outlet_id: number | null;
+                brand: string | null;
+                asset_brand_id: number | null;
+                installation_date: Date | null;
+                last_read_by: number | null;
+                last_scanned_date: Date | null;
+            } | null;
         } & {
-            brand: string | null;
             model: string | null;
             id: number;
             is_active: string;
@@ -452,11 +503,16 @@ export declare const resolvers: {
             log_inst: number | null;
             status: string | null;
             technician_id: number | null;
+            code: string;
+            serial_number: string | null;
+            warranty_expiry: Date | null;
+            brand: string | null;
+            last_scanned_date: Date | null;
+            approval_status: string | null;
             temperature: import("@prisma/client-runtime-utils").Decimal | null;
             customer_id: number;
-            code: string;
             asset_master_id: number | null;
-            serial_number: string | null;
+            asset_movement_id: number | null;
             capacity: number | null;
             install_date: Date | null;
             last_service_date: Date | null;
@@ -464,9 +520,7 @@ export declare const resolvers: {
             cooler_type_id: number | null;
             cooler_sub_type_id: number | null;
             energy_rating: string | null;
-            warranty_expiry: Date | null;
             maintenance_contract: string | null;
-            last_scanned_date: Date | null;
         }) | null>;
         coolersByCustomer: (_: any, { customerId }: {
             customerId: number;
@@ -478,7 +532,6 @@ export declare const resolvers: {
                 role_id: number;
                 password_hash: string;
                 parent_id: number | null;
-                depot_id: number | null;
                 zone_id: number | null;
                 phone_number: string | null;
                 address: string | null;
@@ -493,6 +546,9 @@ export declare const resolvers: {
                 updatedate: Date | null;
                 updatedby: number | null;
                 log_inst: number | null;
+                platform: string | null;
+                sap_code: string | null;
+                depot_id: number | null;
             } | null;
             cooler_inspections: {
                 id: number;
@@ -541,30 +597,10 @@ export declare const resolvers: {
                 cooler_type_id: number;
                 description: string | null;
             } | null;
-            cooler_asset_master: {
-                name: string;
-                id: number;
-                is_active: string;
-                createdate: Date | null;
-                createdby: number;
-                updatedate: Date | null;
-                updatedby: number | null;
-                log_inst: number | null;
-                code: string;
-                serial_number: string;
-                warranty_expiry: Date | null;
-                asset_type_id: number;
-                assigned_to: string | null;
-                purchase_date: Date | null;
-                current_location: string | null;
-                current_status: string | null;
-                asset_sub_type_id: number | null;
-            } | null;
             coolers_customers: {
                 name: string;
                 id: number;
                 email: string | null;
-                depot_id: number | null;
                 phone_number: string | null;
                 address: string | null;
                 is_active: string;
@@ -573,9 +609,10 @@ export declare const resolvers: {
                 updatedate: Date | null;
                 updatedby: number | null;
                 log_inst: number | null;
+                depot_id: number | null;
+                code: string;
                 latitude: import("@prisma/client-runtime-utils").Decimal | null;
                 longitude: import("@prisma/client-runtime-utils").Decimal | null;
-                code: string;
                 short_name: string | null;
                 zones_id: number | null;
                 customer_type_id: number | null;
@@ -597,9 +634,40 @@ export declare const resolvers: {
                 last_visit_date: Date | null;
                 outlet_images: string | null;
                 profile_picture: string | null;
+                city_id: number | null;
+                district_id: number | null;
+                region_id: number | null;
             };
+            cooler_asset_master: {
+                name: string;
+                id: number;
+                is_active: string;
+                createdate: Date | null;
+                createdby: number;
+                updatedate: Date | null;
+                updatedby: number | null;
+                log_inst: number | null;
+                depot_id: number | null;
+                asset_type_id: number;
+                code: string;
+                serial_number: string;
+                purchase_date: Date | null;
+                warranty_expiry: Date | null;
+                current_location: string | null;
+                current_status: string | null;
+                assigned_to: string | null;
+                asset_sub_type_id: number | null;
+                barcode: string | null;
+                nfc_tag: string | null;
+                brand_id: number | null;
+                outlet_id: number | null;
+                brand: string | null;
+                asset_brand_id: number | null;
+                installation_date: Date | null;
+                last_read_by: number | null;
+                last_scanned_date: Date | null;
+            } | null;
         } & {
-            brand: string | null;
             model: string | null;
             id: number;
             is_active: string;
@@ -610,11 +678,16 @@ export declare const resolvers: {
             log_inst: number | null;
             status: string | null;
             technician_id: number | null;
+            code: string;
+            serial_number: string | null;
+            warranty_expiry: Date | null;
+            brand: string | null;
+            last_scanned_date: Date | null;
+            approval_status: string | null;
             temperature: import("@prisma/client-runtime-utils").Decimal | null;
             customer_id: number;
-            code: string;
             asset_master_id: number | null;
-            serial_number: string | null;
+            asset_movement_id: number | null;
             capacity: number | null;
             install_date: Date | null;
             last_service_date: Date | null;
@@ -622,9 +695,7 @@ export declare const resolvers: {
             cooler_type_id: number | null;
             cooler_sub_type_id: number | null;
             energy_rating: string | null;
-            warranty_expiry: Date | null;
             maintenance_contract: string | null;
-            last_scanned_date: Date | null;
         })[]>;
         coolerInspections: (_: any, { filter, limit, offset }: any) => Promise<({
             users: {
@@ -634,7 +705,6 @@ export declare const resolvers: {
                 role_id: number;
                 password_hash: string;
                 parent_id: number | null;
-                depot_id: number | null;
                 zone_id: number | null;
                 phone_number: string | null;
                 address: string | null;
@@ -649,9 +719,11 @@ export declare const resolvers: {
                 updatedate: Date | null;
                 updatedby: number | null;
                 log_inst: number | null;
+                platform: string | null;
+                sap_code: string | null;
+                depot_id: number | null;
             };
             coolers: {
-                brand: string | null;
                 model: string | null;
                 id: number;
                 is_active: string;
@@ -662,11 +734,16 @@ export declare const resolvers: {
                 log_inst: number | null;
                 status: string | null;
                 technician_id: number | null;
+                code: string;
+                serial_number: string | null;
+                warranty_expiry: Date | null;
+                brand: string | null;
+                last_scanned_date: Date | null;
+                approval_status: string | null;
                 temperature: import("@prisma/client-runtime-utils").Decimal | null;
                 customer_id: number;
-                code: string;
                 asset_master_id: number | null;
-                serial_number: string | null;
+                asset_movement_id: number | null;
                 capacity: number | null;
                 install_date: Date | null;
                 last_service_date: Date | null;
@@ -674,9 +751,7 @@ export declare const resolvers: {
                 cooler_type_id: number | null;
                 cooler_sub_type_id: number | null;
                 energy_rating: string | null;
-                warranty_expiry: Date | null;
                 maintenance_contract: string | null;
-                last_scanned_date: Date | null;
             };
             visits: {
                 customer_image: string | null;
@@ -744,7 +819,6 @@ export declare const resolvers: {
                 role_id: number;
                 password_hash: string;
                 parent_id: number | null;
-                depot_id: number | null;
                 zone_id: number | null;
                 phone_number: string | null;
                 address: string | null;
@@ -759,9 +833,11 @@ export declare const resolvers: {
                 updatedate: Date | null;
                 updatedby: number | null;
                 log_inst: number | null;
+                platform: string | null;
+                sap_code: string | null;
+                depot_id: number | null;
             };
             coolers: {
-                brand: string | null;
                 model: string | null;
                 id: number;
                 is_active: string;
@@ -772,11 +848,16 @@ export declare const resolvers: {
                 log_inst: number | null;
                 status: string | null;
                 technician_id: number | null;
+                code: string;
+                serial_number: string | null;
+                warranty_expiry: Date | null;
+                brand: string | null;
+                last_scanned_date: Date | null;
+                approval_status: string | null;
                 temperature: import("@prisma/client-runtime-utils").Decimal | null;
                 customer_id: number;
-                code: string;
                 asset_master_id: number | null;
-                serial_number: string | null;
+                asset_movement_id: number | null;
                 capacity: number | null;
                 install_date: Date | null;
                 last_service_date: Date | null;
@@ -784,9 +865,7 @@ export declare const resolvers: {
                 cooler_type_id: number | null;
                 cooler_sub_type_id: number | null;
                 energy_rating: string | null;
-                warranty_expiry: Date | null;
                 maintenance_contract: string | null;
-                last_scanned_date: Date | null;
             };
             visits: {
                 customer_image: string | null;
@@ -854,7 +933,6 @@ export declare const resolvers: {
                 role_id: number;
                 password_hash: string;
                 parent_id: number | null;
-                depot_id: number | null;
                 zone_id: number | null;
                 phone_number: string | null;
                 address: string | null;
@@ -869,9 +947,11 @@ export declare const resolvers: {
                 updatedate: Date | null;
                 updatedby: number | null;
                 log_inst: number | null;
+                platform: string | null;
+                sap_code: string | null;
+                depot_id: number | null;
             };
             coolers: {
-                brand: string | null;
                 model: string | null;
                 id: number;
                 is_active: string;
@@ -882,11 +962,16 @@ export declare const resolvers: {
                 log_inst: number | null;
                 status: string | null;
                 technician_id: number | null;
+                code: string;
+                serial_number: string | null;
+                warranty_expiry: Date | null;
+                brand: string | null;
+                last_scanned_date: Date | null;
+                approval_status: string | null;
                 temperature: import("@prisma/client-runtime-utils").Decimal | null;
                 customer_id: number;
-                code: string;
                 asset_master_id: number | null;
-                serial_number: string | null;
+                asset_movement_id: number | null;
                 capacity: number | null;
                 install_date: Date | null;
                 last_service_date: Date | null;
@@ -894,9 +979,7 @@ export declare const resolvers: {
                 cooler_type_id: number | null;
                 cooler_sub_type_id: number | null;
                 energy_rating: string | null;
-                warranty_expiry: Date | null;
                 maintenance_contract: string | null;
-                last_scanned_date: Date | null;
             };
             visits: {
                 customer_image: string | null;
@@ -964,7 +1047,6 @@ export declare const resolvers: {
                 role_id: number;
                 password_hash: string;
                 parent_id: number | null;
-                depot_id: number | null;
                 zone_id: number | null;
                 phone_number: string | null;
                 address: string | null;
@@ -979,9 +1061,11 @@ export declare const resolvers: {
                 updatedate: Date | null;
                 updatedby: number | null;
                 log_inst: number | null;
+                platform: string | null;
+                sap_code: string | null;
+                depot_id: number | null;
             };
             coolers: {
-                brand: string | null;
                 model: string | null;
                 id: number;
                 is_active: string;
@@ -992,11 +1076,16 @@ export declare const resolvers: {
                 log_inst: number | null;
                 status: string | null;
                 technician_id: number | null;
+                code: string;
+                serial_number: string | null;
+                warranty_expiry: Date | null;
+                brand: string | null;
+                last_scanned_date: Date | null;
+                approval_status: string | null;
                 temperature: import("@prisma/client-runtime-utils").Decimal | null;
                 customer_id: number;
-                code: string;
                 asset_master_id: number | null;
-                serial_number: string | null;
+                asset_movement_id: number | null;
                 capacity: number | null;
                 install_date: Date | null;
                 last_service_date: Date | null;
@@ -1004,9 +1093,7 @@ export declare const resolvers: {
                 cooler_type_id: number | null;
                 cooler_sub_type_id: number | null;
                 energy_rating: string | null;
-                warranty_expiry: Date | null;
                 maintenance_contract: string | null;
-                last_scanned_date: Date | null;
             };
             visits: {
                 customer_image: string | null;
@@ -1076,12 +1163,11 @@ export declare const resolvers: {
                 updatedate: Date | null;
                 updatedby: number | null;
                 log_inst: number | null;
+                asset_type_id: number | null;
                 code: string;
-                asset_type_id: number;
                 description: string | null;
             } | null;
             asset_master_asset_types: {
-                brand: string | null;
                 name: string;
                 id: number;
                 is_active: string;
@@ -1090,6 +1176,7 @@ export declare const resolvers: {
                 updatedate: Date | null;
                 updatedby: number | null;
                 log_inst: number | null;
+                brand: string | null;
                 category: string | null;
                 description: string | null;
             };
@@ -1102,15 +1189,25 @@ export declare const resolvers: {
             updatedate: Date | null;
             updatedby: number | null;
             log_inst: number | null;
+            depot_id: number | null;
+            asset_type_id: number;
             code: string;
             serial_number: string;
-            warranty_expiry: Date | null;
-            asset_type_id: number;
-            assigned_to: string | null;
             purchase_date: Date | null;
+            warranty_expiry: Date | null;
             current_location: string | null;
             current_status: string | null;
+            assigned_to: string | null;
             asset_sub_type_id: number | null;
+            barcode: string | null;
+            nfc_tag: string | null;
+            brand_id: number | null;
+            outlet_id: number | null;
+            brand: string | null;
+            asset_brand_id: number | null;
+            installation_date: Date | null;
+            last_read_by: number | null;
+            last_scanned_date: Date | null;
         }>;
         updateAssetMaster: (_: any, { id, input }: any) => Promise<{
             asset_master_asset_sub_types: {
@@ -1122,12 +1219,11 @@ export declare const resolvers: {
                 updatedate: Date | null;
                 updatedby: number | null;
                 log_inst: number | null;
+                asset_type_id: number | null;
                 code: string;
-                asset_type_id: number;
                 description: string | null;
             } | null;
             asset_master_asset_types: {
-                brand: string | null;
                 name: string;
                 id: number;
                 is_active: string;
@@ -1136,6 +1232,7 @@ export declare const resolvers: {
                 updatedate: Date | null;
                 updatedby: number | null;
                 log_inst: number | null;
+                brand: string | null;
                 category: string | null;
                 description: string | null;
             };
@@ -1148,15 +1245,25 @@ export declare const resolvers: {
             updatedate: Date | null;
             updatedby: number | null;
             log_inst: number | null;
+            depot_id: number | null;
+            asset_type_id: number;
             code: string;
             serial_number: string;
-            warranty_expiry: Date | null;
-            asset_type_id: number;
-            assigned_to: string | null;
             purchase_date: Date | null;
+            warranty_expiry: Date | null;
             current_location: string | null;
             current_status: string | null;
+            assigned_to: string | null;
             asset_sub_type_id: number | null;
+            barcode: string | null;
+            nfc_tag: string | null;
+            brand_id: number | null;
+            outlet_id: number | null;
+            brand: string | null;
+            asset_brand_id: number | null;
+            installation_date: Date | null;
+            last_read_by: number | null;
+            last_scanned_date: Date | null;
         }>;
         deleteAssetMaster: (_: any, { id }: {
             id: number;
@@ -1170,12 +1277,11 @@ export declare const resolvers: {
                 updatedate: Date | null;
                 updatedby: number | null;
                 log_inst: number | null;
+                asset_type_id: number | null;
                 code: string;
-                asset_type_id: number;
                 description: string | null;
             } | null;
             asset_master_asset_types: {
-                brand: string | null;
                 name: string;
                 id: number;
                 is_active: string;
@@ -1184,6 +1290,7 @@ export declare const resolvers: {
                 updatedate: Date | null;
                 updatedby: number | null;
                 log_inst: number | null;
+                brand: string | null;
                 category: string | null;
                 description: string | null;
             };
@@ -1196,15 +1303,25 @@ export declare const resolvers: {
             updatedate: Date | null;
             updatedby: number | null;
             log_inst: number | null;
+            depot_id: number | null;
+            asset_type_id: number;
             code: string;
             serial_number: string;
-            warranty_expiry: Date | null;
-            asset_type_id: number;
-            assigned_to: string | null;
             purchase_date: Date | null;
+            warranty_expiry: Date | null;
             current_location: string | null;
             current_status: string | null;
+            assigned_to: string | null;
             asset_sub_type_id: number | null;
+            barcode: string | null;
+            nfc_tag: string | null;
+            brand_id: number | null;
+            outlet_id: number | null;
+            brand: string | null;
+            asset_brand_id: number | null;
+            installation_date: Date | null;
+            last_read_by: number | null;
+            last_scanned_date: Date | null;
         }>;
         createCooler: (_: any, { input }: any) => Promise<{
             users: {
@@ -1214,7 +1331,6 @@ export declare const resolvers: {
                 role_id: number;
                 password_hash: string;
                 parent_id: number | null;
-                depot_id: number | null;
                 zone_id: number | null;
                 phone_number: string | null;
                 address: string | null;
@@ -1229,6 +1345,9 @@ export declare const resolvers: {
                 updatedate: Date | null;
                 updatedby: number | null;
                 log_inst: number | null;
+                platform: string | null;
+                sap_code: string | null;
+                depot_id: number | null;
             } | null;
             cooler_types: {
                 name: string;
@@ -1255,30 +1374,10 @@ export declare const resolvers: {
                 cooler_type_id: number;
                 description: string | null;
             } | null;
-            cooler_asset_master: {
-                name: string;
-                id: number;
-                is_active: string;
-                createdate: Date | null;
-                createdby: number;
-                updatedate: Date | null;
-                updatedby: number | null;
-                log_inst: number | null;
-                code: string;
-                serial_number: string;
-                warranty_expiry: Date | null;
-                asset_type_id: number;
-                assigned_to: string | null;
-                purchase_date: Date | null;
-                current_location: string | null;
-                current_status: string | null;
-                asset_sub_type_id: number | null;
-            } | null;
             coolers_customers: {
                 name: string;
                 id: number;
                 email: string | null;
-                depot_id: number | null;
                 phone_number: string | null;
                 address: string | null;
                 is_active: string;
@@ -1287,9 +1386,10 @@ export declare const resolvers: {
                 updatedate: Date | null;
                 updatedby: number | null;
                 log_inst: number | null;
+                depot_id: number | null;
+                code: string;
                 latitude: import("@prisma/client-runtime-utils").Decimal | null;
                 longitude: import("@prisma/client-runtime-utils").Decimal | null;
-                code: string;
                 short_name: string | null;
                 zones_id: number | null;
                 customer_type_id: number | null;
@@ -1311,9 +1411,40 @@ export declare const resolvers: {
                 last_visit_date: Date | null;
                 outlet_images: string | null;
                 profile_picture: string | null;
+                city_id: number | null;
+                district_id: number | null;
+                region_id: number | null;
             };
+            cooler_asset_master: {
+                name: string;
+                id: number;
+                is_active: string;
+                createdate: Date | null;
+                createdby: number;
+                updatedate: Date | null;
+                updatedby: number | null;
+                log_inst: number | null;
+                depot_id: number | null;
+                asset_type_id: number;
+                code: string;
+                serial_number: string;
+                purchase_date: Date | null;
+                warranty_expiry: Date | null;
+                current_location: string | null;
+                current_status: string | null;
+                assigned_to: string | null;
+                asset_sub_type_id: number | null;
+                barcode: string | null;
+                nfc_tag: string | null;
+                brand_id: number | null;
+                outlet_id: number | null;
+                brand: string | null;
+                asset_brand_id: number | null;
+                installation_date: Date | null;
+                last_read_by: number | null;
+                last_scanned_date: Date | null;
+            } | null;
         } & {
-            brand: string | null;
             model: string | null;
             id: number;
             is_active: string;
@@ -1324,11 +1455,16 @@ export declare const resolvers: {
             log_inst: number | null;
             status: string | null;
             technician_id: number | null;
+            code: string;
+            serial_number: string | null;
+            warranty_expiry: Date | null;
+            brand: string | null;
+            last_scanned_date: Date | null;
+            approval_status: string | null;
             temperature: import("@prisma/client-runtime-utils").Decimal | null;
             customer_id: number;
-            code: string;
             asset_master_id: number | null;
-            serial_number: string | null;
+            asset_movement_id: number | null;
             capacity: number | null;
             install_date: Date | null;
             last_service_date: Date | null;
@@ -1336,9 +1472,7 @@ export declare const resolvers: {
             cooler_type_id: number | null;
             cooler_sub_type_id: number | null;
             energy_rating: string | null;
-            warranty_expiry: Date | null;
             maintenance_contract: string | null;
-            last_scanned_date: Date | null;
         }>;
         updateCooler: (_: any, { id, input }: any) => Promise<{
             users: {
@@ -1348,7 +1482,6 @@ export declare const resolvers: {
                 role_id: number;
                 password_hash: string;
                 parent_id: number | null;
-                depot_id: number | null;
                 zone_id: number | null;
                 phone_number: string | null;
                 address: string | null;
@@ -1363,6 +1496,9 @@ export declare const resolvers: {
                 updatedate: Date | null;
                 updatedby: number | null;
                 log_inst: number | null;
+                platform: string | null;
+                sap_code: string | null;
+                depot_id: number | null;
             } | null;
             cooler_types: {
                 name: string;
@@ -1389,30 +1525,10 @@ export declare const resolvers: {
                 cooler_type_id: number;
                 description: string | null;
             } | null;
-            cooler_asset_master: {
-                name: string;
-                id: number;
-                is_active: string;
-                createdate: Date | null;
-                createdby: number;
-                updatedate: Date | null;
-                updatedby: number | null;
-                log_inst: number | null;
-                code: string;
-                serial_number: string;
-                warranty_expiry: Date | null;
-                asset_type_id: number;
-                assigned_to: string | null;
-                purchase_date: Date | null;
-                current_location: string | null;
-                current_status: string | null;
-                asset_sub_type_id: number | null;
-            } | null;
             coolers_customers: {
                 name: string;
                 id: number;
                 email: string | null;
-                depot_id: number | null;
                 phone_number: string | null;
                 address: string | null;
                 is_active: string;
@@ -1421,9 +1537,10 @@ export declare const resolvers: {
                 updatedate: Date | null;
                 updatedby: number | null;
                 log_inst: number | null;
+                depot_id: number | null;
+                code: string;
                 latitude: import("@prisma/client-runtime-utils").Decimal | null;
                 longitude: import("@prisma/client-runtime-utils").Decimal | null;
-                code: string;
                 short_name: string | null;
                 zones_id: number | null;
                 customer_type_id: number | null;
@@ -1445,9 +1562,40 @@ export declare const resolvers: {
                 last_visit_date: Date | null;
                 outlet_images: string | null;
                 profile_picture: string | null;
+                city_id: number | null;
+                district_id: number | null;
+                region_id: number | null;
             };
+            cooler_asset_master: {
+                name: string;
+                id: number;
+                is_active: string;
+                createdate: Date | null;
+                createdby: number;
+                updatedate: Date | null;
+                updatedby: number | null;
+                log_inst: number | null;
+                depot_id: number | null;
+                asset_type_id: number;
+                code: string;
+                serial_number: string;
+                purchase_date: Date | null;
+                warranty_expiry: Date | null;
+                current_location: string | null;
+                current_status: string | null;
+                assigned_to: string | null;
+                asset_sub_type_id: number | null;
+                barcode: string | null;
+                nfc_tag: string | null;
+                brand_id: number | null;
+                outlet_id: number | null;
+                brand: string | null;
+                asset_brand_id: number | null;
+                installation_date: Date | null;
+                last_read_by: number | null;
+                last_scanned_date: Date | null;
+            } | null;
         } & {
-            brand: string | null;
             model: string | null;
             id: number;
             is_active: string;
@@ -1458,11 +1606,16 @@ export declare const resolvers: {
             log_inst: number | null;
             status: string | null;
             technician_id: number | null;
+            code: string;
+            serial_number: string | null;
+            warranty_expiry: Date | null;
+            brand: string | null;
+            last_scanned_date: Date | null;
+            approval_status: string | null;
             temperature: import("@prisma/client-runtime-utils").Decimal | null;
             customer_id: number;
-            code: string;
             asset_master_id: number | null;
-            serial_number: string | null;
+            asset_movement_id: number | null;
             capacity: number | null;
             install_date: Date | null;
             last_service_date: Date | null;
@@ -1470,9 +1623,7 @@ export declare const resolvers: {
             cooler_type_id: number | null;
             cooler_sub_type_id: number | null;
             energy_rating: string | null;
-            warranty_expiry: Date | null;
             maintenance_contract: string | null;
-            last_scanned_date: Date | null;
         }>;
         deleteCooler: (_: any, { id }: {
             id: number;
@@ -1484,7 +1635,6 @@ export declare const resolvers: {
                 role_id: number;
                 password_hash: string;
                 parent_id: number | null;
-                depot_id: number | null;
                 zone_id: number | null;
                 phone_number: string | null;
                 address: string | null;
@@ -1499,6 +1649,9 @@ export declare const resolvers: {
                 updatedate: Date | null;
                 updatedby: number | null;
                 log_inst: number | null;
+                platform: string | null;
+                sap_code: string | null;
+                depot_id: number | null;
             } | null;
             cooler_types: {
                 name: string;
@@ -1525,30 +1678,10 @@ export declare const resolvers: {
                 cooler_type_id: number;
                 description: string | null;
             } | null;
-            cooler_asset_master: {
-                name: string;
-                id: number;
-                is_active: string;
-                createdate: Date | null;
-                createdby: number;
-                updatedate: Date | null;
-                updatedby: number | null;
-                log_inst: number | null;
-                code: string;
-                serial_number: string;
-                warranty_expiry: Date | null;
-                asset_type_id: number;
-                assigned_to: string | null;
-                purchase_date: Date | null;
-                current_location: string | null;
-                current_status: string | null;
-                asset_sub_type_id: number | null;
-            } | null;
             coolers_customers: {
                 name: string;
                 id: number;
                 email: string | null;
-                depot_id: number | null;
                 phone_number: string | null;
                 address: string | null;
                 is_active: string;
@@ -1557,9 +1690,10 @@ export declare const resolvers: {
                 updatedate: Date | null;
                 updatedby: number | null;
                 log_inst: number | null;
+                depot_id: number | null;
+                code: string;
                 latitude: import("@prisma/client-runtime-utils").Decimal | null;
                 longitude: import("@prisma/client-runtime-utils").Decimal | null;
-                code: string;
                 short_name: string | null;
                 zones_id: number | null;
                 customer_type_id: number | null;
@@ -1581,9 +1715,40 @@ export declare const resolvers: {
                 last_visit_date: Date | null;
                 outlet_images: string | null;
                 profile_picture: string | null;
+                city_id: number | null;
+                district_id: number | null;
+                region_id: number | null;
             };
+            cooler_asset_master: {
+                name: string;
+                id: number;
+                is_active: string;
+                createdate: Date | null;
+                createdby: number;
+                updatedate: Date | null;
+                updatedby: number | null;
+                log_inst: number | null;
+                depot_id: number | null;
+                asset_type_id: number;
+                code: string;
+                serial_number: string;
+                purchase_date: Date | null;
+                warranty_expiry: Date | null;
+                current_location: string | null;
+                current_status: string | null;
+                assigned_to: string | null;
+                asset_sub_type_id: number | null;
+                barcode: string | null;
+                nfc_tag: string | null;
+                brand_id: number | null;
+                outlet_id: number | null;
+                brand: string | null;
+                asset_brand_id: number | null;
+                installation_date: Date | null;
+                last_read_by: number | null;
+                last_scanned_date: Date | null;
+            } | null;
         } & {
-            brand: string | null;
             model: string | null;
             id: number;
             is_active: string;
@@ -1594,11 +1759,16 @@ export declare const resolvers: {
             log_inst: number | null;
             status: string | null;
             technician_id: number | null;
+            code: string;
+            serial_number: string | null;
+            warranty_expiry: Date | null;
+            brand: string | null;
+            last_scanned_date: Date | null;
+            approval_status: string | null;
             temperature: import("@prisma/client-runtime-utils").Decimal | null;
             customer_id: number;
-            code: string;
             asset_master_id: number | null;
-            serial_number: string | null;
+            asset_movement_id: number | null;
             capacity: number | null;
             install_date: Date | null;
             last_service_date: Date | null;
@@ -1606,9 +1776,7 @@ export declare const resolvers: {
             cooler_type_id: number | null;
             cooler_sub_type_id: number | null;
             energy_rating: string | null;
-            warranty_expiry: Date | null;
             maintenance_contract: string | null;
-            last_scanned_date: Date | null;
         }>;
         createCoolerInspection: (_: any, { input }: any) => Promise<{
             users: {
@@ -1618,7 +1786,6 @@ export declare const resolvers: {
                 role_id: number;
                 password_hash: string;
                 parent_id: number | null;
-                depot_id: number | null;
                 zone_id: number | null;
                 phone_number: string | null;
                 address: string | null;
@@ -1633,9 +1800,11 @@ export declare const resolvers: {
                 updatedate: Date | null;
                 updatedby: number | null;
                 log_inst: number | null;
+                platform: string | null;
+                sap_code: string | null;
+                depot_id: number | null;
             };
             coolers: {
-                brand: string | null;
                 model: string | null;
                 id: number;
                 is_active: string;
@@ -1646,11 +1815,16 @@ export declare const resolvers: {
                 log_inst: number | null;
                 status: string | null;
                 technician_id: number | null;
+                code: string;
+                serial_number: string | null;
+                warranty_expiry: Date | null;
+                brand: string | null;
+                last_scanned_date: Date | null;
+                approval_status: string | null;
                 temperature: import("@prisma/client-runtime-utils").Decimal | null;
                 customer_id: number;
-                code: string;
                 asset_master_id: number | null;
-                serial_number: string | null;
+                asset_movement_id: number | null;
                 capacity: number | null;
                 install_date: Date | null;
                 last_service_date: Date | null;
@@ -1658,9 +1832,7 @@ export declare const resolvers: {
                 cooler_type_id: number | null;
                 cooler_sub_type_id: number | null;
                 energy_rating: string | null;
-                warranty_expiry: Date | null;
                 maintenance_contract: string | null;
-                last_scanned_date: Date | null;
             };
             visits: {
                 customer_image: string | null;
@@ -1726,7 +1898,6 @@ export declare const resolvers: {
                 role_id: number;
                 password_hash: string;
                 parent_id: number | null;
-                depot_id: number | null;
                 zone_id: number | null;
                 phone_number: string | null;
                 address: string | null;
@@ -1741,9 +1912,11 @@ export declare const resolvers: {
                 updatedate: Date | null;
                 updatedby: number | null;
                 log_inst: number | null;
+                platform: string | null;
+                sap_code: string | null;
+                depot_id: number | null;
             };
             coolers: {
-                brand: string | null;
                 model: string | null;
                 id: number;
                 is_active: string;
@@ -1754,11 +1927,16 @@ export declare const resolvers: {
                 log_inst: number | null;
                 status: string | null;
                 technician_id: number | null;
+                code: string;
+                serial_number: string | null;
+                warranty_expiry: Date | null;
+                brand: string | null;
+                last_scanned_date: Date | null;
+                approval_status: string | null;
                 temperature: import("@prisma/client-runtime-utils").Decimal | null;
                 customer_id: number;
-                code: string;
                 asset_master_id: number | null;
-                serial_number: string | null;
+                asset_movement_id: number | null;
                 capacity: number | null;
                 install_date: Date | null;
                 last_service_date: Date | null;
@@ -1766,9 +1944,7 @@ export declare const resolvers: {
                 cooler_type_id: number | null;
                 cooler_sub_type_id: number | null;
                 energy_rating: string | null;
-                warranty_expiry: Date | null;
                 maintenance_contract: string | null;
-                last_scanned_date: Date | null;
             };
             visits: {
                 customer_image: string | null;
@@ -1836,7 +2012,6 @@ export declare const resolvers: {
                 role_id: number;
                 password_hash: string;
                 parent_id: number | null;
-                depot_id: number | null;
                 zone_id: number | null;
                 phone_number: string | null;
                 address: string | null;
@@ -1851,9 +2026,11 @@ export declare const resolvers: {
                 updatedate: Date | null;
                 updatedby: number | null;
                 log_inst: number | null;
+                platform: string | null;
+                sap_code: string | null;
+                depot_id: number | null;
             };
             coolers: {
-                brand: string | null;
                 model: string | null;
                 id: number;
                 is_active: string;
@@ -1864,11 +2041,16 @@ export declare const resolvers: {
                 log_inst: number | null;
                 status: string | null;
                 technician_id: number | null;
+                code: string;
+                serial_number: string | null;
+                warranty_expiry: Date | null;
+                brand: string | null;
+                last_scanned_date: Date | null;
+                approval_status: string | null;
                 temperature: import("@prisma/client-runtime-utils").Decimal | null;
                 customer_id: number;
-                code: string;
                 asset_master_id: number | null;
-                serial_number: string | null;
+                asset_movement_id: number | null;
                 capacity: number | null;
                 install_date: Date | null;
                 last_service_date: Date | null;
@@ -1876,9 +2058,7 @@ export declare const resolvers: {
                 cooler_type_id: number | null;
                 cooler_sub_type_id: number | null;
                 energy_rating: string | null;
-                warranty_expiry: Date | null;
                 maintenance_contract: string | null;
-                last_scanned_date: Date | null;
             };
             visits: {
                 customer_image: string | null;

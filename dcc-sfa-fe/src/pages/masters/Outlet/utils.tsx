@@ -1,5 +1,5 @@
 import React from 'react';
-import { Store, Users, TrendingUp } from 'lucide-react';
+import { Store, Users, TrendingUp, Music } from 'lucide-react';
 
 export const BUSINESS_TYPES = [
   'Retail',
@@ -53,26 +53,28 @@ export const getBusinessTypeChipColor = (
 export const getBusinessTypeIcon = (type: string): React.ReactElement => {
   switch ((type || '').toLowerCase()) {
     case 'retail':
-      return <Store className="w-4 h-4" />;
+      return <Store className="w-3 h-3" />;
     case 'wholesale':
-      return <Users className="w-4 h-4" />;
+      return <Users className="w-3 h-3" />;
     case 'corporate':
-      return <TrendingUp className="w-4 h-4" />;
+      return <TrendingUp className="w-3 h-3" />;
     case 'industrial':
-      return <TrendingUp className="w-4 h-4" />;
+      return <TrendingUp className="w-3 h-3" />;
     case 'healthcare':
-      return <Users className="w-4 h-4" />;
+      return <Users className="w-3 h-3" />;
     case 'automotive':
-      return <TrendingUp className="w-4 h-4" />;
+      return <TrendingUp className="w-3 h-3" />;
     case 'restaurant':
-      return <Users className="w-4 h-4" />;
+      return <Users className="w-3 h-3" />;
     case 'service':
-      return <TrendingUp className="w-4 h-4" />;
+      return <TrendingUp className="w-3 h-3" />;
     case 'manufacturing':
-      return <TrendingUp className="w-4 h-4" />;
+      return <TrendingUp className="w-3 h-3" />;
     case 'distribution':
-      return <TrendingUp className="w-4 h-4" />;
+      return <TrendingUp className="w-3 h-3" />;
+    case 'bar':
+      return <Music className="w-3 h-3" />;
     default:
-      return <Store className="w-4 h-4" />;
+      return <Store className="w-3 h-3" />;
   }
 };

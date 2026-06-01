@@ -1,22 +1,20 @@
-import { Avatar, Chip, Skeleton, Typography } from '@mui/material';
+import { Avatar, Skeleton, Typography } from '@mui/material';
 import classNames from 'classnames';
 import { useInvoice, type Invoice } from 'hooks/useInvoices';
 import {
   AlertTriangle,
   ArrowLeft,
-  CheckCircle,
-  Clock,
   DollarSign,
   FileText,
   Info,
   Package,
   Receipt,
-  XCircle,
 } from 'lucide-react';
 import React from 'react';
 import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
-import { formatDate } from 'utils/dateUtils';
+import { formatCurrency, type Currency } from 'utils/currencyUtils';
+import { formatDateTime } from 'utils/dateUtils';
 
 interface InvoiceDetailProps {
   open: boolean;
@@ -36,57 +34,60 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
   } = useInvoice(invoice?.id || 0);
   const invoiceData = invoiceResponse?.data || invoice;
 
-  const getStatusColor = (status: string) => {
-    const colors = {
-      draft: 'bg-gray-100 text-gray-800',
-      sent: 'bg-blue-100 text-blue-800',
-      paid: 'bg-green-100 text-green-800',
-      overdue: 'bg-red-100 text-red-800',
-      cancelled: 'bg-gray-100 text-gray-800',
-    };
-    return colors[status as keyof typeof colors] || 'bg-gray-100 text-gray-800';
-  };
+  // const getStatusColor = (status: string) => {
+  //   const colors = {
+  //     draft: 'bg-gray-100 text-gray-800',
+  //     sent: 'bg-blue-100 text-blue-800',
+  //     paid: 'bg-green-100 text-green-800',
+  //     overdue: 'bg-red-100 text-red-800',
+  //     cancelled: 'bg-gray-100 text-gray-800',
+  //   };
+  //   return colors[status as keyof typeof colors] || 'bg-gray-100 text-gray-800';
+  // };
 
-  const getStatusLabel = (status: string) => {
-    const labels = {
-      draft: 'Draft',
-      sent: 'Sent',
-      paid: 'Paid',
-      overdue: 'Overdue',
-      cancelled: 'Cancelled',
-    };
-    return labels[status as keyof typeof labels] || status;
-  };
+  // const getStatusLabel = (status: string) => {
+  //   const labels = {
+  //     draft: 'Draft',
+  //     sent: 'Sent',
+  //     paid: 'Paid',
+  //     overdue: 'Overdue',
+  //     cancelled: 'Cancelled',
+  //   };
+  //   return labels[status as keyof typeof labels] || status;
+  // };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'draft':
-        return <FileText className="w-4 h-4" />;
-      case 'sent':
-        return <Clock className="w-4 h-4" />;
-      case 'paid':
-        return <CheckCircle className="w-4 h-4" />;
-      case 'overdue':
-        return <AlertTriangle className="w-4 h-4" />;
-      case 'cancelled':
-        return <XCircle className="w-4 h-4" />;
-      default:
-        return <FileText className="w-4 h-4" />;
-    }
-  };
+  // const getStatusIcon = (status: string) => {
+  //   switch (status) {
+  //     case 'draft':
+  //       return <FileText className="w-4 h-4" />;
+  //     case 'sent':
+  //       return <Clock className="w-4 h-4" />;
+  //     case 'paid':
+  //       return <CheckCircle className="w-4 h-4" />;
+  //     case 'overdue':
+  //       return <AlertTriangle className="w-4 h-4" />;
+  //     case 'cancelled':
+  //       return <XCircle className="w-4 h-4" />;
+  //     default:
+  //       return <FileText className="w-4 h-4" />;
+  //   }
+  // };
 
-  const formatCurrency = (amount: number | null | undefined) => {
+  const formatCurrencyWithInvoiceCurrency = (
+    amount: number | null | undefined
+  ) => {
     if (amount === null || amount === undefined) return 'N/A';
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(amount);
+
+    const currencyId = invoiceData?.currency_id || 1;
+    const currencies: Currency[] = [];
+
+    return formatCurrency(amount, undefined, currencies, currencyId);
   };
 
-  const isOverdue = (invoice: Invoice) => {
-    if (!invoice.due_date || !invoice.balance_due) return false;
-    return new Date(invoice.due_date) < new Date() && invoice.balance_due > 0;
-  };
+  // const isOverdue = (invoice: Invoice) => {
+  //   if (!invoice.due_date || !invoice.balance_due) return false;
+  //   return new Date(invoice.due_date) < new Date() && invoice.balance_due > 0;
+  // };
 
   const handleBack = () => {
     onClose();
@@ -101,7 +102,6 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
         size="large"
       >
         <div className="!p-6 !space-y-6">
-          {/* Header Skeleton */}
           <div className="!bg-white !rounded-lg !shadow !border !border-gray-200 !p-6 !text-center !relative">
             <Skeleton
               variant="circular"
@@ -129,7 +129,6 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
             />
           </div>
 
-          {/* Content Skeleton */}
           <div className="!grid !grid-cols-1 md:!grid-cols-2 !gap-6">
             {[1, 2, 3, 4].map(item => (
               <div
@@ -227,7 +226,6 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
       size="large"
     >
       <div className="!p-5 mb-10 !space-y-5">
-        {/* Header Card */}
         <div className="!bg-white !rounded-lg !shadow !border !border-gray-200 !p-6 !text-center !relative">
           <div className="absolute top-3 right-3">
             <div
@@ -267,22 +265,10 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
           </Typography>
 
           <div className="!flex !justify-center !gap-2 !mb-4">
-            <Chip
-              icon={getStatusIcon(invoiceData.status || 'draft')}
-              label={getStatusLabel(invoiceData.status || 'draft')}
-              className={`${getStatusColor(invoiceData.status || 'draft')} font-semibold`}
-              size="small"
-            />
-            {isOverdue(invoiceData) && (
-              <Chip
-                label="OVERDUE"
-                className="!bg-red-100 !text-red-800 !font-bold"
-                size="small"
-              />
-            )}
+            {formatDateTime(invoiceData.invoice_date)}
           </div>
 
-          <div className="!space-y-1 !text-left !mt-4">
+          {/* <div className="!space-y-1 !text-left !mt-4">
             <div className="!p-2 !bg-gray-50 !rounded-md">
               <Typography
                 variant="caption"
@@ -294,7 +280,7 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
                 variant="body2"
                 className="!font-semibold !text-gray-900"
               >
-                {formatCurrency(invoiceData.total_amount)}
+                {formatCurrencyWithInvoiceCurrency(invoiceData.total_amount)}
               </Typography>
             </div>
 
@@ -309,7 +295,11 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
                 variant="body2"
                 className="!font-semibold !text-green-600"
               >
-                {formatCurrency(invoiceData.amount_paid)}
+                {formatCurrencyWithInvoiceCurrency(
+                  invoiceData.balance_due === 0
+                    ? invoiceData.total_amount
+                    : invoiceData.amount_paid
+                )}
               </Typography>
             </div>
 
@@ -324,17 +314,16 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
                 variant="body2"
                 className="!font-semibold !text-red-600"
               >
-                {formatCurrency(invoiceData.balance_due)}
+                {formatCurrencyWithInvoiceCurrency(invoiceData.balance_due)}
               </Typography>
             </div>
-          </div>
+          </div> */}
         </div>
 
         <div className="!grid !grid-cols-1 md:!grid-cols-2 !gap-6">
-          {/* Invoice Information */}
-          <InfoCard title="Invoice Information" icon={Info}>
-            <div className="!space-y-3">
-              <div className="!flex !justify-between">
+          {/* <InfoCard title="Invoice Information" icon={Info}> */}
+          {/* <div className="!space-y-3"> */}
+          {/* <div className="!flex !justify-between">
                 <Typography variant="body2" className="!text-gray-600">
                   Invoice Date:
                 </Typography>
@@ -344,8 +333,8 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
                 >
                   {formatDate(invoiceData.invoice_date)}
                 </Typography>
-              </div>
-              <div className="!flex !justify-between">
+              </div> */}
+          {/* <div className="!flex !justify-between">
                 <Typography variant="body2" className="!text-gray-600">
                   Due Date:
                 </Typography>
@@ -353,10 +342,14 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
                   variant="body2"
                   className="!font-semibold !text-gray-900"
                 >
-                  {formatDate(invoiceData.due_date)}
+                  {formatDate(invoiceData.due_date) || (
+                    <span className="!text-gray-500 font-normal">
+                      No Due Date
+                    </span>
+                  )}
                 </Typography>
-              </div>
-              <div className="!flex !justify-between">
+              </div> */}
+          {/* <div className="!flex !justify-between">
                 <Typography variant="body2" className="!text-gray-600">
                   Payment Method:
                 </Typography>
@@ -366,22 +359,23 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
                 >
                   {invoiceData.payment_method?.replaceAll('_', ' ') || 'N/A'}
                 </Typography>
-              </div>
-              <div className="!flex !justify-between">
-                <Typography variant="body2" className="!text-gray-600">
-                  Order Number:
-                </Typography>
-                <Typography
-                  variant="body2"
-                  className="!font-semibold !text-gray-900"
-                >
-                  #{invoiceData.parent_id}
-                </Typography>
-              </div>
-            </div>
-          </InfoCard>
+              </div> */}
+          {/* {invoiceData.parent_id && (
+                <div className="!flex !justify-between">
+                  <Typography variant="body2" className="!text-gray-600">
+                    Order Number:
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    className="!font-semibold !text-gray-900"
+                  >
+                    #{invoiceData.parent_id}
+                  </Typography>
+                </div>
+              )} */}
+          {/* </div> */}
+          {/* </InfoCard> */}
 
-          {/* Customer Information */}
           <InfoCard title="Customer Information" icon={Package}>
             <div className="!space-y-3">
               <div className="!flex !justify-between">
@@ -420,67 +414,6 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
             </div>
           </InfoCard>
 
-          {/* Amount Breakdown */}
-          <InfoCard title="Amount Breakdown" icon={DollarSign}>
-            <div className="!space-y-3">
-              <div className="!flex !justify-between">
-                <Typography variant="body2" className="!text-gray-600">
-                  Subtotal:
-                </Typography>
-                <Typography
-                  variant="body2"
-                  className="!font-semibold !text-gray-900"
-                >
-                  {formatCurrency(invoiceData.subtotal)}
-                </Typography>
-              </div>
-              <div className="!flex !justify-between">
-                <Typography variant="body2" className="!text-gray-600">
-                  Discount:
-                </Typography>
-                <Typography
-                  variant="body2"
-                  className="!font-semibold !text-green-600"
-                >
-                  -{formatCurrency(invoiceData.discount_amount)}
-                </Typography>
-              </div>
-              <div className="!flex !justify-between">
-                <Typography variant="body2" className="!text-gray-600">
-                  Tax:
-                </Typography>
-                <Typography
-                  variant="body2"
-                  className="!font-semibold !text-gray-900"
-                >
-                  {formatCurrency(invoiceData.tax_amount)}
-                </Typography>
-              </div>
-              <div className="!flex !justify-between">
-                <Typography variant="body2" className="!text-gray-600">
-                  Shipping:
-                </Typography>
-                <Typography
-                  variant="body2"
-                  className="!font-semibold !text-gray-900"
-                >
-                  {formatCurrency(invoiceData.shipping_amount)}
-                </Typography>
-              </div>
-              <div className="!border-t !border-gray-300 !pt-2 !mt-2">
-                <div className="!flex !justify-between">
-                  <Typography variant="subtitle2" className="!font-bold">
-                    Total:
-                  </Typography>
-                  <Typography variant="subtitle2" className="!font-bold">
-                    {formatCurrency(invoiceData.total_amount)}
-                  </Typography>
-                </div>
-              </div>
-            </div>
-          </InfoCard>
-
-          {/* Invoice Items */}
           <InfoCard title="Invoice Items" icon={Package}>
             <div className="!space-y-2">
               {invoiceData.invoice_items &&
@@ -491,31 +424,54 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
                     className="!p-3 !bg-gray-50 !rounded-md !border !border-gray-200"
                   >
                     <div className="!flex !justify-between !items-start !mb-1">
+                      <div>
+                        <Typography
+                          variant="body2"
+                          className="!font-semibold !text-gray-900"
+                        >
+                          {item.product?.name ||
+                            item.product_name ||
+                            `Product #${item.product_id}`}
+                        </Typography>
+                        <Typography
+                          variant="caption"
+                          className="!text-gray-500 !block !mt-0.5"
+                        >
+                          Tracking:{' '}
+                          {item.tracking_type ||
+                            item.product?.tracking_type ||
+                            'None'}
+                        </Typography>
+                      </div>
                       <Typography
                         variant="body2"
                         className="!font-semibold !text-gray-900"
                       >
-                        {item.product_name || `Product #${item.product_id}`}
-                      </Typography>
-                      <Typography
-                        variant="body2"
-                        className="!font-semibold !text-gray-900"
-                      >
-                        {formatCurrency(
-                          item.unit_price * item.quantity -
-                            (item.discount_amount || 0) || 0
+                        {formatCurrencyWithInvoiceCurrency(
+                          (item.quantity || item.base_quantity || 1) *
+                            item.unit_price -
+                            (item.discount_amount || 0)
                         )}
                       </Typography>
                     </div>
                     <div className="!flex !justify-between !text-xs !text-gray-500">
                       <span>
-                        Qty: {item.quantity} × {formatCurrency(item.unit_price)}
+                        Qty: {item.quantity || item.base_quantity}{' '}
+                        {item.quantity
+                          ? 'Crates x '
+                          : item.base_quantity
+                            ? 'PCs x '
+                            : ''}
+                        {formatCurrencyWithInvoiceCurrency(item.unit_price)}
                       </span>
-                      {item.discount_amount && item.discount_amount > 0 && (
-                        <span className="!text-green-600">
+                      {item.discount_amount && item.discount_amount > 0 ? (
+                        <Typography
+                          variant="body2"
+                          className="!font-semibold !text-green-600"
+                        >
                           Discount: -{formatCurrency(item.discount_amount)}
-                        </span>
-                      )}
+                        </Typography>
+                      ) : null}
                     </div>
                     {item.notes && (
                       <Typography
@@ -538,8 +494,75 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
             </div>
           </InfoCard>
         </div>
-
-        {/* Notes and Billing Address */}
+        <InfoCard title="Amount Breakdown" icon={DollarSign}>
+          <div className="!space-y-3">
+            <div className="!flex !justify-between">
+              <Typography variant="body2" className="!text-gray-600">
+                Subtotal:
+              </Typography>
+              <Typography
+                variant="body2"
+                className="!font-semibold !text-gray-900"
+              >
+                {formatCurrencyWithInvoiceCurrency(
+                  invoiceData.subtotal ||
+                    Number(invoiceData.total_amount) -
+                      Number(invoiceData.tax_amount) +
+                      Number(invoiceData.discount_amount)
+                )}
+              </Typography>
+            </div>
+            <div className="!flex !justify-between">
+              <Typography variant="body2" className="!text-gray-600">
+                Discount:
+              </Typography>
+              <Typography
+                variant="body2"
+                className="!font-semibold !text-green-600"
+              >
+                -
+                {formatCurrencyWithInvoiceCurrency(invoiceData.discount_amount)}
+              </Typography>
+            </div>
+            <div className="!flex !justify-between">
+              <Typography variant="body2" className="!text-gray-600">
+                Tax:
+              </Typography>
+              <Typography
+                variant="body2"
+                className="!font-semibold !text-gray-900"
+              >
+                {formatCurrencyWithInvoiceCurrency(invoiceData.tax_amount)}
+              </Typography>
+            </div>
+            <div className="!flex !justify-between">
+              <Typography variant="body2" className="!text-gray-600">
+                Shipping:
+              </Typography>
+              <Typography
+                variant="body2"
+                className="!font-semibold !text-gray-900"
+              >
+                {formatCurrencyWithInvoiceCurrency(invoiceData.shipping_amount)}
+              </Typography>
+            </div>
+            <div className="!border-t !border-gray-300 !pt-2 !mt-2">
+              <div className="!flex !justify-between">
+                <Typography variant="subtitle2" className="!font-bold">
+                  Total:
+                </Typography>
+                <Typography variant="subtitle2" className="!font-bold">
+                  {formatCurrencyWithInvoiceCurrency(
+                    Number(invoiceData.total_amount) +
+                      Number(invoiceData.tax_amount) +
+                      Number(invoiceData.shipping_amount) -
+                      Number(invoiceData.discount_amount)
+                  )}
+                </Typography>
+              </div>
+            </div>
+          </div>
+        </InfoCard>
         {(invoiceData.notes || invoiceData.billing_address) && (
           <div className="!grid !grid-cols-1 md:!grid-cols-2 !gap-6">
             {invoiceData.notes && (
@@ -558,17 +581,6 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
             )}
           </div>
         )}
-
-        {/* Back Button */}
-        <div className="!flex !justify-end">
-          <Button
-            variant="outlined"
-            startIcon={<ArrowLeft />}
-            onClick={handleBack}
-          >
-            Back to Invoices
-          </Button>
-        </div>
       </div>
     </CustomDrawer>
   );

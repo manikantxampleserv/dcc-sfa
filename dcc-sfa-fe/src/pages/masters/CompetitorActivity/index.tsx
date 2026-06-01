@@ -274,30 +274,30 @@ const CompetitorActivityManagement: React.FC = () => {
     },
     ...(isUpdate || isDelete || isRead
       ? [
-          {
-            id: 'action',
-            label: 'Actions',
-            sortable: false,
-            render: (_value: any, row: CompetitorActivity) => (
-              <div className="!flex !gap-2 !items-center">
-                {isUpdate && (
-                  <EditButton
-                    onClick={() => handleEditActivity(row)}
-                    tooltip={`Edit Activity #${row.id}`}
-                  />
-                )}
-                {isDelete && (
-                  <DeleteButton
-                    onClick={() => handleDeleteActivity(row.id)}
-                    tooltip={`Delete Activity #${row.id}`}
-                    itemName={`Activity #${row.id}`}
-                    confirmDelete={true}
-                  />
-                )}
-              </div>
-            ),
-          },
-        ]
+        {
+          id: 'action',
+          label: 'Actions',
+          sortable: false,
+          render: (_value: any, row: CompetitorActivity) => (
+            <div className="!flex !gap-2 !items-center">
+              {isUpdate && (
+                <EditButton
+                  onClick={() => handleEditActivity(row)}
+                  tooltip={`Edit Activity #${row.id}`}
+                />
+              )}
+              {isDelete && (
+                <DeleteButton
+                  onClick={() => handleDeleteActivity(row.id)}
+                  tooltip={`Delete Activity #${row.id}`}
+                  itemName={`Activity #${row.id}`}
+                  confirmDelete={true}
+                />
+              )}
+            </div>
+          ),
+        },
+      ]
       : []),
   ];
 
@@ -314,7 +314,7 @@ const CompetitorActivityManagement: React.FC = () => {
         </Box>
       </Box>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
         <StatsCard
           title="Total Activities"
           value={totalActivities}
@@ -357,43 +357,50 @@ const CompetitorActivityManagement: React.FC = () => {
         actions={
           <div className="flex justify-between w-full items-center flex-wrap gap-2">
             <div className="flex flex-wrap items-center gap-2">
-              <SearchInput
-                placeholder="Search Activities..."
-                value={search}
-                onChange={handleSearchChange}
-                debounceMs={400}
-                showClear={true}
-                className="!w-80"
-              />
-              <Select
-                value={statusFilter}
-                onChange={e => setStatusFilter(e.target.value)}
-                className="!w-32"
-                disableClearable
-              >
-                <MenuItem value="all">All Status</MenuItem>
-                <MenuItem value="active">Active</MenuItem>
-                <MenuItem value="inactive">Inactive</MenuItem>
-              </Select>
+              {isRead && (
+                <>
+                  <SearchInput
+                    placeholder="Search Activities..."
+                    value={search}
+                    onChange={handleSearchChange}
+                    debounceMs={400}
+                    showClear={true}
+                    className="!w-80"
+                  />
+                  <Select
+                    value={statusFilter}
+                    onChange={e => setStatusFilter(e.target.value)}
+                    disableClearable
+                  >
+                    <MenuItem value="all">All Status</MenuItem>
+                    <MenuItem value="active">Active</MenuItem>
+                    <MenuItem value="inactive">Inactive</MenuItem>
+                  </Select>
+                </>
+              )}
             </div>
             <div className="flex items-center gap-2">
-              <PopConfirm
-                title="Export Competitor Activities"
-                description="Are you sure you want to export the current competitor activity data to Excel? This will include all filtered results."
-                onConfirm={handleExportToExcel}
-                confirmText="Export"
-                cancelText="Cancel"
-                placement="top"
-              >
-                <Button
-                  variant="outlined"
-                  className="!capitalize"
-                  startIcon={<Download />}
-                  disabled={exportToExcelMutation.isPending}
+              {isRead && (
+                <PopConfirm
+                  title="Export Competitor Activities"
+                  description="Are you sure you want to export the current competitor activity data to Excel? This will include all filtered results."
+                  onConfirm={handleExportToExcel}
+                  confirmText="Export"
+                  cancelText="Cancel"
+                  placement="top"
                 >
-                  {exportToExcelMutation.isPending ? 'Exporting...' : 'Export'}
-                </Button>
-              </PopConfirm>
+                  <Button
+                    variant="outlined"
+                    className="!capitalize"
+                    startIcon={<Download />}
+                    disabled={exportToExcelMutation.isPending}
+                  >
+                    {exportToExcelMutation.isPending
+                      ? 'Exporting...'
+                      : 'Export'}
+                  </Button>
+                </PopConfirm>
+              )}
               {isCreate && (
                 <Button
                   variant="outlined"

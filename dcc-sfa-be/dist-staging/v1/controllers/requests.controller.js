@@ -44,10 +44,19 @@ const serializeRequest = (request) => ({
                 id: approval.sfa_d_requests_approvals_approver.id,
                 name: approval.sfa_d_requests_approvals_approver.name,
                 email: approval.sfa_d_requests_approvals_approver.email,
+                profile_image: approval.sfa_d_requests_approvals_approver.profile_image || null,
+                employee_id: approval.sfa_d_requests_approvals_approver.employee_id || null,
             }
             : null,
+        reference_details: request.reference_details || null,
     })) || [],
 });
+const isDisposalMovementOutletToDepot = (movement) => {
+    return ((movement.movement_type?.toLowerCase() === 'return' ||
+        movement.movement_type?.toLowerCase() === 'disposal') &&
+        movement.from_direction?.toLowerCase() === 'outlet' &&
+        movement.to_direction?.toLowerCase() === 'depot');
+};
 const formatRequestType = (type) => {
     return type
         .replace(/_/g, ' ')
@@ -291,8 +300,164 @@ const createRequest = async (data) => {
             }
         }
         if (!workflowSteps || workflowSteps.length === 0) {
-            console.log('No workflow found');
-            return request;
+            console.log('No workflow found, auto-approving request:', request.id);
+            const approvedRequest = await prisma_client_1.default.sfa_d_requests.update({
+                where: { id: request.id },
+                data: {
+                    status: 'A',
+                    overall_status: 'APPROVED',
+                    updatedate: new Date(),
+                    updatedby: data.createdby,
+                },
+            });
+            // 1. ASSET_MOVEMENT_APPROVAL
+            if (data.request_type === 'ASSET_MOVEMENT_APPROVAL' &&
+                data.reference_id) {
+                const assetMovement = await prisma_client_1.default.asset_movements.findUnique({
+                    where: { id: data.reference_id },
+                    include: {
+                        asset_movement_assets: {
+                            select: { asset_id: true },
+                        },
+                    },
+                });
+                if (assetMovement) {
+                    await prisma_client_1.default.asset_movements.update({
+                        where: { id: data.reference_id },
+                        data: {
+                            approval_status: 'A',
+                            approved_by: data.createdby,
+                            approved_at: new Date(),
+                            updatedby: data.createdby,
+                            updatedate: new Date(),
+                        },
+                    });
+                    const toDirection = assetMovement.to_direction || '';
+                    const toDepotId = assetMovement.to_depot_id;
+                    const toCustomerId = assetMovement.to_customer_id;
+                    const isDisposal = isDisposalMovementOutletToDepot(assetMovement);
+                    await prisma_client_1.default.asset_master.updateMany({
+                        where: {
+                            id: {
+                                in: assetMovement.asset_movement_assets.map((aa) => aa.asset_id),
+                            },
+                        },
+                        data: {
+                            depot_id: toDepotId || null,
+                            outlet_id: toCustomerId || null,
+                            current_location: `${toDirection} (${toDepotId || toCustomerId})`,
+                            current_status: isDisposal ? 'Damaged' : (toCustomerId ? 'Installed' : 'Available'),
+                            updatedate: new Date(),
+                            updatedby: data.createdby,
+                        },
+                    });
+                    // const existingCooler = await prisma.coolers.findUnique({
+                    //   where: { id: data.reference_id },
+                    // });
+                    // if (existingCooler) {
+                    //   await prisma.coolers.update({
+                    //     where: { id: data.reference_id },
+                    //     data: {
+                    //       approval_status: 'A',
+                    //     },
+                    //   });
+                    // }
+                    await prisma_client_1.default.coolers.updateMany({
+                        where: {
+                            asset_master_id: {
+                                in: assetMovement.asset_movement_assets.map((aa) => aa.asset_id),
+                            },
+                        },
+                        data: {
+                            status: isDisposal ? 'Removed' : 'Installed',
+                            approval_status: 'A',
+                            ...(!isDisposal && { install_date: new Date() }),
+                            asset_movement_id: data.reference_id,
+                            updatedate: new Date(),
+                            updatedby: data.createdby,
+                        },
+                    });
+                    console.log(`Cooler installations updated for auto-approved movement ${data.reference_id}`);
+                    if (assetMovement.movement_type?.toLowerCase() === 'maintenance' ||
+                        assetMovement.movement_type?.toLowerCase() === 'repair') {
+                        try {
+                            await prisma_client_1.default.asset_maintenance.createMany({
+                                data: assetMovement.asset_movement_assets.map((aa) => ({
+                                    asset_id: aa.asset_id,
+                                    maintenance_date: assetMovement.movement_date || new Date(),
+                                    issue_reported: assetMovement.notes ||
+                                        `${assetMovement.movement_type} movement`,
+                                    action_taken: `Asset moved from ${assetMovement.from_direction} to ${toDirection}`,
+                                    remarks: `Movement type: ${assetMovement.movement_type}`,
+                                    createdby: data.createdby,
+                                    createdate: new Date(),
+                                    technician_id: assetMovement.performed_by,
+                                    log_inst: 1,
+                                })),
+                            });
+                            console.log(`Maintenance records created for auto-approved asset movement: ${data.reference_id}`);
+                        }
+                        catch (maintenanceError) {
+                            console.error('Error creating maintenance records on auto-approval:', maintenanceError);
+                        }
+                    }
+                    try {
+                        await (0, approvalWorkflow_helper_1.generateContractOnApproval)(data.reference_id);
+                    }
+                    catch (contractError) {
+                        console.error('Error generating contract after auto-approval:', contractError);
+                    }
+                }
+            }
+            // 2. ORDER_APPROVAL
+            if (data.request_type === 'ORDER_APPROVAL' && data.reference_id) {
+                await prisma_client_1.default.orders.update({
+                    where: { id: data.reference_id },
+                    data: {
+                        approval_status: 'A',
+                        status: 'confirmed',
+                        approved_by: data.createdby,
+                        approved_at: new Date(),
+                        updatedby: data.createdby,
+                        updatedate: new Date(),
+                    },
+                });
+            }
+            // 3. LOCATION_RESET
+            if (data.request_type === 'LOCATION_RESET' && data.reference_id) {
+                const requestData = JSON.parse(data.request_data || '{}');
+                const updateData = { updatedate: new Date() };
+                if (requestData.latitude !== undefined) {
+                    updateData.latitude = requestData.latitude;
+                }
+                if (requestData.longitude !== undefined) {
+                    updateData.longitude = requestData.longitude;
+                }
+                await prisma_client_1.default.customers.update({
+                    where: { id: data.reference_id },
+                    data: updateData,
+                });
+                console.log(`Customer ${data.reference_id} location updated successfully`);
+            }
+            // 4. CUSTOMER_CREATION
+            if (data.request_type === 'CUSTOMER_CREATION') {
+                const requestData = JSON.parse(data.request_data || '{}');
+                const customerData = requestData.customer_data;
+                const customerImages = requestData.customer_images || [];
+                const { platform_type, ...customerDataWithoutPlatform } = customerData;
+                const createdCustomer = await prisma_client_1.default.customers.create({
+                    data: customerDataWithoutPlatform,
+                });
+                if (customerImages.length > 0) {
+                    await prisma_client_1.default.customer_image.createMany({
+                        data: customerImages.map((img) => ({
+                            ...img,
+                            customer_id: createdCustomer.id,
+                        })),
+                    });
+                }
+            }
+            return approvedRequest;
         }
         console.log(` Using ${workflowType} workflow with ${workflowSteps.length} steps`);
         const approvalsToInsert = workflowSteps.map((step, index) => ({
@@ -336,6 +501,57 @@ const createRequest = async (data) => {
                         };
                     }
                 }
+                if (data.request_type === 'LOCATION_RESET') {
+                    const customer = await getCustomerDetails(data.reference_id);
+                    const requestData = JSON.parse(data.request_data || '{}');
+                    const variables = {
+                        approver_name: firstApprover.approval_work_flow_approver.name,
+                        requester_name: requester.name,
+                        customer_name: customer?.name || 'N/A',
+                        customer_code: customer?.code || 'N/A',
+                        current_latitude: customer?.latitude,
+                        current_longitude: customer?.longitude,
+                        new_latitude: requestData.latitude,
+                        new_longitude: requestData.longitude,
+                        reset_reason: requestData.reason,
+                        request_id: request.id,
+                        request_date: new Date().toLocaleDateString(),
+                        company_name: process.env.COMPANY_NAME || 'SFA System',
+                    };
+                    const template = await (0, emailTemplates_1.generateEmailContent)(templateKeyMap_1.default.locationResetNotifyApprover, variables);
+                    await (0, mailer_1.sendEmail)({
+                        to: firstApprover.approval_work_flow_approver.email,
+                        subject: template.subject,
+                        html: template.body,
+                        createdby: data.createdby,
+                        log_inst: data.log_inst,
+                    });
+                }
+                if (data.request_type === 'CUSTOMER_CREATION') {
+                    const requestData = JSON.parse(data.request_data || '{}');
+                    const customerData = requestData.customer_data;
+                    const variables = {
+                        approver_name: firstApprover.approval_work_flow_approver.name,
+                        requester_name: requester.name,
+                        customer_name: customerData.name,
+                        customer_code: customerData.code,
+                        customer_email: customerData.email,
+                        customer_phone: customerData.phone_number,
+                        platform_type: requestData.platform_type,
+                        requested_by: requestData.requested_by,
+                        requested_date: requestData.requested_date,
+                        request_id: request.id,
+                        company_name: process.env.COMPANY_NAME || 'SFA System',
+                    };
+                    const template = await (0, emailTemplates_1.generateEmailContent)(templateKeyMap_1.default.customerCreationNotifyApprover, variables);
+                    await (0, mailer_1.sendEmail)({
+                        to: firstApprover.approval_work_flow_approver.email,
+                        subject: template.subject,
+                        html: template.body,
+                        createdby: data.createdby,
+                        log_inst: data.log_inst,
+                    });
+                }
                 const template = await prisma_client_1.default.sfa_d_templates.findUnique({
                     where: { key: 'notify_approver' },
                 });
@@ -373,6 +589,17 @@ const createRequest = async (data) => {
     }
 };
 exports.createRequest = createRequest;
+async function getCustomerDetails(customerId) {
+    return await prisma_client_1.default.customers.findUnique({
+        where: { id: customerId },
+        select: {
+            code: true,
+            name: true,
+            latitude: true,
+            longitude: true,
+        },
+    });
+}
 exports.requestsController = {
     async getRequestTypes(_req, res) {
         return res.json({
@@ -453,7 +680,13 @@ exports.requestsController = {
                                 sequence: true,
                                 status: true,
                                 sfa_d_requests_approvals_approver: {
-                                    select: { id: true, name: true, email: true },
+                                    select: {
+                                        id: true,
+                                        name: true,
+                                        email: true,
+                                        profile_image: true,
+                                        employee_id: true,
+                                    },
                                 },
                             },
                             orderBy: { sequence: 'asc' },
@@ -481,7 +714,6 @@ exports.requestsController = {
                                 request_type: formatRequestType(request_type),
                                 action: 'created',
                                 company_name: 'SFA System',
-                                // request_detail: JSON.stringify(request_detail),
                                 ...request_detail,
                             });
                             await (0, mailer_1.sendEmail)({
@@ -541,6 +773,9 @@ exports.requestsController = {
                     lte: new Date(endDate),
                 };
             }
+            const customerCreationRequests = await prisma_client_1.default.sfa_d_requests.count({
+                where: { request_type: 'CUSTOMER_CREATION' },
+            });
             const { data, pagination } = await (0, paginate_1.paginate)({
                 model: prisma_client_1.default.sfa_d_requests,
                 filters,
@@ -552,10 +787,34 @@ exports.requestsController = {
                         select: { id: true, name: true, email: true },
                     },
                     sfa_d_requests_approvals_request: {
-                        select: { id: true, sequence: true, status: true },
+                        select: {
+                            id: true,
+                            approver_id: true,
+                            sequence: true,
+                            status: true,
+                            remarks: true,
+                            action_at: true,
+                            sfa_d_requests_approvals_approver: {
+                                select: {
+                                    id: true,
+                                    name: true,
+                                    email: true,
+                                    profile_image: true,
+                                    employee_id: true,
+                                },
+                            },
+                        },
+                        orderBy: { sequence: 'asc' },
                     },
                 },
             });
+            const requestsWithDetails = await Promise.all(data.map(async (request) => {
+                const referenceDetails = await (0, getDetails_1.default)(request.request_type, request.reference_id, request.request_data);
+                return {
+                    ...request,
+                    reference_details: referenceDetails,
+                };
+            }));
             const totalRequests = await prisma_client_1.default.sfa_d_requests.count({
                 where: filters,
             });
@@ -570,7 +829,7 @@ exports.requestsController = {
             });
             res.json({
                 message: 'Requests retrieved successfully',
-                data: data.map((request) => serializeRequest(request)),
+                data: requestsWithDetails.map((request) => serializeRequest(request)),
                 pagination,
                 stats: {
                     total_requests: totalRequests,
@@ -606,7 +865,13 @@ exports.requestsController = {
                             remarks: true,
                             action_at: true,
                             sfa_d_requests_approvals_approver: {
-                                select: { id: true, name: true, email: true },
+                                select: {
+                                    id: true,
+                                    name: true,
+                                    email: true,
+                                    profile_image: true,
+                                    employee_id: true,
+                                },
                             },
                         },
                         orderBy: { sequence: 'asc' },
@@ -789,6 +1054,23 @@ exports.requestsController = {
                         },
                     },
                 });
+                if (request.request_type === 'LOCATION_RESET' &&
+                    request.reference_id &&
+                    action === 'A') {
+                    const requestData = JSON.parse(request.request_data || '{}');
+                    const updateData = { updatedate: new Date() };
+                    if (requestData.latitude !== undefined) {
+                        updateData.latitude = requestData.latitude;
+                    }
+                    if (requestData.longitude !== undefined) {
+                        updateData.longitude = requestData.longitude;
+                    }
+                    await tx.customers.update({
+                        where: { id: request.reference_id },
+                        data: updateData,
+                    });
+                    console.log(`Customer ${request.reference_id} location updated successfully`);
+                }
                 if (!nextApprover) {
                     await tx.sfa_d_requests.update({
                         where: { id: Number(request_id) },
@@ -804,7 +1086,7 @@ exports.requestsController = {
                         await tx.orders.update({
                             where: { id: request.reference_id },
                             data: {
-                                approval_status: 'approved',
+                                approval_status: 'A',
                                 status: 'confirmed',
                                 approved_by: userId,
                                 approved_at: new Date(),
@@ -834,30 +1116,10 @@ exports.requestsController = {
                                     updatedate: new Date(),
                                 },
                             });
-                            let assetStatusUpdate = '';
-                            switch (assetMovement.movement_type?.toLowerCase()) {
-                                case 'transfer':
-                                    assetStatusUpdate = 'Available';
-                                    break;
-                                case 'installation':
-                                    assetStatusUpdate = 'Installed';
-                                    break;
-                                case 'disposal':
-                                    assetStatusUpdate = 'Retired';
-                                    break;
-                                case 'maintenance':
-                                case 'repair':
-                                    assetStatusUpdate = 'Under Maintenance';
-                                    break;
-                                case 'return':
-                                    assetStatusUpdate = 'Available';
-                                    break;
-                                default:
-                                    assetStatusUpdate = 'Available';
-                            }
                             const toDirection = assetMovement.to_direction || '';
                             const toDepotId = assetMovement.to_depot_id;
                             const toCustomerId = assetMovement.to_customer_id;
+                            const isDisposal = isDisposalMovementOutletToDepot(assetMovement);
                             await tx.asset_master.updateMany({
                                 where: {
                                     id: {
@@ -865,12 +1127,30 @@ exports.requestsController = {
                                     },
                                 },
                                 data: {
+                                    depot_id: toDepotId || null,
+                                    outlet_id: toCustomerId || null,
                                     current_location: `${toDirection} (${toDepotId || toCustomerId})`,
-                                    current_status: assetStatusUpdate,
+                                    current_status: isDisposal ? 'Damaged' : (toCustomerId ? 'Installed' : 'Available'),
                                     updatedate: new Date(),
                                     updatedby: userId,
                                 },
                             });
+                            await tx.coolers.updateMany({
+                                where: {
+                                    asset_master_id: {
+                                        in: assetMovement.asset_movement_assets.map((aa) => aa.asset_id),
+                                    },
+                                },
+                                data: {
+                                    status: isDisposal ? 'Removed' : 'Installed',
+                                    approval_status: 'A',
+                                    ...(!isDisposal && { install_date: new Date() }),
+                                    asset_movement_id: request.reference_id,
+                                    updatedate: new Date(),
+                                    updatedby: userId,
+                                },
+                            });
+                            console.log(`Cooler installations updated for asset movement ${request.reference_id}`);
                             if (assetMovement.movement_type?.toLowerCase() ===
                                 'maintenance' ||
                                 assetMovement.movement_type?.toLowerCase() === 'repair') {
@@ -897,6 +1177,25 @@ exports.requestsController = {
                             }
                         }
                     }
+                    if (request.request_type === 'CUSTOMER_CREATION' &&
+                        action === 'A') {
+                        const requestData = JSON.parse(request.request_data || '{}');
+                        const customerData = requestData.customer_data;
+                        const customerImages = requestData.customer_images || [];
+                        const { platform_type, ...customerDataWithoutPlatform } = customerData;
+                        const createdCustomer = await tx.customers.create({
+                            data: customerDataWithoutPlatform,
+                        });
+                        if (customerImages.length > 0) {
+                            await tx.customer_image.createMany({
+                                data: customerImages.map((img) => ({
+                                    ...img,
+                                    customer_id: createdCustomer.id,
+                                })),
+                            });
+                        }
+                        console.log(`Customer created successfully: ${createdCustomer.code} (ID: ${createdCustomer.id})`);
+                    }
                     return { status: 'fully_approved', request };
                 }
                 return { status: 'next_level', request, nextApprover };
@@ -904,17 +1203,158 @@ exports.requestsController = {
                 maxWait: 10000,
                 timeout: 20000,
             });
-            if (result.status === 'fully_approved' &&
-                result.request.request_type === 'ASSET_MOVEMENT_APPROVAL' &&
-                result.request.reference_id) {
-                try {
-                    await (0, approvalWorkflow_helper_1.generateContractOnApproval)(result.request.reference_id);
+            if (result.status === 'fully_approved' && 'request' in result) {
+                if (result.request.request_type === 'LOCATION_RESET') {
+                    try {
+                        const requesterEmail = result.request.sfa_d_requests_requester?.email;
+                        if (requesterEmail) {
+                            const customer = await getCustomerDetails(result.request.reference_id);
+                            const requestData = JSON.parse(result.request.request_data || '{}');
+                            const template = await (0, emailTemplates_1.generateEmailContent)(templateKeyMap_1.default.locationResetApproved, {
+                                requester_name: result.request.sfa_d_requests_requester?.name || 'Employee',
+                                customer_name: customer?.name || 'N/A',
+                                customer_code: customer?.code || 'N/A',
+                                new_latitude: requestData.latitude,
+                                new_longitude: requestData.longitude,
+                                approver_name: req.user?.name || 'System',
+                                approval_date: new Date().toLocaleDateString(),
+                                company_name: process.env.COMPANY_NAME || 'SFA System',
+                            });
+                            await (0, mailer_1.sendEmail)({
+                                to: requesterEmail,
+                                subject: template.subject,
+                                html: template.body,
+                                createdby: userId,
+                                log_inst: 1,
+                            });
+                        }
+                        else {
+                            console.warn('Requester email is missing, skipping location reset approval email');
+                        }
+                    }
+                    catch (emailError) {
+                        console.error('Error sending location reset approval email:', emailError);
+                    }
                 }
-                catch (contractError) {
-                    console.error('Error generating contract after approval:', contractError);
+                if (result.request.request_type === 'ASSET_MOVEMENT_APPROVAL' &&
+                    result.request.reference_id) {
+                    try {
+                        await (0, approvalWorkflow_helper_1.generateContractOnApproval)(result.request.reference_id);
+                    }
+                    catch (contractError) {
+                        console.error('Error generating contract after approval:', contractError);
+                    }
+                }
+                try {
+                    const requesterEmail = result.request.sfa_d_requests_requester?.email;
+                    if (requesterEmail) {
+                        const template = await (0, emailTemplates_1.generateEmailContent)(templateKeyMap_1.default.requestAccepted, {
+                            employee_name: result.request.sfa_d_requests_requester?.name || 'Employee',
+                            request_type: formatRequestType(result.request.request_type),
+                            company_name: 'SFA System',
+                        });
+                        console.log('Sending approval email to:', requesterEmail);
+                        await (0, mailer_1.sendEmail)({
+                            to: requesterEmail,
+                            subject: template.subject,
+                            html: template.body,
+                            createdby: userId,
+                            log_inst: 1,
+                        });
+                    }
+                    else {
+                        console.warn('Requester email is missing, skipping approval email');
+                    }
+                }
+                catch (emailError) {
+                    console.error('Error sending approval email:', emailError);
+                }
+                return res.status(200).json({
+                    message: 'Request approved successfully.',
+                });
+            }
+            if (result.status === 'rejected' && 'request' in result) {
+                if (result.request.request_type === 'LOCATION_RESET') {
+                    const customer = await getCustomerDetails(result.request.reference_id);
+                    const requestData = JSON.parse(result.request.request_data || '{}');
+                    const template = await (0, emailTemplates_1.generateEmailContent)(templateKeyMap_1.default.locationResetRejected, {
+                        requester_name: result.request.sfa_d_requests_requester.name,
+                        customer_name: customer?.name || 'N/A',
+                        customer_code: customer?.code || 'N/A',
+                        new_latitude: requestData.latitude,
+                        new_longitude: requestData.longitude,
+                        approver_name: req.user?.name || 'System',
+                        rejection_date: new Date().toLocaleDateString(),
+                        rejection_reason: remarks || 'No reason provided',
+                        company_name: process.env.COMPANY_NAME || 'SFA System',
+                    });
+                    await (0, mailer_1.sendEmail)({
+                        to: result.request.sfa_d_requests_requester.email,
+                        subject: template.subject,
+                        html: template.body,
+                        createdby: userId,
+                        log_inst: 1,
+                    });
                 }
             }
-            if (result.status === 'rejected') {
+            if (result.request.request_type === 'CUSTOMER_CREATION') {
+                const requestData = JSON.parse(result.request.request_data || '{}');
+                const customerData = requestData.customer_data;
+                if (action === 'A') {
+                    const createdCustomer = await prisma_client_1.default.customers.findFirst({
+                        where: { code: customerData.code },
+                        select: {
+                            id: true,
+                            name: true,
+                            code: true,
+                            email: true,
+                            phone_number: true,
+                        },
+                    });
+                    const template = await (0, emailTemplates_1.generateEmailContent)(templateKeyMap_1.default.customerCreationApproved, {
+                        requester_name: result.request.sfa_d_requests_requester.name,
+                        customer_name: createdCustomer?.name || customerData.name,
+                        customer_code: createdCustomer?.code || customerData.code,
+                        customer_email: createdCustomer?.email || customerData.email,
+                        customer_phone: createdCustomer?.phone_number || customerData.phone_number,
+                        platform_type: requestData.platform_type,
+                        approver_name: req.user?.name || 'System',
+                        approval_date: new Date().toLocaleDateString(),
+                        company_name: process.env.COMPANY_NAME || 'SFA System',
+                        request_id: result.request.id,
+                    });
+                    await (0, mailer_1.sendEmail)({
+                        to: result.request.sfa_d_requests_requester.email,
+                        subject: template.subject,
+                        html: template.body,
+                        createdby: userId,
+                        log_inst: 1,
+                    });
+                }
+                else if (action === 'R') {
+                    const template = await (0, emailTemplates_1.generateEmailContent)(templateKeyMap_1.default.customerCreationRejected, {
+                        requester_name: result.request.sfa_d_requests_requester.name,
+                        customer_name: customerData.name,
+                        customer_code: customerData.code,
+                        customer_email: customerData.email,
+                        customer_phone: customerData.phone_number,
+                        platform_type: requestData.platform_type,
+                        approver_name: req.user?.name || 'System',
+                        rejection_date: new Date().toLocaleDateString(),
+                        rejection_reason: remarks || 'Customer creation request rejected',
+                        company_name: process.env.COMPANY_NAME || 'SFA System',
+                        request_id: result.request.id,
+                    });
+                    await (0, mailer_1.sendEmail)({
+                        to: result.request.sfa_d_requests_requester.email,
+                        subject: template.subject,
+                        html: template.body,
+                        createdby: userId,
+                        log_inst: 1,
+                    });
+                }
+            }
+            if (result.status === 'rejected' && 'request' in result) {
                 const template = await (0, emailTemplates_1.generateEmailContent)(templateKeyMap_1.default.requestRejected, {
                     employee_name: result.request.sfa_d_requests_requester.name,
                     request_type: formatRequestType(result.request.request_type),
@@ -932,7 +1372,7 @@ exports.requestsController = {
                     message: 'Request rejected successfully',
                 });
             }
-            if (result.status === 'fully_approved') {
+            if (result.status === 'fully_approved' && 'request' in result) {
                 const template = await (0, emailTemplates_1.generateEmailContent)(templateKeyMap_1.default.requestAccepted, {
                     employee_name: result.request.sfa_d_requests_requester.name,
                     request_type: formatRequestType(result.request.request_type),
@@ -949,7 +1389,9 @@ exports.requestsController = {
                     message: 'Request approved successfully.',
                 });
             }
-            if (result.status === 'next_level' && result.nextApprover) {
+            if (result.status === 'next_level' &&
+                'request' in result &&
+                result.nextApprover) {
                 const template = await (0, emailTemplates_1.generateEmailContent)(templateKeyMap_1.default.notifyNextApprover, {
                     approver_name: result.nextApprover.sfa_d_requests_approvals_approver.name,
                     previous_approver: 'Previous Approver',
@@ -1011,6 +1453,9 @@ exports.requestsController = {
                             },
                         },
                     },
+                    sfa_d_requests_approvals_approver: {
+                        select: { id: true, name: true, email: true },
+                    },
                 },
                 orderBy: {
                     createdate: 'desc',
@@ -1041,7 +1486,7 @@ exports.requestsController = {
             });
             let requests = await Promise.all(filteredApprovals.map(async (approval) => {
                 const request = approval.sfa_d_requests_approvals_request;
-                const referenceDetails = await (0, getDetails_1.default)(request.request_type, request.reference_id);
+                const referenceDetails = await (0, getDetails_1.default)(request.request_type, request.reference_id, request.request_data);
                 return {
                     id: request.id,
                     requester_id: request.requester_id,
@@ -1063,7 +1508,7 @@ exports.requestsController = {
                             sequence: approval.sequence,
                             status: approval.status,
                             remarks: approval.remarks,
-                            approver: null,
+                            approver: approval.sfa_d_requests_approvals_approver,
                         },
                     ],
                 };

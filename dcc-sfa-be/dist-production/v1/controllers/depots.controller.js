@@ -30,6 +30,9 @@ const serializeDepot = (depot, includeCompany = false) => ({
     address: depot.address,
     city: depot.city,
     state: depot.state,
+    region_id: depot.region_id,
+    city_id: depot.city_id,
+    district_id: depot.district_id,
     zipcode: depot.zipcode,
     phone_number: depot.phone_number,
     email: depot.email,
@@ -78,6 +81,35 @@ const serializeDepot = (depot, includeCompany = false) => ({
             email: depot.depots_coodrinator.email,
         }
         : null,
+    depots_region: depot.depots_region
+        ? {
+            id: depot.depots_region.id,
+            name: depot.depots_region.name,
+            code: depot.depots_region.code,
+        }
+        : null,
+    depots_city: depot.depots_city
+        ? {
+            id: depot.depots_city.id,
+            name: depot.depots_city.name,
+            code: depot.depots_city.code,
+        }
+        : null,
+    depots_district: depot.depots_district
+        ? {
+            id: depot.depots_district.id,
+            name: depot.depots_district.name,
+            code: depot.depots_district.code,
+        }
+        : null,
+    default_outlet_id: depot.default_outlet_id,
+    default_outlet: depot.default_outlet
+        ? {
+            id: depot.default_outlet.id,
+            name: depot.default_outlet.name,
+            code: depot.default_outlet.code,
+        }
+        : null,
 });
 exports.depotsController = {
     async createDepots(req, res) {
@@ -91,16 +123,31 @@ exports.depotsController = {
                 data: {
                     ...data,
                     code: data.code || newCode,
+                    default_outlet_id: data.default_outlet_id ? Number(data.default_outlet_id) : null,
                     createdby: data.createdby ? Number(data.createdby) : 1,
                     log_inst: data.log_inst || 1,
                     createdate: new Date(),
                 },
                 include: {
                     depot_companies: true,
-                    user_depot: true,
+                    user_depots_depot_id: {
+                        include: {
+                            users_depots_users: {
+                                select: {
+                                    id: true,
+                                    name: true,
+                                    email: true,
+                                },
+                            },
+                        },
+                    },
                     depots_manager: true,
                     depots_supervisior: true,
                     depots_coodrinator: true,
+                    depots_region: true,
+                    depots_city: true,
+                    depots_district: true,
+                    default_outlet: true,
                 },
             });
             res.status(201).json({
@@ -115,7 +162,7 @@ exports.depotsController = {
     },
     async getDepots(req, res) {
         try {
-            const { page = '1', limit = '10', search = '', isActive, parent_id, depot_id, } = req.query;
+            const { page = '1', limit = '10', search = '', isActive, parent_id, depot_id, user_id, } = req.query;
             const page_num = parseInt(page, 10);
             const limit_num = parseInt(limit, 10);
             const searchLower = search.toLowerCase();
@@ -131,6 +178,14 @@ exports.depotsController = {
                 }),
                 ...(parent_id && { parent_id: Number(parent_id) }),
                 ...(depot_id && { id: Number(depot_id) }),
+                ...(user_id && {
+                    user_depots_depot_id: {
+                        some: {
+                            user_id: Number(user_id),
+                            is_active: 'Y',
+                        },
+                    },
+                }),
             };
             const totalDepots = await prisma_client_1.default.depots.count();
             const activeDepots = await prisma_client_1.default.depots.count({
@@ -164,10 +219,24 @@ exports.depotsController = {
                 orderBy: { createdate: 'desc' },
                 include: {
                     depot_companies: true,
-                    user_depot: true,
+                    user_depots_depot_id: {
+                        include: {
+                            users_depots_users: {
+                                select: {
+                                    id: true,
+                                    name: true,
+                                    email: true,
+                                },
+                            },
+                        },
+                    },
                     depots_manager: true,
                     depots_supervisior: true,
                     depots_coodrinator: true,
+                    depots_region: true,
+                    depots_city: true,
+                    depots_district: true,
+                    default_outlet: true,
                 },
             });
             res.json({
@@ -197,10 +266,24 @@ exports.depotsController = {
                 where: { id: Number(id) },
                 include: {
                     depot_companies: true,
-                    user_depot: true,
+                    user_depots_depot_id: {
+                        include: {
+                            users_depots_users: {
+                                select: {
+                                    id: true,
+                                    name: true,
+                                    email: true,
+                                },
+                            },
+                        },
+                    },
                     depots_manager: true,
                     depots_supervisior: true,
                     depots_coodrinator: true,
+                    depots_region: true,
+                    depots_city: true,
+                    depots_district: true,
+                    default_outlet: true,
                 },
             });
             if (!depot) {
@@ -225,16 +308,34 @@ exports.depotsController = {
             if (!existingDepot) {
                 return res.status(404).json({ message: 'Depot not found' });
             }
-            const data = { ...req.body, updatedate: new Date() };
+            const data = {
+                ...req.body,
+                default_outlet_id: req.body.default_outlet_id ? Number(req.body.default_outlet_id) : null,
+                updatedate: new Date(),
+            };
             const depot = await prisma_client_1.default.depots.update({
                 where: { id: Number(id) },
                 data,
                 include: {
                     depot_companies: true,
-                    user_depot: true,
+                    user_depots_depot_id: {
+                        include: {
+                            users_depots_users: {
+                                select: {
+                                    id: true,
+                                    name: true,
+                                    email: true,
+                                },
+                            },
+                        },
+                    },
                     depots_manager: true,
                     depots_supervisior: true,
                     depots_coodrinator: true,
+                    depots_region: true,
+                    depots_city: true,
+                    depots_district: true,
+                    default_outlet: true,
                 },
             });
             res.json({

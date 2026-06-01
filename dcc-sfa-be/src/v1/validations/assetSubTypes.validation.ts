@@ -16,12 +16,6 @@ export const createAssetSubTypeValidation = [
     .isLength({ max: 100 })
     .withMessage('Code must be less than 100 characters'),
 
-  body('asset_type_id')
-    .notEmpty()
-    .withMessage('Asset type is required')
-    .isInt()
-    .withMessage('Asset type must be a valid integer'),
-
   body('description')
     .optional()
     .isString()

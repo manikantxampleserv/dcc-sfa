@@ -55,7 +55,7 @@ const PopConfirm: React.FC<PopConfirmProps> = ({
       <Tooltip
         open={isOpen}
         onClose={handleClose}
-        onOpen={() => { }}
+        onOpen={() => {}}
         disableFocusListener
         disableHoverListener
         disableTouchListener

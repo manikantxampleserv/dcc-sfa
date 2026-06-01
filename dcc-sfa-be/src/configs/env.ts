@@ -1,6 +1,5 @@
 import dotenv from 'dotenv';
 import { resolve } from 'path';
-import logger from './logger';
 
 if (process.env.DATABASE_URL) {
   console.log('DATABASE_URL found in environment variables');
@@ -9,9 +8,6 @@ if (process.env.DATABASE_URL) {
     process.env.NODE_ENV === 'production' ||
     process.env.NODE_ENV === 'prod' ||
     process.env.env === 'production';
-  logger.info(
-    `Environment detection - NODE_ENV: ${process.env.NODE_ENV}, isProduction: ${isProduction}`
-  );
 
   const possiblePaths: string[] = [
     ...(isProduction

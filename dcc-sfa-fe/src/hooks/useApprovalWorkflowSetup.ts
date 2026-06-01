@@ -200,9 +200,16 @@ export const useUpdateApprovalWorkflowSetup = () => {
  */
 export const useDeleteApprovalWorkflowSetupByRequestType = () => {
   return useApiMutation({
-    mutationFn: (requestType: string) =>
+    mutationFn: ({
+      requestType,
+      depotId,
+    }: {
+      requestType: string;
+      depotId?: number | null;
+    }) =>
       approvalWorkflowSetupService.deleteApprovalWorkflowSetupByRequestType(
-        requestType
+        requestType,
+        depotId
       ),
     invalidateQueries: ['approval-workflow-setup'],
     loadingMessage: 'Deleting approval workflow setup...',

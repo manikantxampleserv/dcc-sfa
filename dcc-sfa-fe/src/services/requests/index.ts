@@ -27,6 +27,18 @@ export interface Request {
     email: string;
   } | null;
   reference_details?: {
+    profile_picture: any;
+    state: any;
+    city: any;
+    phone_number: any;
+    email: any;
+    reason: any;
+    latitude: string;
+    longitude: string;
+    old_longitude: any;
+    old_latitude: any;
+    new_longitude: any;
+    new_latitude: any;
     order_number?: string;
     customer_name?: string;
     customer_code?: string;
@@ -39,7 +51,6 @@ export interface Request {
     payment_method?: string;
     status?: string;
     notes?: string;
-
     movement_number?: string;
     movement_type?: string;
     from_location?: string;
@@ -60,6 +71,8 @@ export interface Request {
       id: number;
       name: string;
       email: string;
+      profile_image?: string | null;
+      employee_id?: string | null;
     } | null;
   }[];
 }
@@ -151,7 +164,9 @@ export const fetchRequestTypes = async (): Promise<
   ApiResponse<RequestType[]>
 > => {
   try {
-    const response = await api.get('/approval-setup/request-types');
+    const response = await api.get('/approval-setup/request-types', {
+      params: { limit: 1000 },
+    });
     return response.data;
   } catch (error: any) {
     console.error('Error fetching request types:', error);

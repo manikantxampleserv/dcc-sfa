@@ -4,40 +4,23 @@ import Header from '../shared/Header';
 import Sidebar from '../shared/UpdatedSidebar';
 import BreadCrumbs from 'shared/BreadCrumbs';
 import { CurrencyProvider } from '../context/CurrencyContext';
+import { TourProvider } from '../context/TourContext';
+import JoyrideTour from 'shared/JoyrideTour';
 
 const Layout: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [remountKey, setRemountKey] = useState(0);
   const location = useLocation();
   const mainRef = useRef<HTMLElement>(null);
-  const prevPathnameRef = useRef<string>('');
-  const prevForceReloadRef = useRef<number | null>(null);
 
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
 
   useEffect(() => {
-    const currentPath = location.pathname + location.search;
-    const locationState = location.state as { forceReload?: number } | null;
-    const forceReload = locationState?.forceReload ?? null;
-    const pathChanged = prevPathnameRef.current !== currentPath;
-    const forceReloadChanged = prevForceReloadRef.current !== forceReload;
-
-    if (pathChanged || forceReloadChanged) {
-      if (pathChanged) {
-        prevPathnameRef.current = currentPath;
-      }
-      if (forceReloadChanged && forceReload !== null) {
-        prevForceReloadRef.current = forceReload;
-      }
-      setRemountKey(prev => prev + 1);
-
-      if (mainRef.current) {
-        mainRef.current.scrollTo({ top: 0, behavior: 'smooth' });
-      }
+    if (mainRef.current) {
+      mainRef.current.scrollTo({ top: 0, behavior: 'smooth' });
     }
-  }, [location.pathname, location.search, location.key, location.state]);
+  }, [location.pathname, location.search]);
 
-  const outletKey = `${location.pathname}${location.search}${location.key || remountKey}${(location.state as { forceReload?: number } | null)?.forceReload || ''}`;
+  const outletKey = `${location.pathname}${location.search}${(location.state as { forceReload?: number } | null)?.forceReload || ''}`;
 
   const getNavItem = () => {
     const pathSegments = location.pathname.split('/').filter(Boolean);
@@ -70,22 +53,26 @@ const Layout: React.FC = () => {
 
   return (
     <CurrencyProvider>
-      <div className="flex h-screen bg-gray-50">
-        <Sidebar />
-        <div className="flex-1 flex flex-col overflow-hidden">
-          <Header sidebarOpen={sidebarOpen} toggleSidebar={toggleSidebar} />
-          <BreadCrumbs
-            id={location.pathname}
-            navItem={getNavItem()}
-            navLink={location.pathname}
-          />
-          <main ref={mainRef} className="flex-1 overflow-auto p-5">
-            <Outlet key={outletKey} />
-          </main>
+      <TourProvider>
+        <div className="flex h-screen bg-gray-50">
+          <Sidebar />
+          <div className="flex-1 flex flex-col overflow-hidden">
+            <Header sidebarOpen={sidebarOpen} toggleSidebar={toggleSidebar} />
+            <BreadCrumbs
+              id={location.pathname}
+              navItem={getNavItem()}
+              navLink={location.pathname}
+            />
+            <main ref={mainRef} className="flex-1 overflow-auto p-5">
+              <Outlet key={outletKey} />
+            </main>
+          </div>
+          <JoyrideTour />
         </div>
-      </div>
+      </TourProvider>
     </CurrencyProvider>
   );
 };
 
 export default Layout;
+

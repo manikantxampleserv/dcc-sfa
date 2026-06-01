@@ -15,16 +15,28 @@ export interface AssetSubType {
 }
 
 export interface AssetMaster {
+  inspections: {
+    inspected_by: { id: number; name: string; email: string } | null;
+    inspection_date?: string | null;
+  }[];
+  asset_movement_assets_asset: AssetMovement[];
+  last_scanned_date: any;
+  installation_date: any;
+  code: string;
   id: number;
   name: string;
   asset_type_id: number;
   asset_sub_type_id?: number | null;
+  asset_brand_id?: number | null;
+  brand_id?: number | null;
   serial_number: string;
+  barcode?: string | null;
+  nfc_tag_code?: string | null;
   purchase_date?: string | null;
   warranty_expiry?: string | null;
   current_location?: string | null;
   current_status?: string | null;
-  assigned_to?: string | null;
+  depot_id?: number | null;
   is_active: string;
   createdate?: string | null;
   createdby: number;
@@ -37,6 +49,21 @@ export interface AssetMaster {
   asset_master_warranty_claims?: AssetWarrantyClaim[];
   asset_master_asset_types?: AssetType;
   asset_master_asset_sub_types?: AssetSubType;
+  asset_brand?: {
+    id: number;
+    name: string;
+    code: string;
+  };
+  asset_master_depot?: {
+    id: number;
+    name: string;
+    code: string;
+  };
+  asset_master_outlet?: {
+    id: number;
+    name: string;
+    code: string;
+  };
 }
 
 export interface AssetImage {
@@ -121,12 +148,15 @@ export interface CreateAssetMasterPayload {
   name: string;
   asset_type_id: number;
   asset_sub_type_id?: number | null;
+  asset_brand_id?: number | null;
   serial_number: string;
+  barcode?: string | null;
+  nfc_tag_code?: string | null;
   purchase_date?: string | null;
   warranty_expiry?: string | null;
   current_location?: string | null;
   current_status?: string | null;
-  assigned_to?: string | null;
+  depot_id?: number | null;
   is_active?: string;
 }
 
@@ -134,12 +164,15 @@ export interface UpdateAssetMasterPayload {
   name?: string;
   asset_type_id?: number;
   asset_sub_type_id?: number | null;
+  asset_brand_id?: number | null;
   serial_number?: string;
+  barcode?: string | null;
+  nfc_tag_code?: string | null;
   purchase_date?: string | null;
   warranty_expiry?: string | null;
   current_location?: string | null;
   current_status?: string | null;
-  assigned_to?: string | null;
+  depot_id?: number | null;
   is_active?: string;
 }
 
@@ -148,6 +181,9 @@ export interface AssetMasterQueryParams {
   limit?: number;
   search?: string;
   status?: string;
+  depot_id?: number;
+  outlet_id?: number;
+  only_available?: boolean;
 }
 
 export interface AssetMasterStats {

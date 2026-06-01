@@ -5,6 +5,13 @@ export declare class PaymentsImportExportService extends ImportExportService<any
     protected displayName: string;
     protected uniqueFields: string[];
     protected searchFields: string[];
+    protected masterTableConfigs: {
+        masterTable: any;
+        masterKey: string;
+        masterDisplayFields: string[];
+        sheetName: string;
+        description: string;
+    }[];
     private customerIds;
     private userIds;
     private currencyIds;

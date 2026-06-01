@@ -1,8 +1,9 @@
-import { Box } from '@mui/material';
+import { Box, MenuItem } from '@mui/material';
 import { useFormik } from 'formik';
 import {
   useCreateUnitOfMeasurement,
   useUpdateUnitOfMeasurement,
+  useUnitOfMeasurement,
   type UnitOfMeasurement,
 } from 'hooks/useUnitOfMeasurement';
 import React from 'react';
@@ -11,6 +12,7 @@ import ActiveInactiveField from 'shared/ActiveInactiveField';
 import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
+import Select from 'shared/Select';
 
 interface ManageUnitOfMeasurementProps {
   selectedUnit?: UnitOfMeasurement | null;
@@ -33,8 +35,27 @@ const ManageUnitOfMeasurement: React.FC<ManageUnitOfMeasurementProps> = ({
     formik.resetForm();
   };
 
+  const handleSubUnitChange = (e: any) => {
+    const value = e.target.value;
+    formik.setFieldValue('subunit_id', value);
+    const selected = availableUnits.find(
+      (u: UnitOfMeasurement) => String(u.id) === String(value)
+    );
+    formik.setFieldValue('sub_unit', selected ? selected.name : '');
+    if (!value || value === 'none') {
+      formik.setFieldValue('conversion_rate', 1);
+    } else if (formik.values.conversion_rate === 1) {
+      formik.setFieldValue('conversion_rate', '');
+    }
+  };
+
   const createUnitMutation = useCreateUnitOfMeasurement();
   const updateUnitMutation = useUpdateUnitOfMeasurement();
+  const { data: unitsResponse } = useUnitOfMeasurement({ limit: 1000 });
+  const units = unitsResponse?.data || [];
+  const availableUnits = units.filter(
+    (u: UnitOfMeasurement) => !selectedUnit || u.id !== selectedUnit.id
+  );
 
   const formik = useFormik({
     initialValues: {
@@ -42,6 +63,17 @@ const ManageUnitOfMeasurement: React.FC<ManageUnitOfMeasurementProps> = ({
       description: selectedUnit?.description || '',
       category: selectedUnit?.category || '',
       symbol: selectedUnit?.symbol || '',
+      sub_unit: selectedUnit?.sub_unit || '',
+      subunit_id: selectedUnit?.sub_unit
+        ? units.find(
+            (u: UnitOfMeasurement) =>
+              u.name?.trim().toLowerCase() ===
+              selectedUnit.sub_unit?.trim().toLowerCase()
+          )?.id || 'none'
+        : 'none',
+      conversion_rate: selectedUnit
+        ? selectedUnit.conversion_rate || (selectedUnit.sub_unit ? '' : 1)
+        : 1,
       is_active: selectedUnit?.is_active || 'Y',
     },
     validationSchema: unitOfMeasurementValidationSchema,
@@ -53,6 +85,14 @@ const ManageUnitOfMeasurement: React.FC<ManageUnitOfMeasurementProps> = ({
           description: values.description,
           category: values.category,
           symbol: values.symbol,
+          subunit_id:
+            values.subunit_id && values.subunit_id !== 'none'
+              ? Number(values.subunit_id)
+              : undefined,
+          sub_unit: values.sub_unit || 'none',
+          conversion_rate: values.conversion_rate
+            ? Number(values.conversion_rate)
+            : undefined,
           is_active: values.is_active,
         };
 
@@ -82,14 +122,51 @@ const ManageUnitOfMeasurement: React.FC<ManageUnitOfMeasurementProps> = ({
       <Box className="!p-6">
         <form onSubmit={formik.handleSubmit} className="!space-y-6">
           <Box className="!grid !grid-cols-1 md:!grid-cols-2 !gap-6">
+            <Input
+              name="name"
+              label="Unit Name"
+              placeholder="Enter unit name"
+              formik={formik}
+              required
+            />
+            <Input
+              name="symbol"
+              label="Symbol"
+              placeholder="Enter symbol (e.g., kg, L, m)"
+              formik={formik}
+            />
+
+            <Select
+              name="subunit_id"
+              label="Sub Unit"
+              formik={formik}
+              onChange={handleSubUnitChange}
+            >
+              <MenuItem value="none">None</MenuItem>
+              {availableUnits.map((unit: UnitOfMeasurement) => (
+                <MenuItem key={unit.id} value={String(unit.id)}>
+                  {unit.name}
+                </MenuItem>
+              ))}
+            </Select>
+
+            <Input
+              name="conversion_rate"
+              label="Conversion Rate"
+              placeholder="Enter conversion rate"
+              type="number"
+              formik={formik}
+              required={
+                !!formik.values.subunit_id &&
+                formik.values.subunit_id !== 'none'
+              }
+              disabled={
+                !formik.values.subunit_id || formik.values.subunit_id === 'none'
+              }
+            />
+
             <Box className="md:!col-span-2">
-              <Input
-                name="name"
-                label="Unit Name"
-                placeholder="Enter unit name"
-                formik={formik}
-                required
-              />
+              <ActiveInactiveField name="is_active" formik={formik} required />
             </Box>
 
             <Box className="md:!col-span-2">
@@ -101,24 +178,6 @@ const ManageUnitOfMeasurement: React.FC<ManageUnitOfMeasurementProps> = ({
                 multiline
                 rows={3}
               />
-            </Box>
-
-            <Input
-              name="category"
-              label="Category"
-              placeholder="Enter category (e.g., Weight, Volume, Length)"
-              formik={formik}
-            />
-
-            <Input
-              name="symbol"
-              label="Symbol"
-              placeholder="Enter symbol (e.g., kg, L, m)"
-              formik={formik}
-            />
-
-            <Box className="md:!col-span-2">
-              <ActiveInactiveField name="is_active" formik={formik} required />
             </Box>
           </Box>
 

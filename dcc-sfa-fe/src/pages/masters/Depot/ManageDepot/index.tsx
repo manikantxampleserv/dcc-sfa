@@ -1,19 +1,22 @@
 import { Box, MenuItem } from '@mui/material';
 import { useFormik } from 'formik';
+import { useCities } from 'hooks/useCity';
+import {
+  useCreateDepot,
+  useUpdateDepot,
+  type Depot,
+} from 'hooks/useDepots';
+import { useDistricts } from 'hooks/useDistrict';
+import { useRegions } from 'hooks/useRegion';
 import React from 'react';
+import { depotValidationSchema } from 'schemas/depot.schema';
+import type { Company } from 'services/masters/Companies';
 import ActiveInactiveField from 'shared/ActiveInactiveField';
 import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
 import Select from 'shared/Select';
-import UserSelect from 'shared/UserSelect';
-import {
-  useCreateDepot,
-  useUpdateDepot,
-  type Depot,
-} from '../../../../hooks/useDepots';
-import { depotValidationSchema } from '../../../../schemas/depot.schema';
-import type { Company } from '../../../../services/masters/Companies';
+import CustomerSelect from 'shared/CustomerSelect';
 
 interface ManageDepotProps {
   selectedDepot?: Depot | null;
@@ -41,6 +44,12 @@ const ManageDepot: React.FC<ManageDepotProps> = ({
   const createDepotMutation = useCreateDepot();
   const updateDepotMutation = useUpdateDepot();
 
+  const { data: regionsResponse } = useRegions(
+    { limit: 1000, is_active: 'Y' },
+    { enabled: drawerOpen }
+  );
+  const regions = regionsResponse?.data || [];
+
   const formik = useFormik({
     initialValues: {
       parent_id: companies?.[0]?.id || '',
@@ -49,6 +58,9 @@ const ManageDepot: React.FC<ManageDepotProps> = ({
       address: selectedDepot?.address || '',
       city: selectedDepot?.city || '',
       state: selectedDepot?.state || '',
+      region_id: selectedDepot?.region_id?.toString() || '',
+      district_id: selectedDepot?.district_id?.toString() || '',
+      city_id: selectedDepot?.city_id?.toString() || '',
       zipcode: selectedDepot?.zipcode || '',
       phone_number: selectedDepot?.phone_number || '',
       email: selectedDepot?.email || '',
@@ -58,6 +70,7 @@ const ManageDepot: React.FC<ManageDepotProps> = ({
       latitude: selectedDepot?.latitude?.toString() || '',
       longitude: selectedDepot?.longitude?.toString() || '',
       is_active: selectedDepot?.is_active || 'Y',
+      default_outlet_id: selectedDepot?.default_outlet_id?.toString() || '',
     },
     validationSchema: depotValidationSchema,
     enableReinitialize: true,
@@ -70,6 +83,11 @@ const ManageDepot: React.FC<ManageDepotProps> = ({
           address: values.address,
           city: values.city,
           state: values.state,
+          region_id: values.region_id ? Number(values.region_id) : undefined,
+          district_id: values.district_id
+            ? Number(values.district_id)
+            : undefined,
+          city_id: values.city_id ? Number(values.city_id) : undefined,
           zipcode: values.zipcode,
           phone_number: values.phone_number,
           email: values.email,
@@ -80,6 +98,7 @@ const ManageDepot: React.FC<ManageDepotProps> = ({
           latitude: values.latitude ? Number(values.latitude) : undefined,
           longitude: values.longitude ? Number(values.longitude) : undefined,
           is_active: values.is_active,
+          default_outlet_id: values.default_outlet_id ? Number(values.default_outlet_id) : null,
         };
 
         if (isEdit && selectedDepot) {
@@ -97,6 +116,47 @@ const ManageDepot: React.FC<ManageDepotProps> = ({
       }
     },
   });
+
+  const { data: districtsResponse, isFetching: isFetchingDistricts } =
+    useDistricts(
+      {
+        region_id: formik.values.region_id
+          ? Number(formik.values.region_id)
+          : undefined,
+        limit: 1000,
+        is_active: 'Y',
+      },
+      { enabled: drawerOpen && !!formik.values.region_id }
+    );
+  const districts = districtsResponse?.data || [];
+
+  const { data: citiesResponse, isFetching: isFetchingCities } = useCities(
+    {
+      district_id: formik.values.district_id
+        ? Number(formik.values.district_id)
+        : undefined,
+      limit: 1000,
+      is_active: 'Y',
+    },
+    { enabled: drawerOpen && !!formik.values.district_id }
+  );
+  const cities = citiesResponse?.data || [];
+
+  const handleRegionChange = (e: any) => {
+    formik.setFieldValue('region_id', e.target.value);
+    formik.setFieldValue('district_id', '');
+    formik.setFieldValue('city_id', '');
+  };
+
+  const handleDistrictChange = (e: any) => {
+    formik.setFieldValue('district_id', e.target.value);
+    formik.setFieldValue('city_id', '');
+  };
+
+  const handleCityChange = (e: any) => {
+    const cityId = e.target.value;
+    formik.setFieldValue('city_id', cityId);
+  };
 
   return (
     <CustomDrawer
@@ -144,19 +204,48 @@ const ManageDepot: React.FC<ManageDepotProps> = ({
               type="email"
             />
 
-            <Input
-              name="city"
-              label="City"
-              placeholder="Enter city"
+            <Select
+              name="region_id"
+              label="Region"
               formik={formik}
-            />
+              onChange={handleRegionChange}
+            >
+              {regions.map(region => (
+                <MenuItem key={region.id} value={region.id.toString()}>
+                  {region.name}
+                </MenuItem>
+              ))}
+            </Select>
 
-            <Input
-              name="state"
-              label="State"
-              placeholder="Enter state"
+            <Select
+              name="district_id"
+              label="District"
               formik={formik}
-            />
+              loading={isFetchingDistricts}
+              disabled={!formik.values.region_id}
+              onChange={handleDistrictChange}
+            >
+              {districts.map(district => (
+                <MenuItem key={district.id} value={district.id.toString()}>
+                  {district.name}
+                </MenuItem>
+              ))}
+            </Select>
+
+            <Select
+              name="city_id"
+              label="City"
+              formik={formik}
+              disabled={!formik.values.district_id}
+              loading={isFetchingCities}
+              onChange={handleCityChange}
+            >
+              {cities.map(city => (
+                <MenuItem key={city.id} value={city.id.toString()}>
+                  {city.name}
+                </MenuItem>
+              ))}
+            </Select>
 
             <Input
               type="number"
@@ -172,13 +261,6 @@ const ManageDepot: React.FC<ManageDepotProps> = ({
               placeholder="Enter phone number"
               formik={formik}
               type="number"
-            />
-
-            <UserSelect name="manager_id" label="Manager" formik={formik} />
-            <UserSelect
-              name="coordinator_id"
-              label="Coordinator"
-              formik={formik}
             />
 
             <Input
@@ -241,6 +323,7 @@ const ManageDepot: React.FC<ManageDepotProps> = ({
                 multiline
                 rows={3}
               />
+
             </Box>
 
             <ActiveInactiveField
@@ -249,6 +332,18 @@ const ManageDepot: React.FC<ManageDepotProps> = ({
               formik={formik}
               required
             />
+
+            {isEdit && (
+              <Box className="md:!col-span-2">
+                <CustomerSelect
+                  name="default_outlet_id"
+                  label="Default Outlet"
+                  formik={formik}
+                  depotId={selectedDepot?.id}
+                  nameToSearch={selectedDepot?.default_outlet?.name || ''}
+                />
+              </Box>
+            )}
           </Box>
 
           <Box className="!flex !justify-end items-center ">

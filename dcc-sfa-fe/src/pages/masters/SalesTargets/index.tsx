@@ -116,7 +116,6 @@ const SalesTargetsManagement: React.FC = () => {
               ? 'Y'
               : 'N',
       };
-
       await exportToExcelMutation.mutateAsync({
         tableName: 'sales_targets',
         filters,
@@ -126,7 +125,6 @@ const SalesTargetsManagement: React.FC = () => {
     }
   }, [exportToExcelMutation, search, statusFilter]);
 
-  // Define table columns
   const targetColumns: TableColumn<SalesTarget>[] = [
     {
       id: 'target_info',
@@ -274,7 +272,7 @@ const SalesTargetsManagement: React.FC = () => {
         </Box>
       </Box>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
         <StatsCard
           title="Total Targets"
           value={totalTargets}
@@ -331,7 +329,6 @@ const SalesTargetsManagement: React.FC = () => {
                   <Select
                     value={statusFilter}
                     onChange={e => setStatusFilter(e.target.value)}
-                    className="!min-w-32"
                     size="small"
                     disableClearable
                   >

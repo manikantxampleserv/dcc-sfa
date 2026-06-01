@@ -14,8 +14,8 @@ const serializeUser = (user, includeCreatedAt = false, includeUpdatedAt = false)
     email: user.email,
     name: user.name,
     role_id: Number(user.role_id),
+    sap_code: user.sap_code,
     parent_id: user.parent_id,
-    depot_id: user.depot_id,
     zone_id: user.zone_id,
     phone_number: user.phone_number,
     address: user.address,
@@ -24,6 +24,7 @@ const serializeUser = (user, includeCreatedAt = false, includeUpdatedAt = false)
     reporting_to: Number(user.reporting_to),
     profile_image: user.profile_image,
     last_login: user.last_login,
+    platform: user.platform || null,
     is_active: user.is_active,
     ...(includeCreatedAt && { created_at: user.createdate }),
     ...(includeUpdatedAt && { updated_at: user.updatedate }),
@@ -41,13 +42,13 @@ const serializeUser = (user, includeCreatedAt = false, includeUpdatedAt = false)
             code: user.companies.code,
         }
         : null,
-    user_depot: user.user_depot
-        ? {
-            id: user.user_depot.id,
-            name: user.user_depot.name,
-            code: user.user_depot.code,
-        }
-        : null,
+    depots: user.users_depots_users
+        ? user.users_depots_users.map((ud) => ({
+            id: ud.user_depots_depot_id.id,
+            name: ud.user_depots_depot_id.name,
+            code: ud.user_depots_depot_id.code,
+        }))
+        : [],
     reporting_manager: user.users
         ? {
             id: user.users.id,
@@ -68,6 +69,20 @@ const serializeUser = (user, includeCreatedAt = false, includeUpdatedAt = false)
             symbol: user.companies.companies_currencies.symbol,
         }
         : null,
+    routes: user.route_salespersons
+        ? user.route_salespersons.map((rs) => ({
+            id: rs.route.id,
+            name: rs.route.name,
+            code: rs.route.code,
+            description: rs.route.description,
+            start_location: rs.route.start_location,
+            end_location: rs.route.end_location,
+            estimated_distance: rs.route.estimated_distance,
+            estimated_time: rs.route.estimated_time,
+            role: rs.role,
+            assigned_at: rs.assigned_at,
+        }))
+        : [],
 });
 exports.userController = {
     async createUser(req, res) {
@@ -77,13 +92,33 @@ exports.userController = {
                 res.validationError(errors.array(), 400);
                 return;
             }
-            const { email, password, name, role_id, parent_id, depot_id, zone_id, phone_number, address, employee_id, joining_date, reporting_to, is_active, } = req.body;
-            const existingUser = await prisma_client_1.default.users.findFirst({
-                where: { email },
-            });
-            if (existingUser) {
-                res.error('Email already exists', 400);
-                return;
+            const { email, password, name, role_id, parent_id, depot_ids, zone_id, phone_number, address, sap_code, employee_id, joining_date, reporting_to, is_active, platform, } = req.body;
+            let parsedDepotIds = [];
+            if (typeof depot_ids === 'string') {
+                if (depot_ids.startsWith('[')) {
+                    try {
+                        parsedDepotIds = JSON.parse(depot_ids);
+                    }
+                    catch {
+                        parsedDepotIds = [];
+                    }
+                }
+                else {
+                    parsedDepotIds = depot_ids
+                        .split(',')
+                        .map((id) => parseInt(id.trim()))
+                        .filter((id) => !isNaN(id));
+                }
+            }
+            else if (Array.isArray(depot_ids)) {
+                parsedDepotIds = depot_ids.map(Number).filter(id => !isNaN(id));
+            }
+            if (email) {
+                const existingUser = await prisma_client_1.default.users.findFirst({ where: { email } });
+                if (existingUser) {
+                    res.error('Email already exists', 400);
+                    return;
+                }
             }
             if (employee_id) {
                 const existingEmployee = await prisma_client_1.default.users.findFirst({
@@ -102,18 +137,11 @@ exports.userController = {
                     const userFolder = req.user?.id ?? 'guest';
                     const fileExt = file.originalname.split('.').pop();
                     const fileName = `profiles/profile_${userFolder}_${Date.now()}.${fileExt}`;
-                    console.log(' Uploading file:', {
-                        originalName: file.originalname,
-                        fileName,
-                        mimetype: file.mimetype,
-                        size: file.size,
-                    });
                     profile_image_url = await (0, blackbaze_1.uploadFile)(file.buffer, fileName, file.mimetype);
-                    console.log('File uploaded successfully:', profile_image_url);
                 }
                 catch (uploadError) {
-                    console.error(' File upload failed:', uploadError);
-                    console.warn(' Continuing without profile image');
+                    console.error('File upload failed:', uploadError);
+                    console.warn('Continuing without profile image');
                 }
             }
             const newUser = await prisma_client_1.default.users.create({
@@ -123,9 +151,10 @@ exports.userController = {
                     name,
                     role_id: Number(role_id),
                     parent_id,
-                    depot_id,
                     zone_id,
                     phone_number,
+                    sap_code,
+                    platform: platform || null,
                     address,
                     employee_id,
                     joining_date: joining_date ? new Date(joining_date) : null,
@@ -139,11 +168,33 @@ exports.userController = {
                 include: {
                     user_role: true,
                     companies: true,
-                    user_depot: true,
                     users: { select: { id: true, name: true, email: true } },
                 },
             });
-            res.success('User created successfully', serializeUser(newUser), 201);
+            if (parsedDepotIds.length > 0) {
+                await prisma_client_1.default.user_depots.createMany({
+                    data: parsedDepotIds.map((depotId) => ({
+                        user_id: newUser.id,
+                        depot_id: depotId,
+                        createdby: req.user?.id ?? 0,
+                        createdate: new Date(),
+                    })),
+                });
+            }
+            const userWithDepots = await prisma_client_1.default.users.findUnique({
+                where: { id: newUser.id },
+                include: {
+                    user_role: true,
+                    companies: true,
+                    users_depots_users: {
+                        include: {
+                            user_depots_depot_id: true,
+                        },
+                    },
+                    users: { select: { id: true, name: true, email: true } },
+                },
+            });
+            res.success('User created successfully', serializeUser(userWithDepots), 201);
         }
         catch (error) {
             console.error('Error creating user:', error);
@@ -152,7 +203,7 @@ exports.userController = {
     },
     async getUsers(req, res) {
         try {
-            const { page = '1', limit = '10', search = '', isActive, role_id, depot_id, zone_id, } = req.query;
+            const { page = '1', limit = '10', search = '', isActive, role_id, depot_id, zone_id, reporting_to, } = req.query;
             const page_num = parseInt(page, 10);
             const limit_num = parseInt(limit, 10);
             const searchLower = search.toLowerCase();
@@ -178,8 +229,16 @@ exports.userController = {
                     ],
                 }),
                 ...(role_id && { role_id: Number(role_id) }),
-                ...(depot_id && { depot_id: Number(depot_id) }),
+                ...(depot_id && {
+                    users_depots_users: {
+                        some: {
+                            depot_id: Number(depot_id),
+                            is_active: 'Y',
+                        },
+                    },
+                }),
                 ...(zone_id && { zone_id: Number(zone_id) }),
+                ...(reporting_to && { reporting_to: Number(reporting_to) }),
             };
             const { data, pagination } = await (0, paginate_1.paginate)({
                 model: prisma_client_1.default.users,
@@ -190,7 +249,11 @@ exports.userController = {
                 include: {
                     user_role: true,
                     companies: true,
-                    user_depot: true,
+                    users_depots_users: {
+                        include: {
+                            user_depots_depot_id: true,
+                        },
+                    },
                     users: {
                         select: {
                             id: true,
@@ -243,12 +306,26 @@ exports.userController = {
                 include: {
                     user_role: true,
                     companies: true,
-                    user_depot: true,
+                    users_depots_users: {
+                        include: {
+                            user_depots_depot_id: true,
+                        },
+                    },
                     users: {
                         select: {
                             id: true,
                             name: true,
                             email: true,
+                        },
+                    },
+                    other_users: {
+                        where: { is_active: 'Y' },
+                        select: {
+                            id: true,
+                            name: true,
+                            email: true,
+                            employee_id: true,
+                            profile_image: true,
                         },
                     },
                 },
@@ -274,9 +351,35 @@ exports.userController = {
                     device_info: true,
                 },
             });
-            const serializedUser = serializeUser(user);
+            const subordinateCount = await prisma_client_1.default.users.count({
+                where: { reporting_to: id, is_active: 'Y' },
+            });
+            let managerTeamCount = 0;
+            if (user.reporting_to) {
+                managerTeamCount = await prisma_client_1.default.users.count({
+                    where: { reporting_to: Number(user.reporting_to), is_active: 'Y' },
+                });
+            }
+            let managerTeamMembers = [];
+            if (user.reporting_to) {
+                managerTeamMembers = await prisma_client_1.default.users.findMany({
+                    where: { reporting_to: Number(user.reporting_to), is_active: 'Y' },
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                        employee_id: true,
+                        profile_image: true,
+                    },
+                });
+            }
+            const serializedUser = serializeUser(user, true, true);
             const responseData = {
                 ...serializedUser,
+                subordinates: user.other_users || [],
+                manager_team_members: managerTeamMembers,
+                subordinate_count: subordinateCount,
+                manager_team_count: managerTeamCount,
                 recent_activities: {
                     audit_logs: recentAuditLogs.map(log => ({
                         id: log.id,
@@ -316,7 +419,29 @@ exports.userController = {
                 res.error('User not found', 404);
                 return;
             }
-            const { createdate, updatedate, password, id, is_active, ...userData } = req.body;
+            const { createdate, updatedate, password, id, is_active, depot_ids, ...userData } = req.body;
+            let parsedDepotIds = [];
+            if (depot_ids !== undefined) {
+                if (typeof depot_ids === 'string') {
+                    if (depot_ids.startsWith('[')) {
+                        try {
+                            parsedDepotIds = JSON.parse(depot_ids);
+                        }
+                        catch {
+                            parsedDepotIds = [];
+                        }
+                    }
+                    else {
+                        parsedDepotIds = depot_ids
+                            .split(',')
+                            .map((id) => parseInt(id.trim()))
+                            .filter((id) => !isNaN(id));
+                    }
+                }
+                else if (Array.isArray(depot_ids)) {
+                    parsedDepotIds = depot_ids.map(Number).filter(id => !isNaN(id));
+                }
+            }
             if (userData.email && userData.email !== existingUser.email) {
                 const existingEmail = await prisma_client_1.default.users.findFirst({
                     where: {
@@ -389,17 +514,66 @@ exports.userController = {
             if (updateData.role_id) {
                 updateData.role_id = Number(updateData.role_id);
             }
-            const updatedUser = await prisma_client_1.default.users.update({
+            await prisma_client_1.default.users.update({
                 where: { id: targetUserId },
                 data: updateData,
                 include: {
                     user_role: true,
                     companies: true,
-                    user_depot: true,
+                    users_depots_users: {
+                        include: {
+                            user_depots_depot_id: true,
+                        },
+                    },
                     users: { select: { id: true, name: true, email: true } },
                 },
             });
-            const serializedUser = serializeUser(updatedUser, true, true);
+            if (depot_ids !== undefined) {
+                await prisma_client_1.default.user_depots.deleteMany({
+                    where: { user_id: targetUserId },
+                });
+                if (parsedDepotIds.length > 0) {
+                    await prisma_client_1.default.user_depots.createMany({
+                        data: parsedDepotIds.map((depotId) => ({
+                            user_id: targetUserId,
+                            depot_id: Number(depotId),
+                            createdby: currentUserId,
+                            createdate: new Date(),
+                        })),
+                    });
+                }
+                const userRoutes = await prisma_client_1.default.route_salespersons.findMany({
+                    where: { user_id: targetUserId },
+                    include: {
+                        route: true,
+                    },
+                });
+                const routesToRemove = userRoutes.filter(rs => rs.route && !parsedDepotIds.includes(rs.route.depot_id));
+                if (routesToRemove.length > 0) {
+                    await prisma_client_1.default.route_salespersons.deleteMany({
+                        where: {
+                            user_id: targetUserId,
+                            route_id: {
+                                in: routesToRemove.map(rs => rs.route_id),
+                            },
+                        },
+                    });
+                }
+            }
+            const finalUser = await prisma_client_1.default.users.findUnique({
+                where: { id: targetUserId },
+                include: {
+                    user_role: true,
+                    companies: true,
+                    users_depots_users: {
+                        include: {
+                            user_depots_depot_id: true,
+                        },
+                    },
+                    users: { select: { id: true, name: true, email: true } },
+                },
+            });
+            const serializedUser = serializeUser(finalUser, true, true);
             res.success('Profile updated successfully', serializedUser, 200);
         }
         catch (error) {
@@ -520,12 +694,60 @@ exports.userController = {
                             companies_currencies: true,
                         },
                     },
-                    user_depot: true,
+                    users_depots_users: {
+                        include: {
+                            user_depots_depot_id: true,
+                        },
+                    },
                     users: {
                         select: {
                             id: true,
                             name: true,
                             email: true,
+                        },
+                    },
+                    // route_salespersons: {
+                    //   where: {
+                    //     is_active: 'Y',
+                    //   },
+                    //   include: {
+                    //     route: {
+                    //       select: {
+                    //         id: true,
+                    //         name: true,
+                    //         code: true,
+                    //         description: true,
+                    //         start_location: true,
+                    //         end_location: true,
+                    //         estimated_distance: true,
+                    //         estimated_time: true,
+                    //       },
+                    //     },
+                    //   },
+                    // },
+                    route_salespersons: {
+                        where: {
+                            is_active: 'Y',
+                        },
+                        select: {
+                            id: true,
+                            route_id: true,
+                            user_id: true,
+                            role: true,
+                            assigned_at: true,
+                            is_active: true,
+                            route: {
+                                select: {
+                                    id: true,
+                                    name: true,
+                                    code: true,
+                                    description: true,
+                                    start_location: true,
+                                    end_location: true,
+                                    estimated_distance: true,
+                                    estimated_time: true,
+                                },
+                            },
                         },
                     },
                 },
@@ -534,7 +756,15 @@ exports.userController = {
                 res.error('User not found', 404);
                 return;
             }
-            res.success('User profile fetched successfully', serializeUser(user), 200);
+            const serializedUser = serializeUser(user);
+            const depotIds = user.users_depots_users
+                ?.map((ud) => ud.user_depots_depot_id?.id)
+                .filter((id) => id !== undefined) || [];
+            const response = {
+                ...serializedUser,
+                // depot_id: depotIds.length > 0 ? depotIds[0] : null,
+            };
+            res.success('User profile fetched successfully', response, 200);
         }
         catch (error) {
             console.error('Error fetching user profile:', error);
@@ -560,7 +790,7 @@ exports.userController = {
                 res.error('User not found', 404);
                 return;
             }
-            const { createdate, updatedate, id, role_id, is_active, employee_id, email, password, ...userData } = req.body;
+            const { createdate, updatedate, id, role_id, is_active, employee_id, email, password, depot_ids, ...userData } = req.body;
             console.log('Req.body', req.body);
             let profile_image_url;
             const uploadedFile = req.file;
@@ -602,17 +832,72 @@ exports.userController = {
                 userData.reporting_to !== null) {
                 updateData.reporting_to = Number(userData.reporting_to);
             }
+            // Parse depot_ids if it's a string
+            let parsedDepotIds = [];
+            if (depot_ids !== undefined) {
+                if (typeof depot_ids === 'string') {
+                    if (depot_ids.startsWith('[')) {
+                        try {
+                            parsedDepotIds = JSON.parse(depot_ids);
+                        }
+                        catch {
+                            parsedDepotIds = [];
+                        }
+                    }
+                    else {
+                        parsedDepotIds = depot_ids
+                            .split(',')
+                            .map((id) => parseInt(id.trim()))
+                            .filter((id) => !isNaN(id));
+                    }
+                }
+                else if (Array.isArray(depot_ids)) {
+                    parsedDepotIds = depot_ids.map(Number).filter(id => !isNaN(id));
+                }
+            }
             const updatedUser = await prisma_client_1.default.users.update({
                 where: { id: userId },
                 data: updateData,
                 include: {
                     user_role: true,
                     companies: true,
-                    user_depot: true,
+                    users_depots_users: {
+                        include: {
+                            user_depots_depot_id: true,
+                        },
+                    },
                     users: { select: { id: true, name: true, email: true } },
                 },
             });
-            res.success('Profile updated successfully', serializeUser(updatedUser, true, true), 200);
+            if (depot_ids !== undefined) {
+                await prisma_client_1.default.user_depots.deleteMany({
+                    where: { user_id: userId },
+                });
+                if (parsedDepotIds.length > 0) {
+                    await prisma_client_1.default.user_depots.createMany({
+                        data: parsedDepotIds.map((depotId) => ({
+                            user_id: userId,
+                            depot_id: Number(depotId),
+                            createdby: userId,
+                            createdate: new Date(),
+                        })),
+                    });
+                }
+            }
+            const finalUser = await prisma_client_1.default.users.findUnique({
+                where: { id: userId },
+                include: {
+                    user_role: true,
+                    companies: true,
+                    users_depots_users: {
+                        include: {
+                            user_depots_depot_id: true,
+                        },
+                    },
+                    users: { select: { id: true, name: true, email: true } },
+                },
+            });
+            res.success('Profile updated successfully', serializeUser(finalUser, true, true), 200);
         }
         catch (error) {
             console.error('Error updating user profile:', error);
@@ -621,32 +906,29 @@ exports.userController = {
     },
     async getUsersDropdown(req, res) {
         try {
-            const { search = '', user_id } = req.query;
+            const { search = '', user_id, depot_id } = req.query;
             const searchLower = search.toLowerCase().trim();
             const userId = user_id ? Number(user_id) : null;
+            const depotId = depot_id ? Number(depot_id) : null;
             const where = {
                 is_active: 'Y',
             };
+            if (depotId) {
+                where.users_depots_users = {
+                    some: {
+                        depot_id: depotId,
+                        is_active: 'Y',
+                    },
+                };
+            }
             if (userId) {
                 where.id = userId;
             }
             else if (searchLower) {
                 where.OR = [
-                    {
-                        name: {
-                            contains: searchLower,
-                        },
-                    },
-                    {
-                        email: {
-                            contains: searchLower,
-                        },
-                    },
-                    {
-                        employee_id: {
-                            contains: searchLower,
-                        },
-                    },
+                    { name: { contains: searchLower } },
+                    { email: { contains: searchLower } },
+                    { employee_id: { contains: searchLower } },
                 ];
             }
             const users = await prisma_client_1.default.users.findMany({

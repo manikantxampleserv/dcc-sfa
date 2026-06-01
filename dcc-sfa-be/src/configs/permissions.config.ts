@@ -115,8 +115,8 @@ export const hasAllModulePermissions = (
  * @description Matches the module keys from permissions.seeder.ts MODULE_MAPPING
  */
 export type Modules =
-  | 'dashboard'
-  | 'company'
+  | 'executive-dashboard'
+  | 'grading-dashboard'
   | 'user'
   | 'role'
   | 'depot'
@@ -127,20 +127,15 @@ export type Modules =
   | 'outlet'
   | 'outlet-group'
   | 'asset-type'
+  | 'asset-brand'
   | 'asset-sub-types'
   | 'asset-master'
-  | 'warehouse'
   | 'vehicle'
   | 'brand'
   | 'product-category'
   | 'product-sub-category'
   | 'unit-of-measurement'
-  | 'sub-unit-of-measurement'
-  | 'product-flavour'
-  | 'product-volume'
-  | 'product-shelf-life'
   | 'product'
-  | 'pricelist'
   | 'sales-target-group'
   | 'sales-target'
   | 'sales-bonus-rule'
@@ -148,11 +143,9 @@ export type Modules =
   | 'survey'
   | 'promotions'
   | 'order'
-  | 'delivery'
   | 'return'
   | 'payment'
   | 'invoice'
-  | 'credit-note'
   | 'visit'
   | 'asset-movement'
   | 'maintenance'
@@ -160,28 +153,36 @@ export type Modules =
   | 'inspection'
   | 'van-stock'
   | 'stock-movement'
-  | 'stock-transfer'
-  | 'batch-lots'
   | 'inventory-management'
   | 'competitor'
   | 'customer-complaint'
   | 'customer-category'
   | 'customer-type'
-  | 'location'
-  | 'route-effectiveness'
-  | 'erp-sync'
-  | 'report'
-  | 'approval'
-  | 'exception'
-  | 'alert'
-  | 'profile'
-  | 'login-history'
-  | 'token'
-  | 'setting'
+  | 'customer-channel'
+  | 'product-flavour'
+  | 'product-volume'
+  | 'product-shelf-life'
   | 'product-type'
   | 'product-target-group'
   | 'product-web-order'
-  | 'inventory-items';
+  | 'inventory-items'
+  | 'location'
+  | 'route-effectiveness'
+  | 'report'
+  | 'approval'
+  | 'exception'
+  | 'tax-master'
+  | 'login-history'
+  | 'token'
+  | 'setting'
+  | 'templates'
+  | 'region'
+  | 'district'
+  | 'city'
+  | 'pricelist'
+  | 'audit-log'
+  | 'attendance'
+  | 'request';
 
 /**
  * @type Actions
@@ -196,32 +197,28 @@ export type Actions = 'read' | 'create' | 'update' | 'delete';
  * @type {Record<string, string>}
  */
 const MODULE_DISPLAY_NAMES: Record<string, string> = {
-  dashboard: 'Dashboard',
-  company: 'Company',
-  user: 'User',
-  role: 'Role',
+  'executive-dashboard': 'Executive Dashboard',
+  'grading-dashboard': 'Grading Dashboard',
+  user: 'User Management',
+  role: 'Role & Permission',
   depot: 'Depot',
   zone: 'Zone',
   currency: 'Currency',
   route: 'Route',
   'route-type': 'Route Type',
-  outlet: 'Outlet',
+  outlet: 'Outlet Master',
   'outlet-group': 'Outlet Group',
   'asset-type': 'Asset Type',
+  'asset-brand': 'Asset Brand',
   'asset-sub-types': 'Asset Sub Types',
   'asset-master': 'Asset Master',
-  warehouse: 'Warehouse',
+  'asset-master-brands': 'Asset Master Brands',
   vehicle: 'Vehicle',
   brand: 'Brand',
   'product-category': 'Product Category',
   'product-sub-category': 'Product Sub Category',
   'unit-of-measurement': 'Unit Of Measurement',
-  'sub-unit-of-measurement': 'Sub Unit Of Measurement',
-  'product-flavour': 'Product Flavour',
-  'product-volume': 'Product Volume',
-  'product-shelf-life': 'Product Shelf Life',
   product: 'Product',
-  pricelist: 'Price List',
   'sales-target-group': 'Sales Target Group',
   'sales-target': 'Sales Target',
   'sales-bonus-rule': 'Sales Bonus Rule',
@@ -229,40 +226,46 @@ const MODULE_DISPLAY_NAMES: Record<string, string> = {
   survey: 'Survey',
   promotions: 'Promotions',
   order: 'Order',
-  delivery: 'Delivery',
   return: 'Return',
   payment: 'Payment',
   invoice: 'Invoice',
-  'credit-note': 'Credit Note',
   visit: 'Visit',
   'asset-movement': 'Asset Movement',
-  maintenance: 'Maintenance',
-  installation: 'Installation',
-  inspection: 'Inspection',
-  'van-stock': 'Van Stock',
+  maintenance: 'Asset Maintenance',
+  installation: 'Cooler Installation',
+  inspection: 'Cooler Inspection',
+  'van-stock': 'Van Inventory',
   'stock-movement': 'Stock Movement',
-  'stock-transfer': 'Stock Transfer',
-  'batch-lots': 'Batch & Lot Management',
   'inventory-management': 'Inventory Management',
-  competitor: 'Competitor',
+  competitor: 'Competitor Activity',
   'customer-complaint': 'Customer Complaint',
-  'customer-category': 'Customer Category',
-  'customer-type': 'Customer Type',
-  location: 'Location',
-  'route-effectiveness': 'Route Effectiveness',
-  'erp-sync': 'ERP Sync',
-  report: 'Report',
-  approval: 'Approval',
-  exception: 'Exception',
-  alert: 'Alert',
-  profile: 'Profile',
-  'login-history': 'Login History',
-  token: 'Token',
-  setting: 'Setting',
+  'customer-category': 'Outlet Category',
+  'customer-type': 'Outlet Type',
+  'customer-channel': 'Outlet Channel',
+  'product-flavour': 'Product Flavour',
+  'product-volume': 'Product Volume',
+  'product-shelf-life': 'Product Shelf Life',
   'product-type': 'Product Type',
   'product-target-group': 'Product Target Group',
   'product-web-order': 'Product Web Order',
   'inventory-items': 'Inventory Items',
+  location: 'GPS Tracking',
+  'route-effectiveness': 'Route Effectiveness',
+  report: 'Report',
+  approval: 'Approval Workflow',
+  exception: 'Exception',
+  'tax-master': 'Tax Master',
+  'login-history': 'Login History',
+  token: 'Token',
+  setting: 'Setting',
+  templates: 'Email Templates',
+  region: 'Region Master',
+  district: 'District Master',
+  city: 'City Master',
+  pricelist: 'Price List',
+  'audit-log': 'Audit Log',
+  attendance: 'Attendance',
+  request: 'Request',
 };
 
 /**
@@ -300,7 +303,6 @@ export const formatPermissionErrorMessage = (
     return `You don't have permission for ${actionName} the ${moduleName}.`;
   }
 
-  // Multiple permissions
   const permissionDescriptions = permissions.map(({ module, action }) => {
     const moduleName = MODULE_DISPLAY_NAMES[module] || module;
     const actionName = ACTION_DISPLAY_NAMES[action] || action;

@@ -3,6 +3,7 @@ import {
   Assignment,
   Logout,
   Settings,
+  HelpOutline,
 } from '@mui/icons-material';
 import {
   Avatar,
@@ -15,7 +16,6 @@ import {
   Menu,
   MenuItem,
   Skeleton,
-  Typography,
   styled,
 } from '@mui/material';
 import React, { useState } from 'react';
@@ -25,6 +25,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useRequestsByUsersWithoutPermission } from '../../hooks/useRequests';
 import ApprovalsSidebar from '../ApprovalsSidebar';
 import Notifications from '../Notifications';
+import { useTour } from '../../context/TourContext';
 
 const StyledBadge = styled(Badge)(({ theme }) => ({
   '& .MuiBadge-badge': {
@@ -75,6 +76,8 @@ const Header: React.FC<HeaderProps> = ({ sidebarOpen, toggleSidebar }) => {
     logout,
     isLoggingOut,
   } = useAuth();
+
+  const { startTour, steps } = useTour();
 
   const { data: pendingRequestsResponse } = useRequestsByUsersWithoutPermission(
     {
@@ -145,6 +148,14 @@ const Header: React.FC<HeaderProps> = ({ sidebarOpen, toggleSidebar }) => {
         </div>
 
         <div className="flex items-center gap-3">
+          <IconButton
+            onClick={() => startTour()}
+            disabled={steps.length === 0}
+            className="!p-1.5 !rounded-md !bg-gray-100 !text-gray-600 hover:!text-gray-900 hover:!bg-gray-100 disabled:opacity-50"
+            aria-label="help"
+          >
+            <HelpOutline className="!text-gray-600" />
+          </IconButton>
           <Badge
             badgeContent={pendingCount}
             color="error"
@@ -264,8 +275,8 @@ const Header: React.FC<HeaderProps> = ({ sidebarOpen, toggleSidebar }) => {
                   pointerEvents: 'none',
                 }}
               />
-              <Box className="!px-4 !py-3 !border-b !border-gray-200 !bg-gray-50">
-                <Box className="!flex !items-center !gap-3 !mb-2">
+              <Box className="!px-2 !py-2 !border-b !border-gray-200 !bg-gray-50">
+                <Box className="!flex !items-center !gap-3">
                   {userLoading ? (
                     <Skeleton
                       variant="circular"
@@ -289,39 +300,22 @@ const Header: React.FC<HeaderProps> = ({ sidebarOpen, toggleSidebar }) => {
                     </Avatar>
                   )}
                   <Box className="!flex-1">
-                    <Typography
-                      variant="body2"
-                      className="!text-sm !font-medium !text-gray-900"
-                      sx={{ fontWeight: 500 }}
-                    >
+                    <p className="!text-sm !font-medium !text-gray-900">
                       {userLoading ? (
                         <Skeleton width={120} height={16} />
                       ) : (
                         getUserDisplayName()
                       )}
-                    </Typography>
-                    <Typography
-                      variant="caption"
-                      className="!text-xs !text-gray-500"
-                    >
+                    </p>
+                    <p className="!text-xs !text-gray-500">
                       {userLoading ? (
                         <Skeleton width={80} height={12} />
                       ) : (
                         getUserRole()
                       )}
-                    </Typography>
+                    </p>
                   </Box>
                 </Box>
-                <Typography
-                  variant="caption"
-                  className="!text-xs !text-gray-500"
-                >
-                  {userLoading ? (
-                    <Skeleton width={150} height={12} />
-                  ) : (
-                    currentUser?.email || 'user@example.com'
-                  )}
-                </Typography>
               </Box>
 
               <MenuItem onClick={handleProfileClick} className="!px-4 !py-2">
@@ -330,8 +324,10 @@ const Header: React.FC<HeaderProps> = ({ sidebarOpen, toggleSidebar }) => {
                 </ListItemIcon>
                 <ListItemText
                   primary="My Profile"
-                  primaryTypographyProps={{
-                    className: '!text-sm !text-gray-700',
+                  slotProps={{
+                    primary: {
+                      className: '!text-sm !text-gray-700',
+                    },
                   }}
                 />
               </MenuItem>
@@ -342,8 +338,10 @@ const Header: React.FC<HeaderProps> = ({ sidebarOpen, toggleSidebar }) => {
                 </ListItemIcon>
                 <ListItemText
                   primary="Settings"
-                  primaryTypographyProps={{
-                    className: '!text-sm !text-gray-700',
+                  slotProps={{
+                    primary: {
+                      className: '!text-sm !text-gray-700',
+                    },
                   }}
                 />
               </MenuItem>
@@ -365,8 +363,10 @@ const Header: React.FC<HeaderProps> = ({ sidebarOpen, toggleSidebar }) => {
                 </ListItemIcon>
                 <ListItemText
                   primary={isLoggingOut ? 'Signing out...' : 'Logout'}
-                  primaryTypographyProps={{
-                    className: '!text-sm !text-red-600',
+                  slotProps={{
+                    primary: {
+                      className: '!text-sm !text-red-600',
+                    },
                   }}
                 />
               </MenuItem>

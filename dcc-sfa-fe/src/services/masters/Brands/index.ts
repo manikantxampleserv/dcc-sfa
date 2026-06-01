@@ -34,6 +34,11 @@ interface UpdateBrandPayload {
   is_active?: string;
 }
 
+interface UpdateBrandRequest {
+  id: number;
+  data: UpdateBrandPayload | FormData;
+}
+
 interface GetBrandsParams {
   page?: number;
   limit?: number;
@@ -75,12 +80,19 @@ export const fetchBrandById = async (id: number): Promise<Brand> => {
 
 /**
  * Create a new Brand
- * @param data - Brand data
+ * @param data - Brand data or FormData for file upload
  * @returns Promise resolving to created Brand
  */
-export const createBrand = async (data: ManageBrandPayload): Promise<Brand> => {
+export const createBrand = async (
+  data: ManageBrandPayload | FormData
+): Promise<Brand> => {
   try {
-    const response = await api.post('/brands', data);
+    const config =
+      data instanceof FormData
+        ? { headers: { 'Content-Type': 'multipart/form-data' } }
+        : {};
+
+    const response = await api.post('/brands', data, config);
     return response.data.data;
   } catch (error: any) {
     console.error('Error creating brand:', error);
@@ -91,15 +103,20 @@ export const createBrand = async (data: ManageBrandPayload): Promise<Brand> => {
 /**
  * Update an existing Brand
  * @param id - Brand ID
- * @param data - Updated Brand data
+ * @param data - Updated Brand data or FormData for file upload
  * @returns Promise resolving to updated Brand
  */
 export const updateBrand = async (
   id: number,
-  data: UpdateBrandPayload
+  data: UpdateBrandPayload | FormData
 ): Promise<Brand> => {
   try {
-    const response = await api.put(`/brands/${id}`, data);
+    const config =
+      data instanceof FormData
+        ? { headers: { 'Content-Type': 'multipart/form-data' } }
+        : {};
+
+    const response = await api.put(`/brands/${id}`, data, config);
     return response.data.data;
   } catch (error: any) {
     console.error('Error updating brand:', error);
@@ -122,4 +139,10 @@ export const deleteBrand = async (id: number): Promise<void> => {
 };
 
 // Export types
-export type { Brand, ManageBrandPayload, UpdateBrandPayload, GetBrandsParams };
+export type {
+  Brand,
+  ManageBrandPayload,
+  UpdateBrandPayload,
+  UpdateBrandRequest,
+  GetBrandsParams,
+};

@@ -12,7 +12,13 @@ interface PriceList {
   id: number;
   name: string;
   description?: string | null;
-  currency_code?: string | null;
+  customer_id?: number | null;
+  route_id?: number | null;
+  depot_id?: number | null;
+  base_pricelist_id?: number | null;
+  factor?: string | number | null;
+  customer_category_id?: number | null;
+  is_default: string;
   valid_from?: string | null;
   valid_to?: string | null;
   is_active: string;
@@ -22,7 +28,25 @@ interface PriceList {
   updatedby?: number | null;
   log_inst?: number | null;
   pricelist_item?: PriceListItem[];
+  items_count?: number;
   route_pricelist?: RoutePriceList[];
+  pricelists_customer?: {
+    id: number;
+    name: string;
+    code: string;
+  };
+  pricelists_route?: {
+    id: number;
+    name: string;
+  };
+  pricelists_depot?: {
+    id: number;
+    name: string;
+  };
+  base_pricelist?: {
+    id: number;
+    name: string;
+  };
 }
 
 interface PriceListItem {
@@ -32,6 +56,8 @@ interface PriceListItem {
   unit_price: string;
   uom?: string | null;
   discount_percent?: string | null;
+  tax_percent?: string | null;
+  sub_unit_price?: string | null;
   effective_from?: string | null;
   effective_to?: string | null;
   is_active: string;
@@ -40,11 +66,49 @@ interface PriceListItem {
   updatedate?: string | null;
   updatedby?: number | null;
   log_inst?: number | null;
+  product?: {
+    id: number;
+    name: string;
+    code: string;
+  } | null;
+  special_prices?: SpecialPrice[];
+}
+
+interface SpecialPrice {
+  id?: number;
+  pricelist_item_id?: number;
+  valid_from?: string | null;
+  valid_to?: string | null;
+  route_id?: number | null;
+  customer_id?: number | null;
+  customer_category_id?: number | null;
+  sale_price: string | number;
+  sale_sub_unit_price?: string | number | null;
+  tax_percent?: string | number | null;
+  discount_percent?: string | number | null;
+  is_active?: string;
+  special_customer_category?: {
+    id: number;
+    category_name: string;
+    category_code: string;
+  } | null;
+  special_customer?: {
+    id: number;
+    name: string;
+    code: string;
+  } | null;
+  special_route?: {
+    id: number;
+    name: string;
+  } | null;
 }
 
 interface RoutePriceList {
   id: number;
-  route_id: number;
+  route_id?: number | null;
+  depot_id?: number | null;
+  customer_id?: number | null;
+  customer_category_id?: number | null;
   pricelist_id: number;
   effective_from?: string | null;
   effective_to?: string | null;
@@ -59,29 +123,23 @@ interface RoutePriceList {
 interface ManagePriceListPayload {
   name: string;
   description?: string;
-  currency_code?: string;
-  valid_from?: string;
-  valid_to?: string;
+  depot_id?: number | null;
+  base_pricelist_id?: number | null;
+  factor?: string | number | null;
+  is_default?: string;
   is_active?: string;
-  priceListItems?: Omit<
-    PriceListItem,
-    | 'id'
-    | 'pricelist_id'
-    | 'createdate'
-    | 'createdby'
-    | 'updatedate'
-    | 'updatedby'
-    | 'log_inst'
-  >[];
+  pricelist_item?: Partial<PriceListItem>[];
 }
 
 interface UpdatePriceListPayload {
   name?: string;
   description?: string;
-  currency_code?: string;
-  valid_from?: string;
-  valid_to?: string;
+  depot_id?: number | null;
+  base_pricelist_id?: number | null;
+  factor?: string | number | null;
+  is_default?: string;
   is_active?: string;
+  pricelist_item?: Partial<PriceListItem>[];
 }
 
 interface GetPriceListsParams {
@@ -89,6 +147,14 @@ interface GetPriceListsParams {
   limit?: number;
   search?: string;
   status?: string;
+  is_default?: string;
+  depot_id?: number;
+  route_id?: number;
+  customer_id?: number;
+  customer_category_id?: number;
+  from_date?: string;
+  to_date?: string;
+  include_items?: boolean;
 }
 
 /**
@@ -157,7 +223,7 @@ export const updatePriceList = async (
   data: UpdatePriceListPayload
 ): Promise<PriceList> => {
   try {
-    const response = await api.put(`/price-lists/${id}`, data);
+    const response = await api.post(`/price-lists`, { id, ...data });
     return response.data.data;
   } catch (error: any) {
     console.error('Error updating price list:', error);
@@ -187,8 +253,64 @@ export const deletePriceList = async (id: number): Promise<void> => {
 export type {
   PriceList,
   PriceListItem,
+  SpecialPrice,
   RoutePriceList,
   ManagePriceListPayload,
   UpdatePriceListPayload,
   GetPriceListsParams,
+};
+
+export interface CustomerPriceListItem {
+  id: number;
+  product_id: number;
+  product_name: string;
+  product_code: string;
+  unit_price: number;
+  sub_unit_price?: number | null;
+  discount_percent?: number | null;
+  tax_percent?: number | null;
+  is_active: string;
+  base_unit_price: number;
+  base_sub_unit_price?: number | null;
+  base_discount_percent?: number | null;
+  base_tax_percent?: number | null;
+  special_prices: SpecialPrice[];
+}
+
+export interface CustomerPriceListResult {
+  pricelist_id: number;
+  name: string;
+  description?: string | null;
+  level: 'DEPOT' | 'DEFAULT' | 'OTHER';
+  priority?: string | null;
+  factor?: number | null;
+  base_price_list_id?: number | null;
+  has_customer_special_prices: boolean;
+  has_route_special_prices: boolean;
+  has_category_special_prices: boolean;
+  has_depot_special_prices: boolean;
+  pricing_type: string;
+  description_level: string;
+  pricelist_items: CustomerPriceListItem[];
+}
+
+/**
+ * Fetch price list(s) for a customer using the stored procedure.
+ * Returns depot-level + default pricelists with resolved special prices.
+ */
+export const fetchPriceListByCustomer = async (
+  customerId: number,
+  orderDate: string
+): Promise<CustomerPriceListResult[]> => {
+  try {
+    const response = await api.get('/price-lists/customer', {
+      params: { customer_id: customerId, order_date: orderDate },
+    });
+    return response.data.data ?? [];
+  } catch (error: any) {
+    console.error('Error fetching customer price list:', error);
+    throw new Error(
+      error.response?.data?.message || 'Failed to fetch customer price list'
+    );
+  }
 };

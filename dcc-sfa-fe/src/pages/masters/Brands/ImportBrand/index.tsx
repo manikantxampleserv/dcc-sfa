@@ -9,7 +9,7 @@ import {
   useDownloadTemplate,
   useImportData,
   type ImportResult,
-} from '../../../../hooks/useImportExport';
+} from 'hooks/useImportExport';
 
 interface ImportBrandProps {
   drawerOpen: boolean;
@@ -30,7 +30,6 @@ const ImportBrand: React.FC<ImportBrandProps> = ({
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // API hooks
   const downloadTemplateMutation = useDownloadTemplate();
   const importDataMutation = useImportData({
     onSuccess: data => {
@@ -82,7 +81,6 @@ const ImportBrand: React.FC<ImportBrandProps> = ({
 
   const handleImport = async () => {
     if (!uploadedFile) return;
-
     try {
       await importDataMutation.mutateAsync({
         tableName: 'brands',
@@ -93,7 +91,6 @@ const ImportBrand: React.FC<ImportBrandProps> = ({
           updateExisting: false,
         },
       });
-      // Results are handled in the mutation onSuccess callback
     } catch (error) {
       console.error('Import failed:', error);
     }

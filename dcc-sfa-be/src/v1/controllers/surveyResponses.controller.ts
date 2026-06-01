@@ -171,7 +171,7 @@ export const surveyResponseController = {
         );
       }
 
-      let answerItems = [];
+      let answerItems: any[] = [];
       if (typeof data.answers === 'string') {
         try {
           answerItems = JSON.parse(data.answers);
@@ -289,7 +289,7 @@ export const surveyResponseController = {
             responseId = surveyResponse.id;
           }
 
-          const processedAnswerIds: number[] = [];
+          const processedAnswerIds: any[] = [];
 
           if (Array.isArray(answerItems) && answerItems.length > 0) {
             const answersToCreate: any[] = [];
@@ -435,8 +435,8 @@ export const surveyResponseController = {
     try {
       const results = await prisma.$transaction(
         async tx => {
-          const createdResponses = [];
-          const errors = [];
+          const createdResponses: any[] = [];
+          const errors: any[] = [];
 
           for (let i = 0; i < responses.length; i++) {
             const responseData = responses[i];

@@ -35,12 +35,13 @@ export const createAssetMasterValidation = [
       'Available',
       'Installed',
       'Under Maintenance',
+      'Under Investigation',
       'Retired',
       'Lost',
       'Damaged',
     ])
     .withMessage(
-      'Current status must be one of: Available, Installed, Under Maintenance, Retired, Lost, Damaged'
+      'Current status must be one of: Available, Installed, Under Maintenance, Under Investigation, Retired, Lost, Damaged'
     ),
   body('assigned_to')
     .optional({ checkFalsy: true })
@@ -85,12 +86,13 @@ export const updateAssetMasterValidation = [
       'Available',
       'Installed',
       'Under Maintenance',
+      'Under Investigation',
       'Retired',
       'Lost',
       'Damaged',
     ])
     .withMessage(
-      'Current status must be one of: Available, Installed, Under Maintenance, Retired, Lost, Damaged'
+      'Current status must be one of: Available, Installed, Under Maintenance, Under Investigation, Retired, Lost, Damaged'
     ),
   body('assigned_to')
     .optional({ checkFalsy: true })

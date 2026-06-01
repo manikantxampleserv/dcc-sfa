@@ -50,6 +50,29 @@ class OrdersImportExportService extends import_export_service_1.ImportExportServ
         'order_type',
         'payment_method',
     ];
+    masterTableConfigs = [
+        {
+            masterTable: 'customers',
+            masterKey: 'id',
+            masterDisplayFields: ['id', 'name', 'code', 'email', 'phone_number'],
+            sheetName: 'Ref - Customers',
+            description: 'Use the ID from this sheet in the Customer ID column',
+        },
+        {
+            masterTable: 'users',
+            masterKey: 'id',
+            masterDisplayFields: ['id', 'name', 'email', 'employee_id'],
+            sheetName: 'Ref - Salespersons',
+            description: 'Use the ID from this sheet in the Salesperson ID column',
+        },
+        {
+            masterTable: 'currencies',
+            masterKey: 'id',
+            masterDisplayFields: ['id', 'code', 'name', 'symbol'],
+            sheetName: 'Ref - Currencies',
+            description: 'Use the ID from this sheet in the Currency ID column',
+        },
+    ];
     columns = [
         {
             key: 'order_number',
@@ -500,6 +523,7 @@ class OrdersImportExportService extends import_export_service_1.ImportExportServ
         const worksheet = workbook.addWorksheet(this.displayName);
         const exportColumns = [
             ...this.columns,
+            { header: 'ID', key: 'id', width: 12 },
             { header: 'Customer Name', key: 'customer_name', width: 25 },
             { header: 'Salesperson Name', key: 'salesperson_name', width: 25 },
             { header: 'Item Count', key: 'item_count', width: 12 },

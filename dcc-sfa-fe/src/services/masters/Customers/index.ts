@@ -5,6 +5,9 @@ import type { ApiResponse } from '../../../types/api.types';
  * Customer entity interface
  */
 interface Customer {
+  customer_district: any;
+  customer_region: any;
+  customer_city: any;
   id: number;
   name: string;
   short_name?: string | null;
@@ -28,6 +31,9 @@ interface Customer {
   longitude?: string | null;
   credit_limit?: string | null;
   outstanding_amount: string;
+  region_id?: number | null;
+  district_id?: number | null;
+  city_id?: number | null;
   route_id?: number | null;
   salesperson_id?: number | null;
   nfc_tag_code?: string | null;
@@ -38,6 +44,21 @@ interface Customer {
   updatedate?: string | null;
   updatedby?: number | null;
   log_inst?: number | null;
+  region?: {
+    id: number;
+    name: string;
+    code: string;
+  } | null;
+  district?: {
+    id: number;
+    name: string;
+    code: string;
+  } | null;
+  city_detail?: {
+    id: number;
+    name: string;
+    code: string;
+  } | null;
   customer_zones?: {
     id: number;
     name: string;
@@ -69,6 +90,12 @@ interface Customer {
     category_code: string;
     level?: number | null;
   } | null;
+  default_for_depots?: Array<{
+    id: number;
+    name: string;
+    code: string;
+  }>;
+  is_default_outlet?: 'Y' | 'N';
 }
 
 /**
@@ -95,42 +122,22 @@ interface ManageCustomerPayload {
   longitude?: string;
   credit_limit?: string;
   outstanding_amount?: string;
+  region_id?: number;
+  district_id?: number;
+  city_id?: number;
   route_id?: number;
   salesperson_id?: number;
   nfc_tag_code?: string;
   last_visit_date?: string;
   is_active?: string;
+  is_default_for_depot?: boolean;
 }
 
 /**
  * Payload for updating an existing customer
  */
-interface UpdateCustomerPayload {
-  name?: string;
-  short_name?: string;
-  depot_id?: number;
-  zones_id?: number;
-  customer_type_id?: number;
-  customer_channel_id?: number;
-  type?: string;
-  internal_code_one?: string;
-  internal_code_two?: string;
-  contact_person?: string;
-  phone_number?: string;
-  email?: string;
-  address?: string;
-  city?: string;
-  state?: string;
-  zipcode?: string;
-  latitude?: string;
-  longitude?: string;
-  credit_limit?: string;
-  outstanding_amount?: string;
-  route_id?: number;
-  salesperson_id?: number;
-  nfc_tag_code?: string;
-  last_visit_date?: string;
-  is_active?: string;
+interface UpdateCustomerPayload extends Partial<ManageCustomerPayload> {
+  id?: number;
 }
 
 /**
@@ -144,6 +151,7 @@ interface GetCustomersParams {
   type?: string;
   zones_id?: number;
   route_id?: number;
+  depot_id?: number;
   salesperson_id?: number;
 }
 
@@ -264,6 +272,7 @@ export interface CustomerDropdown {
 export interface GetCustomersDropdownParams {
   search?: string;
   customer_id?: number;
+  depot_id?: number;
 }
 
 /**
