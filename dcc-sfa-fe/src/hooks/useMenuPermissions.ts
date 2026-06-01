@@ -80,13 +80,9 @@ export const useMenuPermissions = () => {
   const customerComplaintPerms = usePermission(
     'customer-complaint' as BackendModule
   );
-  const customerCategoryPerms = usePermission(
-    'customer-category' as BackendModule
-  );
-  const customerTypePerms = usePermission('customer-type' as BackendModule);
-  const customerChannelPerms = usePermission(
-    'customer-channel' as BackendModule
-  );
+  const outletCategoryPerms = usePermission('outlet-category' as BackendModule);
+  const outletTypePerms = usePermission('outlet-type' as BackendModule);
+  const outletChannelPerms = usePermission('outlet-channel' as BackendModule);
   const productFlavourPerms = usePermission('product-flavour' as BackendModule);
   const productVolumePerms = usePermission('product-volume' as BackendModule);
   const productShelfLifePerms = usePermission(
@@ -164,9 +160,9 @@ export const useMenuPermissions = () => {
       'inventory-management': inventoryManagementPerms,
       competitor: competitorPerms,
       'customer-complaint': customerComplaintPerms,
-      'customer-category': customerCategoryPerms,
-      'customer-type': customerTypePerms,
-      'customer-channel': customerChannelPerms,
+      'outlet-category': outletCategoryPerms,
+      'outlet-type': outletTypePerms,
+      'outlet-channel': outletChannelPerms,
       'product-flavour': productFlavourPerms,
       'product-volume': productVolumePerms,
       'product-shelf-life': productShelfLifePerms,
@@ -235,9 +231,9 @@ export const useMenuPermissions = () => {
       inventoryManagementPerms,
       competitorPerms,
       customerComplaintPerms,
-      customerCategoryPerms,
-      customerTypePerms,
-      customerChannelPerms,
+      outletCategoryPerms,
+      outletTypePerms,
+      outletChannelPerms,
       productFlavourPerms,
       productVolumePerms,
       productShelfLifePerms,

@@ -39,7 +39,7 @@ const generateCustomerCode = async (depotId) => {
     const code = `${depotPrefix}${newNumber.toString().padStart(2, '0')}`;
     return code;
 };
-const serializeCustomer = async (customer) => {
+const serializeCustomer = async (customer, defaultOutletIdSet) => {
     if (!customer) {
         return {};
     }
@@ -166,7 +166,9 @@ const serializeCustomer = async (customer) => {
                 code: d.code,
             }))
             : [],
-        is_default_outlet: customer.default_for_depots && customer.default_for_depots.length > 0
+        is_default_outlet: (defaultOutletIdSet
+            ? defaultOutletIdSet.has(customer.id)
+            : customer.default_for_depots?.length > 0)
             ? 'Y'
             : 'N',
         outlet_images: (customer.outlet_images_customers || []).map((img) => ({
@@ -1901,12 +1903,7 @@ exports.customerController = {
                 const defaultOutletWhere = {
                     id: { in: defaultOutletIds },
                 };
-                if (salesperson_id && routeIds.length > 0) {
-                    defaultOutletWhere.route_id = {
-                        in: routeIds,
-                    };
-                }
-                else if (salesperson_id && routeIds.length === 0) {
+                if (salesperson_id && routeIds.length === 0) {
                     defaultOutletWhere.route_id = -1;
                 }
                 defaultOutlets = await prisma_client_1.default.customers.findMany({
@@ -2089,7 +2086,8 @@ exports.customerController = {
                     ...statsFilter,
                 },
             });
-            const serializedData = await Promise.all(mergedData.map((c) => serializeCustomer(c)));
+            const defaultOutletIdSet = new Set(defaultOutletIds);
+            const serializedData = await Promise.all(mergedData.map((c) => serializeCustomer(c, defaultOutletIdSet)));
             res.success('Customers retrieved successfully', serializedData, 200, pagination, {
                 new_customers_this_month: newCustomersThisMonth,
                 total_customers: totalCustomers,
