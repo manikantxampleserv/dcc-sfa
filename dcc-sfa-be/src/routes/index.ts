@@ -100,9 +100,11 @@ import alerts from '../v1/routes/alerts.routes';
 import customerCategoryGrading from '../v1/controllers/customerCategoryGrading.routes';
 import assetMasterBrands from '../v1/routes/assetMaterBrands.routes';
 import barcode from '../v1/routes/barcode.routes';
+import orgChart from '../v1/routes/orgChart.routes';
 
 const routes = Router();
 
+routes.use('/v1/org-chart', orgChart);
 routes.use('/v1', barcode);
 routes.use('/v1', auth);
 routes.use('/v1', user);

@@ -62,6 +62,11 @@ const menuItems: MenuItem[] = [
         label: 'Organization Setup',
         icon: MdBusiness,
         children: [
+          {
+            id: 'organization-chart',
+            label: 'Organization Chart',
+            href: '/masters/organization-chart',
+          },
           { id: 'user-master', label: 'User Master', href: '/masters/users' },
           {
             id: 'role-permission',

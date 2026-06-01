@@ -35,6 +35,7 @@ import InventoryItems from 'pages/masters/InvetoryItems';
 import InventoryDetail from 'pages/masters/InvetoryItems/InventoryDetail';
 import KpiTargetsManagement from 'pages/masters/KpiTargets';
 import LoginHistoryPage from 'pages/masters/LoginHistory';
+import OrganizationChart from 'pages/masters/OrganizationChart';
 import OutletsManagement from 'pages/masters/Outlet';
 import OutletDetail from 'pages/masters/Outlet/OutletDetail';
 import OutletGroupsManagement from 'pages/masters/OutletGroups';
@@ -202,6 +203,14 @@ const router = createBrowserRouter(
           ),
         },
 
+        {
+          path: '/masters/organization-chart',
+          element: (
+            <PermissionGuard module="user" action="read">
+              <OrganizationChart />
+            </PermissionGuard>
+          ),
+        },
         {
           path: '/masters/brands',
           element: (
