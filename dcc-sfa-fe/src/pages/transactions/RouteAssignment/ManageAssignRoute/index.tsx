@@ -40,6 +40,16 @@ const ManageAssignRoute: React.FC<ManageAssignRouteProps> = ({
   const [availableSearch, setAvailableSearch] = useState('');
   const [selectedDepot, setSelectedDepot] = useState('');
   const [selectedZone, setSelectedZone] = useState('');
+  const hasInitialized = React.useRef(false);
+
+  React.useEffect(() => {
+    if (open) {
+      hasInitialized.current = false;
+      setSelectedDepot('');
+      setSelectedZone('');
+      setAvailableSearch('');
+    }
+  }, [open, user]);
 
   React.useEffect(() => {
     if (!selectedDepot) {
@@ -54,6 +64,13 @@ const ManageAssignRoute: React.FC<ManageAssignRouteProps> = ({
   });
 
   const depots = depotsResponse?.data || [];
+
+  React.useEffect(() => {
+    if (depots.length > 0 && !hasInitialized.current) {
+      setSelectedDepot(depots[0].id.toString());
+      hasInitialized.current = true;
+    }
+  }, [depots]);
 
   const { data: zonesResponse } = useZones(
     {
@@ -77,13 +94,14 @@ const ManageAssignRoute: React.FC<ManageAssignRouteProps> = ({
   );
 
   const availableRoutes = useMemo(() => {
+    if (!selectedDepot) return [];
+
     const assignedIds = new Set(selectedRouteIds);
     const searchLower = availableSearch.trim().toLowerCase();
     return routes.filter(route => {
       if (assignedIds.has(route.id)) return false;
 
-      if (selectedDepot && route.depot_id !== Number(selectedDepot))
-        return false;
+      if (route.depot_id !== Number(selectedDepot)) return false;
       if (selectedZone && route.parent_id !== Number(selectedZone))
         return false;
 
@@ -171,7 +189,7 @@ const ManageAssignRoute: React.FC<ManageAssignRouteProps> = ({
       size="large"
     >
       <Box className="!p-4 select-none">
-        <div className='grid grid-cols-2 gap-3 pb-3'>
+        <div className="grid grid-cols-2 gap-3 pb-3">
           <Select
             value={selectedDepot || ''}
             onChange={e => {
@@ -219,7 +237,6 @@ const ManageAssignRoute: React.FC<ManageAssignRouteProps> = ({
                   Drag routes from the left panel to assign
                 </p>
                 <Box className="!mt-2 !flex !flex-col !gap-2">
-
                   <SearchInput
                     placeholder="Search Routes..."
                     value={availableSearch}
@@ -234,8 +251,9 @@ const ManageAssignRoute: React.FC<ManageAssignRouteProps> = ({
                     <div
                       {...provided.droppableProps}
                       ref={provided.innerRef}
-                      className={`!h-full !p-2 !overflow-y-auto ${snapshot.isDraggingOver ? '!bg-blue-50' : ''
-                        }`}
+                      className={`!h-full !p-2 !overflow-y-auto ${
+                        snapshot.isDraggingOver ? '!bg-blue-50' : ''
+                      }`}
                       style={{
                         transition: 'background-color 0.2s ease',
                       }}
@@ -299,8 +317,9 @@ const ManageAssignRoute: React.FC<ManageAssignRouteProps> = ({
                     <div
                       {...provided.droppableProps}
                       ref={provided.innerRef}
-                      className={`!h-full !p-2 !overflow-y-auto ${snapshot.isDraggingOver ? '!bg-green-50' : ''
-                        }`}
+                      className={`!h-full !p-2 !overflow-y-auto ${
+                        snapshot.isDraggingOver ? '!bg-green-50' : ''
+                      }`}
                       style={{
                         transition: 'background-color 0.2s ease',
                       }}

@@ -1773,10 +1773,18 @@ exports.customerController = {
                     filters.route_id = -1;
                 }
             }
+            const depotFilters = {
+                default_outlet_id: { not: null },
+            };
+            if (salesperson_id) {
+                depotFilters.user_depots_depot_id = {
+                    some: {
+                        user_id: parseInt(salesperson_id, 10),
+                    },
+                };
+            }
             const depots = await prisma_client_1.default.depots.findMany({
-                where: {
-                    default_outlet_id: { not: null },
-                },
+                where: depotFilters,
                 select: {
                     default_outlet_id: true,
                 },
@@ -1903,9 +1911,6 @@ exports.customerController = {
                 const defaultOutletWhere = {
                     id: { in: defaultOutletIds },
                 };
-                if (salesperson_id && routeIds.length === 0) {
-                    defaultOutletWhere.route_id = -1;
-                }
                 defaultOutlets = await prisma_client_1.default.customers.findMany({
                     where: defaultOutletWhere,
                     include: {
