@@ -18,7 +18,7 @@ router.post(
   authenticateToken,
   dynamicVisitUpload,
   auditCreate('visits'),
-  requirePermission([{ module: 'visit', action: 'create' }]),
+  // requirePermission([{ module: 'visit', action: 'create' }]),
   visitsController.createVisits
 );
 
@@ -27,7 +27,7 @@ router.post(
   authenticateToken,
   dynamicVisitUpload,
   auditCreate('visits'),
-  requirePermission([{ module: 'visit', action: 'create' }]),
+  // requirePermission([{ module: 'visit', action: 'create' }]),
   visitsController.bulkUpsertVisits
 );
 
@@ -50,7 +50,7 @@ router.put(
   authenticateToken,
   dynamicVisitUpload,
   auditUpdate('visits'),
-  requirePermission([{ module: 'visit', action: 'update' }]),
+  // requirePermission([{ module: 'visit', action: 'update' }]),
   visitsController.updateVisits
 );
 

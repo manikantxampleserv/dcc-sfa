@@ -1030,6 +1030,7 @@ export const vanInventoryController = {
                     let batchLot = await tx.batch_lots.findFirst({
                       where: {
                         batch_number: batchInput.batch_number,
+                        productsId: product.id,
                         is_active: 'Y',
                       },
                     });
@@ -1824,7 +1825,15 @@ export const vanInventoryController = {
 
   async getAllVanInventory(req: any, res: any) {
     try {
-      const { page, limit, search, status, loading_type, user_id, time_filter } = req.query;
+      const {
+        page,
+        limit,
+        search,
+        status,
+        loading_type,
+        user_id,
+        time_filter,
+      } = req.query;
       const pageNum = parseInt(page as string, 10) || 1;
       const limitNum = parseInt(limit as string, 10) || 10;
       const searchLower = search ? (search as string).toLowerCase() : '';
@@ -1833,7 +1842,9 @@ export const vanInventoryController = {
         ? (loading_type as string).toUpperCase()
         : '';
 
-      const documentDateFilter = getTimeFilter(time_filter as string | undefined);
+      const documentDateFilter = getTimeFilter(
+        time_filter as string | undefined
+      );
 
       const filters: any = {
         ...(search && {
