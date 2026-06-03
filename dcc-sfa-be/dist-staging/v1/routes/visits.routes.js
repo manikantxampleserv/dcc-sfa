@@ -6,11 +6,17 @@ const audit_middleware_1 = require("../../middlewares/audit.middleware");
 const dynamicUpload_middleware_1 = require("../../middlewares/dynamicUpload.middleware");
 const visits_controller_1 = require("../controllers/visits.controller");
 const router = (0, express_1.Router)();
-router.post('/visits', auth_middleware_1.authenticateToken, dynamicUpload_middleware_1.dynamicVisitUpload, (0, audit_middleware_1.auditCreate)('visits'), (0, auth_middleware_1.requirePermission)([{ module: 'visit', action: 'create' }]), visits_controller_1.visitsController.createVisits);
-router.post('/reports/visits', auth_middleware_1.authenticateToken, dynamicUpload_middleware_1.dynamicVisitUpload, (0, audit_middleware_1.auditCreate)('visits'), (0, auth_middleware_1.requirePermission)([{ module: 'visit', action: 'create' }]), visits_controller_1.visitsController.bulkUpsertVisits);
+router.post('/visits', auth_middleware_1.authenticateToken, dynamicUpload_middleware_1.dynamicVisitUpload, (0, audit_middleware_1.auditCreate)('visits'), 
+// requirePermission([{ module: 'visit', action: 'create' }]),
+visits_controller_1.visitsController.createVisits);
+router.post('/reports/visits', auth_middleware_1.authenticateToken, dynamicUpload_middleware_1.dynamicVisitUpload, (0, audit_middleware_1.auditCreate)('visits'), 
+// requirePermission([{ module: 'visit', action: 'create' }]),
+visits_controller_1.visitsController.bulkUpsertVisits);
 router.get('/reports/visits', auth_middleware_1.authenticateToken, (0, auth_middleware_1.requirePermission)([{ module: 'visit', action: 'read' }]), visits_controller_1.visitsController.getAllVisits);
 router.get('/reports/visits/:id', auth_middleware_1.authenticateToken, (0, auth_middleware_1.requirePermission)([{ module: 'visit', action: 'read' }]), visits_controller_1.visitsController.getVisitsById);
-router.put('/reports/visits/:id', auth_middleware_1.authenticateToken, dynamicUpload_middleware_1.dynamicVisitUpload, (0, audit_middleware_1.auditUpdate)('visits'), (0, auth_middleware_1.requirePermission)([{ module: 'visit', action: 'update' }]), visits_controller_1.visitsController.updateVisits);
+router.put('/reports/visits/:id', auth_middleware_1.authenticateToken, dynamicUpload_middleware_1.dynamicVisitUpload, (0, audit_middleware_1.auditUpdate)('visits'), 
+// requirePermission([{ module: 'visit', action: 'update' }]),
+visits_controller_1.visitsController.updateVisits);
 router.delete('/reports/visits/:id', auth_middleware_1.authenticateToken, (0, audit_middleware_1.auditDelete)('visits'), (0, auth_middleware_1.requirePermission)([{ module: 'visit', action: 'delete' }]), visits_controller_1.visitsController.deleteVisits);
 router.get('/reports/customer-visits', auth_middleware_1.authenticateToken, visits_controller_1.visitsController.getCustomerVisitsBySalesperson);
 router.get('/reports/cooler-visits', auth_middleware_1.authenticateToken, visits_controller_1.visitsController.getCoolerInspectionsForVisitedCustomers);

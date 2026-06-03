@@ -861,6 +861,27 @@ exports.visitsController = {
                                                             productsId: product.id,
                                                         },
                                                     });
+                                                    console.log('BATCH SEARCH', {
+                                                        productId: product.id,
+                                                        found: batchLot,
+                                                    });
+                                                    const batchNumber = item.batch_number;
+                                                    const batches = await tx.batch_lots.findMany({
+                                                        where: {
+                                                            batch_number: batchNumber,
+                                                        },
+                                                        select: {
+                                                            id: true,
+                                                            batch_number: true,
+                                                            productsId: true,
+                                                        },
+                                                    });
+                                                    console.log('BATCH DEBUG', {
+                                                        productId: product.id,
+                                                        productName: product.name,
+                                                        batchNumber,
+                                                        batches,
+                                                    });
                                                     if (!batchLot) {
                                                         throw new Error(`Batch "${item.batch_number}" not found for product "${product.name}"`);
                                                     }

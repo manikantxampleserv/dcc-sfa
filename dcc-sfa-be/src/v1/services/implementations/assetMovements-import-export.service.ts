@@ -7,8 +7,8 @@ export class AssetMovementsImportExportService extends ImportExportService<any> 
   protected displayName = 'Asset Movements';
   protected uniqueFields = ['asset_id', 'movement_date', 'performed_by'];
   protected searchFields = [
-    'from_location',
-    'to_location',
+    'from_direction',
+    'to_direction',
     'movement_type',
     'notes',
   ];
@@ -59,26 +59,78 @@ export class AssetMovementsImportExportService extends ImportExportService<any> 
       description: 'ID of the asset being moved (required)',
     },
     {
-      key: 'from_location',
-      header: 'From Location',
-      width: 30,
+      key: 'from_direction',
+      header: 'From Direction',
+      width: 15,
       type: 'string',
-      validation: value =>
-        !value ||
-        value.length <= 255 ||
-        'From location must be less than 255 characters',
-      description: 'Source location (optional, max 255 chars)',
+      validation: value => {
+        if (!value) return true;
+        const valid = ['depot', 'outlet'];
+        return valid.includes(value.toLowerCase()) || 'Must be depot or outlet';
+      },
+      transform: value => (value ? value.toLowerCase() : null),
+      description: 'Source type: depot or outlet',
     },
     {
-      key: 'to_location',
-      header: 'To Location',
-      width: 30,
+      key: 'from_depot_id',
+      header: 'From Depot ID',
+      width: 15,
+      type: 'number',
+      validation: value => {
+        if (!value) return true;
+        return !isNaN(parseInt(value)) || 'Must be a valid number';
+      },
+      transform: value => (value ? parseInt(value) : null),
+      description: 'ID if source is a depot',
+    },
+    {
+      key: 'from_customer_id',
+      header: 'From Customer ID',
+      width: 15,
+      type: 'number',
+      validation: value => {
+        if (!value) return true;
+        return !isNaN(parseInt(value)) || 'Must be a valid number';
+      },
+      transform: value => (value ? parseInt(value) : null),
+      description: 'ID if source is an outlet',
+    },
+    {
+      key: 'to_direction',
+      header: 'To Direction',
+      width: 15,
       type: 'string',
-      validation: value =>
-        !value ||
-        value.length <= 255 ||
-        'To location must be less than 255 characters',
-      description: 'Destination location (optional, max 255 chars)',
+      validation: value => {
+        if (!value) return true;
+        const valid = ['depot', 'outlet'];
+        return valid.includes(value.toLowerCase()) || 'Must be depot or outlet';
+      },
+      transform: value => (value ? value.toLowerCase() : null),
+      description: 'Destination type: depot or outlet',
+    },
+    {
+      key: 'to_depot_id',
+      header: 'To Depot ID',
+      width: 15,
+      type: 'number',
+      validation: value => {
+        if (!value) return true;
+        return !isNaN(parseInt(value)) || 'Must be a valid number';
+      },
+      transform: value => (value ? parseInt(value) : null),
+      description: 'ID if destination is a depot',
+    },
+    {
+      key: 'to_customer_id',
+      header: 'To Customer ID',
+      width: 15,
+      type: 'number',
+      validation: value => {
+        if (!value) return true;
+        return !isNaN(parseInt(value)) || 'Must be a valid number';
+      },
+      transform: value => (value ? parseInt(value) : null),
+      description: 'ID if destination is an outlet',
     },
     {
       key: 'movement_type',
@@ -163,7 +215,6 @@ export class AssetMovementsImportExportService extends ImportExportService<any> 
   ];
 
   protected async getSampleData(): Promise<any[]> {
-    // Fetch actual IDs from database to ensure validity
     const assets = await prisma.asset_master.findMany({
       take: 3,
       select: { id: true, serial_number: true },
@@ -172,6 +223,16 @@ export class AssetMovementsImportExportService extends ImportExportService<any> 
     const users = await prisma.users.findMany({
       take: 2,
       select: { id: true, name: true },
+      orderBy: { id: 'asc' },
+    });
+    const depots = await prisma.depots.findMany({
+      take: 2,
+      select: { id: true },
+      orderBy: { id: 'asc' },
+    });
+    const customers = await prisma.customers.findMany({
+      take: 1,
+      select: { id: true },
       orderBy: { id: 'asc' },
     });
 
@@ -184,11 +245,17 @@ export class AssetMovementsImportExportService extends ImportExportService<any> 
     const userId1 = userIds[0] || 999;
     const userId2 = userIds[1] || 999;
 
+    const depotId1 = depots[0]?.id || 999;
+    const depotId2 = depots[1]?.id || 999;
+    const customerId1 = customers[0]?.id || 999;
+
     return [
       {
         asset_id: assetId1,
-        from_location: 'Main Warehouse - Section A',
-        to_location: 'Store #001 - Downtown',
+        from_direction: 'depot',
+        from_depot_id: depotId1,
+        to_direction: 'outlet',
+        to_customer_id: customerId1,
         movement_type: 'transfer',
         movement_date: '2024-01-15',
         performed_by: userId1,
@@ -197,8 +264,10 @@ export class AssetMovementsImportExportService extends ImportExportService<any> 
       },
       {
         asset_id: assetId2,
-        from_location: 'Store #002 - Mall',
-        to_location: 'Maintenance Workshop',
+        from_direction: 'outlet',
+        from_customer_id: customerId1,
+        to_direction: 'depot',
+        to_depot_id: depotId2,
         movement_type: 'maintenance',
         movement_date: '2024-01-16',
         performed_by: userId2,
@@ -207,8 +276,10 @@ export class AssetMovementsImportExportService extends ImportExportService<any> 
       },
       {
         asset_id: assetId3,
-        from_location: 'Maintenance Workshop',
-        to_location: 'Store #001 - Downtown',
+        from_direction: 'depot',
+        from_depot_id: depotId2,
+        to_direction: 'outlet',
+        to_customer_id: customerId1,
         movement_type: 'return',
         movement_date: '2024-01-17',
         performed_by: userId1,
@@ -232,8 +303,12 @@ export class AssetMovementsImportExportService extends ImportExportService<any> 
       asset_serial:
         movement.asset_movement_assets?.[0]?.asset_movement_assets_asset
           ?.serial_number || '',
-      from_location: movement.from_direction || '',
-      to_location: movement.to_direction || '',
+      from_direction: movement.from_direction || '',
+      from_depot_id: movement.from_depot_id || '',
+      from_customer_id: movement.from_customer_id || '',
+      to_direction: movement.to_direction || '',
+      to_depot_id: movement.to_depot_id || '',
+      to_customer_id: movement.to_customer_id || '',
       movement_type: movement.movement_type || '',
       movement_date: movement.movement_date
         ? new Date(movement.movement_date).toISOString().split('T')[0]
@@ -265,7 +340,11 @@ export class AssetMovementsImportExportService extends ImportExportService<any> 
 
       const existingMovement = await model.findFirst({
         where: {
-          asset_id: data.asset_id,
+          asset_movement_assets: {
+            some: {
+              asset_id: data.asset_id,
+            },
+          },
           performed_by: data.performed_by,
           movement_date: {
             gte: startOfDay,
@@ -316,6 +395,33 @@ export class AssetMovementsImportExportService extends ImportExportService<any> 
       }
     }
 
+    if (data.from_depot_id) {
+      const depot = await prismaClient.depots.findUnique({
+        where: { id: data.from_depot_id },
+      });
+      if (!depot) return `From Depot ID ${data.from_depot_id} does not exist`;
+    }
+    if (data.to_depot_id) {
+      const depot = await prismaClient.depots.findUnique({
+        where: { id: data.to_depot_id },
+      });
+      if (!depot) return `To Depot ID ${data.to_depot_id} does not exist`;
+    }
+    if (data.from_customer_id) {
+      const customer = await prismaClient.customers.findUnique({
+        where: { id: data.from_customer_id },
+      });
+      if (!customer)
+        return `From Customer ID ${data.from_customer_id} does not exist`;
+    }
+    if (data.to_customer_id) {
+      const customer = await prismaClient.customers.findUnique({
+        where: { id: data.to_customer_id },
+      });
+      if (!customer)
+        return `To Customer ID ${data.to_customer_id} does not exist`;
+    }
+
     return null;
   }
 
@@ -324,13 +430,28 @@ export class AssetMovementsImportExportService extends ImportExportService<any> 
     userId: number
   ): Promise<any> {
     return {
-      asset_id: data.asset_id,
-      from_location: data.from_location || null,
-      to_location: data.to_location || null,
+      asset_movement_assets: {
+        create: {
+          asset_id: data.asset_id,
+          createdby: userId,
+          createdate: new Date(),
+          is_active: data.is_active || 'Y',
+        },
+      },
+      from_direction: data.from_direction || null,
+      from_depot_id: data.from_depot_id || null,
+      from_customer_id: data.from_customer_id || null,
+      to_direction: data.to_direction || null,
+      to_depot_id: data.to_depot_id || null,
+      to_customer_id: data.to_customer_id || null,
       movement_type: data.movement_type || 'transfer',
       movement_date: data.movement_date,
       performed_by: data.performed_by,
       notes: data.notes || null,
+      status: 'A',
+      approval_status: 'A',
+      approved_by: userId,
+      approved_at: new Date(),
       is_active: data.is_active || 'Y',
       createdby: userId,
       createdate: new Date(),
@@ -351,7 +472,11 @@ export class AssetMovementsImportExportService extends ImportExportService<any> 
 
     const existing = await model.findFirst({
       where: {
-        asset_id: data.asset_id,
+        asset_movement_assets: {
+          some: {
+            asset_id: data.asset_id,
+          },
+        },
         performed_by: data.performed_by,
         movement_date: {
           gte: startOfDay,
@@ -363,15 +488,30 @@ export class AssetMovementsImportExportService extends ImportExportService<any> 
     if (!existing) return null;
 
     const updateData = {
-      asset_id: data.asset_id,
-      from_location:
-        data.from_location !== undefined
-          ? data.from_location
-          : existing.from_location,
-      to_location:
-        data.to_location !== undefined
-          ? data.to_location
-          : existing.to_location,
+      from_direction:
+        data.from_direction !== undefined
+          ? data.from_direction
+          : existing.from_direction,
+      from_depot_id:
+        data.from_depot_id !== undefined
+          ? data.from_depot_id
+          : existing.from_depot_id,
+      from_customer_id:
+        data.from_customer_id !== undefined
+          ? data.from_customer_id
+          : existing.from_customer_id,
+      to_direction:
+        data.to_direction !== undefined
+          ? data.to_direction
+          : existing.to_direction,
+      to_depot_id:
+        data.to_depot_id !== undefined
+          ? data.to_depot_id
+          : existing.to_depot_id,
+      to_customer_id:
+        data.to_customer_id !== undefined
+          ? data.to_customer_id
+          : existing.to_customer_id,
       movement_type: data.movement_type || existing.movement_type,
       movement_date: data.movement_date || existing.movement_date,
       performed_by: data.performed_by,

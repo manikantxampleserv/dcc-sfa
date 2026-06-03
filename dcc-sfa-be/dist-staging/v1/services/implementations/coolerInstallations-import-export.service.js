@@ -338,13 +338,22 @@ class CoolerInstallationsImportExportService extends import_export_service_1.Imp
             select: { id: true, name: true },
             orderBy: { id: 'asc' },
         });
+        const assets = await prisma_client_1.default.asset_master.findMany({
+            take: 3,
+            select: { id: true },
+            orderBy: { id: 'asc' },
+        });
         const customerIds = customers.map(c => c.id);
         const userIds = users.map(u => u.id);
+        const assetIds = assets.map(a => a.id);
         const customerId1 = customerIds[0] || '';
         const customerId2 = customerIds[1] || '';
         const customerId3 = customerIds[2] || '';
         const userId1 = userIds[0] || '';
         const userId2 = userIds[1] || '';
+        const assetId1 = assetIds[0] || '';
+        const assetId2 = assetIds[1] || '';
+        const assetId3 = assetIds[2] || '';
         return [
             {
                 customer_id: customerId1,
@@ -364,7 +373,7 @@ class CoolerInstallationsImportExportService extends import_export_service_1.Imp
                 technician_id: userId1,
                 last_scanned_date: '2024-10-15',
                 is_active: 'Y',
-                asset_master_id: '',
+                asset_master_id: assetId1,
             },
             {
                 customer_id: customerId2,
@@ -384,7 +393,7 @@ class CoolerInstallationsImportExportService extends import_export_service_1.Imp
                 technician_id: userId2,
                 last_scanned_date: '2024-10-20',
                 is_active: 'Y',
-                asset_master_id: '',
+                asset_master_id: assetId2,
             },
             {
                 customer_id: customerId3,
@@ -404,7 +413,7 @@ class CoolerInstallationsImportExportService extends import_export_service_1.Imp
                 technician_id: userId1,
                 last_scanned_date: '2024-10-10',
                 is_active: 'Y',
-                asset_master_id: '',
+                asset_master_id: assetId3,
             },
         ];
     }
@@ -541,6 +550,7 @@ class CoolerInstallationsImportExportService extends import_export_service_1.Imp
             last_service_date: data.last_service_date || null,
             next_service_due: data.next_service_due || null,
             status: data.status || 'Ready to Install',
+            approval_status: 'A',
             temperature: data.temperature || null,
             energy_rating: data.energy_rating || null,
             warranty_expiry: data.warranty_expiry || null,

@@ -301,15 +301,24 @@ export class CoolerInstallationsImportExportService extends ImportExportService<
       select: { id: true, name: true },
       orderBy: { id: 'asc' },
     });
+    const assets = await prisma.asset_master.findMany({
+      take: 3,
+      select: { id: true },
+      orderBy: { id: 'asc' },
+    });
 
     const customerIds = customers.map(c => c.id);
     const userIds = users.map(u => u.id);
+    const assetIds = assets.map(a => a.id);
 
     const customerId1 = customerIds[0] || '';
     const customerId2 = customerIds[1] || '';
     const customerId3 = customerIds[2] || '';
     const userId1 = userIds[0] || '';
     const userId2 = userIds[1] || '';
+    const assetId1 = assetIds[0] || '';
+    const assetId2 = assetIds[1] || '';
+    const assetId3 = assetIds[2] || '';
 
     return [
       {
@@ -330,7 +339,7 @@ export class CoolerInstallationsImportExportService extends ImportExportService<
         technician_id: userId1,
         last_scanned_date: '2024-10-15',
         is_active: 'Y',
-        asset_master_id: '',
+        asset_master_id: assetId1,
       },
       {
         customer_id: customerId2,
@@ -350,7 +359,7 @@ export class CoolerInstallationsImportExportService extends ImportExportService<
         technician_id: userId2,
         last_scanned_date: '2024-10-20',
         is_active: 'Y',
-        asset_master_id: '',
+        asset_master_id: assetId2,
       },
       {
         customer_id: customerId3,
@@ -370,7 +379,7 @@ export class CoolerInstallationsImportExportService extends ImportExportService<
         technician_id: userId1,
         last_scanned_date: '2024-10-10',
         is_active: 'Y',
-        asset_master_id: '',
+        asset_master_id: assetId3,
       },
     ];
   }
@@ -523,6 +532,7 @@ export class CoolerInstallationsImportExportService extends ImportExportService<
       last_service_date: data.last_service_date || null,
       next_service_due: data.next_service_due || null,
       status: data.status || 'Ready to Install',
+      approval_status: 'A',
       temperature: data.temperature || null,
       energy_rating: data.energy_rating || null,
       warranty_expiry: data.warranty_expiry || null,

@@ -818,6 +818,7 @@ exports.vanInventoryController = {
                                     let batchLot = await tx.batch_lots.findFirst({
                                         where: {
                                             batch_number: batchInput.batch_number,
+                                            productsId: product.id,
                                             is_active: 'Y',
                                         },
                                     });
@@ -1473,7 +1474,7 @@ exports.vanInventoryController = {
     },
     async getAllVanInventory(req, res) {
         try {
-            const { page, limit, search, status, loading_type, user_id, time_filter } = req.query;
+            const { page, limit, search, status, loading_type, user_id, time_filter, } = req.query;
             const pageNum = parseInt(page, 10) || 1;
             const limitNum = parseInt(limit, 10) || 10;
             const searchLower = search ? search.toLowerCase() : '';

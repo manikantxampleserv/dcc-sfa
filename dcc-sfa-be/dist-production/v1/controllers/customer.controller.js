@@ -713,26 +713,11 @@ exports.customerController = {
                                 if (!requestWithApprovals?.sfa_d_requests_approvals_request ||
                                     requestWithApprovals.sfa_d_requests_approvals_request
                                         .length === 0) {
-                                    const createdCustomer = await prisma_client_1.default.customers.create({
-                                        data: customerCreationData,
+                                    const createdCustomer = await prisma_client_1.default.customers.findUnique({
+                                        where: { code: uniqueCode },
                                     });
-                                    await prisma_client_1.default.sfa_d_requests.update({
-                                        where: { id: customerCreationRequest.id },
-                                        data: {
-                                            status: 'A',
-                                            updatedate: new Date(),
-                                            updatedby: req.user?.id || 1,
-                                        },
-                                    });
-                                    if (customerImageData.length > 0) {
-                                        for (const imageData of customerImageData) {
-                                            await prisma_client_1.default.customer_image.create({
-                                                data: {
-                                                    ...imageData,
-                                                    customer_id: createdCustomer.id,
-                                                },
-                                            });
-                                        }
+                                    if (!createdCustomer) {
+                                        throw new Error('Customer was auto-approved but failed to create.');
                                     }
                                     customerId = createdCustomer.id;
                                     isUpdate = false;
@@ -759,10 +744,9 @@ exports.customerController = {
                                 }
                             }
                             catch (requestError) {
-                                console.error('Error creating customer creation request:', requestError);
-                                results.errors.push({
+                                results.skipped.push({
                                     customer: customerData,
-                                    reason: `Failed to create customer creation request: ${requestError.message}`,
+                                    reason: 'Customer skipped because a duplicate record was found.',
                                 });
                                 continue;
                             }
@@ -908,7 +892,6 @@ exports.customerController = {
                             }
                         }
                         if (customerId !== undefined) {
-                            // Handle images for existing customers
                             if (imageMapping[customerIndex] &&
                                 Array.isArray(imageMapping[customerIndex])) {
                                 const fileIndices = imageMapping[customerIndex];
@@ -917,7 +900,7 @@ exports.customerController = {
                                         uploadedImageUrls[fileIndex]) {
                                         await prisma_client_1.default.customer_image.create({
                                             data: {
-                                                customer_id: customerId, // ✅ NOW customerId IS ALWAYS DEFINED
+                                                customer_id: customerId,
                                                 image_url: uploadedImageUrls[fileIndex],
                                                 is_active: 'Y',
                                                 createdby: req.user?.id || 1,
@@ -982,7 +965,6 @@ exports.customerController = {
                         });
                     }
                 }
-                // ✅ UPDATED RESPONSE WITH NEW FIELDS
                 const summary = {
                     total: customersData.length,
                     created: results.created.length,
