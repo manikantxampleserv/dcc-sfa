@@ -47,7 +47,7 @@ const serializeCoolerInstallation = (cooler, currentApprover = null) => {
                 name: technician.name,
                 email: technician.email,
                 profile_image: technician.profile_image,
-                employee_id: technician.employee_id
+                employee_id: technician.employee_id,
             }
             : null,
         asset_master: asset_master
@@ -255,7 +255,7 @@ exports.coolerInstallationsController = {
     },
     async getCoolerInstallations(req, res) {
         try {
-            const { page, limit, search, isActive, status, customer_id, approval_status, technician_id, user_id, filter_status } = req.query;
+            const { page, limit, search, isActive, status, customer_id, approval_status, technician_id, user_id, filter_status, } = req.query;
             const page_num = page ? parseInt(page, 10) : 1;
             const limit_num = limit ? parseInt(limit, 10) : 10;
             const searchLower = search ? search.toLowerCase() : '';
@@ -277,9 +277,9 @@ exports.coolerInstallationsController = {
                 }),
                 ...(status
                     ? { status: status }
-                    : (filter_status === 'Removed' && {
+                    : filter_status === 'Removed' && {
                         status: { not: 'Removed' },
-                    })),
+                    }),
                 ...(approval_status && {
                     approval_status: approval_status,
                 }),

@@ -119,7 +119,9 @@ class CoolerInstallationsImportExportService extends import_export_service_1.Imp
             width: 20,
             type: 'string',
             validation: value => {
-                if (value && value.trim() !== '') {
+                if (!value)
+                    return true;
+                if (value.trim() !== '') {
                     if (value.length < 2)
                         return 'Cooler code must be at least 2 characters';
                     if (value.length > 50)
@@ -127,6 +129,7 @@ class CoolerInstallationsImportExportService extends import_export_service_1.Imp
                 }
                 return true;
             },
+            transform: value => (value ? value.toString().trim() : null),
             description: 'Unique cooler code (optional, will be auto-generated if not provided)',
         },
         {
@@ -522,21 +525,22 @@ class CoolerInstallationsImportExportService extends import_export_service_1.Imp
     }
     async prepareDataForImport(data, userId) {
         let coolerCode = data.code && data.code.trim() !== '' ? data.code : null;
+        if (!coolerCode && data.asset_master_id) {
+            const assetMaster = await prisma_client_1.default.asset_master.findUnique({
+                where: { id: parseInt(data.asset_master_id) },
+            });
+            if (assetMaster && assetMaster.code) {
+                coolerCode = assetMaster.code;
+            }
+        }
         if (!coolerCode) {
             const prefix = 'COOL';
-            const count = await prisma_client_1.default.coolers.count();
             const timestamp = Date.now().toString().slice(-6);
-            coolerCode = `${prefix}-${String(count + 1).padStart(4, '0')}-${timestamp}`;
-            let attempts = 0;
-            while (attempts < 10) {
-                const existing = await prisma_client_1.default.coolers.findUnique({
-                    where: { code: coolerCode },
-                });
-                if (!existing)
-                    break;
-                coolerCode = `${prefix}-${String(count + 1 + attempts).padStart(4, '0')}-${timestamp}`;
-                attempts++;
-            }
+            const randomStr = Math.random()
+                .toString(36)
+                .substring(2, 8)
+                .toUpperCase();
+            coolerCode = `${prefix}-${timestamp}-${randomStr}`;
         }
         return {
             customer_id: data.customer_id,

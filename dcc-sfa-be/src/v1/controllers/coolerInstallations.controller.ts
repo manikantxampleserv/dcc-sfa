@@ -123,28 +123,28 @@ const serializeCoolerInstallation = (
       : null,
     technician: technician
       ? {
-        id: technician.id,
-        name: technician.name,
-        email: technician.email,
-        profile_image: technician.profile_image,
-        employee_id: technician.employee_id
-      }
+          id: technician.id,
+          name: technician.name,
+          email: technician.email,
+          profile_image: technician.profile_image,
+          employee_id: technician.employee_id,
+        }
       : null,
     asset_master: asset_master
       ? {
-        id: asset_master.id,
-        name: asset_master?.name,
-        serial_number: asset_master.serial_number,
-        current_status: asset_master.current_status,
-        current_location: asset_master.current_location,
-        asset_type: asset_type
-          ? { id: asset_type.id, name: asset_type.name }
-          : null,
-        asset_sub_type: asset_sub_type
-          ? { id: asset_sub_type.id, name: asset_sub_type.name }
-          : null,
-        brand: brand ? { id: brand.id, name: brand.name } : null,
-      }
+          id: asset_master.id,
+          name: asset_master?.name,
+          serial_number: asset_master.serial_number,
+          current_status: asset_master.current_status,
+          current_location: asset_master.current_location,
+          asset_type: asset_type
+            ? { id: asset_type.id, name: asset_type.name }
+            : null,
+          asset_sub_type: asset_sub_type
+            ? { id: asset_sub_type.id, name: asset_sub_type.name }
+            : null,
+          brand: brand ? { id: brand.id, name: brand.name } : null,
+        }
       : null,
   };
 };
@@ -209,11 +209,8 @@ export const coolerInstallationsController = {
       const cooler = await prisma.coolers.create({
         data: {
           ...data,
-
           code: assetMasterData.code,
-
           approval_status: 'P',
-
           createdby: data.createdby ? Number(data.createdby) : userId,
 
           log_inst: data.log_inst || 1,
@@ -378,7 +375,7 @@ export const coolerInstallationsController = {
         approval_status,
         technician_id,
         user_id,
-        filter_status
+        filter_status,
       } = req.query;
 
       const page_num = page ? parseInt(page as string, 10) : 1;
@@ -404,9 +401,9 @@ export const coolerInstallationsController = {
 
         ...(status
           ? { status: status as string }
-          : (filter_status === 'Removed' && {
+          : filter_status === 'Removed' && {
               status: { not: 'Removed' },
-            })),
+            }),
 
         ...(approval_status && {
           approval_status: approval_status as string,
@@ -419,11 +416,11 @@ export const coolerInstallationsController = {
         ...(inspectorFilter !== undefined &&
           inspectorFilter !== null &&
           inspectorFilter !== '' && {
-          technician_id:
-            inspectorFilter === 'null'
-              ? null
-              : parseInt(inspectorFilter as string, 10),
-        }),
+            technician_id:
+              inspectorFilter === 'null'
+                ? null
+                : parseInt(inspectorFilter as string, 10),
+          }),
       };
       const { data, pagination } = await paginate({
         model: prisma.coolers,
@@ -689,11 +686,11 @@ export const coolerInstallationsController = {
           const approver = firstPendingStep.sfa_d_requests_approvals_approver;
           currentApproverName = approver
             ? JSON.stringify({
-              name: approver.name,
-              email: approver.email || '',
-              profile_image: approver.profile_image || null,
-              employee_id: approver.employee_id || '',
-            })
+                name: approver.name,
+                email: approver.email || '',
+                profile_image: approver.profile_image || null,
+                employee_id: approver.employee_id || '',
+              })
             : null;
         }
       }
