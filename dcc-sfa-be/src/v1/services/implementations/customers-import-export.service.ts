@@ -487,19 +487,12 @@ export class CustomersImportExportService extends ImportExportService<any> {
   }
 
   protected async checkDuplicate(data: any, tx?: any): Promise<string | null> {
+    if (!data.code) return null;
+
     const model = tx ? tx.customers : prisma.customers;
 
-    // We only need to find IF it exists to trigger the base class's duplicate handling
     const existing = await model.findFirst({
-      where: {
-        OR: [
-          ...(data.code ? [{ code: data.code }] : []),
-          {
-            name: data.name,
-            city: data.city || undefined,
-          },
-        ],
-      },
+      where: { code: data.code },
     });
 
     if (existing) {
@@ -644,22 +637,15 @@ export class CustomersImportExportService extends ImportExportService<any> {
   ): Promise<any> {
     const model = tx ? tx.customers : prisma.customers;
 
-    // Use exactly the same logic as checkDuplicate to find the record
     const existing = await model.findFirst({
-      where: {
-        OR: [
-          ...(data.code ? [{ code: data.code }] : []),
-          {
-            name: data.name,
-            city: data.city || undefined,
-          },
-        ],
-      },
-      select: { id: true, code: true, name: true, short_name: true }, // Keep it light
+      where: { code: data.code },
+      select: { id: true, code: true, name: true, short_name: true },
     });
 
     if (!existing) {
-      console.warn(`[Import] updateExisting: Record not found for ${data.code || data.name}`);
+      console.warn(
+        `[Import] updateExisting: Record not found for ${data.code || data.name}`
+      );
       return null;
     }
 

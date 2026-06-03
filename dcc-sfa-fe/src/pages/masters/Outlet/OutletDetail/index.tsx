@@ -10,7 +10,7 @@ import {
   Schedule,
   Star,
   Verified,
-  Warning
+  Warning,
 } from '@mui/icons-material';
 import {
   Alert,
@@ -743,7 +743,9 @@ const OutletDetail: React.FC = () => {
                   {customer.name}
                 </Typography>
                 <Chip
-                  icon={customer.is_active === 'Y' ? <CheckCircle /> : <Cancel />}
+                  icon={
+                    customer.is_active === 'Y' ? <CheckCircle /> : <Cancel />
+                  }
                   label={customer.is_active === 'Y' ? 'Active' : 'Inactive'}
                   size="small"
                   color={customer.is_active === 'Y' ? 'success' : 'error'}
@@ -822,7 +824,11 @@ const OutletDetail: React.FC = () => {
                       Phone Number
                     </Typography>
                     <Typography variant="body1" className="!font-medium">
-                      {customer.phone_number || 'N/A'}
+                      {customer.phone_number || (
+                        <span className="text-xs text-gray-400 italic">
+                          No Phone Number
+                        </span>
+                      )}
                     </Typography>
                   </div>
                 </div>
@@ -850,16 +856,16 @@ const OutletDetail: React.FC = () => {
                     {(customer.customer_city ||
                       customer.customer_district ||
                       customer.customer_region) && (
-                        <Typography variant="body2" className="!text-gray-600">
-                          {[
-                            customer.customer_city?.name,
-                            customer.customer_district?.name,
-                            customer.customer_region?.name,
-                          ]
-                            .filter(Boolean)
-                            .join(', ')}
-                        </Typography>
-                      )}
+                      <Typography variant="body2" className="!text-gray-600">
+                        {[
+                          customer.customer_city?.name,
+                          customer.customer_district?.name,
+                          customer.customer_region?.name,
+                        ]
+                          .filter(Boolean)
+                          .join(', ')}
+                      </Typography>
+                    )}
                     {customer.zipcode && (
                       <Typography variant="body2" className="!text-gray-600">
                         Zip Code: {customer.zipcode}
@@ -920,9 +926,13 @@ const OutletDetail: React.FC = () => {
                       Last Visit Date
                     </Typography>
                     <Typography variant="body1" className="!font-medium">
-                      {customer.last_visit_date
-                        ? formatDate(customer.last_visit_date)
-                        : 'No visits yet'}
+                      {customer.last_visit_date ? (
+                        formatDate(customer.last_visit_date)
+                      ) : (
+                        <span className="text-xs text-gray-400 italic">
+                          No visits yet
+                        </span>
+                      )}
                     </Typography>
                   </div>
                 </div>
@@ -943,7 +953,12 @@ const OutletDetail: React.FC = () => {
             </div>
             {customer.code && (
               <div className="w-full h-full flex-shrink-0 flex flex-col">
-                <Barcode value={customer.code} label="Customer Code" showText={false} className='!flex-1 !h-full' />
+                <Barcode
+                  value={customer.code}
+                  label="Customer Code"
+                  showText={false}
+                  className="!flex-1 !h-full"
+                />
               </div>
             )}
           </div>
@@ -989,7 +1004,9 @@ const OutletDetail: React.FC = () => {
                   {customer.latitude}
                 </p>
                 <p>
-                  <span className="font-semibold text-gray-700">Longitude:</span>{' '}
+                  <span className="font-semibold text-gray-700">
+                    Longitude:
+                  </span>{' '}
                   {customer.longitude}
                 </p>
               </div>

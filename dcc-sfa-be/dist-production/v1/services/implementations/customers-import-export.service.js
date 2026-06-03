@@ -514,18 +514,11 @@ class CustomersImportExportService extends import_export_service_1.ImportExportS
         }));
     }
     async checkDuplicate(data, tx) {
+        if (!data.code)
+            return null;
         const model = tx ? tx.customers : prisma_client_1.default.customers;
-        // We only need to find IF it exists to trigger the base class's duplicate handling
         const existing = await model.findFirst({
-            where: {
-                OR: [
-                    ...(data.code ? [{ code: data.code }] : []),
-                    {
-                        name: data.name,
-                        city: data.city || undefined,
-                    },
-                ],
-            },
+            where: { code: data.code },
         });
         if (existing) {
             return `Duplicate record found (Code: ${existing.code || 'N/A'}, Name: ${existing.name})`;
@@ -616,18 +609,9 @@ class CustomersImportExportService extends import_export_service_1.ImportExportS
     }
     async updateExisting(data, userId, tx) {
         const model = tx ? tx.customers : prisma_client_1.default.customers;
-        // Use exactly the same logic as checkDuplicate to find the record
         const existing = await model.findFirst({
-            where: {
-                OR: [
-                    ...(data.code ? [{ code: data.code }] : []),
-                    {
-                        name: data.name,
-                        city: data.city || undefined,
-                    },
-                ],
-            },
-            select: { id: true, code: true, name: true, short_name: true }, // Keep it light
+            where: { code: data.code },
+            select: { id: true, code: true, name: true, short_name: true },
         });
         if (!existing) {
             console.warn(`[Import] updateExisting: Record not found for ${data.code || data.name}`);

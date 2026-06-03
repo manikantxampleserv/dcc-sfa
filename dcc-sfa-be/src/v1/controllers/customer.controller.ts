@@ -2126,6 +2126,8 @@ export const customerController = {
       if (defaultOutletIds.length > 0) {
         const defaultOutletWhere: any = {
           id: { in: defaultOutletIds },
+          ...(search && { OR: filters.OR }),
+          ...(isActive && { is_active: isActive }),
         };
 
         defaultOutlets = await prisma.customers.findMany({
