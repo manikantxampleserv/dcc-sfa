@@ -105,9 +105,11 @@ const customerCategoryGrading_routes_1 = __importDefault(require("../v1/controll
 const assetMaterBrands_routes_1 = __importDefault(require("../v1/routes/assetMaterBrands.routes"));
 const barcode_routes_1 = __importDefault(require("../v1/routes/barcode.routes"));
 const orgChart_routes_1 = __importDefault(require("../v1/routes/orgChart.routes"));
+const ai_routes_1 = __importDefault(require("../v1/routes/ai.routes"));
 const routes = (0, express_1.Router)();
 routes.use('/v1/org-chart', orgChart_routes_1.default);
 routes.use('/v1', barcode_routes_1.default);
+routes.use('/v1', ai_routes_1.default);
 routes.use('/v1', auth_routes_1.default);
 routes.use('/v1', user_routes_1.default);
 routes.use('/v1', roles_routes_1.default);
