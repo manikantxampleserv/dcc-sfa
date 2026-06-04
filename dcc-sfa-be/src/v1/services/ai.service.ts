@@ -179,8 +179,15 @@ export class AIService {
   }
 
   async query(
-    question: string
-  ): Promise<{ success: boolean; answer: string; sql?: string; data?: any }> {
+    question: string,
+    history?: { sender: 'user' | 'assistant'; text: string; sql?: string }[]
+  ): Promise<{
+    success: boolean;
+    answer: string;
+    sql?: string;
+    data?: any;
+    chart?: any;
+  }> {
     if (!this.genAI && process.env.GEMINI_API_KEY) {
       this.genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     }
@@ -193,6 +200,19 @@ export class AIService {
       };
     }
 
+    let historyContext = '';
+    if (history && history.length > 0) {
+      historyContext =
+        'Conversation history so far:\n' +
+        history
+          .map(
+            h =>
+              `${h.sender === 'user' ? 'User' : 'AI Assistant'}: ${h.text}${h.sql ? `\n[Executed SQL: ${h.sql}]` : ''}`
+          )
+          .join('\n\n') +
+        '\n\n';
+    }
+
     try {
       const model = this.genAI.getGenerativeModel({
         model: 'gemini-flash-lite-latest',
@@ -202,7 +222,7 @@ export class AIService {
         systemInstruction: getSystemInstruction(),
       });
 
-      const response = await model.generateContent(question);
+      const response = await model.generateContent(historyContext + question);
       const text = response.response.text();
       const parsed = JSON.parse(text);
 
@@ -258,24 +278,36 @@ export class AIService {
 
         const synthesisModel = this.genAI.getGenerativeModel({
           model: 'gemini-flash-lite-latest',
+          generationConfig: {
+            responseMimeType: 'application/json',
+          },
           systemInstruction:
-            "You are the DCC-SFA AI Assistant. You will be given a user's original question, the SQL query that was run, and the database result rows. Formulate a polite, clear, and concise natural language answer that directly answers the user's question using the provided data. If the results represent a list or table of data, format them as a markdown table.",
+            "You are the DCC-SFA AI Assistant. You will be given a user's original question, the SQL query that was run, and the database result rows. Formulate a polite, clear, and concise natural language answer. Return a JSON object with: 'answer' (your natural language response text) and 'chart' (a chart configuration object if the user explicitly asked for a chart/graph/visualization, otherwise null). If the user explicitly asks for a chart/graph and does NOT ask for a table/list, do NOT include a markdown table in your 'answer' text (only provide a brief text explanation). If they ask for both, or if they did not ask for a chart, include the markdown table in your 'answer' text. The 'chart' object must have: 'type' ('bar'|'line'|'pie'|'doughnut'), 'label' (name of the metric), 'labels' (array of strings), and 'data' (array of numbers).",
         });
 
-        const prompt = `
-User Question: "${question}"
+        const prompt = `${historyContext}User Question: "${question}"
 SQL Query Executed: "${sqlQuery}"
-Database Result: ${JSON.stringify(dbResult)}
-        `;
+Database Result: ${JSON.stringify(dbResult)}`;
 
         const synthesisResponse = await synthesisModel.generateContent(prompt);
-        const finalAnswer = synthesisResponse.response.text();
+        const finalResponseText = synthesisResponse.response.text();
+
+        let answer = '';
+        let chart = null;
+        try {
+          const parsed = JSON.parse(finalResponseText);
+          answer = parsed.answer || '';
+          chart = parsed.chart || null;
+        } catch (e) {
+          answer = finalResponseText;
+        }
 
         return {
           success: true,
-          answer: finalAnswer,
+          answer,
           sql: sqlQuery,
           data: dbResult,
+          chart,
         };
       }
 

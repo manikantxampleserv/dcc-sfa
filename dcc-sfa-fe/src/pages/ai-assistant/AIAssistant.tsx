@@ -21,12 +21,38 @@ import React, { useEffect, useRef, useState } from 'react';
 import tokenService from 'services/auth/tokenService';
 import Button from 'shared/Button';
 import * as XLSX from 'xlsx';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  PointElement,
+  LineElement,
+  ArcElement,
+  Title,
+  Tooltip,
+  Legend,
+} from 'chart.js';
+import { Bar, Line, Pie, Doughnut } from 'react-chartjs-2';
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  PointElement,
+  LineElement,
+  ArcElement,
+  Title,
+  Tooltip,
+  Legend
+);
 
 interface Message {
   sender: 'user' | 'assistant';
   text: string;
   sql?: string;
   data?: any;
+  chart?: any;
   timestamp: Date;
 }
 
@@ -115,10 +141,19 @@ const AIAssistant: React.FC = () => {
     setMessages(prev => [...prev, userMsg]);
     setInputValue('');
     setIsLoading(true);
+    const historyPayload = messages
+      .slice(1)
+      .slice(-10)
+      .map(m => ({
+        sender: m.sender,
+        text: m.text,
+        sql: m.sql,
+      }));
 
     try {
       const response = await axiosInstance.post('/ai/query', {
         question: text,
+        history: historyPayload,
       });
 
       const assistantMsg: Message = {
@@ -126,6 +161,7 @@ const AIAssistant: React.FC = () => {
         text: response.data.answer || "I couldn't find an answer.",
         sql: response.data.sql,
         data: response.data.data,
+        chart: response.data.chart,
         timestamp: new Date(),
       };
       setMessages(prev => [...prev, assistantMsg]);
@@ -169,6 +205,113 @@ const AIAssistant: React.FC = () => {
     XLSX.writeFile(
       workbook,
       `query_results_${new Date().toISOString().slice(0, 10)}.xlsx`
+    );
+  };
+
+  const renderChart = (chartData: {
+    type: 'bar' | 'line' | 'pie' | 'doughnut';
+    label: string;
+    labels: string[];
+    data: number[];
+  }) => {
+    if (!chartData || !chartData.type || !chartData.labels || !chartData.data) {
+      return null;
+    }
+
+    const data = {
+      labels: chartData.labels,
+      datasets: [
+        {
+          label: chartData.label || 'Value',
+          data: chartData.data,
+          backgroundColor:
+            chartData.type === 'pie' || chartData.type === 'doughnut'
+              ? [
+                  '#3b82f6',
+                  '#8b5cf6',
+                  '#ec4899',
+                  '#f59e0b',
+                  '#10b981',
+                  '#06b6d4',
+                  '#f43f5e',
+                ]
+              : 'rgba(59, 130, 246, 0.8)',
+          borderColor:
+            chartData.type === 'pie' || chartData.type === 'doughnut'
+              ? '#ffffff'
+              : '#3b82f6',
+          borderWidth: 1.5,
+        },
+      ],
+    };
+
+    const options = {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: chartData.type === 'pie' || chartData.type === 'doughnut',
+          position: 'bottom' as const,
+          labels: {
+            font: {
+              size: 11,
+            },
+            boxWidth: 12,
+          },
+        },
+      },
+      scales:
+        chartData.type === 'pie' || chartData.type === 'doughnut'
+          ? undefined
+          : {
+              y: {
+                beginAtZero: true,
+                grid: {
+                  color: '#f3f4f6',
+                },
+                ticks: {
+                  font: {
+                    size: 10,
+                  },
+                },
+              },
+              x: {
+                grid: {
+                  display: false,
+                },
+                ticks: {
+                  font: {
+                    size: 10,
+                  },
+                },
+              },
+            },
+    };
+
+    const ChartComponent = () => {
+      switch (chartData.type) {
+        case 'bar':
+          return <Bar data={data} options={options} />;
+        case 'line':
+          return <Line data={data} options={options} />;
+        case 'pie':
+          return <Pie data={data} options={options} />;
+        case 'doughnut':
+          return <Doughnut data={data} options={options} />;
+        default:
+          return null;
+      }
+    };
+
+    return (
+      <div className="my-3 p-4 bg-white border border-gray-200 rounded-lg shadow-sm w-full max-w-xl h-[300px] flex flex-col justify-between">
+        <div className="text-[11px] font-bold tracking-wider text-gray-500 uppercase border-b border-gray-100 pb-1.5 mb-2">
+          {chartData.label || 'Visualization'}
+        </div>
+        <div className="flex-1 min-h-0 relative">
+          <ChartComponent />
+        </div>
+      </div>
     );
   };
 
@@ -307,7 +450,7 @@ const AIAssistant: React.FC = () => {
     });
   };
 
-  const parseMessageContent = (text: string) => {
+  const parseMessageContent = (text: string, showTable: boolean = true) => {
     const lines = text.split('\n');
     const elements: React.ReactNode[] = [];
     let inTable = false;
@@ -318,22 +461,26 @@ const AIAssistant: React.FC = () => {
       const line = lines[i].trim();
 
       if (line.startsWith('|') && line.endsWith('|')) {
-        const cells = line
-          .split('|')
-          .map(s => s.trim())
-          .filter((_, index, arr) => index > 0 && index < arr.length - 1);
-        if (!inTable) {
-          inTable = true;
-          tableHeaders = cells;
-          if (i + 1 < lines.length && lines[i + 1].includes('-')) {
-            i++;
+        if (showTable) {
+          const cells = line
+            .split('|')
+            .map(s => s.trim())
+            .filter((_, index, arr) => index > 0 && index < arr.length - 1);
+          if (!inTable) {
+            inTable = true;
+            tableHeaders = cells;
+            if (i + 1 < lines.length && lines[i + 1].includes('-')) {
+              i++;
+            }
+          } else {
+            tableRows.push(cells);
           }
-        } else {
-          tableRows.push(cells);
         }
       } else {
         if (inTable) {
-          elements.push(renderTable(tableHeaders, tableRows));
+          if (showTable) {
+            elements.push(renderTable(tableHeaders, tableRows));
+          }
           inTable = false;
           tableHeaders = [];
           tableRows = [];
@@ -365,7 +512,7 @@ const AIAssistant: React.FC = () => {
       }
     }
 
-    if (inTable) {
+    if (inTable && showTable) {
       elements.push(renderTable(tableHeaders, tableRows));
     }
 
@@ -394,91 +541,99 @@ const AIAssistant: React.FC = () => {
 
       <div className="flex flex-col h-[calc(100vh-210px)] bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm">
         <div className="flex-1 overflow-y-auto px-6 bg-white">
-          {messages.map((msg, index) => (
-            <div
-              key={index}
-              className={`flex items-start gap-3 py-5 border-b border-gray-100 last:border-b-0 animate-fade-in ${
-                msg.sender === 'user' ? 'flex-row-reverse' : ''
-              }`}
-            >
+          {messages.map((msg, index) => {
+            const userQuery = index > 0 ? messages[index - 1].text.toLowerCase() : '';
+            const hasChart = !!msg.chart;
+            const requestsTable = userQuery.includes('table') || userQuery.includes('both') || userQuery.includes('list');
+            const showTable = !hasChart || requestsTable;
+
+            return (
               <div
-                className={`flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold text-white shrink-0 ${
-                  msg.sender === 'user' ? 'bg-blue-600' : 'bg-purple-600'
+                key={index}
+                className={`flex items-start gap-3 py-5 border-b border-gray-100 last:border-b-0 animate-fade-in ${
+                  msg.sender === 'user' ? 'flex-row-reverse' : ''
                 }`}
               >
-                {msg.sender === 'user' ? userInitials : 'AI'}
-              </div>
-
-              <div
-                className={`flex-1 min-w-0 ${msg.sender === 'user' ? 'flex flex-col items-end' : ''}`}
-              >
                 <div
-                  className={`flex justify-between items-center w-full mb-1 ${msg.sender === 'user' ? 'flex-row-reverse' : ''}`}
+                  className={`flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold text-white shrink-0 ${
+                    msg.sender === 'user' ? 'bg-blue-600' : 'bg-purple-600'
+                  }`}
                 >
-                  <span className="text-sm font-semibold text-gray-900">
-                    {msg.sender === 'user' ? 'You' : 'AI Assistant'}
-                  </span>
-                  <div className="flex items-center gap-1 text-[11px] text-gray-400 font-medium">
-                    {msg.sender === 'user' && (
-                      <span className="text-gray-300 mr-0.5">✓</span>
-                    )}
-                    <span>
-                      {msg.timestamp.toLocaleTimeString([], {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
+                  {msg.sender === 'user' ? userInitials : 'AI'}
+                </div>
+
+                <div
+                  className={`flex-1 min-w-0 ${msg.sender === 'user' ? 'flex flex-col items-end' : ''}`}
+                >
+                  <div
+                    className={`flex justify-between items-center w-full mb-1 ${msg.sender === 'user' ? 'flex-row-reverse' : ''}`}
+                  >
+                    <span className="text-sm font-semibold text-gray-900">
+                      {msg.sender === 'user' ? 'You' : 'AI Assistant'}
                     </span>
-                  </div>
-                </div>
-
-                <div
-                  className={`text-sm text-gray-700 leading-relaxed break-words ${msg.sender === 'user' ? 'text-right' : ''}`}
-                >
-                  {msg.sender === 'user' ? (
-                    <p className="whitespace-pre-wrap">{msg.text}</p>
-                  ) : (
-                    <div className="space-y-2">
-                      {parseMessageContent(msg.text)}
-                    </div>
-                  )}
-                </div>
-
-                {msg.sender === 'user' ? (
-                  <div className="mt-2 flex justify-end">
-                    <button
-                      onClick={() => handleCopyMessage(msg.text, index)}
-                      className="text-[10px] font-semibold text-primary-600 hover:text-primary-800 transition-colors bg-transparent border-none cursor-pointer outline-none p-0 flex items-center gap-1"
-                    >
-                      <span>{copiedIndex === index ? 'Copied' : 'Copy'}</span>
-                      {copiedIndex === index ? (
-                        <Check style={{ fontSize: '10px', color: '#10b981' }} />
-                      ) : (
-                        <ContentCopy style={{ fontSize: '10px' }} />
+                    <div className="flex items-center gap-1 text-[11px] text-gray-400 font-medium">
+                      {msg.sender === 'user' && (
+                        <span className="text-gray-300 mr-0.5">✓</span>
                       )}
-                    </button>
+                      <span>
+                        {msg.timestamp.toLocaleTimeString([], {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </span>
+                    </div>
                   </div>
-                ) : (
-                  msg.sql && (
-                    <div className="mt-2.5 max-w-md w-full">
+
+                  <div
+                    className={`text-sm text-gray-700 leading-relaxed break-words ${msg.sender === 'user' ? 'text-right' : ''}`}
+                  >
+                    {msg.sender === 'user' ? (
+                      <p className="whitespace-pre-wrap">{msg.text}</p>
+                    ) : (
+                      <div className="space-y-3">
+                        {parseMessageContent(msg.text, showTable)}
+                        {msg.chart && renderChart(msg.chart)}
+                      </div>
+                    )}
+                  </div>
+
+                  {msg.sender === 'user' ? (
+                    <div className="mt-2 flex justify-end">
                       <button
-                        type="button"
-                        onClick={() => setActiveSql(msg.sql || null)}
-                        className="flex items-center justify-between w-full px-3 py-2 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-md cursor-pointer transition-all text-left outline-none"
+                        onClick={() => handleCopyMessage(msg.text, index)}
+                        className="text-[10px] font-semibold text-primary-600 hover:text-primary-800 transition-colors bg-transparent border-none cursor-pointer outline-none p-0 flex items-center gap-1"
                       >
-                        <span className="flex items-center gap-1.5 font-mono text-[11px] font-semibold text-gray-600">
-                          <Terminal
-                            style={{ fontSize: '14px' }}
-                            className="text-gray-400"
-                          />
-                          sql
-                        </span>
+                        <span>{copiedIndex === index ? 'Copied' : 'Copy'}</span>
+                        {copiedIndex === index ? (
+                          <Check style={{ fontSize: '10px', color: '#10b981' }} />
+                        ) : (
+                          <ContentCopy style={{ fontSize: '10px' }} />
+                        )}
                       </button>
                     </div>
-                  )
-                )}
+                  ) : (
+                    msg.sql && (
+                      <div className="mt-2.5 max-w-md w-full">
+                        <button
+                          type="button"
+                          onClick={() => setActiveSql(msg.sql || null)}
+                          className="flex items-center justify-between w-full px-3 py-2 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-md cursor-pointer transition-all text-left outline-none"
+                        >
+                          <span className="flex items-center gap-1.5 font-mono text-[11px] font-semibold text-gray-600">
+                            <Terminal
+                              style={{ fontSize: '14px' }}
+                              className="text-gray-400"
+                            />
+                            sql
+                          </span>
+                        </button>
+                      </div>
+                    )
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
 
           {isLoading && (
             <div className="flex items-start gap-3 py-5 animate-fade-in">

@@ -1,20 +1,19 @@
-import { Request, Response } from 'express';
 import { aiService } from '../services/ai.service';
 
 export const aiController = {
   async query(req: any, res: any) {
     try {
-      const { question } = req.body;
+      const { question, history } = req.body;
 
       if (!question || typeof question !== 'string') {
         return res.status(400).json({
           success: false,
-          error: "invalid_input",
-          message: "question is required and must be a string",
+          error: 'invalid_input',
+          message: 'question is required and must be a string',
         });
       }
 
-      const result = await aiService.query(question);
+      const result = await aiService.query(question, history);
 
       if (!result.success) {
         return res.status(500).json({
@@ -28,14 +27,15 @@ export const aiController = {
         answer: result.answer,
         sql: result.sql,
         data: result.data,
+        chart: result.chart,
       });
     } catch (error: any) {
-      console.error("AI Controller Error:", error);
+      console.error('AI Controller Error:', error);
       return res.status(500).json({
         success: false,
-        error: "internal_server_error",
-        message: error.message || "An unexpected error occurred",
+        error: 'internal_server_error',
+        message: error.message || 'An unexpected error occurred',
       });
     }
-  }
+  },
 };
