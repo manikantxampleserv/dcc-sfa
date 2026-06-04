@@ -37,6 +37,7 @@
     "react-router-dom": "^7.9.1",
     "react-toastify": "^11.0.5",
     "tailwindcss": "^4.1.13",
+    "xlsx": "^0.18.5",
     "yup": "^1.7.1"
   },
   "devDependencies": {

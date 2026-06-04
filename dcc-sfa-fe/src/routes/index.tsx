@@ -116,6 +116,7 @@ import AlertsReminders from 'pages/workflows/AlertsReminders';
 import ApprovalSetup from 'pages/workflows/ApprovalSetup';
 import ApprovalWorkflows from 'pages/workflows/ApprovalWorkflows';
 import RouteExceptions from 'pages/workflows/RouteExceptions';
+import AIAssistant from 'pages/ai-assistant/AIAssistant';
 import React from 'react';
 import {
   createBrowserRouter,
@@ -185,6 +186,10 @@ const router = createBrowserRouter(
         {
           path: '/',
           element: <RootRedirect />,
+        },
+        {
+          path: '/ai-assistant',
+          element: <AIAssistant />,
         },
         {
           path: '/dashboard/executive',

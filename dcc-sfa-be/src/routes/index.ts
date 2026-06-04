@@ -101,11 +101,13 @@ import customerCategoryGrading from '../v1/controllers/customerCategoryGrading.r
 import assetMasterBrands from '../v1/routes/assetMaterBrands.routes';
 import barcode from '../v1/routes/barcode.routes';
 import orgChart from '../v1/routes/orgChart.routes';
+import ai from '../v1/routes/ai.routes';
 
 const routes = Router();
 
 routes.use('/v1/org-chart', orgChart);
 routes.use('/v1', barcode);
+routes.use('/v1', ai);
 routes.use('/v1', auth);
 routes.use('/v1', user);
 routes.use('/v1', roles);

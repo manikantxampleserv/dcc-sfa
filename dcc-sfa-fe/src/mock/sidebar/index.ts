@@ -20,6 +20,7 @@ import {
   MdRoute,
   MdSettings,
   MdShoppingCart,
+  MdSmartToy,
   MdStore,
   MdSwapHoriz,
   MdTrendingUp,
@@ -50,6 +51,18 @@ const menuItems: MenuItem[] = [
         label: 'Grading Dashboard',
         icon: MdBarChart,
         href: '/dashboard/grading-dashboard',
+      },
+    ],
+  },
+  {
+    id: 'ai-assistant-group',
+    label: 'AI Assistant',
+    children: [
+      {
+        id: 'ai-assistant',
+        label: 'Ask Assistant',
+        icon: MdSmartToy,
+        href: '/ai-assistant',
       },
     ],
   },
