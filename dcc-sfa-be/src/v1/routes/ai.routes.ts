@@ -4,11 +4,6 @@ import { aiController } from '../controllers/ai.controller';
 
 const router = Router();
 
-// Endpoint for AI queries
-router.post(
-  '/ai/query',
-  authenticateToken,
-  aiController.query
-);
+router.post('/ai/query', authenticateToken, aiController.query);
 
 export default router;
