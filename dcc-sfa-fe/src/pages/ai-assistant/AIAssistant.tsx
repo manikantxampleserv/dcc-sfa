@@ -631,7 +631,7 @@ const AIAssistant: React.FC = () => {
             </Box>
           </div>
         )}
-        <div className="flex-1 overflow-y-auto px-6 bg-white">
+        <div className="flex-1 overflow-y-auto px-4 bg-white">
           {messages.map((msg, index) => {
             const userQuery =
               index > 0 ? messages[index - 1].text.toLowerCase() : '';
@@ -643,11 +643,10 @@ const AIAssistant: React.FC = () => {
               userQuery.includes('list') ||
               userQuery.includes('dashboard');
             const showTable = !hasChart || requestsTable;
-
             return (
               <div
                 key={index}
-                className={`flex items-start gap-3 py-5 border-b border-gray-100 last:border-b-0 animate-fade-in ${
+                className={`flex items-start gap-3 py-4 border-b border-gray-100 last:border-b-0 animate-fade-in ${
                   msg.sender === 'user' ? 'flex-row-reverse' : ''
                 }`}
               >
@@ -735,7 +734,9 @@ const AIAssistant: React.FC = () => {
                         onClick={() => handleCopyMessage(msg.text, index)}
                         className="text-[10px] font-semibold text-primary-600 hover:text-primary-800 transition-colors bg-transparent border-none cursor-pointer outline-none p-0 flex items-center gap-1"
                       >
-                        <span>{copiedIndex === index ? 'Copied' : 'Copy'}</span>
+                        <span>
+                          {copiedIndex === index ? 'COPIED!' : 'COPY'}
+                        </span>
                         {copiedIndex === index ? (
                           <Check
                             style={{ fontSize: '10px', color: '#10b981' }}

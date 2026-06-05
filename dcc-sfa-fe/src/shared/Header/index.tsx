@@ -3,7 +3,7 @@ import {
   Assignment,
   Logout,
   Settings,
-  HelpOutline,
+  SmartToy,
 } from '@mui/icons-material';
 import {
   Avatar,
@@ -25,7 +25,6 @@ import { useAuth } from '../../context/AuthContext';
 import { useRequestsByUsersWithoutPermission } from '../../hooks/useRequests';
 import ApprovalsSidebar from '../ApprovalsSidebar';
 import Notifications from '../Notifications';
-import { useTour } from '../../context/TourContext';
 
 const StyledBadge = styled(Badge)(({ theme }) => ({
   '& .MuiBadge-badge': {
@@ -76,8 +75,6 @@ const Header: React.FC<HeaderProps> = ({ sidebarOpen, toggleSidebar }) => {
     logout,
     isLoggingOut,
   } = useAuth();
-
-  const { startTour, steps } = useTour();
 
   const { data: pendingRequestsResponse } = useRequestsByUsersWithoutPermission(
     {
@@ -149,12 +146,11 @@ const Header: React.FC<HeaderProps> = ({ sidebarOpen, toggleSidebar }) => {
 
         <div className="flex items-center gap-3">
           <IconButton
-            onClick={() => startTour()}
-            disabled={steps.length === 0}
-            className="!p-1.5 !rounded-md !bg-gray-100 !text-gray-600 hover:!text-gray-900 hover:!bg-gray-100 disabled:opacity-50"
-            aria-label="help"
+            onClick={() => navigate('/ai-assistant')}
+            className="!p-1.5 !rounded-md !bg-gray-100 !text-gray-600 hover:!text-gray-900 hover:!bg-gray-100"
+            aria-label="ai-assistant"
           >
-            <HelpOutline className="!text-gray-600" />
+            <SmartToy className="!text-gray-600" />
           </IconButton>
           <Badge
             badgeContent={pendingCount}
