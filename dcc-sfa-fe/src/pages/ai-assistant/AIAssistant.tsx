@@ -1,14 +1,17 @@
 import {
+  ArrowUpward,
   Check,
   Close,
   ContentCopy,
+  Fullscreen,
+  FullscreenExit,
   GetApp,
   Info,
-  Refresh,
-  Send,
+  PlaylistRemove,
   Terminal,
 } from '@mui/icons-material';
 import {
+  Avatar,
   Box,
   Dialog,
   DialogActions,
@@ -16,24 +19,25 @@ import {
   DialogTitle,
   IconButton,
 } from '@mui/material';
-import axiosInstance from 'configs/axio.config';
-import React, { useEffect, useRef, useState } from 'react';
-import tokenService from 'services/auth/tokenService';
-import Button from 'shared/Button';
-import * as XLSX from 'xlsx';
 import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  PointElement,
-  LineElement,
   ArcElement,
+  BarElement,
+  CategoryScale,
+  Chart as ChartJS,
+  Legend,
+  LinearScale,
+  LineElement,
+  PointElement,
   Title,
   Tooltip,
-  Legend,
 } from 'chart.js';
-import { Bar, Line, Pie, Doughnut } from 'react-chartjs-2';
+import axiosInstance from 'configs/axio.config';
+import React, { useEffect, useRef, useState } from 'react';
+import { Bar, Doughnut, Line, Pie } from 'react-chartjs-2';
+import Button from 'shared/Button';
+import { formatCalendarTime } from 'utils/dateUtils';
+import * as XLSX from 'xlsx';
+import { useAuth } from '../../context/AuthContext';
 
 ChartJS.register(
   CategoryScale,
@@ -53,31 +57,38 @@ interface Message {
   sql?: string;
   data?: any;
   chart?: any;
+  charts?: any[];
   timestamp: Date;
+  usage?: {
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+  };
+  latencyMs?: number;
 }
 
 const suggestions = [
+  'Show depot wise visits and orders dashboard',
   'How many active salespeople do I have?',
   'Show me the list of active depots',
-  'How many customers/outlets are registered?',
   'List active products in the catalog',
 ];
 
 const AIAssistant: React.FC = () => {
-  const user = tokenService.getUser();
+  const { user } = useAuth();
   const userId = user?.id;
   const sessionKey = userId ? `dcc_sfa_ai_chat_${userId}` : null;
-  const userInitials = user?.username
-    ? user.username.charAt(0).toUpperCase()
-    : 'U';
+  const userInitials = user?.name ? user.name.charAt(0).toUpperCase() : 'U';
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [activeSql, setActiveSql] = useState<string | null>(null);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const handleCopyMessage = async (text: string, index: number) => {
     try {
@@ -130,9 +141,26 @@ const AIAssistant: React.FC = () => {
     scrollToBottom();
   }, [messages, isLoading]);
 
+  useEffect(() => {
+    if (isFullscreen) {
+      document.body.classList.add('ai-fullscreen-active');
+    } else {
+      document.body.classList.remove('ai-fullscreen-active');
+    }
+    return () => {
+      document.body.classList.remove('ai-fullscreen-active');
+    };
+  }, [isFullscreen]);
+
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+    }
+  }, [inputValue]);
+
   const handleSend = async (text: string) => {
     if (!text.trim()) return;
-
     const userMsg: Message = {
       sender: 'user',
       text: text,
@@ -162,6 +190,9 @@ const AIAssistant: React.FC = () => {
         sql: response.data.sql,
         data: response.data.data,
         chart: response.data.chart,
+        charts: response.data.charts,
+        usage: response.data.usage,
+        latencyMs: response.data.latencyMs,
         timestamp: new Date(),
       };
       setMessages(prev => [...prev, assistantMsg]);
@@ -304,7 +335,7 @@ const AIAssistant: React.FC = () => {
     };
 
     return (
-      <div className="my-3 p-4 bg-white border border-gray-200 rounded-lg shadow-sm w-full max-w-xl h-[300px] flex flex-col justify-between">
+      <div className="p-4 bg-white border border-gray-200 rounded-lg shadow-sm h-[350px] flex flex-col justify-between w-full">
         <div className="text-[11px] font-bold tracking-wider text-gray-500 uppercase border-b border-gray-100 pb-1.5 mb-2">
           {chartData.label || 'Visualization'}
         </div>
@@ -488,7 +519,7 @@ const AIAssistant: React.FC = () => {
         if (line !== '') {
           const parts = line.split(/(\*\*.*?\*\*|\*.*?\*)/g);
           elements.push(
-            <p key={i} className="mb-2 text-gray-700 leading-relaxed text-sm">
+            <p key={i} className="mb-1 text-gray-700 leading-relaxed text-sm">
               {parts.map((part, index) => {
                 if (part.startsWith('**') && part.endsWith('**')) {
                   return (
@@ -521,30 +552,96 @@ const AIAssistant: React.FC = () => {
 
   return (
     <>
-      <Box className="!mb-3 !flex !justify-between !items-center">
-        <Box>
-          <p className="!font-bold text-xl !text-gray-900">AI Assistant</p>
-          <p className="!text-gray-500 text-sm">
-            Ask questions, fetch statistics, and get insights from the database
-          </p>
-        </Box>
-        <Button
-          variant="outlined"
-          color="primary"
-          startIcon={<Refresh />}
-          onClick={clearChat}
-          className="!capitalize !outline-none"
-        >
-          Clear Chat
-        </Button>
-      </Box>
+      {isFullscreen && (
+        <style>{`
+          body.ai-fullscreen-active {
+            overflow: hidden !important;
+          }
+          body.ai-fullscreen-active header,
+          body.ai-fullscreen-active aside,
+          body.ai-fullscreen-active .w-72,
+          body.ai-fullscreen-active div:has(> .breadcrambs) {
+            display: none !important;
+          }
+        `}</style>
+      )}
 
-      <div className="flex flex-col h-[calc(100vh-210px)] bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm">
+      {!isFullscreen && (
+        <Box className="!mb-3 !flex !justify-between !items-center">
+          <Box>
+            <p className="!font-bold text-xl !text-gray-900">AI Assistant</p>
+            <p className="!text-gray-500 text-sm">
+              Ask questions, fetch statistics, and get insights from the
+              database
+            </p>
+          </Box>
+          <Box className="!flex !items-center !border !border-gray-200 !rounded-md !px-1 !py-0.5 bg-white">
+            <IconButton
+              onClick={clearChat}
+              className="!text-gray-600 hover:!text-gray-900 hover:!bg-gray-100 !p-1.5 !rounded-md !outline-none"
+              title="Clear Chat"
+            >
+              <PlaylistRemove className="!w-5 !h-5" />
+            </IconButton>
+            <div className="w-[1px] h-4 bg-gray-300 mx-1" />
+            <IconButton
+              onClick={() => setIsFullscreen(true)}
+              className="!text-gray-600 hover:!text-gray-900 hover:!bg-gray-100 !p-1.5 !rounded-md !outline-none"
+              title="Full Screen"
+            >
+              <Fullscreen className="!w-5 !h-5" />
+            </IconButton>
+          </Box>
+        </Box>
+      )}
+
+      <div
+        className={`flex flex-col bg-white overflow-hidden ${
+          isFullscreen
+            ? 'h-screen w-screen fixed inset-0 z-[9999]'
+            : 'h-[calc(100vh-210px)] rounded-lg border border-gray-200 shadow-sm'
+        }`}
+      >
+        {isFullscreen && (
+          <div className="flex items-center justify-between px-6 py-3.5 border-b border-gray-200 bg-gray-50 shrink-0 animate-fade-in">
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-gray-900 text-base">
+                AI Assistant
+              </span>
+              <span className="text-[10px] font-semibold text-primary-700 bg-primary-50 border border-primary-100 px-2 py-0.5 rounded-full">
+                Fullscreen Mode
+              </span>
+            </div>
+            <Box className="!flex !items-center !border !border-gray-200 !rounded-md !px-1 !py-0.5 bg-white">
+              <IconButton
+                onClick={clearChat}
+                className="!text-gray-600 hover:!text-gray-900 hover:!bg-gray-100 !p-1.5 !rounded-md !outline-none"
+                title="Clear Chat"
+              >
+                <PlaylistRemove className="!w-5 !h-5" />
+              </IconButton>
+              <div className="w-[1px] h-4 bg-gray-300 mx-1" />
+              <IconButton
+                onClick={() => setIsFullscreen(false)}
+                className="!text-gray-600 hover:!text-gray-900 hover:!bg-gray-100 !p-1.5 !rounded-md !outline-none"
+                title="Exit Full Screen"
+              >
+                <FullscreenExit className="!w-5 !h-5" />
+              </IconButton>
+            </Box>
+          </div>
+        )}
         <div className="flex-1 overflow-y-auto px-6 bg-white">
           {messages.map((msg, index) => {
-            const userQuery = index > 0 ? messages[index - 1].text.toLowerCase() : '';
-            const hasChart = !!msg.chart;
-            const requestsTable = userQuery.includes('table') || userQuery.includes('both') || userQuery.includes('list');
+            const userQuery =
+              index > 0 ? messages[index - 1].text.toLowerCase() : '';
+            const hasChart =
+              !!msg.chart || (!!msg.charts && msg.charts.length > 0);
+            const requestsTable =
+              userQuery.includes('table') ||
+              userQuery.includes('both') ||
+              userQuery.includes('list') ||
+              userQuery.includes('dashboard');
             const showTable = !hasChart || requestsTable;
 
             return (
@@ -554,13 +651,16 @@ const AIAssistant: React.FC = () => {
                   msg.sender === 'user' ? 'flex-row-reverse' : ''
                 }`}
               >
-                <div
-                  className={`flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold text-white shrink-0 ${
-                    msg.sender === 'user' ? 'bg-blue-600' : 'bg-purple-600'
+                <Avatar
+                  variant="rounded"
+                  className={`!w-10 !h-10 shrink-0 ${
+                    msg.sender === 'user'
+                      ? '!bg-blue-100 !text-blue-600'
+                      : '!bg-purple-100 !text-purple-600'
                   }`}
                 >
                   {msg.sender === 'user' ? userInitials : 'AI'}
-                </div>
+                </Avatar>
 
                 <div
                   className={`flex-1 min-w-0 ${msg.sender === 'user' ? 'flex flex-col items-end' : ''}`}
@@ -575,12 +675,7 @@ const AIAssistant: React.FC = () => {
                       {msg.sender === 'user' && (
                         <span className="text-gray-300 mr-0.5">✓</span>
                       )}
-                      <span>
-                        {msg.timestamp.toLocaleTimeString([], {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
-                      </span>
+                      <span>{formatCalendarTime(msg.timestamp)}</span>
                     </div>
                   </div>
 
@@ -591,8 +686,45 @@ const AIAssistant: React.FC = () => {
                       <p className="whitespace-pre-wrap">{msg.text}</p>
                     ) : (
                       <div className="space-y-3">
-                        {parseMessageContent(msg.text, showTable)}
-                        {msg.chart && renderChart(msg.chart)}
+                        {parseMessageContent(
+                          msg.text,
+                          !(msg.charts && msg.charts.length > 0) && showTable
+                        )}
+                        {msg.charts && msg.charts.length > 0 && (
+                          <div
+                            className={`grid grid-cols-1 ${msg.charts.length > 1 ? 'md:grid-cols-2' : ''} gap-4 w-full`}
+                          >
+                            {msg.charts.map((c, ci) => (
+                              <React.Fragment key={ci}>
+                                {renderChart(c)}
+                              </React.Fragment>
+                            ))}
+                          </div>
+                        )}
+                        {(!msg.charts || msg.charts.length === 0) &&
+                          msg.chart &&
+                          renderChart(msg.chart)}
+
+                        {(msg.latencyMs !== undefined || msg.usage) && (
+                          <div className="flex items-center gap-1.5 text-[10px] text-gray-400 font-medium select-none">
+                            {msg.latencyMs !== undefined && (
+                              <span>
+                                {(msg.latencyMs / 1000).toFixed(2)}s response
+                                time
+                              </span>
+                            )}
+                            {msg.latencyMs !== undefined && msg.usage && (
+                              <span className="text-gray-300">|</span>
+                            )}
+                            {msg.usage && (
+                              <span
+                                title={`Prompt: ${msg.usage.promptTokens} | Completion: ${msg.usage.completionTokens}`}
+                              >
+                                {msg.usage.totalTokens} tokens
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -605,7 +737,9 @@ const AIAssistant: React.FC = () => {
                       >
                         <span>{copiedIndex === index ? 'Copied' : 'Copy'}</span>
                         {copiedIndex === index ? (
-                          <Check style={{ fontSize: '10px', color: '#10b981' }} />
+                          <Check
+                            style={{ fontSize: '10px', color: '#10b981' }}
+                          />
                         ) : (
                           <ContentCopy style={{ fontSize: '10px' }} />
                         )}
@@ -637,9 +771,12 @@ const AIAssistant: React.FC = () => {
 
           {isLoading && (
             <div className="flex items-start gap-3 py-5 animate-fade-in">
-              <div className="flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold text-white bg-purple-600 shrink-0">
+              <Avatar
+                variant="rounded"
+                className="!w-10 !h-10 !text-xs !font-bold shrink-0 !bg-purple-100 !text-purple-600"
+              >
                 AI
-              </div>
+              </Avatar>
               <div className="flex-1 min-w-0">
                 <div className="flex justify-between items-center mb-1">
                   <span className="text-sm font-semibold text-gray-900">
@@ -689,25 +826,37 @@ const AIAssistant: React.FC = () => {
               e.preventDefault();
               handleSend(inputValue);
             }}
-            className="flex gap-2"
+            className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg pl-3 pr-2 py-1.5 transition-all shadow-sm"
           >
-            <input
-              type="text"
+            <textarea
+              ref={textareaRef}
+              rows={1}
               value={inputValue}
               onChange={e => setInputValue(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  if (inputValue.trim() && !isLoading) {
+                    handleSend(inputValue);
+                  }
+                }
+              }}
               placeholder="Ask AI Assistant about salespeople, depots, customers, orders..."
               disabled={isLoading}
-              className="flex-1 px-4 py-3 border border-gray-200 focus:border-primary-500 rounded-lg focus:outline-none text-sm transition-all shadow-sm placeholder:text-gray-400 disabled:bg-gray-50"
+              style={{ outline: 'none', boxShadow: 'none' }}
+              className="flex-1 p-2 outline-none bg-transparent border-none resize-none text-sm py-1 placeholder:text-gray-400 disabled:text-gray-400 max-h-24 overflow-y-auto"
             />
-            <Button
+            <IconButton
               type="submit"
               disabled={isLoading || !inputValue.trim()}
-              variant="contained"
-              color="primary"
-              className="!rounded-lg flex items-center justify-center min-w-[50px] !p-0"
+              className={`!p-1.5 !rounded-[6px] !transition-all !outline-none ${
+                inputValue.trim()
+                  ? '!bg-blue-600 !text-white hover:!bg-blue-700'
+                  : '!bg-gray-100 !text-gray-300'
+              }`}
             >
-              <Send className="w-5 h-5" />
-            </Button>
+              <ArrowUpward className="w-4 h-4" />
+            </IconButton>
           </form>
           <div className="flex items-center gap-1.5 text-[10px] text-gray-400 font-medium px-1">
             <Info className="w-3.5 h-3.5 text-gray-300" />

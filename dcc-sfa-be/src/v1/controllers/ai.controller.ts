@@ -28,6 +28,9 @@ export const aiController = {
         sql: result.sql,
         data: result.data,
         chart: result.chart,
+        charts: result.charts,
+        usage: result.usage,
+        latencyMs: result.latencyMs,
       });
     } catch (error: any) {
       console.error('AI Controller Error:', error);

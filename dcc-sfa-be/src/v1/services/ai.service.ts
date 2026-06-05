@@ -70,6 +70,16 @@ function parsePrismaSchema(): string {
           const isOptional = fieldType.endsWith('?');
           const cleanType = isOptional ? fieldType.slice(0, -1) : fieldType;
 
+          const lowerField = fieldName.toLowerCase();
+          if (
+            lowerField.includes('password') ||
+            lowerField.includes('hash') ||
+            lowerField.includes('token') ||
+            lowerField.includes('salt')
+          ) {
+            continue;
+          }
+
           if (PRISMA_TYPES.has(cleanType)) {
             models[currentModelName].push(
               `${fieldName} (${cleanType}${isOptional ? '?' : ''})`
@@ -187,7 +197,19 @@ export class AIService {
     sql?: string;
     data?: any;
     chart?: any;
+    charts?: any[];
+    usage?: {
+      promptTokens: number;
+      completionTokens: number;
+      totalTokens: number;
+    };
+    latencyMs?: number;
   }> {
+    const startTime = Date.now();
+    let promptTokens = 0;
+    let completionTokens = 0;
+    let totalTokens = 0;
+
     if (!this.genAI && process.env.GEMINI_API_KEY) {
       this.genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     }
@@ -223,11 +245,22 @@ export class AIService {
       });
 
       const response = await model.generateContent(historyContext + question);
+      if (response.response.usageMetadata) {
+        promptTokens += response.response.usageMetadata.promptTokenCount || 0;
+        completionTokens +=
+          response.response.usageMetadata.candidatesTokenCount || 0;
+        totalTokens += response.response.usageMetadata.totalTokenCount || 0;
+      }
       const text = response.response.text();
       const parsed = JSON.parse(text);
 
       if (parsed.type === 'text') {
-        return { success: true, answer: parsed.text };
+        return {
+          success: true,
+          answer: parsed.text,
+          latencyMs: Date.now() - startTime,
+          usage: { promptTokens, completionTokens, totalTokens },
+        };
       }
 
       if (parsed.type === 'sql') {
@@ -276,28 +309,49 @@ export class AIService {
 
         const dbResult: any[] = await prisma.$queryRawUnsafe(sqlQuery);
 
+        const scrubbedResult = dbResult.map(row => {
+          if (!row || typeof row !== 'object') return row;
+          const newRow = { ...row };
+          for (const key of Object.keys(newRow)) {
+            if (/password|hash|salt|secret/i.test(key)) {
+              newRow[key] = '[REDACTED]';
+            }
+          }
+          return newRow;
+        });
+
         const synthesisModel = this.genAI.getGenerativeModel({
           model: 'gemini-flash-lite-latest',
           generationConfig: {
             responseMimeType: 'application/json',
           },
           systemInstruction:
-            "You are the DCC-SFA AI Assistant. You will be given a user's original question, the SQL query that was run, and the database result rows. Formulate a polite, clear, and concise natural language answer. Return a JSON object with: 'answer' (your natural language response text) and 'chart' (a chart configuration object if the user explicitly asked for a chart/graph/visualization, otherwise null). If the user explicitly asks for a chart/graph and does NOT ask for a table/list, do NOT include a markdown table in your 'answer' text (only provide a brief text explanation). If they ask for both, or if they did not ask for a chart, include the markdown table in your 'answer' text. The 'chart' object must have: 'type' ('bar'|'line'|'pie'|'doughnut'), 'label' (name of the metric), 'labels' (array of strings), and 'data' (array of numbers).",
+            "You are the DCC-SFA AI Assistant. You will be given a user's original question, the SQL query that was run, and the database result rows. Formulate a polite, clear, and concise natural language answer. Return a JSON object with: 'answer' (your natural language response text), 'charts' (an array of chart configuration objects if the user asked for a dashboard/multiple charts/visualizations, otherwise an empty array or null), and 'chart' (a fallback single chart configuration object, or null). If the user explicitly asks for charts/graphs/dashboards and does NOT ask for a table/list, do NOT include a markdown table in your 'answer' text. If they ask for both, or if they did not ask for charts, include the markdown table in your 'answer' text. Each chart object must have: 'type' ('bar'|'line'|'pie'|'doughnut'), 'label' (name of the metric), 'labels' (array of strings), and 'data' (array of numbers).",
         });
 
         const prompt = `${historyContext}User Question: "${question}"
 SQL Query Executed: "${sqlQuery}"
-Database Result: ${JSON.stringify(dbResult)}`;
+Database Result: ${JSON.stringify(scrubbedResult)}`;
 
         const synthesisResponse = await synthesisModel.generateContent(prompt);
+        if (synthesisResponse.response.usageMetadata) {
+          promptTokens +=
+            synthesisResponse.response.usageMetadata.promptTokenCount || 0;
+          completionTokens +=
+            synthesisResponse.response.usageMetadata.candidatesTokenCount || 0;
+          totalTokens +=
+            synthesisResponse.response.usageMetadata.totalTokenCount || 0;
+        }
         const finalResponseText = synthesisResponse.response.text();
 
         let answer = '';
         let chart = null;
+        let charts = null;
         try {
           const parsed = JSON.parse(finalResponseText);
           answer = parsed.answer || '';
           chart = parsed.chart || null;
+          charts = parsed.charts || null;
         } catch (e) {
           answer = finalResponseText;
         }
@@ -306,8 +360,11 @@ Database Result: ${JSON.stringify(dbResult)}`;
           success: true,
           answer,
           sql: sqlQuery,
-          data: dbResult,
+          data: scrubbedResult,
           chart,
+          charts,
+          latencyMs: Date.now() - startTime,
+          usage: { promptTokens, completionTokens, totalTokens },
         };
       }
 

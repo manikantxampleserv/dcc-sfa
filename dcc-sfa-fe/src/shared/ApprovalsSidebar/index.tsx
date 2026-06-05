@@ -25,7 +25,7 @@ const ApprovalsSidebar: React.FC<ApprovalsSidebarProps> = ({
 
   const { data: requestsResponse, isLoading } =
     useRequestsByUsersWithoutPermission(
-      { page: 1, limit: 10, status: 'P' },
+      { page: 1, limit: 20, status: 'P' },
       { enabled: open }
     );
 

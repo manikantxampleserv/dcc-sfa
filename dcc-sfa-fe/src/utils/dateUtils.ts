@@ -168,3 +168,52 @@ export const formatForDateInput = (
     return new Date().toISOString().split('T')[0];
   }
 };
+
+export const formatCalendarTime = (
+  date: Date | string | null | undefined
+): string => {
+  if (!date) return '';
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
+
+  const now = new Date();
+  const isSameDay = (d1: Date, d2: Date) =>
+    d1.getDate() === d2.getDate() &&
+    d1.getMonth() === d2.getMonth() &&
+    d1.getFullYear() === d2.getFullYear();
+
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+
+  const timeString = dateObj.toLocaleTimeString([], {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+
+  if (isSameDay(dateObj, now)) {
+    return `Today at ${timeString}`;
+  }
+  if (isSameDay(dateObj, yesterday)) {
+    return `Yesterday at ${timeString}`;
+  }
+
+  const diffTime = now.getTime() - dateObj.getTime();
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+  if (diffDays > 0 && diffDays < 7) {
+    const days = [
+      'Sunday',
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+    ];
+    return `${days[dateObj.getDay()]} at ${timeString}`;
+  }
+
+  const year = dateObj.getFullYear();
+  const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+  const day = String(dateObj.getDate()).padStart(2, '0');
+  return `${month}/${day}/${year}`;
+};
