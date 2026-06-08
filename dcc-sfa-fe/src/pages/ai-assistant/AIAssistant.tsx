@@ -36,6 +36,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Bar, Doughnut, Line, Pie } from 'react-chartjs-2';
 import Button from 'shared/Button';
 import { formatCalendarTime } from 'utils/dateUtils';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import * as XLSX from 'xlsx';
 import { useAuth } from '../../context/AuthContext';
 
@@ -56,8 +58,7 @@ interface Message {
   text: string;
   sql?: string;
   data?: any;
-  chart?: any;
-  charts?: any[];
+  chart?: any | any[];
   timestamp: Date;
   usage?: {
     promptTokens: number;
@@ -190,7 +191,6 @@ const AIAssistant: React.FC = () => {
         sql: response.data.sql,
         data: response.data.data,
         chart: response.data.chart,
-        charts: response.data.charts,
         usage: response.data.usage,
         latencyMs: response.data.latencyMs,
         timestamp: new Date(),
@@ -237,6 +237,35 @@ const AIAssistant: React.FC = () => {
       workbook,
       `query_results_${new Date().toISOString().slice(0, 10)}.xlsx`
     );
+  };
+
+  const extractTableFromMarkdown = (text: string) => {
+    const lines = text.split('\n').map(l => l.trim());
+    let inTable = false;
+    let headers: string[] = [];
+    let rows: string[][] = [];
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      if (line.startsWith('|') && line.endsWith('|')) {
+        const cells = line
+          .split('|')
+          .map(s => s.trim().replace(/^\*\*?(.*?)\*\*?$/, '$1'))
+          .filter((_, index, arr) => index > 0 && index < arr.length - 1);
+
+        if (!inTable) {
+          inTable = true;
+          headers = cells;
+          if (i + 1 < lines.length && lines[i + 1].includes('-')) {
+            i++;
+          }
+        } else {
+          rows.push(cells);
+        }
+      } else if (inTable) {
+        break;
+      }
+    }
+    return { headers, rows };
   };
 
   const renderChart = (chartData: {
@@ -346,62 +375,6 @@ const AIAssistant: React.FC = () => {
     );
   };
 
-  const renderTable = (headers: string[], rows: string[][]) => {
-    return (
-      <div className="my-3 border border-gray-200 rounded-lg shadow-sm overflow-hidden bg-white">
-        <div className="p-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
-          <span className="text-[11px] font-bold tracking-wider text-gray-500 uppercase">
-            Results
-          </span>
-          <button
-            onClick={() => handleExportExcel(headers, rows)}
-            className="text-[12px] font-semibold text-primary-600 hover:text-primary-800 transition-colors bg-transparent border-none cursor-pointer outline-none p-0 flex items-center gap-1"
-          >
-            <GetApp style={{ fontSize: '14px' }} />
-            Export Excel
-          </button>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200 text-left text-xs md:text-sm">
-            <thead className="bg-gray-100">
-              <tr>
-                {headers.map((h, i) => (
-                  <th
-                    key={i}
-                    className="px-3 py-2 font-semibold text-gray-700 uppercase tracking-wider"
-                  >
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200 bg-white">
-              {rows.map((row, ri) => (
-                <tr
-                  key={ri}
-                  className={
-                    ri % 2 === 0
-                      ? 'bg-white hover:bg-gray-50'
-                      : 'bg-gray-50 hover:bg-gray-100'
-                  }
-                >
-                  {row.map((val, vi) => (
-                    <td
-                      key={vi}
-                      className="px-3 py-2 text-gray-600 font-medium"
-                    >
-                      {val}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    );
-  };
-
   const highlightSql = (sql: string) => {
     const keywords = [
       'SELECT',
@@ -479,75 +452,6 @@ const AIAssistant: React.FC = () => {
         return part;
       }
     });
-  };
-
-  const parseMessageContent = (text: string, showTable: boolean = true) => {
-    const lines = text.split('\n');
-    const elements: React.ReactNode[] = [];
-    let inTable = false;
-    let tableHeaders: string[] = [];
-    let tableRows: string[][] = [];
-
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i].trim();
-
-      if (line.startsWith('|') && line.endsWith('|')) {
-        if (showTable) {
-          const cells = line
-            .split('|')
-            .map(s => s.trim())
-            .filter((_, index, arr) => index > 0 && index < arr.length - 1);
-          if (!inTable) {
-            inTable = true;
-            tableHeaders = cells;
-            if (i + 1 < lines.length && lines[i + 1].includes('-')) {
-              i++;
-            }
-          } else {
-            tableRows.push(cells);
-          }
-        }
-      } else {
-        if (inTable) {
-          if (showTable) {
-            elements.push(renderTable(tableHeaders, tableRows));
-          }
-          inTable = false;
-          tableHeaders = [];
-          tableRows = [];
-        }
-        if (line !== '') {
-          const parts = line.split(/(\*\*.*?\*\*|\*.*?\*)/g);
-          elements.push(
-            <p key={i} className="mb-1 text-gray-700 leading-relaxed text-sm">
-              {parts.map((part, index) => {
-                if (part.startsWith('**') && part.endsWith('**')) {
-                  return (
-                    <strong key={index} className="font-semibold text-gray-900">
-                      {part.slice(2, -2)}
-                    </strong>
-                  );
-                } else if (part.startsWith('*') && part.endsWith('*')) {
-                  return (
-                    <strong key={index} className="font-semibold text-gray-900">
-                      {part.slice(1, -1)}
-                    </strong>
-                  );
-                } else {
-                  return part;
-                }
-              })}
-            </p>
-          );
-        }
-      }
-    }
-
-    if (inTable && showTable) {
-      elements.push(renderTable(tableHeaders, tableRows));
-    }
-
-    return elements;
   };
 
   return (
@@ -635,8 +539,7 @@ const AIAssistant: React.FC = () => {
           {messages.map((msg, index) => {
             const userQuery =
               index > 0 ? messages[index - 1].text.toLowerCase() : '';
-            const hasChart =
-              !!msg.chart || (!!msg.charts && msg.charts.length > 0);
+            const hasChart = !!msg.chart;
             const requestsTable =
               userQuery.includes('table') ||
               userQuery.includes('both') ||
@@ -685,25 +588,85 @@ const AIAssistant: React.FC = () => {
                       <p className="whitespace-pre-wrap">{msg.text}</p>
                     ) : (
                       <div className="space-y-3">
-                        {parseMessageContent(
-                          msg.text,
-                          !(msg.charts && msg.charts.length > 0) && showTable
+                        {showTable && (
+                          <div className="prose prose-sm max-w-none prose-p:mb-2 prose-p:text-gray-700 prose-p:leading-relaxed prose-p:text-sm prose-strong:font-semibold prose-strong:text-gray-900">
+                            <ReactMarkdown
+                              remarkPlugins={[remarkGfm]}
+                              components={{
+                                table: ({ node, ...props }) => (
+                                  <div className="mb-4 mt-2 border border-gray-200 rounded-lg shadow-sm overflow-hidden bg-white">
+                                    <div className="p-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
+                                      <span className="text-[11px] font-bold tracking-wider text-gray-500 uppercase">
+                                        Results
+                                      </span>
+                                      <button
+                                        onClick={() => {
+                                          const { headers, rows } =
+                                            extractTableFromMarkdown(msg.text);
+                                          if (headers.length > 0)
+                                            handleExportExcel(headers, rows);
+                                        }}
+                                        className="text-[12px] font-semibold text-primary-600 hover:text-primary-800 transition-colors bg-transparent border-none cursor-pointer outline-none p-0 flex items-center gap-1"
+                                      >
+                                        <GetApp style={{ fontSize: '14px' }} />
+                                        Export Excel
+                                      </button>
+                                    </div>
+                                    <div className="overflow-x-auto">
+                                      <table
+                                        className="min-w-full divide-y divide-gray-200 text-left text-xs md:text-sm"
+                                        {...props}
+                                      />
+                                    </div>
+                                  </div>
+                                ),
+                                thead: ({ node, ...props }) => (
+                                  <thead className="bg-gray-100" {...props} />
+                                ),
+                                th: ({ node, ...props }) => (
+                                  <th
+                                    className="px-3 py-2 font-semibold text-gray-700 uppercase tracking-wider"
+                                    {...props}
+                                  />
+                                ),
+                                tbody: ({ node, ...props }) => (
+                                  <tbody
+                                    className="divide-y divide-gray-200 bg-white"
+                                    {...props}
+                                  />
+                                ),
+                                tr: ({ node, ...props }) => (
+                                  <tr
+                                    className="hover:bg-gray-50 transition-colors"
+                                    {...props}
+                                  />
+                                ),
+                                td: ({ node, ...props }) => (
+                                  <td
+                                    className="px-3 py-2 text-gray-600 font-medium"
+                                    {...props}
+                                  />
+                                ),
+                              }}
+                            >
+                              {msg.text}
+                            </ReactMarkdown>
+                          </div>
                         )}
-                        {msg.charts && msg.charts.length > 0 && (
+                        {Array.isArray(msg.chart) && msg.chart.length > 0 && (
                           <div
-                            className={`grid grid-cols-1 ${msg.charts.length > 1 ? 'md:grid-cols-2' : ''} gap-4 w-full`}
+                            className={`grid grid-cols-1 ${msg.chart.length > 1 ? 'md:grid-cols-2' : ''} gap-4 w-full`}
                           >
-                            {msg.charts.map((c, ci) => (
+                            {msg.chart.map((c, ci) => (
                               <React.Fragment key={ci}>
                                 {renderChart(c)}
                               </React.Fragment>
                             ))}
                           </div>
                         )}
-                        {(!msg.charts || msg.charts.length === 0) &&
+                        {!Array.isArray(msg.chart) &&
                           msg.chart &&
                           renderChart(msg.chart)}
-
                         {(msg.latencyMs !== undefined || msg.usage) && (
                           <div className="flex items-center gap-1.5 text-[10px] text-gray-400 font-medium select-none">
                             {msg.latencyMs !== undefined && (

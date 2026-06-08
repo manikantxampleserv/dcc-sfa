@@ -196,8 +196,7 @@ export class AIService {
     answer: string;
     sql?: string;
     data?: any;
-    chart?: any;
-    charts?: any[];
+    chart?: any | any[];
     usage?: {
       promptTokens: number;
       completionTokens: number;
@@ -254,30 +253,29 @@ export class AIService {
       const text = response.response.text();
       const parsed = JSON.parse(text);
 
-      if (parsed.type === 'text') {
+      const isTextResponse =
+        parsed.type === 'text' ||
+        (!parsed.query && (parsed.text || parsed.answer));
+      if (isTextResponse) {
         return {
           success: true,
-          answer: parsed.text,
+          answer: parsed.text || parsed.answer || 'Response generated.',
           latencyMs: Date.now() - startTime,
           usage: { promptTokens, completionTokens, totalTokens },
         };
       }
 
-      if (parsed.type === 'sql') {
-        const sqlQuery = parsed.query;
-        const upperQuery = sqlQuery.toUpperCase().trim();
+      let queriesToRun: string[] = [];
+      if (Array.isArray(parsed)) {
+        queriesToRun = parsed
+          .filter(p => p.type === 'sql' || p.query)
+          .map(p => p.query);
+      } else if (parsed.type === 'sql' || parsed.query) {
+        queriesToRun = [parsed.query];
+      }
 
-        if (
-          !upperQuery.startsWith('SELECT') &&
-          !upperQuery.startsWith('WITH')
-        ) {
-          return {
-            success: false,
-            answer:
-              'Security Block: Only read-only SELECT queries are allowed.',
-          };
-        }
-
+      if (queriesToRun.length > 0) {
+        const dbResults: any[] = [];
         const forbiddenKeywords = [
           'INSERT',
           'UPDATE',
@@ -297,28 +295,45 @@ export class AIService {
           'SHUTDOWN',
         ];
 
-        for (const word of forbiddenKeywords) {
-          const regex = new RegExp(`\\b${word}\\b`, 'i');
-          if (regex.test(sqlQuery)) {
+        for (const sqlQuery of queriesToRun) {
+          const upperQuery = sqlQuery.toUpperCase().trim();
+
+          if (
+            !upperQuery.startsWith('SELECT') &&
+            !upperQuery.startsWith('WITH')
+          ) {
             return {
               success: false,
-              answer: `Security Block: Prohibited database operation detected (${word}).`,
+              answer:
+                'Security Block: Only read-only SELECT queries are allowed.',
             };
           }
-        }
 
-        const dbResult: any[] = await prisma.$queryRawUnsafe(sqlQuery);
-
-        const scrubbedResult = dbResult.map(row => {
-          if (!row || typeof row !== 'object') return row;
-          const newRow = { ...row };
-          for (const key of Object.keys(newRow)) {
-            if (/password|hash|salt|secret/i.test(key)) {
-              newRow[key] = '[REDACTED]';
+          for (const word of forbiddenKeywords) {
+            const regex = new RegExp(`\\b${word}\\b`, 'i');
+            if (regex.test(sqlQuery)) {
+              return {
+                success: false,
+                answer: `Security Block: Prohibited database operation detected (${word}).`,
+              };
             }
           }
-          return newRow;
-        });
+
+          const dbResult: any[] = await prisma.$queryRawUnsafe(sqlQuery);
+
+          const scrubbedResult = dbResult.map(row => {
+            if (!row || typeof row !== 'object') return row;
+            const newRow = { ...row };
+            for (const key of Object.keys(newRow)) {
+              if (/password|hash|salt|secret/i.test(key)) {
+                newRow[key] = '[REDACTED]';
+              }
+            }
+            return newRow;
+          });
+
+          dbResults.push(scrubbedResult);
+        }
 
         const synthesisModel = this.genAI.getGenerativeModel({
           model: 'gemini-flash-lite-latest',
@@ -326,12 +341,12 @@ export class AIService {
             responseMimeType: 'application/json',
           },
           systemInstruction:
-            "You are the DCC-SFA AI Assistant. You will be given a user's original question, the SQL query that was run, and the database result rows. Formulate a polite, clear, and concise natural language answer. Return a JSON object with: 'answer' (your natural language response text), 'charts' (an array of chart configuration objects if the user asked for a dashboard/multiple charts/visualizations, otherwise an empty array or null), and 'chart' (a fallback single chart configuration object, or null). If the user explicitly asks for charts/graphs/dashboards and does NOT ask for a table/list, do NOT include a markdown table in your 'answer' text. If they ask for both, or if they did not ask for charts, include the markdown table in your 'answer' text. Each chart object must have: 'type' ('bar'|'line'|'pie'|'doughnut'), 'label' (name of the metric), 'labels' (array of strings), and 'data' (array of numbers).",
+            "You are the DCC-SFA AI Assistant. You will be given a user's original question, the SQL queries that were run, and the database result rows. Formulate a polite, clear, and concise natural language answer. Return a JSON object with: 'answer' (your natural language response text), and 'chart' (a chart configuration object, or an array of chart configuration objects if the user asked for a dashboard/multiple charts/visualizations, or null if no chart is needed). If the user explicitly asks for charts/graphs/dashboards and does NOT ask for a table/list, do NOT include a markdown table in your 'answer' text. If they ask for both, or if they did not ask for charts, include the markdown table in your 'answer' text. Each chart object must have: 'type' ('bar'|'line'|'pie'|'doughnut'), 'label' (name of the metric), 'labels' (array of strings), and 'data' (array of numbers).",
         });
 
         const prompt = `${historyContext}User Question: "${question}"
-SQL Query Executed: "${sqlQuery}"
-Database Result: ${JSON.stringify(scrubbedResult)}`;
+SQL Queries Executed: ${JSON.stringify(queriesToRun)}
+Database Results: ${JSON.stringify(dbResults)}`;
 
         const synthesisResponse = await synthesisModel.generateContent(prompt);
         if (synthesisResponse.response.usageMetadata) {
@@ -346,12 +361,10 @@ Database Result: ${JSON.stringify(scrubbedResult)}`;
 
         let answer = '';
         let chart = null;
-        let charts = null;
         try {
           const parsed = JSON.parse(finalResponseText);
           answer = parsed.answer || '';
-          chart = parsed.chart || null;
-          charts = parsed.charts || null;
+          chart = parsed.chart || parsed.charts || null;
         } catch (e) {
           answer = finalResponseText;
         }
@@ -359,10 +372,9 @@ Database Result: ${JSON.stringify(scrubbedResult)}`;
         return {
           success: true,
           answer,
-          sql: sqlQuery,
-          data: scrubbedResult,
-          chart,
-          charts,
+          sql: queriesToRun.join(';\n\n'),
+          data: dbResults.length > 0 ? dbResults[0] : [],
+          chart, // Handles both single chart and multiple charts array
           latencyMs: Date.now() - startTime,
           usage: { promptTokens, completionTokens, totalTokens },
         };
@@ -370,8 +382,7 @@ Database Result: ${JSON.stringify(scrubbedResult)}`;
 
       return {
         success: false,
-        answer:
-          'Sorry, I received an unrecognized response type from the AI model.',
+        answer: `Sorry, I received an unrecognized response type from the AI model. Output: ${JSON.stringify(parsed)}`,
       };
     } catch (error: any) {
       console.error('AI Service Error:', error);
