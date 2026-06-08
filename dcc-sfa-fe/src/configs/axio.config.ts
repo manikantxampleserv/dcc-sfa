@@ -178,6 +178,10 @@ axiosInstance.interceptors.response.use(
    * @returns {Promise<never>} Rejected promise with processed error
    */
   async (error: AxiosError): Promise<never> => {
+    if (axios.isCancel(error) || error.name === 'CanceledError' || error.code === 'ERR_CANCELED') {
+      return Promise.reject(error);
+    }
+
     const originalRequest = error.config as CustomAxiosRequestConfig;
 
     if (originalRequest?.skipErrorHandling) {

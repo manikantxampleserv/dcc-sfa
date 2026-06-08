@@ -401,12 +401,13 @@ Database Results: ${JSON.stringify(dbResults)}`;
           const resultSet = dbResults[0];
           if (typeof resultSet[0] === 'object' && resultSet[0] !== null) {
             const dbKeys = Object.keys(resultSet[0]);
-            const headers = dbKeys.map(k =>
-              k
+            const headers = dbKeys.map(k => {
+              if (!k || k.trim() === '') return 'Result';
+              return k
                 .split('_')
                 .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
-                .join(' ')
-            );
+                .join(' ');
+            });
             const rows = resultSet.map((row: any) =>
               dbKeys.map((h: string) => {
                 const val = row[h];

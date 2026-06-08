@@ -17,7 +17,9 @@ interface ManageBatchProps {
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
   selectedRowIndex: number | null;
-  setSelectedRowIndex: (rowIndex: number | null) => void;
+  setSelectedRowIndex: (
+    rowIndex: number | null
+  ) => void;
   formik: FormikProps<VanInventoryFormValues>;
   quantity: number | string | null;
   inventoryByProductId?: Record<
@@ -33,6 +35,7 @@ interface ManageBatchProps {
       }[];
     }
   >;
+
   isUnloadType?: boolean;
 }
 
@@ -101,7 +104,7 @@ const ManageBatch: React.FC<ManageBatchProps> = ({
 
     // Otherwise start with empty array
     setProductBatches([]);
-  }, [isOpen, selectedRowIndex]); // FIXED: Removed dependencies that cause loops
+  }, [isOpen, selectedRowIndex, formik.values.van_inventory_items, inventoryByProductId, isUnloadType]);
 
   const handleClose = useCallback(() => {
     setIsOpen(false);
@@ -126,9 +129,12 @@ const ManageBatch: React.FC<ManageBatchProps> = ({
             if (index === rowIndex) return sum;
             return sum + (Number(batch.quantity) || 0);
           }, 0);
-          const maxAllowed = hasExpectedQty
+
+          // For non-unload type, limit total to main item quantity
+          const maxAllowed = hasExpectedQty && !isUnloadType
             ? Math.max(0, mainItemQuantity - otherQty)
             : Number.POSITIVE_INFINITY;
+
           const raw = Number(value);
           const normalized = Number.isFinite(raw) ? raw : 0;
 
@@ -176,14 +182,25 @@ const ManageBatch: React.FC<ManageBatchProps> = ({
       0
     );
 
-    if (expectedQty && totalQty > mainItemQuantity) {
+    // For non-unload type, total quantity cannot exceed main item quantity
+    if (!isUnloadType && expectedQty && totalQty > mainItemQuantity) {
       toast.error(
         `Total batch quantity (${totalQty}) cannot exceed item quantity (${mainItemQuantity})`
       );
       return;
     }
 
-    const missingIndex = productBatches.findIndex(b => {
+    // Filter out batches with zero quantity for unload type
+    const relevantBatches = isUnloadType
+      ? productBatches.filter(b => Number(b.quantity) > 0)
+      : productBatches;
+
+    if (relevantBatches.length === 0) {
+      toast.error('Please add at least one batch with quantity greater than 0.');
+      return;
+    }
+
+    const missingIndex = relevantBatches.findIndex(b => {
       const batchNumber = (b.batch_number || '').trim();
       const mfg = (b.manufacturing_date || '').trim();
       const exp = (b.expiry_date || '').trim();
@@ -193,13 +210,13 @@ const ManageBatch: React.FC<ManageBatchProps> = ({
 
     if (missingIndex !== -1) {
       toast.error(
-        `Please fill Batch Number, MFG Date, EXP Date and Quantity (> 0) for row ${missingIndex + 1}.`
+        'Please fill Batch Number, MFG Date, EXP Date and Quantity (> 0) for all selected batches.'
       );
       return;
     }
 
     const seen = new Set<string>();
-    const duplicateIndex = productBatches.findIndex(b => {
+    const duplicateIndex = relevantBatches.findIndex(b => {
       const key = `${(b.batch_number || '').trim().toLowerCase()}|${(b.lot_number || '').trim().toLowerCase()}`;
       if (seen.has(key)) return true;
       seen.add(key);
@@ -207,11 +224,11 @@ const ManageBatch: React.FC<ManageBatchProps> = ({
     });
 
     if (duplicateIndex !== -1) {
-      toast.error(`Duplicate batch entry found at row ${duplicateIndex + 1}.`);
+      toast.error('Duplicate batch entry found.');
       return;
     }
 
-    const mappedBatches = productBatches.map(b => ({
+    const mappedBatches = relevantBatches.map(b => ({
       ...b,
       batch_number: (b.batch_number || '').trim(),
       lot_number: (b.lot_number || '').trim(),
@@ -262,6 +279,34 @@ const ManageBatch: React.FC<ManageBatchProps> = ({
       0
     );
 
+    // For unload type, we just need at least one batch with quantity > 0
+    if (isUnloadType) {
+      const hasAnyQuantity = productBatches.some(b => Number(b.quantity) > 0);
+      if (!hasAnyQuantity) return false;
+
+      // Validate only batches with quantity > 0
+      const batchesWithQty = productBatches.filter(b => Number(b.quantity) > 0);
+
+      const hasMissing = batchesWithQty.some(b => {
+        const batchNumber = (b.batch_number || '').trim();
+        const mfg = (b.manufacturing_date || '').trim();
+        const exp = (b.expiry_date || '').trim();
+        const qty = Number(b.quantity);
+        return !batchNumber || !mfg || !exp || !Number.isFinite(qty) || qty <= 0;
+      });
+      if (hasMissing) return false;
+
+      const seen = new Set<string>();
+      for (const b of batchesWithQty) {
+        const key = `${(b.batch_number || '').trim().toLowerCase()}|${(b.lot_number || '').trim().toLowerCase()}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+      }
+
+      return true;
+    }
+
+    // For non-unload type, total must match expected quantity
     if (hasExpectedQty) {
       if (totalQty !== mainItemQuantity) return false;
     } else {
@@ -285,7 +330,7 @@ const ManageBatch: React.FC<ManageBatchProps> = ({
     }
 
     return true;
-  }, [selectedRowIndex, productBatches, quantity]);
+  }, [selectedRowIndex, productBatches, quantity, isUnloadType]);
 
   const columns: TableColumn<ProductBatch>[] = useMemo(
     () => [

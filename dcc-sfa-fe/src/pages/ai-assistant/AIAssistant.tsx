@@ -5,6 +5,9 @@ import {
   FullscreenExit,
   Info,
   PlaylistRemove,
+  Mic,
+  MicOff,
+  Stop,
 } from '@mui/icons-material';
 import {
   Avatar,
@@ -16,6 +19,8 @@ import {
   IconButton,
 } from '@mui/material';
 import axiosInstance from 'configs/axio.config';
+import axios from 'axios';
+import Sanscript from '@indic-transliteration/sanscript';
 import React, { useEffect, useRef, useState } from 'react';
 import Button from 'shared/Button';
 import { useAuth } from '../../context/AuthContext';
@@ -41,9 +46,25 @@ const AIAssistant: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [activeSql, setActiveSql] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isListening, setIsListening] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const recognitionRef = useRef<any>(null);
+  const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const inputValueRef = useRef('');
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  const handleStop = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    setIsLoading(false);
+  };
+
+  useEffect(() => {
+    inputValueRef.current = inputValue;
+  }, [inputValue]);
 
   useEffect(() => {
     if (sessionKey) {
@@ -124,9 +145,12 @@ const AIAssistant: React.FC = () => {
       }));
 
     try {
+      abortControllerRef.current = new AbortController();
       const response = await axiosInstance.post('/ai/query', {
         question: text,
         history: historyPayload,
+      }, {
+        signal: abortControllerRef.current.signal
       });
 
       const assistantMsg: Message = {
@@ -141,15 +165,25 @@ const AIAssistant: React.FC = () => {
       };
       setMessages(prev => [...prev, assistantMsg]);
     } catch (error: any) {
-      console.error('AI Error:', error);
-      const errMsg =
+      if (axios.isCancel(error) || error.name === 'CanceledError' || error.code === 'ERR_CANCELED') {
+        setMessages(prev => [
+          ...prev,
+          {
+            sender: 'assistant',
+            text: 'Generation interrupted by user.',
+            timestamp: new Date(),
+          },
+        ]);
+        return;
+      }
+      const error_message =
         error.response?.data?.message ||
         'Sorry, I encountered an issue querying the database. Please verify your connection or Gemini API key.';
       setMessages(prev => [
         ...prev,
         {
           sender: 'assistant',
-          text: errMsg,
+          text: error_message,
           timestamp: new Date(),
         },
       ]);
@@ -170,6 +204,92 @@ const AIAssistant: React.FC = () => {
         timestamp: new Date(),
       },
     ]);
+  };
+
+  const toggleVoiceInput = () => {
+    if (isListening) {
+      if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+      recognitionRef.current?.stop();
+      setIsListening(false);
+      return;
+    }
+
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("Your browser does not support speech recognition.");
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognitionRef.current = recognition;
+    recognition.lang = 'hi-IN';
+    recognition.interimResults = true;
+
+    let finalTranscript = '';
+
+    recognition.onstart = () => {
+      setIsListening(true);
+      setInputValue('');
+    };
+
+    const transliterate = (text: string) => {
+      try {
+        return Sanscript.t(text, 'devanagari', 'itrans')
+          .replace(/M/g, 'n')
+          .replace(/T/g, 't')
+          .replace(/D/g, 'd')
+          .replace(/N/g, 'n')
+          .replace(/S/g, 'sh')
+          .replace(/R/g, 'ri')
+          .replace(/L/g, 'l')
+          .replace(/aa/g, 'a')
+          .replace(/ee/g, 'i')
+          .replace(/oo/g, 'u')
+          .replace(/ii/g, 'i')
+          .replace(/ॉ/g, 'o')
+          .toLowerCase();
+      } catch (e) {
+        return text;
+      }
+    };
+
+    recognition.onresult = (event: any) => {
+      let interimTranscript = '';
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        if (event.results[i].isFinal) {
+          finalTranscript += event.results[i][0].transcript;
+        } else {
+          interimTranscript += event.results[i][0].transcript;
+        }
+      }
+
+      setInputValue(transliterate(finalTranscript) + transliterate(interimTranscript));
+
+      if (silenceTimerRef.current) {
+        clearTimeout(silenceTimerRef.current);
+      }
+      silenceTimerRef.current = setTimeout(() => {
+        recognition.stop();
+      }, 1500);
+    };
+
+    recognition.onerror = (event: any) => {
+      console.error('Speech recognition error', event.error);
+      setIsListening(false);
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+      if (silenceTimerRef.current) {
+        clearTimeout(silenceTimerRef.current);
+      }
+      const textToSend = transliterate(finalTranscript) || inputValueRef.current;
+      if (textToSend.trim()) {
+        handleSend(textToSend);
+      }
+    };
+
+    recognition.start();
   };
 
   return (
@@ -218,11 +338,10 @@ const AIAssistant: React.FC = () => {
       )}
 
       <div
-        className={`flex flex-col bg-white overflow-hidden ${
-          isFullscreen
-            ? 'h-screen w-screen fixed inset-0 z-[9999]'
-            : 'h-[calc(100vh-210px)] rounded-lg border border-gray-200 shadow-sm'
-        }`}
+        className={`flex flex-col bg-white overflow-hidden ${isFullscreen
+          ? 'h-screen w-screen fixed inset-0 z-[9999]'
+          : 'h-[calc(100vh-210px)] rounded-lg border border-gray-200 shadow-sm'
+          }`}
       >
         {isFullscreen && (
           <div className="flex items-center justify-between px-6 py-3.5 border-b border-gray-200 bg-gray-50 shrink-0 animate-fade-in">
@@ -340,22 +459,44 @@ const AIAssistant: React.FC = () => {
                   }
                 }
               }}
-              placeholder="Ask AI Assistant about salespeople, depots, customers, orders..."
-              disabled={isLoading}
+              placeholder={isListening ? "Listening..." : "Ask AI Assistant about salespeople, depots, customers, orders..."}
+              disabled={isLoading || isListening}
               style={{ outline: 'none', boxShadow: 'none' }}
               className="flex-1 p-2 outline-none bg-transparent border-none resize-none text-sm py-1 placeholder:text-gray-400 disabled:text-gray-400 max-h-24 overflow-y-auto"
             />
             <IconButton
-              type="submit"
-              disabled={isLoading || !inputValue.trim()}
-              className={`!p-1.5 !rounded-[6px] !transition-all !outline-none ${
-                inputValue.trim()
+              type="button"
+              onClick={toggleVoiceInput}
+              disabled={isLoading}
+              title={isListening ? "Stop listening" : "Start voice command"}
+              className={`!p-1.5 !rounded-[6px] !transition-all !outline-none ${isListening
+                ? '!bg-red-100 !text-red-500 animate-pulse'
+                : '!bg-gray-100 !text-gray-500 hover:!bg-gray-200'
+                }`}
+            >
+              {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+            </IconButton>
+            {isLoading ? (
+              <IconButton
+                type="button"
+                onClick={handleStop}
+                title="Stop generating"
+                className="!p-1.5 !rounded-[6px] !transition-all !outline-none !bg-red-500 !text-white hover:!bg-red-600"
+              >
+                <Stop className="w-4 h-4" />
+              </IconButton>
+            ) : (
+              <IconButton
+                type="submit"
+                disabled={isListening || !inputValue.trim()}
+                className={`!p-1.5 !rounded-[6px] !transition-all !outline-none ${inputValue.trim() && !isListening
                   ? '!bg-blue-600 !text-white hover:!bg-blue-700'
                   : '!bg-gray-100 !text-gray-300'
-              }`}
-            >
-              <ArrowUpward className="w-4 h-4" />
-            </IconButton>
+                  }`}
+              >
+                <ArrowUpward className="w-4 h-4" />
+              </IconButton>
+            )}
           </form>
           <div className="flex items-center gap-1.5 text-[10px] text-gray-400 font-medium px-1">
             <Info className="w-3.5 h-3.5 text-gray-300" />
