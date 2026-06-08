@@ -153,9 +153,15 @@ You have access to the database via read-only SQL SELECT queries.
 Here is the database schema description of all tables:
 ${parsedSchema}
 
-*Additional context on Sales Force Roles:*
-- A salesperson/salesman/representative is a user with a role named 'Salesman', 'Sales Person', or 'Sales Representative' (role_key = 'salesman', 'sales_person', or 'sales_representative' in the roles table).
-- outlets and customers are same here.
+*Domain Vocabulary & Context:*
+- "Outlets" or "Customers" always refer to the 'customers' table.
+- "Assets" refer to the 'asset_master' table.
+- "Cooler Installations" refer to the 'coolers' table. Note that coolers are a specific type of asset linked to the 'asset_master' table.
+- "Depots" refer to the 'depots' table. Ignore the 'warehouses' table.
+- "Stock" or "inventory" quantities (current stock) are ALWAYS found in the 'inventory_stock' table, which is the single source of truth.
+- To find a Salesperson's "Van Stock" or "Van Inventory", DO NOT look for quantity columns in the 'van_inventory' table. Instead, find the salesperson's location_id(s) from the 'van_inventory' table (where user_id = salesperson), and then query the 'inventory_stock' table for those location_ids to get their current_stock.
+
+- A "salesperson", "salesman", or "representative" is a user with a role_key of 'salesman', 'sales_person', or 'sales_representative' in the 'roles' table.
 Guidelines for generating SQL queries:
 - Return ONLY a JSON object in the following format:
   {
@@ -357,7 +363,7 @@ export class AIService {
             responseMimeType: 'application/json',
           },
           systemInstruction:
-            "You are the DCC-SFA AI Assistant. You will be given a user's original question, the SQL queries that were run, and the database result rows. Formulate a polite, clear, and concise natural language answer. Return a JSON object with: 'answer' (your natural language response text), and 'chart' (a chart configuration object, or an array of chart configuration objects if the user asked for a dashboard/multiple charts/visualizations, or null if no chart is needed). Each chart object must have: 'type' ('bar'|'line'|'pie'|'doughnut'), 'label' (name of the metric), 'labels' (array of strings), and 'data' (array of numbers). DO NOT include markdown tables in your answer. VERY IMPORTANT: Do NOT list or repeat the database records in your 'answer' text! A visual table is automatically rendered for the user. Your 'answer' should just be a 1-sentence summary (e.g. 'Here are the results you requested:').",
+            "You are the DCC-SFA AI Assistant. You will be given a user's original question, the SQL queries that were run, and the database result rows. Formulate a polite, clear, and concise natural language answer. Return a JSON object with: 'answer' (your natural language response text), and 'chart' (a chart configuration object, or an array of chart configuration objects if the user asked for a dashboard/multiple charts/visualizations, or null if no chart is needed). ONLY generate a chart if the user explicitly types the words 'chart', 'graph', 'plot', or 'dashboard' in their prompt. Otherwise, you MUST set 'chart' to null. Each chart object must have: 'type' ('bar'|'line'|'pie'|'doughnut'), 'label' (name of the metric), 'labels' (array of strings), and 'data' (array of numbers). DO NOT include markdown tables in your answer. VERY IMPORTANT: Do NOT list or repeat the database records in your 'answer' text! A visual table is automatically rendered for the user. Your 'answer' should just be a 1-sentence summary (e.g. 'Here are the results you requested:').",
         });
 
         const prompt = `${historyContext}User Question: "${question}"
@@ -405,8 +411,46 @@ Database Results: ${JSON.stringify(dbResults)}`;
               dbKeys.map((h: string) => {
                 const val = row[h];
                 if (val === null || val === undefined || val === '') return '-';
-                if (val instanceof Date) return val.toISOString();
-                if (typeof val === 'object') return JSON.stringify(val);
+                if (val instanceof Date) {
+                  return val.toLocaleString('en-US', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  });
+                }
+                if (
+                  typeof val === 'string' &&
+                  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(val)
+                ) {
+                  const d = new Date(val);
+                  if (!isNaN(d.getTime())) {
+                    return d.toLocaleString('en-US', {
+                      year: 'numeric',
+                      month: 'short',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    });
+                  }
+                }
+                if (typeof val === 'object' && val !== null) {
+                  if (typeof val.toNumber === 'function') {
+                    return String(val);
+                  }
+                  const stringified = JSON.stringify(val);
+                  if (
+                    stringified &&
+                    stringified.startsWith('"') &&
+                    stringified.endsWith('"') &&
+                    !stringified.includes('{') &&
+                    !stringified.includes('[')
+                  ) {
+                    return stringified.slice(1, -1);
+                  }
+                  return stringified;
+                }
                 const strVal = String(val);
                 return strVal.trim() === '' ? '-' : strVal;
               })
