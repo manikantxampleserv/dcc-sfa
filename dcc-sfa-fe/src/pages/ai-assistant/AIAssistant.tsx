@@ -1,14 +1,10 @@
 import {
   ArrowUpward,
-  Check,
   Close,
-  ContentCopy,
   Fullscreen,
   FullscreenExit,
-  GetApp,
   Info,
   PlaylistRemove,
-  Terminal,
 } from '@mui/icons-material';
 import {
   Avatar,
@@ -19,54 +15,13 @@ import {
   DialogTitle,
   IconButton,
 } from '@mui/material';
-import {
-  ArcElement,
-  BarElement,
-  CategoryScale,
-  Chart as ChartJS,
-  Legend,
-  LinearScale,
-  LineElement,
-  PointElement,
-  Title,
-  Tooltip,
-} from 'chart.js';
 import axiosInstance from 'configs/axio.config';
 import React, { useEffect, useRef, useState } from 'react';
-import { Bar, Doughnut, Line, Pie } from 'react-chartjs-2';
 import Button from 'shared/Button';
-import { formatCalendarTime } from 'utils/dateUtils';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import * as XLSX from 'xlsx';
 import { useAuth } from '../../context/AuthContext';
-
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  PointElement,
-  LineElement,
-  ArcElement,
-  Title,
-  Tooltip,
-  Legend
-);
-
-interface Message {
-  sender: 'user' | 'assistant';
-  text: string;
-  sql?: string;
-  data?: any;
-  chart?: any | any[];
-  timestamp: Date;
-  usage?: {
-    promptTokens: number;
-    completionTokens: number;
-    totalTokens: number;
-  };
-  latencyMs?: number;
-}
+import MessageBubble from './MessageBubble';
+import type { Message } from './types';
+import { highlightSql } from './utils';
 
 const suggestions = [
   'Show depot wise visits and orders dashboard',
@@ -85,21 +40,10 @@ const AIAssistant: React.FC = () => {
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [activeSql, setActiveSql] = useState<string | null>(null);
-  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-  const handleCopyMessage = async (text: string, index: number) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopiedIndex(index);
-      setTimeout(() => setCopiedIndex(null), 2000);
-    } catch (err) {
-      console.error('Failed to copy text: ', err);
-    }
-  };
 
   useEffect(() => {
     if (sessionKey) {
@@ -189,8 +133,8 @@ const AIAssistant: React.FC = () => {
         sender: 'assistant',
         text: response.data.answer || "I couldn't find an answer.",
         sql: response.data.sql,
-        data: response.data.data,
         chart: response.data.chart,
+        table: response.data.table,
         usage: response.data.usage,
         latencyMs: response.data.latencyMs,
         timestamp: new Date(),
@@ -226,232 +170,6 @@ const AIAssistant: React.FC = () => {
         timestamp: new Date(),
       },
     ]);
-  };
-
-  const handleExportExcel = (headers: string[], rows: string[][]) => {
-    const data = [headers, ...rows];
-    const worksheet = XLSX.utils.aoa_to_sheet(data);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Results');
-    XLSX.writeFile(
-      workbook,
-      `query_results_${new Date().toISOString().slice(0, 10)}.xlsx`
-    );
-  };
-
-  const extractTableFromMarkdown = (text: string) => {
-    const lines = text.split('\n').map(l => l.trim());
-    let inTable = false;
-    let headers: string[] = [];
-    let rows: string[][] = [];
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-      if (line.startsWith('|') && line.endsWith('|')) {
-        const cells = line
-          .split('|')
-          .map(s => s.trim().replace(/^\*\*?(.*?)\*\*?$/, '$1'))
-          .filter((_, index, arr) => index > 0 && index < arr.length - 1);
-
-        if (!inTable) {
-          inTable = true;
-          headers = cells;
-          if (i + 1 < lines.length && lines[i + 1].includes('-')) {
-            i++;
-          }
-        } else {
-          rows.push(cells);
-        }
-      } else if (inTable) {
-        break;
-      }
-    }
-    return { headers, rows };
-  };
-
-  const renderChart = (chartData: {
-    type: 'bar' | 'line' | 'pie' | 'doughnut';
-    label: string;
-    labels: string[];
-    data: number[];
-  }) => {
-    if (!chartData || !chartData.type || !chartData.labels || !chartData.data) {
-      return null;
-    }
-
-    const data = {
-      labels: chartData.labels,
-      datasets: [
-        {
-          label: chartData.label || 'Value',
-          data: chartData.data,
-          backgroundColor:
-            chartData.type === 'pie' || chartData.type === 'doughnut'
-              ? [
-                  '#3b82f6',
-                  '#8b5cf6',
-                  '#ec4899',
-                  '#f59e0b',
-                  '#10b981',
-                  '#06b6d4',
-                  '#f43f5e',
-                ]
-              : 'rgba(59, 130, 246, 0.8)',
-          borderColor:
-            chartData.type === 'pie' || chartData.type === 'doughnut'
-              ? '#ffffff'
-              : '#3b82f6',
-          borderWidth: 1.5,
-        },
-      ],
-    };
-
-    const options = {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          display: chartData.type === 'pie' || chartData.type === 'doughnut',
-          position: 'bottom' as const,
-          labels: {
-            font: {
-              size: 11,
-            },
-            boxWidth: 12,
-          },
-        },
-      },
-      scales:
-        chartData.type === 'pie' || chartData.type === 'doughnut'
-          ? undefined
-          : {
-              y: {
-                beginAtZero: true,
-                grid: {
-                  color: '#f3f4f6',
-                },
-                ticks: {
-                  font: {
-                    size: 10,
-                  },
-                },
-              },
-              x: {
-                grid: {
-                  display: false,
-                },
-                ticks: {
-                  font: {
-                    size: 10,
-                  },
-                },
-              },
-            },
-    };
-
-    const ChartComponent = () => {
-      switch (chartData.type) {
-        case 'bar':
-          return <Bar data={data} options={options} />;
-        case 'line':
-          return <Line data={data} options={options} />;
-        case 'pie':
-          return <Pie data={data} options={options} />;
-        case 'doughnut':
-          return <Doughnut data={data} options={options} />;
-        default:
-          return null;
-      }
-    };
-
-    return (
-      <div className="p-4 bg-white border border-gray-200 rounded-lg shadow-sm h-[350px] flex flex-col justify-between w-full">
-        <div className="text-[11px] font-bold tracking-wider text-gray-500 uppercase border-b border-gray-100 pb-1.5 mb-2">
-          {chartData.label || 'Visualization'}
-        </div>
-        <div className="flex-1 min-h-0 relative">
-          <ChartComponent />
-        </div>
-      </div>
-    );
-  };
-
-  const highlightSql = (sql: string) => {
-    const keywords = [
-      'SELECT',
-      'FROM',
-      'WHERE',
-      'JOIN',
-      'LEFT',
-      'RIGHT',
-      'INNER',
-      'ON',
-      'AND',
-      'OR',
-      'GROUP',
-      'BY',
-      'ORDER',
-      'LIMIT',
-      'OFFSET',
-      'COUNT',
-      'SUM',
-      'MIN',
-      'MAX',
-      'AVG',
-      'AS',
-      'IN',
-      'IS',
-      'NULL',
-      'NOT',
-      'LIKE',
-      'INSERT',
-      'UPDATE',
-      'DELETE',
-      'SET',
-      'CREATE',
-      'TABLE',
-      'DROP',
-      'ALTER',
-      'WITH',
-      'HAVING',
-    ];
-
-    const regex = new RegExp(
-      `(\\b(?:${keywords.join('|')})\\b|'[^']*'|\\b\\d+\\b|[=<>!+*/-]+)`,
-      'gi'
-    );
-
-    const parts = sql.split(regex);
-    return parts.map((part, index) => {
-      if (!part) return null;
-      const upperPart = part.toUpperCase();
-      if (keywords.includes(upperPart)) {
-        return (
-          <span key={index} className="text-pink-600 font-semibold">
-            {part}
-          </span>
-        );
-      } else if (part.startsWith("'") && part.endsWith("'")) {
-        return (
-          <span key={index} className="text-green-600">
-            {part}
-          </span>
-        );
-      } else if (/^\d+$/.test(part)) {
-        return (
-          <span key={index} className="text-amber-600">
-            {part}
-          </span>
-        );
-      } else if (/^[=<>!+*/-]+$/.test(part)) {
-        return (
-          <span key={index} className="text-sky-600">
-            {part}
-          </span>
-        );
-      } else {
-        return part;
-      }
-    });
   };
 
   return (
@@ -539,197 +257,14 @@ const AIAssistant: React.FC = () => {
           {messages.map((msg, index) => {
             const userQuery =
               index > 0 ? messages[index - 1].text.toLowerCase() : '';
-            const hasChart = !!msg.chart;
-            const requestsTable =
-              userQuery.includes('table') ||
-              userQuery.includes('both') ||
-              userQuery.includes('list') ||
-              userQuery.includes('dashboard');
-            const showTable = !hasChart || requestsTable;
             return (
-              <div
+              <MessageBubble
                 key={index}
-                className={`flex items-start gap-3 py-4 border-b border-gray-100 last:border-b-0 animate-fade-in ${
-                  msg.sender === 'user' ? 'flex-row-reverse' : ''
-                }`}
-              >
-                <Avatar
-                  variant="rounded"
-                  className={`!w-10 !h-10 shrink-0 ${
-                    msg.sender === 'user'
-                      ? '!bg-blue-100 !text-blue-600'
-                      : '!bg-purple-100 !text-purple-600'
-                  }`}
-                >
-                  {msg.sender === 'user' ? userInitials : 'AI'}
-                </Avatar>
-
-                <div
-                  className={`flex-1 min-w-0 ${msg.sender === 'user' ? 'flex flex-col items-end' : ''}`}
-                >
-                  <div
-                    className={`flex justify-between items-center w-full mb-1 ${msg.sender === 'user' ? 'flex-row-reverse' : ''}`}
-                  >
-                    <span className="text-sm font-semibold text-gray-900">
-                      {msg.sender === 'user' ? 'You' : 'AI Assistant'}
-                    </span>
-                    <div className="flex items-center gap-1 text-[11px] text-gray-400 font-medium">
-                      {msg.sender === 'user' && (
-                        <span className="text-gray-300 mr-0.5">✓</span>
-                      )}
-                      <span>{formatCalendarTime(msg.timestamp)}</span>
-                    </div>
-                  </div>
-
-                  <div
-                    className={`text-sm text-gray-700 leading-relaxed break-words ${msg.sender === 'user' ? 'text-right' : ''}`}
-                  >
-                    {msg.sender === 'user' ? (
-                      <p className="whitespace-pre-wrap">{msg.text}</p>
-                    ) : (
-                      <div className="space-y-3">
-                        {showTable && (
-                          <div className="prose prose-sm max-w-none prose-p:mb-2 prose-p:text-gray-700 prose-p:leading-relaxed prose-p:text-sm prose-strong:font-semibold prose-strong:text-gray-900">
-                            <ReactMarkdown
-                              remarkPlugins={[remarkGfm]}
-                              components={{
-                                table: ({ node, ...props }) => (
-                                  <div className="mb-4 mt-2 border border-gray-200 rounded-lg shadow-sm overflow-hidden bg-white">
-                                    <div className="p-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
-                                      <span className="text-[11px] font-bold tracking-wider text-gray-500 uppercase">
-                                        Results
-                                      </span>
-                                      <button
-                                        onClick={() => {
-                                          const { headers, rows } =
-                                            extractTableFromMarkdown(msg.text);
-                                          if (headers.length > 0)
-                                            handleExportExcel(headers, rows);
-                                        }}
-                                        className="text-[12px] font-semibold text-primary-600 hover:text-primary-800 transition-colors bg-transparent border-none cursor-pointer outline-none p-0 flex items-center gap-1"
-                                      >
-                                        <GetApp style={{ fontSize: '14px' }} />
-                                        Export Excel
-                                      </button>
-                                    </div>
-                                    <div className="overflow-x-auto">
-                                      <table
-                                        className="min-w-full divide-y divide-gray-200 text-left text-xs md:text-sm"
-                                        {...props}
-                                      />
-                                    </div>
-                                  </div>
-                                ),
-                                thead: ({ node, ...props }) => (
-                                  <thead className="bg-gray-100" {...props} />
-                                ),
-                                th: ({ node, ...props }) => (
-                                  <th
-                                    className="px-3 py-2 font-semibold text-gray-700 uppercase tracking-wider"
-                                    {...props}
-                                  />
-                                ),
-                                tbody: ({ node, ...props }) => (
-                                  <tbody
-                                    className="divide-y divide-gray-200 bg-white"
-                                    {...props}
-                                  />
-                                ),
-                                tr: ({ node, ...props }) => (
-                                  <tr
-                                    className="hover:bg-gray-50 transition-colors"
-                                    {...props}
-                                  />
-                                ),
-                                td: ({ node, ...props }) => (
-                                  <td
-                                    className="px-3 py-2 text-gray-600 font-medium"
-                                    {...props}
-                                  />
-                                ),
-                              }}
-                            >
-                              {msg.text}
-                            </ReactMarkdown>
-                          </div>
-                        )}
-                        {Array.isArray(msg.chart) && msg.chart.length > 0 && (
-                          <div
-                            className={`grid grid-cols-1 ${msg.chart.length > 1 ? 'md:grid-cols-2' : ''} gap-4 w-full`}
-                          >
-                            {msg.chart.map((c, ci) => (
-                              <React.Fragment key={ci}>
-                                {renderChart(c)}
-                              </React.Fragment>
-                            ))}
-                          </div>
-                        )}
-                        {!Array.isArray(msg.chart) &&
-                          msg.chart &&
-                          renderChart(msg.chart)}
-                        {(msg.latencyMs !== undefined || msg.usage) && (
-                          <div className="flex items-center gap-1.5 text-[10px] text-gray-400 font-medium select-none">
-                            {msg.latencyMs !== undefined && (
-                              <span>
-                                {(msg.latencyMs / 1000).toFixed(2)}s response
-                                time
-                              </span>
-                            )}
-                            {msg.latencyMs !== undefined && msg.usage && (
-                              <span className="text-gray-300">|</span>
-                            )}
-                            {msg.usage && (
-                              <span
-                                title={`Prompt: ${msg.usage.promptTokens} | Completion: ${msg.usage.completionTokens}`}
-                              >
-                                {msg.usage.totalTokens} tokens
-                              </span>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-
-                  {msg.sender === 'user' ? (
-                    <div className="mt-2 flex justify-end">
-                      <button
-                        onClick={() => handleCopyMessage(msg.text, index)}
-                        className="text-[10px] font-semibold text-primary-600 hover:text-primary-800 transition-colors bg-transparent border-none cursor-pointer outline-none p-0 flex items-center gap-1"
-                      >
-                        <span>
-                          {copiedIndex === index ? 'COPIED!' : 'COPY'}
-                        </span>
-                        {copiedIndex === index ? (
-                          <Check
-                            style={{ fontSize: '10px', color: '#10b981' }}
-                          />
-                        ) : (
-                          <ContentCopy style={{ fontSize: '10px' }} />
-                        )}
-                      </button>
-                    </div>
-                  ) : (
-                    msg.sql && (
-                      <div className="mt-2.5 max-w-md w-full">
-                        <button
-                          type="button"
-                          onClick={() => setActiveSql(msg.sql || null)}
-                          className="flex items-center justify-between w-full px-3 py-2 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-md cursor-pointer transition-all text-left outline-none"
-                        >
-                          <span className="flex items-center gap-1.5 font-mono text-[11px] font-semibold text-gray-600">
-                            <Terminal
-                              style={{ fontSize: '14px' }}
-                              className="text-gray-400"
-                            />
-                            sql
-                          </span>
-                        </button>
-                      </div>
-                    )
-                  )}
-                </div>
-              </div>
+                msg={msg}
+                userQuery={userQuery}
+                userInitials={userInitials}
+                setActiveSql={setActiveSql}
+              />
             );
           })}
 

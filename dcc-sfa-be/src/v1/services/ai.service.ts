@@ -136,14 +136,16 @@ const FALLBACK_SCHEMA = `
 `;
 
 let cachedSystemInstruction = '';
+let lastCacheTime = 0;
+const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
 function getSystemInstruction(): string {
-  if (cachedSystemInstruction) {
+  const now = Date.now();
+  if (cachedSystemInstruction && now - lastCacheTime < ONE_DAY_MS) {
     return cachedSystemInstruction;
   }
 
   const parsedSchema = parsePrismaSchema() || FALLBACK_SCHEMA;
-
   cachedSystemInstruction = `
 You are the DCC-SFA AI Assistant, an intelligent system built to help managers and operators query sales force automation (SFA) data from the Microsoft SQL Server database.
 You have access to the database via read-only SQL SELECT queries.
@@ -153,7 +155,7 @@ ${parsedSchema}
 
 *Additional context on Sales Force Roles:*
 - A salesperson/salesman/representative is a user with a role named 'Salesman', 'Sales Person', or 'Sales Representative' (role_key = 'salesman', 'sales_person', or 'sales_representative' in the roles table).
-
+- outlets and customers are same here.
 Guidelines for generating SQL queries:
 - Return ONLY a JSON object in the following format:
   {
@@ -162,16 +164,27 @@ Guidelines for generating SQL queries:
     "explanation": "Brief description of what this query will fetch"
   }
 - Crucial: Only generate SELECT queries. Do not generate INSERT, UPDATE, DELETE, ALTER, DROP, or any other mutating query.
-- Use Microsoft SQL Server (T-SQL) dialect. For example, use TOP N instead of LIMIT N for limiting rows (e.g. SELECT TOP 5 * FROM users).
-- Use joins where necessary (e.g., join users with roles to filter by role_key = 'salesman').
+- Use Microsoft SQL Server (T-SQL) dialect. DO NOT artificially limit rows using TOP N (e.g. SELECT TOP 10) unless the user specifically asks for a limit. Always return the full complete list of all matching records.
+- Use joins where necessary (e.g., join users with roles to filter by role_key = 'salesman'). CRUCIAL: ALWAYS JOIN related tables to display human-readable names instead of raw database IDs (e.g., join the customers/outlets table to show the actual outlet name instead of just outputting location_id or customer_id).
 - Handle active flags (e.g., is_active = 'Y').
+- NEVER use COUNT(*), SUM(), or AVG() unless the user explicitly types the exact words 'how many', 'count', 'sum', or 'average'. 
+- If the user types 'total' (e.g. 'give me total outlets'), they mean 'give me the full list of all outlets'. You MUST return the actual rows. Do NOT aggregate the data into a single number!
+- When selecting rows for a list, select ONLY the absolute most basic columns: id, name, code, and status (if applicable). DO NOT select address, phone_number, email, or any other detailed columns.
 - If the user's question does not require database access (e.g., greeting, general questions, or explaining a concept), return:
   {
     "type": "text",
     "text": "Your natural language response here."
   }
 `;
+  lastCacheTime = now;
   return cachedSystemInstruction;
+}
+
+export interface ChartData {
+  type: 'bar' | 'line' | 'pie' | 'doughnut';
+  label: string;
+  labels: string[];
+  data: number[];
 }
 
 export class AIService {
@@ -195,8 +208,11 @@ export class AIService {
     success: boolean;
     answer: string;
     sql?: string;
-    data?: any;
-    chart?: any | any[];
+    chart?: ChartData | ChartData[];
+    table?: {
+      headers: string[];
+      rows: string[][];
+    };
     usage?: {
       promptTokens: number;
       completionTokens: number;
@@ -341,7 +357,7 @@ export class AIService {
             responseMimeType: 'application/json',
           },
           systemInstruction:
-            "You are the DCC-SFA AI Assistant. You will be given a user's original question, the SQL queries that were run, and the database result rows. Formulate a polite, clear, and concise natural language answer. Return a JSON object with: 'answer' (your natural language response text), and 'chart' (a chart configuration object, or an array of chart configuration objects if the user asked for a dashboard/multiple charts/visualizations, or null if no chart is needed). If the user explicitly asks for charts/graphs/dashboards and does NOT ask for a table/list, do NOT include a markdown table in your 'answer' text. If they ask for both, or if they did not ask for charts, include the markdown table in your 'answer' text. Each chart object must have: 'type' ('bar'|'line'|'pie'|'doughnut'), 'label' (name of the metric), 'labels' (array of strings), and 'data' (array of numbers).",
+            "You are the DCC-SFA AI Assistant. You will be given a user's original question, the SQL queries that were run, and the database result rows. Formulate a polite, clear, and concise natural language answer. Return a JSON object with: 'answer' (your natural language response text), and 'chart' (a chart configuration object, or an array of chart configuration objects if the user asked for a dashboard/multiple charts/visualizations, or null if no chart is needed). Each chart object must have: 'type' ('bar'|'line'|'pie'|'doughnut'), 'label' (name of the metric), 'labels' (array of strings), and 'data' (array of numbers). DO NOT include markdown tables in your answer. VERY IMPORTANT: Do NOT list or repeat the database records in your 'answer' text! A visual table is automatically rendered for the user. Your 'answer' should just be a 1-sentence summary (e.g. 'Here are the results you requested:').",
         });
 
         const prompt = `${historyContext}User Question: "${question}"
@@ -369,12 +385,42 @@ Database Results: ${JSON.stringify(dbResults)}`;
           answer = finalResponseText;
         }
 
+        let autoTable: { headers: string[]; rows: string[][] } | undefined =
+          undefined;
+        if (
+          dbResults.length > 0 &&
+          Array.isArray(dbResults[0]) &&
+          dbResults[0].length > 0
+        ) {
+          const resultSet = dbResults[0];
+          if (typeof resultSet[0] === 'object' && resultSet[0] !== null) {
+            const dbKeys = Object.keys(resultSet[0]);
+            const headers = dbKeys.map(k =>
+              k
+                .split('_')
+                .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+                .join(' ')
+            );
+            const rows = resultSet.map((row: any) =>
+              dbKeys.map((h: string) => {
+                const val = row[h];
+                if (val === null || val === undefined || val === '') return '-';
+                if (val instanceof Date) return val.toISOString();
+                if (typeof val === 'object') return JSON.stringify(val);
+                const strVal = String(val);
+                return strVal.trim() === '' ? '-' : strVal;
+              })
+            );
+            autoTable = { headers, rows };
+          }
+        }
+
         return {
           success: true,
           answer,
           sql: queriesToRun.join(';\n\n'),
-          data: dbResults.length > 0 ? dbResults[0] : [],
-          chart, // Handles both single chart and multiple charts array
+          chart,
+          table: autoTable,
           latencyMs: Date.now() - startTime,
           usage: { promptTokens, completionTokens, totalTokens },
         };
