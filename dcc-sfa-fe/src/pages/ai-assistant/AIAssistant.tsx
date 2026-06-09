@@ -60,6 +60,9 @@ const AIAssistant: React.FC = () => {
       abortControllerRef.current.abort();
     }
     setIsLoading(false);
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
   };
 
   useEffect(() => {
@@ -125,7 +128,7 @@ const AIAssistant: React.FC = () => {
     }
   }, [inputValue]);
 
-  const handleSend = async (text: string) => {
+  const handleSend = async (text: string, isVoice: boolean = false) => {
     if (!text.trim()) return;
     const userMsg: Message = {
       sender: 'user',
@@ -157,9 +160,18 @@ const AIAssistant: React.FC = () => {
         }
       );
 
+      const answerText = response.data.answer || "I couldn't find an answer.";
+
+      if (isVoice && 'speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(answerText);
+        utterance.lang = 'hi-IN';
+        window.speechSynthesis.speak(utterance);
+      }
+
       const assistantMsg: Message = {
         sender: 'assistant',
-        text: response.data.answer || "I couldn't find an answer.",
+        text: answerText,
         sql: response.data.sql,
         chart: response.data.chart,
         table: response.data.table,
@@ -205,6 +217,9 @@ const AIAssistant: React.FC = () => {
   };
 
   const clearChat = () => {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
     setMessages([
       {
         sender: 'assistant',
@@ -232,7 +247,7 @@ const AIAssistant: React.FC = () => {
 
     const recognition = new SpeechRecognition();
     recognitionRef.current = recognition;
-    recognition.lang = 'hi-IN';
+    recognition.lang = 'en-IN';
     recognition.interimResults = true;
 
     let finalTranscript = '';
@@ -274,7 +289,7 @@ const AIAssistant: React.FC = () => {
       }
       const textToSend = finalTranscript || inputValueRef.current;
       if (textToSend.trim()) {
-        handleSend(textToSend);
+        handleSend(textToSend, true);
       }
     };
 
@@ -284,6 +299,27 @@ const AIAssistant: React.FC = () => {
   return (
     <>
       <style>{`
+        @keyframes blink {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0; }
+        }
+        @keyframes colorBlink {
+          0% { background-color: #4285F4; }
+          25% { background-color: #EA4335; }
+          50% { background-color: #FBBC05; }
+          75% { background-color: #34A853; }
+          100% { background-color: #4285F4; }
+        }
+        @keyframes caretColorBlink {
+          0% { caret-color: #4285F4; }
+          25% { caret-color: #EA4335; }
+          50% { caret-color: #FBBC05; }
+          75% { caret-color: #34A853; }
+          100% { caret-color: #4285F4; }
+        }
+        .caret-animated {
+          animation: caretColorBlink 4s step-end infinite;
+        }
         @keyframes soundWave {
           0%, 100% { transform: scaleY(0.4); opacity: 0.6; }
           50% { transform: scaleY(1); opacity: 1; }
@@ -473,24 +509,27 @@ const AIAssistant: React.FC = () => {
                 )}
               </div>
             ) : (
-              <textarea
-                ref={textareaRef}
-                rows={1}
-                value={inputValue}
-                onChange={e => setInputValue(e.target.value)}
-                onKeyDown={e => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    if (inputValue.trim() && !isLoading) {
-                      handleSend(inputValue);
+              <div className="flex-1 relative flex items-center">
+                <textarea
+                  ref={textareaRef}
+                  rows={1}
+                  value={inputValue}
+                  autoFocus
+                  onChange={e => setInputValue(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      if (inputValue.trim() && !isLoading) {
+                        handleSend(inputValue);
+                      }
                     }
-                  }
-                }}
-                placeholder="Ask AI Assistant about salespeople, depots, customers, orders..."
-                disabled={isLoading}
-                style={{ outline: 'none', boxShadow: 'none' }}
-                className="flex-1 p-2 outline-none bg-transparent border-none resize-none text-sm py-1 placeholder:text-gray-400 disabled:text-gray-400 max-h-24 overflow-y-auto"
-              />
+                  }}
+                  placeholder="Ask AI Assistant about salespeople, depots, customers, orders..."
+                  disabled={isLoading}
+                  style={{ outline: 'none', boxShadow: 'none' }}
+                  className={`w-full p-2 truncate text-ellipsis outline-none bg-transparent border-none resize-none text-[15px] py-1 placeholder:text-gray-400 disabled:text-gray-400 max-h-24 overflow-y-auto caret-animated`}
+                />
+              </div>
             )}
             <IconButton
               type="button"
