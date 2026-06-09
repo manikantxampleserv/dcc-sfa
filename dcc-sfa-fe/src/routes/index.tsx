@@ -116,7 +116,7 @@ import AlertsReminders from 'pages/workflows/AlertsReminders';
 import ApprovalSetup from 'pages/workflows/ApprovalSetup';
 import ApprovalWorkflows from 'pages/workflows/ApprovalWorkflows';
 import RouteExceptions from 'pages/workflows/RouteExceptions';
-import AIAssistant from 'pages/ai-assistant/AIAssistant';
+import AIAssistant from 'pages/ai-assistant';
 import React from 'react';
 import {
   createBrowserRouter,

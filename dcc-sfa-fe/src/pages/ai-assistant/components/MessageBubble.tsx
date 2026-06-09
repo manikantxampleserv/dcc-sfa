@@ -4,8 +4,8 @@ import React, { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { formatCalendarTime } from 'utils/dateUtils';
 import ChartWidget from './ChartWidget';
-import type { Message } from './types';
-import { handleExportExcel } from './utils';
+import type { Message } from '../types';
+import { handleExportExcel } from '../utils';
 
 const MessageBubble = React.memo(
   ({
@@ -60,12 +60,12 @@ const MessageBubble = React.memo(
           className={`flex-1 min-w-0 ${msg.sender === 'user' ? 'flex flex-col items-end' : ''}`}
         >
           <div
-            className={`flex justify-between items-center w-full mb-1 ${msg.sender === 'user' ? 'flex-row-reverse' : ''}`}
+            className={`flex justify-between items-center w-full ${msg.sender === 'user' ? 'flex-row-reverse' : ''}`}
           >
             <span className="text-sm font-semibold text-gray-900">
               {msg.sender === 'user' ? 'You' : 'AI Assistant'}
             </span>
-            <div className="flex items-center gap-1 text-[11px] text-gray-400 font-medium">
+            <div className="flex items-center gap-1 text-[10px] text-gray-400 font-medium">
               {msg.sender === 'user' && (
                 <span className="text-gray-300 mr-0.5">✓</span>
               )}
@@ -79,8 +79,8 @@ const MessageBubble = React.memo(
             {msg.sender === 'user' ? (
               <p className="whitespace-pre-wrap">{msg.text}</p>
             ) : (
-              <div className="space-y-3">
-                <div className="prose prose-sm prose-p:leading-relaxed prose-pre:bg-gray-800 prose-pre:text-gray-100 max-w-none text-gray-700 break-words text-sm">
+              <div className="space-y-2">
+                <div className="prose prose-sm prose-p:leading-relaxed prose-pre:bg-gray-800 prose-pre:text-gray-100 max-w-none text-gray-700 break-words">
                   <ReactMarkdown>{msg.text}</ReactMarkdown>
                 </div>
                 {showTable && msg.table && msg.table.headers.length > 0 && (

@@ -75,7 +75,8 @@ const SystemSettings: React.FC = () => {
       smtp_username: settings?.smtp_username || '',
       smtp_password: settings?.smtp_password || '',
       currency_id: settings?.currency_id || null,
-      customer_grading_cron_time: settings?.customer_grading_cron_time || '0 0 * * *',
+      customer_grading_cron_time:
+        settings?.customer_grading_cron_time || '0 0 * * *',
     },
     validationSchema,
     enableReinitialize: true,
@@ -479,7 +480,9 @@ const SystemSettings: React.FC = () => {
               <MenuItem value="0 0 * * *">Everyday Midnight</MenuItem>
               <MenuItem value="0 * * * *">Every Hour</MenuItem>
               <MenuItem value="* * * * *">Every Minute</MenuItem>
-              <MenuItem value="0 0 * * 0">Every Week (Sunday Midnight)</MenuItem>
+              <MenuItem value="0 0 * * 0">
+                Every Week (Sunday Midnight)
+              </MenuItem>
               <MenuItem value="0 0 1 * *">Every Month (1st Midnight)</MenuItem>
             </Select>
           </Box>

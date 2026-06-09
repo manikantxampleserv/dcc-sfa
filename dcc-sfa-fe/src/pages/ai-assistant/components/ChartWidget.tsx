@@ -12,7 +12,7 @@ import {
 } from 'chart.js';
 import React from 'react';
 import { Bar, Doughnut, Line, Pie } from 'react-chartjs-2';
-import type { ChartData } from './types';
+import type { ChartData } from '../types';
 
 ChartJS.register(
   CategoryScale,

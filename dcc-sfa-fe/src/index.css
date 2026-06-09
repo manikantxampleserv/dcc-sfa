@@ -70,3 +70,121 @@ input[type='number']::-webkit-inner-spin-button {
 input[type='number'] {
   appearance: textfield;
 }
+
+/* AI Assistant Animations */
+@keyframes blink {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0;
+  }
+}
+
+@keyframes colorBlink {
+  0% {
+    background-color: #4285F4;
+  }
+
+  25% {
+    background-color: #EA4335;
+  }
+
+  50% {
+    background-color: #FBBC05;
+  }
+
+  75% {
+    background-color: #34A853;
+  }
+
+  100% {
+    background-color: #4285F4;
+  }
+}
+
+@keyframes caretColorBlink {
+  0% {
+    caret-color: #4285F4;
+  }
+
+  25% {
+    caret-color: #EA4335;
+  }
+
+  50% {
+    caret-color: #FBBC05;
+  }
+
+  75% {
+    caret-color: #34A853;
+  }
+
+  100% {
+    caret-color: #4285F4;
+  }
+}
+
+.caret-animated {
+  animation: caretColorBlink 4s step-end infinite;
+}
+
+@keyframes soundWave {
+
+  0%,
+  100% {
+    transform: scaleY(0.4);
+    opacity: 0.6;
+  }
+
+  50% {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+}
+
+.voice-wave {
+  width: 3px;
+  height: 16px;
+  background-color: #155dfc;
+  border-radius: 4px;
+  animation: soundWave 1.2s ease-in-out infinite;
+}
+
+.voice-wave:nth-child(1) {
+  animation-delay: 0.0s;
+}
+
+.voice-wave:nth-child(2) {
+  animation-delay: 0.2s;
+  height: 22px;
+}
+
+.voice-wave:nth-child(3) {
+  animation-delay: 0.4s;
+  height: 28px;
+}
+
+.voice-wave:nth-child(4) {
+  animation-delay: 0.6s;
+  height: 22px;
+}
+
+.voice-wave:nth-child(5) {
+  animation-delay: 0.8s;
+}
+
+/* AI Assistant Fullscreen Overrides */
+body.ai-fullscreen-active {
+  overflow: hidden !important;
+}
+
+body.ai-fullscreen-active header,
+body.ai-fullscreen-active aside,
+body.ai-fullscreen-active .w-72,
+body.ai-fullscreen-active div:has(> .breadcrambs) {
+  display: none !important;
+}
