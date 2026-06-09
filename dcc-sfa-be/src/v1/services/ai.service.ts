@@ -158,7 +158,7 @@ ${parsedSchema}
 - "Assets" refer to the 'asset_master' table.
 - "Cooler Installations" refer to the 'coolers' table. Note that coolers are a specific type of asset linked to the 'asset_master' table.
 - "Depots" refer to the 'depots' table. Ignore the 'warehouses' table.
-- "Stock" or "inventory" quantities (current stock) are ALWAYS found in the 'inventory_stock' table, which is the single source of truth.
+- "Stock" or "inventory" quantities (current stock) are ALWAYS found in the 'inventory_stock' table, which is the single source of truth and pieces refere base_quantity of product.
 - To find a Salesperson's "Van Stock" or "Van Inventory", DO NOT look for quantity columns in the 'van_inventory' table. Instead, find the salesperson's location_id(s) from the 'van_inventory' table (where user_id = salesperson), and then query the 'inventory_stock' table for those location_ids to get their current_stock.
 
 - A "salesperson", "salesman", or "representative" is a user with a role_key of 'salesman', 'sales_person', or 'sales_representative' in the 'roles' table.
@@ -179,7 +179,7 @@ Guidelines for generating SQL queries:
 - If the user's question does not require database access (e.g., greeting, general questions, or explaining a concept), return:
   {
     "type": "text",
-    "text": "Your natural language response here."
+    "text": "Your natural language response here. (IMPORTANT: only if someone quetion you in hindi language then reply in Hinglish - Hindi written in English/Latin script. For example: 'Haan, main aapki madad kar sakta hoon.')"
   }
 `;
   lastCacheTime = now;
@@ -363,7 +363,7 @@ export class AIService {
             responseMimeType: 'application/json',
           },
           systemInstruction:
-            "You are the DCC-SFA AI Assistant. You will be given a user's original question, the SQL queries that were run, and the database result rows. Formulate a polite, clear, and concise natural language answer. Return a JSON object with: 'answer' (your natural language response text), and 'chart' (a chart configuration object, or an array of chart configuration objects if the user asked for a dashboard/multiple charts/visualizations, or null if no chart is needed). ONLY generate a chart if the user explicitly types the words 'chart', 'graph', 'plot', or 'dashboard' in their prompt. Otherwise, you MUST set 'chart' to null. Each chart object must have: 'type' ('bar'|'line'|'pie'|'doughnut'), 'label' (name of the metric), 'labels' (array of strings), and 'data' (array of numbers). DO NOT include markdown tables in your answer. VERY IMPORTANT: Do NOT list or repeat the database records in your 'answer' text! A visual table is automatically rendered for the user. Your 'answer' should just be a 1-sentence summary (e.g. 'Here are the results you requested:').",
+            "You are the DCC-SFA AI Assistant. You will be given a user's original question, the SQL queries that were run, and the database result rows. Formulate a polite, clear, and concise natural language answer. IMPORTANT: Match the language of the user's question. If they ask in English, reply in English. If they ask in Hindi, reply in HINGLISH (Hindi written in English/Latin script). Return a JSON object with: 'answer' (your response text), and 'chart' (a chart configuration object, or an array of chart configuration objects if the user asked for a dashboard/multiple charts/visualizations, or null if no chart is needed). ONLY generate a chart if the user explicitly types the words 'chart', 'graph', 'plot', or 'dashboard' in their prompt. Otherwise, you MUST set 'chart' to null. Each chart object must have: 'type' ('bar'|'line'|'pie'|'doughnut'), 'label' (name of the metric), 'labels' (array of strings), and 'data' (array of numbers). DO NOT include markdown tables in your answer. VERY IMPORTANT: Do NOT list or repeat the database records in your 'answer' text! A visual table is automatically rendered for the user. Your 'answer' should just be a 1-sentence summary matching the user's language (e.g. 'Here are the results:' or 'Ye lijiye aapke results:').",
         });
 
         const prompt = `${historyContext}User Question: "${question}"

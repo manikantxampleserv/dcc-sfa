@@ -20,7 +20,7 @@ import {
 } from '@mui/material';
 import axiosInstance from 'configs/axio.config';
 import axios from 'axios';
-import Sanscript from '@indic-transliteration/sanscript';
+
 import React, { useEffect, useRef, useState } from 'react';
 import Button from 'shared/Button';
 import { useAuth } from '../../context/AuthContext';
@@ -146,12 +146,16 @@ const AIAssistant: React.FC = () => {
 
     try {
       abortControllerRef.current = new AbortController();
-      const response = await axiosInstance.post('/ai/query', {
-        question: text,
-        history: historyPayload,
-      }, {
-        signal: abortControllerRef.current.signal
-      });
+      const response = await axiosInstance.post(
+        '/ai/query',
+        {
+          question: text,
+          history: historyPayload,
+        },
+        {
+          signal: abortControllerRef.current.signal,
+        }
+      );
 
       const assistantMsg: Message = {
         sender: 'assistant',
@@ -165,7 +169,11 @@ const AIAssistant: React.FC = () => {
       };
       setMessages(prev => [...prev, assistantMsg]);
     } catch (error: any) {
-      if (axios.isCancel(error) || error.name === 'CanceledError' || error.code === 'ERR_CANCELED') {
+      if (
+        axios.isCancel(error) ||
+        error.name === 'CanceledError' ||
+        error.code === 'ERR_CANCELED'
+      ) {
         setMessages(prev => [
           ...prev,
           {
@@ -178,7 +186,7 @@ const AIAssistant: React.FC = () => {
       }
       const error_message =
         error.response?.data?.message ||
-        'Sorry, I encountered an issue querying the database. Please verify your connection or Gemini API key.';
+        'Sorry, I encountered an issue querying the database.';
       setMessages(prev => [
         ...prev,
         {
@@ -214,9 +222,11 @@ const AIAssistant: React.FC = () => {
       return;
     }
 
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const SpeechRecognition =
+      (window as any).SpeechRecognition ||
+      (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      alert("Your browser does not support speech recognition.");
+      alert('Your browser does not support speech recognition.');
       return;
     }
 
@@ -232,27 +242,6 @@ const AIAssistant: React.FC = () => {
       setInputValue('');
     };
 
-    const transliterate = (text: string) => {
-      try {
-        return Sanscript.t(text, 'devanagari', 'itrans')
-          .replace(/M/g, 'n')
-          .replace(/T/g, 't')
-          .replace(/D/g, 'd')
-          .replace(/N/g, 'n')
-          .replace(/S/g, 'sh')
-          .replace(/R/g, 'ri')
-          .replace(/L/g, 'l')
-          .replace(/aa/g, 'a')
-          .replace(/ee/g, 'i')
-          .replace(/oo/g, 'u')
-          .replace(/ii/g, 'i')
-          .replace(/ॉ/g, 'o')
-          .toLowerCase();
-      } catch (e) {
-        return text;
-      }
-    };
-
     recognition.onresult = (event: any) => {
       let interimTranscript = '';
       for (let i = event.resultIndex; i < event.results.length; ++i) {
@@ -263,7 +252,7 @@ const AIAssistant: React.FC = () => {
         }
       }
 
-      setInputValue(transliterate(finalTranscript) + transliterate(interimTranscript));
+      setInputValue(finalTranscript + interimTranscript);
 
       if (silenceTimerRef.current) {
         clearTimeout(silenceTimerRef.current);
@@ -283,7 +272,7 @@ const AIAssistant: React.FC = () => {
       if (silenceTimerRef.current) {
         clearTimeout(silenceTimerRef.current);
       }
-      const textToSend = transliterate(finalTranscript) || inputValueRef.current;
+      const textToSend = finalTranscript || inputValueRef.current;
       if (textToSend.trim()) {
         handleSend(textToSend);
       }
@@ -294,6 +283,24 @@ const AIAssistant: React.FC = () => {
 
   return (
     <>
+      <style>{`
+        @keyframes soundWave {
+          0%, 100% { transform: scaleY(0.4); opacity: 0.6; }
+          50% { transform: scaleY(1); opacity: 1; }
+        }
+        .voice-wave {
+          width: 3px;
+          height: 16px;
+          background-color: #155dfc;
+          border-radius: 4px;
+          animation: soundWave 1.2s ease-in-out infinite;
+        }
+        .voice-wave:nth-child(1) { animation-delay: 0.0s; }
+        .voice-wave:nth-child(2) { animation-delay: 0.2s; height: 22px; }
+        .voice-wave:nth-child(3) { animation-delay: 0.4s; height: 28px; }
+        .voice-wave:nth-child(4) { animation-delay: 0.6s; height: 22px; }
+        .voice-wave:nth-child(5) { animation-delay: 0.8s; }
+      `}</style>
       {isFullscreen && (
         <style>{`
           body.ai-fullscreen-active {
@@ -338,10 +345,11 @@ const AIAssistant: React.FC = () => {
       )}
 
       <div
-        className={`flex flex-col bg-white overflow-hidden ${isFullscreen
-          ? 'h-screen w-screen fixed inset-0 z-[9999]'
-          : 'h-[calc(100vh-210px)] rounded-lg border border-gray-200 shadow-sm'
-          }`}
+        className={`flex flex-col bg-white overflow-hidden ${
+          isFullscreen
+            ? 'h-screen w-screen fixed inset-0 z-[9999]'
+            : 'h-[calc(100vh-210px)] rounded-lg border border-gray-200 shadow-sm'
+        }`}
       >
         {isFullscreen && (
           <div className="flex items-center justify-between px-6 py-3.5 border-b border-gray-200 bg-gray-50 shrink-0 animate-fade-in">
@@ -446,35 +454,60 @@ const AIAssistant: React.FC = () => {
             }}
             className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg pl-3 pr-2 py-1.5 transition-all shadow-sm"
           >
-            <textarea
-              ref={textareaRef}
-              rows={1}
-              value={inputValue}
-              onChange={e => setInputValue(e.target.value)}
-              onKeyDown={e => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  if (inputValue.trim() && !isLoading) {
-                    handleSend(inputValue);
+            {isListening ? (
+              <div className="flex-1 flex items-center pl-2 h-[32px] gap-2 overflow-hidden bg-transparent">
+                <div className="flex items-center gap-[3px] h-full">
+                  <div className="voice-wave" />
+                  <div className="voice-wave" />
+                  <div className="voice-wave" />
+                  <div className="voice-wave" />
+                  <div className="voice-wave" />
+                </div>
+                <span className="ml-2 text-sm text-[#155dfc] font-semibold animate-pulse tracking-wide shrink-0">
+                  Listening...
+                </span>
+                {inputValue && (
+                  <span className="ml-2 text-sm text-gray-500 truncate">
+                    "{inputValue}"
+                  </span>
+                )}
+              </div>
+            ) : (
+              <textarea
+                ref={textareaRef}
+                rows={1}
+                value={inputValue}
+                onChange={e => setInputValue(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    if (inputValue.trim() && !isLoading) {
+                      handleSend(inputValue);
+                    }
                   }
-                }
-              }}
-              placeholder={isListening ? "Listening..." : "Ask AI Assistant about salespeople, depots, customers, orders..."}
-              disabled={isLoading || isListening}
-              style={{ outline: 'none', boxShadow: 'none' }}
-              className="flex-1 p-2 outline-none bg-transparent border-none resize-none text-sm py-1 placeholder:text-gray-400 disabled:text-gray-400 max-h-24 overflow-y-auto"
-            />
+                }}
+                placeholder="Ask AI Assistant about salespeople, depots, customers, orders..."
+                disabled={isLoading}
+                style={{ outline: 'none', boxShadow: 'none' }}
+                className="flex-1 p-2 outline-none bg-transparent border-none resize-none text-sm py-1 placeholder:text-gray-400 disabled:text-gray-400 max-h-24 overflow-y-auto"
+              />
+            )}
             <IconButton
               type="button"
               onClick={toggleVoiceInput}
               disabled={isLoading}
-              title={isListening ? "Stop listening" : "Start voice command"}
-              className={`!p-1.5 !rounded-[6px] !transition-all !outline-none ${isListening
-                ? '!bg-red-100 !text-red-500 animate-pulse'
-                : '!bg-gray-100 !text-gray-500 hover:!bg-gray-200'
-                }`}
+              title={isListening ? 'Stop listening' : 'Start voice command'}
+              className={`!p-1.5 !rounded-[6px] !transition-all !outline-none ${
+                isListening
+                  ? '!bg-red-100 !text-red-500 animate-pulse'
+                  : '!bg-gray-100 !text-gray-500 hover:!bg-gray-200'
+              }`}
             >
-              {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+              {isListening ? (
+                <MicOff className="w-4 h-4" />
+              ) : (
+                <Mic className="w-4 h-4" />
+              )}
             </IconButton>
             {isLoading ? (
               <IconButton
@@ -489,10 +522,11 @@ const AIAssistant: React.FC = () => {
               <IconButton
                 type="submit"
                 disabled={isListening || !inputValue.trim()}
-                className={`!p-1.5 !rounded-[6px] !transition-all !outline-none ${inputValue.trim() && !isListening
-                  ? '!bg-blue-600 !text-white hover:!bg-blue-700'
-                  : '!bg-gray-100 !text-gray-300'
-                  }`}
+                className={`!p-1.5 !rounded-[6px] !transition-all !outline-none ${
+                  inputValue.trim() && !isListening
+                    ? '!bg-blue-600 !text-white hover:!bg-blue-700'
+                    : '!bg-gray-100 !text-gray-300'
+                }`}
               >
                 <ArrowUpward className="w-4 h-4" />
               </IconButton>
