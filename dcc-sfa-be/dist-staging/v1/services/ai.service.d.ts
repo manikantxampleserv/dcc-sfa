@@ -1,3 +1,9 @@
+export interface ChartData {
+    type: 'bar' | 'line' | 'pie' | 'doughnut';
+    label: string;
+    labels: string[];
+    data: number[];
+}
 export declare class AIService {
     private genAI;
     constructor();
@@ -9,8 +15,17 @@ export declare class AIService {
         success: boolean;
         answer: string;
         sql?: string;
-        data?: any;
-        chart?: any;
+        chart?: ChartData | ChartData[];
+        table?: {
+            headers: string[];
+            rows: string[][];
+        };
+        usage?: {
+            promptTokens: number;
+            completionTokens: number;
+            totalTokens: number;
+        };
+        latencyMs?: number;
     }>;
 }
 export declare const aiService: AIService;

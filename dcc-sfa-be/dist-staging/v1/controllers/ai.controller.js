@@ -24,8 +24,10 @@ exports.aiController = {
                 success: true,
                 answer: result.answer,
                 sql: result.sql,
-                data: result.data,
                 chart: result.chart,
+                table: result.table,
+                usage: result.usage,
+                latencyMs: result.latencyMs,
             });
         }
         catch (error) {
