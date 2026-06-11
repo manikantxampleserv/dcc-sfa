@@ -64,7 +64,7 @@ interface VanInventorySerialized {
   vehicle_id?: number | null;
   location_id?: number | null;
   location_type?: string | null;
-  user?: { id: number; name: string; email: string } | null;
+  user?: { id: number; name: string; email: string; code: string } | null;
   vehicle?: { id: number; vehicle_number: string; type: string } | null;
   depot?: { id: number; name: string; code: string } | null;
   items?: VanInventoryItemSerialized[] | null;
@@ -341,6 +341,7 @@ const serializeVanInventory = (item: any): VanInventorySerialized => {
           id: item.van_inventory_users.id,
           name: item.van_inventory_users.name,
           email: item.van_inventory_users.email,
+          code: item.van_inventory_users.employee_id,
         }
       : null,
     vehicle: item.vehicle
@@ -405,11 +406,35 @@ async function updateInventoryStock(
   loadingType: string,
   batchId?: number | null,
   serialId?: number | null,
-  userId?: number
+  userId?: number,
+  vanUserId?: number | null
 ): Promise<void> {
+  let validLocationId = locationId;
+  let salespersonId: number | null = vanUserId || null;
+  if (!validLocationId) {
+    const targetUserId = vanUserId || userId || 1;
+    const user = await tx.users.findUnique({ where: { id: targetUserId } });
+    const depotName = `Van - ${user?.name || targetUserId}`;
+    let vanDepot = await tx.depots.findFirst({ where: { name: depotName } });
+
+    if (!vanDepot) {
+      const parentDepot = await tx.depots.findFirst({ orderBy: { id: 'asc' } });
+      vanDepot = await tx.depots.create({
+        data: {
+          parent_id: parentDepot ? parentDepot.parent_id : 1,
+          name: depotName,
+          code: `VAN-${targetUserId}`,
+          is_active: 'Y',
+          createdby: userId || 1,
+        },
+      });
+    }
+    validLocationId = vanDepot.id;
+  }
+
   const whereClause: any = {
     product_id: productId,
-    location_id: locationId ?? 1,
+    location_id: validLocationId,
   };
 
   if (batchId !== null) whereClause.batch_id = batchId;
@@ -434,7 +459,8 @@ async function updateInventoryStock(
       await tx.inventory_stock.create({
         data: {
           product_id: productId,
-          location_id: locationId || 1,
+          location_id: validLocationId,
+          salesperson_id: salespersonId,
           current_stock: quantity,
           reserved_stock: 0,
           available_stock: quantity,
@@ -923,6 +949,28 @@ export const vanInventoryController = {
             throw new Error('user_id is required');
           }
 
+          const spUserId = Number(inventoryData.user_id || userId || 1);
+          const spUser = await tx.users.findUnique({ where: { id: spUserId } });
+          const depotName = `Van - ${spUser?.name || spUserId}`;
+          let vanDepot = await tx.depots.findFirst({
+            where: { name: depotName },
+          });
+          if (!vanDepot) {
+            const parentDepot = await tx.depots.findFirst({
+              orderBy: { id: 'asc' },
+            });
+            vanDepot = await tx.depots.create({
+              data: {
+                parent_id: parentDepot ? parentDepot.parent_id : 1,
+                name: depotName,
+                code: `VAN-${spUserId}`,
+                is_active: 'Y',
+                createdby: userId || 1,
+              },
+            });
+          }
+          inventoryData.location_id = vanDepot.id;
+
           const userExists = await tx.users.findUnique({
             where: { id: Number(inventoryData.user_id) },
           });
@@ -1032,6 +1080,7 @@ export const vanInventoryController = {
                         batch_number: batchInput.batch_number,
                         productsId: product.id,
                         is_active: 'Y',
+                        createdby: Number(inventoryData.user_id),
                       },
                     });
 
@@ -1072,7 +1121,7 @@ export const vanInventoryController = {
                           storage_location: batchInput.storage_location || null,
                           is_active: 'Y',
                           createdate: new Date(),
-                          createdby: userId,
+                          createdby: Number(inventoryData.user_id),
                           log_inst: 1,
                           productsId: product.id,
                         },
@@ -1170,7 +1219,8 @@ export const vanInventoryController = {
                       'L',
                       batchLot.id,
                       null,
-                      userId
+                      userId,
+                      inventoryData.user_id
                     );
 
                     await createStockMovement(tx, {
@@ -1315,7 +1365,8 @@ export const vanInventoryController = {
                       'L',
                       null,
                       existingSerial.id,
-                      userId
+                      userId,
+                      inventoryData.user_id
                     );
                     console.log(
                       ` INCREASED inventory_stock for serial ${serialNumber}`
@@ -1393,7 +1444,8 @@ export const vanInventoryController = {
                     'L',
                     null,
                     null,
-                    userId
+                    userId,
+                    inventoryData.user_id
                   );
                   console.log(`    Updated inventory_stock`);
 

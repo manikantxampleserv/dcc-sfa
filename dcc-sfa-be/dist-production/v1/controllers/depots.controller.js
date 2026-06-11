@@ -168,6 +168,7 @@ exports.depotsController = {
             const searchLower = search.toLowerCase();
             const filters = {
                 is_active: isActive,
+                name: { not: { startsWith: 'Van -' } },
                 ...(search && {
                     OR: [
                         { name: { contains: searchLower } },

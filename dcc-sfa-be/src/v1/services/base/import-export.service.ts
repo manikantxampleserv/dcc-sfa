@@ -50,7 +50,10 @@ export abstract class ImportExportService<T> {
       const target = error.meta?.target;
       return `A record with this ${Array.isArray(target) ? target.join(', ') : target || 'unique value'} already exists.`;
     }
-    if (error.message && error.message.includes('Foreign key constraint failed')) {
+    if (
+      error.message &&
+      error.message.includes('Foreign key constraint failed')
+    ) {
       return 'Referenced record not found. Please ensure all related IDs (like Zone ID, Type ID, etc.) are valid.';
     }
     return error.message;

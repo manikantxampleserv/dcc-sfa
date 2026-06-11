@@ -30,6 +30,15 @@ router.get(
 );
 
 router.post(
+  '/import-export/:table/preview',
+  authenticateToken,
+  requirePermission([{ module: 'report', action: 'create' }]),
+  uploadExcel.single('file'),
+  validateImport,
+  importExportController.previewImport
+);
+
+router.post(
   '/import-export/:table/import',
   authenticateToken,
   requirePermission([{ module: 'report', action: 'create' }]),

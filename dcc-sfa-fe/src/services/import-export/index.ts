@@ -16,27 +16,17 @@ interface SupportedTable {
 }
 
 interface ImportPreview {
-  totalRows: number;
-  validRows: number;
-  invalidRows: number;
-  errors: Array<{
-    row: number;
-    column: string;
-    message: string;
-    value: any;
-  }>;
-  preview: any[];
+  success: number;
+  failed: number;
+  errors: string[];
+  data: any[];
+  totalProcessed: number;
   fileInfo: {
     originalName: string;
-    size: number;
-    mimetype: string;
+    rows: number;
   };
-  columns: Array<{
-    key: string;
-    header: string;
-    type: string;
-    required: boolean;
-  }>;
+  columns: any[];
+  validCount: number;
 }
 
 interface ImportResult {

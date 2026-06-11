@@ -19,7 +19,7 @@ export declare class VanInventoryImportExportService extends ImportExportService
     protected checkDuplicate(data: any, tx?: any): Promise<string | null>;
     protected validateForeignKeys(data: any, tx?: any): Promise<string | null>;
     protected prepareDataForImport(data: any, userId: number): Promise<any>;
-    protected updateExisting(data: any, userId: number, tx?: any): Promise<any>;
+    protected updateExisting(_data: any, _userId: number, _tx?: any): Promise<any>;
     importData(data: any[], userId: number, options?: any): Promise<any>;
     exportToExcel(options?: any): Promise<Buffer>;
 }

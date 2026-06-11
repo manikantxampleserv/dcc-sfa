@@ -482,18 +482,25 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
 
   useEffect(() => {
     if (invoiceItems.length > 0 && !formik.values.customer_id) {
-      const updatedItems = invoiceItems.map(item => ({
-        ...item,
-        unit_price: '0',
-      }));
-      setInvoiceItems(updatedItems);
-      formik.setFieldValue('invoiceItems', updatedItems, false);
-      formikSyncRef.current = JSON.stringify(updatedItems);
+      let hasChanges = false;
+      const updatedItems = invoiceItems.map(item => {
+        if (item.unit_price !== '0') {
+          hasChanges = true;
+          return { ...item, unit_price: '0' };
+        }
+        return item;
+      });
+      if (hasChanges) {
+        setInvoiceItems(updatedItems);
+        formik.setFieldValue('invoiceItems', updatedItems, false);
+        formikSyncRef.current = JSON.stringify(updatedItems);
+      }
     } else if (
       invoiceItems.length > 0 &&
       formik.values.customer_id &&
       customerPriceLists
     ) {
+      let hasChanges = false;
       const updatedItems = invoiceItems.map(item => {
         if (!item.product_id) return item;
         const unit = item.unit || item.uom || 'CASE';
@@ -508,15 +515,25 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
             conversionRate
           ) ?? '0';
 
-        return {
-          ...item,
-          unit_price: resolvedPrice,
-          conversion_rate: conversionRate,
-        };
+        if (
+          item.unit_price !== resolvedPrice ||
+          item.conversion_rate !== conversionRate
+        ) {
+          hasChanges = true;
+          return {
+            ...item,
+            unit_price: resolvedPrice,
+            conversion_rate: conversionRate,
+          };
+        }
+        return item;
       });
-      setInvoiceItems(updatedItems);
-      formik.setFieldValue('invoiceItems', updatedItems, false);
-      formikSyncRef.current = JSON.stringify(updatedItems);
+      
+      if (hasChanges) {
+        setInvoiceItems(updatedItems);
+        formik.setFieldValue('invoiceItems', updatedItems, false);
+        formikSyncRef.current = JSON.stringify(updatedItems);
+      }
     }
   }, [
     formik.values.customer_id,

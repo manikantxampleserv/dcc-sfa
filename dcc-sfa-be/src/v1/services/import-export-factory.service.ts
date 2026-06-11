@@ -21,6 +21,7 @@ import { SalesTargetsImportExportService } from './implementations/salesTargets-
 import { SalesBonusRulesImportExportService } from './implementations/salesBonusRules-import-export.service';
 import { ProductCategoriesImportExportService } from './implementations/productCategories-import-export.service';
 import { ProductSubCategoriesImportExportService } from './implementations/productSubCategories-import-export.service';
+import { VanInventoryItemsImportExportService } from './implementations/vanInventoryItems-import-export.service';
 import { BrandsImportExportService } from './implementations/brands-import-export.service';
 import { UnitOfMeasurementImportExportService } from './implementations/unitOfMeasurement-import-export.service';
 import { DeliverySchedulesImportExportService } from './implementations/deliverySchedules-import-export.service';
@@ -109,6 +110,7 @@ export class ImportExportFactory {
     ['stock_transfer_requests', StockTransferRequestsImportExportService],
     ['stock_movements', StockMovementsImportExportService],
     ['van_inventory', VanInventoryImportExportService],
+    ['van_inventory_items', VanInventoryItemsImportExportService],
     ['products', ProductsImportExportService],
     ['sales_target_overrides', SalesTargetOverridesImportExportService],
     ['customer_assets', CustomerAssetsImportExportService],

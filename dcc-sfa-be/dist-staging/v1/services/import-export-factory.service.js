@@ -23,6 +23,7 @@ const salesTargets_import_export_service_1 = require("./implementations/salesTar
 const salesBonusRules_import_export_service_1 = require("./implementations/salesBonusRules-import-export.service");
 const productCategories_import_export_service_1 = require("./implementations/productCategories-import-export.service");
 const productSubCategories_import_export_service_1 = require("./implementations/productSubCategories-import-export.service");
+const vanInventoryItems_import_export_service_1 = require("./implementations/vanInventoryItems-import-export.service");
 const brands_import_export_service_1 = require("./implementations/brands-import-export.service");
 const unitOfMeasurement_import_export_service_1 = require("./implementations/unitOfMeasurement-import-export.service");
 const deliverySchedules_import_export_service_1 = require("./implementations/deliverySchedules-import-export.service");
@@ -105,6 +106,7 @@ class ImportExportFactory {
         ['stock_transfer_requests', stockTransferRequests_import_export_service_1.StockTransferRequestsImportExportService],
         ['stock_movements', stockMovements_import_export_service_1.StockMovementsImportExportService],
         ['van_inventory', vanInventory_import_export_service_1.VanInventoryImportExportService],
+        ['van_inventory_items', vanInventoryItems_import_export_service_1.VanInventoryItemsImportExportService],
         ['products', products_import_export_service_1.ProductsImportExportService],
         ['sales_target_overrides', sales_target_overrides_import_export_service_1.SalesTargetOverridesImportExportService],
         ['customer_assets', customer_assets_import_export_service_1.CustomerAssetsImportExportService],

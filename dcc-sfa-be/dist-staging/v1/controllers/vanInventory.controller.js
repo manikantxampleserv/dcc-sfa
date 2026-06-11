@@ -231,6 +231,7 @@ const serializeVanInventory = (item) => {
                 id: item.van_inventory_users.id,
                 name: item.van_inventory_users.name,
                 email: item.van_inventory_users.email,
+                code: item.van_inventory_users.employee_id,
             }
             : null,
         vehicle: item.vehicle
@@ -278,10 +279,31 @@ async function getAvailableBatchesForProduct(tx, productId, loadingType) {
     });
     return batches;
 }
-async function updateInventoryStock(tx, productId, locationId, quantity, loadingType, batchId, serialId, userId) {
+async function updateInventoryStock(tx, productId, locationId, quantity, loadingType, batchId, serialId, userId, vanUserId) {
+    let validLocationId = locationId;
+    let salespersonId = vanUserId || null;
+    if (!validLocationId) {
+        const targetUserId = vanUserId || userId || 1;
+        const user = await tx.users.findUnique({ where: { id: targetUserId } });
+        const depotName = `Van - ${user?.name || targetUserId}`;
+        let vanDepot = await tx.depots.findFirst({ where: { name: depotName } });
+        if (!vanDepot) {
+            const parentDepot = await tx.depots.findFirst({ orderBy: { id: 'asc' } });
+            vanDepot = await tx.depots.create({
+                data: {
+                    parent_id: parentDepot ? parentDepot.parent_id : 1,
+                    name: depotName,
+                    code: `VAN-${targetUserId}`,
+                    is_active: 'Y',
+                    createdby: userId || 1,
+                },
+            });
+        }
+        validLocationId = vanDepot.id;
+    }
     const whereClause = {
         product_id: productId,
-        location_id: locationId ?? 1,
+        location_id: validLocationId,
     };
     if (batchId !== null)
         whereClause.batch_id = batchId;
@@ -306,7 +328,8 @@ async function updateInventoryStock(tx, productId, locationId, quantity, loading
             await tx.inventory_stock.create({
                 data: {
                     product_id: productId,
-                    location_id: locationId || 1,
+                    location_id: validLocationId,
+                    salesperson_id: salespersonId,
                     current_stock: quantity,
                     reserved_stock: 0,
                     available_stock: quantity,
@@ -731,6 +754,27 @@ exports.vanInventoryController = {
                 if (!inventoryData.user_id) {
                     throw new Error('user_id is required');
                 }
+                const spUserId = Number(inventoryData.user_id || userId || 1);
+                const spUser = await tx.users.findUnique({ where: { id: spUserId } });
+                const depotName = `Van - ${spUser?.name || spUserId}`;
+                let vanDepot = await tx.depots.findFirst({
+                    where: { name: depotName },
+                });
+                if (!vanDepot) {
+                    const parentDepot = await tx.depots.findFirst({
+                        orderBy: { id: 'asc' },
+                    });
+                    vanDepot = await tx.depots.create({
+                        data: {
+                            parent_id: parentDepot ? parentDepot.parent_id : 1,
+                            name: depotName,
+                            code: `VAN-${spUserId}`,
+                            is_active: 'Y',
+                            createdby: userId || 1,
+                        },
+                    });
+                }
+                inventoryData.location_id = vanDepot.id;
                 const userExists = await tx.users.findUnique({
                     where: { id: Number(inventoryData.user_id) },
                 });
@@ -820,6 +864,7 @@ exports.vanInventoryController = {
                                             batch_number: batchInput.batch_number,
                                             productsId: product.id,
                                             is_active: 'Y',
+                                            createdby: Number(inventoryData.user_id),
                                         },
                                     });
                                     if (batchLot) {
@@ -852,7 +897,7 @@ exports.vanInventoryController = {
                                                 storage_location: batchInput.storage_location || null,
                                                 is_active: 'Y',
                                                 createdate: new Date(),
-                                                createdby: userId,
+                                                createdby: Number(inventoryData.user_id),
                                                 log_inst: 1,
                                                 productsId: product.id,
                                             },
@@ -932,7 +977,7 @@ exports.vanInventoryController = {
                                         });
                                         console.log(` Created van_inventory_items`);
                                     }
-                                    await updateInventoryStock(tx, product.id, inventoryData.location_id || null, batchQty, 'L', batchLot.id, null, userId);
+                                    await updateInventoryStock(tx, product.id, inventoryData.location_id || null, batchQty, 'L', batchLot.id, null, userId, inventoryData.user_id);
                                     await createStockMovement(tx, {
                                         product_id: product.id,
                                         batch_id: batchLot.id,
@@ -1044,7 +1089,7 @@ exports.vanInventoryController = {
                                         });
                                         console.log(`Created new van_inventory_items for serial ${serialNumber}`);
                                     }
-                                    await updateInventoryStock(tx, product.id, inventoryData.location_id || null, 1, 'L', null, existingSerial.id, userId);
+                                    await updateInventoryStock(tx, product.id, inventoryData.location_id || null, 1, 'L', null, existingSerial.id, userId, inventoryData.user_id);
                                     console.log(` INCREASED inventory_stock for serial ${serialNumber}`);
                                     await createStockMovement(tx, {
                                         product_id: product.id,
@@ -1103,7 +1148,7 @@ exports.vanInventoryController = {
                                     });
                                     console.log(`    Created van_inventory_items`);
                                 }
-                                await updateInventoryStock(tx, product.id, inventoryData.location_id || null, qty, 'L', null, null, userId);
+                                await updateInventoryStock(tx, product.id, inventoryData.location_id || null, qty, 'L', null, null, userId, inventoryData.user_id);
                                 console.log(`    Updated inventory_stock`);
                                 await createStockMovement(tx, {
                                     product_id: product.id,

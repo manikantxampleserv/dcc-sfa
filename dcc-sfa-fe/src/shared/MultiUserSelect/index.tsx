@@ -15,10 +15,11 @@ import { cn } from 'utils/stringUtils';
  * User data structure
  */
 interface User {
-  profile_image: string;
+  profile_image: string | null;
   id: number;
   name: string;
   email: string;
+  code?: string;
 }
 
 /**
@@ -85,7 +86,13 @@ const MultiUserSelect: React.FC<MultiUserSelectProps> = ({
     search: inputValue,
   });
 
-  const users = usersResponse?.data || [];
+  const users: User[] = (usersResponse?.data || []).map(user => ({
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    code: user.code,
+    profile_image: user.profile_image,
+  }));
 
   const getColorClasses = (pattern: string) => {
     const configs = {
@@ -206,10 +213,12 @@ const MultiUserSelect: React.FC<MultiUserSelectProps> = ({
           className="!flex !items-center !gap-2 cursor-pointer py-1 px-2 hover:!bg-gray-50"
         >
           <Avatar
-            src={option.profile_image || 'mkx'}
+            src={option.profile_image || undefined}
             alt={option.name}
             className="!rounded !bg-primary-100 !text-primary-600"
-          />
+          >
+            {option.name ? option.name.charAt(0).toUpperCase() : ''}
+          </Avatar>
           <Box>
             <p className="!text-gray-900 !text-sm">{option.name || ''}</p>
             {option.email && (
@@ -223,11 +232,11 @@ const MultiUserSelect: React.FC<MultiUserSelectProps> = ({
           <Chip
             avatar={
               <Avatar
-                src={option.profile_image}
+                src={option.profile_image || undefined}
                 alt={option.name}
                 className={cn('!w-4 !h-4', colorClasses.avatar)}
               >
-                {option.name.charAt(0).toUpperCase()}
+                {option.name ? option.name.charAt(0).toUpperCase() : ''}
               </Avatar>
             }
             size="small"

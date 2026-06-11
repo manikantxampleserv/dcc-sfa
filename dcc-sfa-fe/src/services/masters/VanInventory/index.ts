@@ -57,6 +57,7 @@ interface VanInventory {
     id: number;
     name: string;
     email: string;
+    code: string;
   } | null;
   vehicle?: {
     id: number;

@@ -304,12 +304,14 @@ const InventoryItems: React.FC = () => {
                               Batches: {person.total_batches}
                             </span>
                           </div>
-                          <div className="flex items-center gap-1.5 text-sm">
-                            <Fingerprint className="!w-4 !h-4 text-indigo-500" />
-                            <span className="text-gray-700 font-medium">
-                              Serials: {person.total_serials}
-                            </span>
-                          </div>
+                          {person.total_serials > 0 && (
+                            <div className="flex items-center gap-1.5 text-sm">
+                              <Fingerprint className="!w-4 !h-4 text-indigo-500" />
+                              <span className="text-gray-700 font-medium">
+                                Serials: {person.total_serials}
+                              </span>
+                            </div>
+                          )}
                           <div className="flex items-center gap-1.5 text-sm">
                             <Package className="!w-4 !h-4 text-orange-500" />
                             <span className="text-gray-700 font-medium">

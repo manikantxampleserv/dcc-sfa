@@ -1329,39 +1329,27 @@ export const visitsController = {
                           }> = [];
 
                           if (hasBatchNumber) {
-                            const batchLot = await tx.batch_lots.findFirst({
-                              where: {
-                                batch_number: (item as any).batch_number,
-                                productsId: product.id,
-                              },
-                            });
-                            console.log('BATCH SEARCH', {
-                              productId: product.id,
-                              found: batchLot,
-                            });
-
                             const batchNumber = (item as any).batch_number;
 
-                            const batches = await tx.batch_lots.findMany({
-                              where: {
-                                batch_number: batchNumber,
-                              },
-                              select: {
-                                id: true,
-                                batch_number: true,
-                                productsId: true,
-                              },
-                            });
+                            const stockRecord =
+                              await tx.inventory_stock.findFirst({
+                                where: {
+                                  product_id: product.id,
+                                  salesperson_id: visit.sales_person_id,
+                                  inventory_stock_batch: {
+                                    batch_number: batchNumber,
+                                  },
+                                },
+                                include: {
+                                  inventory_stock_batch: true,
+                                },
+                              });
 
-                            console.log('BATCH DEBUG', {
-                              productId: product.id,
-                              productName: product.name,
-                              batchNumber,
-                              batches,
-                            });
+                            const batchLot = stockRecord?.inventory_stock_batch;
+
                             if (!batchLot) {
                               throw new Error(
-                                `Batch "${(item as any).batch_number}" not found for product "${product.name}"`
+                                `Batch "${batchNumber}" not found for product "${product.name}" assigned to salesperson`
                               );
                             }
 

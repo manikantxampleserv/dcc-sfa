@@ -1,6 +1,16 @@
-import { Tag, WarningAmberRounded } from '@mui/icons-material';
+import {
+  Download,
+  Tag,
+  Upload,
+  WarningAmberRounded,
+} from '@mui/icons-material';
 import { Box, MenuItem, Tooltip, Typography } from '@mui/material';
 import { useFormik } from 'formik';
+import { useDownloadTemplate, usePreviewImport } from 'hooks/useImportExport';
+import {
+  useInventoryItemById,
+  type SalespersonInventoryData,
+} from 'hooks/useInventoryItems';
 import { useProducts } from 'hooks/useProducts';
 import {
   useCreateVanInventory,
@@ -9,10 +19,6 @@ import {
   type ProductBatch,
   type VanInventory,
 } from 'hooks/useVanInventory';
-import {
-  useInventoryItemById,
-  type SalespersonInventoryData,
-} from 'hooks/useInventoryItems';
 import { useVehicles } from 'hooks/useVehicles';
 import { Plus } from 'lucide-react';
 import React, {
@@ -27,12 +33,12 @@ import { vanInventoryValidationSchema } from 'schemas/vanInventory.schema';
 import { DeleteButton } from 'shared/ActionButton';
 import ActiveInactiveField from 'shared/ActiveInactiveField';
 import Button from 'shared/Button';
+import DepotSelect from 'shared/DepotSelect';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
 import Select from 'shared/Select';
 import Table, { type TableColumn } from 'shared/Table';
 import UserSelect from 'shared/UserSelect';
-import DepotSelect from 'shared/DepotSelect';
 import ManageBatch from '../ManageBatch';
 import ManageSerial from '../ManageSerial';
 
@@ -100,7 +106,211 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
   const [isSerialSelectorOpen, setIsSerialSelectorOpen] = useState(false);
   const [selectedRowIndex, setSelectedRowIndex] = useState<number | null>(null);
   const [quantity, setQuantity] = useState<number | string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const downloadTemplateMutation = useDownloadTemplate();
+  const previewImportMutation = usePreviewImport();
+
+  const handleDownloadItemsTemplate = async () => {
+    try {
+      await downloadTemplateMutation.mutateAsync('van_inventory_items');
+    } catch (error) {
+      console.error('Failed to download template:', error);
+      toast.error('Failed to download template');
+    }
+  };
+
+  const handleImportItems = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const response = await previewImportMutation.mutateAsync({
+        tableName: 'van_inventory_items',
+        file,
+      });
+
+      const data = response.data?.data || [];
+      const currentItems = [...(formik.values.van_inventory_items || [])];
+      let importedCount = 0;
+
+      data.forEach((row: any) => {
+        const productId = Number(row.product_id);
+        if (!productId) return;
+
+        const product = availableProducts.find(p => p.id === productId);
+        if (!product) {
+          toast.error(
+            `Product ID ${productId} not found in available products`
+          );
+          return;
+        }
+
+        const quantity = Number(row.quantity) || 0;
+        const trackingType = product.tracking_type;
+        importedCount++;
+
+        let existingItemIndex = currentItems.findIndex(
+          item => item.product_id === productId
+        );
+
+        if (existingItemIndex >= 0) {
+          const updatedItem = { ...currentItems[existingItemIndex] };
+          updatedItem.quantity = (Number(updatedItem.quantity) || 0) + quantity;
+
+          if (trackingType?.toLowerCase() === 'batch' && row.batch_number) {
+            updatedItem.product_batches = [
+              ...(updatedItem.product_batches || []),
+            ];
+
+            const existingBatchIndex = updatedItem.product_batches.findIndex(
+              (b: any) => b.batch_number === row.batch_number.toString()
+            );
+
+            if (existingBatchIndex >= 0) {
+              const existingBatch =
+                updatedItem.product_batches[existingBatchIndex];
+              updatedItem.product_batches[existingBatchIndex] = {
+                ...existingBatch,
+                quantity: (Number(existingBatch.quantity) || 0) + quantity,
+                manufacturing_date:
+                  row.manufacturing_date || existingBatch.manufacturing_date,
+                expiry_date: row.expiry_date || existingBatch.expiry_date,
+                lot_number:
+                  row.lot_number?.toString() || existingBatch.lot_number,
+              };
+            } else {
+              updatedItem.product_batches.push({
+                batch_number: row.batch_number.toString(),
+                lot_number: row.lot_number?.toString() || '',
+                quantity: quantity,
+                remaining_quantity: 0,
+                total_quantity: 0,
+                manufacturing_date: row.manufacturing_date || '',
+                expiry_date: row.expiry_date || '',
+                batch_lot_id: undefined,
+                batch_remaining_quantity: undefined,
+                batch_total_quantity: undefined,
+                days_until_expiry: undefined,
+                is_expired: undefined,
+                is_expiring_soon: undefined,
+                quality_grade: undefined,
+                supplier_name: undefined,
+              });
+            }
+          }
+
+          if (trackingType?.toLowerCase() === 'serial' && row.serial_numbers) {
+            updatedItem.product_serials = [
+              ...(updatedItem.product_serials || []),
+            ];
+
+            const serials = row.serial_numbers
+              .toString()
+              .split(',')
+              .map((s: string) => s.trim())
+              .filter(Boolean);
+
+            const newSerials = serials
+              .filter(
+                (sn: string) =>
+                  !updatedItem.product_serials?.some(
+                    (existing: any) => existing.serial_number === sn
+                  )
+              )
+              .map((sn: string) => ({
+                product_id: product.id,
+                serial_number: sn,
+                quantity: 1,
+                selected: true,
+              }));
+
+            updatedItem.product_serials = [
+              ...updatedItem.product_serials,
+              ...newSerials,
+            ];
+          }
+
+          if (row.notes) {
+            updatedItem.notes = updatedItem.notes
+              ? `${updatedItem.notes}\n${row.notes}`
+              : row.notes;
+          }
+
+          currentItems[existingItemIndex] = updatedItem;
+        } else {
+          let product_batches: ProductBatch[] = [];
+          let product_serials: ExtendedProductSerial[] = [];
+
+          if (trackingType?.toLowerCase() === 'batch' && row.batch_number) {
+            product_batches.push({
+              batch_number: row.batch_number.toString(),
+              lot_number: row.lot_number?.toString() || '',
+              quantity: quantity,
+              remaining_quantity: 0,
+              total_quantity: 0,
+              manufacturing_date: row.manufacturing_date || '',
+              expiry_date: row.expiry_date || '',
+              batch_lot_id: undefined,
+              batch_remaining_quantity: undefined,
+              batch_total_quantity: undefined,
+              days_until_expiry: undefined,
+              is_expired: undefined,
+              is_expiring_soon: undefined,
+              quality_grade: undefined,
+              supplier_name: undefined,
+            });
+          }
+
+          if (trackingType?.toLowerCase() === 'serial' && row.serial_numbers) {
+            const serials = row.serial_numbers
+              .toString()
+              .split(',')
+              .map((s: string) => s.trim())
+              .filter(Boolean);
+            serials.forEach((sn: string) => {
+              product_serials.push({
+                product_id: product.id,
+                serial_number: sn,
+                quantity: 1,
+                selected: true,
+              });
+            });
+          }
+
+          currentItems.push({
+            product_id: product.id,
+            product_name: product.name,
+            quantity: quantity > 0 ? quantity : null,
+            notes: row.notes || null,
+            tracking_type: trackingType,
+            product_batches,
+            product_serials,
+            tempId: generateTempId(),
+            batch_lot_id: null,
+            batch_number: null,
+            lot_number: null,
+            remaining_quantity: null,
+            total_quantity: null,
+          });
+        }
+      });
+
+      if (importedCount > 0) {
+        formik.setFieldValue('van_inventory_items', currentItems);
+        toast.success(`Successfully imported ${importedCount} items`);
+      } else {
+        toast.warning('No valid items found in the Excel file');
+      }
+    } catch (error: any) {
+      console.error('Failed to parse Excel file via backend', error);
+      toast.error(error.message || 'Failed to parse Excel file');
+    } finally {
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
   const createVanInventoryMutation = useCreateVanInventory();
   const updateVanInventoryMutation = useUpdateVanInventory();
   const { data: vanInventoryResponse } = useVanInventoryById(
@@ -279,7 +489,6 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
     () => vehiclesResponse?.data || [],
     [vehiclesResponse]
   );
-
 
   const availableProducts = useMemo(() => {
     if (!isUnloadType) {
@@ -728,7 +937,6 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
                   ) !== row.quantity)) && (
                 <Tooltip
                   placement="top"
-                  color="error"
                   title={
                     row.tracking_type === 'serial'
                       ? `Mismatch: ${row.product_serials?.length || 0} serial number(s) assigned, but quantity is ${row.quantity}. Please select serials to match the quantity.`
@@ -736,7 +944,9 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
                   }
                   arrow
                 >
-                  <WarningAmberRounded color="error" fontSize="small" />
+                  <span>
+                    <WarningAmberRounded color="error" fontSize="small" />
+                  </span>
                 </Tooltip>
               )}
             </Box>
@@ -817,7 +1027,18 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
                 formik.setFieldValue('location_id', '');
               }}
             />
-
+            <DepotSelect
+              name="location_id"
+              label="Location/Depot"
+              required
+              formik={formik}
+              placeholder="Select Location/Depot"
+              userId={
+                formik.values.user_id
+                  ? Number(formik.values.user_id)
+                  : undefined
+              }
+            />
             <Select name="loading_type" label="Type" formik={formik} required>
               <MenuItem value="L">Load</MenuItem>
               <MenuItem value="U">Unload</MenuItem>
@@ -849,14 +1070,6 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
                 </MenuItem>
               ))}
             </Select>
-
-            <DepotSelect
-              name="location_id"
-              label="Location/Depot"
-              formik={formik}
-              placeholder="Select Location/Depot"
-              userId={formik.values.user_id ? Number(formik.values.user_id) : undefined}
-            />
           </Box>
 
           <ActiveInactiveField
@@ -875,15 +1088,42 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
                 <Typography variant="body1" className="!font-semibold">
                   Inventory Items{' '}
                 </Typography>
-                <Button
-                  type="button"
-                  variant="outlined"
-                  size="small"
-                  onClick={addInventoryItem}
-                  startIcon={<Plus size={16} />}
-                >
-                  Add Item
-                </Button>
+                <Box className="!flex !gap-2 !items-center">
+                  <Button
+                    type="button"
+                    variant="outlined"
+                    size="small"
+                    onClick={handleDownloadItemsTemplate}
+                    startIcon={<Download fontSize="small" />}
+                  >
+                    Template
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outlined"
+                    size="small"
+                    component="label"
+                    startIcon={<Upload fontSize="small" />}
+                  >
+                    Import
+                    <input
+                      type="file"
+                      hidden
+                      accept=".xlsx, .xls"
+                      ref={fileInputRef}
+                      onChange={handleImportItems}
+                    />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outlined"
+                    size="small"
+                    onClick={addInventoryItem}
+                    startIcon={<Plus size={16} />}
+                  >
+                    Add Item
+                  </Button>
+                </Box>
               </Box>
             }
             columns={inventoryItemColumns}

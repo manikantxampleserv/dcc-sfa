@@ -55,7 +55,8 @@ const ManageInvoiceBatch: React.FC<ManageInvoiceBatchProps> = ({
       return;
     }
 
-    const productId = typeof item.product_id === 'number' ? item.product_id : null;
+    const productId =
+      typeof item.product_id === 'number' ? item.product_id : null;
 
     if (
       productId &&
@@ -85,7 +86,6 @@ const ManageInvoiceBatch: React.FC<ManageInvoiceBatchProps> = ({
     setProductBatches([]);
     setSelectedRowIndex(null);
   }, [setIsOpen, setSelectedRowIndex]);
-
 
   const handleBatchChange = React.useCallback(
     (field: keyof ProductBatch, rowIndex: number, value: string | number) => {
@@ -310,7 +310,6 @@ const ManageInvoiceBatch: React.FC<ManageInvoiceBatchProps> = ({
                     ? Math.min(nonNegative, max)
                     : nonNegative;
 
-                // We store the display value directly in the state
                 handleBatchChange('quantity', rowIndex, limited);
               }}
               size="small"

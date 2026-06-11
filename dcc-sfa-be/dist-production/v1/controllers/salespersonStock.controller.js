@@ -54,39 +54,23 @@ exports.salespersonStockController = {
                     .status(404)
                     .json({ success: false, message: 'Salesperson not found' });
             }
+            const totalVanInventories = await prisma_client_1.default.van_inventory.count({
+                where: {
+                    user_id: salespersonIdNum,
+                    is_active: 'Y',
+                },
+            });
             let parsedDepotId = null;
             if (depot_id) {
                 parsedDepotId = parseInt(depot_id, 10);
             }
-            const vanLocations = await prisma_client_1.default.van_inventory.findMany({
-                where: {
-                    user_id: salespersonIdNum,
-                    is_active: 'Y',
-                    ...(parsedDepotId ? { location_id: parsedDepotId } : {}),
-                },
-                select: { location_id: true },
-                distinct: ['location_id'],
-            });
-            const locationIds = vanLocations
-                .map(v => v.location_id)
-                .filter((id) => id !== null && id !== undefined);
-            if (locationIds.length === 0) {
-                return res.json({
-                    success: true,
-                    message: 'No inventory found for this salesperson',
-                    data: buildEmptyResponse(salesperson),
-                    filters: {
-                        product_id: product_id || null,
-                        batch_status: batch_status || null,
-                        serial_status: serial_status || null,
-                    },
-                    pagination: buildPagination(pageNum, limitNum, 0),
-                });
-            }
             const stockWhere = {
-                location_id: { in: locationIds },
+                salesperson_id: salespersonIdNum,
                 is_active: 'Y',
             };
+            if (parsedDepotId) {
+                stockWhere.location_id = parsedDepotId;
+            }
             if (product_id) {
                 stockWhere.product_id = parseInt(product_id, 10);
             }
@@ -331,7 +315,7 @@ exports.salespersonStockController = {
                     salesperson_phone: salesperson.phone_number,
                     salesperson_profile_image: salesperson.profile_image,
                     salesperson_address: salesperson.address,
-                    total_van_inventories: locationIds.length,
+                    total_van_inventories: totalVanInventories,
                     total_products: products.length,
                     total_quantity: totalRemainingQty,
                     total_remaining_quantity: totalRemainingQty,
@@ -388,26 +372,18 @@ async function handleAllSalespersons(req, res, pageNum, limitNum) {
         parsedDepotId = parseInt(depot_id, 10);
     }
     for (const sp of allSalespersons) {
-        const vanLocations = await prisma_client_1.default.van_inventory.findMany({
-            where: {
-                user_id: sp.id,
-                is_active: 'Y',
-                ...(parsedDepotId ? { location_id: parsedDepotId } : {}),
-            },
-            select: { location_id: true },
-            distinct: ['location_id'],
-        });
-        const locationIds = vanLocations
-            .map(v => v.location_id)
-            .filter((id) => id !== null && id !== undefined);
-        if (locationIds.length === 0)
-            continue;
         const stockWhere = {
-            location_id: { in: locationIds },
+            salesperson_id: sp.id,
             is_active: 'Y',
         };
+        if (parsedDepotId) {
+            stockWhere.location_id = parsedDepotId;
+        }
         if (product_id)
             stockWhere.product_id = parseInt(product_id, 10);
+        const vanInventoriesCount = await prisma_client_1.default.van_inventory.count({
+            where: { user_id: sp.id, is_active: 'Y' },
+        });
         const stockRecords = await prisma_client_1.default.inventory_stock.findMany({
             where: stockWhere,
             select: {
@@ -424,6 +400,8 @@ async function handleAllSalespersons(req, res, pageNum, limitNum) {
         const serialIds = new Set();
         for (const s of stockRecords) {
             const qty = Number(s.current_stock) || 0;
+            if (qty <= 0)
+                continue;
             productStockMap.set(s.product_id, (productStockMap.get(s.product_id) || 0) + qty);
             if (s.batch_id)
                 batchIds.add(s.batch_id);
@@ -433,7 +411,7 @@ async function handleAllSalespersons(req, res, pageNum, limitNum) {
         const totalQty = Array.from(productStockMap.values()).reduce((a, b) => a + b, 0);
         productStockMap.forEach((_, pid) => overallProducts.add(pid));
         overallTotalQty += totalQty;
-        overallVanInventories += locationIds.length;
+        overallVanInventories += vanInventoriesCount;
         overallBatches += batchIds.size;
         overallSerials += serialIds.size;
         consolidated.push({
@@ -443,7 +421,7 @@ async function handleAllSalespersons(req, res, pageNum, limitNum) {
             salesperson_phone: sp.phone_number,
             salesperson_profile_image: sp.profile_image,
             salesperson_address: sp.address,
-            total_van_inventories: locationIds.length,
+            total_van_inventories: vanInventoriesCount,
             total_products: productStockMap.size,
             total_quantity: totalQty,
             total_remaining_quantity: totalQty,

@@ -265,10 +265,11 @@ export const updateUserProfile = async (
 };
 
 export interface UserDropdown {
-  profile_image: any;
+  profile_image: string | null;
   id: number;
   name: string;
   email: string;
+  code?: string;
 }
 
 export interface GetUsersDropdownParams {

@@ -21,6 +21,7 @@ import {
   MdSettings,
   MdShoppingCart,
   MdSmartToy,
+  // MdSmartToy,
   MdStore,
   MdSwapHoriz,
   MdTrendingUp,

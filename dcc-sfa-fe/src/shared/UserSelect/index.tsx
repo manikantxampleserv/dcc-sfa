@@ -17,6 +17,7 @@ interface User {
   id: number;
   name: string;
   email: string;
+  code: string;
 }
 
 /**
@@ -164,7 +165,8 @@ const UserSelect: React.FC<UserSelectProps> = ({
       id: user.id,
       name: user.name,
       email: user.email,
-      profile_image: user.profile_image,
+      code: user.code || '',
+      profile_image: user.profile_image || '',
     }));
   }, [dropdownResponse?.data]);
 
@@ -359,13 +361,13 @@ const UserSelect: React.FC<UserSelectProps> = ({
         >
           <Avatar
             src={option.profile_image || 'mkx'}
-            alt={option.name}
+            alt={option.name.trim() || ''}
             className="!rounded !bg-primary-100 !text-primary-600"
           />
           <Box>
             <p className="!text-gray-900 !text-sm">{option.name || ''}</p>
-            {option.email && (
-              <p className="!text-gray-500 !text-xs">{option.email}</p>
+            {option.code && (
+              <p className="!text-gray-500 !text-xs">{option.code}</p>
             )}
           </Box>
         </Box>

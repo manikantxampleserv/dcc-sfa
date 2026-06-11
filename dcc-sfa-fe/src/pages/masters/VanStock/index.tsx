@@ -217,7 +217,7 @@ const VanStockPage: React.FC = () => {
               variant="caption"
               className="!text-gray-500 !text-xs !block !mt-0.5"
             >
-              {row.user?.email || 'No email'}
+              {row.user?.code || row.user?.email || 'No email'}
             </Typography>
           </Box>
         </Box>

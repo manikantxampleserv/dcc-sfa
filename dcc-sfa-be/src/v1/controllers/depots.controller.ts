@@ -229,6 +229,7 @@ export const depotsController = {
 
       const filters: any = {
         is_active: isActive as string,
+        name: { not: { startsWith: 'Van -' } },
         ...(search && {
           OR: [
             { name: { contains: searchLower } },

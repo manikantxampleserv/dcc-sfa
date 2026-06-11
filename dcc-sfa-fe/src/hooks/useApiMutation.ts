@@ -15,11 +15,12 @@ import type { ApiErrorClass } from 'types/api.types';
 interface ApiMutationConfig<TData, TError, TVariables> {
   mutationFn: (variables: TVariables) => Promise<TData>;
   loadingMessage: string;
-  successMessage?: string; // Optional: Custom success message
+  successMessage?: string;
   invalidateQueries?: string[] | string[][];
   onSuccess?: (data: TData, variables: TVariables) => void;
   onError?: (error: TError, variables: TVariables) => void;
   suppressErrorToast?: boolean;
+  suppressSuccessToast?: boolean;
 }
 
 /**
@@ -72,7 +73,11 @@ export const useApiMutation = <TData = any, TError = any, TVariables = any>(
           }
         }
 
-        toastService.update(context.toastId, successMessage, 'success');
+        if (config.suppressSuccessToast) {
+          toastService.dismiss(context.toastId);
+        } else {
+          toastService.update(context.toastId, successMessage, 'success');
+        }
       }
 
       if (config.invalidateQueries) {
@@ -120,7 +125,6 @@ export const useApiMutation = <TData = any, TError = any, TVariables = any>(
 
         toastService.update(context.toastId, errorMessage, 'error');
       } else if (context?.toastId && config.suppressErrorToast) {
-        // Just dismiss the loading toast if error toast is suppressed
         toastService.dismiss(context.toastId);
       }
 

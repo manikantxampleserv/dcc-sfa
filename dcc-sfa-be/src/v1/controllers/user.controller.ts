@@ -1014,20 +1014,6 @@ export const userController = {
           parsedDepotIds = depot_ids.map(Number).filter(id => !isNaN(id));
         }
       }
-      const updatedUser = await prisma.users.update({
-        where: { id: userId },
-        data: updateData,
-        include: {
-          user_role: true,
-          companies: true,
-          users_depots_users: {
-            include: {
-              user_depots_depot_id: true,
-            },
-          },
-          users: { select: { id: true, name: true, email: true } },
-        },
-      });
 
       if (depot_ids !== undefined) {
         await prisma.user_depots.deleteMany({
@@ -1107,6 +1093,7 @@ export const userController = {
           id: true,
           name: true,
           email: true,
+          employee_id: true,
         },
         orderBy: {
           name: 'asc',
@@ -1114,7 +1101,16 @@ export const userController = {
         take: 50,
       });
 
-      res.success('Users dropdown fetched successfully', users, 200);
+      res.success(
+        'Users dropdown fetched successfully',
+        users?.map(u => ({
+          id: u.id,
+          name: u.name,
+          code: u.employee_id,
+          email: u.email,
+        })),
+        200
+      );
     } catch (error: any) {
       console.error('Error fetching users dropdown:', error);
       res.error(error.message);

@@ -68,6 +68,7 @@ export const usePreviewImport = () => {
     mutationFn: ({ tableName, file }: { tableName: string; file: File }) =>
       previewImport(tableName, file),
     loadingMessage: 'Analyzing file...',
+    suppressSuccessToast: true,
   });
 };
 

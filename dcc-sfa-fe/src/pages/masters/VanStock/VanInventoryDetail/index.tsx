@@ -1,4 +1,4 @@
-import { Avatar, Chip, Skeleton, Typography } from '@mui/material';
+import { Avatar, Chip, Skeleton, Typography, Collapse } from '@mui/material';
 import classNames from 'classnames';
 import { useVanInventoryById, type VanInventory } from 'hooks/useVanInventory';
 import {
@@ -17,6 +17,103 @@ import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
 import Table, { type TableColumn } from 'shared/Table';
 import { formatDate } from 'utils/dateUtils';
+
+const BatchList = ({ batches }: { batches: any[] }) => {
+  const [expanded, setExpanded] = useState(false);
+  const displayBatches = batches.slice(0, 3);
+  const hiddenBatches = batches.slice(3);
+  const hasMore = batches.length > 3;
+
+  return (
+    <div className="flex flex-col gap-1">
+      {displayBatches.map((batch: any, index: number) => (
+        <div
+          key={index}
+          className="text-xs text-gray-600 bg-gray-50 p-1 rounded border border-gray-200"
+        >
+          <span className="font-semibold text-gray-800">
+            {batch.batch_number}
+          </span>
+          {batch.expiry_date && ` • Exp: ${formatDate(batch.expiry_date)}`}
+          {batch.quantity && ` • Qty: ${batch.quantity}`}
+        </div>
+      ))}
+      {hasMore && (
+        <>
+          <Collapse in={expanded} timeout="auto" unmountOnExit>
+            <div className="flex flex-col gap-1 mt-1">
+              {hiddenBatches.map((batch: any, index: number) => (
+                <div
+                  key={`hidden-${index}`}
+                  className="text-xs text-gray-600 bg-gray-50 p-1 rounded border border-gray-200"
+                >
+                  <span className="font-semibold text-gray-800">
+                    {batch.batch_number}
+                  </span>
+                  {batch.expiry_date &&
+                    ` • Exp: ${formatDate(batch.expiry_date)}`}
+                  {batch.quantity && ` • Qty: ${batch.quantity}`}
+                </div>
+              ))}
+            </div>
+          </Collapse>
+          <button
+            onClick={() => setExpanded(!expanded)}
+            className="text-xs text-primary-600 hover:text-primary-800 text-left mt-1 font-medium transition-colors"
+          >
+            {expanded ? 'Show Less' : `Show ${hiddenBatches.length} More`}
+          </button>
+        </>
+      )}
+    </div>
+  );
+};
+
+const SerialList = ({ serials }: { serials: any[] }) => {
+  const [expanded, setExpanded] = useState(false);
+  const displaySerials = serials.slice(0, 5);
+  const hiddenSerials = serials.slice(5);
+  const hasMore = serials.length > 5;
+
+  return (
+    <div className="flex flex-col items-start gap-1">
+      <div className="flex flex-wrap gap-1">
+        {displaySerials.map((serial: any, index: number) => (
+          <Chip
+            key={index}
+            label={serial.serial_number}
+            size="small"
+            variant="outlined"
+            className="!text-xs"
+          />
+        ))}
+      </div>
+      {hasMore && (
+        <>
+          <Collapse in={expanded} timeout="auto" unmountOnExit>
+            <div className="flex flex-wrap gap-1 mt-1">
+              {hiddenSerials.map((serial: any, index: number) => (
+                <Chip
+                  key={`hidden-${index}`}
+                  label={serial.serial_number}
+                  size="small"
+                  variant="outlined"
+                  className="!text-xs"
+                />
+              ))}
+            </div>
+          </Collapse>
+          <button
+            onClick={() => setExpanded(!expanded)}
+            className="text-xs text-primary-600 hover:text-primary-800 text-left mt-1 font-medium transition-colors"
+          >
+            {expanded ? 'Show Less' : `Show ${hiddenSerials.length} More`}
+          </button>
+        </>
+      )}
+    </div>
+  );
+};
 
 interface VanInventoryDetailProps {
   open: boolean;
@@ -297,6 +394,23 @@ const VanInventoryDetail: React.FC<VanInventoryDetailProps> = ({
           {row.quantity}
         </Typography>
       ),
+    },
+    {
+      id: 'details',
+      label: 'Batches / Serials',
+      render: (_value, row) => {
+        if (row.product_batches && row.product_batches.length > 0) {
+          return <BatchList batches={row.product_batches} />;
+        }
+        if (row.product_serials && row.product_serials.length > 0) {
+          return <SerialList serials={row.product_serials} />;
+        }
+        return (
+          <span className="text-gray-400 text-xs italic">
+            No batch/serial data
+          </span>
+        );
+      },
     },
   ];
 

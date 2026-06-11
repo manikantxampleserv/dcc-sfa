@@ -9,6 +9,9 @@ import {
   Avatar,
   Box,
   Chip,
+  FormControl,
+  MenuItem as MuiMenuItem,
+  Select as MuiSelect,
   Skeleton,
   Tab,
   Tabs,
@@ -38,12 +41,6 @@ import {
 import InvoiceDetail from 'pages/transactions/Invoices/InvoiceDetail';
 import React, { useCallback, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import {
-  Select as MuiSelect,
-  FormControl,
-  MenuItem as MuiMenuItem,
-} from '@mui/material';
-import Input from 'shared/Input';
 import type {
   BatchInfo,
   ProductInventory,
@@ -52,6 +49,7 @@ import type {
 } from 'services/masters/VanInventoryItems';
 import { ActionButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
+import Input from 'shared/Input';
 import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
 import { getCurrencyCode, getCurrencySymbol } from 'utils/currencyUtils';
@@ -660,32 +658,6 @@ const InventoryDetail = () => {
     }
   };
 
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'D':
-        return 'Draft';
-      case 'A':
-        return 'Confirmed';
-      case 'C':
-        return 'Canceled';
-      default:
-        return status;
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'D':
-        return 'warning';
-      case 'A':
-        return 'success';
-      case 'C':
-        return 'error';
-      default:
-        return 'default';
-    }
-  };
-
   const vanInventoryColumns = useMemo<TableColumn<any>[]>(
     () => [
       {
@@ -699,19 +671,6 @@ const InventoryDetail = () => {
             variant="outlined"
             color={row.loading_type === 'L' ? 'success' : 'error'}
             icon={row.loading_type === 'L' ? <Upload /> : <Download />}
-          />
-        ),
-      },
-      {
-        id: 'status',
-        label: 'Status',
-        render: (_value, row) => (
-          <Chip
-            label={getStatusLabel(row.status || 'D')}
-            size="small"
-            className="w-24"
-            variant="outlined"
-            color={getStatusColor(row.status || 'D') as any}
           />
         ),
       },
@@ -947,7 +906,7 @@ const InventoryDetail = () => {
 
   if (error || !inventoryData) {
     return (
-      <div className="flex flex-col items-center justify-center py-12">
+      <div className="flex flex-col gap-5 items-center justify-center py-12">
         <Package className="w-16 h-16 text-gray-300 mb-4" />
         <Typography variant="h6" className="text-gray-600 mb-2">
           Inventory Not Found
