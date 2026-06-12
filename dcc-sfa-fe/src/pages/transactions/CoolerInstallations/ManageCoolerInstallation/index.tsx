@@ -122,12 +122,11 @@ const ManageCoolerInstallation: React.FC<ManageCoolerInstallationProps> = ({
       open={drawerOpen}
       setOpen={handleCancel}
       title={isEdit ? 'Edit Cooler Installation' : 'Create Cooler Installation'}
-      size='large'
+      size="large"
     >
       <Box className="!p-6">
         <form onSubmit={formik.handleSubmit} className="!space-y-6">
           <Box className="!grid !grid-cols-1 md:!grid-cols-2 !gap-6">
-
             <AssetSelect
               name="asset_master_id"
               label="Cooler"
@@ -258,7 +257,7 @@ const ManageCoolerInstallation: React.FC<ManageCoolerInstallationProps> = ({
               }
             >
               {createCoolerInstallationMutation.isPending ||
-                updateCoolerInstallationMutation.isPending
+              updateCoolerInstallationMutation.isPending
                 ? isEdit
                   ? 'Updating...'
                   : 'Creating...'

@@ -71,11 +71,10 @@ export interface SearchSelectOption {
   disabled?: boolean;
 }
 
-interface SearchSelectProps
-  extends Omit<
-    AutocompleteProps<SearchSelectOption, false, false, false>,
-    'options' | 'renderInput' | 'value' | 'onChange' | 'onBlur'
-  > {
+interface SearchSelectProps extends Omit<
+  AutocompleteProps<SearchSelectOption, false, false, false>,
+  'options' | 'renderInput' | 'value' | 'onChange' | 'onBlur'
+> {
   formik?: FormikProps<any>;
   setValue?: (value: any) => void;
   onChange?: (value: SearchSelectOption | null) => void;

@@ -17,7 +17,7 @@ import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
-import { formatDate } from 'utils/dateUtils';
+import { formatDateTime } from 'utils/dateUtils';
 import ImportCoolerSubType from './ImportCoolerSubType';
 import ManageCoolerSubType from './ManageCoolerSubType';
 
@@ -204,37 +204,34 @@ const CoolerSubTypesPage: React.FC = () => {
     {
       id: 'createdate',
       label: 'Created Date',
-      render: (_value, row) =>
-        formatDate(row.createdate) || (
-          <span className="italic text-gray-400">No Date</span>
-        ),
+      render: (_value, row) => formatDateTime(row.createdate),
     },
     ...(isUpdate || isDelete || isRead
       ? [
-        {
-          id: 'action',
-          label: 'Actions',
-          sortable: false,
-          render: (_value: any, row: CoolerSubType) => (
-            <div className="!flex !gap-2 !items-center">
-              {isUpdate && (
-                <EditButton
-                  onClick={() => handleEditCoolerSubType(row)}
-                  tooltip={`Edit ${row.name}`}
-                />
-              )}
-              {isDelete && (
-                <DeleteButton
-                  onClick={() => handleDeleteCoolerSubType(row.id)}
-                  tooltip={`Delete ${row.name}`}
-                  itemName={row.name}
-                  confirmDelete={true}
-                />
-              )}
-            </div>
-          ),
-        },
-      ]
+          {
+            id: 'action',
+            label: 'Actions',
+            sortable: false,
+            render: (_value: any, row: CoolerSubType) => (
+              <div className="!flex !gap-2 !items-center">
+                {isUpdate && (
+                  <EditButton
+                    onClick={() => handleEditCoolerSubType(row)}
+                    tooltip={`Edit ${row.name}`}
+                  />
+                )}
+                {isDelete && (
+                  <DeleteButton
+                    onClick={() => handleDeleteCoolerSubType(row.id)}
+                    tooltip={`Delete ${row.name}`}
+                    itemName={row.name}
+                    confirmDelete={true}
+                  />
+                )}
+              </div>
+            ),
+          },
+        ]
       : []),
   ];
 

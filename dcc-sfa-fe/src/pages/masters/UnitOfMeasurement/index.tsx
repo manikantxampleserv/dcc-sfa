@@ -8,13 +8,13 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material';
-import {
-  useUnitOfMeasurement,
-  useDeleteUnitOfMeasurement,
-  type UnitOfMeasurement,
-} from 'hooks/useUnitOfMeasurement';
 import { useExportToExcel } from 'hooks/useImportExport';
 import { usePermission } from 'hooks/usePermission';
+import {
+  useDeleteUnitOfMeasurement,
+  useUnitOfMeasurement,
+  type UnitOfMeasurement,
+} from 'hooks/useUnitOfMeasurement';
 import { Ruler, TrendingUp } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { DeleteButton, EditButton } from 'shared/ActionButton';
@@ -24,7 +24,7 @@ import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
-import { formatDate } from 'utils/dateUtils';
+import { formatDateTime } from 'utils/dateUtils';
 import ImportUnitOfMeasurement from './ImportUnitOfMeasurement';
 import ManageUnitOfMeasurement from './ManageUnitOfMeasurement';
 
@@ -213,10 +213,7 @@ const UnitOfMeasurementPage: React.FC = () => {
     {
       id: 'createdate',
       label: 'Created Date',
-      render: (_value, row) =>
-        formatDate(row.createdate) || (
-          <span className="italic text-gray-400">No Date</span>
-        ),
+      render: (_value, row) => formatDateTime(row.createdate),
     },
     ...(isUpdate || isDelete || isRead
       ? [

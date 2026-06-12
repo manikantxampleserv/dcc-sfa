@@ -289,7 +289,7 @@ const OutletsManagement: React.FC = () => {
         const locationParts = [
           row.customer_city?.name,
           row.customer_district?.name,
-          row.customer_region?.name
+          row.customer_region?.name,
         ].filter(Boolean);
         return (
           <Box>
@@ -355,30 +355,30 @@ const OutletsManagement: React.FC = () => {
     },
     ...(isUpdate || isDelete || isRead
       ? [
-        {
-          id: 'action',
-          label: 'Actions',
-          sortable: false,
-          render: (_value: any, row: Customer) => (
-            <div className="!flex !gap-2 !items-center">
-              {isUpdate && (
-                <EditButton
-                  onClick={() => handleEditOutlet(row)}
-                  tooltip={`Edit ${row.name}`}
-                />
-              )}
-              {isDelete && (
-                <DeleteButton
-                  onClick={() => handleDeleteOutlet(row.id)}
-                  tooltip={`Delete ${row.name}`}
-                  itemName={row.name}
-                  confirmDelete={true}
-                />
-              )}
-            </div>
-          ),
-        },
-      ]
+          {
+            id: 'action',
+            label: 'Actions',
+            sortable: false,
+            render: (_value: any, row: Customer) => (
+              <div className="!flex !gap-2 !items-center">
+                {isUpdate && (
+                  <EditButton
+                    onClick={() => handleEditOutlet(row)}
+                    tooltip={`Edit ${row.name}`}
+                  />
+                )}
+                {isDelete && (
+                  <DeleteButton
+                    onClick={() => handleDeleteOutlet(row.id)}
+                    tooltip={`Delete ${row.name}`}
+                    itemName={row.name}
+                    confirmDelete={true}
+                  />
+                )}
+              </div>
+            ),
+          },
+        ]
       : []),
   ];
 

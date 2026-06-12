@@ -1,12 +1,12 @@
 import { Add, Block, CheckCircle, Download, Upload } from '@mui/icons-material';
 import { Alert, Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
-import {
-  useProductTargetGroups,
-  useDeleteProductTargetGroup,
-  type ProductTargetGroup,
-} from 'hooks/useProductTargetGroups';
 import { useExportToExcel } from 'hooks/useImportExport';
 import { usePermission } from 'hooks/usePermission';
+import {
+  useDeleteProductTargetGroup,
+  useProductTargetGroups,
+  type ProductTargetGroup,
+} from 'hooks/useProductTargetGroups';
 import { Package, TrendingUp } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { DeleteButton, EditButton } from 'shared/ActionButton';
@@ -16,7 +16,7 @@ import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
-import { formatDate } from 'utils/dateUtils';
+import { formatDateTime } from 'utils/dateUtils';
 import ImportProductTargetGroup from './ImportProductTargetGroup';
 import ManageProductTargetGroup from './ManageProductTargetGroup';
 
@@ -171,37 +171,34 @@ const ProductTargetGroupsPage: React.FC = () => {
     {
       id: 'createdate',
       label: 'Created Date',
-      render: (_value, row) =>
-        formatDate(row.createdate) || (
-          <span className="italic text-gray-400">No Date</span>
-        ),
+      render: (_value, row) => formatDateTime(row.createdate),
     },
     ...(isUpdate || isDelete || isRead
       ? [
-        {
-          id: 'action',
-          label: 'Actions',
-          sortable: false,
-          render: (_value: any, row: ProductTargetGroup) => (
-            <div className="!flex !gap-2 !items-center">
-              {isUpdate && (
-                <EditButton
-                  onClick={() => handleEditProductTargetGroup(row)}
-                  tooltip={`Edit ${row.name}`}
-                />
-              )}
-              {isDelete && (
-                <DeleteButton
-                  onClick={() => handleDeleteProductTargetGroup(row.id)}
-                  tooltip={`Delete ${row.name}`}
-                  itemName={row.name}
-                  confirmDelete={true}
-                />
-              )}
-            </div>
-          ),
-        },
-      ]
+          {
+            id: 'action',
+            label: 'Actions',
+            sortable: false,
+            render: (_value: any, row: ProductTargetGroup) => (
+              <div className="!flex !gap-2 !items-center">
+                {isUpdate && (
+                  <EditButton
+                    onClick={() => handleEditProductTargetGroup(row)}
+                    tooltip={`Edit ${row.name}`}
+                  />
+                )}
+                {isDelete && (
+                  <DeleteButton
+                    onClick={() => handleDeleteProductTargetGroup(row.id)}
+                    tooltip={`Delete ${row.name}`}
+                    itemName={row.name}
+                    confirmDelete={true}
+                  />
+                )}
+              </div>
+            ),
+          },
+        ]
       : []),
   ];
 

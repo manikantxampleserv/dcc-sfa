@@ -1,6 +1,7 @@
 import { Add, Block, CheckCircle, Download, Upload } from '@mui/icons-material';
 import { Alert, Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
-import { Users, TrendingUp } from 'lucide-react';
+import { usePermission } from 'hooks/usePermission';
+import { TrendingUp, Users } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { DeleteButton, EditButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
@@ -15,10 +16,9 @@ import {
   type CustomerCategory,
 } from '../../../hooks/useCustomerCategory';
 import { useExportToExcel } from '../../../hooks/useImportExport';
-import { usePermission } from 'hooks/usePermission';
-import { formatDate } from '../../../utils/dateUtils';
-import ManageCustomerCategory from './ManageCustomerCategory';
+import { formatDateTime } from '../../../utils/dateUtils';
 import ImportCustomerCategory from './ImportCustomerCategory';
+import ManageCustomerCategory from './ManageCustomerCategory';
 
 const CustomerCategoryPage: React.FC = () => {
   const [search, setSearch] = useState('');
@@ -189,10 +189,7 @@ const CustomerCategoryPage: React.FC = () => {
     {
       id: 'createdate',
       label: 'Created Date',
-      render: (_value, row) =>
-        formatDate(row.createdate) || (
-          <span className="italic text-gray-400">No Date</span>
-        ),
+      render: (_value, row) => formatDateTime(row.createdate),
     },
     ...(isUpdate || isDelete || isRead
       ? [

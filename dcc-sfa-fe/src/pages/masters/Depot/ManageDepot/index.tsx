@@ -1,11 +1,7 @@
 import { Box, MenuItem } from '@mui/material';
 import { useFormik } from 'formik';
 import { useCities } from 'hooks/useCity';
-import {
-  useCreateDepot,
-  useUpdateDepot,
-  type Depot,
-} from 'hooks/useDepots';
+import { useCreateDepot, useUpdateDepot, type Depot } from 'hooks/useDepots';
 import { useDistricts } from 'hooks/useDistrict';
 import { useRegions } from 'hooks/useRegion';
 import React from 'react';
@@ -98,7 +94,9 @@ const ManageDepot: React.FC<ManageDepotProps> = ({
           latitude: values.latitude ? Number(values.latitude) : undefined,
           longitude: values.longitude ? Number(values.longitude) : undefined,
           is_active: values.is_active,
-          default_outlet_id: values.default_outlet_id ? Number(values.default_outlet_id) : null,
+          default_outlet_id: values.default_outlet_id
+            ? Number(values.default_outlet_id)
+            : null,
         };
 
         if (isEdit && selectedDepot) {
@@ -323,7 +321,6 @@ const ManageDepot: React.FC<ManageDepotProps> = ({
                 multiline
                 rows={3}
               />
-
             </Box>
 
             <ActiveInactiveField

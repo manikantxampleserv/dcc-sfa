@@ -53,7 +53,7 @@ const AssetDetails: React.FC = () => {
     if (selectedImageIndex !== null && asset?.asset_master_image) {
       setSelectedImageIndex(
         (selectedImageIndex - 1 + asset.asset_master_image.length) %
-        asset.asset_master_image.length
+          asset.asset_master_image.length
       );
     }
   };
@@ -233,8 +233,9 @@ const AssetDetails: React.FC = () => {
           <div className="!bg-white !rounded-lg !shadow !border !border-gray-200 !p-6 !text-center !relative">
             <div className="absolute top-3 right-3">
               <div
-                className={`!w-2.5 !h-2.5 !rounded-full ${asset.is_active === 'Y' ? '!bg-green-400' : '!bg-gray-400'
-                  }`}
+                className={`!w-2.5 !h-2.5 !rounded-full ${
+                  asset.is_active === 'Y' ? '!bg-green-400' : '!bg-gray-400'
+                }`}
               ></div>
             </div>
 
@@ -286,8 +287,6 @@ const AssetDetails: React.FC = () => {
               />
             </div>
 
-
-
             <div className="!space-y-1 !text-left !mt-4">
               <div className="!p-2 !bg-gray-50 !rounded-md">
                 <Typography
@@ -319,13 +318,10 @@ const AssetDetails: React.FC = () => {
               </div>
             </div>
           </div>
-
-
         </div>
 
         {/* Right Info Column */}
         <div className="!flex-4 !space-y-2 w-full">
-
           <InfoCard title="Asset Information" icon={SettingsIcon}>
             <div className="!grid !grid-cols-1 md:!grid-cols-2 !gap-4">
               <div className="!space-y-0.5">
@@ -517,7 +513,8 @@ const AssetDetails: React.FC = () => {
                     className="!font-semibold !text-gray-900"
                   >
                     {asset.inspections?.length
-                      ? asset.inspections[asset.inspections.length - 1].inspected_by?.name
+                      ? asset.inspections[asset.inspections.length - 1]
+                          .inspected_by?.name
                       : 'N/A'}
                   </Typography>
                 </div>
@@ -531,7 +528,11 @@ const AssetDetails: React.FC = () => {
       <div className="flex items-stretch gap-4 w-full">
         <div className="!flex-2 flex flex-col">
           {asset.serial_number && (
-            <Barcode value={asset.serial_number} label="Serial Number" className='!flex-1 !h-full' />
+            <Barcode
+              value={asset.serial_number}
+              label="Serial Number"
+              className="!flex-1 !h-full"
+            />
           )}
         </div>
         <div className="!flex-4 w-full">
@@ -571,7 +572,6 @@ const AssetDetails: React.FC = () => {
           </InfoCard>
         </div>
       </div>
-
 
       {/* Image Viewer Modal */}
       <Modal
@@ -643,7 +643,7 @@ const AssetDetails: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <InfoCard title="Maintenance History" icon={Wrench}>
           {asset.asset_maintenance_master &&
-            asset.asset_maintenance_master.length > 0 ? (
+          asset.asset_maintenance_master.length > 0 ? (
             <div className="!space-y-4">
               {asset.asset_maintenance_master.map((item: any) => (
                 <div
@@ -680,7 +680,7 @@ const AssetDetails: React.FC = () => {
 
         <InfoCard title="Movement History" icon={History}>
           {asset.asset_movement_assets_asset &&
-            asset.asset_movement_assets_asset.length > 0 ? (
+          asset.asset_movement_assets_asset.length > 0 ? (
             <div className="!space-y-4">
               {asset.asset_movement_assets_asset.map((item: any) => (
                 <div

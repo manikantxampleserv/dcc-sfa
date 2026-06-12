@@ -118,8 +118,8 @@ const ImportDistrict: React.FC<ImportDistrictProps> = ({
         <form onSubmit={formik.handleSubmit} className="!space-y-6">
           <Alert severity="info" className="!mb-4">
             <Typography variant="body2">
-              Upload an Excel file to import multiple districts. Download
-              the sample file to see the required format.
+              Upload an Excel file to import multiple districts. Download the
+              sample file to see the required format.
             </Typography>
           </Alert>
 

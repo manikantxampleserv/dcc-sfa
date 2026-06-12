@@ -1,14 +1,4 @@
 import {
-  AvatarGroup,
-  Avatar,
-  Box,
-  Chip,
-  MenuItem,
-  Tooltip,
-  Typography,
-  Alert,
-} from '@mui/material';
-import {
   Add as AddIcon,
   Block,
   Block as BlockIcon,
@@ -17,6 +7,16 @@ import {
   Upload,
   Visibility,
 } from '@mui/icons-material';
+import {
+  Alert,
+  Avatar,
+  AvatarGroup,
+  Box,
+  Chip,
+  MenuItem,
+  Tooltip,
+  Typography,
+} from '@mui/material';
 import { useDepots } from 'hooks/useDepots';
 import { usePermission } from 'hooks/usePermission';
 import { useDeleteRoute, useRoutes, type Route } from 'hooks/useRoutes';
@@ -36,7 +36,7 @@ import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
-import { formatDate } from 'utils/dateUtils';
+import { formatDateTime } from 'utils/dateUtils';
 import { useExportToExcel } from '../../../hooks/useImportExport';
 import ImportRoutes from './ImportRoutes';
 import ManageRoute from './ManageRoute';
@@ -279,7 +279,9 @@ const RoutesManagement: React.FC = () => {
             variant="body2"
             className="!text-gray-600 !max-w-xs !truncate"
           >
-            {row.description || <span className='italic text-gray-400'>No description</span>}
+            {row.description || (
+              <span className="italic text-gray-400">No description</span>
+            )}
           </Typography>
         </Tooltip>
       ),
@@ -300,10 +302,7 @@ const RoutesManagement: React.FC = () => {
     {
       id: 'createdate',
       label: 'Created Date',
-      render: (_value, row) =>
-        formatDate(row.createdate) || (
-          <span className="italic text-gray-400">No Date</span>
-        ),
+      render: (_value, row) => formatDateTime(row.createdate),
     },
     ...(isUpdate || isDelete || isRead
       ? [

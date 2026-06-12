@@ -1,5 +1,8 @@
 import { Add, Block, CheckCircle, Download, Upload } from '@mui/icons-material';
 import { Alert, Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
+import { useCities, useDeleteCity, type City } from 'hooks/useCity';
+import { useExportToExcel } from 'hooks/useImportExport';
+import { usePermission } from 'hooks/usePermission';
 import { Building, Tag } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { DeleteButton, EditButton } from 'shared/ActionButton';
@@ -9,28 +12,19 @@ import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
-import {
-  useCities,
-  useDeleteCity,
-  type City,
-} from 'hooks/useCity';
-import { useExportToExcel } from 'hooks/useImportExport';
-import { usePermission } from 'hooks/usePermission';
-import { formatDate } from 'utils/dateUtils';
-import ManageCity from './ManageCity';
+import { formatDateTime } from 'utils/dateUtils';
 import ImportCity from './ImportCity';
+import ManageCity from './ManageCity';
 
 const CitiesPage: React.FC = () => {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [selectedCity, setSelectedCity] =
-    useState<City | null>(null);
+  const [selectedCity, setSelectedCity] = useState<City | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [importDrawerOpen, setImportDrawerOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
-  const { isCreate, isUpdate, isDelete, isRead } =
-    usePermission('city');
+  const { isCreate, isUpdate, isDelete, isRead } = usePermission('city');
 
   const {
     data: citiesResponse,
@@ -172,37 +166,34 @@ const CitiesPage: React.FC = () => {
     {
       id: 'createdate',
       label: 'Created Date',
-      render: (_value, row) =>
-        formatDate(row.createdate) || (
-          <span className="italic text-gray-400">No Date</span>
-        ),
+      render: (_value, row) => formatDateTime(row.createdate),
     },
     ...(isUpdate || isDelete || isRead
       ? [
-        {
-          id: 'action',
-          label: 'Actions',
-          sortable: false,
-          render: (_value: any, row: City) => (
-            <div className="!flex !gap-2 !items-center">
-              {isUpdate && (
-                <EditButton
-                  onClick={() => handleEditCity(row)}
-                  tooltip={`Edit ${row.name}`}
-                />
-              )}
-              {isDelete && (
-                <DeleteButton
-                  onClick={() => handleDeleteCity(row.id)}
-                  tooltip={`Delete ${row.name}`}
-                  itemName={row.name}
-                  confirmDelete={true}
-                />
-              )}
-            </div>
-          ),
-        },
-      ]
+          {
+            id: 'action',
+            label: 'Actions',
+            sortable: false,
+            render: (_value: any, row: City) => (
+              <div className="!flex !gap-2 !items-center">
+                {isUpdate && (
+                  <EditButton
+                    onClick={() => handleEditCity(row)}
+                    tooltip={`Edit ${row.name}`}
+                  />
+                )}
+                {isDelete && (
+                  <DeleteButton
+                    onClick={() => handleDeleteCity(row.id)}
+                    tooltip={`Delete ${row.name}`}
+                    itemName={row.name}
+                    confirmDelete={true}
+                  />
+                )}
+              </div>
+            ),
+          },
+        ]
       : []),
   ];
 
@@ -210,9 +201,7 @@ const CitiesPage: React.FC = () => {
     <>
       <Box className="!mb-3 !flex !justify-between !items-center">
         <Box>
-          <p className="!font-bold text-xl !text-gray-900">
-            City Management
-          </p>
+          <p className="!font-bold text-xl !text-gray-900">City Management</p>
           <p className="!text-gray-500 text-sm">
             Manage cities associated with districts
           </p>

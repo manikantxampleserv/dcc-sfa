@@ -44,7 +44,7 @@ const customerCategoryValidationSchema = Yup.object({
     .min(2, 'Outlet category name must be at least 2 characters')
     .max(255, 'Outlet category name must be less than 255 characters'),
   category_code: Yup.string()
-    .required('Outlet category code is required'  )
+    .required('Outlet category code is required')
     .min(2, 'Outlet category code must be at least 2 characters')
     .max(50, 'Outlet category code must be less than 50 characters'),
   level: Yup.string()

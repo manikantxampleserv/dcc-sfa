@@ -14,7 +14,7 @@ import {
   Chip,
   MenuItem,
   Tooltip,
-  Typography
+  Typography,
 } from '@mui/material';
 import {
   useAssetMovements,
@@ -226,7 +226,9 @@ const AssetMovementManagement: React.FC = () => {
               variant="caption"
               className="!text-gray-500 !text-xs !block !mt-0.5"
             >
-              {row.asset_movements_performed_by?.email || <span className='italic text-gray-400 text-xs'>No Email</span>}
+              {row.asset_movements_performed_by?.email || (
+                <span className="italic text-gray-400 text-xs">No Email</span>
+              )}
             </Typography>
           </Box>
         </Box>
@@ -329,46 +331,46 @@ const AssetMovementManagement: React.FC = () => {
     },
     ...(isUpdate || isDelete || isRead
       ? [
-        {
-          id: 'action',
-          label: 'Actions',
-          sortable: false,
-          render: (_value: any, row: AssetMovement) => (
-            <div className="!flex !gap-2 !items-center">
-              {row.contract_url && (
-                <ActionButton
-                  tooltip="View Contract"
-                  color="info"
-                  size="medium"
-                  icon={<FileText className="!w-5 !h-5" />}
-                  onClick={() => {
-                    const sanitized = row.contract_url
-                      ?.replace(/[`'"]/g, '')
-                      .trim();
-                    if (sanitized) {
-                      window.open(sanitized, '_blank', 'noopener,noreferrer');
-                    }
-                  }}
-                />
-              )}
-              {isUpdate && (
-                <EditButton
-                  onClick={() => handleEditMovement(row)}
-                  tooltip={`Edit Movement #${row.id}`}
-                />
-              )}
-              {isDelete && (
-                <DeleteButton
-                  onClick={() => handleDeleteMovement(row.id)}
-                  tooltip={`Delete Movement #${row.id}`}
-                  itemName={`Movement #${row.id}`}
-                  confirmDelete={true}
-                />
-              )}
-            </div>
-          ),
-        },
-      ]
+          {
+            id: 'action',
+            label: 'Actions',
+            sortable: false,
+            render: (_value: any, row: AssetMovement) => (
+              <div className="!flex !gap-2 !items-center">
+                {row.contract_url && (
+                  <ActionButton
+                    tooltip="View Contract"
+                    color="info"
+                    size="medium"
+                    icon={<FileText className="!w-5 !h-5" />}
+                    onClick={() => {
+                      const sanitized = row.contract_url
+                        ?.replace(/[`'"]/g, '')
+                        .trim();
+                      if (sanitized) {
+                        window.open(sanitized, '_blank', 'noopener,noreferrer');
+                      }
+                    }}
+                  />
+                )}
+                {isUpdate && (
+                  <EditButton
+                    onClick={() => handleEditMovement(row)}
+                    tooltip={`Edit Movement #${row.id}`}
+                  />
+                )}
+                {isDelete && (
+                  <DeleteButton
+                    onClick={() => handleDeleteMovement(row.id)}
+                    tooltip={`Delete Movement #${row.id}`}
+                    itemName={`Movement #${row.id}`}
+                    confirmDelete={true}
+                  />
+                )}
+              </div>
+            ),
+          },
+        ]
       : []),
   ];
 

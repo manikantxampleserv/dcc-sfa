@@ -1,5 +1,11 @@
 import React, { useState } from 'react';
-import { Copy, Check, Printer, Download, Barcode as BarcodeIcon } from 'lucide-react';
+import {
+  Copy,
+  Check,
+  Printer,
+  Download,
+  Barcode as BarcodeIcon,
+} from 'lucide-react';
 import { Tooltip, IconButton, CircularProgress } from '@mui/material';
 
 export interface BarcodeProps {
@@ -20,7 +26,8 @@ const Barcode: React.FC<BarcodeProps> = ({
   const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  const backendUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api/v1';
+  const backendUrl =
+    import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api/v1';
   const normalizedBaseUrl = backendUrl.endsWith('/api/v1')
     ? backendUrl
     : `${backendUrl.replace(/\/$/, '')}/api/v1`;
@@ -125,19 +132,35 @@ const Barcode: React.FC<BarcodeProps> = ({
         {/* Quick actions panel */}
         <div className="!flex !items-center !gap-1 !opacity-60 group-hover:!opacity-100 !transition-opacity !duration-200">
           <Tooltip title={copied ? 'Copied!' : `Copy ${label}`}>
-            <IconButton onClick={handleCopy} size="small" className="!text-gray-500 hover:!text-primary-600 hover:!bg-primary-50 !transition-colors">
-              {copied ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
+            <IconButton
+              onClick={handleCopy}
+              size="small"
+              className="!text-gray-500 hover:!text-primary-600 hover:!bg-primary-50 !transition-colors"
+            >
+              {copied ? (
+                <Check className="w-3.5 h-3.5 text-green-500" />
+              ) : (
+                <Copy className="w-3.5 h-3.5" />
+              )}
             </IconButton>
           </Tooltip>
 
           <Tooltip title="Print">
-            <IconButton onClick={handlePrint} size="small" className="!text-gray-500 hover:!text-primary-600 hover:!bg-primary-50 !transition-colors">
+            <IconButton
+              onClick={handlePrint}
+              size="small"
+              className="!text-gray-500 hover:!text-primary-600 hover:!bg-primary-50 !transition-colors"
+            >
               <Printer className="w-3.5 h-3.5" />
             </IconButton>
           </Tooltip>
 
           <Tooltip title="Download SVG">
-            <IconButton onClick={handleDownload} size="small" className="!text-gray-500 hover:!text-primary-600 hover:!bg-primary-50 !transition-colors">
+            <IconButton
+              onClick={handleDownload}
+              size="small"
+              className="!text-gray-500 hover:!text-primary-600 hover:!bg-primary-50 !transition-colors"
+            >
               <Download className="w-3.5 h-3.5" />
             </IconButton>
           </Tooltip>
@@ -156,8 +179,9 @@ const Barcode: React.FC<BarcodeProps> = ({
           alt={`${label} ${value}`}
           onLoad={() => setLoading(false)}
           onError={() => setLoading(false)}
-          className={`!w-full !max-w-[280px] !h-auto !object-contain !transition-all !duration-500 ${loading ? '!scale-95 !blur-[2px]' : '!scale-100 !blur-0'
-            }`}
+          className={`!w-full !max-w-[280px] !h-auto !object-contain !transition-all !duration-500 ${
+            loading ? '!scale-95 !blur-[2px]' : '!scale-100 !blur-0'
+          }`}
         />
       </div>
 

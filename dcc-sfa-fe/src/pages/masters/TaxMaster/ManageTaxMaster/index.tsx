@@ -118,7 +118,10 @@ const ManageTaxMaster: React.FC<ManageTaxMasterProps> = ({
       size="medium"
     >
       <Box className="!p-6">
-        <form onSubmit={formik.handleSubmit} className="gap-4 grid lg:grid-cols-2 md:grid-cols-1 grid-cols-1">
+        <form
+          onSubmit={formik.handleSubmit}
+          className="gap-4 grid lg:grid-cols-2 md:grid-cols-1 grid-cols-1"
+        >
           <Input
             name="name"
             label="Tax Name"
@@ -145,11 +148,11 @@ const ManageTaxMaster: React.FC<ManageTaxMasterProps> = ({
             required
             inputProps={{ min: 0, max: 100, step: 0.01 }}
           />
-   <ActiveInactiveField
+          <ActiveInactiveField
             name="is_active"
             label="Status"
             formik={formik}
-            className='lg:col-span-2'
+            className="lg:col-span-2"
             required
           />
           <Input
@@ -158,10 +161,10 @@ const ManageTaxMaster: React.FC<ManageTaxMasterProps> = ({
             placeholder="Enter description (optional)"
             formik={formik}
             multiline
-            className='lg:col-span-2'
+            className="lg:col-span-2"
             rows={3}
           />
-          
+
           <Box className="!flex !justify-end lg:col-span-2 md:col-span-1 col-span-1 items-center gap-2">
             <Button
               type="button"

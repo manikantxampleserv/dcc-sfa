@@ -528,7 +528,7 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
         }
         return item;
       });
-      
+
       if (hasChanges) {
         setInvoiceItems(updatedItems);
         formik.setFieldValue('invoiceItems', updatedItems, false);

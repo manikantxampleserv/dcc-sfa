@@ -27,7 +27,6 @@ const ManageAssetSubType: React.FC<ManageAssetSubTypeProps> = ({
 }) => {
   const isEdit = !!selectedAssetSubType;
 
-
   const handleCancel = () => {
     setSelectedAssetSubType(null);
     setDrawerOpen(false);
@@ -86,7 +85,6 @@ const ManageAssetSubType: React.FC<ManageAssetSubTypeProps> = ({
               formik={formik}
               required
             />
-
 
             <ActiveInactiveField
               name="is_active"

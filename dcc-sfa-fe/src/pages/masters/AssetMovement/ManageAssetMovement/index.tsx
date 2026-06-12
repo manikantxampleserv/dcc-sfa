@@ -83,7 +83,10 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
       to_depot: selectedMovement?.to_depot_id?.toString() || '',
       movement_type: selectedMovement?.movement_type || '',
       movement_date: formatForDateInput(selectedMovement?.movement_date),
-      performed_by: selectedMovement?.performed_by?.toString() || user?.id?.toString() || '',
+      performed_by:
+        selectedMovement?.performed_by?.toString() ||
+        user?.id?.toString() ||
+        '',
       notes: selectedMovement?.notes || '',
       is_active: selectedMovement?.is_active || 'Y',
       priority: 'medium',
@@ -196,9 +199,16 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
     if (displayedAssets.length > 0) {
       setDisplayedAssets(EMPTY_ASSETS);
     }
-  }, [availableSearch, formik.values.from_direction, formik.values.from_depot, formik.values.from_outlet]);
+  }, [
+    availableSearch,
+    formik.values.from_direction,
+    formik.values.from_depot,
+    formik.values.from_outlet,
+  ]);
 
-  const [knownAssetsMap, setKnownAssetsMap] = useState<Map<number, AssetMaster>>(new Map());
+  const [knownAssetsMap, setKnownAssetsMap] = useState<
+    Map<number, AssetMaster>
+  >(new Map());
 
   const isSourceSelected = !!(
     (formik.values.from_direction === 'depot' && formik.values.from_depot) ||
@@ -321,7 +331,12 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
   const AssetCardSkeleton = () => (
     <Box className="!flex !items-center !gap-3 !p-2 !pr-3 !bg-white !border !border-gray-200 !rounded-lg !mb-2">
       <GripVertical className="!w-5 !h-5 !text-gray-400 !cursor-grab !flex-shrink-0" />
-      <Skeleton variant="circular" width={36} height={36} className="!flex-shrink-0" />
+      <Skeleton
+        variant="circular"
+        width={36}
+        height={36}
+        className="!flex-shrink-0"
+      />
       <Box className="!flex-1">
         <Skeleton variant="text" width="60%" />
         <Skeleton variant="text" width="40%" />
@@ -417,7 +432,10 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
                 formik={formik}
                 required
                 onChange={(_, selectedDepot) => {
-                  formik.setFieldValue('from_depot', selectedDepot ? selectedDepot.id : '');
+                  formik.setFieldValue(
+                    'from_depot',
+                    selectedDepot ? selectedDepot.id : ''
+                  );
                   formik.setFieldValue('to_outlet', '');
                 }}
               />
@@ -430,7 +448,8 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
                 formik={formik}
                 required
                 depotId={
-                  formik.values.from_direction === 'depot' && formik.values.from_depot
+                  formik.values.from_direction === 'depot' &&
+                  formik.values.from_depot
                     ? Number(formik.values.from_depot)
                     : undefined
                 }
@@ -470,7 +489,8 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
                         variant="subtitle1"
                         className="!font-semibold !text-blue-600"
                       >
-                        Available Assets ({assetsResponse?.meta?.total || availableAssets.length})
+                        Available Assets (
+                        {assetsResponse?.meta?.total || availableAssets.length})
                       </Typography>
                       <p className="!text-gray-500 !text-xs !block !mt-1">
                         Drag assets from the left panel to select
@@ -491,8 +511,9 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
                             {...provided.droppableProps}
                             ref={provided.innerRef}
                             onScroll={handleScroll}
-                            className={`!h-full !p-2 !overflow-y-auto ${snapshot.isDraggingOver ? '!bg-blue-50' : ''
-                              }`}
+                            className={`!h-full !p-2 !overflow-y-auto ${
+                              snapshot.isDraggingOver ? '!bg-blue-50' : ''
+                            }`}
                             style={{
                               transition: 'background-color 0.2s ease',
                             }}
@@ -565,8 +586,9 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
                           <div
                             {...provided.droppableProps}
                             ref={provided.innerRef}
-                            className={`!h-full !p-2 !overflow-y-auto ${snapshot.isDraggingOver ? '!bg-green-50' : ''
-                              }`}
+                            className={`!h-full !p-2 !overflow-y-auto ${
+                              snapshot.isDraggingOver ? '!bg-green-50' : ''
+                            }`}
                             style={{
                               transition: 'background-color 0.2s ease',
                             }}
@@ -654,7 +676,7 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
               }
             >
               {createAssetMovementMutation.isPending ||
-                updateAssetMovementMutation.isPending
+              updateAssetMovementMutation.isPending
                 ? isEdit
                   ? 'Updating...'
                   : 'Creating...'

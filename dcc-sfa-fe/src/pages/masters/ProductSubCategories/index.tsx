@@ -8,6 +8,7 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material';
+import { usePermission } from 'hooks/usePermission';
 import { Package, TrendingUp } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { DeleteButton, EditButton } from 'shared/ActionButton';
@@ -17,14 +18,13 @@ import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
+import { useExportToExcel } from '../../../hooks/useImportExport';
 import {
-  useProductSubCategories,
   useDeleteProductSubCategory,
+  useProductSubCategories,
   type ProductSubCategory,
 } from '../../../hooks/useProductSubCategories';
-import { useExportToExcel } from '../../../hooks/useImportExport';
-import { usePermission } from 'hooks/usePermission';
-import { formatDate } from '../../../utils/dateUtils';
+import { formatDateTime } from '../../../utils/dateUtils';
 import ImportProductSubCategory from './ImportProductSubCategory';
 import ManageProductSubCategory from './ManageProductSubCategory';
 
@@ -202,37 +202,34 @@ const ProductSubCategoriesPage: React.FC = () => {
     {
       id: 'createdate',
       label: 'Created Date',
-      render: (_value, row) =>
-        formatDate(row.createdate) || (
-          <span className="italic text-gray-400">No Date</span>
-        ),
+      render: (_value, row) => formatDateTime(row.createdate),
     },
     ...(isUpdate || isDelete || isRead
       ? [
-        {
-          id: 'action',
-          label: 'Actions',
-          sortable: false,
-          render: (_value: any, row: ProductSubCategory) => (
-            <div className="!flex !gap-2 !items-center">
-              {isUpdate && (
-                <EditButton
-                  onClick={() => handleEditProductSubCategory(row)}
-                  tooltip={`Edit ${row.sub_category_name}`}
-                />
-              )}
-              {isDelete && (
-                <DeleteButton
-                  onClick={() => handleDeleteProductSubCategory(row.id)}
-                  tooltip={`Delete ${row.sub_category_name}`}
-                  itemName={row.sub_category_name}
-                  confirmDelete={true}
-                />
-              )}
-            </div>
-          ),
-        },
-      ]
+          {
+            id: 'action',
+            label: 'Actions',
+            sortable: false,
+            render: (_value: any, row: ProductSubCategory) => (
+              <div className="!flex !gap-2 !items-center">
+                {isUpdate && (
+                  <EditButton
+                    onClick={() => handleEditProductSubCategory(row)}
+                    tooltip={`Edit ${row.sub_category_name}`}
+                  />
+                )}
+                {isDelete && (
+                  <DeleteButton
+                    onClick={() => handleDeleteProductSubCategory(row.id)}
+                    tooltip={`Delete ${row.sub_category_name}`}
+                    itemName={row.sub_category_name}
+                    confirmDelete={true}
+                  />
+                )}
+              </div>
+            ),
+          },
+        ]
       : []),
   ];
 

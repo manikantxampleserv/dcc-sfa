@@ -8,9 +8,9 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material';
+import { usePermission } from 'hooks/usePermission';
 import { Building2, MapPin, User, UserCheck, XCircle } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
-import { usePermission } from 'hooks/usePermission';
 import { DeleteButton, EditButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
 import { PopConfirm } from 'shared/DeleteConfirmation';
@@ -18,12 +18,12 @@ import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
-import { formatDate } from 'utils/dateUtils';
+import { formatDateTime } from 'utils/dateUtils';
 import { useDepots } from '../../../hooks/useDepots';
-import { useDeleteZone, useZones, type Zone } from '../../../hooks/useZones';
 import { useExportToExcel } from '../../../hooks/useImportExport';
-import ManageZone from './ManageZone';
+import { useDeleteZone, useZones, type Zone } from '../../../hooks/useZones';
 import ImportZone from './ImportZone';
+import ManageZone from './ManageZone';
 
 const ZonesManagement: React.FC = () => {
   const [search, setSearch] = useState('');
@@ -238,10 +238,7 @@ const ZonesManagement: React.FC = () => {
     {
       id: 'createdate',
       label: 'Created Date',
-      render: (_value, row) =>
-        formatDate(row.createdate) || (
-          <span className="italic text-gray-400">No Date</span>
-        ),
+      render: (_value, row) => formatDateTime(row.createdate),
     },
     ...(isUpdate || isDelete || isRead
       ? [

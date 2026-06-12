@@ -8,13 +8,13 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material';
+import { useExportToExcel } from 'hooks/useImportExport';
+import { usePermission } from 'hooks/usePermission';
 import {
-  useSubUnitOfMeasurements,
   useDeleteSubUnitOfMeasurement,
+  useSubUnitOfMeasurements,
   type SubUnitOfMeasurement,
 } from 'hooks/useSubUnitOfMeasurement';
-import { usePermission } from 'hooks/usePermission';
-import { useExportToExcel } from 'hooks/useImportExport';
 import { Layers, TrendingUp } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { DeleteButton, EditButton } from 'shared/ActionButton';
@@ -24,7 +24,7 @@ import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
-import { formatDate } from 'utils/dateUtils';
+import { formatDateTime } from 'utils/dateUtils';
 import ImportSubUnitOfMeasurement from './ImportSubUnitOfMeasurement';
 import ManageSubUnitOfMeasurement from './ManageSubUnitOfMeasurement';
 
@@ -198,37 +198,37 @@ const SubUnitOfMeasurementPage: React.FC = () => {
     {
       id: 'createdate',
       label: 'Created Date',
-      render: (_value, row) => formatDate(row.createdate),
+      render: (_value, row) => formatDateTime(row.createdate),
     },
     ...(isUpdate || isDelete
       ? [
-        {
-          id: 'actions',
-          label: 'Actions',
-          sortable: false,
-          render: (_value: any, row: SubUnitOfMeasurement) => (
-            <Box className="!flex !gap-2 !items-center">
-              {isUpdate && (
-                <EditButton
-                  onClick={() => handleEdit(row)}
-                  tooltip={`Edit ${row.name}`}
-                />
-              )}
-              {isDelete && (
-                <PopConfirm
-                  title="Delete Sub Unit"
-                  description={`Are you sure you want to delete "${row.name || 'this sub unit'}"? This action cannot be undone.`}
-                  onConfirm={() => handleDelete(row)}
-                >
-                  <Tooltip title="Delete Sub Unit">
-                    <DeleteButton />
-                  </Tooltip>
-                </PopConfirm>
-              )}
-            </Box>
-          ),
-        },
-      ]
+          {
+            id: 'actions',
+            label: 'Actions',
+            sortable: false,
+            render: (_value: any, row: SubUnitOfMeasurement) => (
+              <Box className="!flex !gap-2 !items-center">
+                {isUpdate && (
+                  <EditButton
+                    onClick={() => handleEdit(row)}
+                    tooltip={`Edit ${row.name}`}
+                  />
+                )}
+                {isDelete && (
+                  <PopConfirm
+                    title="Delete Sub Unit"
+                    description={`Are you sure you want to delete "${row.name || 'this sub unit'}"? This action cannot be undone.`}
+                    onConfirm={() => handleDelete(row)}
+                  >
+                    <Tooltip title="Delete Sub Unit">
+                      <DeleteButton />
+                    </Tooltip>
+                  </PopConfirm>
+                )}
+              </Box>
+            ),
+          },
+        ]
       : []),
   ];
 

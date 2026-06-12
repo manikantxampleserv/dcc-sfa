@@ -16,7 +16,7 @@ import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
-import { formatDate } from 'utils/dateUtils';
+import { formatDate, formatDateTime } from 'utils/dateUtils';
 import { formatLabel } from 'utils/stringUtils';
 import ImportStockMovement from './ImportStockMovement';
 import ManageStockMovement from './ManageStockMovement';
@@ -223,10 +223,7 @@ const StockMovementsManagement: React.FC = () => {
     {
       id: 'createdate',
       label: 'Created',
-      render: (_value, row) =>
-        formatDate(row.createdate) || (
-          <span className="italic text-gray-400">No Date</span>
-        ),
+      render: (_value, row) => formatDateTime(row.createdate),
     },
     ...(isUpdate || isDelete || isRead
       ? [

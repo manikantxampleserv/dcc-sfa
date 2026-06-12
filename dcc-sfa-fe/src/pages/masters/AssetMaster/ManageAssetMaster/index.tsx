@@ -226,7 +226,6 @@ const ManageAssetMaster: React.FC<ManageAssetMasterProps> = ({
     }
   }, [depots, isEdit, drawerOpen, formik.values.depot_id]);
 
-
   return (
     <CustomDrawer
       open={drawerOpen}
@@ -441,7 +440,7 @@ const ManageAssetMaster: React.FC<ManageAssetMasterProps> = ({
               }
             >
               {createAssetMasterMutation.isPending ||
-                updateAssetMasterMutation.isPending
+              updateAssetMasterMutation.isPending
                 ? isEdit
                   ? 'Updating...'
                   : 'Creating...'

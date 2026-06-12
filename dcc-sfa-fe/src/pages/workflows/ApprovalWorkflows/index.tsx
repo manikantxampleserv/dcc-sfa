@@ -28,7 +28,9 @@ const ApprovalWorkflows: React.FC = () => {
   const [page, setPage] = useState(1);
   const [limit] = useState(6);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [dialogType, setDialogType] = useState<'approve' | 'reject' | 'view'>('approve');
+  const [dialogType, setDialogType] = useState<'approve' | 'reject' | 'view'>(
+    'approve'
+  );
   const [selectedRequest, setSelectedRequest] = useState<Request | null>(null);
   const { isRead, isUpdate } = usePermission('approval');
 
@@ -200,15 +202,17 @@ const ApprovalWorkflows: React.FC = () => {
       label: 'Status',
       render: (_value, row) => {
         const approvalStatus = row.approvals?.[0]?.status || row.status;
-        const firstPendingStep = row.approvals?.find(step => step.status === 'P');
+        const firstPendingStep = row.approvals?.find(
+          step => step.status === 'P'
+        );
         const approver = firstPendingStep?.approver;
         const currentApproverStr = approver
           ? JSON.stringify({
-            name: approver.name,
-            email: approver.email || '',
-            profile_image: approver.profile_image || null,
-            employee_id: approver.employee_id || '',
-          })
+              name: approver.name,
+              email: approver.email || '',
+              profile_image: approver.profile_image || null,
+              employee_id: approver.employee_id || '',
+            })
           : null;
 
         const chipEl = (

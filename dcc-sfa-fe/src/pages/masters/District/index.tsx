@@ -1,5 +1,12 @@
 import { Add, Block, CheckCircle, Download, Upload } from '@mui/icons-material';
 import { Alert, Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
+import {
+  useDeleteDistrict,
+  useDistricts,
+  type District,
+} from 'hooks/useDistrict';
+import { useExportToExcel } from 'hooks/useImportExport';
+import { usePermission } from 'hooks/usePermission';
 import { MapPin, Tag } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { DeleteButton, EditButton } from 'shared/ActionButton';
@@ -9,28 +16,21 @@ import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
-import {
-  useDistricts,
-  useDeleteDistrict,
-  type District,
-} from 'hooks/useDistrict';
-import { useExportToExcel } from 'hooks/useImportExport';
-import { usePermission } from 'hooks/usePermission';
-import { formatDate } from 'utils/dateUtils';
-import ManageDistrict from './ManageDistrict';
+import { formatDateTime } from 'utils/dateUtils';
 import ImportDistrict from './ImportDistrict';
+import ManageDistrict from './ManageDistrict';
 
 const DistrictsPage: React.FC = () => {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [selectedDistrict, setSelectedDistrict] =
-    useState<District | null>(null);
+  const [selectedDistrict, setSelectedDistrict] = useState<District | null>(
+    null
+  );
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [importDrawerOpen, setImportDrawerOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
-  const { isCreate, isUpdate, isDelete, isRead } =
-    usePermission('district');
+  const { isCreate, isUpdate, isDelete, isRead } = usePermission('district');
 
   const {
     data: districtsResponse,
@@ -172,37 +172,34 @@ const DistrictsPage: React.FC = () => {
     {
       id: 'createdate',
       label: 'Created Date',
-      render: (_value, row) =>
-        formatDate(row.createdate) || (
-          <span className="italic text-gray-400">No Date</span>
-        ),
+      render: (_value, row) => formatDateTime(row.createdate),
     },
     ...(isUpdate || isDelete || isRead
       ? [
-        {
-          id: 'action',
-          label: 'Actions',
-          sortable: false,
-          render: (_value: any, row: District) => (
-            <div className="!flex !gap-2 !items-center">
-              {isUpdate && (
-                <EditButton
-                  onClick={() => handleEditDistrict(row)}
-                  tooltip={`Edit ${row.name}`}
-                />
-              )}
-              {isDelete && (
-                <DeleteButton
-                  onClick={() => handleDeleteDistrict(row.id)}
-                  tooltip={`Delete ${row.name}`}
-                  itemName={row.name}
-                  confirmDelete={true}
-                />
-              )}
-            </div>
-          ),
-        },
-      ]
+          {
+            id: 'action',
+            label: 'Actions',
+            sortable: false,
+            render: (_value: any, row: District) => (
+              <div className="!flex !gap-2 !items-center">
+                {isUpdate && (
+                  <EditButton
+                    onClick={() => handleEditDistrict(row)}
+                    tooltip={`Edit ${row.name}`}
+                  />
+                )}
+                {isDelete && (
+                  <DeleteButton
+                    onClick={() => handleDeleteDistrict(row.id)}
+                    tooltip={`Delete ${row.name}`}
+                    itemName={row.name}
+                    confirmDelete={true}
+                  />
+                )}
+              </div>
+            ),
+          },
+        ]
       : []),
   ];
 

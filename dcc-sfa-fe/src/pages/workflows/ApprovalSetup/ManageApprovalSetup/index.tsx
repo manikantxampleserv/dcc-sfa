@@ -83,11 +83,12 @@ const ManageApprovalSetup: React.FC<ManageApprovalSetupProps> = ({
     }
   }, [initialDepotId, drawerOpen]);
 
-  const { data: existingApprovers, isFetching: isFetchingExisting } = useApprovalWorkflowSetupsByRequest(
-    requestType || '',
-    undefined,
-    selectedDepotId ?? undefined
-  );
+  const { data: existingApprovers, isFetching: isFetchingExisting } =
+    useApprovalWorkflowSetupsByRequest(
+      requestType || '',
+      undefined,
+      selectedDepotId ?? undefined
+    );
 
   const { data: depotsResponse } = useDepots({ isActive: 'Y', limit: 10000 });
   const { data: requestTypesResponse } = useRequestTypes();
@@ -183,9 +184,10 @@ const ManageApprovalSetup: React.FC<ManageApprovalSetupProps> = ({
   });
 
   useEffect(() => {
-    setSelectedDepotId(formik.values.depot_id ? Number(formik.values.depot_id) : null);
+    setSelectedDepotId(
+      formik.values.depot_id ? Number(formik.values.depot_id) : null
+    );
   }, [formik.values.depot_id]);
-
 
   const handleCancel = () => {
     setDrawerOpen(false);
@@ -277,7 +279,12 @@ const ManageApprovalSetup: React.FC<ManageApprovalSetupProps> = ({
 
   const SkeletonCard = () => (
     <div className="!flex !items-center !gap-3 !p-2 !bg-white !border !border-gray-200 !rounded-lg !mb-2">
-      <Skeleton variant="circular" width={40} height={40} className="!flex-shrink-0" />
+      <Skeleton
+        variant="circular"
+        width={40}
+        height={40}
+        className="!flex-shrink-0"
+      />
       <Box className="!flex-1">
         <Skeleton variant="text" width="60%" height={20} />
         <Skeleton variant="text" width="40%" height={16} className="!mt-1" />
@@ -549,10 +556,10 @@ const ManageApprovalSetup: React.FC<ManageApprovalSetupProps> = ({
                                             'No Role',
                                           role:
                                             typeof approver.user.role ===
-                                              'string'
+                                            'string'
                                               ? approver.user.role
                                               : approver.user.role?.name ||
-                                              'No Role',
+                                                'No Role',
                                         }}
                                         showSequence={approver.sequence}
                                       />

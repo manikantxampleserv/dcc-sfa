@@ -3,6 +3,13 @@ import prisma from '../../configs/prisma.client';
 import * as fs from 'fs';
 import * as path from 'path';
 
+/**
+ * Parses the Prisma schema file to extract database tables and their relationships.
+ * It searches for the schema in multiple possible paths.
+ * If the file is not found or parsing fails, it returns an empty string.
+ *
+ * @returns {string} A string representation of the database tables and relationships.
+ */
 function parsePrismaSchema(): string {
   try {
     const possibleSchemaPaths = [
@@ -139,6 +146,12 @@ let cachedSystemInstruction = '';
 let lastCacheTime = 0;
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
+/**
+ * Retrieves the system instruction for the AI model, caching it for one day.
+ * The system instruction contains the parsed database schema and context-specific rules.
+ *
+ * @returns {string} The formatted system instruction string.
+ */
 function getSystemInstruction(): string {
   const now = Date.now();
   if (cachedSystemInstruction && now - lastCacheTime < ONE_DAY_MS) {
@@ -186,6 +199,9 @@ Guidelines for generating SQL queries:
   return cachedSystemInstruction;
 }
 
+/**
+ * Interface representing chart data returned by the AI.
+ */
 export interface ChartData {
   type: 'bar' | 'line' | 'pie' | 'doughnut';
   label: string;
@@ -193,9 +209,16 @@ export interface ChartData {
   data: number[];
 }
 
+/**
+ * Service handling all interactions with the Google Generative AI (Gemini).
+ */
 export class AIService {
   private genAI: GoogleGenerativeAI | null = null;
 
+  /**
+   * Initializes the AIService.
+   * Creates an instance of GoogleGenerativeAI using the GEMINI_API_KEY from environment variables.
+   */
   constructor() {
     const apiKey = process.env.GEMINI_API_KEY;
     if (apiKey) {
@@ -207,6 +230,14 @@ export class AIService {
     }
   }
 
+  /**
+   * Queries the AI model with a natural language question and conversational history.
+   * It handles text-only responses and read-only SQL queries, formats the result, and extracts charts/tables.
+   *
+   * @param {string} question - The user's natural language question.
+   * @param {Array<{ sender: 'user' | 'assistant'; text: string; sql?: string }>} [history] - Optional conversation history.
+   * @returns {Promise<any>} An object containing the success status, answer, executed SQL, charts, table data, usage metrics, and latency.
+   */
   async query(
     question: string,
     history?: { sender: 'user' | 'assistant'; text: string; sql?: string }[]
@@ -297,7 +328,6 @@ export class AIService {
       }
 
       if (queriesToRun.length > 0) {
-        const dbResults: any[] = [];
         const forbiddenKeywords = [
           'INSERT',
           'UPDATE',
@@ -316,10 +346,14 @@ export class AIService {
           'INTO',
           'SHUTDOWN',
         ];
+        const forbiddenRegex = new RegExp(
+          `\\b(${forbiddenKeywords.join('|')})\\b`,
+          'i'
+        );
+        const sensitiveRegex = /password|hash|salt|secret/i;
 
         for (const sqlQuery of queriesToRun) {
           const upperQuery = sqlQuery.toUpperCase().trim();
-
           if (
             !upperQuery.startsWith('SELECT') &&
             !upperQuery.startsWith('WITH')
@@ -330,32 +364,29 @@ export class AIService {
                 'Security Block: Only read-only SELECT queries are allowed.',
             };
           }
-
-          for (const word of forbiddenKeywords) {
-            const regex = new RegExp(`\\b${word}\\b`, 'i');
-            if (regex.test(sqlQuery)) {
-              return {
-                success: false,
-                answer: `Security Block: Prohibited database operation detected (${word}).`,
-              };
-            }
+          if (forbiddenRegex.test(sqlQuery)) {
+            return {
+              success: false,
+              answer: 'Security Block: Prohibited database operation detected.',
+            };
           }
-
-          const dbResult: any[] = await prisma.$queryRawUnsafe(sqlQuery);
-
-          const scrubbedResult = dbResult.map(row => {
-            if (!row || typeof row !== 'object') return row;
-            const newRow = { ...row };
-            for (const key of Object.keys(newRow)) {
-              if (/password|hash|salt|secret/i.test(key)) {
-                newRow[key] = '[REDACTED]';
-              }
-            }
-            return newRow;
-          });
-
-          dbResults.push(scrubbedResult);
         }
+
+        const dbResults = await Promise.all(
+          queriesToRun.map(async sqlQuery => {
+            const dbResult: any[] = await prisma.$queryRawUnsafe(sqlQuery);
+            return dbResult.map(row => {
+              if (!row || typeof row !== 'object') return row;
+              const newRow = { ...row };
+              for (const key in newRow) {
+                if (sensitiveRegex.test(key)) {
+                  newRow[key] = '[REDACTED]';
+                }
+              }
+              return newRow;
+            });
+          })
+        );
 
         const synthesisModel = this.genAI.getGenerativeModel({
           model: 'gemini-flash-lite-latest',
@@ -408,38 +439,29 @@ Database Results: ${JSON.stringify(dbResults)}`;
                 .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
                 .join(' ');
             });
+
+            const dateFormatter = new Intl.DateTimeFormat('en-US', {
+              year: 'numeric',
+              month: 'short',
+              day: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+            });
+
             const rows = resultSet.map((row: any) =>
               dbKeys.map((h: string) => {
                 const val = row[h];
                 if (val === null || val === undefined || val === '') return '-';
-                if (val instanceof Date) {
-                  return val.toLocaleString('en-US', {
-                    year: 'numeric',
-                    month: 'short',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  });
-                }
+                if (val instanceof Date) return dateFormatter.format(val);
                 if (
                   typeof val === 'string' &&
                   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(val)
                 ) {
                   const d = new Date(val);
-                  if (!isNaN(d.getTime())) {
-                    return d.toLocaleString('en-US', {
-                      year: 'numeric',
-                      month: 'short',
-                      day: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    });
-                  }
+                  if (!isNaN(d.getTime())) return dateFormatter.format(d);
                 }
                 if (typeof val === 'object' && val !== null) {
-                  if (typeof val.toNumber === 'function') {
-                    return String(val);
-                  }
+                  if (typeof val.toNumber === 'function') return String(val);
                   const stringified = JSON.stringify(val);
                   if (
                     stringified &&

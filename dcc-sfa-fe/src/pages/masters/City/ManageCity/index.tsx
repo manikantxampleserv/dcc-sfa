@@ -28,10 +28,11 @@ const cityValidationSchema = Yup.object({
     .required('City name is required')
     .min(2, 'City name must be at least 2 characters')
     .max(255, 'City name must be less than 255 characters'),
-  code: Yup.string()
-    .max(50, 'Code must be less than 50 characters'),
-  description: Yup.string()
-    .max(500, 'Description must be less than 500 characters'),
+  code: Yup.string().max(50, 'Code must be less than 50 characters'),
+  description: Yup.string().max(
+    500,
+    'Description must be less than 500 characters'
+  ),
   is_active: Yup.string().oneOf(['Y', 'N']).required('Status is required'),
 });
 
@@ -52,13 +53,15 @@ const ManageCity: React.FC<ManageCityProps> = ({
   const createCityMutation = useCreateCity();
   const updateCityMutation = useUpdateCity();
 
-  const { data: districtsResponse } = useDistricts({ limit: 1000, is_active: 'Y' });
+  const { data: districtsResponse } = useDistricts({
+    limit: 1000,
+    is_active: 'Y',
+  });
   const districts = districtsResponse?.data || [];
 
-  const { data: cityDetailResponse } = useCityById(
-    selectedCity?.id || 0,
-    { enabled: isEdit && !!selectedCity?.id }
-  );
+  const { data: cityDetailResponse } = useCityById(selectedCity?.id || 0, {
+    enabled: isEdit && !!selectedCity?.id,
+  });
 
   const formik = useFormik({
     initialValues: {
@@ -166,8 +169,7 @@ const ManageCity: React.FC<ManageCityProps> = ({
               variant="outlined"
               onClick={handleCancel}
               disabled={
-                createCityMutation.isPending ||
-                updateCityMutation.isPending
+                createCityMutation.isPending || updateCityMutation.isPending
               }
             >
               Cancel
@@ -176,12 +178,10 @@ const ManageCity: React.FC<ManageCityProps> = ({
               type="submit"
               variant="contained"
               disabled={
-                createCityMutation.isPending ||
-                updateCityMutation.isPending
+                createCityMutation.isPending || updateCityMutation.isPending
               }
             >
-              {createCityMutation.isPending ||
-              updateCityMutation.isPending
+              {createCityMutation.isPending || updateCityMutation.isPending
                 ? isEdit
                   ? 'Updating...'
                   : 'Creating...'

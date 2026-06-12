@@ -18,6 +18,7 @@ import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
 import ImportRouteType from './ImportRouteType';
 import ManageRouteType from './ManageRouteType';
+import { formatDateTime } from 'utils/dateUtils';
 
 const RouteTypesManagement: React.FC = () => {
   const [search, setSearch] = useState('');
@@ -148,32 +149,37 @@ const RouteTypesManagement: React.FC = () => {
         />
       ),
     },
+    {
+      id: 'createdate',
+      label: 'Created Date',
+      render: (_value, row) => formatDateTime(row.createdate),
+    },
     ...(isUpdate || isDelete || isRead
       ? [
-        {
-          id: 'action',
-          label: 'Actions',
-          sortable: false,
-          render: (_value: any, row: RouteType) => (
-            <div className="!flex !gap-2 !items-center">
-              {isUpdate && (
-                <EditButton
-                  onClick={() => handleEditRouteType(row)}
-                  tooltip={`Edit ${row.name}`}
-                />
-              )}
-              {isDelete && (
-                <DeleteButton
-                  onClick={() => handleDeleteRouteType(row.id)}
-                  tooltip={`Delete ${row.name}`}
-                  itemName={row.name}
-                  confirmDelete={true}
-                />
-              )}
-            </div>
-          ),
-        },
-      ]
+          {
+            id: 'action',
+            label: 'Actions',
+            sortable: false,
+            render: (_value: any, row: RouteType) => (
+              <div className="!flex !gap-2 !items-center">
+                {isUpdate && (
+                  <EditButton
+                    onClick={() => handleEditRouteType(row)}
+                    tooltip={`Edit ${row.name}`}
+                  />
+                )}
+                {isDelete && (
+                  <DeleteButton
+                    onClick={() => handleDeleteRouteType(row.id)}
+                    tooltip={`Delete ${row.name}`}
+                    itemName={row.name}
+                    confirmDelete={true}
+                  />
+                )}
+              </div>
+            ),
+          },
+        ]
       : []),
   ];
 

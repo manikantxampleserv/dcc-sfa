@@ -143,8 +143,8 @@ const CoolerInspectionsManagement: React.FC = () => {
         actionRequired: actionFilter === 'all' ? undefined : actionFilter,
         inspector_id:
           inspectorFilter === 'all' ||
-            inspectorFilter === '' ||
-            !inspectorFilter
+          inspectorFilter === '' ||
+          !inspectorFilter
             ? undefined
             : Number(inspectorFilter),
       };
@@ -364,38 +364,38 @@ const CoolerInspectionsManagement: React.FC = () => {
     },
     ...(isRead || isUpdate || isDelete
       ? [
-        {
-          id: 'action',
-          label: 'Actions',
-          sortable: false,
-          render: (_value: any, row: CoolerInspection) => (
-            <div className="!flex !gap-2 !items-center">
-              {isRead && (
-                <ActionButton
-                  onClick={() => handleViewInspection(row)}
-                  tooltip="View cooler inspection details"
-                  icon={<Visibility />}
-                  color="success"
-                />
-              )}
-              {isUpdate && (
-                <EditButton
-                  onClick={() => handleEditInspection(row)}
-                  tooltip={`Edit Inspection ${row.id}`}
-                />
-              )}
-              {isDelete && (
-                <DeleteButton
-                  onClick={() => handleDeleteInspection(row.id)}
-                  tooltip={`Delete Inspection ${row.id}`}
-                  itemName={`Inspection ${row.id}`}
-                  confirmDelete={true}
-                />
-              )}
-            </div>
-          ),
-        },
-      ]
+          {
+            id: 'action',
+            label: 'Actions',
+            sortable: false,
+            render: (_value: any, row: CoolerInspection) => (
+              <div className="!flex !gap-2 !items-center">
+                {isRead && (
+                  <ActionButton
+                    onClick={() => handleViewInspection(row)}
+                    tooltip="View cooler inspection details"
+                    icon={<Visibility />}
+                    color="success"
+                  />
+                )}
+                {isUpdate && (
+                  <EditButton
+                    onClick={() => handleEditInspection(row)}
+                    tooltip={`Edit Inspection ${row.id}`}
+                  />
+                )}
+                {isDelete && (
+                  <DeleteButton
+                    onClick={() => handleDeleteInspection(row.id)}
+                    tooltip={`Delete Inspection ${row.id}`}
+                    itemName={`Inspection ${row.id}`}
+                    confirmDelete={true}
+                  />
+                )}
+              </div>
+            ),
+          },
+        ]
       : []),
   ];
 
@@ -540,7 +540,6 @@ const CoolerInspectionsManagement: React.FC = () => {
 
                 {isCreate && (
                   <>
-
                     <Button
                       variant="outlined"
                       className="!capitalize"

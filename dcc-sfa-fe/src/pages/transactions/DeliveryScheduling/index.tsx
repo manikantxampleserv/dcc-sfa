@@ -18,14 +18,14 @@ import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
-import { formatDate } from 'utils/dateUtils';
-import { usePermission } from '../../../hooks/usePermission';
+import { formatDateTime } from 'utils/dateUtils';
 import {
   useDeleteDeliverySchedule,
   useDeliverySchedules,
   type DeliverySchedule,
 } from '../../../hooks/useDeliverySchedules';
 import { useOrders } from '../../../hooks/useOrders';
+import { usePermission } from '../../../hooks/usePermission';
 import { useUsers } from '../../../hooks/useUsers';
 import { useVehicles } from '../../../hooks/useVehicles';
 import ImportDeliverySchedule from './ImportDeliverySchedule';
@@ -386,10 +386,7 @@ const DeliveryScheduling: React.FC = () => {
     {
       id: 'createdate',
       label: 'Created Date',
-      render: (_value, row) =>
-        formatDate(row.createdate) || (
-          <span className="italic text-gray-400">No Date</span>
-        ),
+      render: (_value, row) => formatDateTime(row.createdate),
     },
     ...(isUpdate || isDelete
       ? [

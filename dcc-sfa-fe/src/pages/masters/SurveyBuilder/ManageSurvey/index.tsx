@@ -76,7 +76,7 @@ const ManageSurvey: React.FC<ManageSurveyProps> = ({
       category: selectedSurvey?.category || 'general',
       target_roles:
         selectedSurvey?.target_roles !== null &&
-          selectedSurvey?.target_roles !== undefined
+        selectedSurvey?.target_roles !== undefined
           ? String(selectedSurvey.target_roles)
           : '',
       expires_at: selectedSurvey?.expires_at
@@ -159,99 +159,99 @@ const ManageSurvey: React.FC<ManageSurveyProps> = ({
   const surveyFieldColumns: TableColumn<
     SurveyFieldFormData & { _index: number }
   >[] = [
-      {
-        id: 'label',
-        label: 'Label',
-        width: 200,
-        render: (_value, row) => (
-          <Input
-            value={row.label}
-            onChange={e => updateSurveyField(row._index, 'label', e.target.value)}
-            size="small"
-            fullWidth
-            label="Field Label"
-            placeholder="Enter field label"
-          />
-        ),
-      },
-      {
-        id: 'field_type',
-        label: 'Type',
-        width: 150,
-        render: (_value, row) => (
-          <Select
-            value={row.field_type}
-            onChange={e =>
-              updateSurveyField(row._index, 'field_type', e.target.value)
-            }
-            size="small"
-            fullWidth
-            label="Field Type"
-          >
-            <MenuItem value="text">Text</MenuItem>
-            <MenuItem value="number">Number</MenuItem>
-            <MenuItem value="checkbox">Checkbox</MenuItem>
-            <MenuItem value="radio">Radio</MenuItem>
-          </Select>
-        ),
-      },
-      {
-        id: 'options',
-        label: 'Options',
-        width: 200,
-        render: (_value, row) => (
-          <Input
-            value={row.options || ''}
-            onChange={e =>
-              updateSurveyField(row._index, 'options', e.target.value)
-            }
-            size="small"
-            fullWidth
-            label="Options"
-            placeholder="Comma-separated for select/radio"
-            disabled={row.field_type !== 'radio' && row.field_type !== 'checkbox'}
-          />
-        ),
-      },
-      {
-        id: 'is_required',
-        label: 'Required',
-        width: 100,
-        render: (_value, row) => (
-          <Select
-            value={row.is_required ? 'true' : 'false'}
-            onChange={e =>
-              updateSurveyField(
-                row._index,
-                'is_required',
-                e.target.value === 'true'
-              )
-            }
-            size="small"
-            fullWidth
-            label="Required"
-          >
-            <MenuItem value="true">Yes</MenuItem>
-            <MenuItem value="false">No</MenuItem>
-          </Select>
-        ),
-      },
-      {
-        id: 'actions',
-        label: 'Actions',
-        sortable: false,
-        width: 80,
-        render: (_value, row) => (
-          <DeleteButton
-            onClick={() => removeSurveyField(row._index)}
-            tooltip="Remove field"
-            confirmDelete={true}
-            size="medium"
-            itemName="field"
-          />
-        ),
-      },
-    ];
+    {
+      id: 'label',
+      label: 'Label',
+      width: 200,
+      render: (_value, row) => (
+        <Input
+          value={row.label}
+          onChange={e => updateSurveyField(row._index, 'label', e.target.value)}
+          size="small"
+          fullWidth
+          label="Field Label"
+          placeholder="Enter field label"
+        />
+      ),
+    },
+    {
+      id: 'field_type',
+      label: 'Type',
+      width: 150,
+      render: (_value, row) => (
+        <Select
+          value={row.field_type}
+          onChange={e =>
+            updateSurveyField(row._index, 'field_type', e.target.value)
+          }
+          size="small"
+          fullWidth
+          label="Field Type"
+        >
+          <MenuItem value="text">Text</MenuItem>
+          <MenuItem value="number">Number</MenuItem>
+          <MenuItem value="checkbox">Checkbox</MenuItem>
+          <MenuItem value="radio">Radio</MenuItem>
+        </Select>
+      ),
+    },
+    {
+      id: 'options',
+      label: 'Options',
+      width: 200,
+      render: (_value, row) => (
+        <Input
+          value={row.options || ''}
+          onChange={e =>
+            updateSurveyField(row._index, 'options', e.target.value)
+          }
+          size="small"
+          fullWidth
+          label="Options"
+          placeholder="Comma-separated for select/radio"
+          disabled={row.field_type !== 'radio' && row.field_type !== 'checkbox'}
+        />
+      ),
+    },
+    {
+      id: 'is_required',
+      label: 'Required',
+      width: 100,
+      render: (_value, row) => (
+        <Select
+          value={row.is_required ? 'true' : 'false'}
+          onChange={e =>
+            updateSurveyField(
+              row._index,
+              'is_required',
+              e.target.value === 'true'
+            )
+          }
+          size="small"
+          fullWidth
+          label="Required"
+        >
+          <MenuItem value="true">Yes</MenuItem>
+          <MenuItem value="false">No</MenuItem>
+        </Select>
+      ),
+    },
+    {
+      id: 'actions',
+      label: 'Actions',
+      sortable: false,
+      width: 80,
+      render: (_value, row) => (
+        <DeleteButton
+          onClick={() => removeSurveyField(row._index)}
+          tooltip="Remove field"
+          confirmDelete={true}
+          size="medium"
+          itemName="field"
+        />
+      ),
+    },
+  ];
 
   return (
     <CustomDrawer

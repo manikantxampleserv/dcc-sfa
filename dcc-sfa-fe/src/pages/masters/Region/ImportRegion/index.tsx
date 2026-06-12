@@ -118,8 +118,8 @@ const ImportRegion: React.FC<ImportRegionProps> = ({
         <form onSubmit={formik.handleSubmit} className="!space-y-6">
           <Alert severity="info" className="!mb-4">
             <Typography variant="body2">
-              Upload an Excel file to import multiple regions. Download
-              the sample file to see the required format.
+              Upload an Excel file to import multiple regions. Download the
+              sample file to see the required format.
             </Typography>
           </Alert>
 

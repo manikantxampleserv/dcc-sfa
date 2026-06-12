@@ -1,8 +1,6 @@
 import { Avatar, Chip, Skeleton, Typography } from '@mui/material';
 import classNames from 'classnames';
-import {
-  useCoolerInspection
-} from 'hooks/useCoolerInspections';
+import { useCoolerInspection } from 'hooks/useCoolerInspections';
 import {
   AlertTriangle,
   ArrowLeft,
@@ -362,10 +360,11 @@ const CoolerInspectionDetail: React.FC = () => {
           <div className="!bg-white !rounded-lg !shadow !border !border-gray-200 !p-6 !text-center !relative">
             <div className="absolute top-3 right-3">
               <div
-                className={`!w-2.5 !h-2.5 !rounded-full ${coolerInspection.is_active === 'Y'
-                  ? '!bg-green-400'
-                  : '!bg-gray-400'
-                  }`}
+                className={`!w-2.5 !h-2.5 !rounded-full ${
+                  coolerInspection.is_active === 'Y'
+                    ? '!bg-green-400'
+                    : '!bg-gray-400'
+                }`}
               ></div>
             </div>
 
@@ -589,7 +588,7 @@ const CoolerInspectionDetail: React.FC = () => {
                 </Typography>
               </div>
 
-              <div >
+              <div>
                 <Typography
                   variant="caption"
                   className="!text-gray-500 !text-xs !uppercase !tracking-wide"
@@ -618,7 +617,8 @@ const CoolerInspectionDetail: React.FC = () => {
                   variant="body2"
                   className="!font-semibold !text-gray-900 !font-mono"
                 >
-                  {coolerInspection.cooler?.asset_master?.serial_number || 'Not provided'}
+                  {coolerInspection.cooler?.asset_master?.serial_number ||
+                    'Not provided'}
                 </Typography>
               </div>
 
@@ -732,8 +732,6 @@ const CoolerInspectionDetail: React.FC = () => {
               )}
             </div>
           </InfoCard>
-
-
         </div>
       </div>
     </>

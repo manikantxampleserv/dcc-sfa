@@ -11,7 +11,9 @@ interface TourContextType {
 
 const TourContext = createContext<TourContextType | undefined>(undefined);
 
-export const TourProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const TourProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const [run, setRun] = useState(false);
   const [steps, setSteps] = useState<Step[]>([]);
 

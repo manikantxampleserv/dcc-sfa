@@ -17,9 +17,7 @@ interface ManageBatchProps {
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
   selectedRowIndex: number | null;
-  setSelectedRowIndex: (
-    rowIndex: number | null
-  ) => void;
+  setSelectedRowIndex: (rowIndex: number | null) => void;
   formik: FormikProps<VanInventoryFormValues>;
   quantity: number | string | null;
   inventoryByProductId?: Record<
@@ -104,7 +102,13 @@ const ManageBatch: React.FC<ManageBatchProps> = ({
 
     // Otherwise start with empty array
     setProductBatches([]);
-  }, [isOpen, selectedRowIndex, formik.values.van_inventory_items, inventoryByProductId, isUnloadType]);
+  }, [
+    isOpen,
+    selectedRowIndex,
+    formik.values.van_inventory_items,
+    inventoryByProductId,
+    isUnloadType,
+  ]);
 
   const handleClose = useCallback(() => {
     setIsOpen(false);
@@ -131,9 +135,10 @@ const ManageBatch: React.FC<ManageBatchProps> = ({
           }, 0);
 
           // For non-unload type, limit total to main item quantity
-          const maxAllowed = hasExpectedQty && !isUnloadType
-            ? Math.max(0, mainItemQuantity - otherQty)
-            : Number.POSITIVE_INFINITY;
+          const maxAllowed =
+            hasExpectedQty && !isUnloadType
+              ? Math.max(0, mainItemQuantity - otherQty)
+              : Number.POSITIVE_INFINITY;
 
           const raw = Number(value);
           const normalized = Number.isFinite(raw) ? raw : 0;
@@ -196,7 +201,9 @@ const ManageBatch: React.FC<ManageBatchProps> = ({
       : productBatches;
 
     if (relevantBatches.length === 0) {
-      toast.error('Please add at least one batch with quantity greater than 0.');
+      toast.error(
+        'Please add at least one batch with quantity greater than 0.'
+      );
       return;
     }
 
@@ -292,7 +299,9 @@ const ManageBatch: React.FC<ManageBatchProps> = ({
         const mfg = (b.manufacturing_date || '').trim();
         const exp = (b.expiry_date || '').trim();
         const qty = Number(b.quantity);
-        return !batchNumber || !mfg || !exp || !Number.isFinite(qty) || qty <= 0;
+        return (
+          !batchNumber || !mfg || !exp || !Number.isFinite(qty) || qty <= 0
+        );
       });
       if (hasMissing) return false;
 

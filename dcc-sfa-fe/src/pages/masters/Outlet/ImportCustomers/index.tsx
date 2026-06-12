@@ -160,7 +160,9 @@ const ImportCustomers: React.FC<ImportCustomersProps> = ({
                 id="updateExisting"
                 name="updateExisting"
                 checked={formik.values.updateExisting}
-                onChange={(e) => formik.setFieldValue('updateExisting', e.target.checked)}
+                onChange={e =>
+                  formik.setFieldValue('updateExisting', e.target.checked)
+                }
                 className="!w-4 !h-4 !cursor-pointer"
               />
               <label
@@ -170,9 +172,12 @@ const ImportCustomers: React.FC<ImportCustomersProps> = ({
                 Update existing records if code matches
               </label>
             </Box>
-            <Typography variant="caption" className="!text-gray-500 !block !mt-1">
-              If checked, existing outlets with the same code or name/city will be
-              updated instead of showing an error.
+            <Typography
+              variant="caption"
+              className="!text-gray-500 !block !mt-1"
+            >
+              If checked, existing outlets with the same code or name/city will
+              be updated instead of showing an error.
             </Typography>
           </Box>
 

@@ -6,7 +6,11 @@ import {
   TextField,
 } from '@mui/material';
 import type { FormikProps } from 'formik';
-import { useAssetMaster, useAssetMasterById, type AssetMaster } from 'hooks/useAssetMaster';
+import {
+  useAssetMaster,
+  useAssetMasterById,
+  type AssetMaster,
+} from 'hooks/useAssetMaster';
 import React, { useCallback, useEffect, useState, useRef } from 'react';
 
 interface AssetSelectProps {
@@ -93,14 +97,17 @@ const AssetSelect: React.FC<AssetSelectProps> = ({
     only_available: onlyAvailable,
   });
 
-  const { data: singleAssetData, isFetching: isFetchingSingle } = useAssetMasterById(
-    assetId || 0,
-    { enabled: !!assetId && !effectiveSearch }
-  );
+  const { data: singleAssetData, isFetching: isFetchingSingle } =
+    useAssetMasterById(assetId || 0, {
+      enabled: !!assetId && !effectiveSearch,
+    });
 
   const searchResults: AssetMaster[] = React.useMemo(() => {
     const results = dropdownResponse?.data || [];
-    if (singleAssetData && !results.some((r: { id: number; }) => r.id === singleAssetData.id)) {
+    if (
+      singleAssetData &&
+      !results.some((r: { id: number }) => r.id === singleAssetData.id)
+    ) {
       return [singleAssetData, ...results];
     }
     return results;
@@ -113,7 +120,8 @@ const AssetSelect: React.FC<AssetSelectProps> = ({
 
     if (
       normalizedValue &&
-      (!selectedAssetData || selectedAssetData.id.toString() !== normalizedValue) &&
+      (!selectedAssetData ||
+        selectedAssetData.id.toString() !== normalizedValue) &&
       !loading &&
       searchResults.length > 0
     ) {
@@ -159,7 +167,10 @@ const AssetSelect: React.FC<AssetSelectProps> = ({
         setSelectedAssetData(null);
         setHasInitialized(false);
       }
-    } else if (selectedAssetData && selectedAssetData.id.toString() !== normalizedValue) {
+    } else if (
+      selectedAssetData &&
+      selectedAssetData.id.toString() !== normalizedValue
+    ) {
       // If the ID changed externally (e.g. form re-initialization), reset local state
       // to allow the initialization effect to fetch and set the new asset name.
       setInputValue('');
@@ -282,7 +293,8 @@ const AssetSelect: React.FC<AssetSelectProps> = ({
             <p className="!text-gray-900 !text-sm">{option.name || ''}</p>
             {option.serial_number && (
               <p className="!text-gray-500 !text-xs">
-                SN: {option.serial_number} {option.code ? `| Code: ${option.code}` : ''}
+                SN: {option.serial_number}{' '}
+                {option.code ? `| Code: ${option.code}` : ''}
               </p>
             )}
           </Box>

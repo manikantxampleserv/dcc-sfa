@@ -6,7 +6,7 @@ import {
   PlayArrow,
   Settings,
   Upload,
-  Visibility
+  Visibility,
 } from '@mui/icons-material';
 import { Alert, Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
 import { useExportToExcel } from 'hooks/useImportExport';
@@ -271,38 +271,38 @@ const SurveyBuilder: React.FC = () => {
     },
     ...(isUpdate || isDelete || isRead
       ? [
-        {
-          id: 'action',
-          label: 'Actions',
-          sortable: false,
-          render: (_value: any, row: Survey) => (
-            <div className="!flex !gap-2 !items-center">
-              {isRead && (
-                <ActionButton
-                  onClick={() => handleViewSurvey(row)}
-                  tooltip={`View ${row.title}`}
-                  icon={<Visibility fontSize="small" />}
-                  color="info"
-                />
-              )}
-              {isUpdate && (
-                <EditButton
-                  onClick={() => handleEditSurvey(row)}
-                  tooltip={`Edit ${row.title}`}
-                />
-              )}
-              {isDelete && (
-                <DeleteButton
-                  onClick={() => handleDeleteSurvey(row.id)}
-                  tooltip={`Delete ${row.title}`}
-                  itemName={row.title}
-                  confirmDelete={true}
-                />
-              )}
-            </div>
-          ),
-        },
-      ]
+          {
+            id: 'action',
+            label: 'Actions',
+            sortable: false,
+            render: (_value: any, row: Survey) => (
+              <div className="!flex !gap-2 !items-center">
+                {isRead && (
+                  <ActionButton
+                    onClick={() => handleViewSurvey(row)}
+                    tooltip={`View ${row.title}`}
+                    icon={<Visibility fontSize="small" />}
+                    color="info"
+                  />
+                )}
+                {isUpdate && (
+                  <EditButton
+                    onClick={() => handleEditSurvey(row)}
+                    tooltip={`Edit ${row.title}`}
+                  />
+                )}
+                {isDelete && (
+                  <DeleteButton
+                    onClick={() => handleDeleteSurvey(row.id)}
+                    tooltip={`Delete ${row.title}`}
+                    itemName={row.title}
+                    confirmDelete={true}
+                  />
+                )}
+              </div>
+            ),
+          },
+        ]
       : []),
   ];
 

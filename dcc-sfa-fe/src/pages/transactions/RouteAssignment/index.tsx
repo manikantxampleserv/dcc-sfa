@@ -334,7 +334,6 @@ const RouteAssignmentManagement: React.FC = () => {
                     </Typography>
                   </div>
                 </div>
-
               </div>
               <div className="px-4 flex justify-between items-center pb-4">
                 <div className="flex items-center gap-2">
@@ -404,8 +403,8 @@ const RouteAssignmentManagement: React.FC = () => {
           <Pagination
             count={totalPages}
             page={page}
-            variant='outlined'
-            shape='rounded'
+            variant="outlined"
+            shape="rounded"
             onChange={(_, newPage) => setPage(newPage)}
             color="primary"
             showFirstButton
@@ -429,6 +428,3 @@ const RouteAssignmentManagement: React.FC = () => {
 };
 
 export default RouteAssignmentManagement;
-
-
-

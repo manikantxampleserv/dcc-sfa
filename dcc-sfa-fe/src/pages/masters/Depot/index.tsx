@@ -29,7 +29,7 @@ import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
-import { formatDate } from 'utils/dateUtils';
+import { formatDateTime } from 'utils/dateUtils';
 import ImportDepot from './ImportDepot';
 import ManageDepot from './ManageDepot';
 
@@ -58,7 +58,7 @@ const DepotsManagement: React.FC = () => {
           ? undefined
           : statusFilter === 'active'
             ? 'Y'
-            : 'N'
+            : 'N',
     },
     {
       enabled: isRead,
@@ -232,45 +232,42 @@ const DepotsManagement: React.FC = () => {
     {
       id: 'createdate',
       label: 'Created Date',
-      render: (_value, row) =>
-        formatDate(row.createdate) || (
-          <span className="italic text-gray-400">No Date</span>
-        ),
+      render: (_value, row) => formatDateTime(row.createdate),
     },
     ...(isUpdate || isDelete || isRead
       ? [
-        {
-          id: 'action',
-          label: 'Actions',
-          sortable: false,
-          render: (_value: any, row: Depot) => (
-            <div className="!flex !gap-2 !items-center">
-              {isRead && (
-                <ActionButton
-                  onClick={() => handleViewDepot(row)}
-                  tooltip={`View ${row.name}`}
-                  icon={<Visibility fontSize="small" />}
-                  color="info"
-                />
-              )}
-              {isUpdate && (
-                <EditButton
-                  onClick={() => handleEditDepot(row)}
-                  tooltip={`Edit ${row.name}`}
-                />
-              )}
-              {isDelete && (
-                <DeleteButton
-                  onClick={() => handleDeleteDepot(row.id)}
-                  tooltip={`Delete ${row.name}`}
-                  itemName={row.name}
-                  confirmDelete={true}
-                />
-              )}
-            </div>
-          ),
-        },
-      ]
+          {
+            id: 'action',
+            label: 'Actions',
+            sortable: false,
+            render: (_value: any, row: Depot) => (
+              <div className="!flex !gap-2 !items-center">
+                {isRead && (
+                  <ActionButton
+                    onClick={() => handleViewDepot(row)}
+                    tooltip={`View ${row.name}`}
+                    icon={<Visibility fontSize="small" />}
+                    color="info"
+                  />
+                )}
+                {isUpdate && (
+                  <EditButton
+                    onClick={() => handleEditDepot(row)}
+                    tooltip={`Edit ${row.name}`}
+                  />
+                )}
+                {isDelete && (
+                  <DeleteButton
+                    onClick={() => handleDeleteDepot(row.id)}
+                    tooltip={`Delete ${row.name}`}
+                    itemName={row.name}
+                    confirmDelete={true}
+                  />
+                )}
+              </div>
+            ),
+          },
+        ]
       : []),
   ];
 

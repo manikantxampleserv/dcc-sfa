@@ -124,8 +124,6 @@ const ManageOrderBatch: React.FC<ManageOrderBatchProps> = ({
       0
     );
 
-
-
     const finalQuantity = totalQty;
 
     if (activeBatches.length === 0 || finalQuantity <= 0) {
@@ -229,7 +227,6 @@ const ManageOrderBatch: React.FC<ManageOrderBatchProps> = ({
       0
     );
 
-
     return baseTotal;
   }, [productBatches, selectedRowIndex, orderItems]);
 
@@ -266,7 +263,7 @@ const ManageOrderBatch: React.FC<ManageOrderBatchProps> = ({
         id: 'total_quantity',
         label:
           selectedRowIndex !== null &&
-            orderItems[selectedRowIndex]?.unit?.toUpperCase() === 'PCS'
+          orderItems[selectedRowIndex]?.unit?.toUpperCase() === 'PCS'
             ? 'Total Available (pieces)'
             : 'Total Available (cases)',
         render: (_value, row) => {
@@ -294,7 +291,7 @@ const ManageOrderBatch: React.FC<ManageOrderBatchProps> = ({
         id: 'quantity',
         label:
           selectedRowIndex !== null &&
-            orderItems[selectedRowIndex]?.unit?.toUpperCase() === 'PCS'
+          orderItems[selectedRowIndex]?.unit?.toUpperCase() === 'PCS'
             ? 'Quantity (pieces)'
             : 'Quantity (cases)',
         render: (_value, row, rowIndex) => {
@@ -365,7 +362,7 @@ const ManageOrderBatch: React.FC<ManageOrderBatchProps> = ({
         <p className="!font-semibold text-lg !text-gray-900">
           Batch Information ({totalBatchQuantity}{' '}
           {selectedRowIndex !== null &&
-            orderItems[selectedRowIndex]?.unit?.toUpperCase() === 'PCS'
+          orderItems[selectedRowIndex]?.unit?.toUpperCase() === 'PCS'
             ? 'pieces'
             : 'cases'}
           )

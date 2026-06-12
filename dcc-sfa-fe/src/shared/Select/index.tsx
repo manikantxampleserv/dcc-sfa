@@ -11,7 +11,7 @@ import {
   Autocomplete,
   FormControl,
   TextField,
-  type AutocompleteProps
+  type AutocompleteProps,
 } from '@mui/material';
 import type { FormikProps } from 'formik';
 import React, { useCallback, useMemo } from 'react';
@@ -22,11 +22,10 @@ interface Option {
   disabled?: boolean;
 }
 
-interface CustomSelectProps
-  extends Omit<
-    AutocompleteProps<any, false, boolean, false>,
-    'options' | 'onChange' | 'renderInput'
-  > {
+interface CustomSelectProps extends Omit<
+  AutocompleteProps<any, false, boolean, false>,
+  'options' | 'onChange' | 'renderInput'
+> {
   formik?: FormikProps<any>;
   setValue?: (value: any) => void;
   onChange?: (event: React.ChangeEvent<HTMLInputElement>) => void;
@@ -152,13 +151,13 @@ const Select: React.FC<CustomSelectProps> = ({
   const handleChange = useCallback(
     (_event: any, newValue: Option | null) => {
       const newValueToSet = newValue?.value ?? null;
-      
+
       if (formik && name) {
         formik.setFieldValue(name, newValueToSet);
       } else if (setValue) {
         setValue(newValueToSet);
       }
-      
+
       if (onChange) {
         const syntheticEvent = {
           target: {
@@ -256,9 +255,10 @@ const Select: React.FC<CustomSelectProps> = ({
               '& .MuiOutlinedInput-root': {
                 minWidth: defaultMinWidth,
               },
-              '&.MuiAutocomplete-hasPopupIcon.MuiAutocomplete-hasClearIcon .MuiOutlinedInput-root': {
-                paddingRight: '24px !important',
-              },
+              '&.MuiAutocomplete-hasPopupIcon.MuiAutocomplete-hasClearIcon .MuiOutlinedInput-root':
+                {
+                  paddingRight: '24px !important',
+                },
               ...(compact && {
                 '& .MuiInputBase-root': {
                   height: '28px !important',

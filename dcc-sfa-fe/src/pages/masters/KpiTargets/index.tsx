@@ -202,30 +202,30 @@ const KpiTargetsManagement: React.FC = () => {
     },
     ...(isUpdate || isDelete || isRead
       ? [
-        {
-          id: 'action',
-          label: 'Actions',
-          sortable: false,
-          render: (_value: any, row: KpiTarget) => (
-            <div className="!flex !gap-2 !items-center">
-              {isUpdate && (
-                <EditButton
-                  onClick={() => handleEditKpiTarget(row)}
-                  tooltip={`Edit ${row.kpi_name}`}
-                />
-              )}
-              {isDelete && (
-                <DeleteButton
-                  onClick={() => handleDeleteKpiTarget(row.id)}
-                  tooltip={`Delete ${row.kpi_name}`}
-                  itemName={row.kpi_name}
-                  confirmDelete={true}
-                />
-              )}
-            </div>
-          ),
-        },
-      ]
+          {
+            id: 'action',
+            label: 'Actions',
+            sortable: false,
+            render: (_value: any, row: KpiTarget) => (
+              <div className="!flex !gap-2 !items-center">
+                {isUpdate && (
+                  <EditButton
+                    onClick={() => handleEditKpiTarget(row)}
+                    tooltip={`Edit ${row.kpi_name}`}
+                  />
+                )}
+                {isDelete && (
+                  <DeleteButton
+                    onClick={() => handleDeleteKpiTarget(row.id)}
+                    tooltip={`Delete ${row.kpi_name}`}
+                    itemName={row.kpi_name}
+                    confirmDelete={true}
+                  />
+                )}
+              </div>
+            ),
+          },
+        ]
       : []),
   ];
 

@@ -274,30 +274,30 @@ const CompetitorActivityManagement: React.FC = () => {
     },
     ...(isUpdate || isDelete || isRead
       ? [
-        {
-          id: 'action',
-          label: 'Actions',
-          sortable: false,
-          render: (_value: any, row: CompetitorActivity) => (
-            <div className="!flex !gap-2 !items-center">
-              {isUpdate && (
-                <EditButton
-                  onClick={() => handleEditActivity(row)}
-                  tooltip={`Edit Activity #${row.id}`}
-                />
-              )}
-              {isDelete && (
-                <DeleteButton
-                  onClick={() => handleDeleteActivity(row.id)}
-                  tooltip={`Delete Activity #${row.id}`}
-                  itemName={`Activity #${row.id}`}
-                  confirmDelete={true}
-                />
-              )}
-            </div>
-          ),
-        },
-      ]
+          {
+            id: 'action',
+            label: 'Actions',
+            sortable: false,
+            render: (_value: any, row: CompetitorActivity) => (
+              <div className="!flex !gap-2 !items-center">
+                {isUpdate && (
+                  <EditButton
+                    onClick={() => handleEditActivity(row)}
+                    tooltip={`Edit Activity #${row.id}`}
+                  />
+                )}
+                {isDelete && (
+                  <DeleteButton
+                    onClick={() => handleDeleteActivity(row.id)}
+                    tooltip={`Delete Activity #${row.id}`}
+                    itemName={`Activity #${row.id}`}
+                    confirmDelete={true}
+                  />
+                )}
+              </div>
+            ),
+          },
+        ]
       : []),
   ];
 

@@ -48,11 +48,25 @@ const GradingDashboard: React.FC = () => {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
-  const [typeFilter, setTypeFilter] = useState<'all' | 'upgrade' | 'downgrade' | 'no_change'>('all');
+  const [typeFilter, setTypeFilter] = useState<
+    'all' | 'upgrade' | 'downgrade' | 'no_change'
+  >('all');
 
-  const { data: statsData, isLoading: statsLoading, isFetching: isFetchingStats } = useGradingStats();
-  const { data: requestsData, isLoading: requestsLoading, isFetching: isFetchingRequests } =
-    usePendingGradingRequests({ search, page, limit, change_type: typeFilter });
+  const {
+    data: statsData,
+    isLoading: statsLoading,
+    isFetching: isFetchingStats,
+  } = useGradingStats();
+  const {
+    data: requestsData,
+    isLoading: requestsLoading,
+    isFetching: isFetchingRequests,
+  } = usePendingGradingRequests({
+    search,
+    page,
+    limit,
+    change_type: typeFilter,
+  });
 
   const processRequestMutation = useProcessGradingRequest();
 
@@ -82,7 +96,12 @@ const GradingDashboard: React.FC = () => {
           <Skeleton variant="text" width={100} height={16} />
           <Skeleton variant="text" width={64} height={32} />
         </div>
-        <Skeleton variant="circular" width={40} height={40} className="!bg-gray-100" />
+        <Skeleton
+          variant="circular"
+          width={40}
+          height={40}
+          className="!bg-gray-100"
+        />
       </div>
     </div>
   );
@@ -93,7 +112,13 @@ const GradingDashboard: React.FC = () => {
         <div className="flex-1 relative">
           <div className="absolute left-0 top-0 bottom-8 flex flex-col justify-between w-10">
             {[1, 2, 3, 4].map(i => (
-              <Skeleton key={i} variant="text" width={30} height={12} className="!bg-gray-100" />
+              <Skeleton
+                key={i}
+                variant="text"
+                width={30}
+                height={12}
+                className="!bg-gray-100"
+              />
             ))}
           </div>
           <div className="absolute left-10 right-0 top-0 bottom-8 flex items-end justify-between gap-2 px-4">
@@ -109,7 +134,13 @@ const GradingDashboard: React.FC = () => {
           </div>
           <div className="absolute left-10 right-0 bottom-0 h-8 flex items-center justify-between px-4">
             {[1, 2, 3, 4, 5, 6].map(i => (
-              <Skeleton key={i} variant="text" width={40} height={12} className="!bg-gray-100" />
+              <Skeleton
+                key={i}
+                variant="text"
+                width={40}
+                height={12}
+                className="!bg-gray-100"
+              />
             ))}
           </div>
         </div>
@@ -120,18 +151,33 @@ const GradingDashboard: React.FC = () => {
   const DoughnutChartSkeleton = () => (
     <div className="h-[250px] w-full flex flex-col items-center justify-center">
       <div className="relative mb-4">
-        <Skeleton variant="circular" width={180} height={180} className="!bg-gray-100" />
+        <Skeleton
+          variant="circular"
+          width={180}
+          height={180}
+          className="!bg-gray-100"
+        />
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="bg-white rounded-full w-[100px] h-[100px]" />
         </div>
       </div>
       <div className="flex gap-4">
         <div className="flex items-center gap-2">
-          <Skeleton variant="rectangular" width={12} height={12} className="!rounded" />
+          <Skeleton
+            variant="rectangular"
+            width={12}
+            height={12}
+            className="!rounded"
+          />
           <Skeleton variant="text" width={60} height={14} />
         </div>
         <div className="flex items-center gap-2">
-          <Skeleton variant="rectangular" width={12} height={12} className="!rounded" />
+          <Skeleton
+            variant="rectangular"
+            width={12}
+            height={12}
+            className="!rounded"
+          />
           <Skeleton variant="text" width={60} height={14} />
         </div>
       </div>
@@ -145,33 +191,73 @@ const GradingDashboard: React.FC = () => {
       <div className="space-y-4">
         <HeaderSkeleton />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {[1, 2, 3, 4].map(i => <StatsCardSkeleton key={i} />)}
+          {[1, 2, 3, 4].map(i => (
+            <StatsCardSkeleton key={i} />
+          ))}
         </div>
         <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
           <div className="md:col-span-4 bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
-            <Skeleton variant="text" width={180} height={24} className="!mb-4" />
+            <Skeleton
+              variant="text"
+              width={180}
+              height={24}
+              className="!mb-4"
+            />
             <DoughnutChartSkeleton />
           </div>
           <div className="md:col-span-8 bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
-            <Skeleton variant="text" width={150} height={24} className="!mb-4" />
+            <Skeleton
+              variant="text"
+              width={150}
+              height={24}
+              className="!mb-4"
+            />
             <ChartSkeleton height={250} />
           </div>
         </div>
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
           <div className="flex justify-between mb-4">
-            <Skeleton variant="rectangular" width={320} height={40} className="!rounded-lg" />
-            <Skeleton variant="rectangular" width={192} height={40} className="!rounded-lg" />
+            <Skeleton
+              variant="rectangular"
+              width={320}
+              height={40}
+              className="!rounded-lg"
+            />
+            <Skeleton
+              variant="rectangular"
+              width={192}
+              height={40}
+              className="!rounded-lg"
+            />
           </div>
           <div className="space-y-3">
             {[1, 2, 3, 4, 5].map(i => (
-              <div key={i} className="flex items-center gap-4 py-2 border-b border-gray-50">
-                <Skeleton variant="rectangular" width={40} height={40} className="!rounded-lg" />
+              <div
+                key={i}
+                className="flex items-center gap-4 py-2 border-b border-gray-50"
+              >
+                <Skeleton
+                  variant="rectangular"
+                  width={40}
+                  height={40}
+                  className="!rounded-lg"
+                />
                 <div className="flex-1">
                   <Skeleton variant="text" width="40%" height={20} />
                   <Skeleton variant="text" width="20%" height={14} />
                 </div>
-                <Skeleton variant="rectangular" width={100} height={32} className="!rounded-full" />
-                <Skeleton variant="rectangular" width={100} height={32} className="!rounded-full" />
+                <Skeleton
+                  variant="rectangular"
+                  width={100}
+                  height={32}
+                  className="!rounded-full"
+                />
+                <Skeleton
+                  variant="rectangular"
+                  width={100}
+                  height={32}
+                  className="!rounded-full"
+                />
               </div>
             ))}
           </div>
@@ -179,8 +265,6 @@ const GradingDashboard: React.FC = () => {
       </div>
     );
   }
-
-
 
   const handlePageChange = (newPage: number) => {
     setPage(newPage + 1);
@@ -308,7 +392,7 @@ const GradingDashboard: React.FC = () => {
                     key={cond.id}
                     title={cond.condition_description || ''}
                     arrow
-                    placement='top'
+                    placement="top"
                   >
                     <Chip
                       label={`${cond.condition_type.replace(/_/g, ' ')} ${cond.condition_operator} ${cond.threshold_value}`}

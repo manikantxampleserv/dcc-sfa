@@ -1,5 +1,6 @@
 import { Add, Block, CheckCircle, Download, Upload } from '@mui/icons-material';
 import { Alert, Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
+import { usePermission } from 'hooks/usePermission';
 import { Building2, Tag } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { DeleteButton, EditButton } from 'shared/ActionButton';
@@ -15,10 +16,9 @@ import {
   type CustomerChannel,
 } from '../../../hooks/useCustomerChannel';
 import { useExportToExcel } from '../../../hooks/useImportExport';
-import { usePermission } from 'hooks/usePermission';
-import { formatDate } from '../../../utils/dateUtils';
-import ManageCustomerChannel from './ManageCustomerChannel';
+import { formatDateTime } from '../../../utils/dateUtils';
 import ImportCustomerChannel from './ImportCustomerChannel';
+import ManageCustomerChannel from './ManageCustomerChannel';
 
 const CustomerChannelPage: React.FC = () => {
   const [search, setSearch] = useState('');
@@ -172,10 +172,7 @@ const CustomerChannelPage: React.FC = () => {
     {
       id: 'createdate',
       label: 'Created Date',
-      render: (_value, row) =>
-        formatDate(row.createdate) || (
-          <span className="italic text-gray-400">No Date</span>
-        ),
+      render: (_value, row) => formatDateTime(row.createdate),
     },
     ...(isUpdate || isDelete || isRead
       ? [

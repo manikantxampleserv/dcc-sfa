@@ -18,13 +18,13 @@ import Select from 'shared/Select';
 import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
 import { useExportToExcel } from '../../../hooks/useImportExport';
-import { usePermission } from '../../../hooks/usePermission';
 import {
   useDeletePayment,
   usePayments,
   type Payment,
 } from '../../../hooks/usePayments';
-import { formatDate } from '../../../utils/dateUtils';
+import { usePermission } from '../../../hooks/usePermission';
+import { formatDate, formatDateTime } from '../../../utils/dateUtils';
 import ImportPayment from './ImportPayment';
 import ManagePayment from './ManagePayment';
 
@@ -283,45 +283,42 @@ const PaymentCollection: React.FC = () => {
     {
       id: 'createdate',
       label: 'Created Date',
-      render: (_value, row) =>
-        formatDate(row.createdate) || (
-          <span className="italic text-gray-400">No Date</span>
-        ),
+      render: (_value, row) => formatDateTime(row.createdate),
     },
     ...(isRead || isUpdate || isDelete
       ? [
-        {
-          id: 'action',
-          label: 'Actions',
-          sortable: false,
-          render: (_value: any, row: Payment) => (
-            <div className="!flex !gap-2 !items-center">
-              {isRead && (
-                <ActionButton
-                  onClick={() => handleViewPayment(row)}
-                  tooltip={`View ${row.payment_number}`}
-                  icon={<Visibility />}
-                  color="success"
-                />
-              )}
-              {isUpdate && (
-                <EditButton
-                  onClick={() => handleEditPayment(row)}
-                  tooltip={`Edit ${row.payment_number}`}
-                />
-              )}
-              {isDelete && (
-                <DeleteButton
-                  onClick={() => handleDeletePayment(row.id)}
-                  tooltip={`Delete ${row.payment_number}`}
-                  itemName={row.payment_number}
-                  confirmDelete={true}
-                />
-              )}
-            </div>
-          ),
-        },
-      ]
+          {
+            id: 'action',
+            label: 'Actions',
+            sortable: false,
+            render: (_value: any, row: Payment) => (
+              <div className="!flex !gap-2 !items-center">
+                {isRead && (
+                  <ActionButton
+                    onClick={() => handleViewPayment(row)}
+                    tooltip={`View ${row.payment_number}`}
+                    icon={<Visibility />}
+                    color="success"
+                  />
+                )}
+                {isUpdate && (
+                  <EditButton
+                    onClick={() => handleEditPayment(row)}
+                    tooltip={`Edit ${row.payment_number}`}
+                  />
+                )}
+                {isDelete && (
+                  <DeleteButton
+                    onClick={() => handleDeletePayment(row.id)}
+                    tooltip={`Delete ${row.payment_number}`}
+                    itemName={row.payment_number}
+                    confirmDelete={true}
+                  />
+                )}
+              </div>
+            ),
+          },
+        ]
       : []),
   ];
 

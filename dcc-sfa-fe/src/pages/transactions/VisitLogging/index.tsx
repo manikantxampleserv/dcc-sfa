@@ -28,7 +28,7 @@ import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
-import { formatDate } from 'utils/dateUtils';
+import { formatDate, formatDateTime } from 'utils/dateUtils';
 import ImportVisit from './ImportVisit';
 import ManageVisit from './ManageVisit';
 
@@ -292,10 +292,7 @@ const VisitLogging: React.FC = () => {
     {
       id: 'createdate',
       label: 'Created Date',
-      render: (_value, row) =>
-        formatDate(row.createdate) || (
-          <span className="italic text-gray-400">No Date</span>
-        ),
+      render: (_value, row) => formatDateTime(row.createdate),
     },
     ...(isRead || isUpdate || isDelete
       ? [

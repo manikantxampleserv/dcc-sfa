@@ -1,13 +1,13 @@
 import { Add, Block, CheckCircle, Download, Upload } from '@mui/icons-material';
 import { Alert, Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
-import {
-  useSalesTargetGroups,
-  useDeleteSalesTargetGroup,
-  type SalesTargetGroup,
-} from 'hooks/useSalesTargetGroups';
 import { useExportToExcel } from 'hooks/useImportExport';
 import { usePermission } from 'hooks/usePermission';
-import { Users, TrendingUp, XCircle } from 'lucide-react';
+import {
+  useDeleteSalesTargetGroup,
+  useSalesTargetGroups,
+  type SalesTargetGroup,
+} from 'hooks/useSalesTargetGroups';
+import { TrendingUp, Users, XCircle } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { DeleteButton, EditButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
@@ -16,7 +16,7 @@ import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
-import { formatDate } from 'utils/dateUtils';
+import { formatDateTime } from 'utils/dateUtils';
 import ImportSalesTargetGroup from './ImportSalesTargetGroup';
 import ManageSalesTargetGroup from './ManageSalesTargetGroup';
 
@@ -176,10 +176,7 @@ const SalesTargetGroupsManagement: React.FC = () => {
     {
       id: 'createdate',
       label: 'Created Date',
-      render: (_value, row) =>
-        formatDate(row.createdate) || (
-          <span className="italic text-gray-400">No Date</span>
-        ),
+      render: (_value, row) => formatDateTime(row.createdate),
     },
     ...(isUpdate || isDelete || isRead
       ? [

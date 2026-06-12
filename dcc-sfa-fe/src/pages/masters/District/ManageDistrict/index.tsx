@@ -176,7 +176,7 @@ const ManageDistrict: React.FC<ManageDistrictProps> = ({
               }
             >
               {createDistrictMutation.isPending ||
-                updateDistrictMutation.isPending
+              updateDistrictMutation.isPending
                 ? isEdit
                   ? 'Updating...'
                   : 'Creating...'

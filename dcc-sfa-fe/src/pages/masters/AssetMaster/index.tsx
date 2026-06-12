@@ -14,7 +14,7 @@ import {
   Settings,
   Store,
   Tag,
-  Wrench
+  Wrench,
 } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -171,8 +171,7 @@ const AssetMasterManagement: React.FC = () => {
       id: 'asset_master_asset_types',
       label: 'Type / Sub Type',
       render: (_value, row) => (
-        <Box className='flex items-center gap-2'>
-
+        <Box className="flex items-center gap-2">
           <Avatar
             alt={row.asset_master_asset_types?.name}
             className="!rounded !bg-primary-100 !text-primary-500"
@@ -195,7 +194,6 @@ const AssetMasterManagement: React.FC = () => {
               {row?.asset_master_asset_sub_types?.name}
             </Typography>
           </Box>
-
         </Box>
       ),
     },
@@ -265,34 +263,34 @@ const AssetMasterManagement: React.FC = () => {
     },
     ...(isUpdate || isDelete || isRead
       ? [
-        {
-          id: 'action',
-          label: 'Actions',
-          sortable: false,
-          render: (_value: any, row: AssetMaster) => (
-            <div className="!flex !gap-2 !items-center">
-              <ViewButton
-                onClick={() => handleViewAsset(row.id)}
-                tooltip={`View ${row.serial_number}`}
-              />
-              {isUpdate && (
-                <EditButton
-                  onClick={() => handleEditAsset(row)}
-                  tooltip={`Edit ${row.serial_number}`}
+          {
+            id: 'action',
+            label: 'Actions',
+            sortable: false,
+            render: (_value: any, row: AssetMaster) => (
+              <div className="!flex !gap-2 !items-center">
+                <ViewButton
+                  onClick={() => handleViewAsset(row.id)}
+                  tooltip={`View ${row.serial_number}`}
                 />
-              )}
-              {isDelete && (
-                <DeleteButton
-                  onClick={() => handleDeleteAsset(row.id)}
-                  tooltip={`Delete ${row.serial_number}`}
-                  itemName={row.serial_number}
-                  confirmDelete={true}
-                />
-              )}
-            </div>
-          ),
-        },
-      ]
+                {isUpdate && (
+                  <EditButton
+                    onClick={() => handleEditAsset(row)}
+                    tooltip={`Edit ${row.serial_number}`}
+                  />
+                )}
+                {isDelete && (
+                  <DeleteButton
+                    onClick={() => handleDeleteAsset(row.id)}
+                    tooltip={`Delete ${row.serial_number}`}
+                    itemName={row.serial_number}
+                    confirmDelete={true}
+                  />
+                )}
+              </div>
+            ),
+          },
+        ]
       : []),
   ];
 

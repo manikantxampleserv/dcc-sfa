@@ -111,7 +111,8 @@ const CustomerSelect: React.FC<CustomerSelectProps> = ({
 
     if (
       normalizedValue &&
-      (!selectedCustomerData || selectedCustomerData.id.toString() !== normalizedValue) &&
+      (!selectedCustomerData ||
+        selectedCustomerData.id.toString() !== normalizedValue) &&
       !isFetching &&
       searchResults.length > 0
     ) {
@@ -130,7 +131,13 @@ const CustomerSelect: React.FC<CustomerSelectProps> = ({
         }, 100);
       }
     }
-  }, [normalizedValue, isFetching, searchResults, selectedCustomerData, inputValue]);
+  }, [
+    normalizedValue,
+    isFetching,
+    searchResults,
+    selectedCustomerData,
+    inputValue,
+  ]);
 
   // Get selected customer from state or search results
   const selectedCustomer = React.useMemo(() => {
@@ -159,7 +166,10 @@ const CustomerSelect: React.FC<CustomerSelectProps> = ({
         setSelectedCustomerData(null);
         setHasInitialized(false);
       }
-    } else if (selectedCustomerData && selectedCustomerData.id.toString() !== normalizedValue) {
+    } else if (
+      selectedCustomerData &&
+      selectedCustomerData.id.toString() !== normalizedValue
+    ) {
       setInputValue('');
       setSelectedCustomerData(null);
       setHasInitialized(false);

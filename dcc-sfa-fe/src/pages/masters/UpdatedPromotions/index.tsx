@@ -208,40 +208,40 @@ const UpdatedPromotionsManagement: React.FC = () => {
     },
     ...(isUpdate || isDelete || isRead
       ? [
-        {
-          id: 'action',
-          label: 'Actions',
-          sortable: false,
-          render: (_value: any, row: UpdatedPromotion) => (
-            <div className="!flex !gap-2 !items-center">
-              {isUpdate && (
-                <EditButton
-                  onClick={() => handleEditPromotion(row)}
-                  tooltip="Edit updated promotion"
-                />
-              )}
-              {isRead && (
-                <ActionButton
-                  onClick={() =>
-                    navigate(`/masters/updated-promotions/${row.id}`)
-                  }
-                  tooltip="View updated promotion"
-                  icon={<Visibility fontSize="small" />}
-                  color="info"
-                />
-              )}
-              {isDelete && (
-                <DeleteButton
-                  onClick={() => handleDeletePromotion(row.id)}
-                  tooltip="Delete updated promotion"
-                  confirmDelete={true}
-                  itemName="updated promotion"
-                />
-              )}
-            </div>
-          ),
-        },
-      ]
+          {
+            id: 'action',
+            label: 'Actions',
+            sortable: false,
+            render: (_value: any, row: UpdatedPromotion) => (
+              <div className="!flex !gap-2 !items-center">
+                {isUpdate && (
+                  <EditButton
+                    onClick={() => handleEditPromotion(row)}
+                    tooltip="Edit updated promotion"
+                  />
+                )}
+                {isRead && (
+                  <ActionButton
+                    onClick={() =>
+                      navigate(`/masters/updated-promotions/${row.id}`)
+                    }
+                    tooltip="View updated promotion"
+                    icon={<Visibility fontSize="small" />}
+                    color="info"
+                  />
+                )}
+                {isDelete && (
+                  <DeleteButton
+                    onClick={() => handleDeletePromotion(row.id)}
+                    tooltip="Delete updated promotion"
+                    confirmDelete={true}
+                    itemName="updated promotion"
+                  />
+                )}
+              </div>
+            ),
+          },
+        ]
       : []),
   ];
 

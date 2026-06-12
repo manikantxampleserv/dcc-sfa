@@ -1,14 +1,14 @@
 import { Add, Block, CheckCircle, Download, Upload } from '@mui/icons-material';
 import { Alert, Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
+import { useCurrencies } from 'hooks/useCurrencies';
 import { useExportToExcel } from 'hooks/useImportExport';
+import { usePermission } from 'hooks/usePermission';
 import {
   useDeleteSalesBonusRule,
   useSalesBonusRules,
   type SalesBonusRule,
 } from 'hooks/useSalesBonusRules';
-import { usePermission } from 'hooks/usePermission';
 import { useSettings } from 'hooks/useSettings';
-import { useCurrencies } from 'hooks/useCurrencies';
 import { Award, Percent, TrendingUp } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { DeleteButton, EditButton } from 'shared/ActionButton';
@@ -18,7 +18,7 @@ import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
-import { formatDate } from 'utils/dateUtils';
+import { formatDateTime } from 'utils/dateUtils';
 import ImportSalesBonusRule from './ImportSalesBonusRule';
 import ManageSalesBonusRule from './ManageSalesBonusRule';
 
@@ -258,10 +258,7 @@ const SalesBonusRulesManagement: React.FC = () => {
     {
       id: 'createdate',
       label: 'Created Date',
-      render: (_value, row) =>
-        formatDate(row.createdate) || (
-          <span className="italic text-gray-400">No Date</span>
-        ),
+      render: (_value, row) => formatDateTime(row.createdate),
     },
     ...(isUpdate || isDelete || isRead
       ? [

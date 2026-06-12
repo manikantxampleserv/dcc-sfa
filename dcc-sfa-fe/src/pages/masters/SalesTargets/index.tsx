@@ -1,14 +1,14 @@
 import { Add, Block, CheckCircle, Download, Upload } from '@mui/icons-material';
 import { Alert, Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
+import { useCurrency } from 'hooks/useCurrency';
+import { useExportToExcel } from 'hooks/useImportExport';
+import { usePermission } from 'hooks/usePermission';
 import {
-  useSalesTargets,
   useDeleteSalesTarget,
+  useSalesTargets,
   type SalesTarget,
 } from 'hooks/useSalesTargets';
-import { useExportToExcel } from 'hooks/useImportExport';
-import { useCurrency } from 'hooks/useCurrency';
-import { usePermission } from 'hooks/usePermission';
-import { Target, Calendar, TrendingUp, Package } from 'lucide-react';
+import { Calendar, Package, Target, TrendingUp } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { DeleteButton, EditButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
@@ -17,7 +17,7 @@ import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
-import { formatDate } from 'utils/dateUtils';
+import { formatDate, formatDateTime } from 'utils/dateUtils';
 import ImportSalesTarget from './ImportSalesTarget';
 import ManageSalesTarget from './ManageSalesTarget';
 
@@ -225,10 +225,7 @@ const SalesTargetsManagement: React.FC = () => {
     {
       id: 'createdate',
       label: 'Created Date',
-      render: (_value, row) =>
-        formatDate(row.createdate) || (
-          <span className="italic text-gray-400">No Date</span>
-        ),
+      render: (_value, row) => formatDateTime(row.createdate),
     },
     ...(isUpdate || isDelete || isRead
       ? [

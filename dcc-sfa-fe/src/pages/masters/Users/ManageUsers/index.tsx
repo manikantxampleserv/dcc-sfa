@@ -46,7 +46,9 @@ const ManageUsers: React.FC<ManageUsersProps> = ({
 
   // Confirmation dialog and route management states
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
-  const [routesToRemove, setRoutesToRemove] = useState<Array<{ id: number; name: string; code: string }>>([]);
+  const [routesToRemove, setRoutesToRemove] = useState<
+    Array<{ id: number; name: string; code: string }>
+  >([]);
   const [pendingValues, setPendingValues] = useState<any>(null);
 
   const { data: rolesResponse, isLoading: rolesLoading } = useRolesDropdown({
@@ -60,7 +62,9 @@ const ManageUsers: React.FC<ManageUsersProps> = ({
   const depots = depotsResponse?.data || [];
 
   // Fetch routes and user assignments to detect affected routes upon depot removal
-  const { data: routeAssignmentsResponse } = useRouteAssignment(selectedUser?.id || 0);
+  const { data: routeAssignmentsResponse } = useRouteAssignment(
+    selectedUser?.id || 0
+  );
   const { data: routesResponse } = useRoutes(
     { limit: 1000 },
     { enabled: isEdit && drawerOpen }
@@ -147,13 +151,17 @@ const ManageUsers: React.FC<ManageUsersProps> = ({
     enableReinitialize: true,
     onSubmit: async values => {
       if (isEdit && selectedUser) {
-        const initialDepotIds = selectedUser.depots?.map((d: any) => d.id) || [];
+        const initialDepotIds =
+          selectedUser.depots?.map((d: any) => d.id) || [];
         const currentDepotIds = values.depot_ids.map(Number);
-        const removedDepotIds = initialDepotIds.filter(id => !currentDepotIds.includes(id));
+        const removedDepotIds = initialDepotIds.filter(
+          id => !currentDepotIds.includes(id)
+        );
 
         if (removedDepotIds.length > 0) {
           const allRoutes = routesResponse?.data || [];
-          const userAssignedRoutes = routeAssignmentsResponse?.data?.assigned_routes || [];
+          const userAssignedRoutes =
+            routeAssignmentsResponse?.data?.assigned_routes || [];
 
           const affected = userAssignedRoutes.filter(assignedRoute => {
             const fullRoute = allRoutes.find(r => r.id === assignedRoute.id);
@@ -460,15 +468,11 @@ const ManageUsers: React.FC<ManageUsersProps> = ({
           </Box>
         </DialogContent>
         <DialogActions className="!p-0 flex gap-2">
-          <Button
-            color='error'
-            variant="outlined"
-            onClick={handleCancelSubmit}
-          >
+          <Button color="error" variant="outlined" onClick={handleCancelSubmit}>
             Cancel
           </Button>
           <Button
-            color='error'
+            color="error"
             variant="contained"
             onClick={handleConfirmSubmit}
           >

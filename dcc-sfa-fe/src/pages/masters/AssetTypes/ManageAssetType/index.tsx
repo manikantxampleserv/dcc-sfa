@@ -137,7 +137,7 @@ const ManageAssetType: React.FC<ManageAssetTypeProps> = ({
               }
             >
               {createAssetTypeMutation.isPending ||
-                updateAssetTypeMutation.isPending
+              updateAssetTypeMutation.isPending
                 ? isEdit
                   ? 'Updating...'
                   : 'Creating...'

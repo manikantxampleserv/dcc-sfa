@@ -7,24 +7,24 @@ interface StatsCardProps {
   value: string | number;
   icon: ReactNode;
   color?:
-  | 'blue'
-  | 'green'
-  | 'red'
-  | 'purple'
-  | 'orange'
-  | 'yellow'
-  | 'indigo'
-  | 'pink'
-  | 'teal'
-  | 'cyan'
-  | 'amber'
-  | 'lime'
-  | 'emerald'
-  | 'violet'
-  | 'fuchsia'
-  | 'rose'
-  | 'slate'
-  | 'gray';
+    | 'blue'
+    | 'green'
+    | 'red'
+    | 'purple'
+    | 'orange'
+    | 'yellow'
+    | 'indigo'
+    | 'pink'
+    | 'teal'
+    | 'cyan'
+    | 'amber'
+    | 'lime'
+    | 'emerald'
+    | 'violet'
+    | 'fuchsia'
+    | 'rose'
+    | 'slate'
+    | 'gray';
   isLoading?: boolean;
 }
 

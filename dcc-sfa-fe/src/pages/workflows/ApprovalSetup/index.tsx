@@ -83,7 +83,10 @@ const ApprovalSetup: React.FC = () => {
       try {
         const nonGlobalDepot = row.depots.find(d => !d.is_global);
         const depotId = nonGlobalDepot ? nonGlobalDepot.id : null;
-        await deleteMutation.mutateAsync({ requestType: row.request_type, depotId });
+        await deleteMutation.mutateAsync({
+          requestType: row.request_type,
+          depotId,
+        });
       } catch (error) {
         console.error('Error deleting approval setup:', error);
       }
@@ -186,30 +189,30 @@ const ApprovalSetup: React.FC = () => {
     },
     ...(isUpdate || isDelete
       ? [
-        {
-          id: 'actions',
-          label: 'Actions',
-          sortable: false,
-          render: (_value: any, row: ApprovalWorkflowSetupGrouped) => (
-            <div className="!flex !gap-2 !items-center">
-              {isUpdate && (
-                <EditButton
-                  onClick={() => handleManage(row)}
-                  tooltip={`Manage ${row.request_type.replace(/_/g, ' ')}`}
-                />
-              )}
-              {isDelete && (
-                <DeleteButton
-                  onClick={() => handleDelete(row)}
-                  tooltip={`Delete ${row.request_type.replace(/_/g, ' ')}`}
-                  itemName={row.request_type.replace(/_/g, ' ')}
-                  confirmDelete={true}
-                />
-              )}
-            </div>
-          ),
-        },
-      ]
+          {
+            id: 'actions',
+            label: 'Actions',
+            sortable: false,
+            render: (_value: any, row: ApprovalWorkflowSetupGrouped) => (
+              <div className="!flex !gap-2 !items-center">
+                {isUpdate && (
+                  <EditButton
+                    onClick={() => handleManage(row)}
+                    tooltip={`Manage ${row.request_type.replace(/_/g, ' ')}`}
+                  />
+                )}
+                {isDelete && (
+                  <DeleteButton
+                    onClick={() => handleDelete(row)}
+                    tooltip={`Delete ${row.request_type.replace(/_/g, ' ')}`}
+                    itemName={row.request_type.replace(/_/g, ' ')}
+                    confirmDelete={true}
+                  />
+                )}
+              </div>
+            ),
+          },
+        ]
       : []),
   ];
 

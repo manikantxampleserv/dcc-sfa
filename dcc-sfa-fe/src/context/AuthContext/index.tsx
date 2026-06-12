@@ -11,7 +11,7 @@ import { useLogout } from '../../hooks/useAuth';
 import { tokenService } from '../../services/auth/tokenService';
 import { resetSessionExpiredFlag } from '../../configs/axio.config';
 
-interface AuthContextType { 
+interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;

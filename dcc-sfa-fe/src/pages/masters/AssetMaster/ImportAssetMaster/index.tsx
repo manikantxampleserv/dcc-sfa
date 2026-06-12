@@ -28,7 +28,6 @@ const ImportAssetMaster: React.FC<ImportAssetMasterProps> = ({
   const [importResults, setImportResults] = useState<ImportResult | null>(null);
   const [step, setStep] = useState<'upload' | 'import' | 'results'>('upload');
 
-
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const downloadTemplateMutation = useDownloadTemplate();
@@ -138,8 +137,9 @@ const ImportAssetMaster: React.FC<ImportAssetMasterProps> = ({
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `import_errors_${uploadedFile?.name || 'log'
-      }_${Date.now()}.txt`;
+    link.download = `import_errors_${
+      uploadedFile?.name || 'log'
+    }_${Date.now()}.txt`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -198,7 +198,9 @@ const ImportAssetMaster: React.FC<ImportAssetMasterProps> = ({
                 id="updateExisting"
                 name="updateExisting"
                 checked={formik.values.updateExisting}
-                onChange={(e) => formik.setFieldValue('updateExisting', e.target.checked)}
+                onChange={e =>
+                  formik.setFieldValue('updateExisting', e.target.checked)
+                }
                 className="!w-4 !h-4 !cursor-pointer"
               />
               <label
@@ -208,7 +210,10 @@ const ImportAssetMaster: React.FC<ImportAssetMasterProps> = ({
                 Update existing records if serial number matches
               </label>
             </Box>
-            <Typography variant="caption" className="!text-gray-500 !block !mt-1">
+            <Typography
+              variant="caption"
+              className="!text-gray-500 !block !mt-1"
+            >
               If checked, existing assets with the same serial number will be
               updated instead of showing an error.
             </Typography>
@@ -335,7 +340,7 @@ const ImportAssetMaster: React.FC<ImportAssetMasterProps> = ({
                     {importResults.errors &&
                       importResults.errors.length > 0 && (
                         <Box className="!mt-3">
-                          <div className='flex justify-between !mb-2 items-center'>
+                          <div className="flex justify-between !mb-2 items-center">
                             <Typography
                               variant="subtitle2"
                               className="!font-medium !text-red-700"
@@ -349,7 +354,8 @@ const ImportAssetMaster: React.FC<ImportAssetMasterProps> = ({
                               startIcon={<Download />}
                               onClick={handleDownloadErrorLog}
                             >
-                              Download Error Log ({importResults.errors.length} errors)
+                              Download Error Log ({importResults.errors.length}{' '}
+                              errors)
                             </Button>
                           </div>
                           <Box className="!bg-red-50 !rounded-lg !max-h-32 !overflow-y-auto !p-2">

@@ -1,9 +1,4 @@
-import {
-  Block,
-  CheckCircle,
-  HelpOutline,
-  Schedule,
-} from '@mui/icons-material';
+import { Block, CheckCircle, HelpOutline, Schedule } from '@mui/icons-material';
 import { Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
 import { useAssetTypes } from 'hooks/useAssetTypes';
 import { usePermission } from 'hooks/usePermission';
@@ -18,7 +13,7 @@ import {
   Package,
   Settings,
   Tag,
-  Wrench
+  Wrench,
 } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { exportAssetMovementStatusReport } from 'services/reports/assetMovementStatus';
@@ -324,7 +319,9 @@ const AssetMovementStatusReport: React.FC = () => {
               variant="caption"
               className="!text-gray-500 !text-xs !block !mt-0.5"
             >
-              {row.performed_by_email || <span className="italic text-gray-400 text-xs">No Email</span>}
+              {row.performed_by_email || (
+                <span className="italic text-gray-400 text-xs">No Email</span>
+              )}
             </Typography>
           </Box>
         </Box>
@@ -549,7 +546,6 @@ const AssetMovementStatusReport: React.FC = () => {
         filterColunm={false}
         isPermission={isRead}
       />
-
     </div>
   );
 };

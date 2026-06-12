@@ -31,8 +31,6 @@ const ManageAssetMaintenance: React.FC<ManageAssetMaintenanceProps> = ({
 }) => {
   const isEdit = !!selectedMaintenance;
 
-
-
   const createAssetMaintenanceMutation = useCreateAssetMaintenance();
   const updateAssetMaintenanceMutation = useUpdateAssetMaintenance();
 
@@ -108,7 +106,9 @@ const ManageAssetMaintenance: React.FC<ManageAssetMaintenanceProps> = ({
               label="Technician"
               formik={formik}
               required
-              nameToSearch={selectedMaintenance?.asset_maintenance_technician?.name}
+              nameToSearch={
+                selectedMaintenance?.asset_maintenance_technician?.name
+              }
             />
 
             <Input
@@ -184,7 +184,7 @@ const ManageAssetMaintenance: React.FC<ManageAssetMaintenanceProps> = ({
               }
             >
               {createAssetMaintenanceMutation.isPending ||
-                updateAssetMaintenanceMutation.isPending
+              updateAssetMaintenanceMutation.isPending
                 ? isEdit
                   ? 'Updating...'
                   : 'Creating...'
