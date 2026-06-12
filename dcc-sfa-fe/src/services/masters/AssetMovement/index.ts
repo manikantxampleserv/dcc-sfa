@@ -87,6 +87,7 @@ export interface AssetMovementQueryParams {
   limit?: number;
   search?: string;
   status?: string;
+  movement_type?: string;
 }
 
 export interface AssetMovementStats {

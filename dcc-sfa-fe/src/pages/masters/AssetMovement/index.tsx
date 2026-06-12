@@ -40,6 +40,7 @@ import ManageAssetMovement from './ManageAssetMovement';
 const AssetMovementManagement: React.FC = () => {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [typeFilter, setTypeFilter] = useState('all');
   const [selectedMovement, setSelectedMovement] =
     useState<AssetMovement | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -60,6 +61,7 @@ const AssetMovementManagement: React.FC = () => {
       page,
       limit,
       status: statusFilter === 'all' ? undefined : statusFilter,
+      movement_type: typeFilter === 'all' ? undefined : typeFilter,
     },
     {
       enabled: isRead,
@@ -114,6 +116,7 @@ const AssetMovementManagement: React.FC = () => {
       const filters = {
         search,
         status: statusFilter === 'all' ? undefined : statusFilter,
+        movement_type: typeFilter === 'all' ? undefined : typeFilter,
       };
 
       await exportToExcelMutation.mutateAsync({
@@ -127,17 +130,31 @@ const AssetMovementManagement: React.FC = () => {
 
   const getMovementTypeColor = (
     type: string
-  ): 'primary' | 'success' | 'secondary' | 'error' | 'warning' | 'default' => {
+  ):
+    | 'primary'
+    | 'success'
+    | 'secondary'
+    | 'error'
+    | 'warning'
+    | 'default'
+    | 'info' => {
     const typeLower = type.toLowerCase();
     const colors: Record<
       string,
-      'primary' | 'success' | 'secondary' | 'error' | 'warning' | 'default'
+      | 'primary'
+      | 'success'
+      | 'secondary'
+      | 'error'
+      | 'warning'
+      | 'default'
+      | 'info'
     > = {
       transfer: 'primary',
       maintenance: 'warning',
       repair: 'error',
       disposal: 'secondary',
       return: 'success',
+      installation: 'info',
       other: 'default',
     };
     return colors[typeLower as keyof typeof colors] || 'default';
@@ -446,6 +463,20 @@ const AssetMovementManagement: React.FC = () => {
                     <MenuItem value="all">All Status</MenuItem>
                     <MenuItem value="active">Active</MenuItem>
                     <MenuItem value="inactive">Inactive</MenuItem>
+                  </Select>
+                  <Select
+                    value={typeFilter}
+                    onChange={e => setTypeFilter(e.target.value)}
+                    disableClearable
+                    className="!min-w-50"
+                  >
+                    <MenuItem value="all">All Types</MenuItem>
+                    <MenuItem value="installation">Installation</MenuItem>
+                    <MenuItem value="transfer">Transfer</MenuItem>
+                    <MenuItem value="maintenance">Maintenance</MenuItem>
+                    <MenuItem value="repair">Repair</MenuItem>
+                    <MenuItem value="disposal">Disposal</MenuItem>
+                    <MenuItem value="return">Return</MenuItem>
                   </Select>
                 </div>
               )}
