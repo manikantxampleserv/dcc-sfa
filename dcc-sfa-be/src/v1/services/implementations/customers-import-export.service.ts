@@ -63,6 +63,20 @@ export class CustomersImportExportService extends ImportExportService<any> {
       description: 'Use the ID from this sheet in the Depot ID column',
     },
     {
+      masterTable: 'regions' as any,
+      masterKey: 'id',
+      masterDisplayFields: ['id', 'name', 'code'],
+      sheetName: 'Ref - Regions',
+      description: 'Use the ID from this sheet in the Region ID column',
+    },
+    {
+      masterTable: 'districts' as any,
+      masterKey: 'id',
+      masterDisplayFields: ['id', 'name', 'code'],
+      sheetName: 'Ref - Districts',
+      description: 'Use the ID from this sheet in the District ID column',
+    },
+    {
       masterTable: 'customer_category' as any,
       masterKey: 'id',
       masterDisplayFields: ['id', 'category_name', 'category_code'],
@@ -130,6 +144,24 @@ export class CustomersImportExportService extends ImportExportService<any> {
       transform: value => (value ? parseInt(value) : null),
       description:
         'ID of the depot this customer belongs to (optional) - see Ref - Depots sheet',
+    },
+    {
+      key: 'region_id',
+      header: 'Region ID',
+      width: 15,
+      type: 'number',
+      transform: value => (value ? parseInt(value) : null),
+      description:
+        'ID of the region this customer belongs to (optional) - see Ref - Regions sheet',
+    },
+    {
+      key: 'district_id',
+      header: 'District ID',
+      width: 15,
+      type: 'number',
+      transform: value => (value ? parseInt(value) : null),
+      description:
+        'ID of the district this customer belongs to (optional) - see Ref - Districts sheet',
     },
     {
       key: 'customer_category_id',
@@ -394,20 +426,31 @@ export class CustomersImportExportService extends ImportExportService<any> {
   ];
 
   protected async getSampleData(): Promise<any[]> {
-    const [zones, customerTypes, customerChannels, routes, users] =
-      await Promise.all([
-        prisma.zones.findFirst({ select: { id: true } }),
-        prisma.customer_type.findFirst({ select: { id: true } }),
-        prisma.customer_channel.findFirst({ select: { id: true } }),
-        prisma.routes.findFirst({ select: { id: true } }),
-        prisma.users.findFirst({ select: { id: true } }),
-      ]);
+    const [
+      zones,
+      customerTypes,
+      customerChannels,
+      routes,
+      users,
+      regions,
+      districts,
+    ] = await Promise.all([
+      prisma.zones.findFirst({ select: { id: true } }),
+      prisma.customer_type.findFirst({ select: { id: true } }),
+      prisma.customer_channel.findFirst({ select: { id: true } }),
+      prisma.routes.findFirst({ select: { id: true } }),
+      prisma.users.findFirst({ select: { id: true } }),
+      prisma.regions.findFirst({ select: { id: true } }),
+      prisma.districts.findFirst({ select: { id: true } }),
+    ]);
 
     return [
       {
         name: 'ABC Retail Store',
         short_name: 'ABC',
         zones_id: zones?.id || '',
+        region_id: regions?.id || '',
+        district_id: districts?.id || '',
         customer_type_id: customerTypes?.id || '',
         customer_channel_id: customerChannels?.id || '',
         type: 'Retailer',
@@ -447,6 +490,8 @@ export class CustomersImportExportService extends ImportExportService<any> {
       code: customer.code,
       zones_id: customer.zones_id || '',
       depot_id: customer.depot_id || '',
+      region_id: customer.region_id || '',
+      district_id: customer.district_id || '',
       customer_category_id: customer.customer_category_id || '',
       customer_type_id: customer.customer_type_id || '',
       customer_channel_id: customer.customer_channel_id || '',
@@ -534,6 +579,24 @@ export class CustomersImportExportService extends ImportExportService<any> {
               where: { id: data.zones_id },
             }))
         ),
+      data.region_id &&
+        checkForeignKey(
+          'Region',
+          data.region_id,
+          async () =>
+            !!(await prismaClient.regions.findUnique({
+              where: { id: data.region_id },
+            }))
+        ),
+      data.district_id &&
+        checkForeignKey(
+          'District',
+          data.district_id,
+          async () =>
+            !!(await prismaClient.districts.findUnique({
+              where: { id: data.district_id },
+            }))
+        ),
       data.customer_type_id &&
         checkForeignKey(
           'Customer Type',
@@ -586,6 +649,8 @@ export class CustomersImportExportService extends ImportExportService<any> {
       code: data.code,
       zones_id: data.zones_id || null,
       depot_id: data.depot_id || null,
+      region_id: data.region_id || null,
+      district_id: data.district_id || null,
       customer_category_id: data.customer_category_id || null,
       customer_type_id: data.customer_type_id || null,
       customer_channel_id: data.customer_channel_id || null,
@@ -655,6 +720,12 @@ export class CustomersImportExportService extends ImportExportService<any> {
         data.short_name !== undefined ? data.short_name : existing.short_name,
       zones_id: data.zones_id !== undefined ? data.zones_id : existing.zones_id,
       depot_id: data.depot_id !== undefined ? data.depot_id : existing.depot_id,
+      region_id:
+        data.region_id !== undefined ? data.region_id : existing.region_id,
+      district_id:
+        data.district_id !== undefined
+          ? data.district_id
+          : existing.district_id,
       customer_category_id:
         data.customer_category_id !== undefined
           ? data.customer_category_id
@@ -748,6 +819,18 @@ export class CustomersImportExportService extends ImportExportService<any> {
             code: true,
           },
         },
+        customers_regions: {
+          select: {
+            name: true,
+            code: true,
+          },
+        },
+        customers_districts: {
+          select: {
+            name: true,
+            code: true,
+          },
+        },
         customer_category_customer: {
           select: {
             category_name: true,
@@ -807,6 +890,8 @@ export class CustomersImportExportService extends ImportExportService<any> {
       ...this.columns,
       { header: 'Zone Name', key: 'zone_name', width: 25 },
       { header: 'Depot Name', key: 'depot_name', width: 25 },
+      { header: 'Region Name', key: 'region_name', width: 25 },
+      { header: 'District Name', key: 'district_name', width: 25 },
       { header: 'Category Name', key: 'category_name', width: 25 },
       { header: 'Customer Type Name', key: 'customer_type_name', width: 25 },
       {
@@ -851,6 +936,8 @@ export class CustomersImportExportService extends ImportExportService<any> {
 
       row.zone_name = customer.customer_zones?.name || '';
       row.depot_name = customer.customer_depot?.name || '';
+      row.region_name = customer.customers_regions?.name || '';
+      row.district_name = customer.customers_districts?.name || '';
       row.category_name =
         customer.customer_category_customer?.category_name || '';
       row.customer_type_name = customer.customer_type_customer?.type_name || '';

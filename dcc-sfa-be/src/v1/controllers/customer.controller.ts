@@ -1933,6 +1933,10 @@ export const customerController = {
         city_id,
         district_id,
         region_id,
+        depot_id,
+        customer_type_id,
+        customer_category_id,
+        customer_channel_id,
       } = req.query;
       const pageNum = parseInt(page as string, 10) || 1;
       const limitNum = parseInt(limit as string, 10) || 10;
@@ -1952,6 +1956,10 @@ export const customerController = {
         ...(region_id && { region_id: Number(region_id) }),
         ...(type && type !== 'All' && { type }),
         ...(isActive && { is_active: isActive }),
+        ...(depot_id && { depot_id: Number(depot_id) }),
+        ...(customer_type_id && { customer_type_id: Number(customer_type_id) }),
+        ...(customer_category_id && { customer_category_id: Number(customer_category_id) }),
+        ...(customer_channel_id && { customer_channel_id: Number(customer_channel_id) }),
       };
 
       let routeIds: number[] = [];

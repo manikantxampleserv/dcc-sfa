@@ -395,7 +395,13 @@ export const coolerInstallationsController = {
             { energy_rating: { contains: searchLower } },
             { maintenance_contract: { contains: searchLower } },
             { coolers_customers: { name: { contains: searchLower } } },
+            { coolers_customers: { code: { contains: searchLower } } },
             { users: { name: { contains: searchLower } } },
+            { cooler_asset_master: { name: { contains: searchLower } } },
+            {
+              cooler_asset_master: { serial_number: { contains: searchLower } },
+            },
+            { cooler_asset_master: { code: { contains: searchLower } } },
           ],
         }),
 
@@ -503,7 +509,6 @@ export const coolerInstallationsController = {
         },
       });
 
-      // Get current pending approvers for the asset movements linked to the coolers
       const movementIds = data
         .map((d: any) => d.asset_movement_id)
         .filter((id: any) => id !== null && id !== undefined);

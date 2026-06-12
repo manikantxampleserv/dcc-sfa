@@ -20,12 +20,12 @@ import { useNavigate } from 'react-router-dom';
 import { ActionButton, DeleteButton, EditButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
 import { CurrentApproverTooltip } from 'shared/CurrentApproverTooltip';
+import CustomerSelect from 'shared/CustomerSelect';
 import { PopConfirm } from 'shared/DeleteConfirmation';
 import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
-import UserSelect from 'shared/UserSelect';
 import { formatDateTime } from 'utils/dateUtils';
 import ImportCoolerInstallation from './ImportCoolerInstallation';
 import ManageCoolerInstallation from './ManageCoolerInstallation';
@@ -33,9 +33,8 @@ import ManageCoolerInstallation from './ManageCoolerInstallation';
 const CoolerInstallationsManagement: React.FC = () => {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
   const [operationalStatusFilter, setOperationalStatusFilter] = useState('all');
-  const [technicianFilter, setTechnicianFilter] = useState<string>('all');
+  const [customerFilter, setCustomerFilter] = useState<string>('all');
   const [selectedInstallation, setSelectedInstallation] =
     useState<CoolerInstallation | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -55,15 +54,12 @@ const CoolerInstallationsManagement: React.FC = () => {
       search,
       page,
       limit,
-      isActive: statusFilter === 'all' ? undefined : statusFilter,
       status:
         operationalStatusFilter === 'all' ? undefined : operationalStatusFilter,
-      technician_id:
-        technicianFilter === 'all' ||
-        technicianFilter === '' ||
-        !technicianFilter
+      customer_id:
+        customerFilter === 'all' || customerFilter === '' || !customerFilter
           ? undefined
-          : Number(technicianFilter),
+          : Number(customerFilter),
     },
     {
       enabled: isRead,
@@ -119,14 +115,17 @@ const CoolerInstallationsManagement: React.FC = () => {
     setPage(1);
   }, []);
 
-  const handleTechnicianFilterChange = useCallback((_event: any, user: any) => {
-    if (!user) {
-      setTechnicianFilter('all');
-    } else {
-      setTechnicianFilter(String(user.id));
-    }
-    setPage(1);
-  }, []);
+  const handleCustomerFilterChange = useCallback(
+    (_event: any, customer: any) => {
+      if (!customer) {
+        setCustomerFilter('all');
+      } else {
+        setCustomerFilter(String(customer.id));
+      }
+      setPage(1);
+    },
+    []
+  );
 
   const handlePageChange = (newPage: number) => {
     setPage(newPage + 1);
@@ -136,17 +135,14 @@ const CoolerInstallationsManagement: React.FC = () => {
     try {
       const filters = {
         search,
-        isActive: statusFilter === 'all' ? undefined : statusFilter,
         status:
           operationalStatusFilter === 'all'
             ? undefined
             : operationalStatusFilter,
-        technician_id:
-          technicianFilter === 'all' ||
-          technicianFilter === '' ||
-          !technicianFilter
+        customer_id:
+          customerFilter === 'all' || customerFilter === '' || !customerFilter
             ? undefined
-            : Number(technicianFilter),
+            : Number(customerFilter),
       };
 
       await exportToExcelMutation.mutateAsync({
@@ -156,13 +152,7 @@ const CoolerInstallationsManagement: React.FC = () => {
     } catch (error) {
       console.error('Error exporting cooler installations:', error);
     }
-  }, [
-    exportToExcelMutation,
-    search,
-    statusFilter,
-    operationalStatusFilter,
-    technicianFilter,
-  ]);
+  }, [exportToExcelMutation, search, operationalStatusFilter, customerFilter]);
 
   const getStatusColor = (status?: string | null) => {
     switch (status?.toLowerCase()) {
@@ -471,23 +461,11 @@ const CoolerInstallationsManagement: React.FC = () => {
                 {isRead && (
                   <>
                     <SearchInput
-                      placeholder="Search Cooler Installations..."
+                      placeholder="Search Installations..."
                       value={search}
                       onChange={handleSearchChange}
                       debounceMs={400}
-                      className="!w-52"
                     />
-                    <Select
-                      value={statusFilter}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                        setStatusFilter(e.target.value)
-                      }
-                      disableClearable
-                    >
-                      <MenuItem value="all">All Status</MenuItem>
-                      <MenuItem value="Y">Active</MenuItem>
-                      <MenuItem value="N">Inactive</MenuItem>
-                    </Select>
                     <Select
                       value={operationalStatusFilter}
                       onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
@@ -502,65 +480,66 @@ const CoolerInstallationsManagement: React.FC = () => {
                       </MenuItem>
                       <MenuItem value="Installed">Installed</MenuItem>
                     </Select>
-                    <UserSelect
-                      label=""
-                      placeholder="Select Technician"
-                      value={
-                        technicianFilter === 'all' ||
-                        technicianFilter === 'null'
-                          ? undefined
-                          : technicianFilter
-                      }
-                      onChange={handleTechnicianFilterChange}
-                      fullWidth={true}
-                      size="small"
-                      className="!w-72"
-                    />
+                    <div className="w-72">
+                      <CustomerSelect
+                        name="customerFilter"
+                        label="Select Customer"
+                        value={
+                          customerFilter === 'all' || customerFilter === 'null'
+                            ? undefined
+                            : customerFilter
+                        }
+                        onChange={handleCustomerFilterChange}
+                        fullWidth={true}
+                      />
+                    </div>
                   </>
                 )}
               </div>
-              {isRead && (
-                <div className="flex items-center gap-2">
-                  <PopConfirm
-                    title="Export Cooler Installations"
-                    description="Are you sure you want to export the current cooler installations data to Excel? This will include all filtered results."
-                    onConfirm={handleExportToExcel}
-                    confirmText="Export"
-                    cancelText="Cancel"
-                    placement="top"
-                  >
-                    <Button
-                      variant="outlined"
-                      className="!capitalize"
-                      startIcon={<Download />}
-                      disabled={exportToExcelMutation.isPending}
+              <div className="flex items-center justify-end gap-2">
+                <>
+                  {isRead && (
+                    <PopConfirm
+                      title="Export Cooler Installations"
+                      description="Are you sure you want to export the current cooler installations data to Excel? This will include all filtered results."
+                      onConfirm={handleExportToExcel}
+                      confirmText="Export"
+                      cancelText="Cancel"
+                      placement="top"
                     >
-                      {exportToExcelMutation.isPending
-                        ? 'Exporting...'
-                        : 'Export'}
-                    </Button>
-                  </PopConfirm>
-                  <Button
-                    variant="outlined"
-                    className="!capitalize"
-                    startIcon={<Upload />}
-                    onClick={() => setImportModalOpen(true)}
-                  >
-                    Import
-                  </Button>
-                </div>
-              )}
-              {isCreate && (
+                      <Button
+                        variant="outlined"
+                        className="!capitalize"
+                        startIcon={<Download />}
+                        disabled={exportToExcelMutation.isPending}
+                      >
+                        {exportToExcelMutation.isPending
+                          ? 'Exporting...'
+                          : 'Export'}
+                      </Button>
+                    </PopConfirm>
+                  )}
+                </>
                 <Button
-                  variant="contained"
+                  variant="outlined"
                   className="!capitalize"
-                  disableElevation
-                  startIcon={<Add />}
-                  onClick={handleCreateInstallation}
+                  startIcon={<Upload />}
+                  onClick={() => setImportModalOpen(true)}
                 >
-                  Create
+                  Import
                 </Button>
-              )}
+                {isCreate && (
+                  <Button
+                    variant="contained"
+                    className="!capitalize"
+                    disableElevation
+                    startIcon={<Add />}
+                    onClick={handleCreateInstallation}
+                  >
+                    Create
+                  </Button>
+                )}
+              </div>
             </div>
           ) : (
             false

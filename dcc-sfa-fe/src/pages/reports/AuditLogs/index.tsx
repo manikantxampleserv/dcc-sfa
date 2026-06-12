@@ -93,7 +93,7 @@ const ActivityLogs: React.FC = () => {
           </div>
           <div>
             <div className="text-sm font-medium">{row.user_name}</div>
-            <div className="text-xs text-gray-500">{row.user_email}</div>
+            <div className="text-xs text-gray-500">{row.employee_id}</div>
           </div>
         </div>
       ),

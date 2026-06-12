@@ -5,6 +5,7 @@ import type { ApiResponse } from '../../../types/api.types';
  * Customer entity interface
  */
 interface Customer {
+  depot: { name: string };
   customer_district: any;
   customer_region: any;
   customer_city: any;
@@ -153,6 +154,11 @@ interface GetCustomersParams {
   route_id?: number;
   depot_id?: number;
   salesperson_id?: number;
+  region_id?: number;
+  district_id?: number;
+  customer_type_id?: number;
+  customer_category_id?: number;
+  customer_channel_id?: number;
 }
 
 /**

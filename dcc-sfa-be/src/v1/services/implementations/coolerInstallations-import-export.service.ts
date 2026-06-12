@@ -502,12 +502,13 @@ export class CoolerInstallationsImportExportService extends ImportExportService<
 
   protected async prepareDataForImport(
     data: any,
-    userId: number
+    userId: number,
+    tx?: any
   ): Promise<any> {
+    const prismaClient = tx || prisma;
     let coolerCode = data.code && data.code.trim() !== '' ? data.code : null;
-
     if (!coolerCode && data.asset_master_id) {
-      const assetMaster = await prisma.asset_master.findUnique({
+      const assetMaster = await prismaClient.asset_master.findUnique({
         where: { id: parseInt(data.asset_master_id) },
       });
       if (assetMaster && assetMaster.code) {
@@ -523,6 +524,31 @@ export class CoolerInstallationsImportExportService extends ImportExportService<
         .substring(2, 8)
         .toUpperCase();
       coolerCode = `${prefix}-${timestamp}-${randomStr}`;
+    }
+
+    const finalStatus = data.status || 'Ready to Install';
+    if (
+      data.asset_master_id &&
+      data.customer_id &&
+      finalStatus.toLowerCase() === 'installed'
+    ) {
+      const customer = await prismaClient.customers.findUnique({
+        where: { id: parseInt(data.customer_id) },
+      });
+      if (customer) {
+        const toLocation = `${customer.name} (${customer.code})`;
+        await prismaClient.asset_master.update({
+          where: { id: parseInt(data.asset_master_id) },
+          data: {
+            current_status: 'Installed',
+            current_location: toLocation,
+            outlet_id: parseInt(data.customer_id),
+            depot_id: null,
+            updatedate: new Date(),
+            updatedby: userId,
+          },
+        });
+      }
     }
 
     return {
@@ -556,6 +582,7 @@ export class CoolerInstallationsImportExportService extends ImportExportService<
     userId: number,
     tx?: any
   ): Promise<any> {
+    const prismaClient = tx || prisma;
     const model = tx ? tx.coolers : prisma.coolers;
 
     const existing = await model.findFirst({
@@ -563,6 +590,44 @@ export class CoolerInstallationsImportExportService extends ImportExportService<
     });
 
     if (!existing) return null;
+
+    if (data.asset_master_id || existing.asset_master_id) {
+      const assetId =
+        data.asset_master_id !== undefined
+          ? data.asset_master_id
+          : existing.asset_master_id;
+      const customerId =
+        data.customer_id !== undefined
+          ? data.customer_id
+          : existing.customer_id;
+
+      const status = data.status !== undefined ? data.status : existing.status;
+
+      if (
+        assetId &&
+        customerId &&
+        status &&
+        status.toLowerCase() === 'installed'
+      ) {
+        const customer = await prismaClient.customers.findUnique({
+          where: { id: parseInt(customerId) },
+        });
+        if (customer) {
+          const toLocation = `${customer.name} (${customer.code})`;
+          await prismaClient.asset_master.update({
+            where: { id: parseInt(assetId) },
+            data: {
+              current_status: 'Installed',
+              current_location: toLocation,
+              outlet_id: parseInt(customerId),
+              depot_id: null,
+              updatedate: new Date(),
+              updatedby: userId,
+            },
+          });
+        }
+      }
+    }
 
     return await model.update({
       where: { id: existing.id },

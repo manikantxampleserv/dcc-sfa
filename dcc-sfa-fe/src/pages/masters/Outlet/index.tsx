@@ -1,14 +1,20 @@
 import { Add, Block, CheckCircle, Download, Upload } from '@mui/icons-material';
 import { Alert, Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
 import { useCurrencies } from 'hooks/useCurrencies';
+import { useCustomerCategories } from 'hooks/useCustomerCategory';
+import { useCustomerChannels } from 'hooks/useCustomerChannel';
+import { useCustomerTypes } from 'hooks/useCustomerType';
+import { useDepots } from 'hooks/useDepots';
+import { useDistricts } from 'hooks/useDistrict';
 import { usePermission } from 'hooks/usePermission';
+import { useRegions } from 'hooks/useRegion';
 import { useSettings } from 'hooks/useSettings';
 import {
+  AlertCircle,
   CreditCard,
   MapPin,
   Store,
   UserCheck,
-  AlertCircle,
 } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -27,17 +33,17 @@ import {
 import { useExportToExcel } from '../../../hooks/useImportExport';
 import ImportCustomers from './ImportCustomers';
 import ManageOutlet from './ManageOutlet';
-import {
-  BUSINESS_TYPES,
-  getBusinessTypeChipColor,
-  getBusinessTypeIcon,
-} from './utils';
+import { getBusinessTypeChipColor, getBusinessTypeIcon } from './utils';
 
 const OutletsManagement: React.FC = () => {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [typeFilter, setTypeFilter] = useState('all');
+  const [regionFilter, setRegionFilter] = useState('all');
+  const [districtFilter, setDistrictFilter] = useState('all');
+  const [depotFilter, setDepotFilter] = useState('all');
+  const [customerTypeFilter, setCustomerTypeFilter] = useState('all');
+  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [channelFilter, setChannelFilter] = useState('all');
   const [selectedOutlet, setSelectedOutlet] = useState<Customer | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [importDrawerOpen, setImportDrawerOpen] = useState(false);
@@ -47,9 +53,21 @@ const OutletsManagement: React.FC = () => {
 
   const { data: settingsResponse } = useSettings();
   const { data: currenciesResponse } = useCurrencies({ limit: 1000 });
+  const { data: depotsResponse } = useDepots({ limit: 1000 });
+  const { data: typesResponse } = useCustomerTypes({ limit: 1000 });
+  const { data: categoriesResponse } = useCustomerCategories({ limit: 1000 });
+  const { data: channelsResponse } = useCustomerChannels({ limit: 1000 });
+  const { data: regionsResponse } = useRegions({ limit: 1000 });
+  const { data: districtsResponse } = useDistricts({ limit: 1000 });
 
   const settings = settingsResponse?.data;
   const defaultCurrencyId = settings?.currency_id || '';
+  const depots = depotsResponse?.data || [];
+  const customerTypes = typesResponse?.data || [];
+  const categories = categoriesResponse?.data || [];
+  const channels = channelsResponse?.data || [];
+  const regions = regionsResponse?.data || [];
+  const districts = districtsResponse?.data || [];
 
   const {
     data: customersResponse,
@@ -60,13 +78,16 @@ const OutletsManagement: React.FC = () => {
       search,
       page,
       limit,
-      isActive:
-        statusFilter === 'all'
-          ? undefined
-          : statusFilter === 'active'
-            ? 'Y'
-            : 'N',
-      type: typeFilter === 'all' ? undefined : typeFilter,
+      region_id: regionFilter === 'all' ? undefined : Number(regionFilter),
+      district_id:
+        districtFilter === 'all' ? undefined : Number(districtFilter),
+      depot_id: depotFilter === 'all' ? undefined : Number(depotFilter),
+      customer_type_id:
+        customerTypeFilter === 'all' ? undefined : Number(customerTypeFilter),
+      customer_category_id:
+        categoryFilter === 'all' ? undefined : Number(categoryFilter),
+      customer_channel_id:
+        channelFilter === 'all' ? undefined : Number(channelFilter),
     },
     {
       enabled: isRead,
@@ -118,13 +139,16 @@ const OutletsManagement: React.FC = () => {
     try {
       const filters = {
         search,
-        isActive:
-          statusFilter === 'all'
-            ? undefined
-            : statusFilter === 'active'
-              ? 'Y'
-              : 'N',
-        type: typeFilter === 'all' ? undefined : typeFilter,
+        region_id: regionFilter === 'all' ? undefined : Number(regionFilter),
+        district_id:
+          districtFilter === 'all' ? undefined : Number(districtFilter),
+        depot_id: depotFilter === 'all' ? undefined : Number(depotFilter),
+        customer_type_id:
+          customerTypeFilter === 'all' ? undefined : Number(customerTypeFilter),
+        customer_category_id:
+          categoryFilter === 'all' ? undefined : Number(categoryFilter),
+        customer_channel_id:
+          channelFilter === 'all' ? undefined : Number(channelFilter),
       };
 
       await exportToExcelMutation.mutateAsync({
@@ -134,7 +158,7 @@ const OutletsManagement: React.FC = () => {
     } catch (error) {
       console.error('Error exporting customers:', error);
     }
-  }, [exportToExcelMutation, search, statusFilter, typeFilter]);
+  }, [exportToExcelMutation, search]);
 
   const handlePageChange = (newPage: number) => {
     setPage(newPage + 1);
@@ -188,17 +212,19 @@ const OutletsManagement: React.FC = () => {
       ),
     },
     {
-      id: 'customer_type',
+      id: 'customer_type.type_name',
       label: 'Outlet Type',
-      render: value =>
-        value ? (
+      render: (_value, row) =>
+        row?.customer_type?.type_name ? (
           <Chip
-            icon={getBusinessTypeIcon(value?.type_name || '')}
-            label={value?.type_name || 'N/A'}
+            icon={getBusinessTypeIcon(row?.customer_type?.type_name || '')}
+            label={row?.customer_type?.type_name || 'N/A'}
             size="small"
             variant="outlined"
             className="!capitalize !px-1"
-            color={getBusinessTypeChipColor(value?.type_name || '')}
+            color={getBusinessTypeChipColor(
+              row?.customer_type?.type_name || ''
+            )}
           />
         ) : (
           <span className="italic text-gray-400 text-xs">No Outlet Type</span>
@@ -206,12 +232,12 @@ const OutletsManagement: React.FC = () => {
     },
 
     {
-      id: 'customer_channel',
+      id: 'customer_channel.channel_name',
       label: 'Outlet Channel',
-      render: value =>
-        value ? (
+      render: (_value, row) =>
+        row?.customer_channel?.channel_name ? (
           <Typography variant="body2" className="!text-gray-700">
-            {value?.channel_name || 'N/A'}
+            {row?.customer_channel?.channel_name || 'N/A'}
           </Typography>
         ) : (
           <span className="italic text-gray-400 text-xs">
@@ -220,12 +246,12 @@ const OutletsManagement: React.FC = () => {
         ),
     },
     {
-      id: 'customer_category',
+      id: 'customer_category.category_name',
       label: 'Category',
-      render: value =>
-        value ? (
+      render: (_value, row) =>
+        row?.customer_category?.category_name ? (
           <Chip
-            label={value?.category_name || 'Unassigned'}
+            label={row?.customer_category?.category_name || 'Unassigned'}
             size="small"
             variant="filled"
             className="!font-medium"
@@ -237,13 +263,13 @@ const OutletsManagement: React.FC = () => {
         ),
     },
     {
-      id: 'depot',
+      id: 'depot.name',
       label: 'Depot',
-      render: (value, row) =>
-        value ? (
+      render: (_value, row) =>
+        row?.depot?.name ? (
           <Box className="!flex !items-center !gap-1.5 flex-wrap">
             <Typography variant="body2" className="!text-gray-700">
-              {value?.name || 'N/A'}
+              {row?.depot?.name || 'N/A'}
             </Typography>
             {row.default_for_depots && row.default_for_depots.length > 0 && (
               <Chip
@@ -260,12 +286,12 @@ const OutletsManagement: React.FC = () => {
         ),
     },
     {
-      id: 'customer_zones',
+      id: 'customer_zones.name',
       label: 'Zone',
-      render: value =>
-        value ? (
+      render: (_value, row) =>
+        row?.customer_zones?.name ? (
           <Typography variant="body2" className="!text-gray-700">
-            {value?.name || 'N/A'}
+            {row?.customer_zones?.name || 'N/A'}
           </Typography>
         ) : (
           <span className="italic text-gray-400 text-xs">No Zone</span>
@@ -438,54 +464,110 @@ const OutletsManagement: React.FC = () => {
         </Alert>
       )}
 
+      {isRead && (
+        <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 mb-4 grid grid-cols-1 md:grid-cols-6 items-center gap-3">
+          <Select
+            value={depotFilter}
+            onChange={e => setDepotFilter(e.target.value)}
+            size="small"
+            disableClearable
+          >
+            <MenuItem value="all">All Depots</MenuItem>
+            {depots.map(depot => (
+              <MenuItem key={depot.id} value={depot.id.toString()}>
+                {depot.name}
+              </MenuItem>
+            ))}
+          </Select>
+          <Select
+            value={customerTypeFilter}
+            onChange={e => setCustomerTypeFilter(e.target.value)}
+            size="small"
+            disableClearable
+          >
+            <MenuItem value="all">All Outlet Types</MenuItem>
+            {customerTypes.map(type => (
+              <MenuItem key={type.id} value={type.id.toString()}>
+                {type.type_name}
+              </MenuItem>
+            ))}
+          </Select>
+          <Select
+            value={categoryFilter}
+            onChange={e => setCategoryFilter(e.target.value)}
+            size="small"
+            disableClearable
+          >
+            <MenuItem value="all">All Categories</MenuItem>
+            {categories.map(category => (
+              <MenuItem key={category.id} value={category.id.toString()}>
+                {category.category_name}
+              </MenuItem>
+            ))}
+          </Select>
+          <Select
+            value={channelFilter}
+            onChange={e => setChannelFilter(e.target.value)}
+            size="small"
+            disableClearable
+          >
+            <MenuItem value="all">All Channels</MenuItem>
+            {channels.map(channel => (
+              <MenuItem key={channel.id} value={channel.id.toString()}>
+                {channel.channel_name}
+              </MenuItem>
+            ))}
+          </Select>
+          <Select
+            value={regionFilter}
+            onChange={e => setRegionFilter(e.target.value)}
+            size="small"
+            disableClearable
+          >
+            <MenuItem value="all">All Regions</MenuItem>
+            {regions.map(region => (
+              <MenuItem key={region.id} value={region.id.toString()}>
+                {region.name}
+              </MenuItem>
+            ))}
+          </Select>
+          <Select
+            value={districtFilter}
+            onChange={e => setDistrictFilter(e.target.value)}
+            size="small"
+            disableClearable
+          >
+            <MenuItem value="all">All Districts</MenuItem>
+            {districts.map(district => (
+              <MenuItem key={district.id} value={district.id.toString()}>
+                {district.name}
+              </MenuItem>
+            ))}
+          </Select>
+        </div>
+      )}
+
       <Table
         data={customers}
         columns={outletColumns}
         actions={
           isRead || isCreate ? (
             <div className="flex justify-between w-full items-center flex-wrap gap-2">
-              <div className="flex items-center flex-wrap gap-2">
+              <div>
                 {isRead && (
-                  <>
-                    <SearchInput
-                      placeholder="Search Outlets"
-                      value={search}
-                      onChange={handleSearchChange}
-                      debounceMs={400}
-                      showClear={true}
-                      fullWidth={false}
-                      className="!min-w-80"
-                    />
-                    <Select
-                      value={statusFilter}
-                      onChange={e => setStatusFilter(e.target.value)}
-                      size="small"
-                      disableClearable
-                    >
-                      <MenuItem value="all">All Status</MenuItem>
-                      <MenuItem value="active">Active</MenuItem>
-                      <MenuItem value="inactive">Inactive</MenuItem>
-                    </Select>
-                    <Select
-                      value={typeFilter}
-                      onChange={e => setTypeFilter(e.target.value)}
-                      className="!min-w-40"
-                      size="small"
-                      disableClearable
-                    >
-                      <MenuItem value="all">All Types</MenuItem>
-                      {BUSINESS_TYPES.map(type => (
-                        <MenuItem key={type} value={type}>
-                          {type}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </>
+                  <SearchInput
+                    placeholder="Search Outlets"
+                    value={search}
+                    onChange={handleSearchChange}
+                    debounceMs={400}
+                    showClear={true}
+                    className="!min-w-80"
+                  />
                 )}
               </div>
-              {isCreate && (
-                <div className="flex items-center gap-2">
-                  {isRead && (
+              <div className="flex justify-end items-center gap-2">
+                {isRead && (
+                  <>
                     <PopConfirm
                       title="Export Customers"
                       description="Are you sure you want to export the current customers data to Excel? This will include all filtered results."
@@ -505,8 +587,6 @@ const OutletsManagement: React.FC = () => {
                           : 'Export'}
                       </Button>
                     </PopConfirm>
-                  )}
-                  {isRead && (
                     <Button
                       variant="outlined"
                       className="!capitalize"
@@ -516,7 +596,9 @@ const OutletsManagement: React.FC = () => {
                     >
                       Import
                     </Button>
-                  )}
+                  </>
+                )}
+                {isCreate && (
                   <Button
                     variant="contained"
                     className="!capitalize"
@@ -526,12 +608,10 @@ const OutletsManagement: React.FC = () => {
                   >
                     Create
                   </Button>
-                </div>
-              )}
+                )}
+              </div>
             </div>
-          ) : (
-            false
-          )
+          ) : undefined
         }
         getRowId={customer => customer.id}
         initialOrderBy="name"
