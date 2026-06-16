@@ -79,7 +79,10 @@ const AIAssistant: React.FC = () => {
     speakAssistantReply,
     stopAllSpeech,
   } = useSpeechRecognition({
-    onTranscriptReady: handleSend,
+    onTranscriptReady: (text, isVoice) => {
+      setInputValue('');
+      handleSend(text, isVoice);
+    },
     inputValueRef,
     setInputValue,
   });
@@ -242,8 +245,9 @@ const AIAssistant: React.FC = () => {
             onSubmit={e => {
               e.preventDefault();
               if (inputValue.trim() && !isLoading) {
-                handleSend(inputValue);
+                const text = inputValue;
                 setInputValue('');
+                handleSend(text);
               }
             }}
             className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg pl-3 pr-2 py-1.5 transition-all shadow-sm"
@@ -275,11 +279,13 @@ const AIAssistant: React.FC = () => {
                   autoFocus
                   onChange={e => setInputValue(e.target.value)}
                   onKeyDown={e => {
+                    if (e.nativeEvent.isComposing) return;
                     if (e.key === 'Enter' && !e.shiftKey) {
                       e.preventDefault();
                       if (inputValue.trim() && !isLoading) {
-                        handleSend(inputValue);
+                        const text = inputValue;
                         setInputValue('');
+                        handleSend(text);
                       }
                     }
                   }}

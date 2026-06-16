@@ -3429,22 +3429,22 @@ exports.vanInventoryController = {
     },
     async unloadVanInventory(req, res) {
         try {
-            const userId = req.user?.id;
-            if (!userId) {
+            const loggedInUserId = req.user?.id;
+            const targetUserId = req.body.user_id || loggedInUserId;
+            if (!targetUserId) {
                 return res.status(401).json({
                     success: false,
                     message: 'User not authenticated or token invalid',
                 });
             }
-            const userIdNum = parseInt(userId.toString(), 10);
-            // 1. Get all active van locations for this user
+            const userIdNum = parseInt(targetUserId.toString(), 10);
             const vanLocations = await prisma_client_1.default.van_inventory.findMany({
                 where: { user_id: userIdNum, is_active: 'Y' },
                 select: { location_id: true, vehicle_id: true },
                 distinct: ['location_id'],
             });
             if (vanLocations.length === 0) {
-                return res.status(404).json({
+                return res.status(400).json({
                     success: false,
                     message: 'No active van inventory found for authenticated user',
                 });
@@ -3462,6 +3462,7 @@ exports.vanInventoryController = {
                         const stockToUnload = await tx.inventory_stock.findMany({
                             where: {
                                 location_id: locationId,
+                                salesperson_id: userIdNum,
                                 OR: [
                                     { current_stock: { gt: 0 } },
                                     { base_quantity: { gt: 0 } },

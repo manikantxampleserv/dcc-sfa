@@ -275,6 +275,7 @@ export interface UserDropdown {
 export interface GetUsersDropdownParams {
   search?: string;
   user_id?: number;
+  role_name?: string;
 }
 
 export const fetchUsersDropdown = async (

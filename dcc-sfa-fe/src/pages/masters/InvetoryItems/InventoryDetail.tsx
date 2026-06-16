@@ -22,7 +22,11 @@ import { useCurrency } from 'hooks/useCurrency';
 import { useInventoryItemById } from 'hooks/useInventoryItems';
 import { useInvoices, type Invoice } from 'hooks/useInvoices';
 import { useStockMovements } from 'hooks/useStockMovements';
-import { useVanInventory, type VanInventory } from 'hooks/useVanInventory';
+import {
+  useVanInventory,
+  type VanInventory,
+  useUnloadVanInventory,
+} from 'hooks/useVanInventory';
 import {
   AlertTriangle,
   Calendar,
@@ -49,6 +53,7 @@ import type {
 } from 'services/masters/VanInventoryItems';
 import { ActionButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
+import { PopConfirm } from 'shared/DeleteConfirmation';
 import Input from 'shared/Input';
 import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
@@ -99,9 +104,9 @@ const SalespersonCardSkeleton = () => (
 );
 
 const TabsSkeleton = () => (
-  <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
-    <div className="flex gap-2">
-      {Array.from({ length: 3 }).map((_, i) => (
+  <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 1 }}>
+    <div className="flex gap-2 pb-1">
+      {Array.from({ length: 6 }).map((_, i) => (
         <Skeleton
           key={i}
           variant="rectangular"
@@ -162,25 +167,46 @@ const TableSkeleton = ({
   columns?: number;
   rows?: number;
 }) => (
-  <div className="bg-white rounded-lg border border-gray-100 shadow-sm px-1 py-3 w-full mb-3">
-    <div className="flex gap-2 mb-2">
-      {Array.from({ length: columns }).map((_, ci) => (
-        <Skeleton key={ci} width={90} height={18} sx={{ borderRadius: 2 }} />
-      ))}
-    </div>
-    <div className="flex flex-col gap-2">
-      {Array.from({ length: rows }).map((_, ri) => (
-        <div key={ri} className="flex gap-2">
-          {Array.from({ length: columns }).map((_, ci) => (
-            <Skeleton
-              key={ci}
-              width={90}
-              height={18}
-              sx={{ borderRadius: 2 }}
-            />
+  <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden w-full mb-3">
+    <div className="overflow-x-auto">
+      <table className="w-full text-left border-collapse">
+        <thead>
+          <tr className="bg-slate-50/50 border-b border-gray-100">
+            {Array.from({ length: columns }).map((_, ci) => (
+              <th key={ci} className="py-3 px-4">
+                <Skeleton variant="text" width="60%" height={20} />
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-gray-100">
+          {Array.from({ length: rows }).map((_, ri) => (
+            <tr key={ri} className="hover:bg-gray-50/50 transition-colors">
+              {Array.from({ length: columns }).map((_, ci) => (
+                <td key={ci} className="py-4 px-4">
+                  <Skeleton
+                    variant="rectangular"
+                    width="80%"
+                    height={16}
+                    sx={{ borderRadius: 1 }}
+                  />
+                </td>
+              ))}
+            </tr>
           ))}
+        </tbody>
+      </table>
+    </div>
+    <div className="border-t border-gray-100 px-4 py-3 flex justify-end">
+      <div className="flex items-center gap-4">
+        <Skeleton variant="text" width={60} height={20} />
+        <div className="flex gap-2">
+          <Skeleton variant="circular" width={24} height={24} />
+          <Skeleton variant="circular" width={24} height={24} />
+          <Skeleton variant="circular" width={24} height={24} />
+          <Skeleton variant="circular" width={24} height={24} />
         </div>
-      ))}
+      </div>
     </div>
   </div>
 );
@@ -321,6 +347,17 @@ const InventoryDetail = () => {
       enabled: inventoryId !== undefined,
     }
   );
+
+  const { mutateAsync: unloadVanInventory, isPending: isUnloading } =
+    useUnloadVanInventory();
+
+  const handleUnloadAll = async () => {
+    try {
+      await unloadVanInventory({ user_id: inventoryId });
+    } catch (error) {
+      console.error('Failed to unload all inventory', error);
+    }
+  };
 
   const { data: stockMovementsResponse, isLoading: isLoadingStockMovements } =
     useStockMovements(
@@ -849,57 +886,129 @@ const InventoryDetail = () => {
     [formatCurrency, navigate]
   );
 
-  if (isLoading || isLoadingInvoices || isLoadingStockMovements) {
-    return (
-      <div className="flex flex-col animate-pulse">
-        <div className="flex items-center mb-5 justify-between">
-          <div className="flex items-center gap-4">
-            <div>
-              <Skeleton variant="text" width={220} height={32} />
-              <Skeleton variant="text" width={160} height={20} sx={{ mt: 1 }} />
-            </div>
-          </div>
-          <Skeleton
-            variant="rectangular"
-            width={210}
-            height={34}
-            sx={{ borderRadius: 26 }}
-          />
+  const renderHeader = () => (
+    <div className="flex items-center mb-5 justify-between">
+      <div className="flex items-center gap-4">
+        <div>
+          <h1 className="text-xl font-bold text-gray-900">
+            {salespersonData?.salesperson_name || 'Loading'}
+            &apos;s Inventory
+          </h1>
+          <p className="text-gray-500 text-xs">
+            Detailed view of all inventory items and stock levels
+          </p>
         </div>
-        <SalespersonCardSkeleton />
-        <StatsCardsSkeleton />
-        <TabsSkeleton />
-        {tabValue === 0 && <ProductsTabSkeleton />}
-        {tabValue === 1 && <TableSkeleton columns={7} rows={7} />}
-        {tabValue === 2 && <TableSkeleton columns={5} rows={7} />}
-        {tabValue === 3 && <TableSkeleton columns={7} rows={7} />}
-        {tabValue === 4 && <TableSkeleton columns={7} rows={5} />}
-        {tabValue === 5 && (
-          <div className="bg-white shadow-sm border border-gray-100 rounded-lg p-6 space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <Skeleton
-                  key={i}
-                  variant="rectangular"
-                  height={100}
-                  sx={{ borderRadius: 2 }}
-                />
-              ))}
-            </div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Skeleton
-                variant="rectangular"
-                height={300}
-                sx={{ borderRadius: 2 }}
-              />
-              <Skeleton
-                variant="rectangular"
-                height={300}
-                sx={{ borderRadius: 2 }}
-              />
-            </div>
+      </div>
+      <div className="flex flex-wrap justify-end gap-4">
+        <FormControl size="small" className="w-48 bg-white">
+          <MuiSelect
+            value={timeFilter}
+            onChange={e => setTimeFilter(e.target.value)}
+            displayEmpty
+          >
+            <MuiMenuItem value="all">All Time</MuiMenuItem>
+            <MuiMenuItem value="today">Today</MuiMenuItem>
+            <MuiMenuItem value="yesterday">Yesterday</MuiMenuItem>
+            <MuiMenuItem value="this_week">This Week</MuiMenuItem>
+            <MuiMenuItem value="this_month">This Month</MuiMenuItem>
+            <MuiMenuItem value="prev_month">Previous Month</MuiMenuItem>
+            <MuiMenuItem value="this_year">This Year</MuiMenuItem>
+            <MuiMenuItem value="prev_year">Previous Year</MuiMenuItem>
+            <MuiMenuItem value="custom">Custom Range</MuiMenuItem>
+          </MuiSelect>
+        </FormControl>
+        {timeFilter === 'custom' && (
+          <div className="flex items-center gap-2">
+            <Input
+              type="date"
+              value={customDateRange.start}
+              onChange={e =>
+                setCustomDateRange(prev => ({
+                  ...prev,
+                  start: e.target.value,
+                }))
+              }
+              size="small"
+              className="!w-44 bg-white"
+              placeholder="Start Date"
+            />
+            <span className="text-gray-500">to</span>
+            <Input
+              type="date"
+              value={customDateRange.end}
+              onChange={e =>
+                setCustomDateRange(prev => ({
+                  ...prev,
+                  end: e.target.value,
+                }))
+              }
+              size="small"
+              className="!w-44 bg-white"
+              placeholder="End Date"
+            />
           </div>
         )}
+
+        <PopConfirm
+          title="Unload Inventory"
+          description="Are you sure you want to unload all inventory for this salesperson? This action cannot be undone."
+          onConfirm={handleUnloadAll}
+          confirmText="Unload All"
+        >
+          <Button
+            color="error"
+            size="medium"
+            disabled={isUnloading}
+            startIcon={<Download />}
+            variant="outlined"
+          >
+            Unload
+          </Button>
+        </PopConfirm>
+      </div>
+    </div>
+  );
+
+  if (isLoading || isLoadingInvoices || isLoadingStockMovements) {
+    return (
+      <div className="flex flex-col">
+        {renderHeader()}
+        <div className="flex flex-col animate-pulse">
+          <SalespersonCardSkeleton />
+          <StatsCardsSkeleton />
+          <TabsSkeleton />
+          {tabValue === 0 && <ProductsTabSkeleton />}
+          {tabValue === 1 && <TableSkeleton columns={7} rows={7} />}
+          {tabValue === 2 && <TableSkeleton columns={5} rows={7} />}
+          {tabValue === 3 && <TableSkeleton columns={7} rows={7} />}
+          {tabValue === 4 && <TableSkeleton columns={7} rows={5} />}
+          {tabValue === 5 && (
+            <div className="bg-white shadow-sm border border-gray-100 rounded-lg p-6 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <Skeleton
+                    key={i}
+                    variant="rectangular"
+                    height={100}
+                    sx={{ borderRadius: 2 }}
+                  />
+                ))}
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <Skeleton
+                  variant="rectangular"
+                  height={300}
+                  sx={{ borderRadius: 2 }}
+                />
+                <Skeleton
+                  variant="rectangular"
+                  height={300}
+                  sx={{ borderRadius: 2 }}
+                />
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     );
   }
@@ -937,24 +1046,7 @@ const InventoryDetail = () => {
 
   return (
     <div className="flex flex-col">
-      <div className="flex items-center mb-5 justify-between">
-        <div className="flex items-center gap-4">
-          <div>
-            <h1 className="text-xl font-bold text-gray-900">
-              {salespersonData?.salesperson_name || 'Unknown'}&apos;s Inventory
-            </h1>
-            <p className="text-gray-500 text-sm">
-              Detailed view of all inventory items and stock levels
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 rounded-full">
-          <Calendar className="w-4 h-4 text-blue-600" />
-          <span className="text-sm font-medium text-blue-700">
-            Last Updated: {formatDate(new Date().toISOString())}
-          </span>
-        </div>
-      </div>
+      {renderHeader()}
 
       <div className="bg-white mb-5 shadow-sm rounded-lg border border-gray-100 p-6">
         <div className="flex items-start gap-6">
@@ -1201,56 +1293,6 @@ const InventoryDetail = () => {
 
       <TabPanel value={tabValue} index={5}>
         <div className="space-y-6">
-          <div className="flex justify-end gap-4">
-            <FormControl size="small" className="w-48 bg-white">
-              <MuiSelect
-                value={timeFilter}
-                onChange={e => setTimeFilter(e.target.value)}
-                displayEmpty
-              >
-                <MuiMenuItem value="all">All Time</MuiMenuItem>
-                <MuiMenuItem value="today">Today</MuiMenuItem>
-                <MuiMenuItem value="yesterday">Yesterday</MuiMenuItem>
-                <MuiMenuItem value="this_week">This Week</MuiMenuItem>
-                <MuiMenuItem value="this_month">This Month</MuiMenuItem>
-                <MuiMenuItem value="prev_month">Previous Month</MuiMenuItem>
-                <MuiMenuItem value="this_year">This Year</MuiMenuItem>
-                <MuiMenuItem value="prev_year">Previous Year</MuiMenuItem>
-                <MuiMenuItem value="custom">Custom Range</MuiMenuItem>
-              </MuiSelect>
-            </FormControl>
-            {timeFilter === 'custom' && (
-              <div className="flex items-center gap-2">
-                <Input
-                  type="date"
-                  value={customDateRange.start}
-                  onChange={e =>
-                    setCustomDateRange(prev => ({
-                      ...prev,
-                      start: e.target.value,
-                    }))
-                  }
-                  size="small"
-                  className="w-36 bg-white"
-                  placeholder="Start Date"
-                />
-                <span className="text-gray-500">to</span>
-                <Input
-                  type="date"
-                  value={customDateRange.end}
-                  onChange={e =>
-                    setCustomDateRange(prev => ({
-                      ...prev,
-                      end: e.target.value,
-                    }))
-                  }
-                  size="small"
-                  className="w-36 bg-white"
-                  placeholder="End Date"
-                />
-              </div>
-            )}
-          </div>
           {/* Glassmorphic Stats Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
             {/* Load Card */}

@@ -457,10 +457,13 @@ class VanInventoryImportExportService extends import_export_service_1.ImportExpo
                         for (const batch of item.batches) {
                             if (batch.batch_number) {
                                 const batchRecord = await batchModel.findFirst({
-                                    where: { batch_number: batch.batch_number },
+                                    where: {
+                                        batch_number: batch.batch_number,
+                                        createdby: data.user_id,
+                                    },
                                 });
                                 if (!batchRecord) {
-                                    return `Batch with number ${batch.batch_number} does not exist in items`;
+                                    return `Batch with number ${batch.batch_number} does not exist for this user in items`;
                                 }
                             }
                         }

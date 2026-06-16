@@ -8,7 +8,6 @@ import {
   MdCategory,
   MdDashboard,
   MdEmail,
-  // MdDeliveryDining,
   MdFolder,
   MdLocalShipping,
   MdLocationOn,
@@ -20,7 +19,6 @@ import {
   MdRoute,
   MdSettings,
   MdShoppingCart,
-  MdSmartToy,
   // MdSmartToy,
   MdStore,
   MdSwapHoriz,
@@ -55,18 +53,18 @@ const menuItems: MenuItem[] = [
       },
     ],
   },
-  {
-    id: 'ai-assistant-group',
-    label: 'AI Assistant',
-    children: [
-      {
-        id: 'ai-assistant',
-        label: 'Ask Assistant',
-        icon: MdSmartToy,
-        href: '/ai-assistant',
-      },
-    ],
-  },
+  // {
+  //   id: 'ai-assistant-group',
+  //   label: 'AI Assistant',
+  //   children: [
+  //     {
+  //       id: 'ai-assistant',
+  //       label: 'Ask Assistant',
+  //       icon: MdSmartToy,
+  //       href: '/ai-assistant',
+  //     },
+  //   ],
+  // },
   {
     id: 'masters',
     label: 'Masters',
@@ -81,7 +79,11 @@ const menuItems: MenuItem[] = [
           //   label: 'Organization Chart',
           //   href: '/masters/organization-chart',
           // },
-          { id: 'user-master', label: 'User Master', href: '/masters/users' },
+          {
+            id: 'user-master',
+            label: 'User Master',
+            href: '/masters/users',
+          },
           {
             id: 'role-permission',
             label: 'Role & Permission Setup',

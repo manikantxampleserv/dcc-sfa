@@ -3,7 +3,7 @@ import {
   Assignment,
   Logout,
   Settings,
-  SmartToy,
+  // SmartToy,
 } from '@mui/icons-material';
 import {
   Avatar,
@@ -145,13 +145,13 @@ const Header: React.FC<HeaderProps> = ({ sidebarOpen, toggleSidebar }) => {
         </div>
 
         <div className="flex items-center gap-3">
-          <IconButton
+          {/* <IconButton
             onClick={() => navigate('/ai-assistant')}
             className="!p-1.5 !rounded-md !bg-gray-100 !text-gray-600 hover:!text-gray-900 hover:!bg-gray-100"
             aria-label="ai-assistant"
           >
             <SmartToy className="!text-gray-600" />
-          </IconButton>
+          </IconButton> */}
           <Badge
             badgeContent={pendingCount}
             color="error"

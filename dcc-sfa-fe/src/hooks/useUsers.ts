@@ -106,6 +106,7 @@ export interface GetUsersDropdownParams {
   search?: string;
   user_id?: number;
   depot_id?: number;
+  role_name?: string;
 }
 
 export const useUsersDropdown = (

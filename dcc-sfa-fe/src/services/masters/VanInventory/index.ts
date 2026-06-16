@@ -229,6 +229,24 @@ export const deleteVanInventory = async (
   }
 };
 
+/**
+ * Unload entire van inventory
+ * @returns Promise<ApiResponse<any>>
+ */
+export const unloadVanInventory = async (payload?: {
+  user_id?: number;
+}): Promise<ApiResponse<any>> => {
+  try {
+    const response = await api.post('/van-inventory/unload', payload || {});
+    return response.data;
+  } catch (error: any) {
+    console.error('Error unloading van inventory:', error);
+    throw new Error(
+      error.response?.data?.message || 'Failed to unload van inventory'
+    );
+  }
+};
+
 export interface ProductBatch {
   remaining_quantity: number;
   total_quantity: number;

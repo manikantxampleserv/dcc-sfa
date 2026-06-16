@@ -35,23 +35,10 @@ async function updateInventoryStock(tx, productId, locationId, quantity, loading
     let validLocationId = locationId;
     let salespersonId = vanUserId || null;
     if (validLocationId === null || validLocationId === undefined) {
-        const targetUserId = vanUserId || userId || 1;
-        const user = await tx.users.findUnique({ where: { id: targetUserId } });
-        const depotName = `Van - ${user?.name || targetUserId}`;
-        let vanDepot = await tx.depots.findFirst({ where: { name: depotName } });
-        if (!vanDepot) {
-            const parentDepot = await tx.depots.findFirst({ orderBy: { id: 'asc' } });
-            vanDepot = await tx.depots.create({
-                data: {
-                    parent_id: parentDepot ? parentDepot.parent_id : 1,
-                    name: depotName,
-                    code: `VAN-${targetUserId}`,
-                    is_active: 'Y',
-                    createdby: userId || 1,
-                },
-            });
-        }
-        validLocationId = vanDepot.id;
+        const moshiDepot = await tx.depots.findFirst({
+            where: { name: { contains: 'MOSHI' } },
+        });
+        validLocationId = moshiDepot ? moshiDepot.id : 1;
     }
     const whereClause = {
         product_id: productId,
@@ -140,6 +127,13 @@ async function createStockMovement(tx, data) {
     });
 }
 async function processVanInventoryItems(tx, inventory, items, userId, loadingType, inventoryData) {
+    let defaultLocationId = inventoryData.location_id;
+    if (!defaultLocationId) {
+        const moshiDepot = await tx.depots.findFirst({
+            where: { name: { contains: 'MOSHI' } },
+        });
+        defaultLocationId = moshiDepot ? moshiDepot.id : 1;
+    }
     if (Array.isArray(items) && items.length > 0) {
         for (const item of items) {
             const qty = parseInt(item.quantity, 10) || 0;
@@ -175,6 +169,7 @@ async function processVanInventoryItems(tx, inventory, items, userId, loadingTyp
                                 batch_number: batchInput.batch_number,
                                 productsId: product.id,
                                 is_active: 'Y',
+                                createdby: Number(inventoryData.user_id),
                             },
                         });
                         if (batchLot) {
@@ -484,7 +479,9 @@ async function processVanInventoryItems(tx, inventory, items, userId, loadingTyp
                         const batchLot = await tx.batch_lots.findFirst({
                             where: {
                                 batch_number: batchInput.batch_number,
+                                productsId: product.id,
                                 is_active: 'Y',
+                                createdby: Number(inventoryData.user_id),
                             },
                         });
                         if (!batchLot)
@@ -539,7 +536,7 @@ async function processVanInventoryItems(tx, inventory, items, userId, loadingTyp
                         const inventoryStock = await tx.inventory_stock.findFirst({
                             where: {
                                 product_id: product.id,
-                                location_id: inventoryData.location_id || 1,
+                                location_id: defaultLocationId,
                                 batch_id: batchLot.id,
                             },
                         });
@@ -625,7 +622,7 @@ async function processVanInventoryItems(tx, inventory, items, userId, loadingTyp
                         //   where: { id: existingSerial.id },
                         //   data: {
                         //     status: 'available',
-                        //     location_id: inventoryData.location_id || null,
+                        //     location_id: defaultLocationId,
                         //     updatedate: new Date(),
                         //     updatedby: userId,
                         //   },
@@ -719,7 +716,7 @@ async function processVanInventoryItems(tx, inventory, items, userId, loadingTyp
                     const inventoryStock = await tx.inventory_stock.findFirst({
                         where: {
                             product_id: product.id,
-                            location_id: inventoryData.location_id || 1,
+                            location_id: defaultLocationId,
                             batch_id: null,
                             serial_number_id: null,
                         },

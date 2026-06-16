@@ -134,6 +134,7 @@ exports.reportsController = {
                 customer_name: order.orders_customers?.name || 'N/A',
                 customer_code: order.orders_customers?.code || 'N/A',
                 salesperson_name: order.orders_salesperson_users?.name || 'N/A',
+                salesperson_code: order.orders_salesperson_users?.name || "N/A",
                 salesperson_email: order.orders_salesperson_users?.email || 'N/A',
                 salesperson_id: order.orders_salesperson_users?.id || null,
                 order_date: order.order_date?.toISOString() || '',
@@ -2196,7 +2197,7 @@ exports.reportsController = {
                         select: { id: true, zones_id: true },
                     },
                     orders_salesperson_users: {
-                        select: { id: true, name: true, email: true },
+                        select: { id: true, name: true, email: true, employee_id: true },
                     },
                 },
             });
@@ -3135,6 +3136,7 @@ exports.reportsController = {
                 customer_name: invoice.invoices_customers?.name || 'N/A',
                 customer_code: invoice.invoices_customers?.code || 'N/A',
                 salesperson_name: invoice.orders?.orders_salesperson_users?.name || 'N/A',
+                salesperson_code: invoice.orders?.orders_salesperson_users.employee_id || 'N/A',
                 order_number: invoice.orders?.order_number || 'N/A',
                 total_amount: Number(invoice.total_amount || 0),
                 amount_paid: Number(invoice.amount_paid || 0),

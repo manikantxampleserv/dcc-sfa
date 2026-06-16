@@ -41,6 +41,13 @@ const generative_ai_1 = require("@google/generative-ai");
 const prisma_client_1 = __importDefault(require("../../configs/prisma.client"));
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
+/**
+ * Parses the Prisma schema file to extract database tables and their relationships.
+ * It searches for the schema in multiple possible paths.
+ * If the file is not found or parsing fails, it returns an empty string.
+ *
+ * @returns {string} A string representation of the database tables and relationships.
+ */
 function parsePrismaSchema() {
     try {
         const possibleSchemaPaths = [
@@ -155,6 +162,12 @@ const FALLBACK_SCHEMA = `
 let cachedSystemInstruction = '';
 let lastCacheTime = 0;
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+/**
+ * Retrieves the system instruction for the AI model, caching it for one day.
+ * The system instruction contains the parsed database schema and context-specific rules.
+ *
+ * @returns {string} The formatted system instruction string.
+ */
 function getSystemInstruction() {
     const now = Date.now();
     if (cachedSystemInstruction && now - lastCacheTime < ONE_DAY_MS) {
@@ -175,6 +188,7 @@ ${parsedSchema}
 - "Depots" refer to the 'depots' table. Ignore the 'warehouses' table.
 - "Stock" or "inventory" quantities (current stock) are ALWAYS found in the 'inventory_stock' table, which is the single source of truth and pieces refere base_quantity of product.
 - To find a Salesperson's "Van Stock" or "Van Inventory", DO NOT look for quantity columns in the 'van_inventory' table. Instead, find the salesperson's location_id(s) from the 'van_inventory' table (where user_id = salesperson), and then query the 'inventory_stock' table for those location_ids to get their current_stock.
+- If the user asks about "sales", "daily sales", "monthly sales", or anything related to sale prices and revenue, ALWAYS query the 'invoices' and 'invoice_items' tables as the single source of truth for sales data.
 
 - A "salesperson", "salesman", or "representative" is a user with a role_key of 'salesman', 'sales_person', 'salesperson' or 'sales_representative' in the 'roles' table.
 Guidelines for generating SQL queries:
@@ -190,7 +204,7 @@ Guidelines for generating SQL queries:
 - Handle active flags (e.g., is_active = 'Y').
 - NEVER use COUNT(*), SUM(), or AVG() unless the user explicitly types the exact words 'how many', 'count', 'sum', or 'average'. 
 - If the user types 'total' (e.g. 'give me total outlets'), they mean 'give me the full list of all outlets'. You MUST return the actual rows. Do NOT aggregate the data into a single number!
-- When selecting rows for a list, select ONLY the absolute most basic columns: id, name, code, and status (if applicable). DO NOT select address, phone_number, email, or any other detailed columns.
+- When selecting rows for a list, select ONLY the absolute most basic columns: id, name (if it exists, otherwise use the main identifier like invoice_number or order_number), code, and status (if applicable). DO NOT select address, phone_number, email, or any other detailed columns.
 - If the user's question does not require database access (e.g., greeting, general questions, or explaining a concept), return:
   {
     "type": "text",
@@ -200,8 +214,15 @@ Guidelines for generating SQL queries:
     lastCacheTime = now;
     return cachedSystemInstruction;
 }
+/**
+ * Service handling all interactions with the Google Generative AI (Gemini).
+ */
 class AIService {
     genAI = null;
+    /**
+     * Initializes the AIService.
+     * Creates an instance of GoogleGenerativeAI using the GEMINI_API_KEY from environment variables.
+     */
     constructor() {
         const apiKey = process.env.GEMINI_API_KEY;
         if (apiKey) {
@@ -211,6 +232,14 @@ class AIService {
             console.warn('WARNING: GEMINI_API_KEY is not defined in environment variables.');
         }
     }
+    /**
+     * Queries the AI model with a natural language question and conversational history.
+     * It handles text-only responses and read-only SQL queries, formats the result, and extracts charts/tables.
+     *
+     * @param {string} question - The user's natural language question.
+     * @param {Array<{ sender: 'user' | 'assistant'; text: string; sql?: string }>} [history] - Optional conversation history.
+     * @returns {Promise<any>} An object containing the success status, answer, executed SQL, charts, table data, usage metrics, and latency.
+     */
     async query(question, history) {
         const startTime = Date.now();
         let promptTokens = 0;
@@ -271,7 +300,6 @@ class AIService {
                 queriesToRun = [parsed.query];
             }
             if (queriesToRun.length > 0) {
-                const dbResults = [];
                 const forbiddenKeywords = [
                     'INSERT',
                     'UPDATE',
@@ -290,6 +318,8 @@ class AIService {
                     'INTO',
                     'SHUTDOWN',
                 ];
+                const forbiddenRegex = new RegExp(`\\b(${forbiddenKeywords.join('|')})\\b`, 'i');
+                const sensitiveRegex = /password|hash|salt|secret/i;
                 for (const sqlQuery of queriesToRun) {
                     const upperQuery = sqlQuery.toUpperCase().trim();
                     if (!upperQuery.startsWith('SELECT') &&
@@ -299,29 +329,27 @@ class AIService {
                             answer: 'Security Block: Only read-only SELECT queries are allowed.',
                         };
                     }
-                    for (const word of forbiddenKeywords) {
-                        const regex = new RegExp(`\\b${word}\\b`, 'i');
-                        if (regex.test(sqlQuery)) {
-                            return {
-                                success: false,
-                                answer: `Security Block: Prohibited database operation detected (${word}).`,
-                            };
-                        }
+                    if (forbiddenRegex.test(sqlQuery)) {
+                        return {
+                            success: false,
+                            answer: 'Security Block: Prohibited database operation detected.',
+                        };
                     }
+                }
+                const dbResults = await Promise.all(queriesToRun.map(async (sqlQuery) => {
                     const dbResult = await prisma_client_1.default.$queryRawUnsafe(sqlQuery);
-                    const scrubbedResult = dbResult.map(row => {
+                    return dbResult.map(row => {
                         if (!row || typeof row !== 'object')
                             return row;
                         const newRow = { ...row };
-                        for (const key of Object.keys(newRow)) {
-                            if (/password|hash|salt|secret/i.test(key)) {
+                        for (const key in newRow) {
+                            if (sensitiveRegex.test(key)) {
                                 newRow[key] = '[REDACTED]';
                             }
                         }
                         return newRow;
                     });
-                    dbResults.push(scrubbedResult);
-                }
+                }));
                 const synthesisModel = this.genAI.getGenerativeModel({
                     model: 'gemini-flash-lite-latest',
                     generationConfig: {
@@ -367,36 +395,28 @@ Database Results: ${JSON.stringify(dbResults)}`;
                                 .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
                                 .join(' ');
                         });
+                        const dateFormatter = new Intl.DateTimeFormat('en-US', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                        });
                         const rows = resultSet.map((row) => dbKeys.map((h) => {
                             const val = row[h];
                             if (val === null || val === undefined || val === '')
                                 return '-';
-                            if (val instanceof Date) {
-                                return val.toLocaleString('en-US', {
-                                    year: 'numeric',
-                                    month: 'short',
-                                    day: 'numeric',
-                                    hour: '2-digit',
-                                    minute: '2-digit',
-                                });
-                            }
+                            if (val instanceof Date)
+                                return dateFormatter.format(val);
                             if (typeof val === 'string' &&
                                 /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(val)) {
                                 const d = new Date(val);
-                                if (!isNaN(d.getTime())) {
-                                    return d.toLocaleString('en-US', {
-                                        year: 'numeric',
-                                        month: 'short',
-                                        day: 'numeric',
-                                        hour: '2-digit',
-                                        minute: '2-digit',
-                                    });
-                                }
+                                if (!isNaN(d.getTime()))
+                                    return dateFormatter.format(d);
                             }
                             if (typeof val === 'object' && val !== null) {
-                                if (typeof val.toNumber === 'function') {
+                                if (typeof val.toNumber === 'function')
                                     return String(val);
-                                }
                                 const stringified = JSON.stringify(val);
                                 if (stringified &&
                                     stringified.startsWith('"') &&

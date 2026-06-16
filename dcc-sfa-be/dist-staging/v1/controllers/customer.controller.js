@@ -1709,7 +1709,7 @@ exports.customerController = {
     // },
     async getAllCustomers(req, res) {
         try {
-            const { page, limit, search, type, salesperson_id, isActive, city_id, district_id, region_id, } = req.query;
+            const { page, limit, search, type, salesperson_id, isActive, city_id, district_id, region_id, depot_id, customer_type_id, customer_category_id, customer_channel_id, } = req.query;
             const pageNum = parseInt(page, 10) || 1;
             const limitNum = parseInt(limit, 10) || 10;
             const searchLower = search ? search.toLowerCase() : '';
@@ -1727,6 +1727,10 @@ exports.customerController = {
                 ...(region_id && { region_id: Number(region_id) }),
                 ...(type && type !== 'All' && { type }),
                 ...(isActive && { is_active: isActive }),
+                ...(depot_id && { depot_id: Number(depot_id) }),
+                ...(customer_type_id && { customer_type_id: Number(customer_type_id) }),
+                ...(customer_category_id && { customer_category_id: Number(customer_category_id) }),
+                ...(customer_channel_id && { customer_channel_id: Number(customer_channel_id) }),
             };
             let routeIds = [];
             if (salesperson_id) {

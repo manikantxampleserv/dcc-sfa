@@ -10,6 +10,7 @@ import type { Route, RouteAssignment } from 'hooks/useRoutes';
 import { useZones } from 'hooks/useZones';
 import { GripVertical, Route as RouteIcon } from 'lucide-react';
 import React, { useCallback, useMemo, useState } from 'react';
+import { toast } from 'react-toastify';
 import type { Depot } from 'services/masters/Depots';
 import Button from 'shared/Button';
 import Drawer from 'shared/Drawer';
@@ -131,6 +132,10 @@ const ManageAssignRoute: React.FC<ManageAssignRouteProps> = ({
         source.droppableId === 'available-routes' &&
         destination.droppableId === 'assigned-routes'
       ) {
+        if (selectedRouteIds.length >= 3) {
+          toast.warning('Limit reached: A salesman can have at most 3 routes.');
+          return;
+        }
         if (selectedRouteIds.includes(routeId)) return;
         const updated = Array.from(selectedRouteIds);
         updated.splice(destination.index, 0, routeId);

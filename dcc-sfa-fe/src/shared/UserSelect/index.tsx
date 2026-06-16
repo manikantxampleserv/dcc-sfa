@@ -50,6 +50,8 @@ interface UserSelectProps {
   className?: string;
   /** Placeholder for the input */
   placeholder?: string;
+  /** Filter users by role name */
+  roleName?: string;
 }
 
 /**
@@ -108,6 +110,7 @@ const UserSelect: React.FC<UserSelectProps> = ({
   onChange,
   className,
   placeholder,
+  roleName,
 }) => {
   const [inputValue, setInputValue] = useState('');
   const [searchValue, setSearchValue] = useState('');
@@ -158,6 +161,7 @@ const UserSelect: React.FC<UserSelectProps> = ({
   const { data: dropdownResponse, isLoading: isFetching } = useUsersDropdown({
     search: effectiveSearch,
     user_id: userId && !effectiveSearch ? userId : undefined,
+    role_name: roleName,
   });
 
   const searchResults: User[] = React.useMemo(() => {

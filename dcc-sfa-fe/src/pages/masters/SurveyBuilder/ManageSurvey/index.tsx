@@ -25,7 +25,7 @@ interface ManageSurveyProps {
 
 interface SurveyFieldFormData {
   label: string;
-  field_type: 'text' | 'number' | 'checkbox' | 'radio';
+  field_type: 'text' | 'number' | 'checkbox' | 'radio' | 'date';
   options?: string | null;
   is_required: boolean;
   sort_order?: number;
@@ -192,6 +192,7 @@ const ManageSurvey: React.FC<ManageSurveyProps> = ({
           <MenuItem value="number">Number</MenuItem>
           <MenuItem value="checkbox">Checkbox</MenuItem>
           <MenuItem value="radio">Radio</MenuItem>
+          <MenuItem value="date">Date</MenuItem>
         </Select>
       ),
     },

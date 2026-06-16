@@ -5,7 +5,7 @@ interface SurveyField {
   id?: number;
   parent_id?: number;
   label: string;
-  field_type: 'text' | 'number' | 'checkbox' | 'radio';
+  field_type: 'text' | 'number' | 'checkbox' | 'radio' | 'date';
   options?: string | null;
   is_required?: boolean;
   sort_order?: number;

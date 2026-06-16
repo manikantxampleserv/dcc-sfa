@@ -441,11 +441,14 @@ exports.assetMovementsController = {
     },
     async getAllAssetMovements(req, res) {
         try {
-            const { page, limit, search, status, asset_type_id, performed_by } = req.query;
+            const { page, limit, search, status, asset_type_id, performed_by, movement_type, } = req.query;
             const pageNum = parseInt(page, 10) || 1;
             const limitNum = parseInt(limit, 10) || 10;
             const searchLower = search ? search.toLowerCase() : '';
             const statusLower = status ? status.toLowerCase() : '';
+            const typeLower = movement_type
+                ? movement_type.toLowerCase()
+                : '';
             const filters = {
                 ...(search && {
                     OR: [
@@ -476,6 +479,7 @@ exports.assetMovementsController = {
                 }),
                 ...(statusLower === 'active' && { is_active: 'Y' }),
                 ...(statusLower === 'inactive' && { is_active: 'N' }),
+                ...(typeLower && { movement_type: typeLower }),
                 ...(performed_by && { performed_by: Number(performed_by) }),
                 ...(asset_type_id && {
                     asset_movement_assets: {
@@ -827,7 +831,9 @@ exports.assetMovementsController = {
                     },
                 });
             });
-            if (becomingApproved && updated && isInstallationMovementDepotToOutlet(updated)) {
+            if (becomingApproved &&
+                updated &&
+                isInstallationMovementDepotToOutlet(updated)) {
                 const effectiveAssetIds = asset_ids && Array.isArray(asset_ids) && asset_ids.length > 0
                     ? asset_ids
                     : existing.asset_movement_assets.map((a) => a.asset_id);

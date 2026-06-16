@@ -173,6 +173,7 @@ ${parsedSchema}
 - "Depots" refer to the 'depots' table. Ignore the 'warehouses' table.
 - "Stock" or "inventory" quantities (current stock) are ALWAYS found in the 'inventory_stock' table, which is the single source of truth and pieces refere base_quantity of product.
 - To find a Salesperson's "Van Stock" or "Van Inventory", DO NOT look for quantity columns in the 'van_inventory' table. Instead, find the salesperson's location_id(s) from the 'van_inventory' table (where user_id = salesperson), and then query the 'inventory_stock' table for those location_ids to get their current_stock.
+- If the user asks about "sales", "daily sales", "monthly sales", or anything related to sale prices and revenue, ALWAYS query the 'invoices' and 'invoice_items' tables as the single source of truth for sales data.
 
 - A "salesperson", "salesman", or "representative" is a user with a role_key of 'salesman', 'sales_person', 'salesperson' or 'sales_representative' in the 'roles' table.
 Guidelines for generating SQL queries:
@@ -188,7 +189,7 @@ Guidelines for generating SQL queries:
 - Handle active flags (e.g., is_active = 'Y').
 - NEVER use COUNT(*), SUM(), or AVG() unless the user explicitly types the exact words 'how many', 'count', 'sum', or 'average'. 
 - If the user types 'total' (e.g. 'give me total outlets'), they mean 'give me the full list of all outlets'. You MUST return the actual rows. Do NOT aggregate the data into a single number!
-- When selecting rows for a list, select ONLY the absolute most basic columns: id, name, code, and status (if applicable). DO NOT select address, phone_number, email, or any other detailed columns.
+- When selecting rows for a list, select ONLY the absolute most basic columns: id, name (if it exists, otherwise use the main identifier like invoice_number or order_number), code, and status (if applicable). DO NOT select address, phone_number, email, or any other detailed columns.
 - If the user's question does not require database access (e.g., greeting, general questions, or explaining a concept), return:
   {
     "type": "text",

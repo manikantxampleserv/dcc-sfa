@@ -142,3 +142,21 @@ export const useDeleteVanInventory = () => {
     loadingMessage: 'Deleting van inventory...',
   });
 };
+
+/**
+ * Hook to unload all van inventory for the user
+ * @returns Mutation object for unloading van inventory
+ */
+export const useUnloadVanInventory = () => {
+  return useApiMutation({
+    mutationFn: (payload?: { user_id?: number }) =>
+      vanInventoryService.unloadVanInventory(payload),
+    invalidateQueries: [
+      'van-inventory',
+      'inventory-items',
+      'product-batches',
+      'stockMovements',
+    ],
+    loadingMessage: 'Unloading van inventory...',
+  });
+};

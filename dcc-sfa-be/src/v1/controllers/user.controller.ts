@@ -1059,7 +1059,7 @@ export const userController = {
 
   async getUsersDropdown(req: any, res: any): Promise<void> {
     try {
-      const { search = '', user_id, depot_id } = req.query;
+      const { search = '', user_id, depot_id, role_name } = req.query;
       const searchLower = search.toLowerCase().trim();
       const userId = user_id ? Number(user_id) : null;
       const depotId = depot_id ? Number(depot_id) : null;
@@ -1085,6 +1085,14 @@ export const userController = {
           { email: { contains: searchLower } },
           { employee_id: { contains: searchLower } },
         ];
+      }
+
+      if (role_name) {
+        where.user_role = {
+          name: {
+            contains: role_name as string,
+          },
+        };
       }
 
       const users = await prisma.users.findMany({
