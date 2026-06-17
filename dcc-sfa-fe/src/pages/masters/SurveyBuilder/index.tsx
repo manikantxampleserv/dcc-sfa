@@ -24,7 +24,7 @@ import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
 import { formatDate } from 'utils/dateUtils';
 import ImportSurvey from './ImportSurvey';
-import ManageSurvey from './ManageSurvey';
+import SAPManageSurvey from './SAPManageSurvey';
 
 const SurveyBuilder: React.FC = () => {
   const navigate = useNavigate();
@@ -437,6 +437,7 @@ const SurveyBuilder: React.FC = () => {
                     Import
                   </Button>
                 )}
+
                 {isCreate && (
                   <Button
                     variant="contained"
@@ -445,7 +446,7 @@ const SurveyBuilder: React.FC = () => {
                     startIcon={<Add />}
                     onClick={handleCreateSurvey}
                   >
-                    Create
+                    Create Survey
                   </Button>
                 )}
               </div>
@@ -469,7 +470,7 @@ const SurveyBuilder: React.FC = () => {
         }
       />
 
-      <ManageSurvey
+      <SAPManageSurvey
         selectedSurvey={selectedSurvey}
         setSelectedSurvey={setSelectedSurvey}
         drawerOpen={drawerOpen}

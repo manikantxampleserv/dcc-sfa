@@ -9,6 +9,9 @@ interface SurveyField {
   options?: string | null;
   is_required?: boolean;
   sort_order?: number;
+  parent_field_id?: number | null;
+  parent_option_value?: string | null;
+  child_fields?: SurveyField[];
 }
 
 interface Survey {
@@ -33,6 +36,8 @@ interface Survey {
   updatedate?: Date | null;
   updatedby?: number | null;
   log_inst?: number | null;
+  is_matrix?: string;
+  target_products?: number[];
   fields?: SurveyField[];
 }
 
@@ -45,6 +50,8 @@ interface ManageSurveyPayload {
   is_published?: boolean;
   expires_at?: Date | string;
   is_active?: string;
+  is_matrix?: string;
+  target_products?: number[];
   fields?: SurveyField[];
   survey_fields?: SurveyField[];
 }

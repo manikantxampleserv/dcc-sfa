@@ -1629,6 +1629,8 @@ model products {
   stock_transfer_lines_products    stock_transfer_lines[]
   van_inventory_items_products     van_inventory_items[]
   warranty_claims_products         warranty_claims[]
+  survey_products                  survey_products[]
+  survey_answers                   survey_answers[]
 }
 
 model tax_master {
@@ -2156,9 +2158,11 @@ model survey_answers {
   id                      Int              @id(map: "PK__survey_a__3213E83F1E327198") @default(autoincrement())
   parent_id               Int
   field_id                Int
+  product_id              Int?
   answer                  String?          @db.NVarChar(Max)
   survey_fields           survey_fields    @relation(fields: [field_id], references: [id], onUpdate: NoAction, map: "FK__survey_an__field__656C112C")
   survey_answer_responses survey_responses @relation(fields: [parent_id], references: [id], onUpdate: NoAction)
+  survey_answers_products products?        @relation(fields: [product_id], references: [id], onUpdate: NoAction)
 }
 
 model survey_fields {
@@ -2168,9 +2172,13 @@ model survey_fields {
   field_type     String?          @db.NVarChar(50)
   options        String?          @db.NVarChar(Max)
   is_required    Boolean?         @default(false, map: "DF__survey_fi__is_re__59063A47")
-  sort_order     Int?
-  survey_answers survey_answers[]
-  surveys        surveys          @relation(fields: [parent_id], references: [id], onUpdate: NoAction, map: "FK__survey_fi__paren__59FA5E80")
+  sort_order          Int?
+  parent_field_id     Int?
+  parent_option_value String?          @db.NVarChar(255)
+  survey_answers      survey_answers[]
+  parent_field        survey_fields?   @relation("SurveyFieldHierarchy", fields: [parent_field_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK__survey_fi__pfi__xxxx")
+  child_fields        survey_fields[]  @relation("SurveyFieldHierarchy")
+  surveys             surveys          @relation(fields: [parent_id], references: [id], onUpdate: NoAction, map: "FK__survey_fi__paren__59FA5E80")
 }
 
 model survey_responses {
@@ -2205,6 +2213,7 @@ model surveys {
   expires_at       DateTime?
   response_count   Int?               @default(0, map: "DF__surveys__respons__52593CB8")
   is_active        String             @default("Y", map: "DF__surveys__is_acti__534D60F1") @db.Char(1)
+  is_matrix        String             @default("N") @db.Char(1)
   createdate       DateTime?          @default(now(), map: "DF__surveys__created__5441852A") @db.DateTime
   createdby        Int
   updatedate       DateTime?          @db.DateTime
@@ -2212,6 +2221,7 @@ model surveys {
   log_inst         Int?
   survey_fields    survey_fields[]
   survey_responses survey_responses[]
+  survey_products  survey_products[]
   surveys_roles    roles?             @relation("TargetRoles", fields: [target_roles], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
@@ -3105,4 +3115,14 @@ model customer_category_grading {
   customer_category_grading_current_category  customer_category? @relation("CurrentCategoryGrading", fields: [current_category_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   category_grading_customers                  customers          @relation(fields: [customer_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   customer_category_grading_upcoming_category customer_category? @relation("UpcomingCategoryGrading", fields: [upcoming_category_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model survey_products {
+  id         Int      @id @default(autoincrement())
+  survey_id  Int
+  product_id Int
+  products   products @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  surveys    surveys  @relation(fields: [survey_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([survey_id, product_id])
 }

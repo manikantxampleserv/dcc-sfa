@@ -74,6 +74,7 @@ export const createSurveyValidation = [
       'time',
       'photo',
       'signature',
+      'product',
     ])
     .withMessage('Invalid field type'),
 

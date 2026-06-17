@@ -13,7 +13,7 @@ import {
   TextField,
   type AutocompleteProps,
 } from '@mui/material';
-import type { FormikProps } from 'formik';
+import { getIn, type FormikProps } from 'formik';
 import React, { useCallback, useMemo } from 'react';
 
 interface Option {
@@ -130,11 +130,11 @@ const Select: React.FC<CustomSelectProps> = ({
   const currentValue = useMemo(() => {
     if (value !== undefined) return value;
     if (formik && name) {
-      const formValue = formik.values[name];
-      return formValue === '' ? null : formValue;
+      const formValue = getIn(formik.values, name);
+      return formValue === '' || formValue === undefined ? null : formValue;
     }
     return null;
-  }, [value, formik?.values[name], name]);
+  }, [value, formik?.values, name]);
 
   const selectedOption = useMemo(() => {
     if (currentValue === null || currentValue === undefined) {
@@ -187,8 +187,8 @@ const Select: React.FC<CustomSelectProps> = ({
 
   const error = useMemo(() => {
     if (!formik || !name) return false;
-    return formik.touched?.[name] && formik.errors?.[name];
-  }, [formik?.touched?.[name], formik?.errors?.[name], name]);
+    return getIn(formik.touched, name) && getIn(formik.errors, name);
+  }, [formik?.touched, formik?.errors, name]);
 
   const errorMessage = typeof error === 'string' ? error : undefined;
 

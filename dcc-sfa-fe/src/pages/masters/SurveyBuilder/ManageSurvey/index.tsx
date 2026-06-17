@@ -15,6 +15,8 @@ import {
 } from '../../../../hooks/useSurveys';
 import { surveyValidationSchema } from '../../../../schemas/survey.schema';
 import ActiveInactiveField from 'shared/ActiveInactiveField';
+import YesNoField from 'shared/YesNoField';
+import ProductMultiSelect from 'shared/ProductMultiSelect';
 
 interface ManageSurveyProps {
   selectedSurvey?: Survey | null;
@@ -83,6 +85,8 @@ const ManageSurvey: React.FC<ManageSurveyProps> = ({
         ? new Date(selectedSurvey.expires_at).toISOString().split('T')[0]
         : '',
       is_active: selectedSurvey?.is_active || 'Y',
+      is_matrix: selectedSurvey?.is_matrix || 'N',
+      target_products: selectedSurvey?.target_products || [],
     },
     validationSchema: surveyValidationSchema,
     enableReinitialize: true,
@@ -101,6 +105,9 @@ const ManageSurvey: React.FC<ManageSurveyProps> = ({
             ? new Date(values.expires_at).toISOString()
             : undefined,
           is_active: values.is_active,
+          is_matrix: values.is_matrix,
+          target_products:
+            values.is_matrix === 'Y' ? values.target_products : [],
           survey_fields: surveyFields
             .filter(field => field.label.trim() !== '')
             .map((field, index) => ({
@@ -304,12 +311,25 @@ const ManageSurvey: React.FC<ManageSurveyProps> = ({
               type="date"
             />
 
-            <ActiveInactiveField
-              name="is_active"
+            <ActiveInactiveField name="is_active" formik={formik} required />
+
+            <YesNoField
+              name="is_matrix"
+              label="Is Matrix Survey?"
               formik={formik}
               required
-              className="col-span-2"
             />
+
+            {formik.values.is_matrix === 'Y' && (
+              <Box className="md:!col-span-2">
+                <ProductMultiSelect
+                  name="target_products"
+                  label="Target Products (Rows)"
+                  formik={formik}
+                  required
+                />
+              </Box>
+            )}
             <Box className="md:!col-span-2">
               <Input
                 name="description"

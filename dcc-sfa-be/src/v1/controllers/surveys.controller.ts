@@ -10,6 +10,8 @@ interface SurveyFieldSerialized {
   options?: string | null;
   is_required?: boolean | null;
   sort_order?: number | null;
+  parent_field_id?: number | null;
+  parent_option_value?: string | null;
 }
 
 interface SurveySerialized {
@@ -21,14 +23,16 @@ interface SurveySerialized {
   is_published?: boolean | null;
   published_at?: Date | null;
   expires_at?: Date | null;
-  response_count?: number | null;
+  response_count?: number;
   is_active: string;
+  is_matrix: string;
   createdate?: Date | null;
   createdby: number;
   updatedate?: Date | null;
   updatedby?: number | null;
   log_inst?: number | null;
   roles?: { id: number; name: string; description: string } | null;
+  target_products?: number[];
   fields?: SurveyFieldSerialized[];
 }
 
@@ -43,6 +47,7 @@ const serializeSurvey = (survey: any): SurveySerialized => ({
   expires_at: survey.expires_at,
   response_count: survey.response_count,
   is_active: survey.is_active,
+  is_matrix: survey.is_matrix,
   createdate: survey.createdate,
   createdby: survey.createdby,
   updatedate: survey.updatedate,
@@ -55,6 +60,8 @@ const serializeSurvey = (survey: any): SurveySerialized => ({
         description: survey.surveys_roles.description,
       }
     : null,
+  target_products:
+    survey.survey_products?.map((sp: any) => sp.product_id) || [],
   fields:
     survey.survey_fields?.map((field: any) => ({
       id: field.id,
@@ -64,6 +71,8 @@ const serializeSurvey = (survey: any): SurveySerialized => ({
       options: field.options,
       is_required: field.is_required,
       sort_order: field.sort_order,
+      parent_field_id: field.parent_field_id,
+      parent_option_value: field.parent_option_value,
     })) || [],
 });
 
@@ -119,6 +128,7 @@ export const surveysController = {
                 ? new Date(surveyData.expires_at)
                 : null,
             is_active: surveyData.is_active || 'Y',
+            is_matrix: surveyData.is_matrix || 'N',
           };
 
           if (isUpdate && surveyId) {
@@ -144,66 +154,71 @@ export const surveysController = {
             surveyId = survey.id;
           }
 
-          const processedFieldIds: number[] = [];
-
-          if (Array.isArray(fieldItems) && fieldItems.length > 0) {
-            const fieldsToCreate: any[] = [];
-            const fieldsToUpdate: { id: number; data: any }[] = [];
-
-            for (let index = 0; index < fieldItems.length; index++) {
-              const field = fieldItems[index];
+          const processFields = async (
+            items: any[],
+            surveyId: number,
+            tx: any,
+            parentFieldId: number | null = null
+          ): Promise<number[]> => {
+            const processedIds: number[] = [];
+            for (let index = 0; index < items.length; index++) {
+              const field = items[index];
               const fieldData = {
-                parent_id: survey.id,
-                label: field.label.trim(),
+                parent_id: surveyId,
+                label: field.label?.trim() || 'Untitled',
                 field_type: field.field_type || 'text',
                 options: field.options || null,
                 is_required: field.is_required ?? false,
                 sort_order: field.sort_order ?? index + 1,
+                parent_field_id: parentFieldId,
+                parent_option_value: field.parent_option_value || null,
               };
 
-              if (field.id) {
+              let savedFieldId: number;
+              const isNumericId = field.id && !isNaN(Number(field.id)) && typeof field.id !== 'string';
+              
+              if (isNumericId) {
                 const existingField = await tx.survey_fields.findFirst({
                   where: {
                     id: Number(field.id),
-                    parent_id: survey.id,
+                    parent_id: surveyId,
                   },
                 });
 
                 if (existingField) {
-                  fieldsToUpdate.push({
-                    id: Number(field.id),
+                  await tx.survey_fields.update({
+                    where: { id: Number(field.id) },
                     data: fieldData,
                   });
-                  processedFieldIds.push(Number(field.id));
+                  savedFieldId = Number(field.id);
                 } else {
-                  fieldsToCreate.push(fieldData);
+                  const created = await tx.survey_fields.create({ data: fieldData });
+                  savedFieldId = created.id;
                 }
               } else {
-                fieldsToCreate.push(fieldData);
+                const created = await tx.survey_fields.create({ data: fieldData });
+                savedFieldId = created.id;
+              }
+              processedIds.push(savedFieldId);
+
+              if (Array.isArray(field.child_fields) && field.child_fields.length > 0) {
+                const childIds = await processFields(
+                  field.child_fields,
+                  surveyId,
+                  tx,
+                  savedFieldId
+                );
+                processedIds.push(...childIds);
               }
             }
+            return processedIds;
+          };
 
-            if (fieldsToCreate.length > 0) {
-              const created = await tx.survey_fields.createMany({
-                data: fieldsToCreate,
-              });
+          const processedFieldIds: number[] = [];
 
-              if (created.count > 0) {
-                const newFields = await tx.survey_fields.findMany({
-                  where: { parent_id: survey.id },
-                  orderBy: { id: 'desc' },
-                  take: created.count,
-                });
-                processedFieldIds.push(...newFields.map(f => f.id));
-              }
-            }
-
-            for (const { id, data } of fieldsToUpdate) {
-              await tx.survey_fields.update({
-                where: { id },
-                data,
-              });
-            }
+          if (Array.isArray(fieldItems) && fieldItems.length > 0) {
+            const ids = await processFields(fieldItems, survey.id, tx);
+            processedFieldIds.push(...ids);
 
             if (isUpdate) {
               await tx.survey_fields.deleteMany({
@@ -221,10 +236,25 @@ export const surveysController = {
             });
           }
 
+          if (Array.isArray(surveyData.target_products)) {
+            await tx.survey_products.deleteMany({
+              where: { survey_id: survey.id },
+            });
+            if (surveyData.target_products.length > 0) {
+              await tx.survey_products.createMany({
+                data: surveyData.target_products.map((pid: number) => ({
+                  survey_id: survey.id,
+                  product_id: pid,
+                })),
+              });
+            }
+          }
+
           const finalSurvey = await tx.surveys.findUnique({
             where: { id: survey.id },
             include: {
               surveys_roles: true,
+              survey_products: true,
               survey_fields: {
                 orderBy: { sort_order: 'asc' },
               },
@@ -295,6 +325,7 @@ export const surveysController = {
         orderBy: { createdate: 'desc' },
         include: {
           surveys_roles: true,
+          survey_products: true,
           survey_fields: {
             orderBy: { sort_order: 'asc' },
           },
@@ -346,6 +377,7 @@ export const surveysController = {
         where: { id: Number(id) },
         include: {
           surveys_roles: true,
+          survey_products: true,
           survey_fields: {
             orderBy: { sort_order: 'asc' },
           },

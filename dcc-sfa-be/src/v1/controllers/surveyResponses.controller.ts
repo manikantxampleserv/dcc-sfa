@@ -8,6 +8,11 @@ interface SurveyAnswerSerialized {
   parent_id: number;
   field_id: number;
   answer?: string | null;
+  product_id?: number | null;
+  product?: {
+    id: number;
+    name: string;
+  } | null;
   field?: {
     id: number;
     label: string;
@@ -126,12 +131,19 @@ const serializeSurveyResponse = (item: any): SurveyResponseSerialized => ({
       id: ans.id,
       parent_id: ans.parent_id,
       field_id: ans.field_id,
+      product_id: ans.product_id,
       answer: ans.answer,
       field: ans.survey_fields
         ? {
             id: ans.survey_fields.id,
             name: ans.survey_fields.label || ans.survey_fields.name,
             type: ans.survey_fields.field_type || ans.survey_fields.type,
+          }
+        : null,
+      product: ans.survey_answers_products
+        ? {
+            id: ans.survey_answers_products.id,
+            name: ans.survey_answers_products.name,
           }
         : null,
     })) || [],
@@ -299,6 +311,7 @@ export const surveyResponseController = {
               const answerData = {
                 parent_id: surveyResponse.id,
                 field_id: Number(ans.field_id),
+                product_id: ans.product_id ? Number(ans.product_id) : null,
                 answer: ans.answer || null,
               };
 
@@ -371,6 +384,7 @@ export const surveyResponseController = {
               survey_answer_responses: {
                 include: {
                   survey_fields: true,
+                  survey_answers_products: true,
                 },
               },
             },
@@ -535,6 +549,7 @@ export const surveyResponseController = {
                 const answersToCreate = answerItems.map((ans: any) => ({
                   parent_id: surveyResponse.id,
                   field_id: Number(ans.field_id),
+                  product_id: ans.product_id ? Number(ans.product_id) : null,
                   answer: ans.answer || null,
                 }));
 
@@ -552,6 +567,7 @@ export const surveyResponseController = {
                   survey_answer_responses: {
                     include: {
                       survey_fields: true,
+                      survey_answers_products: true,
                     },
                   },
                 },
@@ -663,6 +679,7 @@ export const surveyResponseController = {
           survey_answer_responses: {
             include: {
               survey_fields: true,
+              survey_answers_products: true,
             },
           },
         },
@@ -723,6 +740,7 @@ export const surveyResponseController = {
           survey_answer_responses: {
             include: {
               survey_fields: true,
+              survey_answers_products: true,
             },
           },
         },
@@ -780,6 +798,7 @@ export const surveyResponseController = {
         where: { parent_id: Number(responseId) },
         include: {
           survey_fields: true,
+          survey_answers_products: true,
         },
         orderBy: { id: 'asc' },
       });

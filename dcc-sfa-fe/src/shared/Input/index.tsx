@@ -11,7 +11,7 @@ import { Search, Visibility, VisibilityOff } from '@mui/icons-material';
 import { IconButton, TextField, type TextFieldProps } from '@mui/material';
 import { DatePicker, DateTimePicker, TimePicker } from '@mui/x-date-pickers';
 import dayjs, { type Dayjs } from 'dayjs';
-import type { FormikProps } from 'formik';
+import { getIn, type FormikProps } from 'formik';
 import React, { useMemo, useCallback } from 'react';
 
 interface InputProps extends Omit<TextFieldProps, 'onChange'> {
@@ -100,10 +100,10 @@ const Input: React.FC<InputProps> = ({
 
   const error = useMemo(() => {
     if (!formik || !name) return false;
-    return formik.touched?.[name as string] && formik.errors?.[name as string];
+    return getIn(formik.touched, name) && getIn(formik.errors, name);
   }, [
-    formik?.touched?.[name as string],
-    formik?.errors?.[name as string],
+    formik?.touched,
+    formik?.errors,
     name,
   ]);
 
@@ -111,9 +111,9 @@ const Input: React.FC<InputProps> = ({
 
   const currentValue = useMemo(() => {
     if (value !== undefined) return value;
-    if (formik && name) return formik.values[name as string];
+    if (formik && name) return getIn(formik.values, name) ?? '';
     return '';
-  }, [value, formik?.values[name as string], name]);
+  }, [value, formik?.values, name]);
 
   const dateValue = useMemo(
     () =>

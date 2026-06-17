@@ -6,6 +6,11 @@ interface SurveyAnswer {
   parent_id: number;
   field_id: number;
   answer?: string | null;
+  product_id?: number | null;
+  product?: {
+    id: number;
+    name: string;
+  } | null;
   field?: {
     id: number;
     name: string;
@@ -30,6 +35,12 @@ interface SurveyResponse {
     id: number;
     name: string;
     description?: string | null;
+    is_matrix?: string;
+    fields?: Array<{
+      id: number;
+      label: string;
+      field_type?: string | null;
+    }>;
   } | null;
   submitted_user?: {
     id: number;

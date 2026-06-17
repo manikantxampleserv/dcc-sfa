@@ -557,43 +557,100 @@ const SurveyResponseDetail: React.FC = () => {
           {/* Survey Answers */}
           <InfoCard title="Survey Answers" icon={BarChart3}>
             {response.answers && response.answers.length > 0 ? (
-              <div className="!space-y-3">
-                {response.answers.map((answer, index) => (
-                  <div
-                    key={answer.id || index}
-                    className="!p-3 !bg-gray-50 !rounded-md !border !border-gray-200"
-                  >
-                    <div className="!flex !items-center !justify-between !mb-2">
-                      <div className="!flex !items-center !gap-2">
-                        <Typography
-                          variant="body2"
-                          className="!font-semibold !text-gray-900"
+              response.survey?.is_matrix === 'Y' ? (
+                <div className="!overflow-x-auto">
+                  <table className="!min-w-full !border-collapse !border !border-gray-200">
+                    <thead className="!bg-gray-50">
+                      <tr>
+                        <th className="!border !border-gray-200 !p-3 !text-left !text-sm !font-semibold !text-gray-900">
+                          Product
+                        </th>
+                        {response.survey.fields?.map(field => (
+                          <th
+                            key={field.id}
+                            className="!border !border-gray-200 !p-3 !text-left !text-sm !font-semibold !text-gray-900"
+                          >
+                            {field.label}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {Object.entries(
+                        response.answers.reduce((acc: any, ans) => {
+                          const prodId = ans.product?.id || 0;
+                          const prodName =
+                            ans.product?.name || 'Unknown Product';
+                          if (!acc[prodId])
+                            acc[prodId] = { name: prodName, answers: {} };
+                          acc[prodId].answers[ans.field_id] = ans;
+                          return acc;
+                        }, {})
+                      ).map(([prodId, prodData]: [string, any]) => (
+                        <tr
+                          key={prodId}
+                          className="!border-t !border-gray-200 hover:!bg-gray-50"
                         >
-                          {answer.field?.name || `Field #${answer.field_id}`}
-                        </Typography>
-                        {answer.field?.type && (
-                          <Chip
-                            label={getFieldTypeLabel(answer.field.type)}
-                            size="small"
-                            color="primary"
-                            className="!text-xs"
-                          />
-                        )}
-                      </div>
-                    </div>
-                    <Typography
-                      variant="body1"
-                      className="!text-gray-700 !mt-2 !p-2 !bg-white !rounded !border !border-gray-200"
+                          <td className="!border !border-gray-200 !p-3 !text-sm !text-gray-900 !font-medium">
+                            {prodData.name}
+                          </td>
+                          {response.survey?.fields?.map((field: any) => {
+                            const answer = prodData.answers[field.id];
+                            return (
+                              <td
+                                key={field.id}
+                                className="!border !border-gray-200 !p-3 !text-sm !text-gray-700"
+                              >
+                                {answer
+                                  ? formatAnswer(answer.answer || '')
+                                  : '-'}
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="!space-y-3">
+                  {response.answers.map((answer, index) => (
+                    <div
+                      key={answer.id || index}
+                      className="!p-3 !bg-gray-50 !rounded-md !border !border-gray-200"
                     >
-                      {formatAnswer(answer?.answer || '') || (
-                        <span className="!text-gray-400 italic">
-                          No answer provided
-                        </span>
-                      )}
-                    </Typography>
-                  </div>
-                ))}
-              </div>
+                      <div className="!flex !items-center !justify-between !mb-2">
+                        <div className="!flex !items-center !gap-2">
+                          <Typography
+                            variant="body2"
+                            className="!font-semibold !text-gray-900"
+                          >
+                            {answer.field?.name || `Field #${answer.field_id}`}
+                          </Typography>
+                          {answer.field?.type && (
+                            <Chip
+                              label={getFieldTypeLabel(answer.field.type)}
+                              size="small"
+                              color="primary"
+                              className="!text-xs"
+                            />
+                          )}
+                        </div>
+                      </div>
+                      <Typography
+                        variant="body1"
+                        className="!text-gray-700 !mt-2 !p-2 !bg-white !rounded !border !border-gray-200"
+                      >
+                        {formatAnswer(answer?.answer || '') || (
+                          <span className="!text-gray-400 italic">
+                            No answer provided
+                          </span>
+                        )}
+                      </Typography>
+                    </div>
+                  ))}
+                </div>
+              )
             ) : (
               <div className="!text-center !py-8 !text-gray-500">
                 <FileText className="w-12 h-12 text-gray-400 mx-auto mb-2" />

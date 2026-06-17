@@ -441,6 +441,21 @@ const SurveyDetail: React.FC = () => {
                   variant="caption"
                   className="!text-gray-500 !text-xs !uppercase !tracking-wide"
                 >
+                  Type
+                </Typography>
+                <Typography
+                  variant="body2"
+                  className="!font-semibold !text-gray-900"
+                >
+                  {survey.is_matrix === 'Y' ? 'Matrix Survey' : 'Standard Survey'}
+                </Typography>
+              </div>
+
+              <div className="!space-y-0.5">
+                <Typography
+                  variant="caption"
+                  className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                >
                   Target Roles
                 </Typography>
                 <Typography
@@ -507,6 +522,25 @@ const SurveyDetail: React.FC = () => {
                   >
                     {survey.description}
                   </Typography>
+                </div>
+              )}
+
+              {survey.is_matrix === 'Y' && survey.target_products && survey.target_products.length > 0 && (
+                <div className="!space-y-1.5 md:!col-span-2">
+                  <Typography
+                    variant="caption"
+                    className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                  >
+                    Target Products (Matrix Rows)
+                  </Typography>
+                  <div className="!flex !flex-wrap !gap-2">
+                    <Chip
+                      label={`${survey.target_products.length} Products Assigned`}
+                      size="small"
+                      color="primary"
+                      variant="outlined"
+                    />
+                  </div>
                 </div>
               )}
             </div>
