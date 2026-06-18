@@ -19,10 +19,10 @@ const SurveyDetail: React.FC = () => {
     > = {
       cooler_inspection: 'primary',
       customer_feedback: 'success',
-      outlet_audit: 'secondary',
+      outlet_audit: 'default',
       competitor_analysis: 'error',
       brand_visibility: 'warning',
-      general: 'default',
+      general: 'secondary',
     };
     return colors[category] || 'default';
   };

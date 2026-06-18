@@ -132,22 +132,16 @@ const SurveyResponses: React.FC = () => {
             >
               {row.survey?.title || `Survey #${row.parent_id}`}
             </Typography>
-            {row.survey?.title && (
+            {(row.survey?.description || row.survey?.category) && (
               <Typography
                 variant="caption"
                 className="!text-gray-500 !text-xs !block !mt-0.5"
-                title={row.survey.title}
-                style={{
-                  display: '-webkit-box',
-                  WebkitLineClamp: 1,
-                  WebkitBoxOrient: 'vertical',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  cursor: 'help',
-                  width: '250px',
-                }}
+                title={row.survey?.description || undefined}
               >
-                {row.survey.title}
+                {row.survey?.description ||
+                  row.survey?.category
+                    ?.replace(/_/g, ' ')
+                    .replace(/\b\w/g, c => c.toUpperCase())}
               </Typography>
             )}
           </Box>

@@ -305,7 +305,7 @@ const FieldTreeItem = ({ field, path, formik, level = 0, productMap }: any) => {
                   (cf: any) => cf.parent_option_value === opt
                 );
                 return (
-                  <Box key={idx} className="!pl-7 !border-l-2 !border-gray-200">
+                  <Box key={idx} className="!pl-7 !border-l-2 !border-blue-100">
                     <Box className="!flex !items-center !gap-3 !py-1">
                       <Typography className="!bg-gray-100 min-w-52 !px-2 !py-1 !rounded !text-xs !font-medium !text-gray-700 !border !border-gray-200">
                         {field.field_type === 'product'
@@ -566,9 +566,36 @@ const ManageSurvey: React.FC<ManageSurveyProps> = ({
     setSelectedSurvey(null);
     setDrawerOpen(false);
     formik.resetForm();
+    setSelectedDepots([]);
+    setSelectedZones([]);
+    setSelectedRoutes([]);
+    setSelectedOutlets([]);
+    setSelectedCustomerTypes([]);
+    setSelectedCustomerCategories([]);
+    setSelectedCustomerChannels([]);
   };
 
   const createOrUpdateSurveyMutation = useCreateOrUpdateSurvey();
+
+  React.useEffect(() => {
+    if (selectedSurvey) {
+      setSelectedDepots(selectedSurvey.depots || []);
+      setSelectedZones(selectedSurvey.zones || []);
+      setSelectedRoutes(selectedSurvey.routes || []);
+      setSelectedOutlets(selectedSurvey.outlets || []);
+      setSelectedCustomerTypes(selectedSurvey.customer_types || []);
+      setSelectedCustomerCategories(selectedSurvey.customer_categories || []);
+      setSelectedCustomerChannels(selectedSurvey.customer_channels || []);
+    } else {
+      setSelectedDepots([]);
+      setSelectedZones([]);
+      setSelectedRoutes([]);
+      setSelectedOutlets([]);
+      setSelectedCustomerTypes([]);
+      setSelectedCustomerCategories([]);
+      setSelectedCustomerChannels([]);
+    }
+  }, [selectedSurvey]);
 
   const buildTree = (flatFields: any[]) => {
     const tree: any[] = [];
@@ -614,6 +641,13 @@ const ManageSurvey: React.FC<ManageSurveyProps> = ({
           id: selectedSurvey?.id,
           ...values,
           survey_fields: values.fields,
+          depots: selectedDepots,
+          zones: selectedZones,
+          routes: selectedRoutes,
+          outlets: selectedOutlets,
+          customer_types: selectedCustomerTypes,
+          customer_categories: selectedCustomerCategories,
+          customer_channels: selectedCustomerChannels,
         });
         handleCancel();
       } catch (error) {

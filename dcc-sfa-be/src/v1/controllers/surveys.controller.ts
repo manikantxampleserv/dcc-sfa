@@ -34,6 +34,13 @@ interface SurveySerialized {
   roles?: { id: number; name: string; description: string } | null;
   target_products?: number[];
   fields?: SurveyFieldSerialized[];
+  depots?: number[];
+  zones?: number[];
+  routes?: number[];
+  outlets?: number[];
+  customer_types?: number[];
+  customer_categories?: number[];
+  customer_channels?: number[];
 }
 
 const serializeSurvey = (survey: any): SurveySerialized => ({
@@ -74,6 +81,21 @@ const serializeSurvey = (survey: any): SurveySerialized => ({
       parent_field_id: field.parent_field_id,
       parent_option_value: field.parent_option_value,
     })) || [],
+  depots: survey.survey_depots?.map((item: any) => item.depot_id) || [],
+  zones: survey.survey_zones?.map((item: any) => item.zone_id) || [],
+  routes: survey.survey_routes?.map((item: any) => item.route_id) || [],
+  outlets: survey.survey_customers?.map((item: any) => item.customer_id) || [],
+  customer_types:
+    survey.survey_customer_types?.map((item: any) => item.customer_type_id) ||
+    [],
+  customer_categories:
+    survey.survey_customer_categories?.map(
+      (item: any) => item.customer_category_id
+    ) || [],
+  customer_channels:
+    survey.survey_customer_channels?.map(
+      (item: any) => item.customer_channel_id
+    ) || [],
 });
 
 export const surveysController = {
@@ -175,8 +197,11 @@ export const surveysController = {
               };
 
               let savedFieldId: number;
-              const isNumericId = field.id && !isNaN(Number(field.id)) && typeof field.id !== 'string';
-              
+              const isNumericId =
+                field.id &&
+                !isNaN(Number(field.id)) &&
+                typeof field.id !== 'string';
+
               if (isNumericId) {
                 const existingField = await tx.survey_fields.findFirst({
                   where: {
@@ -192,16 +217,23 @@ export const surveysController = {
                   });
                   savedFieldId = Number(field.id);
                 } else {
-                  const created = await tx.survey_fields.create({ data: fieldData });
+                  const created = await tx.survey_fields.create({
+                    data: fieldData,
+                  });
                   savedFieldId = created.id;
                 }
               } else {
-                const created = await tx.survey_fields.create({ data: fieldData });
+                const created = await tx.survey_fields.create({
+                  data: fieldData,
+                });
                 savedFieldId = created.id;
               }
               processedIds.push(savedFieldId);
 
-              if (Array.isArray(field.child_fields) && field.child_fields.length > 0) {
+              if (
+                Array.isArray(field.child_fields) &&
+                field.child_fields.length > 0
+              ) {
                 const childIds = await processFields(
                   field.child_fields,
                   surveyId,
@@ -250,11 +282,151 @@ export const surveysController = {
             }
           }
 
+          // Save survey_depots
+          if (Array.isArray(surveyData.depots)) {
+            await tx.survey_depots.deleteMany({
+              where: { parent_id: survey.id },
+            });
+            if (surveyData.depots.length > 0) {
+              await tx.survey_depots.createMany({
+                data: surveyData.depots.map((depotId: number) => ({
+                  parent_id: survey.id,
+                  depot_id: depotId,
+                  is_active: 'Y',
+                  createdby: userId,
+                  createdate: new Date(),
+                  log_inst: 1,
+                })),
+              });
+            }
+          }
+
+          // Save survey_zones
+          if (Array.isArray(surveyData.zones)) {
+            await tx.survey_zones.deleteMany({
+              where: { parent_id: survey.id },
+            });
+            if (surveyData.zones.length > 0) {
+              await tx.survey_zones.createMany({
+                data: surveyData.zones.map((zoneId: number) => ({
+                  parent_id: survey.id,
+                  zone_id: zoneId,
+                  is_active: 'Y',
+                  createdby: userId,
+                  createdate: new Date(),
+                  log_inst: 1,
+                })),
+              });
+            }
+          }
+
+          // Save survey_routes
+          if (Array.isArray(surveyData.routes)) {
+            await tx.survey_routes.deleteMany({
+              where: { parent_id: survey.id },
+            });
+            if (surveyData.routes.length > 0) {
+              await tx.survey_routes.createMany({
+                data: surveyData.routes.map((routeId: number) => ({
+                  parent_id: survey.id,
+                  route_id: routeId,
+                  is_active: 'Y',
+                  createdby: userId,
+                  createdate: new Date(),
+                  log_inst: 1,
+                })),
+              });
+            }
+          }
+
+          // Save survey_customers
+          if (Array.isArray(surveyData.outlets)) {
+            await tx.survey_customers.deleteMany({
+              where: { parent_id: survey.id },
+            });
+            if (surveyData.outlets.length > 0) {
+              await tx.survey_customers.createMany({
+                data: surveyData.outlets.map((customerId: number) => ({
+                  parent_id: survey.id,
+                  customer_id: customerId,
+                  is_active: 'Y',
+                  createdby: userId,
+                  createdate: new Date(),
+                  log_inst: 1,
+                })),
+              });
+            }
+          }
+
+          // Save survey_customer_types
+          if (Array.isArray(surveyData.customer_types)) {
+            await tx.survey_customer_types.deleteMany({
+              where: { parent_id: survey.id },
+            });
+            if (surveyData.customer_types.length > 0) {
+              await tx.survey_customer_types.createMany({
+                data: surveyData.customer_types.map((typeId: number) => ({
+                  parent_id: survey.id,
+                  customer_type_id: typeId,
+                  is_active: 'Y',
+                  createdby: userId,
+                  createdate: new Date(),
+                  log_inst: 1,
+                })),
+              });
+            }
+          }
+
+          // Save survey_customer_categories
+          if (Array.isArray(surveyData.customer_categories)) {
+            await tx.survey_customer_categories.deleteMany({
+              where: { parent_id: survey.id },
+            });
+            if (surveyData.customer_categories.length > 0) {
+              await tx.survey_customer_categories.createMany({
+                data: surveyData.customer_categories.map((catId: number) => ({
+                  parent_id: survey.id,
+                  customer_category_id: catId,
+                  is_active: 'Y',
+                  createdby: userId,
+                  createdate: new Date(),
+                  log_inst: 1,
+                })),
+              });
+            }
+          }
+
+          // Save survey_customer_channels
+          if (Array.isArray(surveyData.customer_channels)) {
+            await tx.survey_customer_channels.deleteMany({
+              where: { parent_id: survey.id },
+            });
+            if (surveyData.customer_channels.length > 0) {
+              await tx.survey_customer_channels.createMany({
+                data: surveyData.customer_channels.map((chanId: number) => ({
+                  parent_id: survey.id,
+                  customer_channel_id: chanId,
+                  is_active: 'Y',
+                  createdby: userId,
+                  createdate: new Date(),
+                  log_inst: 1,
+                })),
+              });
+            }
+          }
+
           const finalSurvey = await tx.surveys.findUnique({
             where: { id: survey.id },
             include: {
               surveys_roles: true,
               survey_products: true,
+              survey_depots: true,
+              survey_zones: true,
+              survey_routes: true,
+              survey_customers: true,
+              survey_customer_types: true,
+              survey_customer_categories: true,
+              survey_customer_channels: true,
               survey_fields: {
                 orderBy: { sort_order: 'asc' },
               },
@@ -326,6 +498,13 @@ export const surveysController = {
         include: {
           surveys_roles: true,
           survey_products: true,
+          survey_depots: true,
+          survey_zones: true,
+          survey_routes: true,
+          survey_customers: true,
+          survey_customer_types: true,
+          survey_customer_categories: true,
+          survey_customer_channels: true,
           survey_fields: {
             orderBy: { sort_order: 'asc' },
           },
@@ -378,6 +557,13 @@ export const surveysController = {
         include: {
           surveys_roles: true,
           survey_products: true,
+          survey_depots: true,
+          survey_zones: true,
+          survey_routes: true,
+          survey_customers: true,
+          survey_customer_types: true,
+          survey_customer_categories: true,
+          survey_customer_channels: true,
           survey_fields: {
             orderBy: { sort_order: 'asc' },
           },

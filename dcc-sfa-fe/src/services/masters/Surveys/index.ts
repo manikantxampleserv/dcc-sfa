@@ -40,6 +40,13 @@ interface Survey {
   is_matrix?: string;
   target_products?: number[];
   fields?: SurveyField[];
+  depots?: number[];
+  zones?: number[];
+  routes?: number[];
+  outlets?: number[];
+  customer_types?: number[];
+  customer_categories?: number[];
+  customer_channels?: number[];
 }
 
 interface ManageSurveyPayload {
@@ -55,6 +62,13 @@ interface ManageSurveyPayload {
   target_products?: number[];
   fields?: SurveyField[];
   survey_fields?: SurveyField[];
+  depots?: number[];
+  zones?: number[];
+  routes?: number[];
+  outlets?: number[];
+  customer_types?: number[];
+  customer_categories?: number[];
+  customer_channels?: number[];
 }
 
 interface GetSurveysParams {

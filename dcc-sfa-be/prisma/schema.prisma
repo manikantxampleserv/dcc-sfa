@@ -239,6 +239,7 @@ model depots {
   asset_movement_to_depot      asset_movements[]       @relation("AssetMovementToDepot")
   customer_group_depot         customer_group_depots[]
   customer_depot               customers[]
+  survey_depots                survey_depots[]
   depot_price_overrides_depots depot_price_overrides[]
   depots_city                  cities?                 @relation(fields: [city_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   depots_coodrinator           users?                  @relation("DepotsCoodrinator", fields: [coordinator_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
@@ -969,6 +970,7 @@ model customers {
   credit_notes_customers                 credit_notes[]
   customer_assets_customers              customer_assets[]
   category_grading_customers             customer_category_grading[]
+  survey_customers                       survey_customers[]
   customer_complaint                     customer_complaints[]           @relation("CustomerComplaints")
   customer_documents_customers           customer_documents[]
   customer_group_members_customers       customer_group_members[]
@@ -1955,6 +1957,7 @@ model routes {
   customer_routes            customers[]
   pricelistItemSpecialPrices pricelist_item_special_prices[]
   promotion_route            promotion_routes[]
+  survey_routes              survey_routes[]
   salespersons               route_salespersons[]
   route_depots               depots                          @relation("DepotRoutes", fields: [depot_id], references: [id], onUpdate: NoAction)
   route_zones                zones                           @relation("ZoneRoutes", fields: [parent_id], references: [id], onUpdate: NoAction)
@@ -2219,15 +2222,22 @@ model surveys {
   updatedate       DateTime?          @db.DateTime
   updatedby        Int?
   log_inst         Int?
-  survey_fields    survey_fields[]
-  survey_responses survey_responses[]
-  survey_products  survey_products[]
-  surveys_roles    roles?             @relation("TargetRoles", fields: [target_roles], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  survey_fields              survey_fields[]
+  survey_responses           survey_responses[]
+  survey_products            survey_products[]
+  survey_depots              survey_depots[]
+  survey_zones               survey_zones[]
+  survey_routes              survey_routes[]
+  survey_customers           survey_customers[]
+  survey_customer_types      survey_customer_types[]
+  survey_customer_categories survey_customer_categories[]
+  survey_customer_channels   survey_customer_channels[]
+  surveys_roles              roles?                       @relation("TargetRoles", fields: [target_roles], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
 model van_inventory {
   id                            Int                   @id @default(autoincrement())
-  sap_docentry                  String?               @unique
+  sap_docentry                  String?             
   source_system                 String?               @db.NVarChar(50)
   user_id                       Int
   last_updated                  DateTime?             @default(now(), map: "DF__van_inven__last___658C0CBD") @db.DateTime
@@ -2468,6 +2478,7 @@ model zones {
   customer_group_zone     customer_group_zones[]
   customer_zones          customers[]            @relation("ZoneCustomer")
   promotion_zones_zones   promotion_zones[]
+  survey_zones            survey_zones[]
   route_zones             routes[]               @relation("ZoneRoutes")
   visit_zones             visits[]               @relation("VisitZones")
   zone_depots             depots                 @relation(fields: [parent_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
@@ -2594,6 +2605,7 @@ model customer_category {
   customers_customer_category                        customers[]
   pricelist_item_special_prices                      pricelist_item_special_prices[]
   promotion_customer_categorys                       promotion_customer_category[]
+  survey_customer_categories                         survey_customer_categories[]
 }
 
 model customer_category_condition {
@@ -2633,6 +2645,7 @@ model customer_type {
   log_inst                          Int?
   customer_type_customer            customers[]
   promotion_customer_types_customer promotion_customer_types[]
+  survey_customer_types             survey_customer_types[]
 }
 
 model customer_channel {
@@ -2647,6 +2660,7 @@ model customer_channel {
   log_inst                            Int?
   customer_channel_customer           customers[]
   promotion_customer_channel_customer promotion_customer_channel[]
+  survey_customer_channels            survey_customer_channels[]
 }
 
 model promotion {
@@ -3128,4 +3142,102 @@ model survey_products {
   surveys    surveys  @relation(fields: [survey_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@unique([survey_id, product_id])
+}
+
+model survey_depots {
+  id         Int       @id @default(autoincrement())
+  parent_id  Int
+  depot_id   Int
+  is_active  String    @default("Y") @db.Char(1)
+  createdate DateTime? @default(now()) @db.DateTime
+  createdby  Int?
+  updatedate DateTime? @db.DateTime
+  updatedby  Int?
+  log_inst   Int?
+  depots     depots    @relation(fields: [depot_id], references: [id], onUpdate: NoAction)
+  surveys    surveys   @relation(fields: [parent_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model survey_zones {
+  id         Int       @id @default(autoincrement())
+  parent_id  Int
+  zone_id    Int
+  is_active  String    @default("Y") @db.Char(1)
+  createdate DateTime? @default(now()) @db.DateTime
+  createdby  Int?
+  updatedate DateTime? @db.DateTime
+  updatedby  Int?
+  log_inst   Int?
+  zones      zones     @relation(fields: [zone_id], references: [id], onUpdate: NoAction)
+  surveys    surveys   @relation(fields: [parent_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model survey_routes {
+  id         Int       @id @default(autoincrement())
+  parent_id  Int
+  route_id   Int
+  is_active  String    @default("Y") @db.Char(1)
+  createdate DateTime? @default(now()) @db.DateTime
+  createdby  Int?
+  updatedate DateTime? @db.DateTime
+  updatedby  Int?
+  log_inst   Int?
+  routes     routes    @relation(fields: [route_id], references: [id], onUpdate: NoAction)
+  surveys    surveys   @relation(fields: [parent_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model survey_customers {
+  id          Int       @id @default(autoincrement())
+  parent_id   Int
+  customer_id Int
+  is_active   String    @default("Y") @db.Char(1)
+  createdate  DateTime? @default(now()) @db.DateTime
+  createdby   Int?
+  updatedate  DateTime? @db.DateTime
+  updatedby   Int?
+  log_inst    Int?
+  customers   customers @relation(fields: [customer_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  surveys     surveys   @relation(fields: [parent_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model survey_customer_types {
+  id               Int           @id @default(autoincrement())
+  parent_id        Int
+  customer_type_id Int
+  is_active        String        @default("Y") @db.Char(1)
+  createdate       DateTime?     @default(now()) @db.DateTime
+  createdby        Int?
+  updatedate       DateTime?     @db.DateTime
+  updatedby        Int?
+  log_inst         Int?
+  customer_type    customer_type @relation(fields: [customer_type_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  surveys          surveys       @relation(fields: [parent_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model survey_customer_categories {
+  id                   Int               @id @default(autoincrement())
+  parent_id            Int
+  customer_category_id Int
+  is_active            String            @default("Y") @db.Char(1)
+  createdate           DateTime?         @default(now()) @db.DateTime
+  createdby            Int?
+  updatedate           DateTime?         @db.DateTime
+  updatedby            Int?
+  log_inst             Int?
+  customer_category    customer_category @relation(fields: [customer_category_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  surveys              surveys           @relation(fields: [parent_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model survey_customer_channels {
+  id                  Int              @id @default(autoincrement())
+  parent_id           Int
+  customer_channel_id Int
+  is_active           String           @default("Y") @db.Char(1)
+  createdate          DateTime?        @default(now()) @db.DateTime
+  createdby           Int?
+  updatedate          DateTime?        @db.DateTime
+  updatedby           Int?
+  log_inst            Int?
+  customer_channel    customer_channel @relation(fields: [customer_channel_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  surveys             surveys          @relation(fields: [parent_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }

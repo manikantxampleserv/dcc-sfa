@@ -37,6 +37,7 @@ interface SurveyResponse {
   survey?: {
     id: number;
     title: string;
+    category?: string | null;
     description?: string | null;
     is_matrix?: string;
     fields?: Array<{
