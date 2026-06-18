@@ -209,6 +209,7 @@ exports.userController = {
             const searchLower = search.toLowerCase();
             const filters = {
                 is_active: isActive,
+                id: { not: 27 },
                 ...(search && {
                     OR: [
                         {
@@ -898,6 +899,8 @@ exports.userController = {
             const depotId = depot_id ? Number(depot_id) : null;
             const where = {
                 is_active: 'Y',
+                // Exclude specific users from dropdowns
+                id: { not: 27 },
             };
             if (depotId) {
                 where.users_depots_users = {

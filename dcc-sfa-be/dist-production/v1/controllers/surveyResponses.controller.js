@@ -26,6 +26,7 @@ const serializeSurveyResponse = (item) => ({
             id: item.surveys.id,
             title: item.surveys.title,
             name: item.surveys.name,
+            category: item.surveys.category,
             description: item.surveys.description,
         }
         : null,
@@ -58,12 +59,21 @@ const serializeSurveyResponse = (item) => ({
         id: ans.id,
         parent_id: ans.parent_id,
         field_id: ans.field_id,
+        product_id: ans.product_id,
         answer: ans.answer,
         field: ans.survey_fields
             ? {
                 id: ans.survey_fields.id,
                 name: ans.survey_fields.label || ans.survey_fields.name,
                 type: ans.survey_fields.field_type || ans.survey_fields.type,
+                parent_option_value: ans.survey_fields.parent_option_value || null,
+                parent_field_id: ans.survey_fields.parent_field_id || null,
+            }
+            : null,
+        product: ans.survey_answers_products
+            ? {
+                id: ans.survey_answers_products.id,
+                name: ans.survey_answers_products.name,
             }
             : null,
     })) || [],
@@ -197,6 +207,11 @@ exports.surveyResponseController = {
                         },
                     });
                     responseId = surveyResponse.id;
+                    // Increment response_count on the parent survey
+                    await tx.surveys.update({
+                        where: { id: Number(data.parent_id) },
+                        data: { response_count: { increment: 1 } },
+                    });
                 }
                 const processedAnswerIds = [];
                 if (Array.isArray(answerItems) && answerItems.length > 0) {
@@ -206,6 +221,7 @@ exports.surveyResponseController = {
                         const answerData = {
                             parent_id: surveyResponse.id,
                             field_id: Number(ans.field_id),
+                            product_id: ans.product_id ? Number(ans.product_id) : null,
                             answer: ans.answer || null,
                         };
                         if (ans.id) {
@@ -274,6 +290,7 @@ exports.surveyResponseController = {
                         survey_answer_responses: {
                             include: {
                                 survey_fields: true,
+                                survey_answers_products: true,
                             },
                         },
                     },
@@ -386,7 +403,7 @@ exports.surveyResponseController = {
                                 submitted_by: Number(responseData.submitted_by),
                                 customer_id: responseData.customer_id
                                     ? Number(responseData.customer_id)
-                                    : null, // ADD THIS
+                                    : null,
                                 submitted_at: responseData.submitted_at &&
                                     responseData.submitted_at.trim() !== ''
                                     ? new Date(responseData.submitted_at)
@@ -399,10 +416,15 @@ exports.surveyResponseController = {
                                 log_inst: 1,
                             },
                         });
+                        await tx.surveys.update({
+                            where: { id: Number(responseData.parent_id) },
+                            data: { response_count: { increment: 1 } },
+                        });
                         if (Array.isArray(answerItems) && answerItems.length > 0) {
                             const answersToCreate = answerItems.map((ans) => ({
                                 parent_id: surveyResponse.id,
                                 field_id: Number(ans.field_id),
+                                product_id: ans.product_id ? Number(ans.product_id) : null,
                                 answer: ans.answer || null,
                             }));
                             await tx.survey_answers.createMany({
@@ -418,6 +440,7 @@ exports.surveyResponseController = {
                                 survey_answer_responses: {
                                     include: {
                                         survey_fields: true,
+                                        survey_answers_products: true,
                                     },
                                 },
                             },
@@ -512,6 +535,7 @@ exports.surveyResponseController = {
                     survey_answer_responses: {
                         include: {
                             survey_fields: true,
+                            survey_answers_products: true,
                         },
                     },
                 },
@@ -554,6 +578,7 @@ exports.surveyResponseController = {
                     survey_answer_responses: {
                         include: {
                             survey_fields: true,
+                            survey_answers_products: true,
                         },
                     },
                 },
@@ -604,6 +629,7 @@ exports.surveyResponseController = {
                 where: { parent_id: Number(responseId) },
                 include: {
                     survey_fields: true,
+                    survey_answers_products: true,
                 },
                 orderBy: { id: 'asc' },
             });

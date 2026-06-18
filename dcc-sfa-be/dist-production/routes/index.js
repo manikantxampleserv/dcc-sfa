@@ -106,6 +106,7 @@ const assetMaterBrands_routes_1 = __importDefault(require("../v1/routes/assetMat
 const barcode_routes_1 = __importDefault(require("../v1/routes/barcode.routes"));
 const orgChart_routes_1 = __importDefault(require("../v1/routes/orgChart.routes"));
 const ai_routes_1 = __importDefault(require("../v1/routes/ai.routes"));
+const sap_routes_1 = __importDefault(require("../v1/routes/sap.routes"));
 const routes = (0, express_1.Router)();
 routes.use('/v1/org-chart', orgChart_routes_1.default);
 routes.use('/v1', barcode_routes_1.default);
@@ -209,6 +210,7 @@ routes.use('/v1', cities_routes_1.default);
 routes.use('/v1', alerts_routes_1.default);
 routes.use('/v1', customerCategoryGrading_routes_1.default);
 routes.use('/v1', assetMaterBrands_routes_1.default);
+routes.use('/v1', sap_routes_1.default);
 routes.get('/', (_, res) => {
     res.json({
         name: 'DCC-SFA API',

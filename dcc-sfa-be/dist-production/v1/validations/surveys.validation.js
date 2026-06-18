@@ -66,6 +66,7 @@ exports.createSurveyValidation = [
         'time',
         'photo',
         'signature',
+        'product',
     ])
         .withMessage('Invalid field type'),
     (0, express_validator_1.body)('fields.*.options')
