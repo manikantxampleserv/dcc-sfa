@@ -102,6 +102,7 @@ import assetMasterBrands from '../v1/routes/assetMaterBrands.routes';
 import barcode from '../v1/routes/barcode.routes';
 import orgChart from '../v1/routes/orgChart.routes';
 import ai from '../v1/routes/ai.routes';
+import sapRoutes from '../v1/routes/sap.routes';
 
 const routes = Router();
 
@@ -207,6 +208,7 @@ routes.use('/v1', cities);
 routes.use('/v1', alerts);
 routes.use('/v1', customerCategoryGrading);
 routes.use('/v1', assetMasterBrands);
+routes.use('/v1', sapRoutes);
 
 routes.get('/', (_: any, res: any) => {
   res.json({
