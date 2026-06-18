@@ -2166,12 +2166,12 @@ model survey_answers {
 }
 
 model survey_fields {
-  id             Int              @id(map: "PK__survey_f__3213E83F3D02B5DE") @default(autoincrement())
-  parent_id      Int
-  label          String           @db.NVarChar(255)
-  field_type     String?          @db.NVarChar(50)
-  options        String?          @db.NVarChar(Max)
-  is_required    Boolean?         @default(false, map: "DF__survey_fi__is_re__59063A47")
+  id                  Int              @id(map: "PK__survey_f__3213E83F3D02B5DE") @default(autoincrement())
+  parent_id           Int
+  label               String           @db.NVarChar(255)
+  field_type          String?          @db.NVarChar(50)
+  options             String?          @db.NVarChar(Max)
+  is_required         Boolean?         @default(false, map: "DF__survey_fi__is_re__59063A47")
   sort_order          Int?
   parent_field_id     Int?
   parent_option_value String?          @db.NVarChar(255)
@@ -2227,6 +2227,8 @@ model surveys {
 
 model van_inventory {
   id                            Int                   @id @default(autoincrement())
+  sap_docentry                  String?               @unique
+  source_system                 String?               @db.NVarChar(50)
   user_id                       Int
   last_updated                  DateTime?             @default(now(), map: "DF__van_inven__last___658C0CBD") @db.DateTime
   is_active                     String                @default("Y") @db.Char(1)
@@ -2251,6 +2253,7 @@ model van_inventory {
 model van_inventory_items {
   id                            Int             @id @default(autoincrement())
   parent_id                     Int
+  sap_lineid                    String?         @db.NVarChar(100)
   product_id                    Int
   base_quantity                 Int?
   product_name                  String?         @db.NVarChar(255)

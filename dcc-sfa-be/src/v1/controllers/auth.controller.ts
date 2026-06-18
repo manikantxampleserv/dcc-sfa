@@ -204,6 +204,27 @@ export const login = async (req: any, res: any) => {
       return res.error('Invalid credentials', 400);
     }
 
+    if (platform === 'mobile') {
+  const existingSession = await prisma.api_tokens.findFirst({
+    where: {
+      user_id: user.id,
+      is_active: 'Y',
+      is_revoked: false,
+      expires_at: {
+        gt: new Date(),
+      },
+    },
+  });
+
+  if (existingSession && !req.body.confirmLogin) {
+    return res.status(409).json({
+      success: false,
+      code: 'ACTIVE_SESSION_EXISTS',
+      message:
+        'You are already logged in on another device. Do you want to continue?',
+    });
+  }
+}
     const { accessToken, refreshToken } = generateTokens(user);
 
     const userAgent = req.get('User-Agent') || 'Unknown';
