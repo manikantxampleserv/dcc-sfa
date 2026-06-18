@@ -24,7 +24,7 @@ import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
 import { formatDate } from 'utils/dateUtils';
 import ImportSurvey from './ImportSurvey';
-import SAPManageSurvey from './SAPManageSurvey';
+import ManageSurvey from './ManageSurvey';
 
 const SurveyBuilder: React.FC = () => {
   const navigate = useNavigate();
@@ -131,10 +131,10 @@ const SurveyBuilder: React.FC = () => {
     > = {
       cooler_inspection: 'primary',
       customer_feedback: 'success',
-      outlet_audit: 'secondary',
+      outlet_audit: 'default',
       competitor_analysis: 'error',
       brand_visibility: 'warning',
-      general: 'default',
+      general: 'secondary',
     };
     return colors[category] || 'default';
   };
@@ -210,7 +210,7 @@ const SurveyBuilder: React.FC = () => {
         <Box className="flex items-center gap-1">
           <Users className="w-3 h-3 text-gray-400" />
           <span className="text-xs">
-            {row.target_roles || 'No roles specified'}
+            {row.roles?.name || 'No roles specified'}
           </span>
         </Box>
       ),
@@ -368,7 +368,7 @@ const SurveyBuilder: React.FC = () => {
                     onChange={handleSearchChange}
                     debounceMs={400}
                     showClear={true}
-                    className="!w-80"
+                    className="!w-72"
                   />
                   <Select
                     value={statusFilter}
@@ -384,7 +384,7 @@ const SurveyBuilder: React.FC = () => {
                   <Select
                     value={categoryFilter}
                     onChange={e => setCategoryFilter(e.target.value)}
-                    className="!w-72"
+                    className="!w-60"
                     disableClearable
                   >
                     <MenuItem value="all">All Categories</MenuItem>
@@ -470,7 +470,7 @@ const SurveyBuilder: React.FC = () => {
         }
       />
 
-      <SAPManageSurvey
+      <ManageSurvey
         selectedSurvey={selectedSurvey}
         setSelectedSurvey={setSelectedSurvey}
         drawerOpen={drawerOpen}

@@ -1,7 +1,7 @@
 import { Autocomplete, Box, TextField } from '@mui/material';
 import type { FormikProps } from 'formik';
 import { useProductsDropdown } from 'hooks/useProducts';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { fetchProductsDropdown } from 'services/masters/Products';
 
 interface Product {
@@ -36,6 +36,7 @@ const ProductMultiSelect: React.FC<ProductMultiSelectProps> = ({
   const [cachedSelectedProducts, setCachedSelectedProducts] = useState<
     Product[]
   >([]);
+  const attemptedFetchIds = useRef<Set<number>>(new Set());
 
   const currentValue = formik?.values[name] || [];
 
@@ -79,10 +80,12 @@ const ProductMultiSelect: React.FC<ProductMultiSelectProps> = ({
     const missingIds = currentValue.filter(
       (id: number) =>
         !cachedSelectedProducts.some(p => p.id === id) &&
-        !searchResults.some(p => p.id === id)
+        !searchResults.some(p => p.id === id) &&
+        !attemptedFetchIds.current.has(id)
     );
     if (missingIds.length > 0) {
       missingIds.forEach(async (id: number) => {
+        attemptedFetchIds.current.add(id);
         try {
           const res = await fetchProductsDropdown({ product_id: id });
           if (res.data && res.data.length > 0) {
@@ -99,17 +102,32 @@ const ProductMultiSelect: React.FC<ProductMultiSelectProps> = ({
     }
   }, [currentValue, cachedSelectedProducts, searchResults]);
 
-  const selectedProducts = [...searchResults, ...cachedSelectedProducts].filter(
-    (p, index, self) =>
-      currentValue.includes(p.id) &&
-      self.findIndex(s => s.id === p.id) === index
-  );
+  const selectedProducts = useMemo(() => {
+    const combined = [...searchResults, ...cachedSelectedProducts];
+    const seen = new Set<number>();
+    return combined.filter(p => {
+      if (currentValue.includes(p.id) && !seen.has(p.id)) {
+        seen.add(p.id);
+        return true;
+      }
+      return false;
+    });
+  }, [searchResults, cachedSelectedProducts, currentValue]);
 
-  const autocompleteOptions = [...searchResults, ...selectedProducts].filter(
-    (p, index, self) => self.findIndex(s => s.id === p.id) === index
-  );
+  const autocompleteOptions = useMemo(() => {
+    const combined = [...searchResults, ...selectedProducts];
+    const seen = new Set<number>();
+    return combined.filter(p => {
+      if (!seen.has(p.id)) {
+        seen.add(p.id);
+        return true;
+      }
+      return false;
+    });
+  }, [searchResults, selectedProducts]);
 
   const handleChange = (_event: any, newValue: Product[]) => {
+    setInputValue('');
     if (formik) {
       formik.setFieldValue(
         name,
@@ -121,12 +139,21 @@ const ProductMultiSelect: React.FC<ProductMultiSelectProps> = ({
   return (
     <Autocomplete
       multiple
+      disableCloseOnSelect
+      filterOptions={x => x}
       options={autocompleteOptions}
       getOptionLabel={(option: Product) => option.name}
       value={selectedProducts}
       loading={isFetching}
       onChange={handleChange}
-      onInputChange={(_e, val) => setInputValue(val)}
+      inputValue={inputValue}
+      onInputChange={(_e, val, reason) => {
+        if (reason === 'input') {
+          setInputValue(val);
+        } else if (reason === 'clear') {
+          setInputValue('');
+        }
+      }}
       isOptionEqualToValue={(option, value) => option.id === value.id}
       size={size}
       fullWidth={fullWidth}

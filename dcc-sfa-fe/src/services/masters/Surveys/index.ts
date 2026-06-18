@@ -26,6 +26,7 @@ interface Survey {
     | 'brand_visibility'
     | 'general';
   target_roles?: string | null;
+  roles?: { id: number; name: string; description: string } | null;
   is_published?: boolean | null;
   published_at?: Date | null;
   expires_at?: Date | null;
