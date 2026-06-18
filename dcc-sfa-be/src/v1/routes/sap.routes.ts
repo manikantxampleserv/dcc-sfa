@@ -10,4 +10,18 @@ router.post(
   sapController.syncVanInventory
 );
 
+router.get('/sap/search/users', authenticateToken, sapController.searchUsers);
+
+router.get(
+  '/sap/search/locations',
+  authenticateToken,
+  sapController.searchLocations
+);
+
+router.get(
+  '/sap/search/vehicles',
+  authenticateToken,
+  sapController.searchVehicles
+);
+
 export default router;
