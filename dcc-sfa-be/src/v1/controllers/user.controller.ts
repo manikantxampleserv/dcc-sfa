@@ -253,6 +253,7 @@ export const userController = {
 
       const filters: any = {
         is_active: isActive as string,
+        id: { not: 27 },
         ...(search && {
           OR: [
             {
@@ -1066,6 +1067,8 @@ export const userController = {
 
       const where: any = {
         is_active: 'Y',
+        // Exclude specific users from dropdowns
+        id: { not: 27 },
       };
 
       if (depotId) {
