@@ -15,6 +15,8 @@ interface SurveyAnswer {
     id: number;
     name: string;
     type: string;
+    parent_option_value?: string | null;
+    parent_field_id?: number | null;
   } | null;
 }
 
@@ -31,9 +33,10 @@ interface SurveyResponse {
   updatedate?: Date | null;
   updatedby?: number | null;
   log_inst?: number | null;
+  customer_id?: number | null;
   survey?: {
     id: number;
-    name: string;
+    title: string;
     description?: string | null;
     is_matrix?: string;
     fields?: Array<{

@@ -2,10 +2,11 @@ import { Avatar, Chip, Skeleton, Typography } from '@mui/material';
 import classNames from 'classnames';
 import { useCurrency } from 'hooks/useCurrency';
 import { useSurveyResponse } from 'hooks/useSurveyResponses';
+import { useSurvey } from 'hooks/useSurveys';
 import { AlertTriangle, BarChart3, FileText, User } from 'lucide-react';
 import React from 'react';
 import { useParams } from 'react-router-dom';
-import { formatDate } from 'utils/dateUtils';
+import { formatDateTime } from 'utils/dateUtils';
 
 const SurveyResponseDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -17,6 +18,48 @@ const SurveyResponseDetail: React.FC = () => {
     error,
     isFetching,
   } = useSurveyResponse(Number(id));
+
+  const { data: survey, isLoading: isSurveyLoading } = useSurvey(
+    response?.parent_id ? Number(response.parent_id) : 0
+  );
+
+  const buildTree = (flatFields: any[]) => {
+    const sortedFields = [...flatFields].sort(
+      (a, b) => (a.sort_order || 0) - (b.sort_order || 0)
+    );
+
+    const tree: any[] = [];
+    const map = new Map();
+    sortedFields.forEach(f => map.set(f.id, { ...f, child_fields: [] }));
+
+    sortedFields.forEach(f => {
+      if (f.parent_field_id) {
+        const parent = map.get(f.parent_field_id);
+        if (parent) {
+          parent.child_fields.push(map.get(f.id));
+        }
+      } else {
+        tree.push(map.get(f.id));
+      }
+    });
+    return tree;
+  };
+
+  const surveyFieldsTree = React.useMemo(() => {
+    if (!survey?.fields) return [];
+    return buildTree(survey.fields);
+  }, [survey?.fields]);
+
+  const productsInResponse = React.useMemo(() => {
+    if (!response?.answers) return [];
+    const map = new Map();
+    response.answers.forEach((ans: any) => {
+      if (ans.product) {
+        map.set(ans.product.id, ans.product.name);
+      }
+    });
+    return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
+  }, [response?.answers]);
 
   const formatAnswer = (answer: string | null) => {
     if (!answer) return null;
@@ -55,7 +98,7 @@ const SurveyResponseDetail: React.FC = () => {
     return labels[type] || type;
   };
 
-  if (isLoading || isFetching) {
+  if (isLoading || isFetching || isSurveyLoading) {
     return (
       <div className="!flex !items-start !gap-4">
         <div className="!flex-2 !flex !flex-col !gap-4">
@@ -268,6 +311,227 @@ const SurveyResponseDetail: React.FC = () => {
     );
   }
 
+  const getAnswerForField = (fieldId: number, productContextName?: string) => {
+    // If it's a matrix survey, we must match the product context
+    if (survey?.is_matrix === 'Y') {
+      return response.answers?.find(
+        (ans: any) =>
+          ans.field_id === fieldId &&
+          (!productContextName || ans.product?.name === productContextName)
+      );
+    }
+
+    // For standard surveys, the field itself is unique, so we just match fieldId.
+    return response.answers?.find((ans: any) => ans.field_id === fieldId);
+  };
+
+  const hasAnyAnswer = (
+    fieldsList: any[],
+    contextProduct?: string
+  ): boolean => {
+    return fieldsList.some(field => {
+      const answer = getAnswerForField(field.id, contextProduct);
+      if (
+        answer &&
+        answer.answer !== null &&
+        answer.answer !== undefined &&
+        answer.answer !== ''
+      ) {
+        return true;
+      }
+      if (field.child_fields && field.child_fields.length > 0) {
+        return hasAnyAnswer(field.child_fields, contextProduct);
+      }
+      return false;
+    });
+  };
+
+  const isGroupActive = (
+    parentField: any,
+    optVal: string,
+    productContextName?: string,
+    childFieldsOfGroup: any[] = []
+  ) => {
+    if (optVal === 'default') return true;
+
+    if (
+      hasAnyAnswer(
+        childFieldsOfGroup,
+        parentField.field_type === 'product' ? optVal : productContextName
+      )
+    ) {
+      return true;
+    }
+
+    const parentAns = getAnswerForField(parentField.id, productContextName);
+    if (!parentAns || !parentAns.answer) return false;
+
+    const parentAnswerVal = parentAns.answer;
+
+    if (parentField.field_type === 'product') {
+      try {
+        const parsed = JSON.parse(parentAnswerVal);
+        if (Array.isArray(parsed)) {
+          return parsed.includes(optVal);
+        }
+        return parentAnswerVal === optVal;
+      } catch {
+        return parentAnswerVal === optVal;
+      }
+    }
+
+    return parentAnswerVal.toLowerCase() === optVal.toLowerCase();
+  };
+
+  const isImageUrl = (url: string) => {
+    return (
+      url &&
+      (url.startsWith('http') ||
+        url.startsWith('/') ||
+        url.startsWith('data:image') ||
+        url.match(/\.(jpeg|jpg|gif|png|webp|svg)/i))
+    );
+  };
+
+  const renderFieldNode = (
+    field: any,
+    productContextName?: string
+  ): React.ReactNode => {
+    const hasChildren = field.child_fields && field.child_fields.length > 0;
+    const groups: { optVal: string; fields: any[] }[] = [];
+    if (hasChildren) {
+      field.child_fields.forEach((cf: any) => {
+        const optVal = cf.parent_option_value || 'default';
+        let group = groups.find(g => g.optVal === optVal);
+        if (!group) {
+          group = { optVal, fields: [] };
+          groups.push(group);
+        }
+        group.fields.push(cf);
+      });
+    }
+
+    const answer = getAnswerForField(field.id, productContextName);
+    let answerVal = answer ? formatAnswer(answer.answer || '') : null;
+
+    if (field.field_type === 'product' && !answerVal && hasChildren) {
+      const answeredProducts = groups
+        .filter(g => hasAnyAnswer(g.fields, g.optVal))
+        .map(g => g.optVal)
+        .filter(val => val !== 'default');
+      if (answeredProducts.length > 0) {
+        answerVal = answeredProducts.join(', ');
+      }
+    }
+
+    const activeGroups = groups.filter(g =>
+      isGroupActive(field, g.optVal, productContextName, g.fields)
+    );
+
+    return (
+      <div
+        key={`${field.id}-${productContextName || ''}`}
+        className="!p-3 !bg-gray-50 !rounded-md !border !border-gray-200"
+      >
+        <div className="!flex !items-center !justify-between !mb-2">
+          <div className="!flex !items-center !gap-2">
+            <Typography
+              variant="body2"
+              className="!font-semibold !text-gray-900"
+            >
+              {field.label}
+            </Typography>
+            {field.is_required && (
+              <Chip
+                label="Required"
+                size="small"
+                color="error"
+                className="!text-xs"
+              />
+            )}
+          </div>
+          <Chip
+            label={getFieldTypeLabel(field.field_type || 'text')}
+            size="small"
+            color="primary"
+          />
+        </div>
+
+        {/* Answer section */}
+        {field.field_type !== 'product' && (
+          <div className="!mt-2 !p-2 !bg-white !rounded !border !border-gray-100 !flex !items-center !justify-between">
+            <Typography
+              variant="caption"
+              className="!text-gray-500 !font-semibold"
+            >
+              Answer:
+            </Typography>
+            {answerVal && isImageUrl(answerVal) ? (
+              <div className="!mt-1">
+                <img
+                  src={answerVal}
+                  alt={field.label}
+                  className="!max-w-xs !max-h-48 !object-contain !rounded-md !border !border-gray-200"
+                />
+              </div>
+            ) : (
+              <Typography
+                variant="body2"
+                className={classNames('!font-bold !text-sm !break-words', {
+                  '!text-green-600': answerVal?.toLowerCase() === 'yes',
+                  '!text-red-500': answerVal?.toLowerCase() === 'no',
+                  '!text-gray-900':
+                    answerVal?.toLowerCase() !== 'yes' &&
+                    answerVal?.toLowerCase() !== 'no',
+                })}
+              >
+                {answerVal || (
+                  <span className="!text-gray-300 italic !text-xs">—</span>
+                )}
+              </Typography>
+            )}
+          </div>
+        )}
+
+        {field.options && (
+          <Typography variant="caption" className="!text-gray-500 !block !mt-2">
+            Options:{' '}
+            {field.options
+              .split(',')
+              .map((o: any) => o.trim())
+              .join(', ')}
+          </Typography>
+        )}
+
+        {activeGroups.length > 0 && (
+          <div className="!mt-3 !space-y-3 !border-l-2 !border-blue-200 !pl-4">
+            {activeGroups.map(({ optVal, fields: childFields }) => (
+              <div key={optVal} className="!space-y-2">
+                {optVal !== 'default' && (
+                  <Typography
+                    variant="caption"
+                    className="!text-primary-600 !font-semibold !block !mb-1"
+                  >
+                    {field.field_type === 'product'
+                      ? 'For Product: '
+                      : 'For Option: '}
+                    {optVal}
+                  </Typography>
+                )}
+                {childFields.map((cf: any) =>
+                  renderFieldNode(
+                    cf,
+                    field.field_type === 'product' ? optVal : productContextName
+                  )
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const InfoCard = ({
     title,
     children,
@@ -297,7 +561,7 @@ const SurveyResponseDetail: React.FC = () => {
 
   return (
     <>
-      <div className="flex items-start gap-4">
+      <div className="!flex !items-start !gap-4">
         <div className="!flex-2 flex flex-col">
           <div className="!bg-white !rounded-lg !shadow !border !border-gray-200 !p-6 !text-center !relative">
             <div className="absolute top-3 right-3">
@@ -332,7 +596,7 @@ const SurveyResponseDetail: React.FC = () => {
             </Typography>
 
             <Typography variant="body2" className="!text-gray-600 !mb-3">
-              {response.survey?.name || `Survey #${response.parent_id}`}
+              {response.survey?.title || `Survey #${response.parent_id}`}
             </Typography>
 
             <Chip
@@ -358,7 +622,7 @@ const SurveyResponseDetail: React.FC = () => {
                   className="!font-semibold !text-gray-900"
                 >
                   {response.submitted_at
-                    ? formatDate(
+                    ? formatDateTime(
                         typeof response.submitted_at === 'string'
                           ? response.submitted_at
                           : response.submitted_at?.toString() || ''
@@ -449,7 +713,6 @@ const SurveyResponseDetail: React.FC = () => {
             </div>
           </InfoCard>
         </div>
-
         <div className="!flex-4 !space-y-4">
           <InfoCard title="Response Information" icon={FileText}>
             <div className="!grid !grid-cols-1 md:!grid-cols-2 !gap-4">
@@ -464,7 +727,7 @@ const SurveyResponseDetail: React.FC = () => {
                   variant="body2"
                   className="!font-semibold !text-gray-900"
                 >
-                  {response.survey?.name || `Survey #${response.parent_id}`}
+                  {response.survey?.title || `Survey #${response.parent_id}`}
                 </Typography>
                 {response.survey?.description && (
                   <Typography variant="caption" className="!text-gray-500">
@@ -506,7 +769,7 @@ const SurveyResponseDetail: React.FC = () => {
                   className="!font-semibold !text-gray-900"
                 >
                   {response.submitted_at
-                    ? formatDate(
+                    ? formatDateTime(
                         typeof response.submitted_at === 'string'
                           ? response.submitted_at
                           : response.submitted_at?.toString() || ''
@@ -544,7 +807,7 @@ const SurveyResponseDetail: React.FC = () => {
                   className="!font-semibold !text-gray-900"
                 >
                   {response.createdate
-                    ? formatDate(
+                    ? formatDateTime(
                         typeof response.createdate === 'string'
                           ? response.createdate
                           : response.createdate?.toString() || ''
@@ -554,101 +817,214 @@ const SurveyResponseDetail: React.FC = () => {
               </div>
             </div>
           </InfoCard>
-          {/* Survey Answers */}
+          {(response.customer || response.survey_response_customer) && (
+            <InfoCard title="Customer Information" icon={User}>
+              {(() => {
+                const customer =
+                  response.customer || response.survey_response_customer;
+                if (!customer) return null;
+
+                return (
+                  <div className="!grid !grid-cols-1 md:!grid-cols-2 lg:!grid-cols-3 !gap-4">
+                    <div className="!space-y-0.5">
+                      <Typography
+                        variant="caption"
+                        className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                      >
+                        Customer Name
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        className="!font-semibold !text-gray-900"
+                      >
+                        {customer.name}
+                      </Typography>
+                    </div>
+
+                    <div className="!space-y-0.5">
+                      <Typography
+                        variant="caption"
+                        className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                      >
+                        Customer Code
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        className="!font-semibold !text-gray-900"
+                      >
+                        {customer.code || 'N/A'}
+                      </Typography>
+                    </div>
+
+                    <div className="!space-y-0.5">
+                      <Typography
+                        variant="caption"
+                        className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                      >
+                        Customer Type
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        className="!font-semibold !text-gray-900"
+                      >
+                        {customer.type || 'N/A'}
+                      </Typography>
+                    </div>
+
+                    <div className="!space-y-0.5">
+                      <Typography
+                        variant="caption"
+                        className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                      >
+                        Contact Person
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        className="!font-semibold !text-gray-900"
+                      >
+                        {customer.contact_person || 'N/A'}
+                      </Typography>
+                    </div>
+
+                    <div className="!space-y-0.5">
+                      <Typography
+                        variant="caption"
+                        className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                      >
+                        Phone Number
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        className="!font-semibold !text-gray-900"
+                      >
+                        {customer.phone_number || 'N/A'}
+                      </Typography>
+                    </div>
+
+                    <div className="!space-y-0.5">
+                      <Typography
+                        variant="caption"
+                        className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                      >
+                        Email
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        className="!font-semibold !text-gray-900 !break-all"
+                      >
+                        {customer.email || 'N/A'}
+                      </Typography>
+                    </div>
+
+                    <div className="!space-y-0.5">
+                      <Typography
+                        variant="caption"
+                        className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                      >
+                        Location
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        className="!font-semibold !text-gray-900"
+                      >
+                        {[customer.city, customer.state, customer.zipcode]
+                          .filter(Boolean)
+                          .join(', ') || 'N/A'}
+                      </Typography>
+                    </div>
+
+                    <div className="!space-y-0.5 md:!col-span-2 lg:!col-span-2">
+                      <Typography
+                        variant="caption"
+                        className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                      >
+                        Address
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        className="!font-semibold !text-gray-900"
+                      >
+                        {customer.address || 'N/A'}
+                      </Typography>
+                    </div>
+
+                    <div className="!space-y-0.5">
+                      <Typography
+                        variant="caption"
+                        className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                      >
+                        Credit Limit
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        className="!font-semibold !text-gray-900"
+                      >
+                        {formatCurrency(Number(customer.credit_limit))}
+                      </Typography>
+                    </div>
+
+                    <div className="!space-y-0.5">
+                      <Typography
+                        variant="caption"
+                        className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                      >
+                        Outstanding Amount
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        className="!font-semibold !text-red-600"
+                      >
+                        {formatCurrency(Number(customer.outstanding_amount))}
+                      </Typography>
+                    </div>
+
+                    <div className="!space-y-0.5 flex flex-col items-start">
+                      <Typography
+                        variant="caption"
+                        className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                      >
+                        Status
+                      </Typography>
+                      <Chip
+                        label={
+                          customer.is_active === 'Y' ? 'Active' : 'Inactive'
+                        }
+                        size="small"
+                        color={customer.is_active === 'Y' ? 'success' : 'error'}
+                        variant="outlined"
+                      />
+                    </div>
+                  </div>
+                );
+              })()}
+            </InfoCard>
+          )}
           <InfoCard title="Survey Answers" icon={BarChart3}>
             {response.answers && response.answers.length > 0 ? (
-              response.survey?.is_matrix === 'Y' ? (
-                <div className="!overflow-x-auto">
-                  <table className="!min-w-full !border-collapse !border !border-gray-200">
-                    <thead className="!bg-gray-50">
-                      <tr>
-                        <th className="!border !border-gray-200 !p-3 !text-left !text-sm !font-semibold !text-gray-900">
-                          Product
-                        </th>
-                        {response.survey.fields?.map(field => (
-                          <th
-                            key={field.id}
-                            className="!border !border-gray-200 !p-3 !text-left !text-sm !font-semibold !text-gray-900"
-                          >
-                            {field.label}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {Object.entries(
-                        response.answers.reduce((acc: any, ans) => {
-                          const prodId = ans.product?.id || 0;
-                          const prodName =
-                            ans.product?.name || 'Unknown Product';
-                          if (!acc[prodId])
-                            acc[prodId] = { name: prodName, answers: {} };
-                          acc[prodId].answers[ans.field_id] = ans;
-                          return acc;
-                        }, {})
-                      ).map(([prodId, prodData]: [string, any]) => (
-                        <tr
-                          key={prodId}
-                          className="!border-t !border-gray-200 hover:!bg-gray-50"
-                        >
-                          <td className="!border !border-gray-200 !p-3 !text-sm !text-gray-900 !font-medium">
-                            {prodData.name}
-                          </td>
-                          {response.survey?.fields?.map((field: any) => {
-                            const answer = prodData.answers[field.id];
-                            return (
-                              <td
-                                key={field.id}
-                                className="!border !border-gray-200 !p-3 !text-sm !text-gray-700"
-                              >
-                                {answer
-                                  ? formatAnswer(answer.answer || '')
-                                  : '-'}
-                              </td>
-                            );
-                          })}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+              survey?.is_matrix === 'Y' ? (
+                <div className="!space-y-4">
+                  {productsInResponse.map(product => (
+                    <div
+                      key={product.id}
+                      className="!bg-white !p-4 !rounded-lg !border !border-gray-200"
+                    >
+                      <Typography
+                        variant="subtitle1"
+                        className="!font-bold !text-primary-600 !mb-3"
+                      >
+                        Product: {product.name}
+                      </Typography>
+                      <div className="!space-y-3">
+                        {surveyFieldsTree.map(field =>
+                          renderFieldNode(field, product.name)
+                        )}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               ) : (
                 <div className="!space-y-3">
-                  {response.answers.map((answer, index) => (
-                    <div
-                      key={answer.id || index}
-                      className="!p-3 !bg-gray-50 !rounded-md !border !border-gray-200"
-                    >
-                      <div className="!flex !items-center !justify-between !mb-2">
-                        <div className="!flex !items-center !gap-2">
-                          <Typography
-                            variant="body2"
-                            className="!font-semibold !text-gray-900"
-                          >
-                            {answer.field?.name || `Field #${answer.field_id}`}
-                          </Typography>
-                          {answer.field?.type && (
-                            <Chip
-                              label={getFieldTypeLabel(answer.field.type)}
-                              size="small"
-                              color="primary"
-                              className="!text-xs"
-                            />
-                          )}
-                        </div>
-                      </div>
-                      <Typography
-                        variant="body1"
-                        className="!text-gray-700 !mt-2 !p-2 !bg-white !rounded !border !border-gray-200"
-                      >
-                        {formatAnswer(answer?.answer || '') || (
-                          <span className="!text-gray-400 italic">
-                            No answer provided
-                          </span>
-                        )}
-                      </Typography>
-                    </div>
-                  ))}
+                  {surveyFieldsTree.map(field => renderFieldNode(field))}
                 </div>
               )
             ) : (
@@ -662,201 +1038,6 @@ const SurveyResponseDetail: React.FC = () => {
           </InfoCard>
         </div>
       </div>
-
-      {(response.customer || response.survey_response_customer) && (
-        <InfoCard title="Customer Information" icon={User}>
-          {(() => {
-            const customer =
-              response.customer || response.survey_response_customer;
-            if (!customer) return null;
-
-            return (
-              <div className="!grid !grid-cols-1 md:!grid-cols-2 lg:!grid-cols-3 !gap-4">
-                <div className="!space-y-0.5">
-                  <Typography
-                    variant="caption"
-                    className="!text-gray-500 !text-xs !uppercase !tracking-wide"
-                  >
-                    Customer Name
-                  </Typography>
-                  <Typography
-                    variant="body2"
-                    className="!font-semibold !text-gray-900"
-                  >
-                    {customer.name}
-                  </Typography>
-                </div>
-
-                {customer.code && (
-                  <div className="!space-y-0.5">
-                    <Typography
-                      variant="caption"
-                      className="!text-gray-500 !text-xs !uppercase !tracking-wide"
-                    >
-                      Customer Code
-                    </Typography>
-                    <Typography
-                      variant="body2"
-                      className="!font-semibold !text-gray-900"
-                    >
-                      {customer.code}
-                    </Typography>
-                  </div>
-                )}
-
-                {customer.type && (
-                  <div className="!space-y-0.5">
-                    <Typography
-                      variant="caption"
-                      className="!text-gray-500 !text-xs !uppercase !tracking-wide"
-                    >
-                      Customer Type
-                    </Typography>
-                    <Typography
-                      variant="body2"
-                      className="!font-semibold !text-gray-900"
-                    >
-                      {customer.type}
-                    </Typography>
-                  </div>
-                )}
-
-                {customer.contact_person && (
-                  <div className="!space-y-0.5">
-                    <Typography
-                      variant="caption"
-                      className="!text-gray-500 !text-xs !uppercase !tracking-wide"
-                    >
-                      Contact Person
-                    </Typography>
-                    <Typography
-                      variant="body2"
-                      className="!font-semibold !text-gray-900"
-                    >
-                      {customer.contact_person}
-                    </Typography>
-                  </div>
-                )}
-
-                {customer.phone_number && (
-                  <div className="!space-y-0.5">
-                    <Typography
-                      variant="caption"
-                      className="!text-gray-500 !text-xs !uppercase !tracking-wide"
-                    >
-                      Phone Number
-                    </Typography>
-                    <Typography
-                      variant="body2"
-                      className="!font-semibold !text-gray-900"
-                    >
-                      {customer.phone_number}
-                    </Typography>
-                  </div>
-                )}
-
-                {customer.email && (
-                  <div className="!space-y-0.5">
-                    <Typography
-                      variant="caption"
-                      className="!text-gray-500 !text-xs !uppercase !tracking-wide"
-                    >
-                      Email
-                    </Typography>
-                    <Typography
-                      variant="body2"
-                      className="!font-semibold !text-gray-900 !break-all"
-                    >
-                      {customer.email}
-                    </Typography>
-                  </div>
-                )}
-
-                {(customer.city || customer.state || customer.zipcode) && (
-                  <div className="!space-y-0.5">
-                    <Typography
-                      variant="caption"
-                      className="!text-gray-500 !text-xs !uppercase !tracking-wide"
-                    >
-                      Location
-                    </Typography>
-                    <Typography
-                      variant="body2"
-                      className="!font-semibold !text-gray-900"
-                    >
-                      {[customer.city, customer.state, customer.zipcode]
-                        .filter(Boolean)
-                        .join(', ') || 'N/A'}
-                    </Typography>
-                  </div>
-                )}
-
-                {customer.address && (
-                  <div className="!space-y-0.5 md:!col-span-2 lg:!col-span-2">
-                    <Typography
-                      variant="caption"
-                      className="!text-gray-500 !text-xs !uppercase !tracking-wide"
-                    >
-                      Address
-                    </Typography>
-                    <Typography
-                      variant="body2"
-                      className="!font-semibold !text-gray-900"
-                    >
-                      {customer.address}
-                    </Typography>
-                  </div>
-                )}
-
-                <div className="!space-y-0.5">
-                  <Typography
-                    variant="caption"
-                    className="!text-gray-500 !text-xs !uppercase !tracking-wide"
-                  >
-                    Credit Limit
-                  </Typography>
-                  <Typography
-                    variant="body2"
-                    className="!font-semibold !text-gray-900"
-                  >
-                    {formatCurrency(Number(customer.credit_limit))}
-                  </Typography>
-                </div>
-
-                <div className="!space-y-0.5">
-                  <Typography
-                    variant="caption"
-                    className="!text-gray-500 !text-xs !uppercase !tracking-wide"
-                  >
-                    Outstanding Amount
-                  </Typography>
-                  <Typography
-                    variant="body2"
-                    className="!font-semibold !text-red-600"
-                  >
-                    {formatCurrency(Number(customer.outstanding_amount))}
-                  </Typography>
-                </div>
-
-                <div className="!space-y-0.5 flex flex-col items-start">
-                  <Typography
-                    variant="caption"
-                    className="!text-gray-500 !text-xs !uppercase !tracking-wide"
-                  >
-                    Status
-                  </Typography>
-                  <Chip
-                    label={customer.is_active === 'Y' ? 'Active' : 'Inactive'}
-                    size="small"
-                    color={customer.is_active === 'Y' ? 'success' : 'error'}
-                    variant="outlined"
-                  />
-                </div>
-              </div>
-            );
-          })()}
-        </InfoCard>
-      )}
     </>
   );
 };

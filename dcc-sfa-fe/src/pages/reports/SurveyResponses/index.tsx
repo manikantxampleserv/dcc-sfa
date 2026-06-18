@@ -23,7 +23,7 @@ import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
-import { formatDate } from 'utils/dateUtils';
+import { formatDateTime } from 'utils/dateUtils';
 
 const SurveyResponses: React.FC = () => {
   const navigate = useNavigate();
@@ -120,7 +120,7 @@ const SurveyResponses: React.FC = () => {
       render: (_value, row) => (
         <Box className="!flex !gap-2 !items-center">
           <Avatar
-            alt={row.survey?.name || 'Survey'}
+            alt={row.survey?.title || 'Survey'}
             className="!rounded !bg-primary-100 !text-primary-500"
           >
             <FileText className="w-5 h-5" />
@@ -130,13 +130,13 @@ const SurveyResponses: React.FC = () => {
               variant="body2"
               className="!text-gray-900 !leading-tight !font-semibold"
             >
-              {row.survey?.name || `Survey #${row.parent_id}`}
+              {row.survey?.title || `Survey #${row.parent_id}`}
             </Typography>
-            {row.survey?.description && (
+            {row.survey?.title && (
               <Typography
                 variant="caption"
                 className="!text-gray-500 !text-xs !block !mt-0.5"
-                title={row.survey.description}
+                title={row.survey.title}
                 style={{
                   display: '-webkit-box',
                   WebkitLineClamp: 1,
@@ -147,7 +147,7 @@ const SurveyResponses: React.FC = () => {
                   width: '250px',
                 }}
               >
-                {row.survey.description}
+                {row.survey.title}
               </Typography>
             )}
           </Box>
@@ -228,7 +228,7 @@ const SurveyResponses: React.FC = () => {
           <Calendar className="w-3 h-3 text-gray-400" />
           <span className="text-xs">
             {row.submitted_at
-              ? formatDate(
+              ? formatDateTime(
                   typeof row.submitted_at === 'string'
                     ? row.submitted_at
                     : row.submitted_at?.toString() || ''
@@ -290,7 +290,7 @@ const SurveyResponses: React.FC = () => {
         <div className="!flex !gap-2 !items-center">
           <ActionButton
             onClick={() => handleViewDetail(row)}
-            tooltip={`View ${row.survey?.name || 'Response'}`}
+            tooltip={`View ${row.survey?.title || 'Response'}`}
             icon={<Visibility fontSize="small" />}
             color="info"
           />

@@ -138,6 +138,8 @@ const serializeSurveyResponse = (item: any): SurveyResponseSerialized => ({
             id: ans.survey_fields.id,
             name: ans.survey_fields.label || ans.survey_fields.name,
             type: ans.survey_fields.field_type || ans.survey_fields.type,
+            parent_option_value: ans.survey_fields.parent_option_value || null,
+            parent_field_id: ans.survey_fields.parent_field_id || null,
           }
         : null,
       product: ans.survey_answers_products
@@ -299,6 +301,12 @@ export const surveyResponseController = {
               },
             });
             responseId = surveyResponse.id;
+
+            // Increment response_count on the parent survey
+            await tx.surveys.update({
+              where: { id: Number(data.parent_id) },
+              data: { response_count: { increment: 1 } },
+            });
           }
 
           const processedAnswerIds: any[] = [];
@@ -530,7 +538,7 @@ export const surveyResponseController = {
                   submitted_by: Number(responseData.submitted_by),
                   customer_id: responseData.customer_id
                     ? Number(responseData.customer_id)
-                    : null, // ADD THIS
+                    : null,
                   submitted_at:
                     responseData.submitted_at &&
                     responseData.submitted_at.trim() !== ''
@@ -543,6 +551,11 @@ export const surveyResponseController = {
                   createdate: new Date(),
                   log_inst: 1,
                 },
+              });
+
+              await tx.surveys.update({
+                where: { id: Number(responseData.parent_id) },
+                data: { response_count: { increment: 1 } },
               });
 
               if (Array.isArray(answerItems) && answerItems.length > 0) {

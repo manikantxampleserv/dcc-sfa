@@ -1,12 +1,11 @@
 import { Router } from 'express';
-import multer from 'multer';
+import { auditCreate, auditDelete } from '../../middlewares/audit.middleware';
 import {
   authenticateToken,
   requirePermission,
 } from '../../middlewares/auth.middleware';
-import { auditCreate, auditDelete } from '../../middlewares/audit.middleware';
-import { surveyResponseController } from '../controllers/surveyResponses.controller';
 import { upload } from '../../utils/multer';
+import { surveyResponseController } from '../controllers/surveyResponses.controller';
 
 const router = Router();
 
