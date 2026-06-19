@@ -214,10 +214,12 @@ const MultiUserSelect: React.FC<MultiUserSelectProps> = ({
         >
           <Avatar
             src={option.profile_image || undefined}
-            alt={option.name}
+            alt={option.name?.trim()}
             className="!rounded !bg-primary-100 !text-primary-600"
           >
-            {option.name ? option.name.charAt(0).toUpperCase() : ''}
+            {option.name?.trim()
+              ? option.name?.trim().charAt(0).toUpperCase()
+              : ''}
           </Avatar>
           <Box>
             <p className="!text-gray-900 !text-sm">{option.name || ''}</p>
@@ -267,8 +269,8 @@ const MultiUserSelect: React.FC<MultiUserSelectProps> = ({
       renderInput={params => (
         <TextField
           {...params}
-          label={label}
-          required={required}
+          label={`${label + (required ? ' *' : '')}`}
+          required={false}
           error={!!error}
           helperText={error}
           placeholder={placeholder}

@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import prisma from '../../configs/prisma.client';
+import { getContainerOwnerOrSelf } from '../utils/inventory.utils';
 
 /**
  * Salesperson Stock Controller
@@ -60,9 +61,11 @@ export const salespersonStockController = {
           .json({ success: false, message: 'Salesperson not found' });
       }
 
+      const targetSalespersonId = await getContainerOwnerOrSelf(prisma, salespersonIdNum);
+
       const totalVanInventories = await prisma.van_inventory.count({
         where: {
-          user_id: salespersonIdNum,
+          user_id: targetSalespersonId,
           is_active: 'Y',
         },
       });
@@ -73,7 +76,7 @@ export const salespersonStockController = {
       }
 
       const stockWhere: any = {
-        salesperson_id: salespersonIdNum,
+        salesperson_id: targetSalespersonId,
         is_active: 'Y',
       };
       if (parsedDepotId) {
@@ -416,8 +419,10 @@ async function handleAllSalespersons(
     parsedDepotId = parseInt(depot_id as string, 10);
   }
   for (const sp of allSalespersons) {
+    const targetSalespersonId = await getContainerOwnerOrSelf(prisma, sp.id);
+
     const stockWhere: any = {
-      salesperson_id: sp.id,
+      salesperson_id: targetSalespersonId,
       is_active: 'Y',
     };
     if (parsedDepotId) {
@@ -426,7 +431,7 @@ async function handleAllSalespersons(
     if (product_id) stockWhere.product_id = parseInt(product_id as string, 10);
 
     const vanInventoriesCount = await prisma.van_inventory.count({
-      where: { user_id: sp.id, is_active: 'Y' },
+      where: { user_id: targetSalespersonId, is_active: 'Y' },
     });
 
     const stockRecords = await prisma.inventory_stock.findMany({

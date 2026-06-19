@@ -35,16 +35,24 @@ const killPortWindows = async (portNum: number): Promise<void> => {
   try {
     const { stdout } = await execAsync(`netstat -ano | findstr :${portNum}`);
     if (stdout) {
-      const lines = stdout
-        .split('\n')
-        .filter(line => line.includes('LISTENING'));
+      const lines = stdout.split('\n');
       const uniquePids = new Set<string>();
 
       for (const line of lines) {
         const parts = line.trim().split(/\s+/);
-        const pid = parts[parts.length - 1];
-        if (pid && pid !== '0') {
-          uniquePids.add(pid);
+        if (parts.length >= 5) {
+          const localAddr = parts[1];
+          const state = parts[3];
+          const pid = parts[4];
+          if (
+            localAddr &&
+            localAddr.endsWith(':' + portNum) &&
+            state === 'LISTENING' &&
+            pid &&
+            pid !== '0'
+          ) {
+            uniquePids.add(pid);
+          }
         }
       }
 
@@ -109,7 +117,23 @@ export const isPortInUse = async (port: number | string): Promise<boolean> => {
 
     if (process.platform === 'win32') {
       const { stdout } = await execAsync(`netstat -ano | findstr :${portNum}`);
-      return stdout.includes('LISTENING');
+      if (!stdout) return false;
+      const lines = stdout.split('\n');
+      for (const line of lines) {
+        const parts = line.trim().split(/\s+/);
+        if (parts.length >= 4) {
+          const localAddr = parts[1];
+          const state = parts[3];
+          if (
+            localAddr &&
+            localAddr.endsWith(':' + portNum) &&
+            state === 'LISTENING'
+          ) {
+            return true;
+          }
+        }
+      }
+      return false;
     } else {
       const { stdout } = await execAsync(`lsof -ti:${portNum}`);
       return stdout.trim().length > 0;

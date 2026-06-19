@@ -18,9 +18,7 @@ export async function getAvailableBatchesForProduct(
       const bl = pb.batch_lot_product_batches;
       if (!bl || bl.is_active !== 'Y') return false;
       if (new Date(bl.expiry_date) <= new Date()) return false;
-
       if (loadingType === 'L' && bl.remaining_quantity <= 0) return false;
-
       return true;
     })
     .map((pb: any) => pb.batch_lot_product_batches)
@@ -940,3 +938,28 @@ export async function processVanInventoryItems(
     }
   }
 }
+
+export async function getContainerOwnerOrSelf(tx: any, userId: number): Promise<number> {
+  const containerSub = await tx.van_inventory_sub_users.findFirst({
+    where: {
+      user_id: userId,
+      is_active: 'Y',
+      van_inventory: {
+        sale_type: 'container',
+        is_active: 'Y',
+        status: 'A',
+      },
+    },
+    include: {
+      van_inventory: {
+        select: { user_id: true },
+      },
+    },
+  });
+
+  if (containerSub?.van_inventory) {
+    return containerSub.van_inventory.user_id;
+  }
+  return userId;
+}
+
