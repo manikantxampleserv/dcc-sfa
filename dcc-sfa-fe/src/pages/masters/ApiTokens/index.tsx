@@ -24,6 +24,7 @@ import {
 import { usePermission } from '../../../hooks/usePermission';
 import type { ApiToken } from '../../../services/masters/ApiTokens';
 import { formatDate } from '../../../utils/dateUtils';
+import { formatDeviceInfo } from '../../../utils/deviceUtils';
 
 const ApiTokensPage: React.FC = () => {
   const [search, setSearch] = useState('');
@@ -111,88 +112,6 @@ const ApiTokensPage: React.FC = () => {
     setPage(newPage + 1);
   };
 
-  const formatDeviceInfo = (deviceInfo: string | null | undefined): string => {
-    if (!deviceInfo) return 'Unknown device';
-
-    const info = deviceInfo.toLowerCase();
-
-    if (info.includes('macintosh') || info.includes('mac os x')) {
-      const osMatch = deviceInfo.match(/Mac OS X (\d+[._]\d+[._]\d+)/);
-      const osVersion = osMatch ? osMatch[1].replace(/_/g, '.') : '';
-
-      if (info.includes('chrome')) {
-        const chromeMatch = deviceInfo.match(/Chrome\/(\d+\.\d+\.\d+\.\d+)/);
-        const chromeVersion = chromeMatch ? chromeMatch[1] : '';
-        return `Mac${osVersion ? ` (macOS ${osVersion})` : ''} - Chrome${chromeVersion ? ` ${chromeVersion}` : ''}`;
-      }
-      if (info.includes('safari') && !info.includes('chrome')) {
-        return `Mac${osVersion ? ` (macOS ${osVersion})` : ''} - Safari`;
-      }
-      if (info.includes('firefox')) {
-        return `Mac${osVersion ? ` (macOS ${osVersion})` : ''} - Firefox`;
-      }
-    }
-
-    if (info.includes('windows')) {
-      let windowsVersion = '';
-      if (info.includes('windows nt 10.0')) {
-        windowsVersion = 'Windows 10';
-      } else if (info.includes('windows nt 11.0')) {
-        windowsVersion = 'Windows 11';
-      } else if (info.includes('windows nt 6.3')) {
-        windowsVersion = 'Windows 8.1';
-      } else if (info.includes('windows nt 6.2')) {
-        windowsVersion = 'Windows 8';
-      } else if (info.includes('windows nt 6.1')) {
-        windowsVersion = 'Windows 7';
-      } else {
-        const winMatch = deviceInfo.match(/Windows NT (\d+\.\d+)/i);
-        if (winMatch) {
-          const ntVersion = winMatch[1];
-          if (ntVersion === '10.0') windowsVersion = 'Windows 10';
-          else if (ntVersion === '11.0') windowsVersion = 'Windows 11';
-          else if (ntVersion === '6.3') windowsVersion = 'Windows 8.1';
-          else if (ntVersion === '6.2') windowsVersion = 'Windows 8';
-          else if (ntVersion === '6.1') windowsVersion = 'Windows 7';
-          else windowsVersion = `Windows NT ${ntVersion}`;
-        } else {
-          windowsVersion = 'Windows';
-        }
-      }
-
-      if (info.includes('chrome')) {
-        const chromeMatch = deviceInfo.match(/Chrome\/(\d+\.\d+\.\d+\.\d+)/);
-        const chromeVersion = chromeMatch ? chromeMatch[1] : '';
-        return `${windowsVersion}${chromeVersion ? ` - Chrome ${chromeVersion}` : ' - Chrome'}`;
-      }
-      if (info.includes('firefox')) {
-        const firefoxMatch = deviceInfo.match(/Firefox\/(\d+\.\d+)/);
-        const firefoxVersion = firefoxMatch ? firefoxMatch[1] : '';
-        return `${windowsVersion}${firefoxVersion ? ` - Firefox ${firefoxVersion}` : ' - Firefox'}`;
-      }
-      if (info.includes('edge')) {
-        const edgeMatch = deviceInfo.match(/Edg\/(\d+\.\d+\.\d+\.\d+)/);
-        const edgeVersion = edgeMatch ? edgeMatch[1] : '';
-        return `${windowsVersion}${edgeVersion ? ` - Edge ${edgeVersion}` : ' - Edge'}`;
-      }
-      return windowsVersion;
-    }
-
-    if (info.includes('android')) {
-      if (info.includes('chrome')) return 'Android - Chrome';
-    }
-
-    if (info.includes('iphone') || info.includes('ipad')) {
-      if (info.includes('safari')) return 'iOS - Safari';
-    }
-
-    if (info.includes('dart')) {
-      return 'Mobile App (Dart)';
-    }
-
-    return deviceInfo;
-  };
-
   const getTokenStatus = (token: ApiToken) => {
     if (token.is_revoked) return 'revoked';
     if (token.expires_at && new Date(token.expires_at) < new Date())
@@ -234,17 +153,6 @@ const ApiTokensPage: React.FC = () => {
       },
     },
     {
-      id: 'token_type',
-      label: 'Token Type',
-      render: (_value, row) => (
-        <Typography variant="body2" className="!text-gray-900">
-          {row.token_type || (
-            <span className="italic text-gray-400">No Token Type</span>
-          )}
-        </Typography>
-      ),
-    },
-    {
       id: 'device_id',
       label: 'Device',
       render: (_value, row) => (
@@ -269,6 +177,15 @@ const ApiTokensPage: React.FC = () => {
           ) : (
             <span className="italic text-gray-400">No IP</span>
           )}
+        </Typography>
+      ),
+    },
+    {
+      id: 'location',
+      label: 'Location',
+      render: (_value, row) => (
+        <Typography variant="body2" className="!text-gray-600">
+          {row.location || 'Unknown'}
         </Typography>
       ),
     },

@@ -1423,7 +1423,7 @@ export const visitsController = {
                                 where: {
                                   product_id: product.id,
                                   batch_lot_id: batchOrder.batch_lot_id,
-                                  parent_id: vanInventory?.id,
+                                  parent_id: vanInventory?.id ?? -1,
                                 },
                               });
 

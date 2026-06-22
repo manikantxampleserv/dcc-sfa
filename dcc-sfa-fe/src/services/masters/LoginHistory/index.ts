@@ -31,6 +31,7 @@ interface LoginHistory {
     name: string;
     email: string;
   } | null;
+  location?: string | null;
 }
 
 interface ManageLoginHistoryPayload {

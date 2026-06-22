@@ -25,6 +25,7 @@ import Select from 'shared/Select';
 import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
 import { formatDateTime } from 'utils/dateUtils';
+import { formatDeviceInfo } from 'utils/deviceUtils';
 
 const LoginHistoryPage: React.FC = () => {
   const [search, setSearch] = useState('');
@@ -161,16 +162,26 @@ const LoginHistoryPage: React.FC = () => {
       ),
     },
     {
+      id: 'location',
+      label: 'Location',
+      sortable: false,
+      render: (_value, row) => (
+        <Typography variant="body2" className="text-gray-600">
+          {row.location || 'Unknown'}
+        </Typography>
+      ),
+    },
+    {
       id: 'device_info',
       label: 'Device',
       sortable: false,
-      render: value => (
-        <Tooltip title={value || 'N/A'} placement="top" arrow>
+      render: (_value, row) => (
+        <Tooltip title={row.device_info || 'No Device'} arrow placement="top">
           <Typography
             variant="body2"
-            className="max-w-[200px] truncate text-gray-600"
+            className="text-gray-600 truncate max-w-[200px]"
           >
-            {value || 'N/A'}
+            {formatDeviceInfo(row.device_info)}
           </Typography>
         </Tooltip>
       ),

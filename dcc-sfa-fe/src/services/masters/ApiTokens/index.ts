@@ -11,6 +11,7 @@ export interface ApiToken {
   is_revoked?: boolean | null;
   device_id?: string | null;
   ip_address?: string | null;
+  location?: string | null;
   is_active: string;
   log_inst?: number | null;
   created_by: number;

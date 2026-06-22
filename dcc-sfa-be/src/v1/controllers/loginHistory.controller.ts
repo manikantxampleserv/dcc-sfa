@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
-import { paginate } from '../../utils/paginate';
 import prisma from '../../configs/prisma.client';
+import { getLocationFromIPs } from '../../utils/ipLocation.util';
 
 interface LoginHistorySerialized {
   id: number;
@@ -25,6 +25,7 @@ interface LoginHistorySerialized {
     name: string;
     email: string;
   } | null;
+  location?: string | null;
 }
 
 const serializeLoginHistory = (loginHistory: any): LoginHistorySerialized => ({
@@ -56,6 +57,7 @@ const serializeLoginHistory = (loginHistory: any): LoginHistorySerialized => ({
         email: loginHistory.users_login_history_user_idTousers.email,
       }
     : null,
+  location: loginHistory.location || 'Unknown',
 });
 
 export const loginHistoryController = {
@@ -84,9 +86,14 @@ export const loginHistoryController = {
         },
       });
 
+      const locationMap = await getLocationFromIPs([loginHistory.ip_address]);
+
       res.status(201).json({
         success: true,
-        data: serializeLoginHistory(loginHistory),
+        data: serializeLoginHistory({
+          ...loginHistory,
+          location: locationMap[loginHistory.ip_address || ''],
+        }),
         message: 'Login history created successfully',
       });
     } catch (error) {
@@ -192,8 +199,16 @@ export const loginHistoryController = {
         },
       });
 
+      const ipsToLookup = loginHistory.map(lh => lh.ip_address);
+      const locationMap = await getLocationFromIPs(ipsToLookup);
+
       const paginatedData = {
-        data: loginHistory.map(serializeLoginHistory),
+        data: loginHistory.map(lh =>
+          serializeLoginHistory({
+            ...lh,
+            location: locationMap[lh.ip_address || ''],
+          })
+        ),
         pagination: {
           current_page: pageNum,
           total_pages: Math.ceil(total / limitNum),
@@ -260,9 +275,14 @@ export const loginHistoryController = {
         });
       }
 
+      const locationMap = await getLocationFromIPs([loginHistory.ip_address]);
+
       res.json({
         success: true,
-        data: serializeLoginHistory(loginHistory),
+        data: serializeLoginHistory({
+          ...loginHistory,
+          location: locationMap[loginHistory.ip_address || ''],
+        }),
       });
     } catch (error) {
       console.error('Error fetching login history by ID:', error);
@@ -319,9 +339,16 @@ export const loginHistoryController = {
         },
       });
 
+      const locationMap = await getLocationFromIPs([
+        updatedLoginHistory.ip_address,
+      ]);
+
       res.json({
         success: true,
-        data: serializeLoginHistory(updatedLoginHistory),
+        data: serializeLoginHistory({
+          ...updatedLoginHistory,
+          location: locationMap[updatedLoginHistory.ip_address || ''],
+        }),
         message: 'Login history updated successfully',
       });
     } catch (error) {
