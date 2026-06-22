@@ -19,6 +19,7 @@ export const sapController = {
       });
     }
   },
+
   async searchUsers(req: Request, res: Response) {
     try {
       const name = (req.query.name as string) || '';
@@ -76,8 +77,43 @@ export const sapController = {
         select: { id: true, vehicle_number: true },
         take: 50,
       });
-      // normalize to id/name shape
       const result = vehicles.map(v => ({ id: v.id, name: v.vehicle_number }));
+      return res.json({ success: true, data: result });
+    } catch (err: any) {
+      return res.status(500).json({ success: false, message: err.message });
+    }
+  },
+
+  async searchProduct(req: Request, res: Response) {
+    try {
+      const name = (req.query.name as string) || '';
+      if (!name)
+        return res
+          .status(400)
+          .json({ success: false, message: 'name query param required' });
+
+      const products = await prisma.products.findMany({
+        where: {
+          OR: [{ name: { contains: name } }, { code: { contains: name } }],
+          is_active: 'Y',
+        },
+
+        select: {
+          id: true,
+          name: true,
+          code: true,
+          product_unit_of_measurement: true,
+        },
+        take: 50,
+      });
+
+      const result = products.map(p => ({
+        id: p.id,
+        name: p.code ? `${p.name} (${p.code})` : p.name,
+        unit: p.product_unit_of_measurement?.name || null,
+        code: p.code,
+      }));
+
       return res.json({ success: true, data: result });
     } catch (err: any) {
       return res.status(500).json({ success: false, message: err.message });

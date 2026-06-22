@@ -150,6 +150,7 @@ async function createStockMovement(
     },
   });
 }
+
 export const sapService = {
   async createOrUpdateVanInventorySAP(payload: any, userId: number = 1) {
     const { van_inventory_items, inventoryItems, ...inventoryData } = payload;
@@ -805,6 +806,7 @@ export const sapService = {
                   const batchLot = await tx.batch_lots.findFirst({
                     where: {
                       batch_number: batchInput.batch_number,
+                      productsId: product.id,
                       is_active: 'Y',
                     },
                   });
@@ -819,12 +821,16 @@ export const sapService = {
                       product_id: product.id,
                       batch_lot_id: batchLot.id,
                       van_inventory_items_inventory: {
-                        user_id: Number(inventoryData.user_id),
-                        is_active: 'Y',
+                          user_id: Number(inventoryData.user_id),
+                          is_active: 'Y',
+                          loading_type: 'L',
                       },
                     },
                   });
-                  if (!vanItem) throw new Error(`Batch not found in van`);
+                  if (!vanItem)
+                    throw new Error(
+                      `Batch ${batchInput.batch_number} for product ${product.id} not found in van inventory for user ${inventoryData.user_id}`
+                    );
                   if (vanItem.quantity < batchQty)
                     throw new Error(`Insufficient van quantity`);
 

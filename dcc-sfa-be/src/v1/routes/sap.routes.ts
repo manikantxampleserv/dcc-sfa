@@ -24,4 +24,10 @@ router.get(
   sapController.searchVehicles
 );
 
+router.get(
+  '/sap/search/product',
+  authenticateToken,
+  sapController.searchProduct
+);
+
 export default router;
