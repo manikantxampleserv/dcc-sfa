@@ -180,7 +180,6 @@ export class ImportExportFactory {
   } | null {
     const service = this.getService(tableName);
     if (!service) return null;
-
     return {
       displayName: service.getDisplayName(),
       columns: service.getColumns().length,

@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { paginate } from '../../utils/paginate';
 import prisma from '../../configs/prisma.client';
 import { deleteFile, uploadFile } from '../../utils/blackbaze';
-import { log } from 'console';
+import { getContainerOwnerAndSelf } from '../utils/inventory.utils';
 
 interface VisitSerialized {
   id: number;
@@ -724,6 +724,89 @@ function calculateStockDeduction(
   }
 }
 
+async function getContainerGroupUsers(
+  tx: any,
+  userId: number
+): Promise<number[]> {
+  // 1. Check if userId is the main user of an active container van inventory
+  const activeContainerAsMain = await tx.van_inventory.findFirst({
+    where: {
+      user_id: userId,
+      sale_type: 'container',
+      is_active: 'Y',
+      status: 'A', // Confirmed/Approved
+    },
+    include: {
+      van_inventory_sub_users: {
+        where: { is_active: 'Y' },
+        select: { user_id: true },
+      },
+    },
+  });
+
+  if (activeContainerAsMain) {
+    const subUserIds = activeContainerAsMain.van_inventory_sub_users.map(
+      (su: any) => su.user_id
+    );
+    return [userId, ...subUserIds];
+  }
+
+  // 2. Check if userId is a sub-user in an active container van inventory
+  const activeContainerAsSub = await tx.van_inventory_sub_users.findFirst({
+    where: {
+      user_id: userId,
+      is_active: 'Y',
+      van_inventory: {
+        sale_type: 'container',
+        is_active: 'Y',
+        status: 'A',
+      },
+    },
+    include: {
+      van_inventory: {
+        include: {
+          van_inventory_sub_users: {
+            where: { is_active: 'Y' },
+            select: { user_id: true },
+          },
+        },
+      },
+    },
+  });
+
+  if (activeContainerAsSub?.van_inventory) {
+    const mainUserId = activeContainerAsSub.van_inventory.user_id;
+    const subUserIds =
+      activeContainerAsSub.van_inventory.van_inventory_sub_users.map(
+        (su: any) => su.user_id
+      );
+    return [mainUserId, ...subUserIds];
+  }
+
+  // If not part of any container group, return just the userId
+  return [userId];
+}
+
+async function syncDeductionsForContainerGroup(
+  tx: any,
+  originalSalesPersonId: number,
+  productId: number,
+  piecesToDeduct: number,
+  conversionFactor: number,
+  itemUnit: string,
+  orderedQty: number,
+  isUnitPcs: boolean,
+  batchLotId: number | null,
+  serialNumberId: number | null,
+  userId: number,
+  referenceType: string,
+  referenceId: number,
+  referenceLabel: string
+): Promise<void> {
+  // No-op - container sub-users directly share the main/parent user's stock record!
+  return;
+}
+
 export const visitsController = {
   async createVisits(req: Request, res: Response) {
     try {
@@ -1283,6 +1366,15 @@ export const visitsController = {
                       const referenceId = createdInvoice.id;
                       const referenceLabel = `invoice ${createdInvoice.invoice_number}`;
 
+                      const groupUsers = await getContainerGroupUsers(
+                        tx,
+                        visit.sales_person_id
+                      );
+                      const targetSalespersonIds = await getContainerOwnerAndSelf(
+                        tx,
+                        visit.sales_person_id
+                      );
+
                       for (const item of invoiceItems) {
                         const product = await tx.products.findUnique({
                           where: { id: Number(item.product_id) },
@@ -1335,7 +1427,7 @@ export const visitsController = {
                               await tx.inventory_stock.findFirst({
                                 where: {
                                   product_id: product.id,
-                                  salesperson_id: visit.sales_person_id,
+                                  salesperson_id: { in: targetSalespersonIds },
                                   inventory_stock_batch: {
                                     batch_number: batchNumber,
                                   },
@@ -1402,7 +1494,7 @@ export const visitsController = {
                             const vanInventory =
                               await tx.van_inventory.findFirst({
                                 where: {
-                                  user_id: visit.sales_person_id,
+                                  user_id: { in: groupUsers },
                                   status: 'A',
                                   is_active: 'Y',
                                   van_inventory_items_inventory: {
@@ -1423,7 +1515,7 @@ export const visitsController = {
                                 where: {
                                   product_id: product.id,
                                   batch_lot_id: batchOrder.batch_lot_id,
-                                  parent_id: vanInventory?.id,
+                                  parent_id: vanInventory?.id ?? -1,
                                 },
                               });
 
@@ -1482,6 +1574,7 @@ export const visitsController = {
                               await tx.inventory_stock.findFirst({
                                 where: {
                                   product_id: product.id,
+                                  salesperson_id: { in: targetSalespersonIds },
                                   batch_id: batchOrder.batch_lot_id,
                                 },
                               });
@@ -1543,6 +1636,23 @@ export const visitsController = {
                                     1,
                                 },
                               });
+
+                              await syncDeductionsForContainerGroup(
+                                tx,
+                                visit.sales_person_id,
+                                product.id,
+                                piecesToDeduct,
+                                conversionFactor,
+                                itemUnit,
+                                batchOrder.uomQty,
+                                isUnitPcs,
+                                batchOrder.batch_lot_id,
+                                null,
+                                (req as any).user?.id || visit.createdby || 1,
+                                referenceType,
+                                referenceId,
+                                referenceLabel
+                              );
 
                               console.log(
                                 `BATCH STOCK [${itemUnit}]: ` +
@@ -1677,7 +1787,7 @@ export const visitsController = {
                                   product_id: product.id,
                                   serial_id: serial.id,
                                   van_inventory_items_inventory: {
-                                    user_id: visit.sales_person_id,
+                                    user_id: { in: groupUsers },
                                     is_active: 'Y',
                                     status: 'A',
                                   },
@@ -1700,38 +1810,6 @@ export const visitsController = {
                               `Van found for serial ${serialNumber}: van_id=${vanInventory.id}, van_item_id=${vanItemWithSerial.id}`
                             );
 
-                            // if ((vanItemWithSerial.quantity || 0) > 1) {
-                            //   await tx.van_inventory_items.update({
-                            //     where: { id: vanItemWithSerial.id },
-                            //     data: {
-                            //       quantity:
-                            //         (vanItemWithSerial.quantity || 0) - 1,
-                            //     },
-                            //   });
-                            //   console.log(
-                            //     `VAN SERIAL [${serialNumber}]: qty ${vanItemWithSerial.quantity} → ${(vanItemWithSerial.quantity || 0) - 1}`
-                            //   );
-                            // } else {
-                            //   await tx.van_inventory_items.delete({
-                            //     where: { id: vanItemWithSerial.id },
-                            //   });
-                            //   console.log(
-                            //     `VAN SERIAL [${serialNumber}]: van_inventory_items row deleted (id=${vanItemWithSerial.id})`
-                            //   );
-                            // }
-
-                            // await tx.serial_numbers.update({
-                            //   where: { id: serial.id },
-                            //   data: {
-                            //     status: 'sold',
-                            //     customer_id: visit.customer_id,
-                            //     sold_date: new Date(),
-                            //     updatedate: new Date(),
-                            //     updatedby:
-                            //       (req as any).user?.id || visit.createdby || 1,
-                            //   },
-                            // });
-
                             console.log(
                               ` Serial ${serialNumber} marked as sold to customer ${visit.customer_id}`
                             );
@@ -1740,6 +1818,7 @@ export const visitsController = {
                               await tx.inventory_stock.findFirst({
                                 where: {
                                   product_id: product.id,
+                                  salesperson_id: { in: targetSalespersonIds },
                                   serial_number_id: serial.id,
                                 },
                               });
@@ -1749,6 +1828,7 @@ export const visitsController = {
                                 await tx.inventory_stock.findFirst({
                                   where: {
                                     product_id: product.id,
+                                    salesperson_id: { in: targetSalespersonIds },
                                     serial_number_id: null,
                                     batch_id: null,
                                     ...(vanInventory?.location_id && {
@@ -1788,6 +1868,23 @@ export const visitsController = {
                                     1,
                                 },
                               });
+
+                              await syncDeductionsForContainerGroup(
+                                tx,
+                                visit.sales_person_id,
+                                product.id,
+                                1,
+                                1,
+                                'PCS',
+                                1,
+                                true,
+                                null,
+                                serial.id,
+                                (req as any).user?.id || visit.createdby || 1,
+                                referenceType,
+                                referenceId,
+                                referenceLabel
+                              );
                             }
 
                             const validatedFromLocationId =
@@ -1857,7 +1954,7 @@ export const visitsController = {
                           const vanInventory = await tx.van_inventory.findFirst(
                             {
                               where: {
-                                user_id: visit.sales_person_id,
+                                user_id: { in: groupUsers },
                                 status: 'A',
                                 is_active: 'Y',
                                 van_inventory_items_inventory: {
@@ -1877,7 +1974,6 @@ export const visitsController = {
                             await tx.van_inventory_items.findFirst({
                               where: {
                                 product_id: product.id,
-                                parent_id: vanInventory?.id,
                                 batch_lot_id: null,
                                 serial_id: null,
                               },
@@ -1937,6 +2033,7 @@ export const visitsController = {
                             await tx.inventory_stock.findFirst({
                               where: {
                                 product_id: product.id,
+                                salesperson_id: { in: targetSalespersonIds },
                                 batch_id: null,
                                 serial_number_id: null,
                                 ...(vanInventory?.location_id && {
@@ -2000,6 +2097,23 @@ export const visitsController = {
                                   (req as any).user?.id || visit.createdby || 1,
                               },
                             });
+
+                            await syncDeductionsForContainerGroup(
+                              tx,
+                              visit.sales_person_id,
+                              product.id,
+                              orderedPieces,
+                              conversionFactor,
+                              itemUnit,
+                              orderedQty,
+                              isUnitPcs,
+                              null,
+                              null,
+                              (req as any).user?.id || visit.createdby || 1,
+                              referenceType,
+                              referenceId,
+                              referenceLabel
+                            );
 
                             console.log(
                               `NONE STOCK [${itemUnit}]: ${inventoryStock.current_stock}cs + ` +
@@ -2555,6 +2669,7 @@ export const visitsController = {
             console.error(
               `Transaction failed for visit ${index + 1}, rolling back images...`
             );
+            console.error('Transaction error details:', transactionError);
             for (const imagePath of uploadedImagePaths) {
               await deleteOldImages(imagePath).catch(err =>
                 console.error('Failed to cleanup uploaded image:', err)

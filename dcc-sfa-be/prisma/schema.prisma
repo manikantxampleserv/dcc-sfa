@@ -91,6 +91,7 @@ model users {
   workflow_steps_workflow_steps_processed_byTousers                 workflow_steps[]             @relation("workflow_steps_processed_byTousers")
   zone_supervisor                                                   zones[]
   inventory_stock_users                                             inventory_stock[]
+  van_inventory_sub_users                                           van_inventory_sub_users[]
 }
 
 model user_depots {
@@ -2258,6 +2259,22 @@ model van_inventory {
   van_inventory_users           users                 @relation("VanInventoryUsers", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   vehicle                       vehicles?             @relation("VehiclesVanInventory", fields: [vehicle_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   van_inventory_items_inventory van_inventory_items[]
+  sale_type                     String?               @db.NVarChar(50)
+  van_inventory_sub_users       van_inventory_sub_users[]
+}
+
+model van_inventory_sub_users {
+  id               Int           @id @default(autoincrement())
+  parent_id        Int
+  user_id          Int
+  is_active        String        @default("Y") @db.Char(1)
+  createdate       DateTime?     @default(now()) @db.DateTime
+  createdby        Int?
+  updatedate       DateTime?     @db.DateTime
+  updatedby        Int?
+  log_inst         Int?
+  users            users         @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  van_inventory    van_inventory @relation(fields: [parent_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }
 
 model van_inventory_items {

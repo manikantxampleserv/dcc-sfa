@@ -35,8 +35,6 @@ export class CustomerCategoryAssignmentService {
       },
     });
 
-    // Choose which one to use or combine both
-    // For now, using orders total amount
     return Number(orderSales._sum.total_amount || 0);
   }
 
@@ -136,10 +134,8 @@ export class CustomerCategoryAssignmentService {
 
       for (const customer of customers) {
         results.totalProcessed++;
-
         try {
           const totalSales = await this.calculateCustomerSales(customer.id);
-
           const assignedCategory = this.determineCategory(
             totalSales,
             categoryLevels
@@ -154,7 +150,7 @@ export class CustomerCategoryAssignmentService {
               data: {
                 customer_category_id: newCategoryId,
                 updatedate: new Date(),
-                updatedby: 1, // System user
+                updatedby: 1,
               },
             });
 

@@ -39,6 +39,7 @@ import Input from 'shared/Input';
 import Select from 'shared/Select';
 import Table, { type TableColumn } from 'shared/Table';
 import UserSelect from 'shared/UserSelect';
+import MultiUserSelect from 'shared/MultiUserSelect';
 import ManageBatch from '../ManageBatch';
 import ManageSerial from '../ManageSerial';
 
@@ -88,6 +89,8 @@ export interface VanInventoryFormValues {
   location_type: string;
   location_id: string | number;
   is_active: string;
+  sale_type: string;
+  sub_inventory_user_ids: number[];
   van_inventory_items: VanInventoryItemFormData[];
 }
 
@@ -316,6 +319,8 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
   const { data: vanInventoryResponse } = useVanInventoryById(
     selectedVanInventory?.id || 0
   );
+  const vanInventoryData = vanInventoryResponse?.data;
+  const vanInventoryId = vanInventoryData?.id;
 
   const { data: productsResponse } = useProducts({
     limit: 1000,
@@ -339,6 +344,15 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
       location_type: selectedVanInventory?.location_type || 'van',
       location_id: selectedVanInventory?.location_id || '',
       is_active: selectedVanInventory?.is_active || 'Y',
+      sale_type:
+        vanInventoryData?.sale_type ||
+        selectedVanInventory?.sale_type ||
+        'normal',
+      sub_inventory_user_ids: vanInventoryData?.sub_inventory_users
+        ? vanInventoryData.sub_inventory_users.map(u => u.id)
+        : selectedVanInventory?.sub_inventory_users
+          ? selectedVanInventory.sub_inventory_users.map(u => u.id)
+          : [],
       van_inventory_items: [],
     },
     validationSchema: vanInventoryValidationSchema,
@@ -418,6 +432,11 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
           location_type: values.location_type,
           location_id: values.location_id ? Number(values.location_id) : null,
           is_active: values.is_active,
+          sale_type: values.sale_type,
+          sub_inventory_user_ids:
+            values.sale_type === 'container'
+              ? values.sub_inventory_user_ids.map(Number)
+              : [],
           van_inventory_items: values.van_inventory_items
             .filter(item => item.product_id && item.quantity != null)
             .map(item => {
@@ -555,9 +574,6 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
 
     return map;
   }, [isUnloadType, userInventoryData]);
-
-  const vanInventoryData = vanInventoryResponse?.data;
-  const vanInventoryId = vanInventoryData?.id;
 
   const handleCancel = () => {
     setDrawerOpen(false);
@@ -1044,6 +1060,24 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
               <MenuItem value="L">Load</MenuItem>
               <MenuItem value="U">Unload</MenuItem>
             </Select>
+
+            <Select name="sale_type" label="Sale Type" formik={formik} required>
+              <MenuItem value="normal">Normal</MenuItem>
+              <MenuItem value="container">Container</MenuItem>
+            </Select>
+
+            {formik.values.sale_type === 'container' && (
+              <Box className="md:col-span-2">
+                <MultiUserSelect
+                  name="sub_inventory_user_ids"
+                  label="Sub Inventory Users"
+                  formik={formik}
+                  required
+                  roleName="Salesman"
+                  placeholder="Select Sub Inventory Users..."
+                />
+              </Box>
+            )}
 
             <Select name="status" label="Status" formik={formik} required>
               <MenuItem value="D">Draft</MenuItem>

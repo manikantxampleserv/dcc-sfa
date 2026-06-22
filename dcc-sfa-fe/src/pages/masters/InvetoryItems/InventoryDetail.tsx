@@ -320,6 +320,11 @@ const InventoryDetail = () => {
     enabled: inventoryId !== undefined,
   });
 
+  const salespersonData = useMemo(
+    () => (inventoryData?.data as SalespersonInventoryData) || null,
+    [inventoryData]
+  );
+
   const { data: vanInventoryResponse, isLoading: isLoadingVanInventory } =
     useVanInventory(
       {
@@ -408,8 +413,19 @@ const InventoryDetail = () => {
         );
       });
     }
-    return data;
-  }, [vanInventoryResponse, timeFilter, customDateRange]);
+    return data.filter(v => {
+      const allowedIds = salespersonData?.combined_salesperson_ids || [
+        inventoryId,
+      ];
+      return allowedIds.includes(Number(v.user_id));
+    });
+  }, [
+    vanInventoryResponse,
+    timeFilter,
+    customDateRange,
+    salespersonData,
+    inventoryId,
+  ]);
 
   const salespersonInvoices = useMemo(() => {
     let rawInvoices = invoicesResponse?.data || [];
@@ -428,16 +444,25 @@ const InventoryDetail = () => {
       });
     }
     return rawInvoices.filter(inv => {
+      const allowedIds = salespersonData?.combined_salesperson_ids || [
+        inventoryId,
+      ];
       return (
         (inv.salesperson_id !== null &&
           inv.salesperson_id !== undefined &&
-          Number(inv.salesperson_id) === inventoryId) ||
+          allowedIds.includes(Number(inv.salesperson_id))) ||
         (inv.createdby !== null &&
           inv.createdby !== undefined &&
-          Number(inv.createdby) === inventoryId)
+          allowedIds.includes(Number(inv.createdby)))
       );
     });
-  }, [invoicesResponse, inventoryId, timeFilter, customDateRange]);
+  }, [
+    invoicesResponse,
+    inventoryId,
+    timeFilter,
+    customDateRange,
+    salespersonData,
+  ]);
 
   const salespersonStockMovements = useMemo(() => {
     const salespersonVanInventoryIds = new Set(vanInventories.map(v => v.id));
@@ -501,11 +526,6 @@ const InventoryDetail = () => {
   const handleBack = useCallback(
     () => navigate('/masters/inventory-items'),
     [navigate]
-  );
-
-  const salespersonData = useMemo(
-    () => (inventoryData?.data as SalespersonInventoryData) || null,
-    [inventoryData]
   );
 
   const products: ProductInventory[] = useMemo(() => {

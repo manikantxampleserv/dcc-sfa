@@ -47,4 +47,19 @@ export const vanInventoryValidationSchema = Yup.object({
     .oneOf(['Y', 'N'], 'Must be Y or N')
     .default('Y')
     .required('Active status is required'),
+
+  sale_type: Yup.string()
+    .oneOf(['normal', 'container'], 'Sale Type must be Normal or Container')
+    .nullable()
+    .optional(),
+
+  sub_inventory_user_ids: Yup.array()
+    .of(Yup.number())
+    .when('sale_type', {
+      is: (val: string) => val === 'container',
+      then: schema =>
+        schema.min(1, 'At least one Sub Inventory User must be selected'),
+      otherwise: schema => schema.notRequired(),
+    })
+    .optional(),
 });

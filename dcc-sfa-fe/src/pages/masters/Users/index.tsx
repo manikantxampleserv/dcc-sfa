@@ -181,11 +181,11 @@ const UsersManagement: React.FC = () => {
         value || <span className="italic text-xs text-gray-400">No Email</span>,
     },
     {
-      id: 'role',
+      id: 'role.name',
       label: 'Role',
-      render: value =>
-        value?.name || (
-          <span className="italic text-xs text-gray-400"> No Role </span>
+      render: (_, row) =>
+        row.role?.name || (
+          <span className="italic text-xs text-gray-400">No Role</span>
         ),
     },
     {
@@ -207,9 +207,7 @@ const UsersManagement: React.FC = () => {
       id: 'phone_number',
       label: 'Phone',
       render: value =>
-        value || (
-          <span className="italic text-xs text-gray-400"> No Phone </span>
-        ),
+        value || <span className="italic text-xs text-gray-400">No Phone</span>,
     },
     {
       id: 'address',

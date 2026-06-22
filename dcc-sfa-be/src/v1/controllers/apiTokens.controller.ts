@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { validationResult } from 'express-validator';
 import prisma from '../../configs/prisma.client';
+import { getLocationFromIPs } from '../../utils/ipLocation.util';
 
 export const getApiTokens = async (req: Request, res: Response) => {
   try {
@@ -95,10 +96,18 @@ export const getApiTokens = async (req: Request, res: Response) => {
       }),
     };
 
+    const ipsToLookup = tokens.map(t => t.ip_address);
+    const locationMap = await getLocationFromIPs(ipsToLookup);
+
+    const tokensWithLocation = tokens.map(t => ({
+      ...t,
+      location: locationMap[t.ip_address || ''] || 'Unknown',
+    }));
+
     res.status(200).json({
       success: true,
       message: 'API tokens retrieved successfully',
-      data: tokens,
+      data: tokensWithLocation,
       meta: {
         current_page: pageNum,
         total_pages: totalPages,

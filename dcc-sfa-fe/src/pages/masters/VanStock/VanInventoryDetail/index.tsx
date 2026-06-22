@@ -546,6 +546,30 @@ const VanInventoryDetail: React.FC<VanInventoryDetailProps> = ({
                   {vanInventoryData.user?.email || 'N/A'}
                 </Typography>
               </div>
+              {vanInventoryData.sale_type === 'container' &&
+                vanInventoryData.sub_inventory_users &&
+                vanInventoryData.sub_inventory_users.length > 0 && (
+                  <div className="!flex !flex-col !gap-1 !mt-2">
+                    <Typography
+                      variant="body2"
+                      className="!text-gray-600 !font-medium"
+                    >
+                      Sub Inventory Users:
+                    </Typography>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {vanInventoryData.sub_inventory_users.map(
+                        (user: any, idx: number) => (
+                          <Chip
+                            key={idx}
+                            label={user.name}
+                            size="small"
+                            className="!text-xs !bg-blue-50 !text-blue-700 !border-blue-200"
+                          />
+                        )
+                      )}
+                    </div>
+                  </div>
+                )}
             </div>
           </InfoCard>
 
@@ -591,6 +615,17 @@ const VanInventoryDetail: React.FC<VanInventoryDetailProps> = ({
                   className="!font-semibold !text-gray-900"
                 >
                   {getLoadingTypeLabel(vanInventoryData.loading_type || 'L')}
+                </Typography>
+              </div>
+              <div className="!flex !justify-between">
+                <Typography variant="body2" className="!text-gray-600">
+                  Sale Type:
+                </Typography>
+                <Typography
+                  variant="body2"
+                  className="!font-semibold !text-gray-900 !capitalize"
+                >
+                  {vanInventoryData.sale_type || 'Normal'}
                 </Typography>
               </div>
               <div className="!flex !justify-between">
