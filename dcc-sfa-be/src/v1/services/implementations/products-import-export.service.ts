@@ -186,6 +186,20 @@ export class ProductsImportExportService extends ImportExportService<any> {
         'Product code (optional, will be auto-generated if not provided)',
     },
     {
+      key: 'sap_code',
+      header: 'SAP Code',
+      width: 20,
+      type: 'string',
+      validation: value => {
+        if (value && value.trim() !== '') {
+          if (value.length > 100)
+            return 'SAP Code must be less than 100 characters';
+        }
+        return true;
+      },
+      description: 'SAP code (optional, must be unique if provided)',
+    },
+    {
       key: 'description',
       header: 'Description',
       width: 30,
@@ -763,6 +777,7 @@ export class ProductsImportExportService extends ImportExportService<any> {
 
 ## Optional Fields:
 - **Code**: Product code (will be auto-generated if not provided)
+- **SAP Code**: SAP code (max 100 characters, optional, unique if provided)
 - **Description**: Description of the product (max 1000 characters)
 - **Base Price**: Base price of the product (must be >= 0)
 - **Tax Rate (%)**: Tax rate percentage (0-100)
@@ -796,6 +811,7 @@ export class ProductsImportExportService extends ImportExportService<any> {
     return data.map(product => ({
       name: product.name,
       code: product.code || '',
+      sap_code: product.sap_code || '',
       description: product.description || '',
       category_id: product.category_id || '',
       sub_category_id: product.sub_category_id || '',
@@ -850,6 +866,18 @@ export class ProductsImportExportService extends ImportExportService<any> {
       }
     }
 
+    if (data.sap_code && data.sap_code.trim() !== '') {
+      const existingSapCode = await model.findFirst({
+        where: {
+          sap_code: data.sap_code.trim(),
+        },
+      });
+
+      if (existingSapCode) {
+        return `Product with SAP code "${data.sap_code}" already exists`;
+      }
+    }
+
     return null;
   }
 
@@ -867,6 +895,10 @@ export class ProductsImportExportService extends ImportExportService<any> {
     return {
       name: data.name,
       code: productCode,
+      sap_code:
+        data.sap_code && data.sap_code.trim() !== ''
+          ? data.sap_code.trim()
+          : null,
       description: data.description || null,
       category_id: data.category_id,
       sub_category_id: data.sub_category_id,
@@ -910,11 +942,12 @@ export class ProductsImportExportService extends ImportExportService<any> {
 
     if (!existing) return null;
 
-    const { code, ...restData } = data;
+    const { code, sap_code, ...restData } = data;
 
     const updateData: any = {
       ...restData,
       ...(code && code.trim() !== '' && { code }),
+      ...(sap_code && sap_code.trim() !== '' && { sap_code: sap_code.trim() }),
       route_type_id: data.route_type_id || null,
       outlet_group_id: data.outlet_group_id || null,
       tracking_type: data.tracking_type || null,
@@ -943,6 +976,21 @@ export class ProductsImportExportService extends ImportExportService<any> {
 
       if (existingCode) {
         throw new Error(`Product code "${updateData.code}" already exists`);
+      }
+    }
+
+    if (updateData.sap_code && updateData.sap_code !== existing.sap_code) {
+      const existingSapCode = await model.findFirst({
+        where: {
+          sap_code: updateData.sap_code,
+          id: { not: existing.id },
+        },
+      });
+
+      if (existingSapCode) {
+        throw new Error(
+          `Product SAP code "${updateData.sap_code}" already exists`
+        );
       }
     }
 

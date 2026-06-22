@@ -7,6 +7,7 @@ interface DepotSerialized {
   parent_id: number;
   name: string;
   code: string;
+  sap_code?: string | null;
   address?: string | null;
   city?: string | null;
   state?: string | null;
@@ -74,6 +75,7 @@ const serializeDepot = (
   parent_id: Number(depot.parent_id),
   name: depot.name,
   code: depot.code,
+  sap_code: depot.sap_code,
   address: depot.address,
   city: depot.city,
   state: depot.state,
@@ -170,9 +172,20 @@ export const depotsController = {
 
       const newCode = await generatedDepotCode(data.name);
 
+      let sapCode = data.sap_code && data.sap_code.trim() !== '' ? data.sap_code.trim() : null;
+      if (sapCode) {
+        const existingSapCode = await prisma.depots.findFirst({
+          where: { sap_code: sapCode },
+        });
+        if (existingSapCode) {
+          return res.status(409).json({ message: 'Depot with this sap_code already exists' });
+        }
+      }
+
       const depot = await prisma.depots.create({
         data: {
           ...data,
+          sap_code: sapCode,
           code: data.code || newCode,
           default_outlet_id: data.default_outlet_id ? Number(data.default_outlet_id) : null,
           createdby: data.createdby ? Number(data.createdby) : 1,
@@ -380,8 +393,22 @@ export const depotsController = {
         return res.status(404).json({ message: 'Depot not found' });
       }
 
+      let sapCode = req.body.sap_code && req.body.sap_code.trim() !== '' ? req.body.sap_code.trim() : null;
+      if (sapCode && sapCode !== existingDepot.sap_code) {
+        const existingSapCode = await prisma.depots.findFirst({
+          where: {
+            sap_code: sapCode,
+            id: { not: Number(id) }
+          }
+        });
+        if (existingSapCode) {
+           return res.status(409).json({ message: 'Depot with this sap_code already exists' });
+        }
+      }
+
       const data = {
         ...req.body,
+        sap_code: sapCode,
         default_outlet_id: req.body.default_outlet_id ? Number(req.body.default_outlet_id) : null,
         updatedate: new Date(),
       };

@@ -13,6 +13,7 @@ interface Depot {
   parent_id: number;
   name: string;
   code: string;
+  sap_code?: string | null;
   address?: string | null;
   city?: string | null;
   state?: string | null;
@@ -75,6 +76,8 @@ interface Depot {
 interface ManageDepotPayload {
   parent_id: number;
   name: string;
+  code?: string;
+  sap_code?: string;
   address?: string;
   city?: string;
   state?: string;
@@ -98,6 +101,7 @@ interface UpdateDepotPayload {
   parent_id?: number;
   name?: string;
   code?: string;
+  sap_code?: string;
   address?: string;
   city?: string;
   state?: string;

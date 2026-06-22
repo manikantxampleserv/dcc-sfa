@@ -6,6 +6,7 @@ interface Product {
   id: number;
   name: string;
   code: string;
+  sap_code?: string | null;
   description?: string | null;
   category_id: number;
   sub_category_id: number;
@@ -71,6 +72,7 @@ interface Product {
 interface ManageProductPayload {
   name: string;
   code?: string;
+  sap_code?: string;
   description?: string;
   category_id: number;
   sub_category_id: number;
@@ -98,6 +100,7 @@ interface ManageProductPayload {
 interface UpdateProductPayload {
   name?: string;
   code?: string;
+  sap_code?: string;
   description?: string;
   category_id?: number;
   sub_category_id?: number;

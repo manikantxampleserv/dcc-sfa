@@ -22,7 +22,8 @@ export class DepotsImportExportService extends ImportExportService<any> {
       masterKey: 'id',
       masterDisplayFields: ['id', 'name', 'email', 'employee_id'],
       sheetName: 'Ref - Users',
-      description: 'Use the ID from this sheet for Manager ID, Supervisor ID, Coordinator ID columns',
+      description:
+        'Use the ID from this sheet for Manager ID, Supervisor ID, Coordinator ID columns',
     },
   ];
 
@@ -64,6 +65,20 @@ export class DepotsImportExportService extends ImportExportService<any> {
       },
       transform: value => value.toUpperCase().trim(),
       description: 'Unique depot code (required)',
+    },
+    {
+      key: 'sap_code',
+      header: 'SAP Code',
+      width: 20,
+      type: 'string',
+      validation: value => {
+        if (value && value.trim() !== '') {
+          if (value.length > 100)
+            return 'SAP Code must be less than 100 characters';
+        }
+        return true;
+      },
+      description: 'SAP code (optional, must be unique if provided)',
     },
     {
       key: 'address',
@@ -180,6 +195,7 @@ export class DepotsImportExportService extends ImportExportService<any> {
     return data.map(depot => ({
       name: depot.name,
       code: depot.code,
+      sap_code: depot.sap_code || '',
       parent_id: depot.parent_id,
       manager_id: depot.manager_id,
       supervisor_id: depot.supervisor_id,
@@ -196,7 +212,18 @@ export class DepotsImportExportService extends ImportExportService<any> {
   protected async checkDuplicate(data: any, tx?: any): Promise<string | null> {
     const model = tx ? tx.depots : prisma.depots;
     const existing = await model.findFirst({ where: { code: data.code } });
-    return existing ? `Depot code "${data.code}" already exists` : null;
+    if (existing) return `Depot code "${data.code}" already exists`;
+
+    if (data.sap_code && data.sap_code.trim() !== '') {
+      const existingSapCode = await model.findFirst({
+        where: { sap_code: data.sap_code.trim() },
+      });
+      if (existingSapCode) {
+        return `Depot with SAP code ${data.sap_code} already exists`;
+      }
+    }
+
+    return null;
   }
 
   protected async validateForeignKeys(
@@ -205,24 +232,37 @@ export class DepotsImportExportService extends ImportExportService<any> {
   ): Promise<string | null> {
     const prismaClient = tx || prisma;
 
-    const checkCache = async (type: string, id: any, validator: () => Promise<string | null>) => {
+    const checkCache = async (
+      type: string,
+      id: any,
+      validator: () => Promise<string | null>
+    ) => {
       if (!id) return null;
       const cacheKey = `${type}_${id}`;
-      if (this.validationCache.has(cacheKey)) return this.validationCache.get(cacheKey)!;
+      if (this.validationCache.has(cacheKey))
+        return this.validationCache.get(cacheKey)!;
       const result = await validator();
       this.validationCache.set(cacheKey, result);
       return result;
     };
 
-    const errorCompany = await checkCache('company', data.parent_id, async () => {
-      const company = await prismaClient.companies.findUnique({ where: { id: data.parent_id } });
-      return company ? null : `Company ID ${data.parent_id} not found`;
-    });
+    const errorCompany = await checkCache(
+      'company',
+      data.parent_id,
+      async () => {
+        const company = await prismaClient.companies.findUnique({
+          where: { id: data.parent_id },
+        });
+        return company ? null : `Company ID ${data.parent_id} not found`;
+      }
+    );
     if (errorCompany) return errorCompany;
 
     if (data.manager_id) {
       const error = await checkCache('user', data.manager_id, async () => {
-        const user = await prismaClient.users.findUnique({ where: { id: data.manager_id } });
+        const user = await prismaClient.users.findUnique({
+          where: { id: data.manager_id },
+        });
         return user ? null : `Manager ID ${data.manager_id} not found`;
       });
       if (error) return error;
@@ -230,7 +270,9 @@ export class DepotsImportExportService extends ImportExportService<any> {
 
     if (data.supervisor_id) {
       const error = await checkCache('user', data.supervisor_id, async () => {
-        const user = await prismaClient.users.findUnique({ where: { id: data.supervisor_id } });
+        const user = await prismaClient.users.findUnique({
+          where: { id: data.supervisor_id },
+        });
         return user ? null : `Supervisor ID ${data.supervisor_id} not found`;
       });
       if (error) return error;
@@ -238,7 +280,9 @@ export class DepotsImportExportService extends ImportExportService<any> {
 
     if (data.coordinator_id) {
       const error = await checkCache('user', data.coordinator_id, async () => {
-        const user = await prismaClient.users.findUnique({ where: { id: data.coordinator_id } });
+        const user = await prismaClient.users.findUnique({
+          where: { id: data.coordinator_id },
+        });
         return user ? null : `Coordinator ID ${data.coordinator_id} not found`;
       });
       if (error) return error;
@@ -254,6 +298,10 @@ export class DepotsImportExportService extends ImportExportService<any> {
   ): Promise<any> {
     const preparedData: any = {
       ...data,
+      sap_code:
+        data.sap_code && data.sap_code.trim() !== ''
+          ? data.sap_code.trim()
+          : null,
       createdby: userId,
       createdate: new Date(),
       log_inst: 1,
@@ -278,11 +326,23 @@ export class DepotsImportExportService extends ImportExportService<any> {
     const existing = await model.findFirst({ where: { code: data.code } });
     if (!existing) return null;
 
+    const { sap_code, ...restData } = data;
+
     const updateData: any = {
-      ...data,
+      ...restData,
+      ...(sap_code && sap_code.trim() !== '' && { sap_code: sap_code.trim() }),
       updatedby: userId,
       updatedate: new Date(),
     };
+
+    if (updateData.sap_code && updateData.sap_code !== existing.sap_code) {
+      const existingSapCode = await model.findFirst({
+        where: { sap_code: updateData.sap_code, id: { not: existing.id } },
+      });
+      if (existingSapCode) {
+        throw new Error(`Depot SAP code ${updateData.sap_code} already exists`);
+      }
+    }
 
     if (data.latitude !== null && data.latitude !== undefined) {
       updateData.latitude = new Prisma.Decimal(data.latitude);

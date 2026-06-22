@@ -334,6 +334,23 @@ export const importExportController = {
         ...filters
       } = req.query;
 
+      const parsedFilters: any = {};
+      const columns = service.getColumns();
+      for (const [key, value] of Object.entries(filters)) {
+        if (value !== undefined && value !== '') {
+          const colDef = columns.find(c => c.key === key);
+          if (
+            (colDef?.type === 'number' || key === 'id') &&
+            typeof value === 'string'
+          ) {
+            const num = Number(value);
+            parsedFilters[key] = isNaN(num) ? value : num;
+          } else {
+            parsedFilters[key] = value;
+          }
+        }
+      }
+
       const options = {
         filters: search
           ? {
@@ -341,8 +358,8 @@ export const importExportController = {
                 [field]: { contains: search as string },
               })),
             }
-          : Object.keys(filters).length > 0
-            ? filters
+          : Object.keys(parsedFilters).length > 0
+            ? parsedFilters
             : undefined,
         limit: limit ? parseInt(limit as string) : undefined,
         orderBy: { [sortField as string]: sortOrder },
@@ -387,6 +404,23 @@ export const importExportController = {
         ...filters
       } = req.query;
 
+      const parsedFilters: any = {};
+      const columns = service.getColumns();
+      for (const [key, value] of Object.entries(filters)) {
+        if (value !== undefined && value !== '') {
+          const colDef = columns.find(c => c.key === key);
+          if (
+            (colDef?.type === 'number' || key === 'id') &&
+            typeof value === 'string'
+          ) {
+            const num = Number(value);
+            parsedFilters[key] = isNaN(num) ? value : num;
+          } else {
+            parsedFilters[key] = value;
+          }
+        }
+      }
+
       const options = {
         filters: search
           ? {
@@ -394,8 +428,8 @@ export const importExportController = {
                 [field]: { contains: search as string },
               })),
             }
-          : Object.keys(filters).length > 0
-            ? filters
+          : Object.keys(parsedFilters).length > 0
+            ? parsedFilters
             : undefined,
         limit: limit ? parseInt(limit as string) : 1000,
         orderBy: { [sortField as string]: sortOrder },

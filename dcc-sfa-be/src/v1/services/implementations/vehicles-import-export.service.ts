@@ -25,6 +25,19 @@ export class VehiclesImportExportService extends ImportExportService<any> {
       description: 'Unique vehicle number (required, 1-20 characters)',
     },
     {
+      key: 'sap_code',
+      header: 'SAP Code',
+      width: 20,
+      type: 'string',
+      validation: value => {
+        if (value && value.trim() !== '') {
+          if (value.length > 100) return 'SAP Code must be less than 100 characters';
+        }
+        return true;
+      },
+      description: 'SAP code (optional, must be unique if provided)',
+    },
+    {
       key: 'type',
       header: 'Vehicle Type',
       width: 20,
@@ -177,6 +190,7 @@ export class VehiclesImportExportService extends ImportExportService<any> {
   protected async transformDataForExport(data: any[]): Promise<any[]> {
     return data.map(vehicle => ({
       vehicle_number: vehicle.vehicle_number,
+      sap_code: vehicle.sap_code || '',
       type: vehicle.type,
       make: vehicle.make || '',
       model: vehicle.model || '',
@@ -204,6 +218,15 @@ export class VehiclesImportExportService extends ImportExportService<any> {
       return `Vehicle with number ${data.vehicle_number} already exists`;
     }
 
+    if (data.sap_code && data.sap_code.trim() !== '') {
+      const existingSapCode = await model.findFirst({
+        where: { sap_code: data.sap_code.trim() },
+      });
+      if (existingSapCode) {
+        return `Vehicle with SAP code ${data.sap_code} already exists`;
+      }
+    }
+
     return null;
   }
 
@@ -221,6 +244,7 @@ export class VehiclesImportExportService extends ImportExportService<any> {
   ): Promise<any> {
     return {
       ...data,
+      sap_code: data.sap_code && data.sap_code.trim() !== '' ? data.sap_code.trim() : null,
       createdby: userId,
       createdate: new Date(),
       log_inst: 1,
@@ -240,13 +264,27 @@ export class VehiclesImportExportService extends ImportExportService<any> {
 
     if (!existing) return null;
 
+    const { sap_code, ...restData } = data;
+
+    const updateData = {
+      ...restData,
+      ...(sap_code && sap_code.trim() !== '' && { sap_code: sap_code.trim() }),
+      updatedby: userId,
+      updatedate: new Date(),
+    };
+
+    if (updateData.sap_code && updateData.sap_code !== existing.sap_code) {
+      const existingSapCode = await model.findFirst({
+        where: { sap_code: updateData.sap_code, id: { not: existing.id } },
+      });
+      if (existingSapCode) {
+        throw new Error(`Vehicle SAP code ${updateData.sap_code} already exists`);
+      }
+    }
+
     return await model.update({
       where: { id: existing.id },
-      data: {
-        ...data,
-        updatedby: userId,
-        updatedate: new Date(),
-      },
+      data: updateData,
     });
   }
 

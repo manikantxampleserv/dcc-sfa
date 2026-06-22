@@ -5,6 +5,7 @@ import prisma from '../../configs/prisma.client';
 interface VehicleSerialized {
   id: number;
   vehicle_number: string;
+  sap_code?: string | null;
   type: string;
   make?: string | null;
   model?: string | null;
@@ -32,6 +33,7 @@ interface VehicleSerialized {
 const serializeVehicle = (vehicle: any): VehicleSerialized => ({
   id: vehicle.id,
   vehicle_number: vehicle.vehicle_number,
+  sap_code: vehicle.sap_code,
   type: vehicle.type,
   make: vehicle.make,
   model: vehicle.model,
@@ -83,9 +85,21 @@ export const vehiclesController = {
           message: 'Vehicle with this vehicle number already exists',
         });
       }
+
+      let sapCode = data.sap_code && data.sap_code.trim() !== '' ? data.sap_code.trim() : null;
+      if (sapCode) {
+        const existingSapCode = await prisma.vehicles.findFirst({
+          where: { sap_code: sapCode },
+        });
+        if (existingSapCode) {
+          return res.status(409).json({ message: 'Vehicle with this sap_code already exists' });
+        }
+      }
+
       const vehicle = await prisma.vehicles.create({
         data: {
           ...data,
+          sap_code: sapCode,
           createdby: data.createdby ? Number(data.createdby) : 1,
           log_inst: data.log_inst || 1,
           createdate: new Date(),
@@ -219,6 +233,20 @@ export const vehiclesController = {
       }
 
       const data = { ...req.body, updatedate: new Date() };
+
+      let sapCode = req.body.sap_code && req.body.sap_code.trim() !== '' ? req.body.sap_code.trim() : null;
+      if (sapCode && sapCode !== existingVehicle.sap_code) {
+        const existingSapCode = await prisma.vehicles.findFirst({
+          where: {
+            sap_code: sapCode,
+            id: { not: Number(id) }
+          }
+        });
+        if (existingSapCode) {
+           return res.status(409).json({ message: 'Vehicle with this sap_code already exists' });
+        }
+      }
+      data.sap_code = sapCode;
 
       const vehicle = await prisma.vehicles.update({
         where: { id: Number(id) },

@@ -11,6 +11,7 @@ import type { ApiResponse } from 'types/api.types';
 interface Vehicle {
   id: number;
   vehicle_number: string;
+  sap_code?: string | null;
   type: string;
   make?: string | null;
   model?: string | null;
@@ -37,6 +38,7 @@ interface Vehicle {
 
 interface ManageVehiclePayload {
   vehicle_number: string;
+  sap_code?: string;
   type: string;
   make?: string;
   model?: string;
@@ -51,6 +53,7 @@ interface ManageVehiclePayload {
 
 interface UpdateVehiclePayload {
   vehicle_number?: string;
+  sap_code?: string;
   type?: string;
   make?: string;
   model?: string;

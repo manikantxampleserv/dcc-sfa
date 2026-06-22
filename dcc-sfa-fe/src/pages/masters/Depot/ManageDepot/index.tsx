@@ -50,6 +50,7 @@ const ManageDepot: React.FC<ManageDepotProps> = ({
     initialValues: {
       parent_id: companies?.[0]?.id || '',
       code: selectedDepot?.code || '',
+      sap_code: selectedDepot?.sap_code || '',
       name: selectedDepot?.name || '',
       address: selectedDepot?.address || '',
       city: selectedDepot?.city || '',
@@ -75,6 +76,7 @@ const ManageDepot: React.FC<ManageDepotProps> = ({
         const depotData = {
           parent_id: Number(values.parent_id),
           code: values.code || undefined,
+          sap_code: values.sap_code || undefined,
           name: values.name,
           address: values.address,
           city: values.city,
@@ -192,6 +194,13 @@ const ManageDepot: React.FC<ManageDepotProps> = ({
               placeholder="Enter depot code"
               formik={formik}
               helperText="Leave empty to auto-generate depot code"
+            />
+
+            <Input
+              name="sap_code"
+              label="SAP Code"
+              placeholder="Enter SAP code (optional)"
+              formik={formik}
             />
 
             <Input

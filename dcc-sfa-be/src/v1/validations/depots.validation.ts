@@ -11,6 +11,13 @@ export const createDepotValidation = [
     .isString()
     .withMessage('Name must be a string'),
 
+  body('sap_code')
+    .optional({ nullable: true })
+    .isString()
+    .withMessage('SAP code must be a string')
+    .isLength({ max: 100 })
+    .withMessage('SAP code must be less than 100 characters'),
+
   body('address').optional().isString().withMessage('Address must be a string'),
 
   body('city').optional().isString().withMessage('City must be a string'),

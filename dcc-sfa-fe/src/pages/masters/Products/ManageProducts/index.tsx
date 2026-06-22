@@ -181,6 +181,7 @@ const ManageProduct: React.FC<ManageProductProps> = ({
     initialValues: {
       name: selectedProduct?.name || '',
       code: selectedProduct?.code || '',
+      sap_code: selectedProduct?.sap_code || '',
       description: selectedProduct?.description || '',
       category_id: selectedProduct?.category_id || '',
       sub_category_id: selectedProduct?.sub_category_id || '',
@@ -215,6 +216,7 @@ const ManageProduct: React.FC<ManageProductProps> = ({
         const productData = {
           name: values.name,
           code: values.code || undefined,
+          sap_code: values.sap_code || undefined,
           description: values.description,
           category_id: Number(values.category_id),
           sub_category_id: Number(values.sub_category_id),
@@ -322,6 +324,13 @@ const ManageProduct: React.FC<ManageProductProps> = ({
               name="code"
               label="Product Code"
               placeholder="Enter product code (optional)"
+              formik={formik}
+            />
+
+            <Input
+              name="sap_code"
+              label="SAP Code"
+              placeholder="Enter SAP code (optional)"
               formik={formik}
             />
 

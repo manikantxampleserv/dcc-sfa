@@ -15,6 +15,7 @@ export const vehicleValidationSchema = Yup.object({
     .required('Vehicle number is required')
     .min(1, 'Vehicle number must be at least 1 character')
     .max(20, 'Vehicle number must be less than 20 characters'),
+  sap_code: Yup.string().max(100, 'SAP Code cannot exceed 100 characters').nullable(),
   type: Yup.string()
     .required('Vehicle type is required')
     .max(20, 'Type must be less than 20 characters'),

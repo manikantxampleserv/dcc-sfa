@@ -214,6 +214,7 @@ model depots {
   parent_id                    Int
   name                         String                  @db.NVarChar(255)
   code                         String                  @db.NVarChar(50)
+  sap_code                     String?                 @db.NVarChar(100)
   address                      String?                 @db.NVarChar(500)
   city                         String?                 @db.NVarChar(100)
   state                        String?                 @db.NVarChar(100)
@@ -1570,6 +1571,7 @@ model products {
   id                               Int                            @id @default(autoincrement())
   name                             String                         @db.NVarChar(255)
   code                             String                         @unique @db.NVarChar(100)
+  sap_code                         String?                        @db.NVarChar(100)
   description                      String?
   category_id                      Int
   subunit_id                       Int?
@@ -2302,6 +2304,7 @@ model van_inventory_items {
 model vehicles {
   id                          Int                  @id @default(autoincrement())
   vehicle_number              String               @unique @db.NVarChar(20)
+  sap_code                    String?              @db.NVarChar(100)
   type                        String               @db.NVarChar(20)
   make                        String?              @db.NVarChar(50)
   model                       String?              @db.NVarChar(50)

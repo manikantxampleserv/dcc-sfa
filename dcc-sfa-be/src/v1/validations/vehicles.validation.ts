@@ -9,6 +9,13 @@ export const createVehicleValidation = [
     .isLength({ max: 20 })
     .withMessage('Vehicle number must be less than 20 characters'),
 
+  body('sap_code')
+    .optional({ nullable: true })
+    .isString()
+    .withMessage('SAP code must be a string')
+    .isLength({ max: 100 })
+    .withMessage('SAP code must be less than 100 characters'),
+
   body('type')
     .notEmpty()
     .withMessage('Vehicle type is required')

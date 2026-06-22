@@ -11,6 +11,7 @@ interface ProductSerialized {
   id: number;
   name: string;
   code: string;
+  sap_code?: string | null;
   description?: string | null;
   category_id: number;
   sub_category_id: number;
@@ -141,6 +142,7 @@ const serializeProduct = (product: any): ProductSerialized => ({
   id: product.id,
   name: product.name,
   code: product.code,
+  sap_code: product.sap_code,
   description: product.description,
   category_id: product.category_id,
   sub_category_id: product.sub_category_id,
@@ -514,6 +516,21 @@ export const productsController = {
         }
       }
 
+      let sapCode =
+        data.sap_code && data.sap_code.trim() !== '' ? data.sap_code.trim() : null;
+
+      if (sapCode) {
+        const existingSapCode = await prisma.products.findFirst({
+          where: { sap_code: sapCode },
+        });
+
+        if (existingSapCode) {
+          return res
+            .status(400)
+            .json({ message: 'Product sap_code already exists' });
+        }
+      }
+
       if (batchLots.length > 0) {
         const batchLotIds = batchLots.map(b => b.batch_lot_id);
 
@@ -544,6 +561,7 @@ export const productsController = {
           data: {
             name: data.name,
             code: productCode,
+            sap_code: sapCode,
             description: data.description || null,
             category_id: data.category_id,
             sub_category_id: data.sub_category_id,
@@ -760,7 +778,7 @@ export const productsController = {
         return res.status(404).json({ message: 'Product not found' });
       }
 
-      const { code, batch_lots, subunit_id, ...restData } = req.body;
+      const { code, sap_code, batch_lots, subunit_id, ...restData } = req.body;
       const batchLots: BatchLotInput[] = batch_lots || [];
 
       if (restData.tracking_type === 'NONE' && batchLots.length > 0) {
@@ -770,10 +788,28 @@ export const productsController = {
         });
       }
 
+      let sapCode = sap_code && sap_code.trim() !== '' ? sap_code.trim() : null;
+
+      if (sapCode && sapCode !== existingProduct.sap_code) {
+        const existingSapCode = await prisma.products.findFirst({
+          where: {
+            sap_code: sapCode,
+            id: { not: Number(id) },
+          },
+        });
+
+        if (existingSapCode) {
+          return res
+            .status(400)
+            .json({ message: 'Product sap_code already exists' });
+        }
+      }
+
       const updateData: any = {
         ...restData,
         subunit_id: subunit_id || undefined,
         ...(code && code.trim() !== '' && { code }),
+        sap_code: sapCode,
         updatedate: new Date(),
         updatedby: userId,
       };
@@ -977,6 +1013,7 @@ export const productsController = {
           id: true,
           name: true,
           code: true,
+          sap_code: true,
           batchLots: {
             select: {
               id: true,

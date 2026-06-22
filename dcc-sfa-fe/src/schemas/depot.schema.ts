@@ -15,6 +15,9 @@ export const depotValidationSchema = Yup.object({
     .required('Company is required')
     .positive('Invalid company'),
   code: Yup.string().max(20, 'Depot code must be less than 20 characters'),
+  sap_code: Yup.string()
+    .max(100, 'SAP Code cannot exceed 100 characters')
+    .nullable(),
   name: Yup.string()
     .required('Depot name is required')
     .min(2, 'Name must be at least 2 characters')

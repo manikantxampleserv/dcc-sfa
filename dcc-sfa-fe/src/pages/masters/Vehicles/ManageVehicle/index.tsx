@@ -40,6 +40,7 @@ const ManageVehicle: React.FC<ManageVehicleProps> = ({
   const formik = useFormik({
     initialValues: {
       vehicle_number: selectedVehicle?.vehicle_number || '',
+      sap_code: selectedVehicle?.sap_code || '',
       type: selectedVehicle?.type || '',
       make: selectedVehicle?.make || '',
       model: selectedVehicle?.model || '',
@@ -56,6 +57,7 @@ const ManageVehicle: React.FC<ManageVehicleProps> = ({
       try {
         const vehicleData = {
           vehicle_number: values.vehicle_number,
+          sap_code: values.sap_code || undefined,
           type: values.type,
           make: values.make,
           model: values.model,
@@ -99,6 +101,13 @@ const ManageVehicle: React.FC<ManageVehicleProps> = ({
               placeholder="Enter vehicle number"
               formik={formik}
               required
+            />
+
+            <Input
+              name="sap_code"
+              label="SAP Code"
+              placeholder="Enter SAP code (optional)"
+              formik={formik}
             />
 
             <Select name="type" label="Vehicle Type" formik={formik} required>
