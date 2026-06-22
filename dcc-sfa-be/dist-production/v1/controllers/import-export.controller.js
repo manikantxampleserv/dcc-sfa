@@ -281,6 +281,21 @@ exports.importExportController = {
                 });
             }
             const { search, limit, page, sortField = 'id', sortOrder = 'desc', ...filters } = req.query;
+            const parsedFilters = {};
+            const columns = service.getColumns();
+            for (const [key, value] of Object.entries(filters)) {
+                if (value !== undefined && value !== '') {
+                    const colDef = columns.find(c => c.key === key);
+                    if ((colDef?.type === 'number' || key === 'id') &&
+                        typeof value === 'string') {
+                        const num = Number(value);
+                        parsedFilters[key] = isNaN(num) ? value : num;
+                    }
+                    else {
+                        parsedFilters[key] = value;
+                    }
+                }
+            }
             const options = {
                 filters: search
                     ? {
@@ -288,8 +303,8 @@ exports.importExportController = {
                             [field]: { contains: search },
                         })),
                     }
-                    : Object.keys(filters).length > 0
-                        ? filters
+                    : Object.keys(parsedFilters).length > 0
+                        ? parsedFilters
                         : undefined,
                 limit: limit ? parseInt(limit) : undefined,
                 orderBy: { [sortField]: sortOrder },
@@ -316,6 +331,21 @@ exports.importExportController = {
                 });
             }
             const { search, limit, sortField = 'id', sortOrder = 'desc', ...filters } = req.query;
+            const parsedFilters = {};
+            const columns = service.getColumns();
+            for (const [key, value] of Object.entries(filters)) {
+                if (value !== undefined && value !== '') {
+                    const colDef = columns.find(c => c.key === key);
+                    if ((colDef?.type === 'number' || key === 'id') &&
+                        typeof value === 'string') {
+                        const num = Number(value);
+                        parsedFilters[key] = isNaN(num) ? value : num;
+                    }
+                    else {
+                        parsedFilters[key] = value;
+                    }
+                }
+            }
             const options = {
                 filters: search
                     ? {
@@ -323,8 +353,8 @@ exports.importExportController = {
                             [field]: { contains: search },
                         })),
                     }
-                    : Object.keys(filters).length > 0
-                        ? filters
+                    : Object.keys(parsedFilters).length > 0
+                        ? parsedFilters
                         : undefined,
                 limit: limit ? parseInt(limit) : 1000,
                 orderBy: { [sortField]: sortOrder },

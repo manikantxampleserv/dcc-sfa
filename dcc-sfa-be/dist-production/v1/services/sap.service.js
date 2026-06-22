@@ -149,43 +149,42 @@ exports.sapService = {
                     isUpdate = true;
                 }
             }
-            if (!inventoryData.user_id) {
-                throw new Error('user_id is required');
+            if (!inventoryData.salesman_sap_code) {
+                throw new Error('salesman_sap_code is required');
             }
-            const spUserId = Number(inventoryData.user_id || userId || 1);
-            const spUser = await tx.users.findUnique({ where: { id: spUserId } });
-            const depotName = `Van - ${spUser?.name || spUserId}`;
-            let vanDepot = await tx.depots.findFirst({
-                where: { name: depotName },
+            const spUser = await tx.users.findFirst({
+                where: { sap_code: inventoryData.salesman_sap_code },
             });
-            if (!vanDepot) {
-                const parentDepot = await tx.depots.findFirst({
-                    orderBy: { id: 'asc' },
-                });
-                vanDepot = await tx.depots.create({
-                    data: {
-                        parent_id: parentDepot ? parentDepot.parent_id : 1,
-                        name: depotName,
-                        code: `VAN-${spUserId}`,
-                        is_active: 'Y',
-                        createdby: userId || 1,
-                    },
-                });
+            if (!spUser) {
+                throw new Error(`Salesman with SAP code ${inventoryData.salesman_sap_code} not found`);
             }
-            inventoryData.location_id = vanDepot.id;
-            const userExists = await tx.users.findUnique({
-                where: { id: Number(inventoryData.user_id) },
-            });
-            if (!userExists) {
-                throw new Error(`User ${inventoryData.user_id} not found`);
+            inventoryData.user_id = spUser.id;
+            let depot;
+            if (inventoryData.depot_sap_code) {
+                depot = await tx.depots.findFirst({
+                    where: { sap_code: inventoryData.depot_sap_code },
+                });
+                if (!depot) {
+                    throw new Error(`Depot with SAP code ${inventoryData.depot_sap_code} not found`);
+                }
             }
-            if (inventoryData.vehicle_id) {
-                const vehicleExists = await tx.vehicles.findUnique({
-                    where: { id: Number(inventoryData.vehicle_id) },
+            else {
+                depot = await tx.depots.findFirst({
+                    where: { name: { contains: 'MOSHI' } },
+                });
+                if (!depot) {
+                    throw new Error('depot_sap_code is missing and default MOSHI depot was not found');
+                }
+            }
+            inventoryData.location_id = depot.id;
+            if (inventoryData.vehicle_sap_code) {
+                const vehicleExists = await tx.vehicles.findFirst({
+                    where: { sap_code: inventoryData.vehicle_sap_code },
                 });
                 if (!vehicleExists) {
-                    throw new Error(`Vehicle ${inventoryData.vehicle_id} not found`);
+                    throw new Error(`Vehicle with SAP code ${inventoryData.vehicle_sap_code} not found`);
                 }
+                inventoryData.vehicle_id = vehicleExists.id;
             }
             const loadingType = inventoryData.loading_type || 'L';
             const payload = {
@@ -231,15 +230,15 @@ exports.sapService = {
             if (Array.isArray(items) && items.length > 0) {
                 for (const item of items) {
                     const qty = parseInt(item.quantity, 10) || 0;
-                    if (!item.product_id) {
-                        throw new Error('product_id is required for each item');
+                    if (!item.product_sap_code) {
+                        throw new Error('product_sap_code is required for each item');
                     }
-                    const product = await tx.products.findUnique({
-                        where: { id: Number(item.product_id) },
+                    const product = await tx.products.findFirst({
+                        where: { sap_code: item.product_sap_code },
                         include: { product_unit_of_measurement: true },
                     });
                     if (!product) {
-                        throw new Error(`Product ${item.product_id} not found`);
+                        throw new Error(`Product with SAP code ${item.product_sap_code} not found`);
                     }
                     const trackingType = product.tracking_type?.toUpperCase() || 'NONE';
                     if (loadingType === 'L') {
@@ -619,6 +618,7 @@ exports.sapService = {
                                 const batchLot = await tx.batch_lots.findFirst({
                                     where: {
                                         batch_number: batchInput.batch_number,
+                                        productsId: product.id,
                                         is_active: 'Y',
                                     },
                                 });
@@ -631,11 +631,12 @@ exports.sapService = {
                                         van_inventory_items_inventory: {
                                             user_id: Number(inventoryData.user_id),
                                             is_active: 'Y',
+                                            loading_type: 'L',
                                         },
                                     },
                                 });
                                 if (!vanItem)
-                                    throw new Error(`Batch not found in van`);
+                                    throw new Error(`Batch ${batchInput.batch_number} for product ${product.id} not found in van inventory for user ${inventoryData.user_id}`);
                                 if (vanItem.quantity < batchQty)
                                     throw new Error(`Insufficient van quantity`);
                                 // await tx.van_inventory_items.update({

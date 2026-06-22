@@ -15,4 +15,5 @@ export declare function createStockMovement(tx: any, data: {
     createdby: number;
 }): Promise<void>;
 export declare function processVanInventoryItems(tx: any, inventory: any, items: any[], userId: number, loadingType: string, inventoryData: any): Promise<void>;
+export declare function getContainerOwnerAndSelf(tx: any, userId: number): Promise<number[]>;
 //# sourceMappingURL=inventory.utils.d.ts.map

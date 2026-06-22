@@ -9,6 +9,7 @@ const prisma_client_1 = __importDefault(require("../../configs/prisma.client"));
 const serializeVehicle = (vehicle) => ({
     id: vehicle.id,
     vehicle_number: vehicle.vehicle_number,
+    sap_code: vehicle.sap_code,
     type: vehicle.type,
     make: vehicle.make,
     model: vehicle.model,
@@ -57,9 +58,19 @@ exports.vehiclesController = {
                     message: 'Vehicle with this vehicle number already exists',
                 });
             }
+            let sapCode = data.sap_code && data.sap_code.trim() !== '' ? data.sap_code.trim() : null;
+            if (sapCode) {
+                const existingSapCode = await prisma_client_1.default.vehicles.findFirst({
+                    where: { sap_code: sapCode },
+                });
+                if (existingSapCode) {
+                    return res.status(409).json({ message: 'Vehicle with this sap_code already exists' });
+                }
+            }
             const vehicle = await prisma_client_1.default.vehicles.create({
                 data: {
                     ...data,
+                    sap_code: sapCode,
                     createdby: data.createdby ? Number(data.createdby) : 1,
                     log_inst: data.log_inst || 1,
                     createdate: new Date(),
@@ -174,6 +185,19 @@ exports.vehiclesController = {
                 return res.status(404).json({ message: 'Vehicle not found' });
             }
             const data = { ...req.body, updatedate: new Date() };
+            let sapCode = req.body.sap_code && req.body.sap_code.trim() !== '' ? req.body.sap_code.trim() : null;
+            if (sapCode && sapCode !== existingVehicle.sap_code) {
+                const existingSapCode = await prisma_client_1.default.vehicles.findFirst({
+                    where: {
+                        sap_code: sapCode,
+                        id: { not: Number(id) }
+                    }
+                });
+                if (existingSapCode) {
+                    return res.status(409).json({ message: 'Vehicle with this sap_code already exists' });
+                }
+            }
+            data.sap_code = sapCode;
             const vehicle = await prisma_client_1.default.vehicles.update({
                 where: { id: Number(id) },
                 data,

@@ -16,6 +16,12 @@ exports.createProductValidation = [
         .withMessage('Description must be a string')
         .isLength({ max: 1000 })
         .withMessage('Description cannot exceed 1000 characters'),
+    (0, express_validator_1.body)('sap_code')
+        .optional({ nullable: true })
+        .isString()
+        .withMessage('SAP code must be a string')
+        .isLength({ max: 100 })
+        .withMessage('SAP code cannot exceed 100 characters'),
     (0, express_validator_1.body)('base_price')
         .optional()
         .isDecimal({ decimal_digits: '0,2' })

@@ -14,6 +14,7 @@ export declare const sapService: {
                 updatedate: Date | null;
                 updatedby: number | null;
                 log_inst: number | null;
+                sap_code: string | null;
                 code: string;
                 latitude: import("@prisma/client-runtime-utils").Decimal | null;
                 longitude: import("@prisma/client-runtime-utils").Decimal | null;
@@ -83,6 +84,7 @@ export declare const sapService: {
                 updatedate: Date | null;
                 updatedby: number | null;
                 log_inst: number | null;
+                sap_code: string | null;
                 status: string | null;
                 assigned_to: number | null;
                 capacity: import("@prisma/client-runtime-utils").Decimal | null;
@@ -237,6 +239,7 @@ export declare const sapService: {
                     updatedate: Date | null;
                     updatedby: number | null;
                     log_inst: number | null;
+                    sap_code: string | null;
                     code: string;
                     brand_id: number;
                     description: string | null;
@@ -315,6 +318,7 @@ export declare const sapService: {
             vehicle_id: number | null;
             loading_type: string;
             document_date: Date | null;
+            sale_type: string | null;
         }) | null;
         wasUpdate: boolean;
     }>;

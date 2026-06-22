@@ -6,7 +6,6 @@ export const sapController = {
   async syncVanInventory(req: Request, res: Response) {
     try {
       const result = await sapService.createOrUpdateVanInventorySAP(req.body);
-
       return res.status(201).json({
         success: true,
         message: 'SAP inventory synced successfully',

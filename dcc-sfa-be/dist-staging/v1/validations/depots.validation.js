@@ -11,6 +11,12 @@ exports.createDepotValidation = [
         .withMessage('Name is required')
         .isString()
         .withMessage('Name must be a string'),
+    (0, express_validator_1.body)('sap_code')
+        .optional({ nullable: true })
+        .isString()
+        .withMessage('SAP code must be a string')
+        .isLength({ max: 100 })
+        .withMessage('SAP code must be less than 100 characters'),
     (0, express_validator_1.body)('address').optional().isString().withMessage('Address must be a string'),
     (0, express_validator_1.body)('city').optional().isString().withMessage('City must be a string'),
     (0, express_validator_1.body)('state').optional().isString().withMessage('State must be a string'),

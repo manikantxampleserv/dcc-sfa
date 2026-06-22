@@ -31,8 +31,6 @@ class CustomerCategoryAssignmentService {
                 amount_paid: true,
             },
         });
-        // Choose which one to use or combine both
-        // For now, using orders total amount
         return Number(orderSales._sum.total_amount || 0);
     }
     async getCategoryLevels() {
@@ -113,7 +111,7 @@ class CustomerCategoryAssignmentService {
                             data: {
                                 customer_category_id: newCategoryId,
                                 updatedate: new Date(),
-                                updatedby: 1, // System user
+                                updatedby: 1,
                             },
                         });
                         results.totalUpdated++;

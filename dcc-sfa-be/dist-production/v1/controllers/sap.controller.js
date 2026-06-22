@@ -32,10 +32,10 @@ exports.sapController = {
                     .json({ success: false, message: 'name query param required' });
             const users = await prisma_client_1.default.users.findMany({
                 where: {
-                    name: { contains: name },
+                    OR: [{ name: { contains: name } }, { sap_code: { contains: name } }],
                     is_active: 'Y',
                 },
-                select: { id: true, name: true },
+                select: { id: true, name: true, sap_code: true },
                 take: 50,
             });
             return res.json({ success: true, data: users });
@@ -52,8 +52,10 @@ exports.sapController = {
                     .status(400)
                     .json({ success: false, message: 'name query param required' });
             const depots = await prisma_client_1.default.depots.findMany({
-                where: { name: { contains: name } },
-                select: { id: true, name: true },
+                where: {
+                    OR: [{ name: { contains: name } }, { sap_code: { contains: name } }],
+                },
+                select: { id: true, name: true, sap_code: true },
                 take: 50,
             });
             return res.json({ success: true, data: depots });
@@ -75,13 +77,55 @@ exports.sapController = {
                         { vehicle_number: { contains: name } },
                         { make: { contains: name } },
                         { model: { contains: name } },
+                        { sap_code: { contains: name } },
                     ],
                 },
-                select: { id: true, vehicle_number: true },
+                select: { id: true, vehicle_number: true, sap_code: true },
                 take: 50,
             });
-            // normalize to id/name shape
-            const result = vehicles.map(v => ({ id: v.id, name: v.vehicle_number }));
+            const result = vehicles.map(v => ({
+                id: v.id,
+                name: v.vehicle_number,
+                sap_code: v.sap_code,
+            }));
+            return res.json({ success: true, data: result });
+        }
+        catch (err) {
+            return res.status(500).json({ success: false, message: err.message });
+        }
+    },
+    async searchProduct(req, res) {
+        try {
+            const name = req.query.name || '';
+            if (!name)
+                return res
+                    .status(400)
+                    .json({ success: false, message: 'name query param required' });
+            const products = await prisma_client_1.default.products.findMany({
+                where: {
+                    OR: [
+                        { name: { contains: name } },
+                        { code: { contains: name } },
+                        { sap_code: { contains: name } },
+                    ],
+                    is_active: 'Y',
+                },
+                select: {
+                    id: true,
+                    name: true,
+                    code: true,
+                    sap_code: true,
+                    product_unit_of_measurement: true,
+                },
+                take: 50,
+            });
+            const result = products.map(p => ({
+                id: p.id,
+                name: p.code ? `${p.name} (${p.code})` : p.name,
+                unit: p.product_unit_of_measurement?.name || null,
+                code: p.code,
+                sap_code: p.sap_code,
+            }));
             return res.json({ success: true, data: result });
         }
         catch (err) {

@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.revokeAllUserTokens = exports.deleteApiToken = exports.deactivateApiToken = exports.activateApiToken = exports.revokeApiToken = exports.getApiTokenById = exports.getApiTokens = void 0;
 const express_validator_1 = require("express-validator");
 const prisma_client_1 = __importDefault(require("../../configs/prisma.client"));
+const ipLocation_util_1 = require("../../utils/ipLocation.util");
 const getApiTokens = async (req, res) => {
     try {
         const errors = (0, express_validator_1.validationResult)(req);
@@ -82,10 +83,16 @@ const getApiTokens = async (req, res) => {
                 },
             }),
         };
+        const ipsToLookup = tokens.map(t => t.ip_address);
+        const locationMap = await (0, ipLocation_util_1.getLocationFromIPs)(ipsToLookup);
+        const tokensWithLocation = tokens.map(t => ({
+            ...t,
+            location: locationMap[t.ip_address || ''] || 'Unknown',
+        }));
         res.status(200).json({
             success: true,
             message: 'API tokens retrieved successfully',
-            data: tokens,
+            data: tokensWithLocation,
             meta: {
                 current_page: pageNum,
                 total_pages: totalPages,

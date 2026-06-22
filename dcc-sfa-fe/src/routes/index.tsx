@@ -93,6 +93,7 @@ import SurveyResponseDetail from 'pages/reports/SurveyResponses/SurveyResponseDe
 import VisitFrequencyCompletionReport from 'pages/reports/VisitFrequencyCompletionReport';
 import EmailTemplates from 'pages/settings/EmailTemplates';
 import SystemSettings from 'pages/settings/SystemSettings';
+import Reconciliation from 'pages/settings/Reconciliation';
 import RepLocationTracking from 'pages/tracking/RepLocationTracking';
 import RouteEffectiveness from 'pages/tracking/RouteEffectiveness';
 import CoolerInspectionsManagement from 'pages/transactions/CoolerInspections';
@@ -661,6 +662,14 @@ const router = createBrowserRouter(
           element: (
             <PermissionGuard module="login-history" action="read">
               <LoginHistoryPage />
+            </PermissionGuard>
+          ),
+        },
+        {
+          path: '/settings/reconciliation',
+          element: (
+            <PermissionGuard module="reconciliation" action="read">
+              <Reconciliation />
             </PermissionGuard>
           ),
         },

@@ -4,5 +4,6 @@ export declare const sapController: {
     searchUsers(req: Request, res: Response): Promise<Response<any, Record<string, any>>>;
     searchLocations(req: Request, res: Response): Promise<Response<any, Record<string, any>>>;
     searchVehicles(req: Request, res: Response): Promise<Response<any, Record<string, any>>>;
+    searchProduct(req: Request, res: Response): Promise<Response<any, Record<string, any>>>;
 };
 //# sourceMappingURL=sap.controller.d.ts.map

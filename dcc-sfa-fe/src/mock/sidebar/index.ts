@@ -547,6 +547,12 @@ const menuItems: MenuItem[] = [
         href: '/settings/login-history',
       },
       {
+        id: 'reconciliation',
+        label: 'Reconciliation',
+        icon: MdAssignment,
+        href: '/settings/reconciliation',
+      },
+      {
         id: 'api-tokens',
         label: 'API Tokens',
         icon: MdSettings,

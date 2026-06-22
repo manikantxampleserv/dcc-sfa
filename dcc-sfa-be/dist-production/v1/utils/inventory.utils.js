@@ -4,6 +4,7 @@ exports.getAvailableBatchesForProduct = getAvailableBatchesForProduct;
 exports.updateInventoryStock = updateInventoryStock;
 exports.createStockMovement = createStockMovement;
 exports.processVanInventoryItems = processVanInventoryItems;
+exports.getContainerOwnerAndSelf = getContainerOwnerAndSelf;
 async function getAvailableBatchesForProduct(tx, productId, loadingType) {
     const productBatches = await tx.product_batches.findMany({
         where: {
@@ -766,5 +767,27 @@ async function processVanInventoryItems(tx, inventory, items, userId, loadingTyp
             }
         }
     }
+}
+async function getContainerOwnerAndSelf(tx, userId) {
+    const containerSub = await tx.van_inventory_sub_users.findFirst({
+        where: {
+            user_id: userId,
+            is_active: 'Y',
+            van_inventory: {
+                sale_type: 'container',
+                is_active: 'Y',
+                status: 'A',
+            },
+        },
+        include: {
+            van_inventory: {
+                select: { user_id: true },
+            },
+        },
+    });
+    if (containerSub?.van_inventory) {
+        return Array.from(new Set([containerSub.van_inventory.user_id, userId]));
+    }
+    return [userId];
 }
 //# sourceMappingURL=inventory.utils.js.map
