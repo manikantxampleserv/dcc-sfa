@@ -405,7 +405,7 @@ const VanStockPage: React.FC = () => {
                     onChange={handleSearchChange}
                     debounceMs={400}
                     showClear={true}
-                    className="!w-80"
+                    className="!w-72"
                   />
                   <Select
                     value={statusFilter}
