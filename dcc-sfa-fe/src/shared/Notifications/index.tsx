@@ -103,7 +103,7 @@ const Notifications: React.FC<NotificationsProps> = ({
         return <ErrorIcon className="!text-red-500" />;
       case 'info':
       default:
-        return <Info className="!text-blue-500" />;
+        return <Info className="!text-primary-500" />;
     }
   };
 
@@ -203,7 +203,7 @@ const Notifications: React.FC<NotificationsProps> = ({
             <Button
               size="small"
               onClick={handleMarkAllAsRead}
-              className="!text-xs !text-blue-600 hover:!text-blue-700 !normal-case"
+              className="!text-xs !text-primary-600 hover:!text-primary-700 !normal-case"
             >
               Mark all as read
             </Button>
@@ -237,7 +237,7 @@ const Notifications: React.FC<NotificationsProps> = ({
                 key={notification.id}
                 onClick={() => handleNotificationClick(notification)}
                 className={`!px-4 !py-3 !border-b !border-gray-100 hover:!bg-gray-50 ${
-                  !notification.is_read ? '!bg-blue-50' : ''
+                  !notification.is_read ? '!bg-primary-50' : ''
                 }`}
               >
                 <ListItemIcon className="!min-w-0 !mr-3">
@@ -257,7 +257,7 @@ const Notifications: React.FC<NotificationsProps> = ({
                         {notification.title}
                       </Typography>
                       {!notification.is_read && (
-                        <Circle className="!text-blue-500 !text-xs" />
+                        <Circle className="!text-primary-500 !text-xs" />
                       )}
                     </Box>
                   }

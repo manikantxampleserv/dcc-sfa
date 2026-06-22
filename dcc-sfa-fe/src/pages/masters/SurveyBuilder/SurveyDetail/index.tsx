@@ -139,7 +139,7 @@ const SurveyDetail: React.FC = () => {
         )} */}
 
         {hasChildren && (
-          <div className="!mt-3 !space-y-3 !border-l-2 !border-blue-200 !pl-4">
+          <div className="!mt-3 !space-y-3 !border-l-2 !border-primary-200 !pl-4">
             {groups.map(({ optVal, fields: childFields }) => (
               <div key={optVal} className="!space-y-2">
                 {optVal !== 'default' && (
@@ -228,7 +228,7 @@ const SurveyDetail: React.FC = () => {
           </div>
 
           <div className="!bg-white !rounded-lg !shadow !border !border-gray-200 !p-6 !relative !overflow-hidden">
-            <div className="!absolute !top-0 !right-0 !w-16 !h-16 !bg-gradient-to-br !from-blue-50 !to-purple-50 !rounded-full !-translate-y-8 !translate-x-8"></div>
+            <div className="!absolute !top-0 !right-0 !w-16 !h-16 !bg-gradient-to-br !from-primary-50 !to-purple-50 !rounded-full !-translate-y-8 !translate-x-8"></div>
             <div className="!relative !z-10">
               <div className="!flex !items-center !gap-2 !mb-4">
                 <div className="!p-1.5 !w-10 !h-10 flex items-center justify-center !bg-primary-100 !rounded-md">
@@ -263,7 +263,7 @@ const SurveyDetail: React.FC = () => {
 
         <div className="!flex-4 !space-y-4">
           <div className="!bg-white !rounded-lg !shadow !border !border-gray-200 !p-6 !relative !overflow-hidden">
-            <div className="!absolute !top-0 !right-0 !w-16 !h-16 !bg-gradient-to-br !from-blue-50 !to-purple-50 !rounded-full !-translate-y-8 !translate-x-8"></div>
+            <div className="!absolute !top-0 !right-0 !w-16 !h-16 !bg-gradient-to-br !from-primary-50 !to-purple-50 !rounded-full !-translate-y-8 !translate-x-8"></div>
             <div className="!relative !z-10">
               <div className="!flex !items-center !gap-2 !mb-4">
                 <div className="!p-1.5 !w-10 !h-10 flex items-center justify-center !bg-primary-100 !rounded-md">
@@ -307,7 +307,7 @@ const SurveyDetail: React.FC = () => {
           </div>
           <div className="!flex-4 !space-y-4">
             <div className="!bg-white !rounded-lg !shadow !border !border-gray-200 !p-6 !relative !overflow-hidden">
-              <div className="!absolute !top-0 !right-0 !w-16 !h-16 !bg-gradient-to-br !from-blue-50 !to-purple-50 !rounded-full !-translate-y-8 !translate-x-8"></div>
+              <div className="!absolute !top-0 !right-0 !w-16 !h-16 !bg-gradient-to-br !from-primary-50 !to-purple-50 !rounded-full !-translate-y-8 !translate-x-8"></div>
               <div className="!relative !z-10">
                 <div className="!flex !items-center !gap-2 !mb-4">
                   <div className="!p-1.5 !w-10 !h-10 flex items-center justify-center !bg-primary-100 !rounded-md">
@@ -384,7 +384,7 @@ const SurveyDetail: React.FC = () => {
     icon?: React.ElementType;
   }) => (
     <div className="!bg-white !rounded-lg !shadow !border !border-gray-200 !p-6 !relative !overflow-hidden">
-      <div className="!absolute !top-0 !right-0 !w-16 !h-16 !bg-gradient-to-br !from-blue-50 !to-purple-50 !rounded-full !-translate-y-8 !translate-x-8"></div>
+      <div className="!absolute !top-0 !right-0 !w-16 !h-16 !bg-gradient-to-br !from-primary-50 !to-purple-50 !rounded-full !-translate-y-8 !translate-x-8"></div>
       <div className="!relative !z-10">
         <div className="!flex !items-center !gap-2 !mb-4">
           {Icon && (
@@ -419,7 +419,7 @@ const SurveyDetail: React.FC = () => {
                 className={classNames(
                   '!w-24 !h-24 !mx-auto !text-xl !font-bold !border-3 !border-white !shadow-lg',
                   {
-                    '!bg-gradient-to-br !from-blue-400 !to-blue-600 !text-white':
+                    '!bg-gradient-to-br !from-primary-400 !to-primary-600 !text-white':
                       survey.is_active === 'Y',
                     '!bg-gradient-to-br !from-gray-400 !to-gray-600 !text-white':
                       survey.is_active !== 'Y',
@@ -496,7 +496,7 @@ const SurveyDetail: React.FC = () => {
                   </div>
                   <Typography
                     variant="h6"
-                    className="!font-bold !text-blue-600"
+                    className="!font-bold !text-primary-600"
                   >
                     {survey.fields?.length || 0}
                   </Typography>

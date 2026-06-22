@@ -291,7 +291,7 @@ const OutletDetail: React.FC = () => {
       label: 'Document Type',
       render: (_value, row) => (
         <Box className="flex items-center gap-2">
-          <Avatar className="!h-8 !w-8 !bg-blue-100 !text-blue-600">
+          <Avatar className="!h-8 !w-8 !bg-primary-100 !text-primary-600">
             <FileText className="h-4 w-4" />
           </Avatar>
           <Typography variant="body2" className="!font-medium">
@@ -968,7 +968,7 @@ const OutletDetail: React.FC = () => {
             <div className="mb-6 rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
               <div className="mb-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <MapPin className="h-5 w-5 text-blue-600" />
+                  <MapPin className="h-5 w-5 text-primary-600" />
                   <Typography
                     variant="h6"
                     className="!font-semibold !text-gray-900"
@@ -980,7 +980,7 @@ const OutletDetail: React.FC = () => {
                   href={`https://www.google.com/maps/search/?api=1&query=${customer.latitude},${customer.longitude}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2 text-sm font-medium text-blue-600 transition-colors hover:text-blue-700"
+                  className="flex items-center gap-2 text-sm font-medium text-primary-600 transition-colors hover:text-primary-700"
                 >
                   <ExternalLink className="h-4 w-4" />
                   Open in Google Maps

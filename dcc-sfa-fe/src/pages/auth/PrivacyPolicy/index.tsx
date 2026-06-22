@@ -27,7 +27,7 @@ const PrivacyPolicy: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-primary-600 rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-sm sm:text-lg">
                   D
                 </span>
@@ -38,7 +38,7 @@ const PrivacyPolicy: React.FC = () => {
             </div>
             <Link
               to="/login"
-              className="inline-flex items-center px-4 py-2 border border-blue-600 text-blue-600 rounded-md text-sm font-medium hover:bg-blue-50 transition-colors"
+              className="inline-flex items-center px-4 py-2 border border-primary-600 text-primary-600 rounded-md text-sm font-medium hover:bg-primary-50 transition-colors"
             >
               Back to Login
             </Link>
@@ -50,16 +50,16 @@ const PrivacyPolicy: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
         <div className="bg-white rounded-xl shadow overflow-hidden">
           {/* Header Section */}
-          <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 sm:px-8 py-8 sm:py-12">
+          <div className="bg-gradient-to-r from-primary-600 to-primary-700 px-6 sm:px-8 py-8 sm:py-12">
             <div className="text-center">
               <h1 className="text-3xl sm:text-4xl font-bold text-white mb-4">
                 Privacy Policy
               </h1>
-              <p className="text-blue-100 text-lg sm:text-xl max-w-2xl mx-auto">
+              <p className="text-primary-100 text-lg sm:text-xl max-w-2xl mx-auto">
                 Your privacy is important to us. This policy explains how we
                 collect, use, and protect your information.
               </p>
-              <div className="mt-6 text-sm text-blue-200">
+              <div className="mt-6 text-sm text-primary-200">
                 Last updated: January 15, {new Date().getFullYear()}
               </div>
             </div>
@@ -71,8 +71,8 @@ const PrivacyPolicy: React.FC = () => {
               {/* Introduction */}
               <section className="mb-8">
                 <h2 className="text-2xl font-bold text-gray-900 mb-4 flex items-center">
-                  <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
-                    <span className="text-blue-600 font-bold text-sm">1</span>
+                  <div className="w-8 h-8 bg-primary-100 rounded-lg flex items-center justify-center mr-3">
+                    <span className="text-primary-600 font-bold text-sm">1</span>
                   </div>
                   Introduction
                 </h2>
@@ -94,8 +94,8 @@ const PrivacyPolicy: React.FC = () => {
               {/* Information We Collect */}
               <section className="mb-8">
                 <h2 className="text-2xl font-bold text-gray-900 mb-4 flex items-center">
-                  <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
-                    <span className="text-blue-600 font-bold text-sm">2</span>
+                  <div className="w-8 h-8 bg-primary-100 rounded-lg flex items-center justify-center mr-3">
+                    <span className="text-primary-600 font-bold text-sm">2</span>
                   </div>
                   Information We Collect
                 </h2>
@@ -143,18 +143,18 @@ const PrivacyPolicy: React.FC = () => {
               {/* How We Use Information */}
               <section className="mb-8">
                 <h2 className="text-2xl font-bold text-gray-900 mb-4 flex items-center">
-                  <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
-                    <span className="text-blue-600 font-bold text-sm">3</span>
+                  <div className="w-8 h-8 bg-primary-100 rounded-lg flex items-center justify-center mr-3">
+                    <span className="text-primary-600 font-bold text-sm">3</span>
                   </div>
                   How We Use Your Information
                 </h2>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="bg-blue-50 rounded-lg p-6">
-                    <h3 className="text-lg font-semibold text-blue-900 mb-3">
+                  <div className="bg-primary-50 rounded-lg p-6">
+                    <h3 className="text-lg font-semibold text-primary-900 mb-3">
                       Service Delivery
                     </h3>
-                    <ul className="list-disc list-inside text-blue-800 space-y-2 text-sm">
+                    <ul className="list-disc list-inside text-primary-800 space-y-2 text-sm">
                       <li>Provide and maintain our platform</li>
                       <li>Process transactions and orders</li>
                       <li>Manage user accounts and permissions</li>
@@ -203,8 +203,8 @@ const PrivacyPolicy: React.FC = () => {
               {/* Information Sharing */}
               <section className="mb-8">
                 <h2 className="text-2xl font-bold text-gray-900 mb-4 flex items-center">
-                  <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
-                    <span className="text-blue-600 font-bold text-sm">4</span>
+                  <div className="w-8 h-8 bg-primary-100 rounded-lg flex items-center justify-center mr-3">
+                    <span className="text-primary-600 font-bold text-sm">4</span>
                   </div>
                   Information Sharing and Disclosure
                 </h2>
@@ -233,8 +233,8 @@ const PrivacyPolicy: React.FC = () => {
 
                 <div className="space-y-4">
                   <div className="flex items-start space-x-3">
-                    <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
-                      <span className="text-blue-600 text-xs font-bold">•</span>
+                    <div className="w-6 h-6 bg-primary-100 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                      <span className="text-primary-600 text-xs font-bold">•</span>
                     </div>
                     <div>
                       <h4 className="font-semibold text-gray-900">
@@ -249,8 +249,8 @@ const PrivacyPolicy: React.FC = () => {
                   </div>
 
                   <div className="flex items-start space-x-3">
-                    <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
-                      <span className="text-blue-600 text-xs font-bold">•</span>
+                    <div className="w-6 h-6 bg-primary-100 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                      <span className="text-primary-600 text-xs font-bold">•</span>
                     </div>
                     <div>
                       <h4 className="font-semibold text-gray-900">
@@ -264,8 +264,8 @@ const PrivacyPolicy: React.FC = () => {
                   </div>
 
                   <div className="flex items-start space-x-3">
-                    <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
-                      <span className="text-blue-600 text-xs font-bold">•</span>
+                    <div className="w-6 h-6 bg-primary-100 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                      <span className="text-primary-600 text-xs font-bold">•</span>
                     </div>
                     <div>
                       <h4 className="font-semibold text-gray-900">
@@ -279,8 +279,8 @@ const PrivacyPolicy: React.FC = () => {
                   </div>
 
                   <div className="flex items-start space-x-3">
-                    <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
-                      <span className="text-blue-600 text-xs font-bold">•</span>
+                    <div className="w-6 h-6 bg-primary-100 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                      <span className="text-primary-600 text-xs font-bold">•</span>
                     </div>
                     <div>
                       <h4 className="font-semibold text-gray-900">Consent</h4>
@@ -296,8 +296,8 @@ const PrivacyPolicy: React.FC = () => {
               {/* Data Security */}
               <section className="mb-8">
                 <h2 className="text-2xl font-bold text-gray-900 mb-4 flex items-center">
-                  <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
-                    <span className="text-blue-600 font-bold text-sm">5</span>
+                  <div className="w-8 h-8 bg-primary-100 rounded-lg flex items-center justify-center mr-3">
+                    <span className="text-primary-600 font-bold text-sm">5</span>
                   </div>
                   Data Security
                 </h2>
@@ -362,19 +362,19 @@ const PrivacyPolicy: React.FC = () => {
               {/* Your Rights */}
               <section className="mb-8">
                 <h2 className="text-2xl font-bold text-gray-900 mb-4 flex items-center">
-                  <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
-                    <span className="text-blue-600 font-bold text-sm">6</span>
+                  <div className="w-8 h-8 bg-primary-100 rounded-lg flex items-center justify-center mr-3">
+                    <span className="text-primary-600 font-bold text-sm">6</span>
                   </div>
                   Your Rights and Choices
                 </h2>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-4">
-                    <div className="bg-blue-50 rounded-lg p-4">
-                      <h4 className="font-semibold text-blue-900 mb-2">
+                    <div className="bg-primary-50 rounded-lg p-4">
+                      <h4 className="font-semibold text-primary-900 mb-2">
                         Access and Portability
                       </h4>
-                      <p className="text-blue-800 text-sm">
+                      <p className="text-primary-800 text-sm">
                         Request access to your personal data and receive it in a
                         portable format.
                       </p>
@@ -433,8 +433,8 @@ const PrivacyPolicy: React.FC = () => {
               {/* Data Retention */}
               <section className="mb-8">
                 <h2 className="text-2xl font-bold text-gray-900 mb-4 flex items-center">
-                  <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
-                    <span className="text-blue-600 font-bold text-sm">7</span>
+                  <div className="w-8 h-8 bg-primary-100 rounded-lg flex items-center justify-center mr-3">
+                    <span className="text-primary-600 font-bold text-sm">7</span>
                   </div>
                   Data Retention
                 </h2>
@@ -449,28 +449,28 @@ const PrivacyPolicy: React.FC = () => {
 
                   <div className="space-y-3">
                     <div className="flex items-center space-x-3">
-                      <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
+                      <div className="w-2 h-2 bg-primary-600 rounded-full"></div>
                       <span className="text-gray-700 text-sm">
                         <strong>Account Information:</strong> Retained while
                         your account is active and for 3 years after closure
                       </span>
                     </div>
                     <div className="flex items-center space-x-3">
-                      <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
+                      <div className="w-2 h-2 bg-primary-600 rounded-full"></div>
                       <span className="text-gray-700 text-sm">
                         <strong>Transaction Records:</strong> Retained for 7
                         years for accounting and legal compliance
                       </span>
                     </div>
                     <div className="flex items-center space-x-3">
-                      <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
+                      <div className="w-2 h-2 bg-primary-600 rounded-full"></div>
                       <span className="text-gray-700 text-sm">
                         <strong>Communication Logs:</strong> Retained for 2
                         years for customer support purposes
                       </span>
                     </div>
                     <div className="flex items-center space-x-3">
-                      <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
+                      <div className="w-2 h-2 bg-primary-600 rounded-full"></div>
                       <span className="text-gray-700 text-sm">
                         <strong>Analytics Data:</strong> Retained for 1 year in
                         aggregated, anonymized form
@@ -483,25 +483,25 @@ const PrivacyPolicy: React.FC = () => {
               {/* Cookies and Tracking */}
               <section className="mb-8">
                 <h2 className="text-2xl font-bold text-gray-900 mb-4 flex items-center">
-                  <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
-                    <span className="text-blue-600 font-bold text-sm">8</span>
+                  <div className="w-8 h-8 bg-primary-100 rounded-lg flex items-center justify-center mr-3">
+                    <span className="text-primary-600 font-bold text-sm">8</span>
                   </div>
                   Cookies and Tracking Technologies
                 </h2>
 
-                <div className="bg-blue-50 rounded-lg p-6 mb-6">
-                  <h3 className="text-lg font-semibold text-blue-900 mb-3">
+                <div className="bg-primary-50 rounded-lg p-6 mb-6">
+                  <h3 className="text-lg font-semibold text-primary-900 mb-3">
                     Types of Cookies We Use
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="text-center">
-                      <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center mx-auto mb-2">
+                      <div className="w-12 h-12 bg-primary-600 rounded-lg flex items-center justify-center mx-auto mb-2">
                         <span className="text-white text-lg">🍪</span>
                       </div>
-                      <h4 className="font-semibold text-blue-900 text-sm">
+                      <h4 className="font-semibold text-primary-900 text-sm">
                         Essential
                       </h4>
-                      <p className="text-blue-800 text-xs">
+                      <p className="text-primary-800 text-xs">
                         Required for basic functionality
                       </p>
                     </div>
@@ -542,8 +542,8 @@ const PrivacyPolicy: React.FC = () => {
               {/* International Transfers */}
               <section className="mb-8">
                 <h2 className="text-2xl font-bold text-gray-900 mb-4 flex items-center">
-                  <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
-                    <span className="text-blue-600 font-bold text-sm">9</span>
+                  <div className="w-8 h-8 bg-primary-100 rounded-lg flex items-center justify-center mr-3">
+                    <span className="text-primary-600 font-bold text-sm">9</span>
                   </div>
                   International Data Transfers
                 </h2>
@@ -556,11 +556,11 @@ const PrivacyPolicy: React.FC = () => {
                     country.
                   </p>
 
-                  <div className="bg-blue-50 border-l-4 border-blue-400 p-4">
-                    <h4 className="font-semibold text-blue-900 mb-2">
+                  <div className="bg-primary-50 border-l-4 border-primary-400 p-4">
+                    <h4 className="font-semibold text-primary-900 mb-2">
                       Safeguards for International Transfers
                     </h4>
-                    <ul className="list-disc list-inside text-blue-800 text-sm space-y-1">
+                    <ul className="list-disc list-inside text-primary-800 text-sm space-y-1">
                       <li>
                         Standard contractual clauses approved by relevant
                         authorities
@@ -578,8 +578,8 @@ const PrivacyPolicy: React.FC = () => {
               {/* Children's Privacy */}
               <section className="mb-8">
                 <h2 className="text-2xl font-bold text-gray-900 mb-4 flex items-center">
-                  <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
-                    <span className="text-blue-600 font-bold text-sm">10</span>
+                  <div className="w-8 h-8 bg-primary-100 rounded-lg flex items-center justify-center mr-3">
+                    <span className="text-primary-600 font-bold text-sm">10</span>
                   </div>
                   Children's Privacy
                 </h2>
@@ -608,8 +608,8 @@ const PrivacyPolicy: React.FC = () => {
               {/* Policy Updates */}
               <section className="mb-8">
                 <h2 className="text-2xl font-bold text-gray-900 mb-4 flex items-center">
-                  <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
-                    <span className="text-blue-600 font-bold text-sm">11</span>
+                  <div className="w-8 h-8 bg-primary-100 rounded-lg flex items-center justify-center mr-3">
+                    <span className="text-primary-600 font-bold text-sm">11</span>
                   </div>
                   Changes to This Privacy Policy
                 </h2>
@@ -624,8 +624,8 @@ const PrivacyPolicy: React.FC = () => {
 
                   <div className="space-y-3">
                     <div className="flex items-start space-x-3">
-                      <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
-                        <span className="text-blue-600 text-xs font-bold">
+                      <div className="w-6 h-6 bg-primary-100 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                        <span className="text-primary-600 text-xs font-bold">
                           1
                         </span>
                       </div>
@@ -641,8 +641,8 @@ const PrivacyPolicy: React.FC = () => {
                     </div>
 
                     <div className="flex items-start space-x-3">
-                      <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
-                        <span className="text-blue-600 text-xs font-bold">
+                      <div className="w-6 h-6 bg-primary-100 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                        <span className="text-primary-600 text-xs font-bold">
                           2
                         </span>
                       </div>
@@ -658,8 +658,8 @@ const PrivacyPolicy: React.FC = () => {
                     </div>
 
                     <div className="flex items-start space-x-3">
-                      <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
-                        <span className="text-blue-600 text-xs font-bold">
+                      <div className="w-6 h-6 bg-primary-100 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                        <span className="text-primary-600 text-xs font-bold">
                           3
                         </span>
                       </div>
@@ -675,8 +675,8 @@ const PrivacyPolicy: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="mt-6 bg-blue-50 rounded-lg p-4">
-                    <p className="text-blue-800 text-sm">
+                  <div className="mt-6 bg-primary-50 rounded-lg p-4">
+                    <p className="text-primary-800 text-sm">
                       <strong>
                         Your continued use of our services after any changes to
                         this Privacy Policy constitutes acceptance of the
@@ -690,18 +690,18 @@ const PrivacyPolicy: React.FC = () => {
               {/* Contact Information */}
               <section className="mb-8">
                 <h2 className="text-2xl font-bold text-gray-900 mb-4 flex items-center">
-                  <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
-                    <span className="text-blue-600 font-bold text-sm">12</span>
+                  <div className="w-8 h-8 bg-primary-100 rounded-lg flex items-center justify-center mr-3">
+                    <span className="text-primary-600 font-bold text-sm">12</span>
                   </div>
                   Contact Us
                 </h2>
 
-                <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg p-8">
+                <div className="bg-gradient-to-r from-primary-50 to-primary-100 rounded-lg p-8">
                   <div className="text-center mb-6">
-                    <h3 className="text-xl font-bold text-blue-900 mb-2">
+                    <h3 className="text-xl font-bold text-primary-900 mb-2">
                       Questions About This Privacy Policy?
                     </h3>
-                    <p className="text-blue-800">
+                    <p className="text-primary-800">
                       We're here to help. Contact our privacy team for any
                       questions or concerns.
                     </p>
@@ -710,7 +710,7 @@ const PrivacyPolicy: React.FC = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="bg-white rounded-lg p-6 shadow-sm">
                       <div className="flex items-center space-x-3 mb-4">
-                        <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                        <div className="w-10 h-10 bg-primary-600 rounded-lg flex items-center justify-center">
                           <span className="text-white text-lg">📧</span>
                         </div>
                         <div>
@@ -727,7 +727,7 @@ const PrivacyPolicy: React.FC = () => {
 
                     <div className="bg-white rounded-lg p-6 shadow-sm">
                       <div className="flex items-center space-x-3 mb-4">
-                        <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                        <div className="w-10 h-10 bg-primary-600 rounded-lg flex items-center justify-center">
                           <span className="text-white text-lg">🏢</span>
                         </div>
                         <div>
@@ -758,7 +758,7 @@ const PrivacyPolicy: React.FC = () => {
                         For complex privacy matters or data protection concerns,
                         contact our Data Protection Officer:
                       </p>
-                      <p className="text-blue-600 font-medium">
+                      <p className="text-primary-600 font-medium">
                         dpo@dcc-sfa.com
                       </p>
                     </div>
@@ -773,7 +773,7 @@ const PrivacyPolicy: React.FC = () => {
         <div className="mt-12 text-center">
           <div className="bg-white rounded-lg shadow-sm p-6">
             <div className="flex items-center justify-center space-x-3 mb-4">
-              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+              <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-sm">D</span>
               </div>
               <span className="text-xl font-bold text-gray-900">DCC-SFA</span>
@@ -785,7 +785,7 @@ const PrivacyPolicy: React.FC = () => {
             <div className="flex justify-center space-x-6 text-sm">
               <Link
                 to="/login"
-                className="text-blue-600 hover:text-blue-700 hover:underline transition-colors"
+                className="text-primary-600 hover:text-primary-700 hover:underline transition-colors"
               >
                 Back to Login
               </Link>

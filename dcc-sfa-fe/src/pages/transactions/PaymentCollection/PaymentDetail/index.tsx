@@ -35,7 +35,7 @@ const PaymentDetail: React.FC = () => {
       completed: 'bg-green-100 text-green-800',
       paid: 'bg-green-100 text-green-800',
       pending: 'bg-yellow-100 text-yellow-800',
-      processing: 'bg-blue-100 text-blue-800',
+      processing: 'bg-primary-100 text-primary-800',
       failed: 'bg-red-100 text-red-800',
       cancelled: 'bg-gray-100 text-gray-800',
       active: 'bg-green-100 text-green-800',
@@ -155,7 +155,7 @@ const PaymentDetail: React.FC = () => {
 
           {/* Payment Information Card Skeleton */}
           <div className="!bg-white !rounded-lg !shadow !border !border-gray-200 !p-6 !relative !overflow-hidden">
-            <div className="!absolute !top-0 !right-0 !w-16 !h-16 !bg-gradient-to-br !from-blue-50 !to-purple-50 !rounded-full !-translate-y-8 !translate-x-8"></div>
+            <div className="!absolute !top-0 !right-0 !w-16 !h-16 !bg-gradient-to-br !from-primary-50 !to-purple-50 !rounded-full !-translate-y-8 !translate-x-8"></div>
             <div className="!relative !z-10">
               <div className="!flex !items-center !gap-2 !mb-4">
                 <div className="!p-1.5 !w-10 !h-10 flex items-center justify-center !bg-primary-100 !rounded-md">
@@ -199,7 +199,7 @@ const PaymentDetail: React.FC = () => {
         <div className="!flex-4 !space-y-4">
           {/* Payment Lines Card Skeleton */}
           <div className="!bg-white !rounded-lg !shadow !border !border-gray-200 !p-6 !relative !overflow-hidden">
-            <div className="!absolute !top-0 !right-0 !w-16 !h-16 !bg-gradient-to-br !from-blue-50 !to-purple-50 !rounded-full !-translate-y-8 !translate-x-8"></div>
+            <div className="!absolute !top-0 !right-0 !w-16 !h-16 !bg-gradient-to-br !from-primary-50 !to-purple-50 !rounded-full !-translate-y-8 !translate-x-8"></div>
             <div className="!relative !z-10">
               <div className="!flex !items-center !gap-2 !mb-4">
                 <div className="!p-1.5 !w-10 !h-10 flex items-center justify-center !bg-primary-100 !rounded-md">
@@ -260,7 +260,7 @@ const PaymentDetail: React.FC = () => {
 
           {/* Payment Refunds Card Skeleton */}
           <div className="!bg-white !rounded-lg !shadow !border !border-gray-200 !p-6 !relative !overflow-hidden">
-            <div className="!absolute !top-0 !right-0 !w-16 !h-16 !bg-gradient-to-br !from-blue-50 !to-purple-50 !rounded-full !-translate-y-8 !translate-x-8"></div>
+            <div className="!absolute !top-0 !right-0 !w-16 !h-16 !bg-gradient-to-br !from-primary-50 !to-purple-50 !rounded-full !-translate-y-8 !translate-x-8"></div>
             <div className="!relative !z-10">
               <div className="!flex !items-center !gap-2 !mb-4">
                 <div className="!p-1.5 !w-10 !h-10 flex items-center justify-center !bg-primary-100 !rounded-md">
@@ -366,7 +366,7 @@ const PaymentDetail: React.FC = () => {
     icon?: React.ElementType;
   }) => (
     <div className="!bg-white !rounded-lg !shadow !border !border-gray-200 !p-6 !relative !overflow-hidden">
-      <div className="!absolute !top-0 !right-0 !w-16 !h-16 !bg-gradient-to-br !from-blue-50 !to-purple-50 !rounded-full !-translate-y-8 !translate-x-8"></div>
+      <div className="!absolute !top-0 !right-0 !w-16 !h-16 !bg-gradient-to-br !from-primary-50 !to-purple-50 !rounded-full !-translate-y-8 !translate-x-8"></div>
       <div className="!relative !z-10">
         <div className="!flex !items-center !gap-2 !mb-4">
           {Icon && (

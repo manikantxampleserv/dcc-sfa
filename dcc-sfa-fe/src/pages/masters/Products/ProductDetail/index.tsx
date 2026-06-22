@@ -245,8 +245,8 @@ const ProductDetail: React.FC = () => {
                   : 'N/A'}
               </Typography>
             </div>
-            <Avatar className="!bg-blue-100">
-              <Droplet className="text-blue-600" />
+            <Avatar className="!bg-primary-100">
+              <Droplet className="text-primary-600" />
             </Avatar>
           </div>
         </div>

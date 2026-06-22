@@ -196,7 +196,7 @@ const VisitDetail: React.FC = () => {
             </div>
 
             <div className="!bg-white !rounded-lg !shadow !border !border-gray-200 !p-6 !relative !overflow-hidden">
-              <div className="!absolute !top-0 !right-0 !w-16 !h-16 !bg-gradient-to-br !from-blue-50 !to-purple-50 !rounded-full !-translate-y-8 !translate-x-8"></div>
+              <div className="!absolute !top-0 !right-0 !w-16 !h-16 !bg-gradient-to-br !from-primary-50 !to-purple-50 !rounded-full !-translate-y-8 !translate-x-8"></div>
               <div className="!relative !z-10">
                 <div className="!flex !items-center !gap-2 !mb-4">
                   <div className="!p-1.5 !w-10 !h-10 flex items-center justify-center !bg-primary-100 !rounded-md">
@@ -244,7 +244,7 @@ const VisitDetail: React.FC = () => {
           <div className="lg:col-span-2 flex flex-col gap-4">
             {/* Visit Information Skeleton */}
             <div className="!bg-white !rounded-lg !shadow !border !border-gray-200 !p-6 !relative !overflow-hidden">
-              <div className="!absolute !top-0 !right-0 !w-16 !h-16 !bg-gradient-to-br !from-blue-50 !to-purple-50 !rounded-full !-translate-y-8 !translate-x-8"></div>
+              <div className="!absolute !top-0 !right-0 !w-16 !h-16 !bg-gradient-to-br !from-primary-50 !to-purple-50 !rounded-full !-translate-y-8 !translate-x-8"></div>
               <div className="!relative !z-10">
                 <div className="!flex !items-center !gap-2 !mb-4">
                   <div className="!p-1.5 !w-10 !h-10 flex items-center justify-center !bg-primary-100 !rounded-md">
@@ -278,7 +278,7 @@ const VisitDetail: React.FC = () => {
 
             {/* Customer Information Skeleton */}
             <div className="!bg-white !rounded-lg !shadow !border !border-gray-200 !p-6 !relative !overflow-hidden">
-              <div className="!absolute !top-0 !right-0 !w-16 !h-16 !bg-gradient-to-br !from-blue-50 !to-purple-50 !rounded-full !-translate-y-8 !translate-x-8"></div>
+              <div className="!absolute !top-0 !right-0 !w-16 !h-16 !bg-gradient-to-br !from-primary-50 !to-purple-50 !rounded-full !-translate-y-8 !translate-x-8"></div>
               <div className="!relative !z-10">
                 <div className="!flex !items-center !gap-2 !mb-4">
                   <div className="!p-1.5 !w-10 !h-10 flex items-center justify-center !bg-primary-100 !rounded-md">
@@ -310,7 +310,7 @@ const VisitDetail: React.FC = () => {
               </div>
             </div>
             <div className="!bg-white !rounded-lg !shadow !border !border-gray-200 !p-6 !relative !overflow-hidden">
-              <div className="!absolute !top-0 !right-0 !w-16 !h-16 !bg-gradient-to-br !from-blue-50 !to-purple-50 !rounded-full !-translate-y-8 !translate-x-8"></div>
+              <div className="!absolute !top-0 !right-0 !w-16 !h-16 !bg-gradient-to-br !from-primary-50 !to-purple-50 !rounded-full !-translate-y-8 !translate-x-8"></div>
               <div className="!relative !z-10">
                 <div className="!flex !items-center !gap-2 !mb-4">
                   <div className="!p-1.5 !w-10 !h-10 flex items-center justify-center !bg-primary-100 !rounded-md">
@@ -384,7 +384,7 @@ const VisitDetail: React.FC = () => {
     icon?: React.ElementType;
   }) => (
     <div className="!bg-white !rounded-lg !shadow !border !border-gray-200 !p-6 !relative !overflow-hidden">
-      <div className="!absolute !top-0 !right-0 !w-16 !h-16 !bg-gradient-to-br !from-blue-50 !to-purple-50 !rounded-full !-translate-y-8 !translate-x-8"></div>
+      <div className="!absolute !top-0 !right-0 !w-16 !h-16 !bg-gradient-to-br !from-primary-50 !to-purple-50 !rounded-full !-translate-y-8 !translate-x-8"></div>
       <div className="!relative !z-10">
         <div className="!flex !items-center !gap-2 !mb-4">
           {Icon && (
@@ -425,7 +425,7 @@ const VisitDetail: React.FC = () => {
                 className={classNames(
                   '!w-24 !h-24 !mx-auto !text-xl !font-bold !border-3 !border-white !shadow-lg',
                   {
-                    '!bg-gradient-to-br !from-blue-400 !to-blue-600 !text-white':
+                    '!bg-gradient-to-br !from-primary-400 !to-primary-600 !text-white':
                       visit.is_active === 'Y',
                     '!bg-gradient-to-br !from-gray-400 !to-gray-600 !text-white':
                       visit.is_active !== 'Y',
@@ -1224,18 +1224,18 @@ const VisitDetail: React.FC = () => {
               </div>
             </div>
 
-            <div className="!p-4 !bg-gradient-to-br !from-blue-50 !to-indigo-50 !border !border-blue-100 !rounded-lg !flex !items-center !gap-3">
-              <div className="!p-2.5 !bg-blue-500 !text-white !rounded-md">
+            <div className="!p-4 !bg-gradient-to-br !from-primary-50 !to-indigo-50 !border !border-primary-100 !rounded-lg !flex !items-center !gap-3">
+              <div className="!p-2.5 !bg-primary-500 !text-white !rounded-md">
                 <ShoppingBag className="w-5 h-5" />
               </div>
               <div>
                 <Typography
                   variant="caption"
-                  className="!text-blue-700 !font-semibold !uppercase !tracking-wider"
+                  className="!text-primary-700 !font-semibold !uppercase !tracking-wider"
                 >
                   Orders Created
                 </Typography>
-                <Typography variant="h5" className="!font-bold !text-blue-900">
+                <Typography variant="h5" className="!font-bold !text-primary-900">
                   {visit.orders.length}{' '}
                   {visit.orders.length === 1 ? 'Order' : 'Orders'}
                 </Typography>

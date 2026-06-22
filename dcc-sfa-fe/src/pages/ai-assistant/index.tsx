@@ -359,7 +359,7 @@ const AIAssistant: React.FC = () => {
                     disabled={isListening || !inputValue.trim()}
                     className={`!p-1.5 !rounded-[6px] !transition-all !outline-none ${
                       inputValue.trim() && !isListening
-                        ? '!bg-blue-600 !text-white hover:!bg-blue-700'
+                        ? '!bg-primary-600 !text-white hover:!bg-primary-700'
                         : '!bg-gray-100 !text-gray-300'
                     }`}
                   >

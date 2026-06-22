@@ -255,8 +255,8 @@ const BatchLotDetail: React.FC = () => {
                 {batchLot.quantity.toLocaleString()}
               </Typography>
             </div>
-            <Avatar className="!bg-blue-100">
-              <Package2 className="text-blue-600" />
+            <Avatar className="!bg-primary-100">
+              <Package2 className="text-primary-600" />
             </Avatar>
           </div>
         </div>

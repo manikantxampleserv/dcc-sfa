@@ -123,7 +123,7 @@ const ManageCompany: React.FC<ManageCompanyProps> = ({
       <Box className="!p-6">
         <form onSubmit={formik.handleSubmit} className="!space-y-6">
           {/* Logo Upload Section */}
-          <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center mb-4 cursor-pointer hover:border-blue-500 transition-colors">
+          <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center mb-4 cursor-pointer hover:border-primary-500 transition-colors">
             <input
               type="file"
               id="logo-upload"
@@ -164,7 +164,7 @@ const ManageCompany: React.FC<ManageCompanyProps> = ({
                     />
                   </div>
                   <p className="text-sm text-gray-600">Current Logo</p>
-                  <p className="text-xs text-blue-600">Click to change</p>
+                  <p className="text-xs text-primary-600">Click to change</p>
                 </div>
               ) : (
                 <div className="space-y-2">

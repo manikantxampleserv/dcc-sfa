@@ -126,7 +126,7 @@ const RouteDetail: React.FC = () => {
 
           <div className="!flex-4 !space-y-4">
             <div className="!bg-white !rounded-lg !shadow !border !border-gray-200 !p-6 !relative !overflow-hidden">
-              <div className="!absolute !top-0 !right-0 !w-16 !h-16 !bg-gradient-to-br !from-blue-50 !to-purple-50 !rounded-full !-translate-y-8 !translate-x-8"></div>
+              <div className="!absolute !top-0 !right-0 !w-16 !h-16 !bg-gradient-to-br !from-primary-50 !to-purple-50 !rounded-full !-translate-y-8 !translate-x-8"></div>
               <div className="!relative !z-10">
                 <div className="!flex !items-center !gap-2 !mb-4">
                   <div className="!p-1.5 !w-10 !h-10 flex items-center justify-center !bg-primary-100 !rounded-md">
@@ -161,7 +161,7 @@ const RouteDetail: React.FC = () => {
         </div>
 
         <div className="!bg-white !rounded-lg !shadow !border !border-gray-200 !p-6 !relative !overflow-hidden">
-          <div className="!absolute !top-0 !right-0 !w-16 !h-16 !bg-gradient-to-br !from-blue-50 !to-purple-50 !rounded-full !-translate-y-8 !translate-x-8"></div>
+          <div className="!absolute !top-0 !right-0 !w-16 !h-16 !bg-gradient-to-br !from-primary-50 !to-purple-50 !rounded-full !-translate-y-8 !translate-x-8"></div>
           <div className="!relative !z-10">
             <div className="!flex !items-center !gap-2 !mb-4">
               <div className="!p-1.5 !w-10 !h-10 flex items-center justify-center !bg-primary-100 !rounded-md">
@@ -205,7 +205,7 @@ const RouteDetail: React.FC = () => {
         </div>
 
         <div className="!bg-white !rounded-lg !shadow !border !border-gray-200 !p-6 !relative !overflow-hidden">
-          <div className="!absolute !top-0 !right-0 !w-16 !h-16 !bg-gradient-to-br !from-blue-50 !to-purple-50 !rounded-full !-translate-y-8 !translate-x-8"></div>
+          <div className="!absolute !top-0 !right-0 !w-16 !h-16 !bg-gradient-to-br !from-primary-50 !to-purple-50 !rounded-full !-translate-y-8 !translate-x-8"></div>
           <div className="!relative !z-10">
             <div className="!flex !items-center !gap-2 !mb-4">
               <div className="!p-1.5 !w-10 !h-10 flex items-center justify-center !bg-primary-100 !rounded-md">
@@ -289,7 +289,7 @@ const RouteDetail: React.FC = () => {
     icon?: React.ElementType;
   }) => (
     <div className="!bg-white !rounded-lg !shadow !border !border-gray-200 !p-6 !relative !overflow-hidden">
-      <div className="!absolute !top-0 !right-0 !w-16 !h-16 !bg-gradient-to-br !from-blue-50 !to-purple-50 !rounded-full !-translate-y-8 !translate-x-8"></div>
+      <div className="!absolute !top-0 !right-0 !w-16 !h-16 !bg-gradient-to-br !from-primary-50 !to-purple-50 !rounded-full !-translate-y-8 !translate-x-8"></div>
       <div className="!relative !z-10">
         <div className="!flex !items-center !gap-2 !mb-4">
           {Icon && (
@@ -324,7 +324,7 @@ const RouteDetail: React.FC = () => {
                 className={classNames(
                   '!w-24 !h-24 !mx-auto !text-xl !font-bold !border-3 !border-white !shadow-lg',
                   {
-                    '!bg-gradient-to-br !from-blue-400 !to-blue-600 !text-white':
+                    '!bg-gradient-to-br !from-primary-400 !to-primary-600 !text-white':
                       route.is_active === 'Y',
                     '!bg-gradient-to-br !from-gray-400 !to-gray-600 !text-white':
                       route.is_active !== 'Y',
@@ -590,11 +590,11 @@ const RouteDetail: React.FC = () => {
           <div className="!space-y-4">
             {/* Summary Statistics */}
             <div className="!grid !grid-cols-2 md:!grid-cols-4 !gap-4 !mb-6">
-              <div className="!bg-blue-50 !p-4 !rounded-lg !text-center">
-                <Typography variant="h4" className="!text-blue-600 !font-bold">
+              <div className="!bg-primary-50 !p-4 !rounded-lg !text-center">
+                <Typography variant="h4" className="!text-primary-600 !font-bold">
                   {route.all_customers.length}
                 </Typography>
-                <Typography variant="caption" className="!text-blue-600">
+                <Typography variant="caption" className="!text-primary-600">
                   Total Outlets
                 </Typography>
               </div>

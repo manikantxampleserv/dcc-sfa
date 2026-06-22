@@ -161,7 +161,7 @@ const ManageCompetitorActivity: React.FC<ManageCompetitorActivityProps> = ({
                 Competition Image
               </Typography>
               <Box
-                className="!border-2 flex items-center justify-center !border-dashed !border-gray-300 !rounded !p-3 !text-center !cursor-pointer hover:!border-blue-400 !transition-colors"
+                className="!border-2 flex items-center justify-center !border-dashed !border-gray-300 !rounded !p-3 !text-center !cursor-pointer hover:!border-primary-400 !transition-colors"
                 component="label"
                 sx={{
                   '&:hover': {

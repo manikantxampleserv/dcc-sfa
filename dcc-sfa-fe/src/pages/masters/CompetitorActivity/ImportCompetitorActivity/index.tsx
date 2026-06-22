@@ -218,13 +218,13 @@ const ImportCompetitorActivity: React.FC<ImportCompetitorActivityProps> = ({
                     </Typography>
 
                     <Box className="!grid !grid-cols-3 !gap-4">
-                      <Box className="!flex !items-center !gap-2 !p-3 !bg-blue-50 !rounded-lg">
-                        <Typography variant="h6" className="!text-blue-700">
+                      <Box className="!flex !items-center !gap-2 !p-3 !bg-primary-50 !rounded-lg">
+                        <Typography variant="h6" className="!text-primary-700">
                           {importResults.totalProcessed}
                         </Typography>
                         <Typography
                           variant="caption"
-                          className="!text-blue-600"
+                          className="!text-primary-600"
                         >
                           Total Processed
                         </Typography>

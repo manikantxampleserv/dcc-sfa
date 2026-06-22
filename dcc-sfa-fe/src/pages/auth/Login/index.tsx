@@ -137,7 +137,7 @@ const Login: React.FC = () => {
     <div className="min-h-screen flex flex-col lg:flex-row">
       {/* Right Section - Dashboard Preview */}
       <div className="w-full lg:w-1/2 bg-white p-4 sm:p-6 lg:p-8">
-        <div className="bg-gradient-to-br min-h-[400px] lg:h-full rounded-lg from-blue-600 via-blue-700 to-blue-800 flex flex-col justify-center items-center p-6 sm:p-8 lg:p-10 relative overflow-hidden">
+        <div className="bg-gradient-to-br min-h-[400px] lg:h-full rounded-lg from-primary-600 via-primary-700 to-primary-800 flex flex-col justify-center items-center p-6 sm:p-8 lg:p-10 relative overflow-hidden">
           {/* Background Pattern */}
           <div className="absolute inset-0 opacity-10">
             <div className="absolute top-20 left-20 w-32 h-32 bg-white rounded-full"></div>
@@ -151,7 +151,7 @@ const Login: React.FC = () => {
             <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white mb-3 lg:mb-4">
               Streamline your sales force operations.
             </h2>
-            <p className="text-blue-100 text-sm sm:text-base">
+            <p className="text-primary-100 text-sm sm:text-base">
               Access your SFA dashboard to manage orders, customers, and field
               operations.
             </p>
@@ -161,7 +161,7 @@ const Login: React.FC = () => {
           <div className="relative z-10 w-full max-w-4xl bg-white rounded-xl lg:rounded-2xl shadow-xl lg:shadow-2xl py-4 sm:py-6 lg:py-6 px-4 sm:px-6">
             {/* Stats Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-              <div className="bg-blue-50 rounded-lg p-3 sm:p-4">
+              <div className="bg-primary-50 rounded-lg p-3 sm:p-4">
                 <div className="text-xs sm:text-sm text-gray-600 mb-1">
                   Total Orders
                 </div>
@@ -197,7 +197,7 @@ const Login: React.FC = () => {
               </div>
               <div className="flex items-center justify-center h-20 sm:h-24 bg-white rounded-lg">
                 <div className="text-center">
-                  <div className="text-lg sm:text-xl font-bold text-blue-600 mb-1">
+                  <div className="text-lg sm:text-xl font-bold text-primary-600 mb-1">
                     2,847 Units
                   </div>
                   <div className="text-xs text-gray-600 px-2">
@@ -215,8 +215,8 @@ const Login: React.FC = () => {
               <div className="space-y-2">
                 <div className="flex justify-between items-center bg-white rounded p-2">
                   <div className="flex items-center space-x-2 min-w-0 flex-1">
-                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <span className="text-blue-600 font-bold">B</span>
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-primary-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <span className="text-primary-600 font-bold">B</span>
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="font-medium text-gray-900 text-xs sm:text-sm truncate">
@@ -254,7 +254,7 @@ const Login: React.FC = () => {
                     <div className="font-semibold text-gray-900 text-xs sm:text-sm">
                       TZS 189.75
                     </div>
-                    <div className="text-xs text-blue-600">Processing</div>
+                    <div className="text-xs text-primary-600">Processing</div>
                   </div>
                 </div>
               </div>
@@ -267,7 +267,7 @@ const Login: React.FC = () => {
         {/* Logo */}
         <div className="mb-6 sm:mb-8">
           <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-primary-600 rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-sm sm:text-lg">D</span>
             </div>
             <span className="text-xl sm:text-2xl font-bold text-gray-900">
@@ -338,7 +338,7 @@ const Login: React.FC = () => {
               onClick={() => {
                 setForgotOpen(true);
               }}
-              className="text-blue-600 hover:text-blue-700 text-xs lg:!text-sm font-medium no-underline hover:underline transition-colors"
+              className="text-primary-600 hover:text-primary-700 text-xs lg:!text-sm font-medium no-underline hover:underline transition-colors"
             >
               Forgot your password?
             </MuiLink>
@@ -350,7 +350,7 @@ const Login: React.FC = () => {
             fullWidth
             disabled={!formik.isValid || loginMutation.isPending}
             loading={loginMutation.isPending}
-            className="!py-2 sm:!py-3 disabled:!text-gray-200 !text-sm sm:!text-base !font-semibold !rounded-lg !bg-gradient-to-r !from-blue-600 !to-blue-700 hover:!from-blue-700 hover:!to-blue-800 !shadow-md hover:!shadow-lg !transition-all !duration-200"
+            className="!py-2 sm:!py-3 disabled:!text-gray-200 !text-sm sm:!text-base !font-semibold !rounded-lg !bg-gradient-to-r !from-primary-600 !to-primary-700 hover:!from-primary-700 hover:!to-primary-800 !shadow-md hover:!shadow-lg !transition-all !duration-200"
           >
             {loginMutation.isPending ? 'Signing In...' : 'Log In'}
           </Button>

@@ -219,7 +219,7 @@ const ApprovalsSidebar: React.FC<ApprovalsSidebarProps> = ({
                             <>
                               {' '}
                               for order{' '}
-                              <span className="!font-semibold !text-blue-600">
+                              <span className="!font-semibold !text-primary-600">
                                 {referenceNumber}
                               </span>
                             </>

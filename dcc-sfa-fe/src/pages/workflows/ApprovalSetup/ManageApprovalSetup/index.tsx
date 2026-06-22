@@ -45,7 +45,7 @@ const getInitials = (name: string): string => {
 
 const getAvatarColor = (name: string): string => {
   const colors = [
-    '!bg-blue-500',
+    '!bg-primary-500',
     '!bg-green-500',
     '!bg-orange-500',
     '!bg-teal-500',
@@ -303,7 +303,7 @@ const ManageApprovalSetup: React.FC<ManageApprovalSetupProps> = ({
       className={classNames(
         '!flex !items-center !gap-3 !p-2 !pr-3 !bg-white !border !border-gray-200 !rounded-lg !mb-2',
         {
-          'hover:!border-blue-300 hover:!shadow-md': true,
+          'hover:!border-primary-300 hover:!shadow-md': true,
         }
       )}
     >
@@ -391,7 +391,7 @@ const ManageApprovalSetup: React.FC<ManageApprovalSetupProps> = ({
                   <Box className="!p-2 !border-b !border-gray-200 !bg-gray-50">
                     <Typography
                       variant="subtitle1"
-                      className="!font-semibold !text-blue-600"
+                      className="!font-semibold !text-primary-600"
                     >
                       Available Users ({availableUsers.length})
                     </Typography>
@@ -407,7 +407,7 @@ const ManageApprovalSetup: React.FC<ManageApprovalSetupProps> = ({
                         placeholder="Search users..."
                         value={availableUsersSearch}
                         onChange={e => setAvailableUsersSearch(e.target.value)}
-                        className="!w-full !pl-8 !pr-2 !h-[28px] !text-xs !border !border-gray-300 !rounded focus:!outline-none focus:!border-blue-500 focus:!ring-1 focus:!ring-blue-500"
+                        className="!w-full !pl-8 !pr-2 !h-[28px] !text-xs !border !border-gray-300 !rounded focus:!outline-none focus:!border-primary-500 focus:!ring-1 focus:!ring-primary-500"
                       />
                     </div>
                     <div className="!w-[50%]">
@@ -437,7 +437,7 @@ const ManageApprovalSetup: React.FC<ManageApprovalSetupProps> = ({
                           className={classNames(
                             '!h-full !p-2 !overflow-y-auto',
                             {
-                              '!bg-blue-50': snapshot.isDraggingOver,
+                              '!bg-primary-50': snapshot.isDraggingOver,
                             }
                           )}
                           style={{

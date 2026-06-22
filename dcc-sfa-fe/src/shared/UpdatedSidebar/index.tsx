@@ -152,10 +152,10 @@ const Sidebar: React.FC = () => {
           className="h-[42px] w-auto object-contain"
         />
         <div className="flex flex-col">
-          <span className="font-bold text-[#004080] text-xl leading-tight">
+          <span className="font-bold text-primary-800 text-xl leading-tight">
             DCC-SFA
           </span>
-          <span className="font-medium text-[#666666] text-xs leading-tight">
+          <span className="font-medium text-gray-600 text-xs leading-tight">
             Your Reliable IT Partner
           </span>
         </div>
@@ -223,8 +223,8 @@ const Sidebar: React.FC = () => {
                                 ? toggleExpand(child.id)
                                 : handleNavigation(child.href as string)
                             }
-                            className={`group !justify-between !cursor-pointer !mb-0.5 !flex !items-center hover:!bg-blue-200 !rounded !p-1.5 !transition-colors !duration-300 ${
-                              isChildActive ? '!bg-blue-200' : ''
+                            className={`group !justify-between !cursor-pointer !mb-0.5 !flex !items-center hover:!bg-primary-200 !rounded !p-1.5 !transition-colors !duration-300 ${
+                              isChildActive ? '!bg-primary-200' : ''
                             }`}
                           >
                             <div className="flex items-center gap-2">
@@ -232,8 +232,8 @@ const Sidebar: React.FC = () => {
                                 <div
                                   className={`flex items-center h-8 w-8 justify-center rounded transition-colors duration-300 ease-in-out ${
                                     isChildActive
-                                      ? 'bg-blue-600 text-white'
-                                      : 'bg-gray-100 text-gray-600 group-hover:bg-blue-600 group-hover:text-white'
+                                      ? 'bg-primary-600 text-white'
+                                      : 'bg-gray-100 text-gray-600 group-hover:bg-primary-600 group-hover:text-white'
                                   }`}
                                 >
                                   <child.icon
@@ -248,8 +248,8 @@ const Sidebar: React.FC = () => {
                               <span
                                 className={`text-sm truncate !font-medium transition-colors duration-300 ease-in-out flex items-center gap-1 ${
                                   isChildActive
-                                    ? 'text-blue-600 !font-semibold'
-                                    : 'text-gray-600 group-hover:text-blue-600'
+                                    ? 'text-primary-600 !font-semibold'
+                                    : 'text-gray-600 group-hover:text-primary-600'
                                 }`}
                               >
                                 {child.label?.length > 22
@@ -265,8 +265,8 @@ const Sidebar: React.FC = () => {
                                     isExpanded ? 'rotate-90' : ''
                                   } ${
                                     isChildActive
-                                      ? 'text-blue-600'
-                                      : 'text-gray-600 group-hover:text-blue-600'
+                                      ? 'text-primary-600'
+                                      : 'text-gray-600 group-hover:text-primary-600'
                                   }`}
                                 />
                               </div>
@@ -300,8 +300,8 @@ const Sidebar: React.FC = () => {
                                         <span
                                           className={`text-2xl z-10 transition-colors duration-300 ${
                                             isGrandchildActive
-                                              ? 'text-blue-600'
-                                              : 'text-gray-600 group-hover:text-blue-600'
+                                              ? 'text-primary-600'
+                                              : 'text-gray-600 group-hover:text-primary-600'
                                           }`}
                                         >
                                           •
@@ -309,8 +309,8 @@ const Sidebar: React.FC = () => {
                                         <span
                                           className={`text-sm truncate transition-colors !font-medium duration-300 ease-in-out flex items-center gap-1 ${
                                             isGrandchildActive
-                                              ? 'text-blue-600 !font-semibold'
-                                              : 'text-gray-600 group-hover:text-blue-600'
+                                              ? 'text-primary-600 !font-semibold'
+                                              : 'text-gray-600 group-hover:text-primary-600'
                                           }`}
                                         >
                                           {grandchild.label}

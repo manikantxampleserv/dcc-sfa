@@ -363,13 +363,13 @@ const ManageAssetMaster: React.FC<ManageAssetMasterProps> = ({
                     {existingImages.map((image, index) => (
                       <Box
                         key={`existing-${index}`}
-                        className="!flex !items-center !justify-between !p-2 !bg-blue-50 !rounded !border !border-blue-200"
+                        className="!flex !items-center !justify-between !p-2 !bg-primary-50 !rounded !border !border-primary-200"
                       >
                         <Box className="!flex !items-center !gap-2 !flex-1 !min-w-0">
-                          <Image className="!text-blue-500 !w-4 !h-4" />
+                          <Image className="!text-primary-500 !w-4 !h-4" />
                           <Typography
                             variant="caption"
-                            className="!truncate !text-blue-700"
+                            className="!truncate !text-primary-700"
                             title={image.caption || `Image ${index + 1}`}
                           >
                             {image.caption || `Image ${index + 1}`} (Current)

@@ -132,10 +132,7 @@ const BrandsPage: React.FC = () => {
             <Tag className="w-5 h-5" />
           </Avatar>
           <Box className="!max-w-xs">
-            <Typography
-              variant="body1"
-              className="!text-gray-900 !leading-tight"
-            >
+            <Typography variant="body1" className="!leading-tight">
               {row.name}
             </Typography>
           </Box>

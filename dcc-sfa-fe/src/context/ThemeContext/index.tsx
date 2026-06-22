@@ -1,5 +1,15 @@
 import { createTheme, ThemeProvider } from '@mui/material';
-import React from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import {
+  THEME_PALETTES,
+  THEME_FONTS,
+  THEME_RADII,
+  type ThemePaletteKey,
+  type ThemeFontKey,
+  type ThemeRadiusKey,
+  type ThemePreferences,
+  DEFAULT_THEME_PREFERENCES,
+} from './themeConfig';
 
 declare module '@mui/material/styles' {
   interface Theme {
@@ -35,24 +45,79 @@ declare module '@mui/material/styles' {
   }
 }
 
-const primaryColors = {
-  50: '#eff6ff',
-  100: '#dbeafe',
-  200: '#bfdbfe',
-  300: '#93c5fd',
-  400: '#60a5fa',
-  500: '#3b82f6',
-  600: '#2563eb',
-  700: '#1d4ed8',
-  800: '#1e40af',
-  900: '#1e3a8a',
-  950: '#172554',
+interface ThemeContextType {
+  preferences: ThemePreferences;
+  setPalette: (palette: ThemePaletteKey) => void;
+  setFont: (font: ThemeFontKey) => void;
+  setRadius: (radius: ThemeRadiusKey) => void;
+  setMode: (mode: 'light' | 'dark') => void;
+}
+
+const ThemeContextValue = createContext<ThemeContextType | undefined>(
+  undefined
+);
+
+export const useThemeContext = () => {
+  const context = useContext(ThemeContextValue);
+  if (!context) {
+    throw new Error(
+      'useThemeContext must be used within a CustomThemeProvider'
+    );
+  }
+  return context;
 };
 
-const ThemeContext = ({ children }: { children: React.ReactNode }) => {
+const CustomThemeProvider = ({ children }: { children: React.ReactNode }) => {
+  const [preferences, setPreferences] = useState<ThemePreferences>(() => {
+    const saved = localStorage.getItem('themePreferences');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error('Failed to parse theme preferences', e);
+      }
+    }
+    return DEFAULT_THEME_PREFERENCES;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('themePreferences', JSON.stringify(preferences));
+
+    const root = document.documentElement;
+
+    const palette = THEME_PALETTES[preferences.palette].colors;
+    Object.entries(palette).forEach(([shade, hex]) => {
+      root.style.setProperty(`--color-primary-${shade}`, hex);
+    });
+
+    const font = THEME_FONTS[preferences.font].value;
+    root.style.setProperty('--font-primary', font);
+
+    const radius = THEME_RADII[preferences.radius].value;
+    root.style.setProperty('--global-radius', radius);
+    root.style.setProperty('--radius', radius);
+    root.style.setProperty('--radius-sm', radius);
+    root.style.setProperty('--radius-md', radius);
+    root.style.setProperty('--radius-lg', radius);
+    root.style.setProperty('--radius-xl', radius);
+    root.style.setProperty('--radius-2xl', radius);
+    root.style.setProperty('--radius-3xl', radius);
+
+    // Apply dark mode class to document element for Tailwind and standard styles
+    if (preferences.mode === 'dark') {
+      root.classList.add('dark');
+      root.style.colorScheme = 'dark';
+    } else {
+      root.classList.remove('dark');
+      root.style.colorScheme = 'light';
+    }
+  }, [preferences]);
+
+  const primaryColors = THEME_PALETTES[preferences.palette].colors;
+
   const theme = createTheme({
     palette: {
-      mode: 'light',
+      mode: preferences.mode,
       primary: {
         main: primaryColors[500],
         light: primaryColors[400],
@@ -65,6 +130,24 @@ const ThemeContext = ({ children }: { children: React.ReactNode }) => {
         dark: '#4b5563',
         contrastText: '#ffffff',
       },
+      ...(preferences.mode === 'dark'
+        ? {
+            background: {
+              default: '#121212',
+              paper: '#1e1e1e',
+            },
+            text: {
+              primary: '#f3f4f6',
+              secondary: '#9ca3af',
+            },
+          }
+        : {}),
+    },
+    typography: {
+      fontFamily: THEME_FONTS[preferences.font].value,
+    },
+    shape: {
+      borderRadius: parseInt(THEME_RADII[preferences.radius].value) || 0,
     },
     components: {
       MuiButton: {
@@ -85,7 +168,7 @@ const ThemeContext = ({ children }: { children: React.ReactNode }) => {
       MuiChip: {
         styleOverrides: {
           root: {
-            borderRadius: '4px',
+            borderRadius: THEME_RADII[preferences.radius].value,
             fontWeight: 500,
             fontSize: '0.75rem',
             height: 'auto',
@@ -140,20 +223,34 @@ const ThemeContext = ({ children }: { children: React.ReactNode }) => {
       MuiIconButton: {
         styleOverrides: {
           root: {
-            borderRadius: '6px',
+            borderRadius: THEME_RADII[preferences.radius].value,
             '& .MuiTouchRipple-root': {
-              borderRadius: '6px',
+              borderRadius: THEME_RADII[preferences.radius].value,
               overflow: 'hidden',
             },
             '& .MuiTouchRipple-ripple': {
-              borderRadius: '6px !important',
+              borderRadius: `${THEME_RADII[preferences.radius].value} !important`,
             },
             '& .MuiTouchRipple-rippleVisible': {
-              borderRadius: '6px !important',
+              borderRadius: `${THEME_RADII[preferences.radius].value} !important`,
             },
             '& .MuiTouchRipple-child': {
-              borderRadius: '6px !important',
+              borderRadius: `${THEME_RADII[preferences.radius].value} !important`,
             },
+          },
+        },
+      },
+      MuiAvatar: {
+        styleOverrides: {
+          root: {
+            borderRadius: THEME_RADII[preferences.radius].value,
+          },
+        },
+      },
+      MuiListItemButton: {
+        styleOverrides: {
+          root: {
+            borderRadius: THEME_RADII[preferences.radius].value,
           },
         },
       },
@@ -161,8 +258,20 @@ const ThemeContext = ({ children }: { children: React.ReactNode }) => {
     primaryColors: primaryColors,
   });
 
-  return <ThemeProvider theme={theme}>{children}</ThemeProvider>;
+  const value: ThemeContextType = {
+    preferences,
+    setPalette: palette => setPreferences(p => ({ ...p, palette })),
+    setFont: font => setPreferences(p => ({ ...p, font })),
+    setRadius: radius => setPreferences(p => ({ ...p, radius })),
+    setMode: mode => setPreferences(p => ({ ...p, mode })),
+  };
+
+  return (
+    <ThemeContextValue.Provider value={value}>
+      <ThemeProvider theme={theme}>{children}</ThemeProvider>
+    </ThemeContextValue.Provider>
+  );
 };
 
-export { primaryColors };
-export default ThemeContext;
+export { THEME_PALETTES as primaryColors }; // Kept for backwards compatibility if needed
+export default CustomThemeProvider;

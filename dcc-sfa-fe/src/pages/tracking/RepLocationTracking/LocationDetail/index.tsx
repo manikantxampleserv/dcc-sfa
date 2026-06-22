@@ -28,9 +28,9 @@ const LocationDetail: React.FC<LocationDetailProps> = ({
     >
       <div className="p-4 flex flex-col gap-4">
         {/* User Info Card */}
-        <div className="bg-gradient-to-r from-blue-50 to-green-50 p-6 rounded-lg border border-blue-200">
+        <div className="bg-gradient-to-r from-primary-50 to-green-50 p-6 rounded-lg border border-primary-200">
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center">
+            <div className="w-16 h-16 bg-primary-600 rounded-full flex items-center justify-center">
               <Users className="w-8 h-8 text-white" />
             </div>
             <div className="flex-1">
@@ -62,8 +62,8 @@ const LocationDetail: React.FC<LocationDetailProps> = ({
           {/* Location */}
           <div className="bg-white p-4 rounded-lg border border-gray-200">
             <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                <MapPin className="w-5 h-5 text-blue-600" />
+              <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center">
+                <MapPin className="w-5 h-5 text-primary-600" />
               </div>
               <h4 className="font-semibold text-gray-700">Location</h4>
             </div>
@@ -192,7 +192,7 @@ const LocationDetail: React.FC<LocationDetailProps> = ({
         <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
           <div className="p-4 border-b border-gray-200">
             <div className="flex items-center gap-3">
-              <MapPin className="w-5 h-5 text-blue-600" />
+              <MapPin className="w-5 h-5 text-primary-600" />
               <h4 className="font-semibold text-gray-700">Live Location Map</h4>
             </div>
           </div>
@@ -214,8 +214,8 @@ const LocationDetail: React.FC<LocationDetailProps> = ({
                 onOpenMaps(Number(rep.latitude), Number(rep.longitude))
               }
             >
-              <MapPin className="w-4 h-4 text-blue-600" />
-              <span className="text-xs text-blue-600 ml-1">Open in Maps</span>
+              <MapPin className="w-4 h-4 text-primary-600" />
+              <span className="text-xs text-primary-600 ml-1">Open in Maps</span>
             </div>
           </div>
           <div className="p-3 bg-gray-50 text-sm text-gray-600">

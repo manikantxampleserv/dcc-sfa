@@ -163,7 +163,7 @@ const CompaniesManagement: React.FC = () => {
               href={row.website}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-blue-600 hover:text-blue-800 text-xs"
+              className="text-primary-600 hover:text-primary-800 text-xs"
             >
               Visit Site
             </a>

@@ -163,7 +163,7 @@ const PriceListsManagement: React.FC = () => {
             <Chip
               label="Default"
               size="small"
-              className="!bg-blue-50 !text-blue-700 !border-blue-200"
+              className="!bg-primary-50 !text-primary-700 !border-primary-200"
               variant="outlined"
             />
           );

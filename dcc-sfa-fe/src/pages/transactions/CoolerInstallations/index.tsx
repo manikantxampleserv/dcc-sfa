@@ -174,7 +174,7 @@ const CoolerInstallationsManagement: React.FC = () => {
       sortable: false,
       render: (_value, row) => (
         <Box className="flex items-center gap-1">
-          <Avatar className="!rounded !bg-blue-50 !text-blue-500">
+          <Avatar className="!rounded !bg-primary-50 !text-primary-500">
             <Package className="w-5 h-5" />
           </Avatar>
           <Box className="flex flex-col">

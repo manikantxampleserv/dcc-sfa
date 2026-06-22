@@ -49,7 +49,7 @@ const MessageBubble = React.memo(
           variant="rounded"
           className={`!w-10 !h-10 shrink-0 ${
             msg.sender === 'user'
-              ? '!bg-blue-100 !text-blue-600'
+              ? '!bg-primary-100 !text-primary-600'
               : '!bg-purple-100 !text-purple-600'
           }`}
         >

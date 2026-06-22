@@ -34,7 +34,7 @@ const COLOR_CLASSES: Record<
   StatsCardColor,
   { iconBg: string; iconText: string }
 > = {
-  blue: { iconBg: 'bg-blue-100', iconText: 'text-blue-600' },
+  blue: { iconBg: 'bg-primary-100', iconText: 'text-primary-600' },
   green: { iconBg: 'bg-green-100', iconText: 'text-green-600' },
   red: { iconBg: 'bg-red-100', iconText: 'text-red-600' },
   purple: { iconBg: 'bg-purple-100', iconText: 'text-purple-600' },

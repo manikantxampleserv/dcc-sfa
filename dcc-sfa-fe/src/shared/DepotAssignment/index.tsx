@@ -98,8 +98,8 @@ const DepotAssignment: React.FC<DepotAssignmentProps> = ({
   );
 
   const DepotCard = ({ depot }: { depot: Depot }) => (
-    <div className="!flex !items-center !gap-3 !p-2 !pr-3 !bg-white !border !border-gray-200 !rounded-lg hover:!border-blue-300 hover:!shadow-md">
-      <Avatar className="!w-9 !h-9 !bg-blue-100 !text-blue-600">
+    <div className="!flex !items-center !gap-3 !p-2 !pr-3 !bg-white !border !border-gray-200 !rounded-lg hover:!border-primary-300 hover:!shadow-md">
+      <Avatar className="!w-9 !h-9 !bg-primary-100 !text-primary-600">
         <Warehouse className="w-4 h-4" />
       </Avatar>
       <Box className="!flex-1 !min-w-0">
@@ -126,7 +126,7 @@ const DepotAssignment: React.FC<DepotAssignmentProps> = ({
             <Box className="!p-2 !border-b !border-gray-200 !bg-gray-50">
               <Typography
                 variant="subtitle1"
-                className="!font-semibold !text-blue-600"
+                className="!font-semibold !text-primary-600"
               >
                 Available Depots ({availableDepots.length})
               </Typography>
@@ -149,7 +149,7 @@ const DepotAssignment: React.FC<DepotAssignmentProps> = ({
                     {...provided.droppableProps}
                     ref={provided.innerRef}
                     className={`!h-full !p-2 !overflow-y-auto ${
-                      snapshot.isDraggingOver ? '!bg-blue-50' : ''
+                      snapshot.isDraggingOver ? '!bg-primary-50' : ''
                     }`}
                     style={{
                       transition: 'background-color 0.2s ease',

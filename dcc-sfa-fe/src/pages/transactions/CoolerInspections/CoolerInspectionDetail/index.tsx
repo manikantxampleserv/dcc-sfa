@@ -145,7 +145,7 @@ const CoolerInspectionDetail: React.FC = () => {
 
           {/* Inspection Information Card Skeleton */}
           <div className="!bg-white !rounded-lg !shadow !border !border-gray-200 !p-6 !relative !overflow-hidden">
-            <div className="!absolute !top-0 !right-0 !w-16 !h-16 !bg-gradient-to-br !from-blue-50 !to-purple-50 !rounded-full !-translate-y-8 !translate-x-8"></div>
+            <div className="!absolute !top-0 !right-0 !w-16 !h-16 !bg-gradient-to-br !from-primary-50 !to-purple-50 !rounded-full !-translate-y-8 !translate-x-8"></div>
             <div className="!relative !z-10">
               <div className="!flex !items-center !gap-2 !mb-4">
                 <div className="!p-1.5 !w-10 !h-10 flex items-center justify-center !bg-primary-100 !rounded-md">
@@ -189,7 +189,7 @@ const CoolerInspectionDetail: React.FC = () => {
         <div className="!flex-4 !space-y-4">
           {/* Inspection Details Card Skeleton */}
           <div className="!bg-white !rounded-lg !shadow !border !border-gray-200 !p-6 !relative !overflow-hidden">
-            <div className="!absolute !top-0 !right-0 !w-16 !h-16 !bg-gradient-to-br !from-blue-50 !to-purple-50 !rounded-full !-translate-y-8 !translate-x-8"></div>
+            <div className="!absolute !top-0 !right-0 !w-16 !h-16 !bg-gradient-to-br !from-primary-50 !to-purple-50 !rounded-full !-translate-y-8 !translate-x-8"></div>
             <div className="!relative !z-10">
               <div className="!flex !items-center !gap-2 !mb-4">
                 <div className="!p-1.5 !w-10 !h-10 flex items-center justify-center !bg-primary-100 !rounded-md">
@@ -240,7 +240,7 @@ const CoolerInspectionDetail: React.FC = () => {
 
           {/* Issues and Actions Card Skeleton */}
           <div className="!bg-white !rounded-lg !shadow !border !border-gray-200 !p-6 !relative !overflow-hidden">
-            <div className="!absolute !top-0 !right-0 !w-16 !h-16 !bg-gradient-to-br !from-blue-50 !to-purple-50 !rounded-full !-translate-y-8 !translate-x-8"></div>
+            <div className="!absolute !top-0 !right-0 !w-16 !h-16 !bg-gradient-to-br !from-primary-50 !to-purple-50 !rounded-full !-translate-y-8 !translate-x-8"></div>
             <div className="!relative !z-10">
               <div className="!flex !items-center !gap-2 !mb-4">
                 <div className="!p-1.5 !w-10 !h-10 flex items-center justify-center !bg-primary-100 !rounded-md">
@@ -336,7 +336,7 @@ const CoolerInspectionDetail: React.FC = () => {
     icon?: React.ElementType;
   }) => (
     <div className="!bg-white !rounded-lg !shadow !border !border-gray-200 !p-6 !relative !overflow-hidden">
-      <div className="!absolute !top-0 !right-0 !w-16 !h-16 !bg-gradient-to-br !from-blue-50 !to-purple-50 !rounded-full !-translate-y-8 !translate-x-8"></div>
+      <div className="!absolute !top-0 !right-0 !w-16 !h-16 !bg-gradient-to-br !from-primary-50 !to-purple-50 !rounded-full !-translate-y-8 !translate-x-8"></div>
       <div className="!relative !z-10">
         <div className="!flex !items-center !gap-2 !mb-4">
           {Icon && (
@@ -373,7 +373,7 @@ const CoolerInspectionDetail: React.FC = () => {
                 className={classNames(
                   '!w-24 !h-24 !mx-auto !text-xl !font-bold !border-3 !border-white !shadow-lg',
                   {
-                    '!bg-gradient-to-br !from-blue-400 !to-blue-600 !text-white':
+                    '!bg-gradient-to-br !from-primary-400 !to-primary-600 !text-white':
                       coolerInspection.is_active === 'Y',
                     '!bg-gradient-to-br !from-gray-400 !to-gray-600 !text-white':
                       coolerInspection.is_active !== 'Y',
@@ -457,7 +457,7 @@ const CoolerInspectionDetail: React.FC = () => {
               <div className="!p-3 !bg-gray-50 !rounded-md !border !border-gray-200">
                 <div className="!flex !items-center !justify-between">
                   <div className="!flex !items-center !gap-2">
-                    <Calendar className="!text-blue-500 !w-4 !h-4" />
+                    <Calendar className="!text-primary-500 !w-4 !h-4" />
                     <Typography
                       variant="body2"
                       className="!font-semibold !text-gray-900"
@@ -467,7 +467,7 @@ const CoolerInspectionDetail: React.FC = () => {
                   </div>
                   <Typography
                     variant="body2"
-                    className="!font-semibold !text-blue-600"
+                    className="!font-semibold !text-primary-600"
                   >
                     {coolerInspection.inspection_date
                       ? formatDate(coolerInspection.inspection_date)

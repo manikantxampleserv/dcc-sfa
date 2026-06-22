@@ -248,7 +248,7 @@ const CompetitorActivityManagement: React.FC = () => {
           {row.image_url ? (
             <button
               onClick={() => window.open(row.image_url!, '_blank')}
-              className="text-xs text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+              className="text-xs text-primary-600 hover:text-primary-800 hover:underline cursor-pointer"
               title="Click to view image"
             >
               Available

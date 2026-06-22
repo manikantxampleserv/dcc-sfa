@@ -315,7 +315,7 @@ const RouteAssignmentManagement: React.FC = () => {
                   <Avatar
                     src={user.profile_image || 'mkx'}
                     alt={user.name}
-                    className="!bg-blue-100 !rounded !text-blue-600"
+                    className="!bg-primary-100 !rounded !text-primary-600"
                   >
                     {user.name?.charAt(0).toUpperCase()}
                   </Avatar>

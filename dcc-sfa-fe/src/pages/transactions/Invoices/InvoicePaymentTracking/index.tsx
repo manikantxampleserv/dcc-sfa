@@ -529,8 +529,8 @@ const InvoicePaymentTracking: React.FC<InvoicePaymentTrackingProps> = ({
               Payment Summary
             </Typography>
             <Box className="!grid !grid-cols-1 md:!grid-cols-4 !gap-3">
-              <Box className="!text-center !p-2 !bg-blue-50 !rounded-lg">
-                <DollarSign className="w-6 h-6 text-blue-600 mx-auto mb-1" />
+              <Box className="!text-center !p-2 !bg-primary-50 !rounded-lg">
+                <DollarSign className="w-6 h-6 text-primary-600 mx-auto mb-1" />
                 {isLoading ? (
                   <Skeleton
                     variant="text"
@@ -541,14 +541,14 @@ const InvoicePaymentTracking: React.FC<InvoicePaymentTrackingProps> = ({
                 ) : (
                   <Typography
                     variant="subtitle2"
-                    className="!font-bold !text-blue-900 !text-sm"
+                    className="!font-bold !text-primary-900 !text-sm"
                   >
                     {formatCurrency(summary.invoiceTotal)}
                   </Typography>
                 )}
                 <Typography
                   variant="caption"
-                  className="!text-blue-700 !text-xs"
+                  className="!text-primary-700 !text-xs"
                 >
                   Invoice Total
                 </Typography>
@@ -788,7 +788,7 @@ const InvoicePaymentTracking: React.FC<InvoicePaymentTrackingProps> = ({
                           ? '!bg-green-500'
                           : summary.paymentPercentage > 50
                             ? '!bg-yellow-500'
-                            : '!bg-blue-500'
+                            : '!bg-primary-500'
                     }`}
                     style={{
                       width: `${Math.min(summary.paymentPercentage, 100)}%`,

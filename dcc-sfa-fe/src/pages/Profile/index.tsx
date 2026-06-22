@@ -139,7 +139,7 @@ const Profile: React.FC = () => {
       <div className="bg-white shadow-sm p-6 rounded-lg border border-gray-100">
         <div className="flex justify-between items-center">
           <div>
-            <h2 className="text-2xl font-semibold text-blue-600 mb-1">
+            <h2 className="text-2xl font-semibold text-primary-600 mb-1">
               My Profile
             </h2>
             <p className="text-gray-500 text-sm">
@@ -191,7 +191,7 @@ const Profile: React.FC = () => {
                 <Avatar
                   alt={user.name}
                   src={currentProfileImage}
-                  className="!w-32 !h-32 !rounded-xl !text-4xl !font-bold !bg-blue-500"
+                  className="!w-32 !h-32 !rounded-xl !text-4xl !font-bold !bg-primary-500"
                 >
                   {user.name
                     .split(' ')
@@ -214,7 +214,7 @@ const Profile: React.FC = () => {
                       onClick={() =>
                         document.getElementById('profile-image-upload')?.click()
                       }
-                      className="absolute size-10 flex cursor-pointer items-center justify-center -bottom-2 -right-2 bg-blue-600 text-white hover:bg-blue-700 p-2 rounded-xl shadow-lg transition-colors"
+                      className="absolute size-10 flex cursor-pointer items-center justify-center -bottom-2 -right-2 bg-primary-600 text-white hover:bg-primary-700 p-2 rounded-xl shadow-lg transition-colors"
                     >
                       <PhotoCamera fontSize="small" />
                     </button>

@@ -87,8 +87,8 @@ const OrdersInvoicesReturnsReport: React.FC = () => {
       label: 'Order Info',
       render: (_value, row) => (
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-            <FileText className="w-5 h-5 text-blue-600" />
+          <div className="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center">
+            <FileText className="w-5 h-5 text-primary-600" />
           </div>
           <div className="flex flex-col">
             <span className="font-semibold text-sm">{row.order_number}</span>
@@ -114,8 +114,8 @@ const OrdersInvoicesReturnsReport: React.FC = () => {
       label: 'Salesperson',
       render: (_value, row) => (
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-            <span className="text-xs font-semibold text-blue-600">
+          <div className="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center">
+            <span className="text-xs font-semibold text-primary-600">
               {row.salesperson_name
                 ?.split(' ')
                 .map((n: string) => n[0])
@@ -393,8 +393,8 @@ const OrdersInvoicesReturnsReport: React.FC = () => {
                 {summary.total_orders}
               </p>
             </div>
-            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-              <ShoppingCart className="w-6 h-6 text-blue-600" />
+            <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center">
+              <ShoppingCart className="w-6 h-6 text-primary-600" />
             </div>
           </div>
         </div>
@@ -471,9 +471,9 @@ const OrdersInvoicesReturnsReport: React.FC = () => {
               {statusBreakdown.pending_orders}
             </p>
           </div>
-          <div className="text-center p-3 bg-blue-50 rounded-lg border border-blue-200">
+          <div className="text-center p-3 bg-primary-50 rounded-lg border border-primary-200">
             <p className="text-sm text-gray-600">Completed Orders</p>
-            <p className="text-lg font-bold text-blue-600">
+            <p className="text-lg font-bold text-primary-600">
               {statusBreakdown.completed_orders}
             </p>
           </div>

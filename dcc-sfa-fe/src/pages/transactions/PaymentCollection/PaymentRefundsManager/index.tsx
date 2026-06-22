@@ -145,7 +145,7 @@ const PaymentRefundsManager: React.FC<PaymentRefundsManagerProps> = ({
     const colors = {
       completed: 'bg-green-100 text-green-800',
       initiated: 'bg-yellow-100 text-yellow-800',
-      processing: 'bg-blue-100 text-blue-800',
+      processing: 'bg-primary-100 text-primary-800',
       failed: 'bg-red-100 text-red-800',
       cancelled: 'bg-gray-100 text-gray-800',
     };
@@ -178,7 +178,7 @@ const PaymentRefundsManager: React.FC<PaymentRefundsManagerProps> = ({
     icon?: React.ElementType;
   }) => (
     <div className="!bg-white !rounded-lg !shadow !border !border-gray-200 !p-4 !relative !overflow-hidden">
-      <div className="!absolute !top-0 !right-0 !w-12 !h-12 !bg-gradient-to-br !from-blue-100 !to-purple-100 !rounded-full !-translate-y-6 !translate-x-6"></div>
+      <div className="!absolute !top-0 !right-0 !w-12 !h-12 !bg-gradient-to-br !from-primary-100 !to-purple-100 !rounded-full !-translate-y-6 !translate-x-6"></div>
       <div className="!relative !z-10">
         <div className="!flex !items-center !gap-2 !mb-3">
           {Icon && (

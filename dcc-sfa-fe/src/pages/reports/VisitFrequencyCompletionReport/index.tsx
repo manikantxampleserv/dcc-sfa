@@ -97,8 +97,8 @@ const VisitFrequencyCompletionReport: React.FC = () => {
       label: 'Sales Person',
       render: (_value, row) => (
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-            <span className="text-xs font-semibold text-blue-600">
+          <div className="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center">
+            <span className="text-xs font-semibold text-primary-600">
               {row.salesperson_name
                 ?.split(' ')
                 .map((n: string) => n[0])

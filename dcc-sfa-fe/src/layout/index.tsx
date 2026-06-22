@@ -6,6 +6,7 @@ import BreadCrumbs from 'shared/BreadCrumbs';
 import { CurrencyProvider } from '../context/CurrencyContext';
 import { TourProvider } from '../context/TourContext';
 import JoyrideTour from 'shared/JoyrideTour';
+import ThemeSettingsPanel from '../shared/ThemeSettings';
 
 const Layout: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -67,6 +68,7 @@ const Layout: React.FC = () => {
               <Outlet key={outletKey} />
             </main>
           </div>
+          <ThemeSettingsPanel />
           <JoyrideTour />
         </div>
       </TourProvider>

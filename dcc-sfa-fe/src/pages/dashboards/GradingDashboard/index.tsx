@@ -318,12 +318,12 @@ const GradingDashboard: React.FC = () => {
         >
           <Avatar
             variant="rounded"
-            className="!bg-blue-50 !text-blue-600 group-hover:!bg-blue-100 transition-colors !w-10 !h-10"
+            className="!bg-primary-50 !text-primary-600 group-hover:!bg-primary-100 transition-colors !w-10 !h-10"
           >
             <Store className="w-5 h-5" />
           </Avatar>
           <div>
-            <div className="text-sm font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
+            <div className="text-sm font-semibold text-gray-900 group-hover:text-primary-600 transition-colors">
               {row.category_grading_customers.name}
             </div>
             <div className="text-xs text-gray-500">
@@ -363,7 +363,7 @@ const GradingDashboard: React.FC = () => {
           icon = <ArrowDownCircle className="w-4 h-4 text-red-500" />;
           color = 'error';
         } else if (row.change_type === 'no_change') {
-          icon = <CheckCircle2 className="w-4 h-4 text-blue-500" />;
+          icon = <CheckCircle2 className="w-4 h-4 text-primary-500" />;
           color = 'info';
         }
 
@@ -409,7 +409,7 @@ const GradingDashboard: React.FC = () => {
               </div>
             )}
             {row.notes && (
-              <div className="text-xs text-blue-600 font-medium italic">
+              <div className="text-xs text-primary-600 font-medium italic">
                 Notes: {row.notes}
               </div>
             )}

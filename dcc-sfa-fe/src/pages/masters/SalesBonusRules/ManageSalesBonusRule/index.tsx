@@ -156,11 +156,11 @@ const ManageSalesBonusRule: React.FC<ManageSalesBonusRuleProps> = ({
             />
           </Box>
 
-          <Box className="!bg-blue-50 !p-4 !rounded-lg">
-            <h4 className="!text-sm !font-medium !text-blue-900 !mb-2">
+          <Box className="!bg-primary-50 !p-4 !rounded-lg">
+            <h4 className="!text-sm !font-medium !text-primary-900 !mb-2">
               Rule Information
             </h4>
-            <ul className="!text-sm !text-blue-800 !space-y-1">
+            <ul className="!text-sm !text-primary-800 !space-y-1">
               <li>
                 • Either bonus amount or bonus percentage must be provided
               </li>

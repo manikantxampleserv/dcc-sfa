@@ -194,7 +194,7 @@ const CoolerInspectionsManagement: React.FC = () => {
         <Box className="!flex !gap-2 !items-center">
           <Avatar
             alt={row.cooler?.code}
-            className="!rounded !bg-blue-100 !text-blue-500"
+            className="!rounded !bg-primary-100 !text-primary-500"
           >
             <Droplets className="w-5 h-5" />
           </Avatar>

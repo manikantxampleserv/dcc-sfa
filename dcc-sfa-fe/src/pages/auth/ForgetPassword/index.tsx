@@ -171,7 +171,7 @@ const ForgetPasswordModal: React.FC<ResetPasswordModalProps> = ({
                   <div
                     className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
                       isActive
-                        ? 'bg-blue-100 text-blue-600 ring-1 ring-blue-100'
+                        ? 'bg-primary-100 text-primary-600 ring-1 ring-primary-100'
                         : isDone
                           ? 'bg-green-100 text-green-600'
                           : 'bg-gray-100 text-gray-400'
@@ -256,7 +256,7 @@ const ForgetPasswordModal: React.FC<ResetPasswordModalProps> = ({
                           otpRefs.current[index - 1]?.focus();
                         }
                       }}
-                      className="w-10 h-10 text-center border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                      className="w-10 h-10 text-center border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
                     />
                   ))}
                 </div>
@@ -345,7 +345,7 @@ const ForgetPasswordModal: React.FC<ResetPasswordModalProps> = ({
                       !resetFormik.values.newPassword ||
                       !resetToken
               }
-              className="!capitalize disabled:!text-gray-300 !min-w-[140px] !py-2.5 !rounded-lg !bg-blue-600 hover:!bg-blue-700 !shadow-none"
+              className="!capitalize disabled:!text-gray-300 !min-w-[140px] !py-2.5 !rounded-lg !bg-primary-600 hover:!bg-primary-700 !shadow-none"
             >
               {step === 'email'
                 ? 'Send'

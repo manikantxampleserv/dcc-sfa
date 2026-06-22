@@ -87,8 +87,8 @@ const AttendanceReports: React.FC = () => {
         if (!user) return <span className="text-sm text-gray-500">N/A</span>;
         return (
           <div className="flex items-center gap-3">
-            <Avatar className="w-10 h-10 !rounded !bg-blue-100">
-              <span className="text-blue-600 font-semibold text-sm">
+            <Avatar className="w-10 h-10 !rounded !bg-primary-100">
+              <span className="text-primary-600 font-semibold text-sm">
                 {user.name
                   ? user.name
                       .split(' ')

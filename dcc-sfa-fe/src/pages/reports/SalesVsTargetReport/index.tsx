@@ -84,8 +84,8 @@ const SalesVsTargetReport: React.FC = () => {
             .slice(0, 2) || 'U';
         return (
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-              <span className="text-xs font-semibold text-blue-600">
+            <div className="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center">
+              <span className="text-xs font-semibold text-primary-600">
                 {initials}
               </span>
             </div>

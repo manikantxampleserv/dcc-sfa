@@ -37,7 +37,7 @@ const typeIconMap: Record<string, React.ReactElement> = {
 const typeColorMap: Record<string, string> = {
   role: 'text-teal-600 bg-teal-100',
   company: 'text-indigo-600 bg-indigo-100',
-  user: 'text-blue-600 bg-blue-100',
+  user: 'text-primary-600 bg-primary-100',
   depot: 'text-purple-600 bg-purple-100',
   zone: 'text-orange-600 bg-orange-100',
   route: 'text-green-600 bg-green-100',
@@ -47,7 +47,7 @@ const typeColorMap: Record<string, string> = {
 const typeBorderMap: Record<string, string> = {
   role: 'border-teal-200 hover:border-teal-400',
   company: 'border-indigo-200 hover:border-indigo-400',
-  user: 'border-blue-200 hover:border-blue-400',
+  user: 'border-primary-200 hover:border-primary-400',
   depot: 'border-purple-200 hover:border-purple-400',
   zone: 'border-orange-200 hover:border-orange-400',
   route: 'border-green-200 hover:border-green-400',
@@ -176,7 +176,7 @@ const OrganizationChart: React.FC = () => {
                   className={`flex items-center transition-colors shrink-0 ${
                     currentPath.length === 0
                       ? 'text-gray-900 cursor-default'
-                      : 'text-gray-600 hover:text-blue-600'
+                      : 'text-gray-600 hover:text-primary-600'
                   }`}
                 >
                   <HomeOutlined className="!w-5 !h-5" /> Home
@@ -220,7 +220,7 @@ const OrganizationChart: React.FC = () => {
                           onClick={() =>
                             setCurrentPath(currentPath.slice(0, index + 1))
                           }
-                          className="text-gray-600 cursor-pointer hover:text-blue-600 flex items-center gap-1 transition-colors shrink-0"
+                          className="text-gray-600 cursor-pointer hover:text-primary-600 flex items-center gap-1 transition-colors shrink-0"
                           title={node.label}
                         >
                           {typeIconMap[node.type] || <FolderOpenOutlined />}

@@ -57,7 +57,7 @@ const WorkflowTimeline: React.FC<WorkflowTimelineProps> = ({
       case 'completed':
         return <CheckCircle className="w-5 h-5 text-green-600" />;
       case 'in_progress':
-        return <Clock className="w-5 h-5 text-blue-600" />;
+        return <Clock className="w-5 h-5 text-primary-600" />;
       case 'pending':
         return <Clock className="w-5 h-5 text-gray-400" />;
       case 'rejected':
@@ -72,7 +72,7 @@ const WorkflowTimeline: React.FC<WorkflowTimelineProps> = ({
       case 'completed':
         return 'text-green-600';
       case 'in_progress':
-        return 'text-blue-600';
+        return 'text-primary-600';
       case 'pending':
         return 'text-gray-400';
       case 'rejected':
@@ -262,8 +262,8 @@ const WorkflowTimeline: React.FC<WorkflowTimelineProps> = ({
 
       {/* Template Selector */}
       {showTemplateSelector && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <Typography variant="h6" className="mb-3 text-blue-900">
+        <div className="bg-primary-50 border border-primary-200 rounded-lg p-4">
+          <Typography variant="h6" className="mb-3 text-primary-900">
             Select Workflow Template
           </Typography>
           <div className="space-y-2 mb-4">
@@ -321,7 +321,7 @@ const WorkflowTimeline: React.FC<WorkflowTimelineProps> = ({
             className={` ${
               isLastStep
                 ? 'bg-green-600 hover:bg-green-700 text-white'
-                : 'border-blue-300 text-blue-600 hover:bg-blue-50'
+                : 'border-primary-300 text-primary-600 hover:bg-primary-50'
             }`}
             startIcon={<ArrowRight />}
             onClick={handleExecuteNextStep}

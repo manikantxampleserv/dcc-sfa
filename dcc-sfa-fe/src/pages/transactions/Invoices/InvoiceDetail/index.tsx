@@ -37,7 +37,7 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
   // const getStatusColor = (status: string) => {
   //   const colors = {
   //     draft: 'bg-gray-100 text-gray-800',
-  //     sent: 'bg-blue-100 text-blue-800',
+  //     sent: 'bg-primary-100 text-primary-800',
   //     paid: 'bg-green-100 text-green-800',
   //     overdue: 'bg-red-100 text-red-800',
   //     cancelled: 'bg-gray-100 text-gray-800',
@@ -201,7 +201,7 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
     icon?: React.ElementType;
   }) => (
     <div className="!bg-white !rounded-lg !shadow !border !border-gray-200 !p-6 !relative !overflow-hidden">
-      <div className="!absolute !top-0 !right-0 !w-16 !h-16 !bg-gradient-to-br !from-blue-50 !to-purple-50 !rounded-full !-translate-y-8 !translate-x-8"></div>
+      <div className="!absolute !top-0 !right-0 !w-16 !h-16 !bg-gradient-to-br !from-primary-50 !to-purple-50 !rounded-full !-translate-y-8 !translate-x-8"></div>
       <div className="!relative !z-10">
         <div className="!flex !items-center !gap-2 !mb-4">
           {Icon && (
@@ -242,7 +242,7 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
                 {
                   '!bg-gradient-to-br !from-green-400 !to-green-600 !text-white':
                     invoiceData.status === 'paid',
-                  '!bg-gradient-to-br !from-blue-400 !to-blue-600 !text-white':
+                  '!bg-gradient-to-br !from-primary-400 !to-primary-600 !text-white':
                     invoiceData.status === 'sent',
                   '!bg-gradient-to-br !from-red-400 !to-red-600 !text-white':
                     invoiceData.status === 'overdue',

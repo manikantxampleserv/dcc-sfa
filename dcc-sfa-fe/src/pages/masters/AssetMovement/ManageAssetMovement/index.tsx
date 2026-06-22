@@ -345,9 +345,9 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
   );
 
   const AssetCard = ({ asset }: { asset: AssetMaster; showIndex?: number }) => (
-    <div className="!flex !items-center !gap-3 !p-2 !pr-3 !bg-white !border !border-gray-200 !rounded-lg !mb-2 hover:!border-blue-300 hover:!shadow-md">
+    <div className="!flex !items-center !gap-3 !p-2 !pr-3 !bg-white !border !border-gray-200 !rounded-lg !mb-2 hover:!border-primary-300 hover:!shadow-md">
       <GripVertical className="!w-5 !h-5 !text-gray-400 !cursor-grab !flex-shrink-0" />
-      <Avatar className="!w-9 !h-9 !bg-blue-100 !text-blue-600">
+      <Avatar className="!w-9 !h-9 !bg-primary-100 !text-primary-600">
         <Package className="w-4 h-4" />
       </Avatar>
       <Box className="!flex-1 !min-w-0">
@@ -487,7 +487,7 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
                     <Box className="!p-2 !border-b !border-gray-200 !bg-gray-50">
                       <Typography
                         variant="subtitle1"
-                        className="!font-semibold !text-blue-600"
+                        className="!font-semibold !text-primary-600"
                       >
                         Available Assets (
                         {assetsResponse?.meta?.total || availableAssets.length})
@@ -512,7 +512,7 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
                             ref={provided.innerRef}
                             onScroll={handleScroll}
                             className={`!h-full !p-2 !overflow-y-auto ${
-                              snapshot.isDraggingOver ? '!bg-blue-50' : ''
+                              snapshot.isDraggingOver ? '!bg-primary-50' : ''
                             }`}
                             style={{
                               transition: 'background-color 0.2s ease',

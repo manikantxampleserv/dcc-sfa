@@ -258,8 +258,8 @@ function TableHead<T>(props: TableHeadProps<T>) {
             }
             className={classNames(
               column.className,
-              '!border-b !px-1.5 !border-gray-200 !bg-blue-50 !font-semibold',
-              '!whitespace-nowrap !text-gray-700 !p-4 !text-sm',
+              '!border-b !px-1.5 !border-gray-200 dark:!border-zinc-800 !bg-primary-50 dark:!bg-primary-950/40 !font-semibold',
+              '!whitespace-nowrap !text-gray-700 dark:!text-gray-200 !p-4 !text-sm',
               compact ? '!py-3 !text-xs' : '',
               column.numeric && '!justify-end'
             )}
@@ -270,7 +270,8 @@ function TableHead<T>(props: TableHeadProps<T>) {
                 IconComponent={ArrowUpDown}
                 slotProps={{
                   icon: {
-                    className: '!w-4 !h-4 !text-primary-500',
+                    className:
+                      '!w-4 !h-4 !text-primary-500 dark:!text-primary-400',
                   },
                 }}
                 active={orderBy === column.id && order !== 'none'}
@@ -279,8 +280,10 @@ function TableHead<T>(props: TableHeadProps<T>) {
                 }
                 onClick={createSortHandler(column.id)}
                 className={classNames(
-                  'hover:!text-blue-600 !flex !justify-between',
-                  orderBy === column.id && order !== 'none' && '!text-blue-600'
+                  'hover:!text-primary-600 dark:hover:!text-primary-400 !flex !justify-between',
+                  orderBy === column.id &&
+                    order !== 'none' &&
+                    '!text-primary-600 dark:!text-primary-400'
                 )}
               >
                 {column.label}
@@ -334,7 +337,7 @@ function SkeletonLoader({ columns, rows = 3 }: SkeletonLoaderProps) {
               key={`skeleton-${rowIndex}-${String(column.id)}`}
               align={column.numeric ? 'right' : 'left'}
               padding={column.disablePadding ? 'none' : 'normal'}
-              className="!border-b !border-gray-100 !h-[50px]"
+              className="!border-b !border-gray-100 dark:!border-zinc-800 !h-[50px]"
             >
               <Box className="!flex !items-center !gap-1.5">
                 <Box className="!flex-1">
@@ -342,7 +345,7 @@ function SkeletonLoader({ columns, rows = 3 }: SkeletonLoaderProps) {
                     variant="text"
                     width={getSkeletonWidth(column, colIndex)}
                     height={20}
-                    className="!bg-gray-100 !rounded"
+                    className="!bg-gray-100 dark:!bg-zinc-800 !rounded"
                   />
                 </Box>
               </Box>
@@ -519,14 +522,16 @@ export default function Table<T extends Record<string, any>>(
     if (hasNoPermission) {
       return (
         <Box className="!flex !flex-col !items-center !justify-center !py-16 !px-4">
-          <Box className="!mb-4 !p-4 !rounded-full !bg-red-100">
-            <Lock className="!w-12 !h-12 !text-red-500" />
+          <Box className="!mb-4 !p-4 !rounded-full !bg-red-100 dark:!bg-red-950/30">
+            <Lock className="!w-12 !h-12 !text-red-500 dark:!text-red-400" />
           </Box>
           <Box className="!text-center !max-w-md">
-            <Box className="!text-lg !font-semibold !text-gray-700 !mb-2">
+            <Box className="!text-lg !font-semibold !text-gray-700 dark:!text-gray-200 !mb-2">
               Access Denied
             </Box>
-            <Box className="!text-sm !text-gray-500">{noAccessMessage}</Box>
+            <Box className="!text-sm !text-gray-500 dark:!text-gray-400">
+              {noAccessMessage}
+            </Box>
           </Box>
         </Box>
       );
@@ -592,14 +597,14 @@ export default function Table<T extends Record<string, any>>(
                     onClick={event => handleClick(event, row, index)}
                     tabIndex={-1}
                     key={String(rowId)}
-                    className="!whitespace-nowrap last:!border-b-0 !cursor-pointer hover:!bg-gray-50"
+                    className="!whitespace-nowrap last:!border-b-0 !cursor-pointer hover:!bg-gray-50 dark:hover:!bg-zinc-800/50"
                   >
                     {visibleColumns.map(column => (
                       <MuiTableCell
                         key={String(column.id)}
                         align={column.numeric ? 'right' : 'left'}
                         padding={column.disablePadding ? 'none' : 'normal'}
-                        className="!border-b !p-1.5 !border-gray-100 !text-gray-700 !whitespace-nowrap !text-sm"
+                        className="!border-b !p-1.5 !border-gray-100 dark:!border-zinc-800 !text-gray-700 dark:!text-gray-300 !whitespace-nowrap !text-sm"
                       >
                         {column.render
                           ? column.render(row[column.id], row, index)
@@ -628,10 +633,10 @@ export default function Table<T extends Record<string, any>>(
 
               return groups.map(({ group, rows }) => (
                 <React.Fragment key={`group-${group}`}>
-                  <MuiTableRow className="!bg-gray-200">
+                  <MuiTableRow className="!bg-gray-200 dark:!bg-zinc-800">
                     <MuiTableCell
                       colSpan={visibleColumns.length}
-                      className="!py-2 !px-4 !font-bold !text-gray-800"
+                      className="!py-2 !px-4 !font-bold !text-gray-800 dark:!text-gray-200"
                     >
                       {props.renderGroupHeader
                         ? props.renderGroupHeader(group, rows)
@@ -652,7 +657,7 @@ export default function Table<T extends Record<string, any>>(
     <Box className="!w-full" id={id}>
       <Paper
         elevation={0}
-        className="!bg-white !shadow-sm !rounded-lg !border !border-gray-100"
+        className="!bg-white dark:!bg-zinc-900 !shadow-sm !rounded-lg !border !border-gray-100 dark:!border-zinc-800"
       >
         {props.actions && !Array.isArray(props.actions) && (
           <>
@@ -669,12 +674,12 @@ export default function Table<T extends Record<string, any>>(
                 hideableColumns.length > 0 && (
                   <Box className="!relative">
                     <IconButton
-                      className="!bg-blue-500/20 !size-9.5 !rounded !mt-px"
+                      className="!bg-primary-500/20 !size-9.5 !rounded !mt-px"
                       onClick={handleColumnFilterClick}
                     >
-                      <FilterList className="!text-blue-500" />
+                      <FilterList className="!text-primary-500" />
                     </IconButton>
-                    <Divider className="!border-gray-200" />
+                    <Divider className="!border-gray-200 dark:!border-zinc-800" />
                   </Box>
                 )}
             </Box>
@@ -688,7 +693,8 @@ export default function Table<T extends Record<string, any>>(
           transformOrigin={{ vertical: 'top', horizontal: 'right' }}
           slotProps={{
             paper: {
-              className: '!overflow-y-auto relative',
+              className:
+                '!overflow-y-auto relative dark:!bg-zinc-900 dark:!text-gray-200 dark:!border dark:!border-zinc-800',
               sx: {
                 boxShadow:
                   '0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.1)',
@@ -700,12 +706,12 @@ export default function Table<T extends Record<string, any>>(
           <Box className="w-72">
             <Typography
               variant="subtitle2"
-              className="!font-semibold p-1.5 !text-gray-700"
+              className="!font-semibold p-1.5 !text-gray-700 dark:!text-gray-200"
             >
               Show/Hide Columns
             </Typography>
 
-            <Divider className="" />
+            <Divider className="dark:!border-zinc-800" />
 
             <Box className="!space-y-2 p-2">
               {hideableColumns.map(column => {
@@ -727,7 +733,7 @@ export default function Table<T extends Record<string, any>>(
                     }
                     label={
                       <Box className="!flex !items-center !gap-2">
-                        <Typography className="!text-gray-700">
+                        <Typography className="!text-gray-700 dark:!text-gray-200">
                           {column.label}
                         </Typography>
                       </Box>
@@ -753,7 +759,7 @@ export default function Table<T extends Record<string, any>>(
             onPageChange={handleChangePage}
             page={page}
             rowsPerPage={rowsPerPage}
-            className="!border-t !border-gray-200 [&_.MuiTablePagination-toolbar]:!text-gray-700 [&_.MuiTablePagination-selectIcon]:!text-gray-500"
+            className="!border-t !border-gray-200 dark:!border-zinc-800 [&_.MuiTablePagination-toolbar]:!text-gray-700 dark:[&_.MuiTablePagination-toolbar]:!text-gray-200 [&_.MuiTablePagination-selectIcon]:!text-gray-500 dark:[&_.MuiTablePagination-selectIcon]:!text-gray-400"
           />
         )}
       </Paper>

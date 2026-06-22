@@ -44,7 +44,7 @@ const AuthLoader: React.FC<AuthLoaderProps> = ({
                 variant="rectangular"
                 width={32}
                 height={32}
-                className="!rounded-lg !bg-blue-600"
+                className="!rounded-lg !bg-primary-600"
               />
               <Skeleton variant="text" width={100} height={24} />
             </div>
@@ -232,7 +232,7 @@ const AuthLoader: React.FC<AuthLoaderProps> = ({
       <div className="absolute inset-0 bg-white/30 backdrop-blur-sm flex items-center justify-center z-50">
         <div className="p-8 text-center min-w-[400px] max-w-[500px]">
           <div className="inline-flex items-center space-x-3 mb-6">
-            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-600 rounded-lg flex items-center justify-center animate-pulse">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-primary-600 rounded-lg flex items-center justify-center animate-pulse">
               <span className="text-white font-bold text-sm sm:text-lg">D</span>
             </div>
             <span className="text-xl sm:text-2xl font-bold text-gray-900">
@@ -242,13 +242,13 @@ const AuthLoader: React.FC<AuthLoaderProps> = ({
 
           {/* Animated Loading Dots */}
           <div className="flex items-center justify-center space-x-2 mb-6">
-            <div className="w-3 h-3 bg-blue-600 rounded-full animate-bounce"></div>
+            <div className="w-3 h-3 bg-primary-600 rounded-full animate-bounce"></div>
             <div
-              className="w-3 h-3 bg-blue-600 rounded-full animate-bounce"
+              className="w-3 h-3 bg-primary-600 rounded-full animate-bounce"
               style={{ animationDelay: '0.1s' }}
             ></div>
             <div
-              className="w-3 h-3 bg-blue-600 rounded-full animate-bounce"
+              className="w-3 h-3 bg-primary-600 rounded-full animate-bounce"
               style={{ animationDelay: '0.2s' }}
             ></div>
           </div>
@@ -263,7 +263,7 @@ const AuthLoader: React.FC<AuthLoaderProps> = ({
           {/* Progress Bar */}
           <div className="w-full bg-gray-200 rounded-full h-2 mb-6">
             <div
-              className="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full transition-all duration-500 ease-out"
+              className="bg-gradient-to-r from-primary-500 to-primary-600 h-2 rounded-full transition-all duration-500 ease-out"
               style={{ width: `${loadingProgress}%` }}
             ></div>
           </div>

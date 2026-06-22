@@ -86,8 +86,8 @@ const ActivityLogs: React.FC = () => {
       label: 'User',
       render: (_value, row) => (
         <div className="flex items-center gap-2">
-          <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-            <span className="text-lg text-blue-600">
+          <div className="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center">
+            <span className="text-lg text-primary-600">
               {row.user_name?.charAt(0).toUpperCase() || 'U'}
             </span>
           </div>
@@ -130,7 +130,7 @@ const ActivityLogs: React.FC = () => {
             case 'CREATE':
               return <FileText className="w-4 h-4 text-green-600" />;
             case 'UPDATE':
-              return <Shuffle className="w-4 h-4 text-blue-600" />;
+              return <Shuffle className="w-4 h-4 text-primary-600" />;
             case 'DELETE':
               return <Trash2 className="w-4 h-4 text-red-600" />;
             default:

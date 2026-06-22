@@ -110,10 +110,10 @@ const ExecutiveDashboard: React.FC = () => {
       };
     } = {
       blue: {
-        bg: 'bg-blue-50',
-        text: 'text-blue-600',
-        icon: 'bg-blue-100',
-        progress: 'bg-blue-500',
+        bg: 'bg-primary-50',
+        text: 'text-primary-600',
+        icon: 'bg-primary-100',
+        progress: 'bg-primary-500',
       },
       pink: {
         bg: 'bg-pink-50',
@@ -672,7 +672,7 @@ const ExecutiveDashboard: React.FC = () => {
       <div className="bg-white shadow-sm p-5 rounded-lg border border-gray-100">
         <div className="lg:flex justify-between items-center">
           <div>
-            <h2 className="text-2xl font-semibold text-blue-600 mb-1">
+            <h2 className="text-2xl font-semibold text-primary-600 mb-1">
               Executive Dashboard
             </h2>
             <p className="text-gray-500 text-sm">
@@ -687,7 +687,7 @@ const ExecutiveDashboard: React.FC = () => {
               )}{' '}
               Revenue MTD
             </span>
-            <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
+            <span className="px-3 py-1 bg-primary-100 text-primary-700 rounded-full text-sm font-medium">
               {stats?.totalOrders.value.toLocaleString() || '0'} Orders
             </span>
           </div>
@@ -865,7 +865,7 @@ const ExecutiveDashboard: React.FC = () => {
                           <>
                             {' '}
                             for order{' '}
-                            <span className="font-semibold text-blue-600">
+                            <span className="font-semibold text-primary-600">
                               {referenceNumber}
                             </span>
                           </>
@@ -1113,7 +1113,7 @@ const ExecutiveDashboard: React.FC = () => {
                           </span>
                         )}
                         {log.action === 'UPDATE' && (
-                          <span className="text-blue-600 font-medium">
+                          <span className="text-primary-600 font-medium">
                             updated
                           </span>
                         )}

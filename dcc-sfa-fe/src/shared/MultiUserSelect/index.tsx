@@ -94,9 +94,9 @@ const MultiUserSelect: React.FC<MultiUserSelectProps> = ({
   const getColorClasses = (pattern: string) => {
     const configs = {
       blue: {
-        chip: '!bg-blue-100 !text-blue-700 !border-blue-300',
-        avatar: '!bg-blue-200 !text-blue-800',
-        deleteIcon: '!text-blue-600 hover:!bg-blue-200',
+        chip: '!bg-primary-100 !text-primary-700 !border-primary-300',
+        avatar: '!bg-primary-200 !text-primary-800',
+        deleteIcon: '!text-primary-600 hover:!bg-primary-200',
       },
       green: {
         chip: '!bg-green-100 !text-green-700 !border-green-300',

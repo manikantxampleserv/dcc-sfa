@@ -1184,7 +1184,7 @@ const InventoryDetail = () => {
                     <div className="flex items-start justify-between mb-4 pb-0 p-3">
                       <div className="flex items-center gap-3">
                         <Avatar
-                          className="!bg-blue-100 !rounded-md !text-blue-600"
+                          className="!bg-primary-100 !rounded-md !text-primary-600"
                           src=""
                         >
                           {product.product_name?.charAt(0) || 'P'}

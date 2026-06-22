@@ -48,7 +48,7 @@ const ReturnRequestDetail: React.FC = () => {
       pending: 'bg-yellow-100 text-yellow-800',
       approved: 'bg-green-100 text-green-800',
       rejected: 'bg-red-100 text-red-800',
-      processing: 'bg-blue-100 text-blue-800',
+      processing: 'bg-primary-100 text-primary-800',
       completed: 'bg-purple-100 text-purple-800',
       cancelled: 'bg-gray-100 text-gray-800',
     };
@@ -150,15 +150,15 @@ const ReturnRequestDetail: React.FC = () => {
               key={card}
               className="!bg-white !rounded-lg !shadow !border !border-gray-200 !p-6 !relative !overflow-hidden"
             >
-              <div className="!absolute !top-0 !right-0 !w-20 !h-20 !bg-gradient-to-br !from-blue-50 !to-purple-50 !rounded-full !-translate-y-10 !translate-x-10"></div>
+              <div className="!absolute !top-0 !right-0 !w-20 !h-20 !bg-gradient-to-br !from-primary-50 !to-purple-50 !rounded-full !-translate-y-10 !translate-x-10"></div>
               <div className="!relative !z-10">
                 <div className="!flex !items-center !gap-2 !mb-4">
-                  <div className="!p-1 !bg-blue-100 !rounded-md">
+                  <div className="!p-1 !bg-primary-100 !rounded-md">
                     <Skeleton
                       variant="circular"
                       width={16}
                       height={16}
-                      className="!bg-blue-200"
+                      className="!bg-primary-200"
                     />
                   </div>
                   <Skeleton variant="text" width={140} height={20} />
@@ -224,7 +224,7 @@ const ReturnRequestDetail: React.FC = () => {
     icon?: React.ElementType;
   }) => (
     <div className="!bg-white !rounded-lg !shadow !border !border-gray-200 !p-6 !relative !overflow-hidden">
-      <div className="!absolute !top-0 !right-0 !w-16 !h-16 !bg-gradient-to-br !from-blue-50 !to-purple-50 !rounded-full !-translate-y-8 !translate-x-8"></div>
+      <div className="!absolute !top-0 !right-0 !w-16 !h-16 !bg-gradient-to-br !from-primary-50 !to-purple-50 !rounded-full !-translate-y-8 !translate-x-8"></div>
       <div className="!relative !z-10">
         <div className="!flex !items-center !gap-2 !mb-4">
           {Icon && (
@@ -252,7 +252,7 @@ const ReturnRequestDetail: React.FC = () => {
                   returnRequest.status === 'completed'
                     ? '!bg-green-400'
                     : returnRequest.status === 'approved'
-                      ? '!bg-blue-400'
+                      ? '!bg-primary-400'
                       : returnRequest.status === 'rejected'
                         ? '!bg-red-400'
                         : '!bg-yellow-400'
@@ -267,7 +267,7 @@ const ReturnRequestDetail: React.FC = () => {
                   {
                     '!bg-gradient-to-br !from-green-400 !to-green-600 !text-white':
                       returnRequest.status === 'completed',
-                    '!bg-gradient-to-br !from-blue-400 !to-blue-600 !text-white':
+                    '!bg-gradient-to-br !from-primary-400 !to-primary-600 !text-white':
                       returnRequest.status === 'approved',
                     '!bg-gradient-to-br !from-red-400 !to-red-600 !text-white':
                       returnRequest.status === 'rejected',

@@ -132,7 +132,7 @@ const StockMovementsManagement: React.FC = () => {
       case 'OUT':
         return <ArrowUp className="w-4 h-4 text-red-600" />;
       case 'TRANSFER':
-        return <ArrowRightLeft className="w-4 h-4 text-blue-600" />;
+        return <ArrowRightLeft className="w-4 h-4 text-primary-600" />;
       default:
         return <ArrowRightLeft className="w-4 h-4 text-gray-600" />;
     }

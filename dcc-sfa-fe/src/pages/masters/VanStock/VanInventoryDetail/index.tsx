@@ -201,7 +201,7 @@ const VanInventoryDetail: React.FC<VanInventoryDetailProps> = ({
 
   const getLoadingTypeColor = (type: string) => {
     return type === 'L'
-      ? 'bg-blue-100 text-blue-800'
+      ? 'bg-primary-100 text-primary-800'
       : 'bg-purple-100 text-purple-800';
   };
 
@@ -336,7 +336,7 @@ const VanInventoryDetail: React.FC<VanInventoryDetailProps> = ({
     icon?: React.ElementType;
   }) => (
     <div className="!bg-white !rounded-lg !shadow !border !border-gray-200 !p-2 !relative !overflow-hidden">
-      <div className="!absolute !top-0 !right-0 !w-16 !h-16 !bg-gradient-to-br !from-blue-50 !to-purple-50 !rounded-full !-translate-y-8 !translate-x-8"></div>
+      <div className="!absolute !top-0 !right-0 !w-16 !h-16 !bg-gradient-to-br !from-primary-50 !to-purple-50 !rounded-full !-translate-y-8 !translate-x-8"></div>
       <div className="!relative !z-10">
         <div className="!flex !items-center !gap-2 !mb-4">
           {Icon && (
@@ -439,7 +439,7 @@ const VanInventoryDetail: React.FC<VanInventoryDetailProps> = ({
               className={classNames(
                 '!w-24 !h-24 !mx-auto !text-xl !font-bold !border-3 !border-white !shadow-lg',
                 {
-                  '!bg-gradient-to-br !from-blue-400 !to-blue-600 !text-white':
+                  '!bg-gradient-to-br !from-primary-400 !to-primary-600 !text-white':
                     vanInventoryData.loading_type === 'L',
                   '!bg-gradient-to-br !from-purple-400 !to-purple-600 !text-white':
                     vanInventoryData.loading_type === 'U',
@@ -563,7 +563,7 @@ const VanInventoryDetail: React.FC<VanInventoryDetailProps> = ({
                             key={idx}
                             label={user.name}
                             size="small"
-                            className="!text-xs !bg-blue-50 !text-blue-700 !border-blue-200"
+                            className="!text-xs !bg-primary-50 !text-primary-700 !border-primary-200"
                           />
                         )
                       )}

@@ -160,7 +160,7 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({
               ? '!bg-green-100'
               : type === 'reject'
                 ? '!bg-red-100'
-                : '!bg-blue-100'
+                : '!bg-primary-100'
           }`}
         >
           {type === 'approve' ? (
@@ -168,7 +168,7 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({
           ) : type === 'reject' ? (
             <X className="!w-6 !h-6 !text-red-600" />
           ) : (
-            <FileText className="!w-6 !h-6 !text-blue-600" />
+            <FileText className="!w-6 !h-6 !text-primary-600" />
           )}
         </div>
         <div className="!flex-1">

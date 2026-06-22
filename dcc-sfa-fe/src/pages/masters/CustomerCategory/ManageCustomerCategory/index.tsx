@@ -594,22 +594,22 @@ const ManageCustomerCategory: React.FC<ManageCustomerCategoryProps> = ({
                 fullWidth
               />
               {/* Information Section */}
-              <Box className="!bg-blue-50 col-span-2 !border !border-blue-200 !rounded-lg !p-4">
+              <Box className="!bg-primary-50 col-span-2 !border !border-primary-200 !rounded-lg !p-4">
                 <Typography
                   variant="subtitle2"
-                  className="!font-semibold !text-blue-900 !mb-2"
+                  className="!font-semibold !text-primary-900 !mb-2"
                 >
                   <InfoOutline fontSize="small" /> How Conditions Work:
                 </Typography>
-                <Typography variant="body2" className="!text-blue-800 !mb-2">
+                <Typography variant="body2" className="!text-primary-800 !mb-2">
                   <strong>Example 1:</strong> "Monthly Sales Quantity (Crates) ≥
                   1" → Customers who buy at least 1 crate per month
                 </Typography>
-                <Typography variant="body2" className="!text-blue-800 !mb-2">
+                <Typography variant="body2" className="!text-primary-800 !mb-2">
                   <strong>Example 2:</strong> "Monthly Sales Amount (₹) ≥ 50000"
                   → Customers with monthly sales of ₹50,000 or more
                 </Typography>
-                <Typography variant="body2" className="!text-blue-800">
+                <Typography variant="body2" className="!text-primary-800">
                   <strong>Note:</strong> All conditions are evaluated based on
                   customer's purchase history and behavior patterns.
                 </Typography>

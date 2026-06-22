@@ -164,7 +164,7 @@ const InventoryItems: React.FC = () => {
         </div>
         {isRead && (
           <div className="flex items-center gap-3">
-            <div className="hidden md:flex items-center gap-2 px-3 py-1.5 border border-blue-500 text-blue-700 rounded-full bg-blue-50">
+            <div className="hidden md:flex items-center gap-2 px-3 py-1.5 border border-primary-500 text-primary-700 rounded-full bg-primary-50">
               <Clock className="w-4 h-4" />
               <span className="text-sm font-medium">
                 Last Update: {formatDate(summary.last_updated)}
@@ -287,7 +287,7 @@ const InventoryItems: React.FC = () => {
                       <div className="px-4 pb-2">
                         <div className="flex flex-col gap-3 pt-1">
                           <div className="flex items-center gap-1.5 text-sm">
-                            <Package className="!w-4 !h-4 text-blue-500" />
+                            <Package className="!w-4 !h-4 text-primary-500" />
                             <span className="text-gray-700 font-medium">
                               Van Inventories: {person.total_van_inventories}
                             </span>

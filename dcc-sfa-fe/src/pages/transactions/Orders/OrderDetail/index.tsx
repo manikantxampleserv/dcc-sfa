@@ -31,7 +31,7 @@ const OrderDetail: React.FC = () => {
     const colors = {
       draft: 'bg-gray-100 text-gray-800',
       pending: 'bg-yellow-100 text-yellow-800',
-      confirmed: 'bg-blue-100 text-blue-800',
+      confirmed: 'bg-primary-100 text-primary-800',
       processing: 'bg-purple-100 text-purple-800',
       shipped: 'bg-indigo-100 text-indigo-800',
       delivered: 'bg-green-100 text-green-800',
@@ -344,7 +344,7 @@ const OrderDetail: React.FC = () => {
     icon?: React.ElementType;
   }) => (
     <div className="!relative !overflow-hidden !rounded-lg !border !border-gray-200 !bg-white !p-6 !shadow">
-      <div className="!absolute !top-0 !right-0 !h-16 !w-16 !translate-x-8 !-translate-y-8 !rounded-full !bg-gradient-to-br !from-blue-50 !to-purple-50"></div>
+      <div className="!absolute !top-0 !right-0 !h-16 !w-16 !translate-x-8 !-translate-y-8 !rounded-full !bg-gradient-to-br !from-primary-50 !to-purple-50"></div>
       <div className="!relative !z-10">
         <div className="!mb-4 !flex !items-center !gap-2">
           {Icon && (
@@ -372,7 +372,7 @@ const OrderDetail: React.FC = () => {
                 {
                   '!bg-gradient-to-br !from-green-400 !to-green-600 !text-white':
                     orderData.status === 'delivered',
-                  '!bg-gradient-to-br !from-blue-400 !to-blue-600 !text-white':
+                  '!bg-gradient-to-br !from-primary-400 !to-primary-600 !text-white':
                     orderData.status === 'confirmed' ||
                     orderData.status === 'processing',
                   '!bg-gradient-to-br !from-indigo-400 !to-indigo-600 !text-white':

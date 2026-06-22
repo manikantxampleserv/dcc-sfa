@@ -55,7 +55,7 @@ export const CurrentApproverTooltip: React.FC<CurrentApproverTooltipProps> = ({
           <div className="flex items-center p-1 gap-2">
             <Avatar
               src={approverObj.profile_image || undefined}
-              className="!w-10 !h-10 !rounded-md !bg-blue-200 !text-blue-600"
+              className="!w-10 !h-10 !rounded-md !bg-primary-200 !text-primary-600"
             >
               {approverObj.name.charAt(0) || 'A'}
             </Avatar>

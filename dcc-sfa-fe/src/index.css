@@ -2,6 +2,8 @@
 @import 'tailwindcss';
 @plugin '@tailwindcss/typography';
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* Tailwind CSS v4 Theme Configuration */
 @theme {
   /* Primary Color Palette */
@@ -16,11 +18,21 @@
   --color-primary-800: oklch(0.28 0.15 247.1);
   --color-primary-900: oklch(0.23 0.12 246.9);
   --color-primary-950: oklch(0.15 0.08 247.2);
+
+  /* Dynamic Radius Configuration */
+  --radius: var(--global-radius, 4px);
+  --radius-xs: var(--global-radius, 4px);
+  --radius-sm: var(--global-radius, 4px);
+  --radius-md: var(--global-radius, 4px);
+  --radius-lg: var(--global-radius, 4px);
+  --radius-xl: var(--global-radius, 4px);
+  --radius-2xl: var(--global-radius, 4px);
+  --radius-3xl: var(--global-radius, 4px);
 }
 
 /* Global Font */
 * {
-  font-family: 'Poppins', sans-serif !important;
+  font-family: var(--font-primary, 'Poppins', sans-serif) !important;
 }
 
 /* Scrollbar width and height */
@@ -187,4 +199,159 @@ body.ai-fullscreen-active aside,
 body.ai-fullscreen-active .w-72,
 body.ai-fullscreen-active div:has(> .breadcrambs) {
   display: none !important;
+}
+
+/* Catch-all global overrides for tailwind and custom utility classes */
+.rounded,
+.\!rounded,
+.rounded-sm,
+.\!rounded-sm,
+.rounded-md,
+.\!rounded-md,
+.rounded-lg,
+.\!rounded-lg,
+.rounded-xl,
+.\!rounded-xl,
+.rounded-2xl,
+.\!rounded-2xl,
+.rounded-3xl,
+.\!rounded-3xl {
+  border-radius: var(--global-radius, 4px) !important;
+}
+
+@layer utilities {
+
+  /* Premium Dark Mode Global Overrides */
+  .dark body {
+    background-color: #121212 !important;
+    color: #f3f4f6 !important;
+  }
+
+  .dark .bg-white,
+  .dark .\!bg-white,
+  .dark .bg-white\/50,
+  .dark .MuiPaper-root {
+    background-color: #1e1e1e !important;
+    color: #f3f4f6 !important;
+  }
+
+  .dark .bg-gray-50,
+  .dark .\!bg-gray-50 {
+    background-color: #151515 !important;
+  }
+
+  .dark .bg-gray-100,
+  .dark .\!bg-gray-100,
+  .dark .bg-gray-100\/50 {
+    background-color: #2b2b2b !important;
+  }
+
+  .dark .text-gray-900,
+  .dark .\!text-gray-900,
+  .dark .text-gray-800,
+  .dark .\!text-gray-800 {
+    color: #f3f4f6 !important;
+  }
+
+  .dark .text-gray-700,
+  .dark .\!text-gray-700,
+  .dark .text-gray-600,
+  .dark .\!text-gray-600 {
+    color: #d1d5db !important;
+  }
+
+  .dark .text-gray-500,
+  .dark .\!text-gray-500,
+  .dark .text-gray-400,
+  .dark .\!text-gray-400 {
+    color: #9ca3af !important;
+  }
+
+  .dark .border-gray-100,
+  .dark .\!border-gray-100,
+  .dark .border-gray-200,
+  .dark .\!border-gray-200,
+  .dark .border-gray-300,
+  .dark .\!border-gray-300 {
+    border-color: #2d2d2d !important;
+  }
+
+  .dark .hover\:bg-gray-50:hover,
+  .dark .hover\:bg-gray-100:hover,
+  .dark .hover\:bg-gray-200:hover {
+    background-color: #2d2d2d !important;
+  }
+
+  /* Primary Colors Overrides for Dark Mode (e.g. dynamic primary shades contrast) */
+  .dark .text-primary-800,
+  .dark .\!text-primary-800,
+  .dark .text-primary-700,
+  .dark .\!text-primary-700,
+  .dark .text-primary-600,
+  .dark .\!text-primary-600,
+  .dark .text-primary-500,
+  .dark .\!text-primary-500 {
+    color: var(--color-primary-400) !important;
+  }
+
+  .dark .bg-primary-50,
+  .dark .\!bg-primary-50 {
+    background-color: #1a2238 !important;
+    color: var(--color-primary-400) !important;
+  }
+
+  .dark .bg-primary-100,
+  .dark .\!bg-primary-100,
+  .dark .bg-primary-200,
+  .dark .\!bg-primary-200 {
+    background-color: var(--color-primary-900) !important;
+    color: var(--color-primary-100) !important;
+  }
+
+  .dark .hover\:bg-primary-200:hover,
+  .dark .hover\:bg-primary-100:hover {
+    background-color: var(--color-primary-950) !important;
+  }
+
+  /* Sidebar and Header Specific Dark Mode Styles */
+  .dark aside,
+  .dark .w-72,
+  .dark header {
+    background-color: #1a1a1a !important;
+    border-color: #2d2d2d !important;
+  }
+
+  .dark input,
+  .dark select,
+  .dark textarea {
+    background-color: #2d2d2d !important;
+    color: #f3f4f6 !important;
+    border-color: #3d3d3d !important;
+  }
+
+  /* Fix for MUI inputs to avoid double background colors */
+  .dark .MuiInputBase-root {
+    background-color: #2d2d2d !important;
+    color: #f3f4f6 !important;
+  }
+
+  .dark .MuiInputBase-root input,
+  .dark .MuiInputBase-root textarea,
+  .dark .MuiInputBase-root select,
+  .dark .MuiSelect-select {
+    background-color: transparent !important;
+  }
+
+  .dark .MuiOutlinedInput-notchedOutline {
+    border-color: #3d3d3d !important;
+  }
+
+  .dark option {
+    background-color: #1e1e1e !important;
+    color: #f3f4f6 !important;
+  }
+
+  .dark input::placeholder {
+    color: #6b7280 !important;
+  }
 }

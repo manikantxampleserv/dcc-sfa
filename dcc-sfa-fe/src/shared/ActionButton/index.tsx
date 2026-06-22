@@ -64,7 +64,7 @@ const EditButton: React.FC<EditButtonProps> = ({
         onClick?.();
       }}
       disabled={disabled}
-      className="!bg-blue-100 !rounded hover:!bg-blue-200 !text-blue-600"
+      className="!bg-primary-100 !rounded hover:!bg-primary-200 !text-primary-600"
     >
       <Edit fontSize="small" />
     </IconButton>
@@ -131,7 +131,7 @@ const ActionButton: React.FC<ActionButtonProps> = ({
       case 'success':
         return '!bg-green-100 hover:!bg-green-200 !text-green-600';
       case 'info':
-        return '!bg-blue-100 hover:!bg-blue-200 !text-blue-600';
+        return '!bg-primary-100 hover:!bg-primary-200 !text-primary-600';
       default:
         return '!bg-gray-100 hover:!bg-gray-200 !text-gray-600';
     }

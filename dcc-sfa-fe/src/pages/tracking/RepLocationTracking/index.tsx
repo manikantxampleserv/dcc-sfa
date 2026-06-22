@@ -143,7 +143,7 @@ const RepLocationTracking: React.FC = () => {
         </div>
         {isRead && (
           <div className="flex items-center gap-3">
-            <div className="hidden md:flex items-center gap-2 px-3 py-1.5 border border-blue-500 text-blue-700 rounded-full bg-blue-50">
+            <div className="hidden md:flex items-center gap-2 px-3 py-1.5 border border-primary-500 text-primary-700 rounded-full bg-primary-50">
               <Clock className="w-4 h-4" />
               <span className="text-sm font-medium">
                 Last Update: {formatDate(summary.timestamp)}
@@ -313,7 +313,7 @@ const RepLocationTracking: React.FC = () => {
                     latitude: e.target.value,
                   });
                 }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-colors"
                 required
               />
             </div>
@@ -332,7 +332,7 @@ const RepLocationTracking: React.FC = () => {
                     longitude: e.target.value,
                   })
                 }
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-colors"
                 required
               />
             </div>
@@ -350,7 +350,7 @@ const RepLocationTracking: React.FC = () => {
                     accuracy_meters: e.target.value,
                   })
                 }
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-colors"
               />
             </div>
 
@@ -367,7 +367,7 @@ const RepLocationTracking: React.FC = () => {
                     speed_kph: e.target.value,
                   })
                 }
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-colors"
               />
             </div>
 
@@ -386,7 +386,7 @@ const RepLocationTracking: React.FC = () => {
                     battery_level: e.target.value,
                   })
                 }
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-colors"
               />
             </div>
 
@@ -403,7 +403,7 @@ const RepLocationTracking: React.FC = () => {
                     network_type: e.target.value,
                   })
                 }
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-colors"
               />
             </div>
           </div>

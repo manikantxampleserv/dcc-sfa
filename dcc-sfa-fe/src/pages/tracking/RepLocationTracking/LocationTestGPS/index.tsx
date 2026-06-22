@@ -73,7 +73,7 @@ const LocationTestGPS: React.FC<LocationTestGPSProps> = ({
               onChange={e =>
                 setTestGPSData({ ...testGPSData, latitude: e.target.value })
               }
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-colors"
               required
             />
           </div>
@@ -89,7 +89,7 @@ const LocationTestGPS: React.FC<LocationTestGPSProps> = ({
               onChange={e =>
                 setTestGPSData({ ...testGPSData, longitude: e.target.value })
               }
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-colors"
               required
             />
           </div>
@@ -107,7 +107,7 @@ const LocationTestGPS: React.FC<LocationTestGPSProps> = ({
                   accuracy_meters: e.target.value,
                 })
               }
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-colors"
             />
           </div>
 
@@ -121,7 +121,7 @@ const LocationTestGPS: React.FC<LocationTestGPSProps> = ({
               onChange={e =>
                 setTestGPSData({ ...testGPSData, speed_kph: e.target.value })
               }
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-colors"
             />
           </div>
 
@@ -140,7 +140,7 @@ const LocationTestGPS: React.FC<LocationTestGPSProps> = ({
                   battery_level: e.target.value,
                 })
               }
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-colors"
             />
           </div>
 
@@ -154,7 +154,7 @@ const LocationTestGPS: React.FC<LocationTestGPSProps> = ({
               onChange={e =>
                 setTestGPSData({ ...testGPSData, network_type: e.target.value })
               }
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-colors"
             />
           </div>
         </div>

@@ -218,9 +218,9 @@ const FieldTreeItem = ({ field, path, formik, level = 0, productMap }: any) => {
         paddingTop: level > 0 ? '8px' : '12px',
       }}
     >
-      <Box className="border shadow border-blue-200 rounded-lg px-2 py-2 relative">
+      <Box className="border shadow border-primary-200 rounded-lg px-2 py-2 relative">
         <Typography
-          className="absolute !bg-white !px-1.5 !text-[12px] !font-semibold !text-blue-500 !leading-none"
+          className="absolute !bg-white !px-1.5 !text-[12px] !font-semibold !text-primary-500 !leading-none"
           style={{
             top: '-6px',
             left: '16px',
@@ -305,7 +305,7 @@ const FieldTreeItem = ({ field, path, formik, level = 0, productMap }: any) => {
                   (cf: any) => cf.parent_option_value === opt
                 );
                 return (
-                  <Box key={idx} className="!pl-7 !border-l-2 !border-blue-100">
+                  <Box key={idx} className="!pl-7 !border-l-2 !border-primary-100">
                     <Box className="!flex !items-center !gap-3 !py-1">
                       <Typography className="!bg-gray-100 min-w-52 !px-2 !py-1 !rounded !text-xs !font-medium !text-gray-700 !border !border-gray-200">
                         {field.field_type === 'product'

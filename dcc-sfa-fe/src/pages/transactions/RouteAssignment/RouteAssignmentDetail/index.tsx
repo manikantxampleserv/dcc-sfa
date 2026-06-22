@@ -174,7 +174,7 @@ const RouteAssignmentDetail: React.FC = () => {
                 <Avatar
                   src={assignment?.profile_image || 'mkx'}
                   alt={assignment?.name || 'Salesperson'}
-                  className="!bg-blue-100 !text-blue-600 !w-12 !h-12"
+                  className="!bg-primary-100 !text-primary-600 !w-12 !h-12"
                 >
                   <User className="w-5 h-5" />
                 </Avatar>

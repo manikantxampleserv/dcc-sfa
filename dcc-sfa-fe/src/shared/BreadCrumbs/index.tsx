@@ -105,7 +105,7 @@ const BreadCrumbs: React.FC<BreadCrumbsProps> = ({ navItem, navLink, id }) => {
                 }
                 className={classNames(
                   '!rounded-md flex items-center !py-[5px] !capitalize !text-white px-2',
-                  item.id === id ? '!bg-blue-600' : '!bg-blue-300'
+                  item.id === id ? '!bg-primary-600' : '!bg-primary-300'
                 )}
                 onClick={() => navigate(item.navLink, { state: value })}
                 onDelete={e => handleClose(e, item.id, index)}

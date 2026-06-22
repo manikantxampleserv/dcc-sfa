@@ -110,15 +110,15 @@ const UserDetail: React.FC = () => {
               key={card}
               className="!bg-white !rounded-lg !shadow !border !border-gray-200 !p-5 !relative !overflow-hidden"
             >
-              <div className="!absolute !top-0 !right-0 !w-20 !h-20 !bg-gradient-to-br !from-blue-50 !to-purple-50 !rounded-full !-translate-y-10 !translate-x-10"></div>
+              <div className="!absolute !top-0 !right-0 !w-20 !h-20 !bg-gradient-to-br !from-primary-50 !to-purple-50 !rounded-full !-translate-y-10 !translate-x-10"></div>
               <div className="!relative !z-10">
                 <div className="!flex !items-center !gap-2 !mb-4">
-                  <div className="!p-1 !bg-blue-100 !rounded-md">
+                  <div className="!p-1 !bg-primary-100 !rounded-md">
                     <Skeleton
                       variant="circular"
                       width={16}
                       height={16}
-                      className="!bg-blue-200"
+                      className="!bg-primary-200"
                     />
                   </div>
                   <Skeleton variant="text" width={140} height={20} />
@@ -251,7 +251,7 @@ const UserDetail: React.FC = () => {
     <div
       className={`!bg-white !rounded-lg !shadow !border !border-gray-200 !p-5 !relative !overflow-hidden ${className}`}
     >
-      <div className="!absolute !top-0 !right-0 !w-16 !h-16 !bg-gradient-to-br !from-blue-50 !to-purple-50 !rounded-full !-translate-y-8 !translate-x-8"></div>
+      <div className="!absolute !top-0 !right-0 !w-16 !h-16 !bg-gradient-to-br !from-primary-50 !to-purple-50 !rounded-full !-translate-y-8 !translate-x-8"></div>
       <div className="!relative !z-10">
         <div className="!flex !items-center !gap-3 !mb-3">
           {Icon && (
@@ -639,7 +639,7 @@ const UserDetail: React.FC = () => {
                             log.action === 'CREATE'
                               ? '!bg-green-100'
                               : log.action === 'UPDATE'
-                                ? '!bg-blue-100'
+                                ? '!bg-primary-100'
                                 : '!bg-red-100'
                           }`}
                         >
