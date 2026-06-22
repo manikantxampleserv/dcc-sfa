@@ -203,18 +203,25 @@ export const sapService = {
         }
         inventoryData.user_id = spUser.id;
 
-        if (!inventoryData.depot_sap_code) {
-          throw new Error('depot_sap_code is required');
-        }
-
-        const depot = await tx.depots.findFirst({
-          where: { sap_code: inventoryData.depot_sap_code },
-        });
-
-        if (!depot) {
-          throw new Error(
-            `Depot with SAP code ${inventoryData.depot_sap_code} not found`
-          );
+        let depot;
+        if (inventoryData.depot_sap_code) {
+          depot = await tx.depots.findFirst({
+            where: { sap_code: inventoryData.depot_sap_code },
+          });
+          if (!depot) {
+            throw new Error(
+              `Depot with SAP code ${inventoryData.depot_sap_code} not found`
+            );
+          }
+        } else {
+          depot = await tx.depots.findFirst({
+            where: { name: { contains: 'MOSHI' } },
+          });
+          if (!depot) {
+            throw new Error(
+              'depot_sap_code is missing and default MOSHI depot was not found'
+            );
+          }
         }
         inventoryData.location_id = depot.id;
 
