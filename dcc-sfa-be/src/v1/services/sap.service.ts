@@ -218,13 +218,16 @@ export const sapService = {
         }
         inventoryData.location_id = depot.id;
 
-        if (inventoryData.vehicle_id) {
-          const vehicleExists = await tx.vehicles.findUnique({
-            where: { id: Number(inventoryData.vehicle_id) },
+        if (inventoryData.vehicle_sap_code) {
+          const vehicleExists = await tx.vehicles.findFirst({
+            where: { sap_code: inventoryData.vehicle_sap_code },
           });
           if (!vehicleExists) {
-            throw new Error(`Vehicle ${inventoryData.vehicle_id} not found`);
+            throw new Error(
+              `Vehicle with SAP code ${inventoryData.vehicle_sap_code} not found`
+            );
           }
+          inventoryData.vehicle_id = vehicleExists.id;
         }
 
         const loadingType = inventoryData.loading_type || 'L';
