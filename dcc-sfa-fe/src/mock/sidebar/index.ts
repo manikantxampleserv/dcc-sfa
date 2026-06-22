@@ -196,11 +196,6 @@ const menuItems: MenuItem[] = [
             label: 'Unit of Measurement',
             href: '/masters/unit-of-measurement',
           },
-          // {
-          //   id: 'sub-unit-of-measurement',
-          //   label: 'Sub Unit of Measurement',
-          //   href: '/masters/sub-unit-of-measurement',
-          // },
           {
             id: 'product-flavours',
             label: 'Flavours',
@@ -241,11 +236,6 @@ const menuItems: MenuItem[] = [
             label: 'Product Catalog',
             href: '/masters/products',
           },
-          // {
-          //   id: 'batch-lots',
-          //   label: 'Batch & Lot Management',
-          //   href: '/masters/batch-lots',
-          // },
           {
             id: 'pricelists',
             label: 'Price List Management',
@@ -340,23 +330,6 @@ const menuItems: MenuItem[] = [
           },
         ],
       },
-      // {
-      //   id: 'delivery-returns',
-      //   label: 'Delivery & Returns',
-      //   icon: MdDeliveryDining,
-      //   children: [
-      //     {
-      //       id: 'delivery-scheduling',
-      //       label: 'Delivery Scheduling',
-      //       href: '/transactions/delivery',
-      //     },
-      //     {
-      //       id: 'return-requests',
-      //       label: 'Return Requests',
-      //       href: '/transactions/returns',
-      //     },
-      //   ],
-      // },
       {
         id: 'asset-cooler-management',
         label: 'Asset & Cooler Management',
@@ -372,16 +345,6 @@ const menuItems: MenuItem[] = [
             label: 'Asset Maintenance',
             href: '/transactions/maintenance',
           },
-          // {
-          //   id: 'cooler-types',
-          //   label: 'Cooler Types',
-          //   href: '/masters/cooler-types',
-          // },
-          // {
-          //   id: 'cooler-sub-types',
-          //   label: 'Cooler Sub Types',
-          //   href: '/masters/cooler-sub-types',
-          // },
           {
             id: 'cooler-installations',
             label: 'Cooler Installations',
@@ -409,11 +372,6 @@ const menuItems: MenuItem[] = [
             label: 'Stock Movements',
             href: '/transactions/stock-movements',
           },
-          // {
-          //   id: 'stock-transfer-requests',
-          //   label: 'Stock Transfer Requests',
-          //   href: '/transactions/stock-transfer',
-          // },
         ],
       },
       {

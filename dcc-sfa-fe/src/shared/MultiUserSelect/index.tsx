@@ -51,14 +51,9 @@ interface MultiUserSelectProps {
   /** Placeholder for the input */
   placeholder?: string;
   /** Color pattern for chips */
-  colorPattern?:
-    | 'blue'
-    | 'green'
-    | 'orange'
-    | 'red'
-    | 'purple'
-    | 'default'
-    | 'blueish';
+  colorPattern?: 'blue' | 'green' | 'orange' | 'red' | 'purple' | 'blueish';
+  /** Filter users by role name */
+  roleName?: string;
 }
 
 const MultiUserSelect: React.FC<MultiUserSelectProps> = ({
@@ -74,6 +69,7 @@ const MultiUserSelect: React.FC<MultiUserSelectProps> = ({
   className,
   placeholder = 'Select Users...',
   colorPattern = 'blue',
+  roleName,
 }) => {
   const [inputValue, setInputValue] = useState('');
   const [selectedUsers, setSelectedUsers] = useState<User[]>([]);
@@ -84,6 +80,7 @@ const MultiUserSelect: React.FC<MultiUserSelectProps> = ({
     refetch,
   } = useUsersDropdown({
     search: inputValue,
+    role_name: roleName,
   });
 
   const users: User[] = (usersResponse?.data || []).map(user => ({
@@ -214,10 +211,12 @@ const MultiUserSelect: React.FC<MultiUserSelectProps> = ({
         >
           <Avatar
             src={option.profile_image || undefined}
-            alt={option.name}
+            alt={option.name?.trim()}
             className="!rounded !bg-primary-100 !text-primary-600"
           >
-            {option.name ? option.name.charAt(0).toUpperCase() : ''}
+            {option.name?.trim()
+              ? option.name?.trim().charAt(0).toUpperCase()
+              : ''}
           </Avatar>
           <Box>
             <p className="!text-gray-900 !text-sm">{option.name || ''}</p>
@@ -234,7 +233,7 @@ const MultiUserSelect: React.FC<MultiUserSelectProps> = ({
               <Avatar
                 src={option.profile_image || undefined}
                 alt={option.name}
-                className={cn('!w-4 !h-4', colorClasses.avatar)}
+                className={cn('!w-4 !rounded !h-4', colorClasses.avatar)}
               >
                 {option.name ? option.name.charAt(0).toUpperCase() : ''}
               </Avatar>
@@ -267,8 +266,8 @@ const MultiUserSelect: React.FC<MultiUserSelectProps> = ({
       renderInput={params => (
         <TextField
           {...params}
-          label={label}
-          required={required}
+          label={`${label + (required ? ' *' : '')}`}
+          required={false}
           error={!!error}
           helperText={error}
           placeholder={placeholder}

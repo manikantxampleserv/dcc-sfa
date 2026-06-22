@@ -24,7 +24,6 @@ export const getLocationFromIPs = async (
 
       if (response.ok) {
         const data = await response.json();
-        console.log('DATA FROM IP API', data);
         data.forEach((res: any) => {
           if (res.status === 'success') {
             apiLocationMap[res.query] =

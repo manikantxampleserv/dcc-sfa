@@ -65,6 +65,12 @@ interface VanInventory {
     type: string;
   } | null;
   items?: VanInventoryItem[] | null;
+  sale_type?: string | null;
+  sub_inventory_users?: Array<{
+    id: number;
+    name: string;
+    email: string;
+  }> | null;
 }
 
 interface VanInventoryItemPayload {
@@ -91,6 +97,8 @@ interface ManageVanInventoryPayload {
   is_active?: string;
   van_inventory_items?: VanInventoryItemPayload[];
   inventoryItems?: VanInventoryItemPayload[];
+  sale_type?: string | null;
+  sub_inventory_user_ids?: number[];
 }
 
 interface UpdateVanInventoryPayload {
@@ -104,6 +112,8 @@ interface UpdateVanInventoryPayload {
   is_active?: string;
   van_inventory_items?: VanInventoryItemPayload[];
   inventoryItems?: VanInventoryItemPayload[];
+  sale_type?: string | null;
+  sub_inventory_user_ids?: number[];
 }
 
 interface GetVanInventoryParams {
