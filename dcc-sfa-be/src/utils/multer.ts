@@ -1,4 +1,4 @@
-import multer, { FileFilterCallback } from 'multer';
+import multer from 'multer';
 import path from 'path';
 
 const storage = multer.memoryStorage();
@@ -6,11 +6,7 @@ const storage = multer.memoryStorage();
 export const uploadExcel = multer({
   storage,
   limits: { fileSize: 10 * 1024 * 1024 },
-  fileFilter: (
-    _req: any,
-    file: Express.Multer.File,
-    cb: FileFilterCallback
-  ) => {
+  fileFilter: (_req: any, file: Express.Multer.File, cb: any) => {
     const allowedTypes = [
       'application/vnd.ms-excel',
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -35,11 +31,7 @@ export const uploadExcel = multer({
 export const upload = multer({
   storage,
   limits: { fileSize: 10 * 1024 * 1024 },
-  fileFilter: (
-    _req: any,
-    file: Express.Multer.File,
-    cb: FileFilterCallback
-  ) => {
+  fileFilter: (_req: any, file: Express.Multer.File, cb: any) => {
     const allowedTypes = [
       'image/jpeg',
       'image/png',

@@ -160,19 +160,42 @@ export const sapService = {
 
     return await prisma.$transaction(
       async tx => {
+        // if (!inventoryData.sap_docentry) {
+        //   throw new Error('sap_docentry is required');
+        // }
+
+        // const existingSapDoc = await tx.van_inventory.findFirst({
+        //   where: {
+        //     sap_docentry: inventoryData.sap_docentry,
+        //   },
+        // });
+
+        // if (existingSapDoc) {
+        //   throw new Error(
+        //     `SAP document ${inventoryData.sap_docentry} already imported`
+        //   );
+        // }
+
         if (!inventoryData.sap_docentry) {
           throw new Error('sap_docentry is required');
         }
 
+        if (!inventoryData.source_system) {
+          throw new Error('source_system is required');
+        }
+
+        const compositeKey = `${inventoryData.source_system}_${inventoryData.sap_docentry}`;
+
         const existingSapDoc = await tx.van_inventory.findFirst({
           where: {
-            sap_docentry: inventoryData.sap_docentry,
+            source_system: inventoryData.source_system,
+            sap_docentry: inventoryData.sap_docentry.toString(),
           },
         });
 
         if (existingSapDoc) {
           throw new Error(
-            `SAP document ${inventoryData.sap_docentry} already imported`
+            `SAP document already imported: ${compositeKey} (source_system="${inventoryData.source_system}", sap_docentry="${inventoryData.sap_docentry}")`
           );
         }
 
@@ -242,7 +265,7 @@ export const sapService = {
         const payload = {
           user_id: Number(inventoryData.user_id),
           sap_docentry: inventoryData.sap_docentry,
-          source_system: 'SAP',
+          source_system: inventoryData.source_system || 'SAP',
           status: inventoryData.status || 'A',
           loading_type: loadingType,
           document_date: inventoryData.document_date

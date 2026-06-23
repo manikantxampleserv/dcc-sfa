@@ -44,7 +44,7 @@ export const createApp = async (): Promise<Application> => {
 
   app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-  app.use(cookieParser());
+  app.use(cookieParser() as any);
 
   app.use(cors({ origin: '*', credentials: true }));
 

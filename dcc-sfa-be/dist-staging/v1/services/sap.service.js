@@ -128,16 +128,34 @@ exports.sapService = {
         const items = van_inventory_items || inventoryItems || payload.items || [];
         let inventoryId = inventoryData.id;
         return await prisma_client_1.default.$transaction(async (tx) => {
+            // if (!inventoryData.sap_docentry) {
+            //   throw new Error('sap_docentry is required');
+            // }
+            // const existingSapDoc = await tx.van_inventory.findFirst({
+            //   where: {
+            //     sap_docentry: inventoryData.sap_docentry,
+            //   },
+            // });
+            // if (existingSapDoc) {
+            //   throw new Error(
+            //     `SAP document ${inventoryData.sap_docentry} already imported`
+            //   );
+            // }
             if (!inventoryData.sap_docentry) {
                 throw new Error('sap_docentry is required');
             }
+            if (!inventoryData.source_system) {
+                throw new Error('source_system is required');
+            }
+            const compositeKey = `${inventoryData.source_system}_${inventoryData.sap_docentry}`;
             const existingSapDoc = await tx.van_inventory.findFirst({
                 where: {
-                    sap_docentry: inventoryData.sap_docentry,
+                    source_system: inventoryData.source_system,
+                    sap_docentry: inventoryData.sap_docentry.toString(),
                 },
             });
             if (existingSapDoc) {
-                throw new Error(`SAP document ${inventoryData.sap_docentry} already imported`);
+                throw new Error(`SAP document already imported: ${compositeKey} (source_system="${inventoryData.source_system}", sap_docentry="${inventoryData.sap_docentry}")`);
             }
             let inventory;
             let isUpdate = false;
@@ -190,7 +208,7 @@ exports.sapService = {
             const payload = {
                 user_id: Number(inventoryData.user_id),
                 sap_docentry: inventoryData.sap_docentry,
-                source_system: 'SAP',
+                source_system: inventoryData.source_system || 'SAP',
                 status: inventoryData.status || 'A',
                 loading_type: loadingType,
                 document_date: inventoryData.document_date
@@ -199,11 +217,18 @@ exports.sapService = {
                 vehicle_id: inventoryData.vehicle_id
                     ? Number(inventoryData.vehicle_id)
                     : null,
+                vehicle_code: inventoryData.vehicle_sap_code ||
+                    inventoryData.vehicle_code ||
+                    null,
+                sales_person_code: inventoryData.salesman_sap_code ||
+                    inventoryData.sales_person_code ||
+                    null,
                 location_type: inventoryData.location_type || 'van',
                 location_id: inventoryData.location_id
                     ? Number(inventoryData.location_id)
                     : null,
                 is_active: inventoryData.is_active || 'Y',
+                sap_docnum: inventoryData.sap_docnum || null,
             };
             if (isUpdate && inventoryId) {
                 inventory = await tx.van_inventory.update({
@@ -365,6 +390,9 @@ exports.sapService = {
                                         where: { id: existingVanItem.id },
                                         data: {
                                             sap_lineid: item.sap_lineid || existingVanItem.sap_lineid,
+                                            sap_item_code: item.product_sap_code ||
+                                                item.sap_item_code ||
+                                                existingVanItem.sap_item_code,
                                             quantity: newQuantity,
                                             total_amount: newQuantity * Number(item.unit_price || 0),
                                         },
@@ -376,6 +404,7 @@ exports.sapService = {
                                         data: {
                                             parent_id: inventory.id,
                                             sap_lineid: item.sap_lineid || null,
+                                            sap_item_code: item.product_sap_code || item.sap_item_code || null,
                                             product_id: product.id,
                                             product_name: product.name,
                                             unit: product.product_unit_of_measurement?.name || 'pcs',
@@ -487,6 +516,9 @@ exports.sapService = {
                                         where: { id: existingVanItem.id },
                                         data: {
                                             sap_lineid: item.sap_lineid || existingVanItem.sap_lineid,
+                                            sap_item_code: item.product_sap_code ||
+                                                item.sap_item_code ||
+                                                existingVanItem.sap_item_code,
                                             quantity: newQuantity,
                                             total_amount: newQuantity * Number(item.unit_price || 0),
                                         },
@@ -498,6 +530,7 @@ exports.sapService = {
                                         data: {
                                             parent_id: inventory.id,
                                             sap_lineid: item.sap_lineid || null,
+                                            sap_item_code: item.product_sap_code || item.sap_item_code || null,
                                             product_id: product.id,
                                             product_name: product.name,
                                             unit: product.product_unit_of_measurement?.name || 'pcs',
@@ -549,6 +582,9 @@ exports.sapService = {
                                     where: { id: existingVanItem.id },
                                     data: {
                                         sap_lineid: item.sap_lineid || existingVanItem.sap_lineid,
+                                        sap_item_code: item.product_sap_code ||
+                                            item.sap_item_code ||
+                                            existingVanItem.sap_item_code,
                                         quantity: existingVanItem.quantity + qty,
                                         total_amount: (existingVanItem.quantity + qty) *
                                             Number(item.unit_price || 0),
@@ -561,6 +597,7 @@ exports.sapService = {
                                     data: {
                                         parent_id: inventory.id,
                                         sap_lineid: item.sap_lineid || null,
+                                        sap_item_code: item.product_sap_code || item.sap_item_code || null,
                                         product_id: product.id,
                                         product_name: product.name,
                                         unit: product.product_unit_of_measurement?.name || 'pcs',
