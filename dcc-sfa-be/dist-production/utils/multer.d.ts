@@ -1,4 +1,3 @@
-import multer from 'multer';
-export declare const uploadExcel: multer.Multer;
-export declare const upload: multer.Multer;
+export declare const uploadExcel: any;
+export declare const upload: any;
 //# sourceMappingURL=multer.d.ts.map
