@@ -224,6 +224,29 @@ const VanStockPage: React.FC = () => {
       ),
     },
     {
+      id: 'sap_docnum',
+      label: 'SAP Document No.',
+      render: (_value, row) => (
+        <Typography variant="body2" className="!text-gray-900">
+          {row.sap_docnum || row.sap_docentry || '-'}
+        </Typography>
+      ),
+    },
+    {
+      id: 'source_system',
+      label: 'SAP Source Type',
+      render: (_value, row) => {
+        let label = row.source_system || '-';
+        if (row.source_system === 'sap_ar_invoice') label = 'AR Invoice';
+        else if (row.source_system === 'sap_inventorytrf') label = 'Inventory Transfer';
+        return (
+          <Typography variant="body2" className="!text-gray-900">
+            {label}
+          </Typography>
+        );
+      },
+    },
+    {
       id: 'loading_type',
       label: 'Type',
       render: (_value, row) => (
