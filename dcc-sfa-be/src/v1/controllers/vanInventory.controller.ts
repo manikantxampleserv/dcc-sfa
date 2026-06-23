@@ -51,6 +51,9 @@ interface VanInventoryItemSerialized {
 
 interface VanInventorySerialized {
   id: number;
+  sap_docentry?: string | null;
+  sap_docnum?: string | null;
+  source_system?: string | null;
   user_id: number;
   status: string;
   loading_type: string;
@@ -310,6 +313,9 @@ const serializeVanInventory = (item: any): VanInventorySerialized => {
 
   return {
     id: item.id,
+    sap_docentry: item.sap_docentry || null,
+    sap_docnum: item.sap_docnum || null,
+    source_system: item.source_system || null,
     user_id: item.user_id,
     status: item.status,
     loading_type: item.loading_type,
@@ -3462,7 +3468,10 @@ export const vanInventoryController = {
         });
       }
 
-      const targetSalespersonIds = await getContainerOwnerAndSelf(prisma, salespersonIdNum);
+      const targetSalespersonIds = await getContainerOwnerAndSelf(
+        prisma,
+        salespersonIdNum
+      );
 
       const vanInventories = await prisma.van_inventory.findMany({
         where: {
