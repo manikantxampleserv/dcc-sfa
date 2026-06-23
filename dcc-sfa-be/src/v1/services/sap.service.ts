@@ -251,11 +251,20 @@ export const sapService = {
           vehicle_id: inventoryData.vehicle_id
             ? Number(inventoryData.vehicle_id)
             : null,
+          vehicle_code:
+            inventoryData.vehicle_sap_code ||
+            inventoryData.vehicle_code ||
+            null,
+          sales_person_code:
+            inventoryData.salesman_sap_code ||
+            inventoryData.sales_person_code ||
+            null,
           location_type: inventoryData.location_type || 'van',
           location_id: inventoryData.location_id
             ? Number(inventoryData.location_id)
             : null,
           is_active: inventoryData.is_active || 'Y',
+          sap_docnum: inventoryData.sap_docnum || null,
         };
 
         if (isUpdate && inventoryId) {
@@ -463,6 +472,10 @@ export const sapService = {
                       data: {
                         sap_lineid:
                           item.sap_lineid || existingVanItem.sap_lineid,
+                        sap_item_code:
+                          item.product_sap_code ||
+                          item.sap_item_code ||
+                          existingVanItem.sap_item_code,
                         quantity: newQuantity,
                         total_amount:
                           newQuantity * Number(item.unit_price || 0),
@@ -476,6 +489,8 @@ export const sapService = {
                       data: {
                         parent_id: inventory.id,
                         sap_lineid: item.sap_lineid || null,
+                        sap_item_code:
+                          item.product_sap_code || item.sap_item_code || null,
                         product_id: product.id,
                         product_name: product.name,
                         unit:
@@ -625,6 +640,10 @@ export const sapService = {
                       data: {
                         sap_lineid:
                           item.sap_lineid || existingVanItem.sap_lineid,
+                        sap_item_code:
+                          item.product_sap_code ||
+                          item.sap_item_code ||
+                          existingVanItem.sap_item_code,
                         quantity: newQuantity,
                         total_amount:
                           newQuantity * Number(item.unit_price || 0),
@@ -638,6 +657,8 @@ export const sapService = {
                       data: {
                         parent_id: inventory.id,
                         sap_lineid: item.sap_lineid || null,
+                        sap_item_code:
+                          item.product_sap_code || item.sap_item_code || null,
                         product_id: product.id,
                         product_name: product.name,
                         unit:
@@ -710,6 +731,10 @@ export const sapService = {
                     where: { id: existingVanItem.id },
                     data: {
                       sap_lineid: item.sap_lineid || existingVanItem.sap_lineid,
+                      sap_item_code:
+                        item.product_sap_code ||
+                        item.sap_item_code ||
+                        existingVanItem.sap_item_code,
                       quantity: existingVanItem.quantity + qty,
                       total_amount:
                         (existingVanItem.quantity + qty) *
@@ -724,6 +749,8 @@ export const sapService = {
                     data: {
                       parent_id: inventory.id,
                       sap_lineid: item.sap_lineid || null,
+                      sap_item_code:
+                        item.product_sap_code || item.sap_item_code || null,
                       product_id: product.id,
                       product_name: product.name,
                       unit: product.product_unit_of_measurement?.name || 'pcs',

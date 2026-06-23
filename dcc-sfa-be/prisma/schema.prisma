@@ -2209,22 +2209,22 @@ model survey_responses {
 }
 
 model surveys {
-  id               Int                @id(map: "PK__surveys__3213E83F5879FD05") @default(autoincrement())
-  title            String             @db.NVarChar(255)
-  description      String?
-  category         String             @db.NVarChar(30)
-  target_roles     Int?
-  is_published     Boolean?           @default(false, map: "DF__surveys__is_publ__5165187F")
-  published_at     DateTime?
-  expires_at       DateTime?
-  response_count   Int?               @default(0, map: "DF__surveys__respons__52593CB8")
-  is_active        String             @default("Y", map: "DF__surveys__is_acti__534D60F1") @db.Char(1)
-  is_matrix        String             @default("N") @db.Char(1)
-  createdate       DateTime?          @default(now(), map: "DF__surveys__created__5441852A") @db.DateTime
-  createdby        Int
-  updatedate       DateTime?          @db.DateTime
-  updatedby        Int?
-  log_inst         Int?
+  id                         Int                          @id(map: "PK__surveys__3213E83F5879FD05") @default(autoincrement())
+  title                      String                       @db.NVarChar(255)
+  description                String?
+  category                   String                       @db.NVarChar(30)
+  target_roles               Int?
+  is_published               Boolean?                     @default(false, map: "DF__surveys__is_publ__5165187F")
+  published_at               DateTime?
+  expires_at                 DateTime?
+  response_count             Int?                         @default(0, map: "DF__surveys__respons__52593CB8")
+  is_active                  String                       @default("Y", map: "DF__surveys__is_acti__534D60F1") @db.Char(1)
+  is_matrix                  String                       @default("N") @db.Char(1)
+  createdate                 DateTime?                    @default(now(), map: "DF__surveys__created__5441852A") @db.DateTime
+  createdby                  Int
+  updatedate                 DateTime?                    @db.DateTime
+  updatedby                  Int?
+  log_inst                   Int?
   survey_fields              survey_fields[]
   survey_responses           survey_responses[]
   survey_products            survey_products[]
@@ -2239,50 +2239,54 @@ model surveys {
 }
 
 model van_inventory {
-  id                            Int                   @id @default(autoincrement())
-  sap_docentry                  String?             
-  source_system                 String?               @db.NVarChar(50)
+  id                            Int                       @id @default(autoincrement())
+  sap_docnum                    String?                   @db.NVarChar(150)
+  sap_docentry                  String?
+  source_system                 String?                   @db.NVarChar(50)
   user_id                       Int
-  last_updated                  DateTime?             @default(now(), map: "DF__van_inven__last___658C0CBD") @db.DateTime
-  is_active                     String                @default("Y") @db.Char(1)
-  createdate                    DateTime?             @default(now(), map: "DF__van_inven__creat__6774552F") @db.DateTime
+  last_updated                  DateTime?                 @default(now(), map: "DF__van_inven__last___658C0CBD") @db.DateTime
+  is_active                     String                    @default("Y") @db.Char(1)
+  createdate                    DateTime?                 @default(now(), map: "DF__van_inven__creat__6774552F") @db.DateTime
   createdby                     Int
-  updatedate                    DateTime?             @db.DateTime
+  updatedate                    DateTime?                 @db.DateTime
   updatedby                     Int?
   log_inst                      Int?
   location_id                   Int?
-  location_type                 String?               @default("van") @db.NVarChar(20)
+  location_type                 String?                   @default("van") @db.NVarChar(20)
   vehicle_id                    Int?
-  loading_type                  String                @default("L") @db.Char(1)
-  status                        String                @default("A") @db.Char(1)
-  document_date                 DateTime?             @db.DateTime
-  van_inventory_stock_movements stock_movements[]     @relation("VanInventoryStockMovements")
-  van_inventory_depot           depots?               @relation("VanInventoryDepot", fields: [location_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  van_inventory_users           users                 @relation("VanInventoryUsers", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  vehicle                       vehicles?             @relation("VehiclesVanInventory", fields: [vehicle_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  vehicle_code                  String?                   @db.NVarChar(150)
+  sales_person_code             String?                   @db.NVarChar(150)
+  loading_type                  String                    @default("L") @db.Char(1)
+  status                        String                    @default("A") @db.Char(1)
+  document_date                 DateTime?                 @db.DateTime
+  van_inventory_stock_movements stock_movements[]         @relation("VanInventoryStockMovements")
+  van_inventory_depot           depots?                   @relation("VanInventoryDepot", fields: [location_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  van_inventory_users           users                     @relation("VanInventoryUsers", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  vehicle                       vehicles?                 @relation("VehiclesVanInventory", fields: [vehicle_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   van_inventory_items_inventory van_inventory_items[]
-  sale_type                     String?               @db.NVarChar(50)
+  sale_type                     String?                   @db.NVarChar(50)
   van_inventory_sub_users       van_inventory_sub_users[]
 }
 
 model van_inventory_sub_users {
-  id               Int           @id @default(autoincrement())
-  parent_id        Int
-  user_id          Int
-  is_active        String        @default("Y") @db.Char(1)
-  createdate       DateTime?     @default(now()) @db.DateTime
-  createdby        Int?
-  updatedate       DateTime?     @db.DateTime
-  updatedby        Int?
-  log_inst         Int?
-  users            users         @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  van_inventory    van_inventory @relation(fields: [parent_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  id            Int           @id @default(autoincrement())
+  parent_id     Int
+  user_id       Int
+  is_active     String        @default("Y") @db.Char(1)
+  createdate    DateTime?     @default(now()) @db.DateTime
+  createdby     Int?
+  updatedate    DateTime?     @db.DateTime
+  updatedby     Int?
+  log_inst      Int?
+  users         users         @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  van_inventory van_inventory @relation(fields: [parent_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }
 
 model van_inventory_items {
   id                            Int             @id @default(autoincrement())
   parent_id                     Int
   sap_lineid                    String?         @db.NVarChar(100)
+  sap_item_code                 String?         @db.NVarChar(150)
   product_id                    Int
   base_quantity                 Int?
   product_name                  String?         @db.NVarChar(255)
