@@ -3266,156 +3266,77 @@ model survey_customer_channels {
   surveys             surveys          @relation(fields: [parent_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
-model rop_sessions {
+
+model rop {
+  id             Int       @id @default(autoincrement())
+  session_number String    @unique @db.NVarChar(50)   
+  depot_id       Int
+  status         String     @db.NVarChar(20)
+  notes          String?   @db.NVarChar(500)
+  is_active      String    @default("Y") @db.Char(1)
+  createdate     DateTime? @default(now()) @db.DateTime
+  createdby      Int
+  updatedate     DateTime? @db.DateTime
+  updatedby      Int?
+  closedate      DateTime? @db.DateTime
+  log_inst       Int?
+}
+
+model rop_rows {
+  id                          Int       @id @default(autoincrement())
+  rop_id                      String    @unique @db.NVarChar(20)  
+  stock_key                   String    @db.NVarChar(200)         
+  session_id                  Int
+  salesman_id                 Int?     
+  salesman_sap_code           String    @db.NVarChar(50)           
+  product_id                  Int
+  batch_id                    Int
+  expected_rop                Decimal   @db.Decimal(18, 6)         
+  actual_rop                  Decimal?  @db.Decimal(18, 6)         
+  variance                    Decimal?  @db.Decimal(18, 6)        
+  resolution_action           String?   @db.NVarChar(50)
+  default_outlet_posting_qty  Decimal   @default(0) @db.Decimal(18, 6)
+  unload_adjustment_qty       Decimal   @default(0) @db.Decimal(18, 6)
+  status                      String    @default("Pending Verification") @db.NVarChar(50)
+  verified_by                 Int?
+  verified_on                 DateTime? @db.DateTime
+  force_push_notes            String?   @db.NVarChar(500)
+  is_active                   String    @default("Y") @db.Char(1)
+  createdate                  DateTime? @default(now()) @db.DateTime
+  createdby                   Int
+  updatedate                  DateTime? @db.DateTime
+  updatedby                   Int?
+  log_inst                    Int?
+}
+
+model rop_orders_adjustments {
   id            Int       @id @default(autoincrement())
-  session_code  String    @unique @db.NVarChar(50)   
-  depot_id      Int
-  session_date  DateTime  @db.Date
-  status        String    @default("open") @db.NVarChar(20)
-  opened_by     Int
-  submitted_by  Int?
-  submitted_at  DateTime?
-  closed_by     Int?
-  closed_at     DateTime?
-  remarks       String?   @db.NVarChar(500)
-  is_active     String    @default("Y") @db.Char(1)
+  rop_row_id    Int
+  order_id      Int?     
+  customer_id   Int      
+  quantity      Decimal   @db.Decimal(18, 6)
+  unit_price    Decimal   @db.Decimal(18, 2)
+  total_amount  Decimal   @db.Decimal(18, 2)
+  posting_type  String    @db.NVarChar(20)  
+  is_active     String    @db.Char(1)
   createdate    DateTime? @default(now()) @db.DateTime
   createdby     Int
   updatedate    DateTime? @db.DateTime
   updatedby     Int?
   log_inst      Int?
-
-  rop_lines     rop_lines[]
-  rop_session_depot   depots  @relation("RopSessionDepot", fields: [depot_id], references: [id], onUpdate: NoAction)
-  rop_session_opener  users   @relation("RopSessionOpener", fields: [opened_by], references: [id], onUpdate: NoAction)
-  rop_session_submitter users? @relation("RopSessionSubmitter", fields: [submitted_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  rop_session_closer  users?  @relation("RopSessionCloser", fields: [closed_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
-
 }
 
-model rop_lines {
-  id                     Int       @id @default(autoincrement())
-  rop_id                 String    @unique @db.NVarChar(20)  
-  session_id             Int
 
-  stock_key              String    @db.NVarChar(150)        
-  salesman_sap_code      String    @db.NVarChar(50)
-  salesman_id            Int?                                  
-  sku_code               String    @db.NVarChar(100)          
-  product_id             Int?                                 
-  batch_number           String    @db.NVarChar(50)
-  batch_lot_id           Int?                                
-  actual_rop             Decimal?  @db.Decimal(18, 8)
-
-  variance               Decimal?  @db.Decimal(18, 8)
-
-  resolution_action      String?   @db.NVarChar(50)
-
-  default_outlet_posting_qty Decimal? @default(0) @db.Decimal(18, 8)
-
-  unload_adjustment_qty  Decimal?  @default(0) @db.Decimal(18, 8)
-  status                 String    @default("Pending Verification") @db.NVarChar(50)
-
-  verified_by            Int?
-  verified_on            DateTime?
-
-  sap_posting_docnum     String?   @db.NVarChar(100)
-  sap_posted_at          DateTime?
-  sap_post_status        String?   @db.NVarChar(20)  
-  is_active              String    @default("Y") @db.Char(1)
-  createdate             DateTime? @default(now()) @db.DateTime
-  createdby              Int
-  updatedate             DateTime? @db.DateTime
-  updatedby              Int?
-  log_inst               Int?
-
-  rop_session            rop_sessions  @relation(fields: [session_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  rop_line_salesman      users?        @relation("RopLineSalesman", fields: [salesman_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  rop_line_product       products?     @relation("RopLineProduct", fields: [product_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  rop_line_batch         batch_lots?   @relation("RopLineBatch", fields: [batch_lot_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  rop_line_verifier      users?        @relation("RopLineVerifier", fields: [verified_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  rop_line_history       rop_line_history[]
-  rop_postings           rop_postings[]
-
-
+model rop_unload_adjustments {
+  id              Int       @id @default(autoincrement())
+  rop_row_id      Int
+  van_inventory_id Int      
+  adjustment_qty  Decimal   @db.Decimal(18, 6)   
+  reason          String?   @db.NVarChar(255)
+  is_active       String    @default("Y") @db.Char(1)
+  createdate      DateTime? @default(now()) @db.DateTime
+  createdby       Int
+  updatedate      DateTime? @db.DateTime
+  updatedby       Int?
+  log_inst        Int?
 }
-
-model rop_line_history {
-  id            Int       @id @default(autoincrement())
-  rop_line_id   Int
-  action_type   String    @db.NVarChar(50)
-
-  old_actual_rop     Decimal? @db.Decimal(18, 8)
-  new_actual_rop     Decimal? @db.Decimal(18, 8)
-  old_status         String?  @db.NVarChar(50)
-  new_status         String?  @db.NVarChar(50)
-  old_resolution     String?  @db.NVarChar(50)
-  new_resolution     String?  @db.NVarChar(50)
-  remarks            String?  @db.NVarChar(500)
-
-  changed_by    Int
-  changed_at    DateTime  @default(now())
-  ip_address    String?   @db.NVarChar(50)
-  device_info   String?   @db.NVarChar(255)
-  is_active     String    @default("Y") @db.Char(1)
-  createdate    DateTime? @default(now()) @db.DateTime
-  createdby     Int
-  updatedate    DateTime? @db.DateTime
-  updatedby     Int?
-  log_inst      Int?
-
-  rop_line           rop_lines  @relation(fields: [rop_line_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  rop_history_user   users      @relation("RopLineHistoryUser", fields: [changed_by], references: [id], onUpdate: NoAction)
-
-}
-
-// "Post to Default Outlet" posting recoerd or invoice create krne ko  
-// "Adjust Unload Upward"  van invebt.. me plus minus ke baad yha pe bhi record create krne ko 
-model rop_postings {
-  id                   Int       @id @default(autoincrement())
-  rop_line_id          Int
-  posting_type         String    @db.NVarChar(30)
-
-  quantity             Decimal   @db.Decimal(18, 8)
-  depot_id             Int
-  default_outlet_id    Int?     
-  salesman_id          Int?
-  product_id           Int?
-  batch_lot_id         Int?
-
-  If posting_type  default_outlet_sale jo actual genrate ordr hoga
-  reference_order_id   Int?
-  reference_invoice_id Int?
-
- If posting_type hai to  unload_adjustment links to the van_inventory record jb unload krte wqt damage hua hoga
-  reference_van_inventory_id Int?
-
-  sap_docnum           String?   @db.NVarChar(100)
-  posting_status       String    @default("pending") @db.NVarChar(20)
-  posted_by            Int
-  posted_at            DateTime? @default(now())
-  failure_reason       String?   @db.NVarChar(500)
-  reversed_by          Int?
-  reversed_at          DateTime?
-  reversal_reason      String?   @db.NVarChar(500)
-
-  is_active            String    @default("Y") @db.Char(1)
-  createdate           DateTime? @default(now()) @db.DateTime
-  createdby            Int
-  updatedate           DateTime? @db.DateTime
-  updatedby            Int?
-  log_inst             Int?
-
-  rop_line                     rop_lines       @relation(fields: [rop_line_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  rop_posting_depot            depots          @relation("RopPostingDepot", fields: [depot_id], references: [id], onUpdate: NoAction)
-  rop_posting_outlet           customers?      @relation("RopPostingOutlet", fields: [default_outlet_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  rop_posting_salesman         users?          @relation("RopPostingSalesman", fields: [salesman_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  rop_posting_product          products?       @relation("RopPostingProduct", fields: [product_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  rop_posting_batch            batch_lots?     @relation("RopPostingBatch", fields: [batch_lot_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  rop_posting_order            orders?         @relation("RopPostingOrder", fields: [reference_order_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  rop_posting_invoice          invoices?       @relation("RopPostingInvoice", fields: [reference_invoice_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  rop_posting_van_inventory    van_inventory?  @relation("RopPostingVanInventory", fields: [reference_van_inventory_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  rop_posting_poster           users           @relation("RopPostingPoster", fields: [posted_by], references: [id], onUpdate: NoAction)
-  rop_posting_reverser         users?          @relation("RopPostingReverser", fields: [reversed_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
-}
-
