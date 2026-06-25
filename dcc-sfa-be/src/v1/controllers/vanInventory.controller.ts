@@ -3,7 +3,7 @@ import { paginate } from '../../utils/paginate';
 import prisma from '../../configs/prisma.client';
 import { getTimeFilter } from '../../utils/dateFilters';
 import { getContainerOwnerAndSelf } from '../utils/inventory.utils';
-
+import { getSourceSystemLabel } from '../../utils/sourceSystem';
 interface VanInventoryItemSerialized {
   id: number;
   parent_id: number;
@@ -54,6 +54,7 @@ interface VanInventorySerialized {
   sap_docentry?: string | null;
   sap_docnum?: string | null;
   source_system?: string | null;
+  source_system_label?: string | null;
   user_id: number;
   status: string;
   loading_type: string;
@@ -316,6 +317,8 @@ const serializeVanInventory = (item: any): VanInventorySerialized => {
     sap_docentry: item.sap_docentry || null,
     sap_docnum: item.sap_docnum || null,
     source_system: item.source_system || null,
+    source_system_label: getSourceSystemLabel(item.source_system), // ← right after source_system
+
     user_id: item.user_id,
     status: item.status,
     loading_type: item.loading_type,

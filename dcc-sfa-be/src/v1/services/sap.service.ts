@@ -1302,7 +1302,7 @@ export const sapService = {
             source_system: finalInventory?.source_system,
             source_system_label: getSourceSystemLabel(
               finalInventory?.source_system
-            ), // ← right after source_system
+            ),
             user_id: finalInventory?.user_id,
             last_updated: finalInventory?.last_updated,
             is_active: finalInventory?.is_active,
