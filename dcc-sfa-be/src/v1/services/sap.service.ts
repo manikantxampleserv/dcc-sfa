@@ -151,6 +151,19 @@ async function createStockMovement(
   });
 }
 
+const SOURCE_SYSTEM_LABELS: Record<string, string> = {
+  sap_arinvoice: 'AR Invoice',
+  sap_inventorytrf: 'Inventory Transfer',
+};
+
+const getSourceSystemLabel = (
+  sourceSystem: string | null | undefined
+): string | null => {
+  if (!sourceSystem) return null;
+  const key = sourceSystem.toLowerCase();
+  return SOURCE_SYSTEM_LABELS[key] || sourceSystem;
+};
+
 export const sapService = {
   async createOrUpdateVanInventorySAP(payload: any, userId: number = 1) {
     const { van_inventory_items, inventoryItems, ...inventoryData } = payload;
@@ -1279,7 +1292,44 @@ export const sapService = {
           },
         });
 
-        return { finalInventory, wasUpdate: isUpdate };
+        // return { finalInventory, wasUpdate: isUpdate };
+
+        return {
+          finalInventory: {
+            id: finalInventory?.id,
+            sap_docnum: finalInventory?.sap_docnum,
+            sap_docentry: finalInventory?.sap_docentry,
+            source_system: finalInventory?.source_system,
+            source_system_label: getSourceSystemLabel(
+              finalInventory?.source_system
+            ), // ← right after source_system
+            user_id: finalInventory?.user_id,
+            last_updated: finalInventory?.last_updated,
+            is_active: finalInventory?.is_active,
+            createdate: finalInventory?.createdate,
+            createdby: finalInventory?.createdby,
+            updatedate: finalInventory?.updatedate,
+            updatedby: finalInventory?.updatedby,
+            log_inst: finalInventory?.log_inst,
+            location_id: finalInventory?.location_id,
+            location_type: finalInventory?.location_type,
+            vehicle_id: finalInventory?.vehicle_id,
+            vehicle_code: finalInventory?.vehicle_code,
+            sales_person_code: finalInventory?.sales_person_code,
+            loading_type: finalInventory?.loading_type,
+            status: finalInventory?.status,
+            document_date: finalInventory?.document_date,
+            sale_type: finalInventory?.sale_type,
+            van_inventory_users: finalInventory?.van_inventory_users,
+            vehicle: finalInventory?.vehicle,
+            van_inventory_depot: finalInventory?.van_inventory_depot,
+            van_inventory_items_inventory:
+              finalInventory?.van_inventory_items_inventory,
+            van_inventory_stock_movements:
+              finalInventory?.van_inventory_stock_movements,
+          },
+          wasUpdate: isUpdate,
+        };
       },
       {
         maxWait: 60000,
