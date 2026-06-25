@@ -297,6 +297,7 @@ export declare const sapService: {
                 quantity: number;
                 batch_lot_id: number | null;
                 sap_lineid: string | null;
+                sap_item_code: string | null;
                 unit: string | null;
                 unit_price: import("@prisma/client-runtime-utils").Decimal;
             })[];
@@ -310,12 +311,15 @@ export declare const sapService: {
             log_inst: number | null;
             user_id: number;
             status: string;
+            sap_docnum: string | null;
             sap_docentry: string | null;
             source_system: string | null;
             last_updated: Date | null;
             location_id: number | null;
             location_type: string | null;
             vehicle_id: number | null;
+            vehicle_code: string | null;
+            sales_person_code: string | null;
             loading_type: string;
             document_date: Date | null;
             sale_type: string | null;

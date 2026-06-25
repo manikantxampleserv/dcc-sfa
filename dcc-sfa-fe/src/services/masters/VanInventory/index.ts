@@ -39,6 +39,9 @@ interface VanInventoryItem {
 
 interface VanInventory {
   id: number;
+  sap_docentry?: string | null;
+  sap_docnum?: string | null;
+  source_system?: string | null;
   user_id: number;
   status: string;
   loading_type: string;
