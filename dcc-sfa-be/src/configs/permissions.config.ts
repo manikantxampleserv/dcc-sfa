@@ -182,7 +182,8 @@ export type Modules =
   | 'pricelist'
   | 'audit-log'
   | 'attendance'
-  | 'request';
+  | 'request'
+  | 'reconciliation';
 
 /**
  * @type Actions
@@ -235,6 +236,7 @@ const MODULE_DISPLAY_NAMES: Record<string, string> = {
   installation: 'Cooler Installation',
   inspection: 'Cooler Inspection',
   'van-stock': 'Van Inventory',
+  reconciliation: 'Reconciliation',
   'stock-movement': 'Stock Movement',
   'inventory-management': 'Inventory Management',
   competitor: 'Competitor Activity',
