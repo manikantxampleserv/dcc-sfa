@@ -1,393 +1,220 @@
-import { Chip, MenuItem, TextField } from '@mui/material';
+import { Visibility } from '@mui/icons-material';
+import { Chip, MenuItem } from '@mui/material';
 import {
-  AlertCircle,
-  BarChart,
-  ClipboardList,
-  DollarSign,
-  Download,
-  FileSpreadsheet,
-  Save,
-} from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
-import Button from 'shared/Button';
+  useReconciliations,
+  type ReconciliationRecord,
+} from 'hooks/useReconciliation';
+import { AlertCircle, BarChart, ClipboardList, DollarSign } from 'lucide-react';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { ActionButton } from 'shared/ActionButton';
+import DepotSelect from 'shared/DepotSelect';
 import Input from 'shared/Input';
 import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
-
-// Mock data representing the system's expected ROP at the SKU level
-const mockSystemData = [
-  {
-    id: 'ROP-101',
-    stockKey: 'STK-001',
-    salesmanSapCode: 'SAP-8921',
-    salesmanName: 'John Doe',
-    depot: 'North-East-01',
-    skuCode: 'BEV-001',
-    skuName: 'Premium Cola 500ml',
-    batchNumber: 'B-2606A',
-    expectedRop: 1200.0,
-    status: 'Pending',
-    verifiedBy: '',
-    verifiedOn: '',
-  },
-  {
-    id: 'ROP-102',
-    stockKey: 'STK-002',
-    salesmanSapCode: 'SAP-8921',
-    salesmanName: 'John Doe',
-    depot: 'North-East-01',
-    skuCode: 'BEV-002',
-    skuName: 'Orange Soda 500ml',
-    batchNumber: 'B-2606A',
-    expectedRop: 660.0,
-    status: 'Pending',
-    verifiedBy: '',
-    verifiedOn: '',
-  },
-  {
-    id: 'ROP-103',
-    stockKey: 'STK-003',
-    salesmanSapCode: 'SAP-8921',
-    salesmanName: 'John Doe',
-    depot: 'North-East-01',
-    skuCode: 'SNC-001',
-    skuName: 'Potato Chips Salted',
-    batchNumber: 'B-2606B',
-    expectedRop: 1500.0,
-    status: 'Pending',
-    verifiedBy: '',
-    verifiedOn: '',
-  },
-  {
-    id: 'ROP-104',
-    stockKey: 'STK-004',
-    salesmanSapCode: 'SAP-8921',
-    salesmanName: 'John Doe',
-    depot: 'North-East-01',
-    skuCode: 'SNC-002',
-    skuName: 'Spicy Nachos',
-    batchNumber: 'B-2606B',
-    expectedRop: 810.0,
-    status: 'Pending',
-    verifiedBy: '',
-    verifiedOn: '',
-  },
-  {
-    id: 'ROP-105',
-    stockKey: 'STK-005',
-    salesmanSapCode: 'SAP-8921',
-    salesmanName: 'John Doe',
-    depot: 'North-East-01',
-    skuCode: 'WAT-001',
-    skuName: 'Mineral Water 1L',
-    batchNumber: 'B-2606C',
-    expectedRop: 1440.0,
-    status: 'Pending',
-    verifiedBy: '',
-    verifiedOn: '',
-  },
-];
+import UserSelect from 'shared/UserSelect';
 
 export default function Reconciliation() {
-  const [records, setRecords] = useState<any[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedDate, setSelectedDate] = useState('2026-06-22');
-  const [repFilter, setRepFilter] = useState('all');
-  const [routeFilter, setRouteFilter] = useState('all');
-  const [isSaving, setIsSaving] = useState(false);
+  const navigate = useNavigate();
 
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedDate, setSelectedDate] = useState(
+    new Date().toISOString().split('T')[0]
+  );
+  const [salesmanFilter, setSalesmanFilter] = useState<number | undefined>(
+    undefined
+  );
+  const [depotFilter, setDepotFilter] = useState<number | undefined>(undefined);
+  const [statusFilter, setStatusFilter] = useState('all');
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
 
-  useEffect(() => {
-    const initializedData = mockSystemData.map(item => ({
-      ...item,
-      actualRop: '',
-      variance: null,
-      resolutionAction: '',
-      defaultOutletPostingQty: '',
-      unloadAdjustmentQty: '',
-    }));
-    setRecords(initializedData);
-  }, []);
+  const { data: responseData, isFetching } = useReconciliations({
+    page,
+    limit,
+    search: searchQuery || undefined,
+    salesman_id: salesmanFilter,
+    depot_id: depotFilter,
+    date: selectedDate || undefined,
+    status: statusFilter !== 'all' ? statusFilter : undefined,
+  });
 
-  const handleActualChange = (id: string, value: string) => {
-    setRecords(prevRecords =>
-      prevRecords.map(record => {
-        if (record.id === id) {
-          const numericValue = parseFloat(value);
-          const variance =
-            value === '' || isNaN(numericValue)
-              ? null
-              : numericValue - record.expectedRop;
+  const records = responseData?.data || [];
+  const totalCount = responseData?.meta?.total_count || 0;
 
-          let newStatus = 'Pending';
-          if (variance === 0) newStatus = 'Matched';
-          else if (variance !== null && variance < 0) newStatus = 'Short';
-          else if (variance !== null && variance > 0) newStatus = 'Excess';
-
-          return {
-            ...record,
-            actualRop: value,
-            variance: variance,
-            status: newStatus,
-          };
-        }
-        return record;
-      })
-    );
+  const stats: {
+    expected: number;
+    actual: number;
+    default_outlet: number;
+    unload_adjustment: number;
+    pending: number;
+  } = (responseData?.stats as any) || {
+    expected: 0,
+    actual: 0,
+    default_outlet: 0,
+    unload_adjustment: 0,
+    pending: 0,
   };
 
-  const handleFieldChange = (id: string, field: string, value: string) => {
-    setRecords(prevRecords =>
-      prevRecords.map(record =>
-        record.id === id ? { ...record, [field]: value } : record
-      )
-    );
-  };
-
-  const autoFillMatchAll = () => {
-    if (
-      window.confirm(
-        "Are you sure you want to auto-fill all empty 'Actual' amounts with the 'Expected' amounts?"
-      )
-    ) {
-      setRecords(prevRecords =>
-        prevRecords.map(record => ({
-          ...record,
-          actualRop:
-            record.actualRop === ''
-              ? record.expectedRop.toString()
-              : record.actualRop,
-          variance: record.actualRop === '' ? 0 : record.variance,
-          status: record.actualRop === '' ? 'Matched' : record.status,
-        }))
-      );
-    }
-  };
-
-  const handleSave = () => {
-    setIsSaving(true);
-    setTimeout(() => {
-      setIsSaving(false);
-      alert('Daily ROP Reconciliation Data Saved Successfully.');
-    }, 1000);
-  };
-
-  const filteredRecords = useMemo(() => {
-    return records.filter(
-      record =>
-        (record.skuName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          record.skuCode.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          record.id.toLowerCase().includes(searchQuery.toLowerCase())) &&
-        (repFilter === 'all' || record.salesmanName === repFilter) &&
-        (routeFilter === 'all' || record.depot === routeFilter)
-    );
-  }, [records, searchQuery, repFilter, routeFilter]);
-
-  const paginatedRecords = useMemo(() => {
-    const startIndex = (page - 1) * limit;
-    return filteredRecords.slice(startIndex, startIndex + limit);
-  }, [filteredRecords, page, limit]);
-
-  const totals = useMemo(() => {
-    return filteredRecords.reduce(
-      (acc, record) => {
-        acc.expected += record.expectedRop || 0;
-        acc.actual += parseFloat(record.actualRop) || 0;
-        if (record.status === 'Pending') acc.pending++;
-        return acc;
-      },
-      { expected: 0, actual: 0, pending: 0 }
-    );
-  }, [filteredRecords]);
-
-  const totalVariance = totals.actual - totals.expected;
-
-  const columns: TableColumn<any>[] = [
+  const columns: TableColumn<ReconciliationRecord>[] = [
     {
       id: 'id',
-      label: 'ROP ID',
+      label: 'Rec ID',
       sortable: true,
-      render: id => <span className="font-medium text-gray-700">{id}</span>,
+      render: (_val, row) => (
+        <span className="font-medium text-gray-700">
+          REC-{row.id.toString().padStart(4, '0')}
+        </span>
+      ),
     },
-    { id: 'stockKey', label: 'Stock Key', sortable: true },
-    { id: 'salesmanSapCode', label: 'Rep SAP', sortable: true },
+    { id: 'salesmanSapCode', label: 'SAP Code', sortable: true },
     { id: 'salesmanName', label: 'Rep Name', sortable: true },
     { id: 'depot', label: 'Depot/Route', sortable: true },
-    { id: 'skuCode', label: 'SKU Code', sortable: true },
-    { id: 'skuName', label: 'SKU Name', sortable: true },
     {
-      id: 'expectedRop',
-      label: 'Expected',
+      id: 'reconciliation_date',
+      label: 'Load Date',
       sortable: true,
+      render: val =>
+        val
+          ? new Date(val as string).toLocaleDateString('en-GB', {
+              day: '2-digit',
+              month: 'short',
+              year: 'numeric',
+            })
+          : '-',
+    },
+    {
+      id: 'totalItems',
+      label: 'Total SKUs',
       render: val => (
-        <span className="font-semibold text-gray-800">{val?.toFixed(2)}</span>
+        <span className="font-semibold text-gray-700">{val as number}</span>
       ),
     },
     {
-      id: 'actualRop',
-      label: 'Actual',
-      render: (_, row) => (
-        <TextField
-          type="number"
-          size="small"
-          placeholder="0.00"
-          value={row.actualRop}
-          onChange={e => handleActualChange(row.id, e.target.value)}
-          inputProps={{
-            min: 0,
-            step: '0.01',
-            style: { textAlign: 'right', width: '80px' },
-          }}
-          className="bg-yellow-50/30"
-        />
-      ),
-    },
-    {
-      id: 'variance',
-      label: 'Variance',
-      render: (_, row) => {
-        if (row.variance === null)
-          return <span className="text-gray-400">-</span>;
-        const color =
-          row.variance === 0
-            ? 'text-green-600'
-            : row.variance < 0
-              ? 'text-red-600'
-              : 'text-blue-600';
-        const sign = row.variance > 0 ? '+' : '';
-        return (
-          <span className={`font-bold ${color}`}>
-            {sign}
-            {row.variance.toFixed(2)}
-          </span>
-        );
-      },
-    },
-    {
-      id: 'resolutionAction',
-      label: 'Resolution Action',
-      render: (_, row) => (
-        <Select
-          size="small"
-          value={row.resolutionAction}
-          onChange={e =>
-            handleFieldChange(
-              row.id,
-              'resolutionAction',
-              e.target.value as string
-            )
-          }
-          disabled={row.variance === 0 || row.variance === null}
-          className="!w-32 bg-white"
+      id: 'pendingItems',
+      label: 'Pending',
+      render: val => (
+        <span
+          className={`font-semibold ${(val as number) > 0 ? 'text-orange-600' : 'text-gray-400'}`}
         >
-          <MenuItem value="">
-            <em>Select...</em>
-          </MenuItem>
-          <MenuItem value="Deduct from Salary">Deduct from Salary</MenuItem>
-          <MenuItem value="Write Off">Write Off</MenuItem>
-          <MenuItem value="Hold Pending">Hold Pending</MenuItem>
-          <MenuItem value="Credit Rep">Credit Rep</MenuItem>
-        </Select>
+          {val as number}
+        </span>
       ),
     },
     {
-      id: 'status',
+      id: 'matchedItems',
+      label: 'Matched',
+      render: val => (
+        <span
+          className={`font-semibold ${(val as number) > 0 ? 'text-green-600' : 'text-gray-400'}`}
+        >
+          {val as number}
+        </span>
+      ),
+    },
+    {
+      id: 'overallStatus',
       label: 'Status',
       sortable: true,
-      render: status => {
-        let color: 'warning' | 'success' | 'error' | 'info' = 'warning';
-        if (status === 'Matched') color = 'success';
-        else if (status === 'Short') color = 'error';
-        else if (status === 'Excess') color = 'info';
-
+      render: val => {
+        const s = val as string;
+        const color =
+          s === 'Completed' ? 'success' : s === 'Matched' ? 'info' : 'warning';
         return (
           <Chip
-            label={status}
+            label={s}
             color={color}
             size="small"
             variant="filled"
-            className="!capitalize font-medium"
+            className="!font-medium"
           />
         );
       },
+    },
+    {
+      id: 'id',
+      label: 'Actions',
+      render: (_val, row) => (
+        <ActionButton
+          size="small"
+          color="info"
+          icon={<Visibility />}
+          tooltip="View Items"
+          onClick={() => navigate(`/settings/reconciliation/${row.id}`)}
+        />
+      ),
     },
   ];
 
   return (
     <div className="space-y-4">
-      {/* Header */}
       <div className="flex flex-row justify-between items-center">
         <div>
-          <h1 className="!font-bold text-xl !text-gray-900">Reconciliation</h1>
+          <h1 className="!font-bold text-xl !text-gray-900">
+            ROP Verification & Reconciliation
+          </h1>
           <p className="text-sm text-gray-500">
-            DCC SFA Clerk Portal - Reconcile system expected amounts with actual
-            clerk inputs.
+            DCC SFA Clerk Portal — Click a row to view loaded products for that
+            salesman.
           </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <Button
-            variant="outlined"
-            startIcon={<FileSpreadsheet className="w-4 h-4" />}
-            onClick={autoFillMatchAll}
-          >
-            Auto-Fill Expected
-          </Button>
-          <Button
-            variant="contained"
-            color="primary"
-            startIcon={<Save className="w-4 h-4" />}
-            onClick={handleSave}
-            disabled={isSaving}
-          >
-            {isSaving ? 'Saving...' : 'Save & Reconcile'}
-          </Button>
         </div>
       </div>
 
       {/* Stats Area */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatsCard
-          title="Total Expected"
-          value={`$${totals.expected.toFixed(2)}`}
+          title="Total Expected ROP"
+          value={stats.expected.toLocaleString(undefined, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })}
           icon={<ClipboardList className="w-6 h-6" />}
           color="blue"
+          isLoading={isFetching}
         />
         <StatsCard
-          title="Total Actual"
-          value={`$${totals.actual.toFixed(2)}`}
+          title="Total Actual ROP"
+          value={stats.actual.toLocaleString(undefined, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })}
           icon={<DollarSign className="w-6 h-6" />}
           color="green"
+          isLoading={isFetching}
         />
         <StatsCard
-          title="Net Variance"
-          value={`${totalVariance > 0 ? '+' : ''}$${totalVariance.toFixed(2)}`}
+          title="Total Default Outlet Posting"
+          value={stats.default_outlet.toLocaleString(undefined, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })}
           icon={<BarChart className="w-6 h-6" />}
-          color={
-            totalVariance === 0 ? 'green' : totalVariance < 0 ? 'red' : 'yellow'
-          }
+          color="red"
+          isLoading={isFetching}
         />
         <StatsCard
-          title="Pending SKUs"
-          value={totals.pending}
+          title="Total Unload Adjustment"
+          value={stats.unload_adjustment.toLocaleString(undefined, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })}
           icon={<AlertCircle className="w-6 h-6" />}
-          color="red"
+          color="orange"
+          isLoading={isFetching}
         />
       </div>
 
       {/* Main Table */}
       <Table
-        data={paginatedRecords}
+        data={records}
         getRowId={row => row.id}
-        tableId="rop-reconciliation-table"
+        tableId="reconciliation-list-table"
         initialOrder="asc"
-        stickyHeader
         columns={columns}
-        loading={false}
-        totalCount={filteredRecords.length}
+        loading={isFetching}
+        totalCount={totalCount}
         page={page - 1}
         rowsPerPage={limit}
         onPageChange={newPage => setPage(newPage + 1)}
@@ -396,7 +223,7 @@ export default function Reconciliation() {
           <div className="flex justify-between flex-1 items-center flex-wrap gap-3">
             <div className="flex flex-wrap items-center gap-3">
               <SearchInput
-                placeholder="Search SKU or ID..."
+                placeholder="Search by rep name..."
                 value={searchQuery}
                 onChange={val => {
                   setSearchQuery(val);
@@ -409,38 +236,52 @@ export default function Reconciliation() {
               <Input
                 type="date"
                 value={selectedDate}
-                onChange={e => setSelectedDate(e.target.value)}
+                onChange={e => {
+                  setSelectedDate(e.target.value);
+                  setPage(1);
+                }}
                 className="!w-44"
               />
 
-              <Select
-                value={repFilter}
-                onChange={e => setRepFilter(e.target.value as string)}
-                className="!w-52"
-              >
-                <MenuItem value="all">All Reps</MenuItem>
-                <MenuItem value="John Doe">John Doe</MenuItem>
-                <MenuItem value="Jane Smith">Jane Smith</MenuItem>
-              </Select>
+              <div className="w-52">
+                <UserSelect
+                  value={
+                    salesmanFilter ? ({ id: salesmanFilter } as any) : null
+                  }
+                  onChange={(_, value) => {
+                    setSalesmanFilter(value ? value.id : undefined);
+                    setPage(1);
+                  }}
+                  placeholder="Filter by Rep"
+                />
+              </div>
+
+              <div className="w-52">
+                <DepotSelect
+                  value={depotFilter ? ({ id: depotFilter } as any) : null}
+                  onChange={(_, value) => {
+                    setDepotFilter(value ? value.id : undefined);
+                    setPage(1);
+                  }}
+                  placeholder="Filter by Depot"
+                />
+              </div>
 
               <Select
-                value={routeFilter}
-                onChange={e => setRouteFilter(e.target.value as string)}
-                className="!w-52"
+                value={statusFilter}
+                onChange={e => {
+                  setStatusFilter(e.target.value as string);
+                  setPage(1);
+                }}
+                className="!w-44"
               >
-                <MenuItem value="all">All Routes</MenuItem>
-                <MenuItem value="North-East-01">North-East-01</MenuItem>
-                <MenuItem value="South-West-02">South-West-02</MenuItem>
+                <MenuItem value="all">All Statuses</MenuItem>
+                <MenuItem value="Pending">Pending Verification</MenuItem>
+                <MenuItem value="Matched">Matched (CLEAN)</MenuItem>
+                <MenuItem value="Short">Shortage (Outlet Posting)</MenuItem>
+                <MenuItem value="Excess">Excess (Unload Adjustment)</MenuItem>
+                <MenuItem value="Blocked">Blocked (Force-Push Req)</MenuItem>
               </Select>
-            </div>
-            <div>
-              <Button
-                variant="outlined"
-                startIcon={<Download className="w-4 h-4" />}
-                className="bg-white"
-              >
-                Export
-              </Button>
             </div>
           </div>
         }

@@ -501,6 +501,17 @@ export interface ApiResponse<T = any> {
     total_assigned_routes: number;
     /** Number of routes with no assigned salespersons */
     total_unassigned_routes: number;
+    // Reconciliation statistics
+    /** Total expected quantity for reconciliations */
+    expected?: number;
+    /** Total actual quantity for reconciliations */
+    actual?: number;
+    /** Total quantity posted to default outlet in reconciliations */
+    default_outlet?: number;
+    /** Total quantity adjusted via unload in reconciliations */
+    unload_adjustment?: number;
+    /** Number of pending reconciliations */
+    pending?: number;
   };
 }
 
@@ -544,8 +555,9 @@ export interface CustomAxiosRequestConfig extends InternalAxiosRequestConfig {
  * Extended Axios response with custom properties
  * @template T - The type of data returned in the ApiResponse
  */
-export interface CustomAxiosResponse<T = any>
-  extends AxiosResponse<ApiResponse<T>> {
+export interface CustomAxiosResponse<T = any> extends AxiosResponse<
+  ApiResponse<T>
+> {
   /** Request configuration that generated this response */
   config: CustomAxiosRequestConfig;
 }
@@ -723,7 +735,7 @@ export interface FilterParams {
 /**
  * Combined query parameters for list endpoints
  */
-export interface QueryParams extends PaginationParams, FilterParams { }
+export interface QueryParams extends PaginationParams, FilterParams {}
 
 /**
  * File upload configuration
@@ -811,4 +823,3 @@ export class ApiErrorClass extends Error {
     this.response = originalError?.response;
   }
 }
-

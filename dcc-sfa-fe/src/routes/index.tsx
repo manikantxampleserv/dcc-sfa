@@ -94,6 +94,7 @@ import VisitFrequencyCompletionReport from 'pages/reports/VisitFrequencyCompleti
 import EmailTemplates from 'pages/settings/EmailTemplates';
 import SystemSettings from 'pages/settings/SystemSettings';
 import Reconciliation from 'pages/settings/Reconciliation';
+import ReconciliationDetail from 'pages/settings/Reconciliation/ReconciliationDetail';
 import RepLocationTracking from 'pages/tracking/RepLocationTracking';
 import RouteEffectiveness from 'pages/tracking/RouteEffectiveness';
 import CoolerInspectionsManagement from 'pages/transactions/CoolerInspections';
@@ -670,6 +671,14 @@ const router = createBrowserRouter(
           element: (
             <PermissionGuard module="reconciliation" action="read">
               <Reconciliation />
+            </PermissionGuard>
+          ),
+        },
+        {
+          path: '/settings/reconciliation/:id',
+          element: (
+            <PermissionGuard module="reconciliation" action="read">
+              <ReconciliationDetail />
             </PermissionGuard>
           ),
         },

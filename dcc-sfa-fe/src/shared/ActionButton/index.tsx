@@ -35,7 +35,7 @@ const ViewButton: React.FC<ViewButtonProps> = ({
         onClick?.();
       }}
       disabled={disabled}
-      className="!bg-green-100 !rounded hover:!bg-green-200 !text-green-600"
+      className="!bg-blue-100 !rounded hover:!bg-blue-200 !text-blue-600"
     >
       <Visibility fontSize="small" />
     </IconButton>

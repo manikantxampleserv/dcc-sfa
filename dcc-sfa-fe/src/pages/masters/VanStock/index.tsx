@@ -233,18 +233,13 @@ const VanStockPage: React.FC = () => {
       ),
     },
     {
-      id: 'source_system',
+      id: 'source_system_label',
       label: 'SAP Source Type',
-      render: (_value, row) => {
-        let label = row.source_system || '-';
-        if (row.source_system === 'sap_ar_invoice') label = 'AR Invoice';
-        else if (row.source_system === 'sap_inventorytrf') label = 'Inventory Transfer';
-        return (
-          <Typography variant="body2" className="!text-gray-900">
-            {label}
-          </Typography>
-        );
-      },
+      render: value => (
+        <Typography variant="body2" className="!text-gray-900">
+          {value || '-'}
+        </Typography>
+      ),
     },
     {
       id: 'loading_type',
@@ -313,10 +308,10 @@ const VanStockPage: React.FC = () => {
       ),
     },
     {
-      id: 'last_updated',
-      label: 'Last Updated',
-      render: (_value, row) => {
-        const formattedDate = formatDateTime(row.last_updated);
+      id: 'createdate',
+      label: 'Created At',
+      render: value => {
+        const formattedDate = formatDateTime(value);
         return formattedDate ? (
           <span>{formattedDate}</span>
         ) : (
