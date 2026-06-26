@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import prisma from '../../configs/prisma.client';
 import { paginate } from '../../utils/paginate';
 import logger from '../../configs/logger';
+import { createRequest } from './requests.controller';
 
 const resolveStatusFilter = (status: string) => {
   if (status === 'Pending')
@@ -160,7 +161,7 @@ export const reconciliationController = {
           pendingItems,
           matchedItems,
           varianceItems,
-          overallStatus,
+          overallStatus: rec.status,
           createdate: rec.createdate,
         };
       });
@@ -320,6 +321,7 @@ export const reconciliationController = {
 
       const results = await prisma.$transaction(async tx => {
         const updatedItems = [];
+        const reconciliationIds = new Set<number>();
 
         for (const itemPayload of items) {
           const { id, actual_qty } = itemPayload;
@@ -382,16 +384,98 @@ export const reconciliationController = {
             },
           });
 
-          updatedItems.push(updatedItem);
+          const reconciliationId = record.reconciliation?.id;
+          if (reconciliationId) {
+            reconciliationIds.add(reconciliationId);
+          }
+
+          updatedItems.push({
+            ...updatedItem,
+            reconciliation_id: reconciliationId,
+          });
+        }
+
+        if (reconciliationIds.size > 0) {
+          await Promise.all(
+            Array.from(reconciliationIds).map(reconciliationId =>
+              tx.reconciliation.update({
+                where: { id: reconciliationId },
+                data: {
+                  status: 'P',
+                  updatedate: new Date(),
+                  updatedby: userId,
+                },
+              })
+            )
+          );
         }
 
         return updatedItems;
       });
 
+      const reconciliationIds = Array.from(
+        new Set(results.map((item: any) => item.reconciliation_id))
+      );
+
+      const requestResults = [];
+      console.log('Results:', results);
+
+      console.log(
+        'Reconciliation IDs:',
+        results.map((r: any) => r.reconciliation_id)
+      );
+
+      console.log('Unique IDs:', reconciliationIds);
+      for (const reconciliationId of reconciliationIds) {
+        const existingRequest = await prisma.sfa_d_requests.findFirst({
+          where: {
+            request_type: 'RECONCILIATION_APPROVAL',
+            reference_id: reconciliationId,
+            status: 'P',
+          },
+        });
+
+        if (existingRequest) {
+          requestResults.push({
+            request_id: existingRequest.id,
+            status: existingRequest.status,
+            request_type: existingRequest.request_type,
+            reference_id: existingRequest.reference_id,
+          });
+          continue;
+        }
+
+        const reconciliationItems = results
+          .filter((item: any) => item.reconciliation_id === reconciliationId)
+          .map((item: any) => ({
+            id: item.id,
+            actual_qty: item.actual_qty,
+          }));
+
+        const createdRequest = await createRequest({
+          requester_id: userId,
+          request_type: 'RECONCILIATION_APPROVAL',
+          reference_id: reconciliationId,
+          request_data: JSON.stringify({
+            reconciliation_items: reconciliationItems,
+          }),
+          createdby: userId,
+          log_inst: 1,
+        });
+
+        requestResults.push({
+          request_id: createdRequest.id,
+          status: createdRequest.status,
+          request_type: createdRequest.request_type,
+          reference_id: createdRequest.reference_id,
+        });
+      }
+
       res.json({
         success: true,
         message: 'Reconciliation data saved successfully',
         data: results,
+        approval_requests: requestResults,
       });
     } catch (error: any) {
       logger.error('Save Reconciliations Error:', error);

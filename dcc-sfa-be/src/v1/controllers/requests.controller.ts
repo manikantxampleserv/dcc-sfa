@@ -57,10 +57,10 @@ const serializeRequest = (request: any): RequestSerialized => ({
   log_inst: request.log_inst,
   requester: request.sfa_d_requests_requester
     ? {
-      id: request.sfa_d_requests_requester.id,
-      name: request.sfa_d_requests_requester.name,
-      email: request.sfa_d_requests_requester.email,
-    }
+        id: request.sfa_d_requests_requester.id,
+        name: request.sfa_d_requests_requester.name,
+        email: request.sfa_d_requests_requester.email,
+      }
     : null,
   approvals:
     request.sfa_d_requests_approvals_request?.map((approval: any) => ({
@@ -72,14 +72,14 @@ const serializeRequest = (request: any): RequestSerialized => ({
       action_at: approval.action_at,
       approver: approval.sfa_d_requests_approvals_approver
         ? {
-          id: approval.sfa_d_requests_approvals_approver.id,
-          name: approval.sfa_d_requests_approvals_approver.name,
-          email: approval.sfa_d_requests_approvals_approver.email,
-          profile_image:
-            approval.sfa_d_requests_approvals_approver.profile_image || null,
-          employee_id:
-            approval.sfa_d_requests_approvals_approver.employee_id || null,
-        }
+            id: approval.sfa_d_requests_approvals_approver.id,
+            name: approval.sfa_d_requests_approvals_approver.name,
+            email: approval.sfa_d_requests_approvals_approver.email,
+            profile_image:
+              approval.sfa_d_requests_approvals_approver.profile_image || null,
+            employee_id:
+              approval.sfa_d_requests_approvals_approver.employee_id || null,
+          }
         : null,
       reference_details: request.reference_details || null,
     })) || [],
@@ -90,8 +90,9 @@ const isDisposalMovementOutletToDepot = (movement: {
   from_direction?: string | null;
   to_direction?: string | null;
 }): boolean => {
-  return ((movement.movement_type?.toLowerCase() === 'return' ||
-    movement.movement_type?.toLowerCase() === 'disposal') &&
+  return (
+    (movement.movement_type?.toLowerCase() === 'return' ||
+      movement.movement_type?.toLowerCase() === 'disposal') &&
     movement.from_direction?.toLowerCase() === 'outlet' &&
     movement.to_direction?.toLowerCase() === 'depot'
   );
@@ -393,6 +394,20 @@ export const createRequest = async (data: {
         },
       });
 
+      if (
+        data.request_type === 'RECONCILIATION_APPROVAL' &&
+        data.reference_id
+      ) {
+        await prisma.reconciliation.update({
+          where: { id: data.reference_id },
+          data: {
+            status: 'A',
+            updatedate: new Date(),
+            updatedby: data.createdby,
+          },
+        });
+      }
+
       // 1. ASSET_MOVEMENT_APPROVAL
       if (
         data.request_type === 'ASSET_MOVEMENT_APPROVAL' &&
@@ -436,7 +451,11 @@ export const createRequest = async (data: {
               depot_id: toDepotId || null,
               outlet_id: toCustomerId || null,
               current_location: `${toDirection} (${toDepotId || toCustomerId})`,
-              current_status: isDisposal ? 'Damaged' : (toCustomerId ? 'Installed' : 'Available'),
+              current_status: isDisposal
+                ? 'Damaged'
+                : toCustomerId
+                  ? 'Installed'
+                  : 'Available',
               updatedate: new Date(),
               updatedby: data.createdby,
             },
@@ -1263,6 +1282,20 @@ export const requestsController = {
             });
 
             if (
+              request.request_type === 'RECONCILIATION_APPROVAL' &&
+              request.reference_id
+            ) {
+              await tx.reconciliation.update({
+                where: { id: request.reference_id },
+                data: {
+                  status: 'R',
+                  updatedate: new Date(),
+                  updatedby: userId,
+                },
+              });
+            }
+
+            if (
               request.request_type === 'ORDER_APPROVAL' &&
               request.reference_id
             ) {
@@ -1368,6 +1401,20 @@ export const requestsController = {
             }
 
             if (
+              request.request_type === 'RECONCILIATION_APPROVAL' &&
+              request.reference_id
+            ) {
+              await tx.reconciliation.update({
+                where: { id: request.reference_id },
+                data: {
+                  status: 'A',
+                  updatedate: new Date(),
+                  updatedby: userId,
+                },
+              });
+            }
+
+            if (
               request.request_type === 'ASSET_MOVEMENT_APPROVAL' &&
               request.reference_id
             ) {
@@ -1395,7 +1442,8 @@ export const requestsController = {
                 const toDirection = assetMovement.to_direction || '';
                 const toDepotId = assetMovement.to_depot_id;
                 const toCustomerId = assetMovement.to_customer_id;
-                const isDisposal = isDisposalMovementOutletToDepot(assetMovement);
+                const isDisposal =
+                  isDisposalMovementOutletToDepot(assetMovement);
 
                 await tx.asset_master.updateMany({
                   where: {
@@ -1409,7 +1457,11 @@ export const requestsController = {
                     depot_id: toDepotId || null,
                     outlet_id: toCustomerId || null,
                     current_location: `${toDirection} (${toDepotId || toCustomerId})`,
-                    current_status: isDisposal ? 'Damaged' : (toCustomerId ? 'Installed' : 'Available'),
+                    current_status: isDisposal
+                      ? 'Damaged'
+                      : toCustomerId
+                        ? 'Installed'
+                        : 'Available',
                     updatedate: new Date(),
                     updatedby: userId,
                   },
@@ -1439,7 +1491,7 @@ export const requestsController = {
 
                 if (
                   assetMovement.movement_type?.toLowerCase() ===
-                  'maintenance' ||
+                    'maintenance' ||
                   assetMovement.movement_type?.toLowerCase() === 'repair'
                 ) {
                   try {
