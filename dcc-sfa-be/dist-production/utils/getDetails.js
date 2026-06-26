@@ -111,6 +111,36 @@ async function getRequestDetailsByType(request_type, reference_id, request_data)
                     customer_id: 'Pending',
                     message: 'Customer creation request - customer not yet created',
                 };
+            case 'RECONCILIATION_APPROVAL':
+                const reconciliation = await prisma_client_1.default.reconciliation.findUnique({
+                    where: { id: reference_id || 0 },
+                    include: {
+                        salesman: {
+                            select: { id: true, name: true, employee_id: true, email: true },
+                        },
+                        depot: {
+                            select: { id: true, name: true, code: true },
+                        },
+                    },
+                });
+                if (!reconciliation)
+                    return {};
+                const reconciliationItemsCount = await prisma_client_1.default.reconciliation_items.count({
+                    where: { reconciliation_id: reconciliation.id, is_active: 'Y' },
+                });
+                return {
+                    reconciliation_id: reconciliation.id,
+                    reconciliation_date: reconciliation.reconciliation_date
+                        ? new Date(reconciliation.reconciliation_date).toLocaleDateString()
+                        : 'N/A',
+                    status: reconciliation.status || 'P',
+                    depot_name: reconciliation.depot?.name || 'N/A',
+                    depot_code: reconciliation.depot?.code || 'N/A',
+                    salesman_name: reconciliation.salesman?.name || 'N/A',
+                    salesman_employee_id: reconciliation.salesman?.employee_id || 'N/A',
+                    total_items: reconciliationItemsCount,
+                    message: 'Reconciliation approval request',
+                };
             case 'ASSET_MOVEMENT_APPROVAL':
                 const assetMovement = await prisma_client_1.default.asset_movements.findUnique({
                     where: { id: reference_id || 0 },

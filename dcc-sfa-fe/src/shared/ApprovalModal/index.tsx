@@ -116,6 +116,12 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({
       ) {
         return request.reference_details.customer_code;
       }
+      if (
+        request.request_type === 'RECONCILIATION_APPROVAL' &&
+        request.reference_details.reconciliation_id
+      ) {
+        return `REC-${request.reference_details.reconciliation_id}`;
+      }
     }
 
     if (request.request_data) {
@@ -703,6 +709,91 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({
                         </div>
                       </div>
                     )}
+                  </div>
+                )}
+
+                {request.request_type === 'RECONCILIATION_APPROVAL' && (
+                  <div className="!grid !grid-cols-1 md:!grid-cols-2 !gap-4">
+                    {request.reference_details.salesman_name && (
+                      <div className="!space-y-1 md:!col-span-2">
+                        <Typography
+                          variant="caption"
+                          className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                        >
+                          Salesman
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          className="!font-semibold !text-gray-900"
+                        >
+                          {request.reference_details.salesman_name}{' '}
+                          {request.reference_details.salesman_employee_id
+                            ? `(${request.reference_details.salesman_employee_id})`
+                            : ''}
+                        </Typography>
+                      </div>
+                    )}
+
+                    <div className="!space-y-1">
+                      <Typography
+                        variant="caption"
+                        className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                      >
+                        Reconciliation Date
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        className="!font-semibold !text-gray-900"
+                      >
+                        {request.reference_details.reconciliation_date || 'N/A'}
+                      </Typography>
+                    </div>
+
+                    <div className="!space-y-1">
+                      <Typography
+                        variant="caption"
+                        className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                      >
+                        Depot
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        className="!font-medium !text-gray-800"
+                      >
+                        {request.reference_details.depot_name || 'N/A'}
+                      </Typography>
+                    </div>
+
+                    <div className="!space-y-1">
+                      <Typography
+                        variant="caption"
+                        className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                      >
+                        Total Items
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        className="!font-medium !text-gray-800"
+                      >
+                        {request.reference_details.total_items ?? 'N/A'}
+                      </Typography>
+                    </div>
+
+                    <div className="!space-y-1 md:!col-span-2">
+                      <Typography
+                        variant="caption"
+                        className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                      >
+                        Message
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        className="!font-medium !text-gray-800 !italic"
+                      >
+                        {request.reference_details.message ||
+                          'No message provided'}
+                      </Typography>
+                    </div>
                   </div>
                 )}
               </div>

@@ -14,7 +14,6 @@ import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
-import UserSelect from 'shared/UserSelect';
 
 export default function Reconciliation() {
   const navigate = useNavigate();
@@ -22,9 +21,6 @@ export default function Reconciliation() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDate, setSelectedDate] = useState(
     new Date().toISOString().split('T')[0]
-  );
-  const [salesmanFilter, setSalesmanFilter] = useState<number | undefined>(
-    undefined
   );
   const [depotFilter, setDepotFilter] = useState<number | undefined>(undefined);
   const [statusFilter, setStatusFilter] = useState('all');
@@ -35,7 +31,6 @@ export default function Reconciliation() {
     page,
     limit,
     search: searchQuery || undefined,
-    salesman_id: salesmanFilter,
     depot_id: depotFilter,
     date: selectedDate || undefined,
     status: statusFilter !== 'all' ? statusFilter : undefined,
@@ -120,11 +115,10 @@ export default function Reconciliation() {
       sortable: true,
       render: val => {
         const s = val as string;
-        const color =
-          s === 'Completed' ? 'success' : s === 'Matched' ? 'info' : 'warning';
+        const color = s === 'A' ? 'success' : s === 'P' ? 'warning' : 'error';
         return (
           <Chip
-            label={s}
+            label={s === 'A' ? 'Approved' : s === 'P' ? 'Pending' : 'Rejected'}
             color={color}
             size="small"
             variant="filled"
@@ -244,19 +238,6 @@ export default function Reconciliation() {
               />
 
               <div className="w-52">
-                <UserSelect
-                  value={
-                    salesmanFilter ? ({ id: salesmanFilter } as any) : null
-                  }
-                  onChange={(_, value) => {
-                    setSalesmanFilter(value ? value.id : undefined);
-                    setPage(1);
-                  }}
-                  placeholder="Filter by Rep"
-                />
-              </div>
-
-              <div className="w-52">
                 <DepotSelect
                   value={depotFilter ? ({ id: depotFilter } as any) : null}
                   onChange={(_, value) => {
@@ -273,7 +254,7 @@ export default function Reconciliation() {
                   setStatusFilter(e.target.value as string);
                   setPage(1);
                 }}
-                className="!w-44"
+                className="!w-72"
               >
                 <MenuItem value="all">All Statuses</MenuItem>
                 <MenuItem value="Pending">Pending Verification</MenuItem>
