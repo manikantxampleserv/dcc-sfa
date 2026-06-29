@@ -1,34 +1,28 @@
 export declare const sapService: {
     createOrUpdateVanInventorySAP(payload: any, userId?: number): Promise<{
-        finalInventory: ({
-            van_inventory_depot: {
-                name: string;
-                id: number;
-                email: string | null;
-                parent_id: number;
-                phone_number: string | null;
-                address: string | null;
-                is_active: string;
-                createdate: Date | null;
-                createdby: number;
-                updatedate: Date | null;
-                updatedby: number | null;
-                log_inst: number | null;
-                sap_code: string | null;
-                code: string;
-                latitude: import("@prisma/client-runtime-utils").Decimal | null;
-                longitude: import("@prisma/client-runtime-utils").Decimal | null;
-                city: string | null;
-                state: string | null;
-                zipcode: string | null;
-                city_id: number | null;
-                district_id: number | null;
-                region_id: number | null;
-                manager_id: number | null;
-                supervisor_id: number | null;
-                coordinator_id: number | null;
-                default_outlet_id: number | null;
-            } | null;
+        finalInventory: {
+            id: number | undefined;
+            sap_docnum: string | null | undefined;
+            sap_docentry: string | null | undefined;
+            source_system: string | null | undefined;
+            source_system_label: string | null;
+            user_id: number | undefined;
+            last_updated: Date | null | undefined;
+            is_active: string | undefined;
+            createdate: Date | null | undefined;
+            createdby: number | undefined;
+            updatedate: Date | null | undefined;
+            updatedby: number | null | undefined;
+            log_inst: number | null | undefined;
+            location_id: number | null | undefined;
+            location_type: string | null | undefined;
+            vehicle_id: number | null | undefined;
+            vehicle_code: string | null | undefined;
+            sales_person_code: string | null | undefined;
+            loading_type: string | undefined;
+            status: string | undefined;
+            document_date: Date | null | undefined;
+            sale_type: string | null | undefined;
             van_inventory_users: {
                 name: string;
                 id: number;
@@ -53,28 +47,7 @@ export declare const sapService: {
                 platform: string | null;
                 sap_code: string | null;
                 depot_id: number | null;
-            };
-            van_inventory_stock_movements: {
-                id: number;
-                is_active: string;
-                createdate: Date | null;
-                createdby: number;
-                updatedate: Date | null;
-                updatedby: number | null;
-                log_inst: number | null;
-                remarks: string | null;
-                reference_id: number | null;
-                reference_type: string | null;
-                movement_type: string;
-                movement_date: Date | null;
-                product_id: number;
-                serial_id: number | null;
-                batch_id: number | null;
-                quantity: number;
-                from_location_id: number | null;
-                to_location_id: number | null;
-                van_inventory_id: number | null;
-            }[];
+            } | undefined;
             vehicle: {
                 model: string | null;
                 id: number;
@@ -104,7 +77,35 @@ export declare const sapService: {
                 registration_expiry: Date | null;
                 warehouse_id: number | null;
                 warehouse_name: string | null;
-            } | null;
+            } | null | undefined;
+            van_inventory_depot: {
+                name: string;
+                id: number;
+                email: string | null;
+                parent_id: number;
+                phone_number: string | null;
+                address: string | null;
+                is_active: string;
+                createdate: Date | null;
+                createdby: number;
+                updatedate: Date | null;
+                updatedby: number | null;
+                log_inst: number | null;
+                sap_code: string | null;
+                code: string;
+                latitude: import("@prisma/client-runtime-utils").Decimal | null;
+                longitude: import("@prisma/client-runtime-utils").Decimal | null;
+                city: string | null;
+                state: string | null;
+                zipcode: string | null;
+                city_id: number | null;
+                district_id: number | null;
+                region_id: number | null;
+                manager_id: number | null;
+                supervisor_id: number | null;
+                coordinator_id: number | null;
+                default_outlet_id: number | null;
+            } | null | undefined;
             van_inventory_items_inventory: ({
                 van_inventory_items_products: {
                     product_product_batches: ({
@@ -300,30 +301,29 @@ export declare const sapService: {
                 sap_item_code: string | null;
                 unit: string | null;
                 unit_price: import("@prisma/client-runtime-utils").Decimal;
-            })[];
-        } & {
-            id: number;
-            is_active: string;
-            createdate: Date | null;
-            createdby: number;
-            updatedate: Date | null;
-            updatedby: number | null;
-            log_inst: number | null;
-            user_id: number;
-            status: string;
-            sap_docnum: string | null;
-            sap_docentry: string | null;
-            source_system: string | null;
-            last_updated: Date | null;
-            location_id: number | null;
-            location_type: string | null;
-            vehicle_id: number | null;
-            vehicle_code: string | null;
-            sales_person_code: string | null;
-            loading_type: string;
-            document_date: Date | null;
-            sale_type: string | null;
-        }) | null;
+            })[] | undefined;
+            van_inventory_stock_movements: {
+                id: number;
+                is_active: string;
+                createdate: Date | null;
+                createdby: number;
+                updatedate: Date | null;
+                updatedby: number | null;
+                log_inst: number | null;
+                remarks: string | null;
+                reference_id: number | null;
+                reference_type: string | null;
+                movement_type: string;
+                movement_date: Date | null;
+                product_id: number;
+                serial_id: number | null;
+                batch_id: number | null;
+                quantity: number;
+                from_location_id: number | null;
+                to_location_id: number | null;
+                van_inventory_id: number | null;
+            }[] | undefined;
+        };
         wasUpdate: boolean;
     }>;
 };

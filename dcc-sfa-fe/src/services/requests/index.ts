@@ -27,6 +27,13 @@ export interface Request {
     email: string;
   } | null;
   reference_details?: {
+    salesman_employee_id: any;
+    reconciliation_date: string;
+    depot_name: string;
+    total_items: string;
+    message: string;
+    salesman_name: any;
+    reconciliation_id: boolean;
     profile_picture: any;
     state: any;
     city: any;

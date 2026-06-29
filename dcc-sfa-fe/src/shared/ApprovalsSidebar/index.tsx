@@ -78,6 +78,13 @@ const ApprovalsSidebar: React.FC<ApprovalsSidebarProps> = ({
       ) {
         return request.reference_details.customer_code;
       }
+
+      if (
+        request.request_type === 'RECONCILIATION_APPROVAL' &&
+        request.reference_details.reconciliation_id
+      ) {
+        return `REC-${request.reference_details.reconciliation_id}`;
+      }
     }
 
     if (request.request_data) {
@@ -248,6 +255,15 @@ const ApprovalsSidebar: React.FC<ApprovalsSidebarProps> = ({
                               {' '}
                               for customer relocation{' '}
                               <span className="!font-semibold !text-orange-600">
+                                {referenceNumber}
+                              </span>
+                            </>
+                          )}
+                          {request.request_type === 'RECONCILIATION_APPROVAL' && (
+                            <>
+                              {' '}
+                              for reconciliation{' '}
+                              <span className="!font-semibold !text-indigo-600">
                                 {referenceNumber}
                               </span>
                             </>

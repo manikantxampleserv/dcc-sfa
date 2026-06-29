@@ -11,6 +11,7 @@ const express_1 = __importDefault(require("express"));
 const path_1 = require("path");
 const server_1 = require("./graphql/server");
 const customerCategoryAssignment_job_1 = require("./jobs/customerCategoryAssignment.job");
+const reconciliation_job_1 = require("./jobs/reconciliation.job");
 const response_middleware_1 = require("./middlewares/response.middleware");
 const routes_1 = __importDefault(require("./routes"));
 const possiblePaths = [
@@ -48,6 +49,7 @@ const createApp = async () => {
     app.use(response_middleware_1.responseHandler);
     app.use('/api', routes_1.default);
     (0, customerCategoryAssignment_job_1.scheduleCustomerCategoryAssignment)();
+    (0, reconciliation_job_1.scheduleReconciliationJob)();
     return app;
 };
 exports.createApp = createApp;

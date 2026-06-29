@@ -310,6 +310,17 @@ const createRequest = async (data) => {
                     updatedby: data.createdby,
                 },
             });
+            if (data.request_type === 'RECONCILIATION_APPROVAL' &&
+                data.reference_id) {
+                await prisma_client_1.default.reconciliation.update({
+                    where: { id: data.reference_id },
+                    data: {
+                        status: 'A',
+                        updatedate: new Date(),
+                        updatedby: data.createdby,
+                    },
+                });
+            }
             // 1. ASSET_MOVEMENT_APPROVAL
             if (data.request_type === 'ASSET_MOVEMENT_APPROVAL' &&
                 data.reference_id) {
@@ -346,7 +357,11 @@ const createRequest = async (data) => {
                             depot_id: toDepotId || null,
                             outlet_id: toCustomerId || null,
                             current_location: `${toDirection} (${toDepotId || toCustomerId})`,
-                            current_status: isDisposal ? 'Damaged' : (toCustomerId ? 'Installed' : 'Available'),
+                            current_status: isDisposal
+                                ? 'Damaged'
+                                : toCustomerId
+                                    ? 'Installed'
+                                    : 'Available',
                             updatedate: new Date(),
                             updatedby: data.createdby,
                         },
@@ -1015,6 +1030,17 @@ exports.requestsController = {
                             updatedate: new Date(),
                         },
                     });
+                    if (request.request_type === 'RECONCILIATION_APPROVAL' &&
+                        request.reference_id) {
+                        await tx.reconciliation.update({
+                            where: { id: request.reference_id },
+                            data: {
+                                status: 'R',
+                                updatedate: new Date(),
+                                updatedby: userId,
+                            },
+                        });
+                    }
                     if (request.request_type === 'ORDER_APPROVAL' &&
                         request.reference_id) {
                         await tx.orders.update({
@@ -1095,6 +1121,17 @@ exports.requestsController = {
                             },
                         });
                     }
+                    if (request.request_type === 'RECONCILIATION_APPROVAL' &&
+                        request.reference_id) {
+                        await tx.reconciliation.update({
+                            where: { id: request.reference_id },
+                            data: {
+                                status: 'A',
+                                updatedate: new Date(),
+                                updatedby: userId,
+                            },
+                        });
+                    }
                     if (request.request_type === 'ASSET_MOVEMENT_APPROVAL' &&
                         request.reference_id) {
                         const assetMovement = await tx.asset_movements.findUnique({
@@ -1130,7 +1167,11 @@ exports.requestsController = {
                                     depot_id: toDepotId || null,
                                     outlet_id: toCustomerId || null,
                                     current_location: `${toDirection} (${toDepotId || toCustomerId})`,
-                                    current_status: isDisposal ? 'Damaged' : (toCustomerId ? 'Installed' : 'Available'),
+                                    current_status: isDisposal
+                                        ? 'Damaged'
+                                        : toCustomerId
+                                            ? 'Installed'
+                                            : 'Available',
                                     updatedate: new Date(),
                                     updatedby: userId,
                                 },

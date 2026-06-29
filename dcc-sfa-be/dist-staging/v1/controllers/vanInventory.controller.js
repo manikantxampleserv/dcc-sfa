@@ -8,6 +8,7 @@ const paginate_1 = require("../../utils/paginate");
 const prisma_client_1 = __importDefault(require("../../configs/prisma.client"));
 const dateFilters_1 = require("../../utils/dateFilters");
 const inventory_utils_1 = require("../utils/inventory.utils");
+const sourceSystem_1 = require("../../utils/sourceSystem");
 const serializeVanInventory = (item) => {
     const productGroups = new Map();
     item.van_inventory_items_inventory?.forEach((it) => {
@@ -197,6 +198,7 @@ const serializeVanInventory = (item) => {
         sap_docentry: item.sap_docentry || null,
         sap_docnum: item.sap_docnum || null,
         source_system: item.source_system || null,
+        source_system_label: (0, sourceSystem_1.getSourceSystemLabel)(item.source_system), // ← right after source_system
         user_id: item.user_id,
         status: item.status,
         loading_type: item.loading_type,
