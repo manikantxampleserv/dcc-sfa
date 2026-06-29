@@ -20,6 +20,12 @@ interface VanInventoryItemSerialized {
   batch_number?: string | null;
   lot_number?: string | null;
   expiry_date?: Date | null;
+  sap_docentry?: string | null;
+  sap_docnum?: string | null;
+  source_system?: string | null;
+
+  is_cancelled?: string | null;
+  remarks?: string | null;
   product_remaining_quantity?: number | null;
   batch_total_remaining_quantity?: number | null;
   tracking_type?: string | null;
@@ -53,6 +59,8 @@ interface VanInventorySerialized {
   id: number;
   sap_docentry?: string | null;
   sap_docnum?: string | null;
+  is_cancelled?: string | null;
+  remarks?: string | null;
   source_system?: string | null;
   source_system_label?: string | null;
   user_id: number;
@@ -256,6 +264,12 @@ const serializeVanInventory = (item: any): VanInventorySerialized => {
     const aggregatedItem = {
       id: firstItem.id,
       parent_id: firstItem.parent_id,
+      sap_docnum: firstItem.sap_docnum,
+      sap_docentry: firstItem.sap_docentry,
+      source_system: firstItem.source_system,
+
+      is_cancelled: firstItem.is_cancelled,
+      remarks: firstItem.remarks,
       product_id: productId,
       product_name: product?.name || firstItem.product_name,
       unit: firstItem.unit,
@@ -311,14 +325,19 @@ const serializeVanInventory = (item: any): VanInventorySerialized => {
       0
     ),
   };
+  const firstInventoryItem = item.van_inventory_items_inventory?.[0];
 
   return {
     id: item.id,
-    sap_docentry: item.sap_docentry || null,
-    sap_docnum: item.sap_docnum || null,
-    source_system: item.source_system || null,
-    source_system_label: getSourceSystemLabel(item.source_system), // ← right after source_system
+    // sap_docentry: firstInventoryItem?.sap_docentry || null,
+    // sap_docnum: firstInventoryItem?.sap_docnum || null,
+    source_system: firstInventoryItem?.source_system || null,
+    source_system_label: getSourceSystemLabel(
+      firstInventoryItem?.source_system
+    ),
 
+    is_cancelled: item.is_cancelled,
+    remarks: item.remarks,
     user_id: item.user_id,
     status: item.status,
     loading_type: item.loading_type,

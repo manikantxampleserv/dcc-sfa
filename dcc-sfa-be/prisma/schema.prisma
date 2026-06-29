@@ -2243,12 +2243,11 @@ model surveys {
 
 model van_inventory {
   id                            Int                       @id @default(autoincrement())
-  sap_docnum                    String?                   @db.NVarChar(150)
-  sap_docentry                  String?
-  source_system                 String?                   @db.NVarChar(50)
   user_id                       Int
   last_updated                  DateTime?                 @default(now(), map: "DF__van_inven__last___658C0CBD") @db.DateTime
   is_active                     String                    @default("Y") @db.Char(1)
+  is_cancelled                  String?                   @default("Y") @db.Char(1)
+  remarks                       String?                   @db.NVarChar(Max)
   createdate                    DateTime?                 @default(now(), map: "DF__van_inven__creat__6774552F") @db.DateTime
   createdby                     Int
   updatedate                    DateTime?                 @db.DateTime
@@ -2288,7 +2287,11 @@ model van_inventory_sub_users {
 model van_inventory_items {
   id                            Int             @id @default(autoincrement())
   parent_id                     Int
+  sap_docnum                    String?         @db.NVarChar(150)
+  sap_docentry                  String?         @db.NVarChar(150)
+  source_system                 String?         @db.NVarChar(50)
   sap_lineid                    String?         @db.NVarChar(100)
+  remarks                       String?         @db.NVarChar(Max)
   sap_item_code                 String?         @db.NVarChar(150)
   product_id                    Int
   base_quantity                 Int?
@@ -2302,6 +2305,7 @@ model van_inventory_items {
   tax_amount                    Decimal?        @default(0) @db.Decimal(18, 2)
   total_amount                  Decimal?        @default(0) @db.Decimal(18, 2)
   notes                         String?         @db.NVarChar(500)
+  is_cancelled                  String?         @default("Y") @db.Char(1)
   van_inventory_items_batch_lot batch_lots?     @relation(fields: [batch_lot_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   van_inventory_items_inventory van_inventory   @relation(fields: [parent_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   van_inventory_items_products  products        @relation(fields: [product_id], references: [id], onUpdate: NoAction)
