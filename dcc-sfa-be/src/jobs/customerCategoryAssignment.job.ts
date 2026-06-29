@@ -315,7 +315,7 @@ export const scheduleCustomerCategoryAssignment = async () => {
       }
     },
     {
-      timezone: 'Asia/Kolkata',
+      timezone: process.env.TIMEZONE || 'Asia/Kolkata',
     }
   );
 };
