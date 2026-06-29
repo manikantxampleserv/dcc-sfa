@@ -152,6 +152,11 @@ const serializeVanInventory = (item) => {
         const aggregatedItem = {
             id: firstItem.id,
             parent_id: firstItem.parent_id,
+            sap_docnum: firstItem.sap_docnum,
+            sap_docentry: firstItem.sap_docentry,
+            source_system: firstItem.source_system,
+            is_cancelled: firstItem.is_cancelled,
+            remarks: firstItem.remarks,
             product_id: productId,
             product_name: product?.name || firstItem.product_name,
             unit: firstItem.unit,
@@ -193,12 +198,15 @@ const serializeVanInventory = (item) => {
         total_batches: Array.from(trackingTypeSummary.values()).reduce((sum, type) => sum + type.total_batches, 0),
         total_serials: Array.from(trackingTypeSummary.values()).reduce((sum, type) => sum + type.total_serials, 0),
     };
+    const firstInventoryItem = item.van_inventory_items_inventory?.[0];
     return {
         id: item.id,
-        sap_docentry: item.sap_docentry || null,
-        sap_docnum: item.sap_docnum || null,
-        source_system: item.source_system || null,
-        source_system_label: (0, sourceSystem_1.getSourceSystemLabel)(item.source_system), // ← right after source_system
+        // sap_docentry: firstInventoryItem?.sap_docentry || null,
+        // sap_docnum: firstInventoryItem?.sap_docnum || null,
+        source_system: firstInventoryItem?.source_system || null,
+        source_system_label: (0, sourceSystem_1.getSourceSystemLabel)(firstInventoryItem?.source_system),
+        is_cancelled: item.is_cancelled,
+        remarks: item.remarks,
         user_id: item.user_id,
         status: item.status,
         loading_type: item.loading_type,

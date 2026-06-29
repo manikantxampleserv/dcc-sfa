@@ -138,19 +138,6 @@ exports.sapService = {
         const items = van_inventory_items || inventoryItems || payload.items || [];
         let inventoryId = inventoryData.id;
         return await prisma_client_1.default.$transaction(async (tx) => {
-            // if (!inventoryData.sap_docentry) {
-            //   throw new Error('sap_docentry is required');
-            // }
-            // const existingSapDoc = await tx.van_inventory.findFirst({
-            //   where: {
-            //     sap_docentry: inventoryData.sap_docentry,
-            //   },
-            // });
-            // if (existingSapDoc) {
-            //   throw new Error(
-            //     `SAP document ${inventoryData.sap_docentry} already imported`
-            //   );
-            // }
             if (!inventoryData.sap_docentry) {
                 throw new Error('sap_docentry is required');
             }
@@ -158,10 +145,25 @@ exports.sapService = {
                 throw new Error('source_system is required');
             }
             const compositeKey = `${inventoryData.source_system}_${inventoryData.sap_docentry}`;
-            const existingSapDoc = await tx.van_inventory.findFirst({
+            // const existingSapDoc = await tx.van_inventory.findFirst({
+            //   where: {
+            //     source_system: inventoryData.source_system,
+            //     sap_docentry: inventoryData.sap_docentry.toString(),
+            //   },
+            // });
+            // if (existingSapDoc) {
+            //   throw new Error(
+            //     `SAP document already imported: ${compositeKey} (source_system="${inventoryData.source_system}", sap_docentry="${inventoryData.sap_docentry}")`
+            //   );
+            // }
+            const existingSapDoc = await tx.van_inventory_items.findFirst({
                 where: {
                     source_system: inventoryData.source_system,
                     sap_docentry: inventoryData.sap_docentry.toString(),
+                },
+                select: {
+                    id: true,
+                    parent_id: true,
                 },
             });
             if (existingSapDoc) {
@@ -217,8 +219,8 @@ exports.sapService = {
             const loadingType = inventoryData.loading_type || 'L';
             const payload = {
                 user_id: Number(inventoryData.user_id),
-                sap_docentry: inventoryData.sap_docentry,
-                source_system: inventoryData.source_system || 'SAP',
+                is_cancelled: inventoryData.is_cancelled || 'Y',
+                remarks: inventoryData.remarks || null,
                 status: inventoryData.status || 'A',
                 loading_type: loadingType,
                 document_date: inventoryData.document_date
@@ -238,7 +240,6 @@ exports.sapService = {
                     ? Number(inventoryData.location_id)
                     : null,
                 is_active: inventoryData.is_active || 'Y',
-                sap_docnum: inventoryData.sap_docnum || null,
             };
             if (isUpdate && inventoryId) {
                 inventory = await tx.van_inventory.update({
@@ -399,10 +400,22 @@ exports.sapService = {
                                     await tx.van_inventory_items.update({
                                         where: { id: existingVanItem.id },
                                         data: {
+                                            sap_docnum: inventoryData.sap_docnum ||
+                                                existingVanItem.sap_docnum,
+                                            sap_docentry: inventoryData.sap_docentry?.toString() ||
+                                                existingVanItem.sap_docentry,
+                                            source_system: inventoryData.source_system ||
+                                                existingVanItem.source_system,
                                             sap_lineid: item.sap_lineid || existingVanItem.sap_lineid,
                                             sap_item_code: item.product_sap_code ||
                                                 item.sap_item_code ||
                                                 existingVanItem.sap_item_code,
+                                            is_cancelled: item.is_cancelled ||
+                                                inventoryData.is_cancelled ||
+                                                existingVanItem.is_cancelled,
+                                            remarks: item.remarks ||
+                                                inventoryData.remarks ||
+                                                existingVanItem.remarks,
                                             quantity: newQuantity,
                                             total_amount: newQuantity * Number(item.unit_price || 0),
                                         },
@@ -419,6 +432,13 @@ exports.sapService = {
                                             product_name: product.name,
                                             unit: product.product_unit_of_measurement?.name || 'pcs',
                                             quantity: batchQty,
+                                            sap_docnum: inventoryData.sap_docnum || null,
+                                            sap_docentry: inventoryData.sap_docentry?.toString() || null,
+                                            source_system: inventoryData.source_system || null,
+                                            is_cancelled: item.is_cancelled ||
+                                                inventoryData.is_cancelled ||
+                                                'Y',
+                                            remarks: item.remarks || inventoryData.remarks || null,
                                             unit_price: Number(item.unit_price || 0),
                                             discount_amount: Number(item.discount_amount || 0),
                                             tax_amount: Number(item.tax_amount || 0),
@@ -525,6 +545,18 @@ exports.sapService = {
                                     await tx.van_inventory_items.update({
                                         where: { id: existingVanItem.id },
                                         data: {
+                                            sap_docnum: inventoryData.sap_docnum ||
+                                                existingVanItem.sap_docnum,
+                                            sap_docentry: inventoryData.sap_docentry?.toString() ||
+                                                existingVanItem.sap_docentry,
+                                            source_system: inventoryData.source_system ||
+                                                existingVanItem.source_system,
+                                            is_cancelled: item.is_cancelled ||
+                                                inventoryData.is_cancelled ||
+                                                existingVanItem.is_cancelled,
+                                            remarks: item.remarks ||
+                                                inventoryData.remarks ||
+                                                existingVanItem.remarks,
                                             sap_lineid: item.sap_lineid || existingVanItem.sap_lineid,
                                             sap_item_code: item.product_sap_code ||
                                                 item.sap_item_code ||
@@ -545,6 +577,13 @@ exports.sapService = {
                                             product_name: product.name,
                                             unit: product.product_unit_of_measurement?.name || 'pcs',
                                             quantity: 1,
+                                            sap_docnum: inventoryData.sap_docnum || null,
+                                            sap_docentry: inventoryData.sap_docentry?.toString() || null,
+                                            source_system: inventoryData.source_system || null,
+                                            is_cancelled: item.is_cancelled ||
+                                                inventoryData.is_cancelled ||
+                                                'Y',
+                                            remarks: item.remarks || inventoryData.remarks || null,
                                             unit_price: Number(item.unit_price || 0),
                                             discount_amount: Number(item.discount_amount || 0),
                                             tax_amount: Number(item.tax_amount || 0),
@@ -591,11 +630,22 @@ exports.sapService = {
                                 await tx.van_inventory_items.update({
                                     where: { id: existingVanItem.id },
                                     data: {
+                                        sap_docnum: inventoryData.sap_docnum || existingVanItem.sap_docnum,
+                                        sap_docentry: inventoryData.sap_docentry?.toString() ||
+                                            existingVanItem.sap_docentry,
+                                        source_system: inventoryData.source_system ||
+                                            existingVanItem.source_system,
                                         sap_lineid: item.sap_lineid || existingVanItem.sap_lineid,
                                         sap_item_code: item.product_sap_code ||
                                             item.sap_item_code ||
                                             existingVanItem.sap_item_code,
                                         quantity: existingVanItem.quantity + qty,
+                                        is_cancelled: item.is_cancelled ||
+                                            inventoryData.is_cancelled ||
+                                            existingVanItem.is_cancelled,
+                                        remarks: item.remarks ||
+                                            inventoryData.remarks ||
+                                            existingVanItem.remarks,
                                         total_amount: (existingVanItem.quantity + qty) *
                                             Number(item.unit_price || 0),
                                     },
@@ -614,6 +664,11 @@ exports.sapService = {
                                         quantity: qty,
                                         unit_price: Number(item.unit_price || 0),
                                         discount_amount: Number(item.discount_amount || 0),
+                                        sap_docnum: inventoryData.sap_docnum || null,
+                                        sap_docentry: inventoryData.sap_docentry?.toString() || null,
+                                        source_system: inventoryData.source_system || null,
+                                        is_cancelled: item.is_cancelled || inventoryData.is_cancelled || 'Y',
+                                        remarks: item.remarks || inventoryData.remarks || null,
                                         tax_amount: Number(item.tax_amount || 0),
                                         total_amount: qty * Number(item.unit_price || 0),
                                         notes: item.notes || null,
@@ -751,6 +806,11 @@ exports.sapService = {
                                         unit: product.product_unit_of_measurement?.name || 'pcs',
                                         quantity: batchQty,
                                         unit_price: Number(item.unit_price || 0),
+                                        sap_docnum: inventoryData.sap_docnum || null,
+                                        sap_docentry: inventoryData.sap_docentry?.toString() || null,
+                                        source_system: inventoryData.source_system || null,
+                                        is_cancelled: item.is_cancelled || inventoryData.is_cancelled || 'Y',
+                                        remarks: item.remarks || inventoryData.remarks || null,
                                         discount_amount: Number(item.discount_amount || 0),
                                         tax_amount: Number(item.tax_amount || 0),
                                         total_amount: batchQty * Number(item.unit_price || 0),
@@ -810,7 +870,6 @@ exports.sapService = {
                                 }
                                 console.log(` Found in van_inventory_items ID: ${vanItem.id}, parent_id: ${vanItem.parent_id}`);
                                 const vanInventoryId = vanItem.parent_id;
-                                // Decrement the original van inventory item quantity (remove this serial)
                                 try {
                                     const newVanQty = Math.max(0, (vanItem.quantity || 0) - 1);
                                     await tx.van_inventory_items.update({
@@ -881,6 +940,11 @@ exports.sapService = {
                                         product_name: product.name,
                                         unit: product.product_unit_of_measurement?.name || 'pcs',
                                         quantity: 1,
+                                        sap_docnum: inventoryData.sap_docnum || null,
+                                        sap_docentry: inventoryData.sap_docentry?.toString() || null,
+                                        source_system: inventoryData.source_system || null,
+                                        is_cancelled: item.is_cancelled || inventoryData.is_cancelled || 'Y',
+                                        remarks: item.remarks || inventoryData.remarks || null,
                                         unit_price: Number(item.unit_price || 0),
                                         discount_amount: Number(item.discount_amount || 0),
                                         tax_amount: Number(item.tax_amount || 0),
@@ -971,6 +1035,11 @@ exports.sapService = {
                                     product_name: product.name,
                                     unit: product.product_unit_of_measurement?.name || 'pcs',
                                     quantity: qty,
+                                    sap_docnum: inventoryData.sap_docnum || null,
+                                    sap_docentry: inventoryData.sap_docentry?.toString() || null,
+                                    source_system: inventoryData.source_system || null,
+                                    is_cancelled: item.is_cancelled || inventoryData.is_cancelled || 'Y',
+                                    remarks: item.remarks || inventoryData.remarks || null,
                                     unit_price: Number(item.unit_price || 0),
                                     discount_amount: Number(item.discount_amount || 0),
                                     tax_amount: Number(item.tax_amount || 0),
@@ -987,9 +1056,34 @@ exports.sapService = {
             const finalInventory = await tx.van_inventory.findUnique({
                 where: { id: inventory.id },
                 include: {
-                    van_inventory_users: true,
-                    vehicle: true,
-                    van_inventory_depot: true,
+                    van_inventory_users: {
+                        select: {
+                            id: true,
+                            name: true,
+                            email: true,
+                            sap_code: true,
+                            employee_id: true,
+                        },
+                    },
+                    vehicle: {
+                        select: {
+                            id: true,
+                            vehicle_number: true,
+                            sap_code: true,
+                            type: true,
+                            make: true,
+                            model: true,
+                        },
+                    },
+                    van_inventory_depot: {
+                        select: {
+                            id: true,
+                            name: true,
+                            code: true,
+                            sap_code: true,
+                            city: true,
+                        },
+                    },
                     van_inventory_items_inventory: {
                         include: {
                             van_inventory_items_products: {
@@ -1008,20 +1102,32 @@ exports.sapService = {
                                     },
                                 },
                             },
-                            van_inventory_items_batch_lot: true,
+                            van_inventory_items_batch_lot: {
+                                select: {
+                                    id: true,
+                                    batch_number: true,
+                                    expiry_date: true,
+                                },
+                            },
                         },
                     },
-                    van_inventory_stock_movements: true,
+                    van_inventory_stock_movements: {
+                        select: {
+                            id: true,
+                            movement_type: true,
+                            quantity: true,
+                            movement_date: true,
+                            remarks: true,
+                        },
+                    },
                 },
             });
             // return { finalInventory, wasUpdate: isUpdate };
+            const firstItem = finalInventory?.van_inventory_items_inventory?.[0];
             return {
                 finalInventory: {
                     id: finalInventory?.id,
-                    sap_docnum: finalInventory?.sap_docnum,
-                    sap_docentry: finalInventory?.sap_docentry,
-                    source_system: finalInventory?.source_system,
-                    source_system_label: getSourceSystemLabel(finalInventory?.source_system),
+                    source_system_label: getSourceSystemLabel(firstItem?.source_system),
                     user_id: finalInventory?.user_id,
                     last_updated: finalInventory?.last_updated,
                     is_active: finalInventory?.is_active,

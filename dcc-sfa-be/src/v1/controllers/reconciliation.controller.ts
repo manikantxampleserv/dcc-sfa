@@ -34,9 +34,6 @@ export const reconciliationController = {
       const date = req.query.date ? String(req.query.date).trim() : '';
       const status = req.query.status ? String(req.query.status).trim() : '';
 
-      console.log('Incoming Reconc Query:', req.query);
-
-      // Build reconciliation-level filters
       const reconcFilters: any = { is_active: 'Y' };
       if (salesmanId) reconcFilters.salesman_id = salesmanId;
       if (depotId) reconcFilters.depot_id = depotId;
@@ -57,9 +54,6 @@ export const reconciliationController = {
         };
       }
 
-      console.log('reconcFilters:', reconcFilters);
-
-      // 1. Stats — aggregate from items of all matching reconciliations
       const matchingReconcIds = await prisma.reconciliation.findMany({
         where: reconcFilters,
         select: { id: true },
@@ -103,7 +97,6 @@ export const reconciliationController = {
         }
       }
 
-      // 2. Paginate from reconciliation table — items only for count summary
       const { data, pagination } = await paginate<any>({
         model: prisma.reconciliation,
         filters: reconcFilters,
@@ -418,14 +411,7 @@ export const reconciliationController = {
       );
 
       const requestResults = [];
-      console.log('Results:', results);
 
-      console.log(
-        'Reconciliation IDs:',
-        results.map((r: any) => r.reconciliation_id)
-      );
-
-      console.log('Unique IDs:', reconciliationIds);
       for (const reconciliationId of reconciliationIds) {
         const existingRequest = await prisma.sfa_d_requests.findFirst({
           where: {
