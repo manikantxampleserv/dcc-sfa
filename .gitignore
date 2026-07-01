@@ -26,12 +26,12 @@ out/
 **/.env.local
 **/.env.development
 **/.env.production
-**/.env.test
+**/.env.testing
 .env
 .env.local
 .env.development
 .env.production
-.env.test
+.env.testing
 
 # Allow .env.example files (templates)
 !.env.example
