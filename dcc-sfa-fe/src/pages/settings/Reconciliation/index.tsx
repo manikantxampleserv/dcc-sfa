@@ -56,7 +56,7 @@ export default function Reconciliation() {
   const columns: TableColumn<ReconciliationRecord>[] = [
     {
       id: 'id',
-      label: 'Rec ID',
+      label: 'ROP ID',
       sortable: true,
       render: (_val, row) => (
         <span className="font-medium text-gray-700">

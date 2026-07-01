@@ -204,15 +204,9 @@ export async function runReconciliationJob() {
  */
 export const scheduleReconciliationJob = () => {
   // '0 18 * * *' = every day at 18:00
-  cron.schedule(
-    '0 18 * * *',
-    async () => {
-      await runReconciliationJob();
-    },
-    {
-      timezone: 'Asia/Karachi', // PKT (UTC+5)
-    }
-  );
+  cron.schedule('0 18 * * *', async () => {
+    await runReconciliationJob();
+  });
 
-  logger.info('Reconciliation Cron: Scheduled at 6:00 PM PKT daily');
+  logger.info('Reconciliation Cron: Scheduled at 6:00 PM daily');
 };
