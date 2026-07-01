@@ -175,10 +175,8 @@ const scheduleReconciliationJob = () => {
     // '0 18 * * *' = every day at 18:00
     node_cron_1.default.schedule('0 18 * * *', async () => {
         await runReconciliationJob();
-    }, {
-        timezone: 'Asia/Karachi', // PKT (UTC+5)
     });
-    logger_1.default.info('Reconciliation Cron: Scheduled at 6:00 PM PKT daily');
+    logger_1.default.info('Reconciliation Cron: Scheduled at 6:00 PM daily');
 };
 exports.scheduleReconciliationJob = scheduleReconciliationJob;
 //# sourceMappingURL=reconciliation.job.js.map

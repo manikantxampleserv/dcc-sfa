@@ -12,5 +12,12 @@ router.get('/sap/search/users', auth_middleware_1.authenticateToken, sap_control
 router.get('/sap/search/locations', auth_middleware_1.authenticateToken, sap_controller_1.sapController.searchLocations);
 router.get('/sap/search/vehicles', auth_middleware_1.authenticateToken, sap_controller_1.sapController.searchVehicles);
 router.get('/sap/search/product', auth_middleware_1.authenticateToken, sap_controller_1.sapController.searchProduct);
+router.patch('/sap-van-inventory/:id/cancel', auth_middleware_1.authenticateToken, 
+// auditUpdate('van_inventory'),
+(0, auth_middleware_1.requirePermission)([{ module: 'van-stock', action: 'update' }]), sap_controller_1.sapController.updateVanInventoryCancellation);
+// Cancel/Uncancel Van Inventory Item
+router.patch('/sap-van-inventory/items/:itemId/cancel', auth_middleware_1.authenticateToken, 
+// auditUpdate('van_inventory_items'),
+(0, auth_middleware_1.requirePermission)([{ module: 'van-stock', action: 'update' }]), sap_controller_1.sapController.updateVanInventoryItemCancellation);
 exports.default = router;
 //# sourceMappingURL=sap.routes.js.map

@@ -268,7 +268,7 @@ const scheduleCustomerCategoryAssignment = async () => {
             logger_1.default.error('Error:', error.message);
         }
     }, {
-        timezone: 'Asia/Kolkata',
+        timezone: process.env.TIMEZONE || 'Asia/Kolkata',
     });
 };
 exports.scheduleCustomerCategoryAssignment = scheduleCustomerCategoryAssignment;

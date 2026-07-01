@@ -12,6 +12,7 @@ const paginate_1 = require("../../utils/paginate");
 const requestTypes_1 = require("../../mock/requestTypes");
 const prisma_client_1 = __importDefault(require("../../configs/prisma.client"));
 const approvalWorkflow_helper_1 = require("../../helpers/approvalWorkflow.helper");
+const sap_service_1 = require("../services/sap.service");
 const serializeRequest = (request) => ({
     id: request.id,
     requester_id: request.requester_id,
@@ -471,6 +472,17 @@ const createRequest = async (data) => {
                         })),
                     });
                 }
+            }
+            // 5. VAN_INVENTORY
+            if (data.request_type === 'VAN_INVENTORY' && data.reference_id) {
+                await prisma_client_1.default.van_inventory.update({
+                    where: { id: data.reference_id },
+                    data: {
+                        approval_status: 'A',
+                        updatedby: data.createdby,
+                        updatedate: new Date(),
+                    },
+                });
             }
             return approvedRequest;
         }
@@ -1066,6 +1078,18 @@ exports.requestsController = {
                         });
                         console.log(`Asset Movement ${request.reference_id} status updated to REJECTED`);
                     }
+                    if (request.request_type === 'VAN_INVENTORY' &&
+                        request.reference_id) {
+                        await tx.van_inventory.update({
+                            where: { id: request.reference_id },
+                            data: {
+                                approval_status: 'R',
+                                updatedby: userId,
+                                updatedate: new Date(),
+                            },
+                        });
+                        console.log(`Van Inventory ${request.reference_id} status updated to REJECTED`);
+                    }
                     return { status: 'rejected', request };
                 }
                 const nextApprover = await tx.sfa_d_request_approvals.findFirst({
@@ -1218,6 +1242,17 @@ exports.requestsController = {
                             }
                         }
                     }
+                    if (request.request_type === 'VAN_INVENTORY' &&
+                        request.reference_id) {
+                        await tx.van_inventory.update({
+                            where: { id: request.reference_id },
+                            data: {
+                                approval_status: 'A',
+                                updatedby: userId,
+                                updatedate: new Date(),
+                            },
+                        });
+                    }
                     if (request.request_type === 'CUSTOMER_CREATION' &&
                         action === 'A') {
                         const requestData = JSON.parse(request.request_data || '{}');
@@ -1245,6 +1280,15 @@ exports.requestsController = {
                 timeout: 20000,
             });
             if (result.status === 'fully_approved' && 'request' in result) {
+                if (result.request.request_type === 'VAN_INVENTORY' &&
+                    result.request.reference_id) {
+                    try {
+                        await sap_service_1.sapService.processApprovedVanInventoryStock(result.request.reference_id, userId);
+                    }
+                    catch (err) {
+                        console.error('Error processing approved van inventory stock:', err);
+                    }
+                }
                 if (result.request.request_type === 'LOCATION_RESET') {
                     try {
                         const requesterEmail = result.request.sfa_d_requests_requester?.email;
