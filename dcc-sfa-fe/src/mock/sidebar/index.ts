@@ -318,11 +318,6 @@ const menuItems: MenuItem[] = [
             label: 'Inventory Items',
             href: '/masters/inventory-items',
           },
-          // {
-          //   id: 'credit-notes',
-          //   label: 'Credit Notes',
-          //   href: '/transactions/credit-notes',
-          // },
           {
             id: 'payment-collection',
             label: 'Payment Collection',
@@ -510,30 +505,12 @@ const menuItems: MenuItem[] = [
         icon: MdNotifications,
         href: '/workflows/approvals',
       },
-      // {
-      //   id: 'route-exceptions',
-      //   label: 'Route Exceptions',
-      //   icon: MdRoute,
-      //   href: '/workflows/exceptions',
-      // },
-      // {
-      //   id: 'alerts-reminders',
-      //   label: 'Alerts & Reminders',
-      //   icon: MdNotifications,
-      //   href: '/workflows/alerts',
-      // },
     ],
   },
   {
     id: 'settings',
     label: 'Settings',
     children: [
-      // {
-      //   id: 'profile',
-      //   label: 'My Profile',
-      //   icon: MdPerson,
-      //   href: '/profile',
-      // },
       {
         id: 'email-templates',
         label: 'Email Templates',
@@ -563,6 +540,12 @@ const menuItems: MenuItem[] = [
         label: 'System Settings',
         icon: MdSettings,
         href: '/settings/system',
+      },
+      {
+        id: 'error-logs',
+        label: 'Error Logs',
+        icon: MdAssignment,
+        href: '/settings/error-logs',
       },
     ],
   },

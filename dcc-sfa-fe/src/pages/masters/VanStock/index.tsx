@@ -9,7 +9,7 @@ import {
 import { Alert, Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
 import { TrendingUp, Truck } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
-import { ActionButton, DeleteButton } from 'shared/ActionButton';
+import { ActionButton, DeleteButton, EditButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
 import { PopConfirm } from 'shared/DeleteConfirmation';
 import SearchInput from 'shared/SearchInput';
@@ -24,12 +24,12 @@ import {
   type VanInventory,
 } from '../../../hooks/useVanInventory';
 import UserSelect from '../../../shared/UserSelect';
-import { formatDateTime } from '../../../utils/dateUtils';
+import { formatDate, formatDateTime } from '../../../utils/dateUtils';
 import ImportVanInventory from './ImportVanInventory';
 import ManageVanInventory from './ManageVanInventory';
 import VanInventoryDetail from './VanInventoryDetail';
 
-const VanStockPage: React.FC = () => {
+const VanInventories: React.FC = () => {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
@@ -87,10 +87,10 @@ const VanStockPage: React.FC = () => {
     setDrawerOpen(true);
   }, []);
 
-  // const handleEditVanInventory = useCallback((vanInventory: VanInventory) => {
-  //   setSelectedVanInventory(vanInventory);
-  //   setDrawerOpen(true);
-  // }, []);
+  const handleEditVanInventory = useCallback((vanInventory: VanInventory) => {
+    setSelectedVanInventory(vanInventory);
+    setDrawerOpen(true);
+  }, []);
 
   const handleManageItems = useCallback((vanInventory: VanInventory) => {
     setSelectedVanInventory(vanInventory);
@@ -128,9 +128,7 @@ const VanStockPage: React.FC = () => {
     setPage(1);
   }, []);
 
-  const handlePageChange = (newPage: number) => {
-    setPage(newPage + 1);
-  };
+  const handlePageChange = (newPage: number) => setPage(newPage + 1);
 
   const handleExportToExcel = useCallback(async () => {
     try {
@@ -194,6 +192,38 @@ const VanStockPage: React.FC = () => {
     }
   };
 
+  const getApprovalLabel = (status: string | null | undefined) => {
+    if (status === null || status === undefined || status === '') {
+      return 'Approved';
+    }
+    switch (status) {
+      case 'A':
+        return 'Approved';
+      case 'P':
+        return 'Pending';
+      case 'R':
+        return 'Rejected';
+      default:
+        return status;
+    }
+  };
+
+  const getApprovalColor = (status: string | null | undefined) => {
+    if (status === null || status === undefined || status === '') {
+      return 'success';
+    }
+    switch (status) {
+      case 'A':
+        return 'success';
+      case 'P':
+        return 'warning';
+      case 'R':
+        return 'error';
+      default:
+        return 'default';
+    }
+  };
+
   const vanInventoryColumns: TableColumn<VanInventory>[] = [
     {
       id: 'user_id',
@@ -224,24 +254,6 @@ const VanStockPage: React.FC = () => {
       ),
     },
     {
-      id: 'sap_docnum',
-      label: 'SAP Document No.',
-      render: (_value, row) => (
-        <Typography variant="body2" className="!text-gray-900">
-          {row.sap_docnum || row.sap_docentry || '-'}
-        </Typography>
-      ),
-    },
-    {
-      id: 'source_system_label',
-      label: 'SAP Source Type',
-      render: value => (
-        <Typography variant="body2" className="!text-gray-900">
-          {value || '-'}
-        </Typography>
-      ),
-    },
-    {
       id: 'loading_type',
       label: 'Type',
       render: (_value, row) => (
@@ -268,6 +280,7 @@ const VanStockPage: React.FC = () => {
         />
       ),
     },
+
     {
       id: 'items',
       label: 'Items',
@@ -290,20 +303,21 @@ const VanStockPage: React.FC = () => {
       id: 'document_date',
       label: 'Document Date',
       render: (_value, row) =>
-        formatDateTime(row.document_date) || (
+        formatDate(row.document_date) || (
           <span className="italic text-gray-400">No Date</span>
         ),
     },
+
     {
-      id: 'is_active',
-      label: 'Active',
-      render: is_active => (
+      id: 'approval_status',
+      label: 'Approval Status',
+      render: (_value, row) => (
         <Chip
-          icon={is_active === 'Y' ? <CheckCircle /> : <Block />}
-          label={is_active === 'Y' ? 'Active' : 'Inactive'}
+          label={getApprovalLabel(row.approval_status)}
           size="small"
+          className="w-24"
           variant="outlined"
-          color={is_active === 'Y' ? 'success' : 'error'}
+          color={getApprovalColor(row.approval_status) as any}
         />
       ),
     },
@@ -337,12 +351,14 @@ const VanStockPage: React.FC = () => {
                     />
                   </>
                 )}
-                {/* {isUpdate && (
-                  <EditButton
-                    onClick={() => handleEditVanInventory(row)}
-                    tooltip={`Edit Van Inventory #${row.id}`}
-                  />
-                )} */}
+                {isUpdate &&
+                  (row.approval_status === 'P' ||
+                    row.approval_status?.toUpperCase() === 'PENDING') && (
+                    <EditButton
+                      onClick={() => handleEditVanInventory(row)}
+                      tooltip={`Edit Van Inventory #${row.id}`}
+                    />
+                  )}
                 {isDelete && (
                   <DeleteButton
                     onClick={() => handleDeleteVanInventory(row.id)}
@@ -540,4 +556,4 @@ const VanStockPage: React.FC = () => {
   );
 };
 
-export default VanStockPage;
+export default VanInventories;

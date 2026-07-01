@@ -364,6 +364,24 @@ const VanInventoryDetail: React.FC<VanInventoryDetailProps> = ({
       ),
     },
     {
+      id: 'sap_docnum',
+      label: 'SAP Document No.',
+      render: (_value, row) => (
+        <Typography variant="body2" className="!text-gray-900">
+          {row.sap_docnum || row.sap_docentry || '-'}
+        </Typography>
+      ),
+    },
+    {
+      id: 'source_system',
+      label: 'SAP Source Type',
+      render: (_value, row) => (
+        <Typography variant="body2" className="!text-gray-900">
+          {row.source_system || '-'}
+        </Typography>
+      ),
+    },
+    {
       id: 'tracking_type',
       label: 'Tracking Type',
       render: (_value, row) => {

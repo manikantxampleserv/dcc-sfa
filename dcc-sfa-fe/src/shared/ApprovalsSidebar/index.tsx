@@ -85,11 +85,18 @@ const ApprovalsSidebar: React.FC<ApprovalsSidebarProps> = ({
       ) {
         return `REC-${request.reference_details.reconciliation_id}`;
       }
+
+      if (request.request_type === 'VAN_INVENTORY') {
+        return `VAN-${request.reference_id || request.id}`;
+      }
     }
 
     if (request.request_data) {
       try {
         const data = JSON.parse(request.request_data);
+        if (request.request_type === 'VAN_INVENTORY') {
+          return `VAN-${request.reference_id || request.id}`;
+        }
         if (request.request_type === 'CUSTOMER_CREATION') {
           return (
             data.customer_data?.code ||
@@ -259,11 +266,20 @@ const ApprovalsSidebar: React.FC<ApprovalsSidebarProps> = ({
                               </span>
                             </>
                           )}
-                          {request.request_type === 'RECONCILIATION_APPROVAL' && (
+                          {request.request_type ===
+                            'RECONCILIATION_APPROVAL' && (
                             <>
                               {' '}
                               for reconciliation{' '}
                               <span className="!font-semibold !text-indigo-600">
+                                {referenceNumber}
+                              </span>
+                            </>
+                          )}
+                          {request.request_type === 'VAN_INVENTORY' && (
+                            <>
+                              for van stock{' '}
+                              <span className="!font-semibold !text-teal-600">
                                 {referenceNumber}
                               </span>
                             </>

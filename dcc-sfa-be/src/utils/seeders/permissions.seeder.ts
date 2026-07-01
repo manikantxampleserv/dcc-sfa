@@ -90,6 +90,8 @@ const MODULE_MAPPING: Record<string, string> = {
   pricelist: 'Price List',
   'audit-log': 'Audit Log',
   attendance: 'Attendance',
+  reconciliation: 'Reconciliation',
+  'route-assignment': 'Route Assignment',
 };
 
 /**
@@ -125,6 +127,10 @@ const READ_ONLY_MODULES: string[] = [
   'login-history',
   'inventory-items',
 ];
+const READ_AND_UPDATE_ONLY_MODULES: string[] = [
+  'reconciliation',
+  'route-assignment',
+];
 
 /**
  * @description Generates CRUD permissions for each module based on available actions
@@ -135,6 +141,14 @@ const mockPermissions: MockPermission[] = [];
 MODULES.forEach(moduleKey => {
   ACTIONS.forEach(action => {
     if (READ_ONLY_MODULES.includes(moduleKey) && action.key !== 'read') {
+      return;
+    }
+
+    if (
+      READ_AND_UPDATE_ONLY_MODULES.includes(moduleKey) &&
+      action.key !== 'read' &&
+      action.key !== 'update'
+    ) {
       return;
     }
 

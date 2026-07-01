@@ -15,7 +15,7 @@ const RouteAssignmentDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const userId = Number(id) || 0;
 
-  const { isRead } = usePermission('route');
+  const { isRead } = usePermission('route-assignment');
 
   const {
     data: assignmentResponse,
