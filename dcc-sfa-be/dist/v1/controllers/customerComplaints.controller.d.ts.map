@@ -1,1 +1,0 @@
-{"version":3,"file":"customerComplaints.controller.d.ts","sourceRoot":"","sources":["../../../src/v1/controllers/customerComplaints.controller.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,OAAO,EAAE,QAAQ,EAAE,MAAM,SAAS,CAAC;AAiC5C,eAAO,MAAM,4BAA4B;0CACK,OAAO,OAAO,QAAQ;kCAiF9B,OAAO,OAAO,QAAQ;mCAkDrB,OAAO,OAAO,QAAQ;kCAyBvB,OAAO,OAAO,QAAQ;CAuB3D,CAAC"}

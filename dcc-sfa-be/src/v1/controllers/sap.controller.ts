@@ -7,7 +7,7 @@ export const sapController = {
     try {
       const result = await sapService.createOrUpdateVanInventorySAP(
         req.body,
-        req.user.id
+        req.user!.id
       );
       return res.status(201).json({
         success: true,

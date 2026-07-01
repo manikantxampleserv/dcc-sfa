@@ -9,7 +9,7 @@ const prisma_client_1 = __importDefault(require("../../configs/prisma.client"));
 exports.sapController = {
     async syncVanInventory(req, res) {
         try {
-            const result = await sap_service_1.sapService.createOrUpdateVanInventorySAP(req.body);
+            const result = await sap_service_1.sapService.createOrUpdateVanInventorySAP(req.body, req.user.id);
             return res.status(201).json({
                 success: true,
                 message: 'SAP inventory synced successfully',
@@ -130,6 +130,94 @@ exports.sapController = {
         }
         catch (err) {
             return res.status(500).json({ success: false, message: err.message });
+        }
+    },
+    async updateVanInventoryCancellation(req, res) {
+        try {
+            const { id } = req.params;
+            const { is_cancelled } = req.body;
+            if (!['Y', 'N'].includes(is_cancelled)) {
+                return res.status(400).json({
+                    message: 'is_cancelled must be either Y or N',
+                });
+            }
+            const existingInventory = await prisma_client_1.default.van_inventory.findUnique({
+                where: { id: Number(id) },
+                select: {
+                    id: true,
+                    approval_status: true,
+                },
+            });
+            if (!existingInventory) {
+                return res.status(404).json({
+                    message: 'Van inventory not found',
+                });
+            }
+            if ((existingInventory.approval_status || 'P') !== 'P') {
+                return res.status(400).json({
+                    message: 'Cancellation can only be updated when approval status is Pending (P).',
+                });
+            }
+            const inventory = await prisma_client_1.default.van_inventory.update({
+                where: { id: Number(id) },
+                data: {
+                    is_cancelled,
+                    updatedby: req.user.id,
+                    updatedate: new Date(),
+                    log_inst: { increment: 1 },
+                },
+            });
+            return res.success('Van inventory cancellation updated successfully', inventory);
+        }
+        catch (error) {
+            return res.status(500).json({
+                message: error.message,
+            });
+        }
+    },
+    async updateVanInventoryItemCancellation(req, res) {
+        try {
+            const { itemId } = req.params;
+            const { is_cancelled } = req.body;
+            if (!['Y', 'N'].includes(is_cancelled)) {
+                return res.status(400).json({
+                    message: 'is_cancelled must be either Y or N',
+                });
+            }
+            const existingItem = await prisma_client_1.default.van_inventory_items.findUnique({
+                where: { id: Number(itemId) },
+                include: {
+                    van_inventory_items_inventory: {
+                        select: {
+                            id: true,
+                            approval_status: true,
+                        },
+                    },
+                },
+            });
+            if (!existingItem) {
+                return res.status(404).json({
+                    message: 'Van inventory item not found',
+                });
+            }
+            const approvalStatus = existingItem.van_inventory_items_inventory?.approval_status || 'P';
+            if (approvalStatus !== 'P') {
+                return res.status(400).json({
+                    message: 'Item cancellation can only be updated when the parent van inventory is Pending (P).',
+                });
+            }
+            const item = await prisma_client_1.default.van_inventory_items.update({
+                where: { id: Number(itemId) },
+                data: {
+                    is_cancelled,
+                },
+            });
+            return res.success('Van inventory item cancellation updated successfully', item);
+        }
+        catch (error) {
+            return res.status(500).json({
+                message: error.message,
+            });
         }
     },
 };
