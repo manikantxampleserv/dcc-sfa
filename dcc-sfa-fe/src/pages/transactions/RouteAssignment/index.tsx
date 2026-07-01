@@ -30,7 +30,7 @@ import ManageAssignRoute from './ManageAssignRoute';
 
 const RouteAssignmentManagement: React.FC = () => {
   const navigate = useNavigate();
-  const { isRead, isUpdate } = usePermission('route');
+  const { isRead, isUpdate } = usePermission('route-assignment');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [limit] = useState(12);

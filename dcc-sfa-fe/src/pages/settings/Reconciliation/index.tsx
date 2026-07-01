@@ -1,5 +1,6 @@
 import { Visibility } from '@mui/icons-material';
 import { Chip, MenuItem } from '@mui/material';
+import { usePermission } from 'hooks/usePermission';
 import {
   useReconciliations,
   type ReconciliationRecord,
@@ -17,7 +18,6 @@ import Table, { type TableColumn } from 'shared/Table';
 
 export default function Reconciliation() {
   const navigate = useNavigate();
-
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDate, setSelectedDate] = useState(
     new Date().toISOString().split('T')[0]
@@ -27,14 +27,21 @@ export default function Reconciliation() {
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
 
-  const { data: responseData, isFetching } = useReconciliations({
-    page,
-    limit,
-    search: searchQuery || undefined,
-    depot_id: depotFilter,
-    date: selectedDate || undefined,
-    status: statusFilter !== 'all' ? statusFilter : undefined,
-  });
+  const { isRead } = usePermission('reconciliation');
+
+  const { data: responseData, isFetching } = useReconciliations(
+    {
+      page,
+      limit,
+      search: searchQuery || undefined,
+      depot_id: depotFilter,
+      date: selectedDate || undefined,
+      status: statusFilter !== 'all' ? statusFilter : undefined,
+    },
+    {
+      enabled: isRead,
+    }
+  );
 
   const records = responseData?.data || [];
   const totalCount = responseData?.meta?.total_count || 0;
@@ -212,59 +219,64 @@ export default function Reconciliation() {
         page={page - 1}
         rowsPerPage={limit}
         onPageChange={newPage => setPage(newPage + 1)}
+        isPermission={isRead}
         emptyMessage="No reconciliation records found."
         actions={
-          <div className="flex justify-between flex-1 items-center flex-wrap gap-3">
-            <div className="flex flex-wrap items-center gap-3">
-              <SearchInput
-                placeholder="Search by rep name..."
-                value={searchQuery}
-                onChange={val => {
-                  setSearchQuery(val);
-                  setPage(1);
-                }}
-                debounceMs={300}
-                showClear={true}
-                className="!w-64"
-              />
-              <Input
-                type="date"
-                value={selectedDate}
-                onChange={e => {
-                  setSelectedDate(e.target.value);
-                  setPage(1);
-                }}
-                className="!w-44"
-              />
-
-              <div className="w-52">
-                <DepotSelect
-                  value={depotFilter ? ({ id: depotFilter } as any) : null}
-                  onChange={(_, value) => {
-                    setDepotFilter(value ? value.id : undefined);
+          isRead ? (
+            <div className="flex justify-between flex-1 items-center flex-wrap gap-3">
+              <div className="flex flex-wrap items-center gap-3">
+                <SearchInput
+                  placeholder="Search by rep name..."
+                  value={searchQuery}
+                  onChange={val => {
+                    setSearchQuery(val);
                     setPage(1);
                   }}
-                  placeholder="Filter by Depot"
+                  debounceMs={300}
+                  showClear={true}
+                  className="!w-64"
                 />
-              </div>
+                <Input
+                  type="date"
+                  value={selectedDate}
+                  onChange={e => {
+                    setSelectedDate(e.target.value);
+                    setPage(1);
+                  }}
+                  className="!w-44"
+                />
 
-              <Select
-                value={statusFilter}
-                onChange={e => {
-                  setStatusFilter(e.target.value as string);
-                  setPage(1);
-                }}
-                className="!w-72"
-              >
-                <MenuItem value="all">All Statuses</MenuItem>
-                <MenuItem value="Pending">Pending Verification</MenuItem>
-                <MenuItem value="Matched">Matched (CLEAN)</MenuItem>
-                <MenuItem value="Short">Shortage (Outlet Posting)</MenuItem>
-                <MenuItem value="Excess">Excess (Unload Adjustment)</MenuItem>
-                <MenuItem value="Blocked">Blocked (Force-Push Req)</MenuItem>
-              </Select>
+                <div className="w-52">
+                  <DepotSelect
+                    value={depotFilter ? ({ id: depotFilter } as any) : null}
+                    onChange={(_, value) => {
+                      setDepotFilter(value ? value.id : undefined);
+                      setPage(1);
+                    }}
+                    placeholder="Filter by Depot"
+                  />
+                </div>
+
+                <Select
+                  value={statusFilter}
+                  onChange={e => {
+                    setStatusFilter(e.target.value as string);
+                    setPage(1);
+                  }}
+                  className="!w-72"
+                >
+                  <MenuItem value="all">All Statuses</MenuItem>
+                  <MenuItem value="Pending">Pending Verification</MenuItem>
+                  <MenuItem value="Matched">Matched (CLEAN)</MenuItem>
+                  <MenuItem value="Short">Shortage (Outlet Posting)</MenuItem>
+                  <MenuItem value="Excess">Excess (Unload Adjustment)</MenuItem>
+                  <MenuItem value="Blocked">Blocked (Force-Push Req)</MenuItem>
+                </Select>
+              </div>
             </div>
-          </div>
+          ) : (
+            false
+          )
         }
       />
     </div>

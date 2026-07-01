@@ -7,6 +7,7 @@ import { setupGraphQL } from './graphql/server';
 import { scheduleCustomerCategoryAssignment } from './jobs/customerCategoryAssignment.job';
 import { scheduleReconciliationJob } from './jobs/reconciliation.job';
 import { responseHandler } from './middlewares/response.middleware';
+import { errorLogger } from './middlewares/errorLogger.middleware';
 import routes from './routes';
 
 const possiblePaths = [
@@ -50,6 +51,8 @@ export const createApp = async (): Promise<Application> => {
   app.use(cors({ origin: '*', credentials: true }));
 
   app.use(responseHandler);
+
+  app.use(errorLogger as any);
 
   app.use('/api', routes);
 

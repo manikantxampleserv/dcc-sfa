@@ -8,6 +8,7 @@ import { FileSpreadsheet, Save } from 'lucide-react';
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import { usePermission } from 'hooks/usePermission';
 import Button from 'shared/Button';
 import { PopConfirm } from 'shared/DeleteConfirmation';
 import Table, { type TableColumn } from 'shared/Table';
@@ -17,6 +18,8 @@ export default function ReconciliationDetail() {
 
   const reconciliationId = id ? Number(id) : null;
 
+  const { isRead, isUpdate } = usePermission('reconciliation');
+
   const [editedRecords, setEditedRecords] = useState<Record<number, string>>(
     {}
   );
@@ -25,7 +28,9 @@ export default function ReconciliationDetail() {
     data: responseData,
     isFetching,
     refetch,
-  } = useReconciliationById(reconciliationId);
+  } = useReconciliationById(reconciliationId, {
+    enabled: isRead && reconciliationId !== null && reconciliationId > 0,
+  });
 
   const items = responseData?.data || [];
   const meta = responseData?.meta as any;
@@ -170,7 +175,7 @@ export default function ReconciliationDetail() {
             size="small"
             placeholder={isBlocked ? 'BLOCKED' : '0.00'}
             value={details.actualRop}
-            disabled={isBlocked}
+            disabled={isBlocked || !isUpdate}
             onChange={e => handleActualChange(row.id, e.target.value)}
             inputProps={{
               min: 0,
@@ -280,30 +285,32 @@ export default function ReconciliationDetail() {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          <PopConfirm
-            title="Auto-Fill Expected"
-            description="Auto-fill all empty 'Actual' amounts with 'Expected' amounts?"
-            onConfirm={autoFillMatchAll}
-            confirmText="Yes, Fill"
-          >
-            <Button
-              variant="outlined"
-              startIcon={<FileSpreadsheet className="w-4 h-4" />}
+        {isUpdate && (
+          <div className="flex items-center gap-3">
+            <PopConfirm
+              title="Auto-Fill Expected"
+              description="Auto-fill all empty 'Actual' amounts with 'Expected' amounts?"
+              onConfirm={autoFillMatchAll}
+              confirmText="Yes, Fill"
             >
-              Auto-Fill Expected
+              <Button
+                variant="outlined"
+                startIcon={<FileSpreadsheet className="w-4 h-4" />}
+              >
+                Auto-Fill Expected
+              </Button>
+            </PopConfirm>
+            <Button
+              variant="contained"
+              color="primary"
+              startIcon={<Save className="w-4 h-4" />}
+              onClick={handleSave}
+              disabled={saveMutation.isPending}
+            >
+              {saveMutation.isPending ? 'Saving...' : 'Save & Reconcile'}
             </Button>
-          </PopConfirm>
-          <Button
-            variant="contained"
-            color="primary"
-            startIcon={<Save className="w-4 h-4" />}
-            onClick={handleSave}
-            disabled={saveMutation.isPending}
-          >
-            {saveMutation.isPending ? 'Saving...' : 'Save & Reconcile'}
-          </Button>
-        </div>
+          </div>
+        )}
       </div>
 
       {/* Items Table */}
@@ -319,6 +326,7 @@ export default function ReconciliationDetail() {
         page={0}
         rowsPerPage={items.length || 10}
         onPageChange={() => {}}
+        isPermission={isRead}
         emptyMessage="No items found for this reconciliation."
       />
     </div>

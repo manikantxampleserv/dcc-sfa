@@ -122,7 +122,6 @@ export const loginHistoryController = {
       const limitNum = Number(limit);
       const skip = (pageNum - 1) * limitNum;
 
-      // Build where clause
       const where: any = {};
 
       if (search) {

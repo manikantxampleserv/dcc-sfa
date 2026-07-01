@@ -16,6 +16,7 @@ import assetTypes from '../v1/routes/assetTypes.routes';
 import assetWarrantyClaims from '../v1/routes/assetWarrantyClaims.routes';
 import attendance from '../v1/routes/attendance.routes';
 import auditLogs from '../v1/routes/auditLogs.routes';
+import errorLogs from '../v1/routes/errorLogs.routes';
 import auth from '../v1/routes/auth.routes';
 import barcode from '../v1/routes/barcode.routes';
 import batchLots from '../v1/routes/batchLots.routes';
@@ -107,6 +108,7 @@ import zones from '../v1/routes/zones.routes';
 
 const routes = Router();
 
+
 routes.use('/v1/org-chart', orgChart);
 routes.use('/v1', barcode);
 routes.use('/v1', ai);
@@ -117,6 +119,7 @@ routes.use('/v1', rolePermissions);
 routes.use('/v1', permissions);
 routes.use('/v1', company);
 routes.use('/v1', depots);
+routes.use('/v1', errorLogs);
 routes.use('/v1', zones);
 routes.use('/v1', importExport);
 routes.use('/v1', route);

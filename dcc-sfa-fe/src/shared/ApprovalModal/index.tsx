@@ -122,11 +122,17 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({
       ) {
         return `REC-${request.reference_details.reconciliation_id}`;
       }
+      if (request.request_type === 'VAN_INVENTORY') {
+        return `VAN-${request.reference_id || request.id}`;
+      }
     }
 
     if (request.request_data) {
       try {
         const data = JSON.parse(request.request_data);
+        if (request.request_type === 'VAN_INVENTORY') {
+          return `VAN-${request.reference_id || request.id}`;
+        }
         if (request.request_type === 'CUSTOMER_CREATION') {
           return (
             data.customer_data?.code ||
@@ -230,7 +236,7 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({
 
       <DialogContent className="!p-4">
         {request && (
-          <div className="!mb-4 !pb-4 !border-b !border-gray-200">
+          <div className="!mb-4 !pb-4">
             {request.reference_details ? (
               <div className="!bg-gray-50 !rounded-md !p-4 !border !border-gray-200">
                 {request.request_type === 'ORDER_APPROVAL' && (
@@ -793,6 +799,180 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({
                         {request.reference_details.message ||
                           'No message provided'}
                       </Typography>
+                    </div>
+                  </div>
+                )}
+
+                {request.request_type === 'VAN_INVENTORY' && (
+                  <div className="!space-y-4">
+                    <div className="!grid !grid-cols-1 md:!grid-cols-2 !gap-4">
+                      <div className="!space-y-1">
+                        <Typography
+                          variant="caption"
+                          className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                        >
+                          Request Type
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          className="!font-semibold !text-gray-900"
+                        >
+                          Van Stock{' '}
+                          {requestData?.loading_type === 'L'
+                            ? 'Load'
+                            : 'Unload'}
+                        </Typography>
+                      </div>
+
+                      <div className="!space-y-1">
+                        <Typography
+                          variant="caption"
+                          className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                        >
+                          Document Date
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          className="!font-semibold !text-gray-900"
+                        >
+                          {requestData?.document_date || 'N/A'}
+                        </Typography>
+                      </div>
+
+                      {requestData?.sale_type && (
+                        <div className="!space-y-1">
+                          <Typography
+                            variant="caption"
+                            className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                          >
+                            Sale Type
+                          </Typography>
+                          <Typography
+                            variant="body2"
+                            className="!font-semibold !capitalize !text-gray-900"
+                          >
+                            {requestData.sale_type}
+                          </Typography>
+                        </div>
+                      )}
+
+                      <div className="!space-y-1">
+                        <Typography
+                          variant="caption"
+                          className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                        >
+                          Requester
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          className="!font-semibold !text-gray-900"
+                        >
+                          {request.requester?.name || 'Unknown'}
+                        </Typography>
+                      </div>
+                    </div>
+
+                    {/* Items Section */}
+                    <div className="!space-y-2 !pt-2 !border-t !border-gray-200">
+                      <Typography
+                        variant="caption"
+                        className="!text-gray-500 !text-xs !uppercase !tracking-wide !font-medium"
+                      >
+                        Requested Items
+                      </Typography>
+                      <div className="!space-y-2 max-h-[250px] !overflow-y-auto !pr-1">
+                        {(
+                          requestData?.van_inventory_items ||
+                          requestData?.items ||
+                          []
+                        ).map((item: any, idx: number) => (
+                          <div
+                            key={idx}
+                            className="!bg-white !rounded-md !p-3 !border !border-gray-200 !space-y-2 shadow-sm"
+                          >
+                            <div className="!flex !justify-between !items-start">
+                              <div>
+                                <Typography
+                                  variant="body2"
+                                  className="!font-semibold !text-gray-900"
+                                >
+                                  {item.product_name ||
+                                    `Product ID: ${item.product_id}`}
+                                </Typography>
+                                {item.tracking_type && (
+                                  <Typography
+                                    variant="caption"
+                                    className="!text-gray-500 !text-xs"
+                                  >
+                                    Tracking Type: {item.tracking_type}
+                                  </Typography>
+                                )}
+                              </div>
+                              <Typography
+                                variant="body2"
+                                className="!font-bold !text-primary-600"
+                              >
+                                Qty: {item.quantity}
+                              </Typography>
+                            </div>
+
+                            {/* Batches details */}
+                            {item.product_batches &&
+                              item.product_batches.length > 0 && (
+                                <div className="!pl-3 !border-l-2 !border-gray-300 !space-y-1">
+                                  <Typography
+                                    variant="caption"
+                                    className="!text-gray-500 !text-xs !font-medium"
+                                  >
+                                    Batches:
+                                  </Typography>
+                                  {item.product_batches.map(
+                                    (batch: any, bIdx: number) => (
+                                      <div
+                                        key={bIdx}
+                                        className="!flex !justify-between !text-xs !text-gray-600"
+                                      >
+                                        <span>
+                                          Batch: {batch.batch_number || 'N/A'}{' '}
+                                          {batch.expiry_date &&
+                                            `(Exp: ${batch.expiry_date.split('T')[0]})`}
+                                        </span>
+                                        <span className="!font-medium !text-gray-800">
+                                          Qty: {batch.quantity}
+                                        </span>
+                                      </div>
+                                    )
+                                  )}
+                                </div>
+                              )}
+
+                            {/* Serials details */}
+                            {item.product_serials &&
+                              item.product_serials.length > 0 && (
+                                <div className="!pl-3 !border-l-2 !border-gray-300 !space-y-1">
+                                  <Typography
+                                    variant="caption"
+                                    className="!text-gray-500 !text-xs !font-medium"
+                                  >
+                                    Serials:
+                                  </Typography>
+                                  <div className="!flex !flex-wrap !gap-1">
+                                    {item.product_serials.map(
+                                      (serial: any, sIdx: number) => (
+                                        <span
+                                          key={sIdx}
+                                          className="!bg-gray-100 !text-gray-800 !text-[11px] !px-2 !py-0.5 !rounded"
+                                        >
+                                          {serial.serial_number || serial}
+                                        </span>
+                                      )
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 )}

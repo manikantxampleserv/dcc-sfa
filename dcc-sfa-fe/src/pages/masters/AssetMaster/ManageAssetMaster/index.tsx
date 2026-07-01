@@ -44,6 +44,7 @@ const ManageAssetMaster: React.FC<ManageAssetMasterProps> = ({
 }) => {
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
   const [existingImages, setExistingImages] = useState<any[]>([]);
+  const [hasDefaultedDepot, setHasDefaultedDepot] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isEdit = !!selectedAsset;
 
@@ -180,6 +181,7 @@ const ManageAssetMaster: React.FC<ManageAssetMasterProps> = ({
     if (!drawerOpen) {
       setSelectedImages([]);
       setExistingImages([]);
+      setHasDefaultedDepot(false);
     }
   }, [drawerOpen]);
 
@@ -216,15 +218,16 @@ const ManageAssetMaster: React.FC<ManageAssetMasterProps> = ({
   }, [formik.values.asset_type_id]);
 
   useEffect(() => {
-    if (!isEdit && drawerOpen && depots.length > 0 && !formik.values.depot_id) {
+    if (!isEdit && drawerOpen && depots.length > 0 && !hasDefaultedDepot) {
       const moshiDepot = depots.find(
         (depot: any) => depot.name?.toUpperCase() === 'MOSHI'
       );
       if (moshiDepot) {
         formik.setFieldValue('depot_id', moshiDepot.id.toString());
       }
+      setHasDefaultedDepot(true);
     }
-  }, [depots, isEdit, drawerOpen, formik.values.depot_id]);
+  }, [depots, isEdit, drawerOpen, hasDefaultedDepot]);
 
   return (
     <CustomDrawer

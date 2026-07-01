@@ -29,6 +29,9 @@ interface VanInventoryItem {
   batch_total_remaining_quantity?: number | null;
   unit?: string | null;
   expiry_date?: string | null;
+  sap_docnum?: string | null;
+  sap_docentry?: string | null;
+  source_system?: string | null;
   product_serials?: Array<{
     id: number;
     serial_number: string;
@@ -45,6 +48,7 @@ interface VanInventory {
   user_id: number;
   status: string;
   loading_type: string;
+  approval_status?: string | null;
   document_date?: string | null;
   last_updated?: string | null;
   is_active: string;

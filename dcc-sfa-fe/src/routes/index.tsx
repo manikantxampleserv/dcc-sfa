@@ -93,6 +93,7 @@ import SurveyResponseDetail from 'pages/reports/SurveyResponses/SurveyResponseDe
 import VisitFrequencyCompletionReport from 'pages/reports/VisitFrequencyCompletionReport';
 import EmailTemplates from 'pages/settings/EmailTemplates';
 import SystemSettings from 'pages/settings/SystemSettings';
+import ErrorLogs from 'pages/settings/ErrorLogs';
 import Reconciliation from 'pages/settings/Reconciliation';
 import ReconciliationDetail from 'pages/settings/Reconciliation/ReconciliationDetail';
 import RepLocationTracking from 'pages/tracking/RepLocationTracking';
@@ -1081,6 +1082,14 @@ const router = createBrowserRouter(
           element: (
             <PermissionGuard module="setting" action="read">
               <SystemSettings />
+            </PermissionGuard>
+          ),
+        },
+        {
+          path: '/settings/error-logs',
+          element: (
+            <PermissionGuard module="setting" action="read">
+              <ErrorLogs />
             </PermissionGuard>
           ),
         },
