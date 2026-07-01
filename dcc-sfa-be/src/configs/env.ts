@@ -9,12 +9,24 @@ if (process.env.DATABASE_URL) {
     process.env.NODE_ENV === 'prod' ||
     process.env.env === 'production';
 
+  const isTesting =
+    process.env.NODE_ENV === 'testing' ||
+    process.env.NODE_ENV === 'test' ||
+    process.env.env === 'testing';
+
   const possiblePaths: string[] = [
     ...(isProduction
       ? [
           resolve(process.cwd(), '.env.production'),
           resolve(__dirname, '../../.env.production'),
           resolve(__dirname, '../../../.env.production'),
+        ]
+      : []),
+    ...(isTesting
+      ? [
+          resolve(process.cwd(), '.env.testing'),
+          resolve(__dirname, '../../.env.testing'),
+          resolve(__dirname, '../../../.env.testing'),
         ]
       : []),
 

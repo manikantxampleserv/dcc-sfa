@@ -33,6 +33,7 @@ const serializeLoginHistory = (loginHistory) => ({
             id: loginHistory.users_login_history_user_idTousers.id,
             name: loginHistory.users_login_history_user_idTousers.name,
             email: loginHistory.users_login_history_user_idTousers.email,
+            employee_id: loginHistory.users_login_history_user_idTousers.employee_id,
         }
         : null,
     location: loginHistory.location || 'Unknown',
@@ -57,6 +58,7 @@ exports.loginHistoryController = {
                             id: true,
                             name: true,
                             email: true,
+                            employee_id: true,
                         },
                     },
                 },
@@ -86,7 +88,6 @@ exports.loginHistoryController = {
             const pageNum = Number(page);
             const limitNum = Number(limit);
             const skip = (pageNum - 1) * limitNum;
-            // Build where clause
             const where = {};
             if (search) {
                 where.OR = [
@@ -136,6 +137,7 @@ exports.loginHistoryController = {
                             id: true,
                             name: true,
                             email: true,
+                            employee_id: true,
                         },
                     },
                 },
@@ -213,6 +215,7 @@ exports.loginHistoryController = {
                             id: true,
                             name: true,
                             email: true,
+                            employee_id: true,
                         },
                     },
                 },
@@ -277,6 +280,7 @@ exports.loginHistoryController = {
                             id: true,
                             name: true,
                             email: true,
+                            employee_id: true,
                         },
                     },
                 },

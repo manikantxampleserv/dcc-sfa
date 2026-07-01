@@ -7,7 +7,7 @@ const __dirname = path.dirname(__filename);
 
 const projectRoot = path.resolve(__dirname, '..');
 const sourcePath = path.join(projectRoot, 'web.config');
-const targets = ['dist-staging', 'dist-production'];
+const targets = ['dist-staging', 'dist-production', 'dist-testing'];
 
 if (existsSync(sourcePath)) {
   for (const target of targets) {

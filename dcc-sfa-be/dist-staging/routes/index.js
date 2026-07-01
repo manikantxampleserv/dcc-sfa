@@ -20,6 +20,7 @@ const assetTypes_routes_1 = __importDefault(require("../v1/routes/assetTypes.rou
 const assetWarrantyClaims_routes_1 = __importDefault(require("../v1/routes/assetWarrantyClaims.routes"));
 const attendance_routes_1 = __importDefault(require("../v1/routes/attendance.routes"));
 const auditLogs_routes_1 = __importDefault(require("../v1/routes/auditLogs.routes"));
+const errorLogs_routes_1 = __importDefault(require("../v1/routes/errorLogs.routes"));
 const auth_routes_1 = __importDefault(require("../v1/routes/auth.routes"));
 const barcode_routes_1 = __importDefault(require("../v1/routes/barcode.routes"));
 const batchLots_routes_1 = __importDefault(require("../v1/routes/batchLots.routes"));
@@ -119,6 +120,7 @@ routes.use('/v1', rolePermissions_routes_1.default);
 routes.use('/v1', permissions_routes_1.default);
 routes.use('/v1', company_routes_1.default);
 routes.use('/v1', depots_routes_1.default);
+routes.use('/v1', errorLogs_routes_1.default);
 routes.use('/v1', zones_routes_1.default);
 routes.use('/v1', import_export_routes_1.default);
 routes.use('/v1', route_routes_1.default);

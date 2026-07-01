@@ -7,9 +7,11 @@
     "dev": "vite",
     "build": "tsc -b && vite build && node scripts/copy-webconfig.js",
     "build:staging": "tsc -b && vite build --mode development --outDir dist-staging && node scripts/copy-webconfig.js",
+    "build:testing": "tsc -b && vite build --mode testing --outDir dist-testing && node scripts/copy-webconfig.js",
     "build:production": "tsc -b && vite build --mode production --outDir dist-production && node scripts/copy-webconfig.js",
     "preview": "vite preview",
     "preview:staging": "vite preview --outDir dist-staging",
+    "preview:testing": "vite preview --outDir dist-testing",
     "preview:production": "vite preview --outDir dist-production",
     "lint": "eslint .",
     "generate:permissions": "node scripts/generate-permissions.js"

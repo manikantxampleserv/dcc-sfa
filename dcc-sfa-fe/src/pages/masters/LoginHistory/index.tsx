@@ -135,7 +135,7 @@ const LoginHistoryPage: React.FC = () => {
               variant="caption"
               className="!text-gray-500 !text-xs !block !mt-0.5"
             >
-              {row.user?.email || `ID: ${row.user_id}`}
+              {row.user?.employee_id || row.user?.email || `ID: ${row.user_id}`}
             </Typography>
           </Box>
         </Box>
@@ -287,7 +287,7 @@ const LoginHistoryPage: React.FC = () => {
         columns={loginHistoryColumns}
         actions={
           isRead ? (
-            <div className="flex justify-between gap-3 items-center flex-wrap">
+            <div className="flex justify-between w-full gap-3 items-center flex-wrap">
               <div className="flex flex-wrap items-center gap-3">
                 <SearchInput
                   placeholder="Search by IP, device, OS, or user..."

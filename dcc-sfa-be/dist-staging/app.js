@@ -13,6 +13,7 @@ const server_1 = require("./graphql/server");
 const customerCategoryAssignment_job_1 = require("./jobs/customerCategoryAssignment.job");
 const reconciliation_job_1 = require("./jobs/reconciliation.job");
 const response_middleware_1 = require("./middlewares/response.middleware");
+const errorLogger_middleware_1 = require("./middlewares/errorLogger.middleware");
 const routes_1 = __importDefault(require("./routes"));
 const possiblePaths = [
     (0, path_1.resolve)(process.cwd(), '.env'),
@@ -47,6 +48,7 @@ const createApp = async () => {
     app.use((0, cookie_parser_1.default)());
     app.use((0, cors_1.default)({ origin: '*', credentials: true }));
     app.use(response_middleware_1.responseHandler);
+    app.use(errorLogger_middleware_1.errorLogger);
     app.use('/api', routes_1.default);
     (0, customerCategoryAssignment_job_1.scheduleCustomerCategoryAssignment)();
     (0, reconciliation_job_1.scheduleReconciliationJob)();

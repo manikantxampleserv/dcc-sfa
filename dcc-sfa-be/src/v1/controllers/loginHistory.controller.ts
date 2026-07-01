@@ -24,6 +24,7 @@ interface LoginHistorySerialized {
     id: number;
     name: string;
     email: string;
+    employee_id?: string | null;
   } | null;
   location?: string | null;
 }
@@ -55,6 +56,8 @@ const serializeLoginHistory = (loginHistory: any): LoginHistorySerialized => ({
         id: loginHistory.users_login_history_user_idTousers.id,
         name: loginHistory.users_login_history_user_idTousers.name,
         email: loginHistory.users_login_history_user_idTousers.email,
+        employee_id:
+          loginHistory.users_login_history_user_idTousers.employee_id,
       }
     : null,
   location: loginHistory.location || 'Unknown',
@@ -81,6 +84,7 @@ export const loginHistoryController = {
               id: true,
               name: true,
               email: true,
+              employee_id: true,
             },
           },
         },
@@ -177,6 +181,7 @@ export const loginHistoryController = {
               id: true,
               name: true,
               email: true,
+              employee_id: true,
             },
           },
         },
@@ -262,6 +267,7 @@ export const loginHistoryController = {
               id: true,
               name: true,
               email: true,
+              employee_id: true,
             },
           },
         },
@@ -333,6 +339,7 @@ export const loginHistoryController = {
               id: true,
               name: true,
               email: true,
+              employee_id: true,
             },
           },
         },

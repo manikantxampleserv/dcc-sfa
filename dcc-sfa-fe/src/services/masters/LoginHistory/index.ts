@@ -30,6 +30,7 @@ interface LoginHistory {
     id: number;
     name: string;
     email: string;
+    employee_id?: string | null;
   } | null;
   location?: string | null;
 }

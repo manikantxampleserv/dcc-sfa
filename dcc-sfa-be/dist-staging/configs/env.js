@@ -13,12 +13,22 @@ else {
     const isProduction = process.env.NODE_ENV === 'production' ||
         process.env.NODE_ENV === 'prod' ||
         process.env.env === 'production';
+    const isTesting = process.env.NODE_ENV === 'testing' ||
+        process.env.NODE_ENV === 'test' ||
+        process.env.env === 'testing';
     const possiblePaths = [
         ...(isProduction
             ? [
                 (0, path_1.resolve)(process.cwd(), '.env.production'),
                 (0, path_1.resolve)(__dirname, '../../.env.production'),
                 (0, path_1.resolve)(__dirname, '../../../.env.production'),
+            ]
+            : []),
+        ...(isTesting
+            ? [
+                (0, path_1.resolve)(process.cwd(), '.env.testing'),
+                (0, path_1.resolve)(__dirname, '../../.env.testing'),
+                (0, path_1.resolve)(__dirname, '../../../.env.testing'),
             ]
             : []),
         (0, path_1.resolve)(process.cwd(), '.env'),

@@ -86,6 +86,8 @@ const MODULE_MAPPING = {
     pricelist: 'Price List',
     'audit-log': 'Audit Log',
     attendance: 'Attendance',
+    reconciliation: 'Reconciliation',
+    'route-assignment': 'Route Assignment',
 };
 /**
  * @constant MODULES
@@ -118,6 +120,10 @@ const READ_ONLY_MODULES = [
     'login-history',
     'inventory-items',
 ];
+const READ_AND_UPDATE_ONLY_MODULES = [
+    'reconciliation',
+    'route-assignment',
+];
 /**
  * @description Generates CRUD permissions for each module based on available actions
  * @description Iterates through all modules and actions to create permission entries
@@ -127,6 +133,11 @@ exports.mockPermissions = mockPermissions;
 MODULES.forEach(moduleKey => {
     ACTIONS.forEach(action => {
         if (READ_ONLY_MODULES.includes(moduleKey) && action.key !== 'read') {
+            return;
+        }
+        if (READ_AND_UPDATE_ONLY_MODULES.includes(moduleKey) &&
+            action.key !== 'read' &&
+            action.key !== 'update') {
             return;
         }
         if (moduleKey === 'setting' && action.key !== 'read') {
