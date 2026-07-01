@@ -354,7 +354,6 @@ const createRequest = async (data) => {
                     },
                 });
             }
-            // 1. ASSET_MOVEMENT_APPROVAL
             if (data.request_type === 'ASSET_MOVEMENT_APPROVAL' &&
                 data.reference_id) {
                 const assetMovement = await prisma_client_1.default.asset_movements.findUnique({
@@ -1110,6 +1109,24 @@ exports.requestsController = {
                         });
                         console.log(`Asset Movement ${request.reference_id} status updated to REJECTED`);
                     }
+                    //   if (
+                    //     request.request_type === 'VAN_INVENTORY' &&
+                    //     request.reference_id
+                    //   ) {
+                    //     await tx.van_inventory.update({
+                    //       where: { id: request.reference_id },
+                    //       data: {
+                    //         approval_status: 'R',
+                    //         updatedby: userId,
+                    //         updatedate: new Date(),
+                    //       },
+                    //     });
+                    //     console.log(
+                    //       `Van Inventory ${request.reference_id} status updated to REJECTED`
+                    //     );
+                    //   }
+                    //   return { status: 'rejected', request };
+                    // }
                     if (request.request_type === 'VAN_INVENTORY' &&
                         request.reference_id) {
                         await tx.van_inventory.update({
@@ -1276,14 +1293,92 @@ exports.requestsController = {
                     }
                     if (request.request_type === 'VAN_INVENTORY' &&
                         request.reference_id) {
-                        await tx.van_inventory.update({
-                            where: { id: request.reference_id },
+                        const approvedInventory = await tx.van_inventory.update({
+                            where: {
+                                id: request.reference_id,
+                            },
                             data: {
                                 approval_status: 'A',
                                 updatedby: userId,
                                 updatedate: new Date(),
                             },
                         });
+                        const olderInventories = await tx.van_inventory.findMany({
+                            where: {
+                                user_id: approvedInventory.user_id,
+                                loading_type: approvedInventory.loading_type,
+                                approval_status: 'P',
+                                id: {
+                                    not: approvedInventory.id,
+                                },
+                            },
+                            select: {
+                                id: true,
+                            },
+                        });
+                        if (olderInventories.length > 0) {
+                            const inventoryIds = olderInventories.map(x => x.id);
+                            // Reject older inventories
+                            await tx.van_inventory.updateMany({
+                                where: {
+                                    id: {
+                                        in: inventoryIds,
+                                    },
+                                },
+                                data: {
+                                    approval_status: 'R',
+                                    is_cancelled: 'Y',
+                                    updatedby: userId,
+                                    updatedate: new Date(),
+                                },
+                            });
+                            // Reject workflow requests
+                            await tx.sfa_d_requests.updateMany({
+                                where: {
+                                    request_type: 'VAN_INVENTORY',
+                                    reference_id: {
+                                        in: inventoryIds,
+                                    },
+                                    status: 'P',
+                                },
+                                data: {
+                                    status: 'R',
+                                    overall_status: 'REJECTED',
+                                    updatedby: userId,
+                                    updatedate: new Date(),
+                                },
+                            });
+                            // Reject pending approval rows
+                            const requestIds = (await tx.sfa_d_requests.findMany({
+                                where: {
+                                    request_type: 'VAN_INVENTORY',
+                                    reference_id: {
+                                        in: inventoryIds,
+                                    },
+                                },
+                                select: {
+                                    id: true,
+                                },
+                            })).map(r => r.id);
+                            if (requestIds.length > 0) {
+                                await tx.sfa_d_request_approvals.updateMany({
+                                    where: {
+                                        request_id: {
+                                            in: requestIds,
+                                        },
+                                        status: 'P',
+                                    },
+                                    data: {
+                                        status: 'R',
+                                        remarks: 'Automatically rejected because a newer request was approved.',
+                                        action_at: new Date(),
+                                        updatedby: userId,
+                                        updatedate: new Date(),
+                                    },
+                                });
+                            }
+                            console.log(`Rejected ${inventoryIds.length} older pending ${approvedInventory.loading_type} request(s)`);
+                        }
                     }
                     if (request.request_type === 'CUSTOMER_CREATION' &&
                         action === 'A') {
@@ -1316,7 +1411,6 @@ exports.requestsController = {
                     result.request.reference_id) {
                     console.log(`Approved VAN_INVENTORY request detected: requestId=${result.request.id}, referenceId=${result.request.reference_id}`);
                     try {
-                        console.log(`Calling stock processing for approved VAN_INVENTORY request ${result.request.reference_id}`);
                         const { vanInventoryController } = await Promise.resolve().then(() => __importStar(require('../controllers/vanInventory.controller')));
                         await vanInventoryController.processApprovedVanInventoryStock(result.request.reference_id, userId, result.request.request_data
                             ? JSON.parse(result.request.request_data)
