@@ -4,4 +4,5 @@ export const requestTypes = [
   { label: 'Reconciliation Approval', value: 'RECONCILIATION_APPROVAL' },
   { label: 'Location Reset', value: 'LOCATION_RESET' },
   { label: 'Customer Creation', value: 'CUSTOMER_CREATION' },
+  { label: 'Van Inventory', value: 'VAN_INVENTORY' },
 ];

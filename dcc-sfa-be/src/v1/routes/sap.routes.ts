@@ -1,6 +1,10 @@
 import express from 'express';
 import { sapController } from '../controllers/sap.controller';
-import { authenticateToken } from '../../middlewares/auth.middleware';
+import {
+  authenticateToken,
+  requirePermission,
+} from '../../middlewares/auth.middleware';
+import { auditUpdate } from '../../middlewares/audit.middleware';
 
 const router = express.Router();
 
@@ -28,6 +32,23 @@ router.get(
   '/sap/search/product',
   authenticateToken,
   sapController.searchProduct
+);
+
+router.patch(
+  '/sap-van-inventory/:id/cancel',
+  authenticateToken,
+  // auditUpdate('van_inventory'),
+  requirePermission([{ module: 'van-stock', action: 'update' }]),
+  sapController.updateVanInventoryCancellation
+);
+
+// Cancel/Uncancel Van Inventory Item
+router.patch(
+  '/sap-van-inventory/items/:itemId/cancel',
+  authenticateToken,
+  // auditUpdate('van_inventory_items'),
+  requirePermission([{ module: 'van-stock', action: 'update' }]),
+  sapController.updateVanInventoryItemCancellation
 );
 
 export default router;

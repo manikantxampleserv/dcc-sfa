@@ -7,6 +7,8 @@ exports.vanInventoryController = void 0;
 const paginate_1 = require("../../utils/paginate");
 const prisma_client_1 = __importDefault(require("../../configs/prisma.client"));
 const dateFilters_1 = require("../../utils/dateFilters");
+const inventory_utils_1 = require("../utils/inventory.utils");
+const sourceSystem_1 = require("../../utils/sourceSystem");
 const serializeVanInventory = (item) => {
     const productGroups = new Map();
     item.van_inventory_items_inventory?.forEach((it) => {
@@ -103,25 +105,6 @@ const serializeVanInventory = (item) => {
                     total_amount: String(batchAmount),
                 });
             });
-            // } else if (trackingType === 'serial') {
-            //   if (serials.length > 0) {
-            //     productSerials.push(
-            //       ...serials.map((sn: any) => ({
-            //         type: 'serial',
-            //         ...sn,
-            //       }))
-            //     );
-            //   } else {
-            //     productSerials.push({
-            //       type: 'serial',
-            //       quantity: totalQuantity,
-            //       unit_price: items[0]?.unit_price || '0',
-            //       total_amount: String(totalAmount),
-            //       note: 'No serial numbers created yet',
-            //     });
-            //   }
-            // } else if (trackingType === 'none') {
-            // }
         }
         else if (trackingType === 'serial') {
             if (serials.length > 0) {
@@ -169,6 +152,11 @@ const serializeVanInventory = (item) => {
         const aggregatedItem = {
             id: firstItem.id,
             parent_id: firstItem.parent_id,
+            sap_docnum: firstItem.sap_docnum,
+            sap_docentry: firstItem.sap_docentry,
+            source_system: firstItem.source_system,
+            is_cancelled: firstItem.is_cancelled,
+            remarks: firstItem.remarks,
             product_id: productId,
             product_name: product?.name || firstItem.product_name,
             unit: firstItem.unit,
@@ -210,8 +198,15 @@ const serializeVanInventory = (item) => {
         total_batches: Array.from(trackingTypeSummary.values()).reduce((sum, type) => sum + type.total_batches, 0),
         total_serials: Array.from(trackingTypeSummary.values()).reduce((sum, type) => sum + type.total_serials, 0),
     };
+    const firstInventoryItem = item.van_inventory_items_inventory?.[0];
     return {
         id: item.id,
+        // sap_docentry: firstInventoryItem?.sap_docentry || null,
+        // sap_docnum: firstInventoryItem?.sap_docnum || null,
+        source_system: firstInventoryItem?.source_system || null,
+        source_system_label: (0, sourceSystem_1.getSourceSystemLabel)(firstInventoryItem?.source_system),
+        is_cancelled: item.is_cancelled,
+        remarks: item.remarks,
         user_id: item.user_id,
         status: item.status,
         loading_type: item.loading_type,
@@ -225,7 +220,14 @@ const serializeVanInventory = (item) => {
         log_inst: item.log_inst,
         vehicle_id: item.vehicle_id,
         location_id: item.location_id,
-        location_type: item.location_type,
+        sale_type: item.sale_type || null,
+        sub_inventory_users: item.van_inventory_sub_users
+            ? item.van_inventory_sub_users.map((su) => ({
+                id: su.users?.id || su.user_id,
+                name: su.users?.name || '',
+                email: su.users?.email || '',
+            }))
+            : [],
         user: item.van_inventory_users
             ? {
                 id: item.van_inventory_users.id,
@@ -386,6 +388,10 @@ async function createStockMovement(tx, data) {
             van_inventory_id: data.van_inventory_id ?? null,
         },
     });
+}
+async function updateSubUsersInventoryStock(tx, inventoryData, productId, quantity, loadingType, batchId, serialId, userId, movementData) {
+    // No-op - container sub-users now directly share the parent user's stock record!
+    return;
 }
 /**
  * @swagger
@@ -806,6 +812,7 @@ exports.vanInventoryController = {
                         ? Number(inventoryData.location_id)
                         : null,
                     is_active: inventoryData.is_active || 'Y',
+                    sale_type: inventoryData.sale_type || null,
                 };
                 if (isUpdate && inventoryId) {
                     inventory = await tx.van_inventory.update({
@@ -817,6 +824,22 @@ exports.vanInventoryController = {
                             log_inst: { increment: 1 },
                         },
                     });
+                    // Handle Sub Inventory Users
+                    await tx.van_inventory_sub_users.deleteMany({
+                        where: { parent_id: Number(inventoryId) },
+                    });
+                    if (inventoryData.sale_type === 'container' &&
+                        Array.isArray(inventoryData.sub_inventory_user_ids)) {
+                        const subUsersData = inventoryData.sub_inventory_user_ids.map((subUserId) => ({
+                            parent_id: Number(inventoryId),
+                            user_id: Number(subUserId),
+                            createdby: userId,
+                            log_inst: 1,
+                        }));
+                        await tx.van_inventory_sub_users.createMany({
+                            data: subUsersData,
+                        });
+                    }
                 }
                 else {
                     inventory = await tx.van_inventory.create({
@@ -828,6 +851,19 @@ exports.vanInventoryController = {
                         },
                     });
                     inventoryId = inventory.id;
+                    // Handle Sub Inventory Users for Create
+                    if (inventoryData.sale_type === 'container' &&
+                        Array.isArray(inventoryData.sub_inventory_user_ids)) {
+                        const subUsersData = inventoryData.sub_inventory_user_ids.map((subUserId) => ({
+                            parent_id: inventory.id,
+                            user_id: Number(subUserId),
+                            createdby: userId,
+                            log_inst: 1,
+                        }));
+                        await tx.van_inventory_sub_users.createMany({
+                            data: subUsersData,
+                        });
+                    }
                 }
                 if (Array.isArray(items) && items.length > 0) {
                     for (const item of items) {
@@ -978,6 +1014,11 @@ exports.vanInventoryController = {
                                         console.log(` Created van_inventory_items`);
                                     }
                                     await updateInventoryStock(tx, product.id, inventoryData.location_id || null, batchQty, 'L', batchLot.id, null, userId, inventoryData.user_id);
+                                    await updateSubUsersInventoryStock(tx, inventoryData, product.id, batchQty, 'L', batchLot.id, null, userId, {
+                                        movement_type: 'VAN_LOAD',
+                                        van_inventory_id: inventory.id,
+                                        remarks: `Loaded to van (Sub User) - Batch ${batchLot.batch_number}`,
+                                    });
                                     await createStockMovement(tx, {
                                         product_id: product.id,
                                         batch_id: batchLot.id,
@@ -1090,7 +1131,11 @@ exports.vanInventoryController = {
                                         console.log(`Created new van_inventory_items for serial ${serialNumber}`);
                                     }
                                     await updateInventoryStock(tx, product.id, inventoryData.location_id || null, 1, 'L', null, existingSerial.id, userId, inventoryData.user_id);
-                                    console.log(` INCREASED inventory_stock for serial ${serialNumber}`);
+                                    await updateSubUsersInventoryStock(tx, inventoryData, product.id, 1, 'L', null, existingSerial.id, userId, {
+                                        movement_type: 'VAN_LOAD',
+                                        van_inventory_id: inventory.id,
+                                        remarks: `Loaded serial ${serialNumber} to van (Sub User)`,
+                                    });
                                     await createStockMovement(tx, {
                                         product_id: product.id,
                                         batch_id: null,
@@ -1149,7 +1194,11 @@ exports.vanInventoryController = {
                                     console.log(`    Created van_inventory_items`);
                                 }
                                 await updateInventoryStock(tx, product.id, inventoryData.location_id || null, qty, 'L', null, null, userId, inventoryData.user_id);
-                                console.log(`    Updated inventory_stock`);
+                                await updateSubUsersInventoryStock(tx, inventoryData, product.id, qty, 'L', null, null, userId, {
+                                    movement_type: 'VAN_LOAD',
+                                    van_inventory_id: inventory.id,
+                                    remarks: `Loaded ${qty} units to van (Sub User)`,
+                                });
                                 await createStockMovement(tx, {
                                     product_id: product.id,
                                     batch_id: null,
@@ -1245,6 +1294,11 @@ exports.vanInventoryController = {
                                             },
                                         });
                                     }
+                                    await updateSubUsersInventoryStock(tx, inventoryData, product.id, batchQty, 'U', batchLot.id, null, userId, {
+                                        movement_type: 'VAN_UNLOAD',
+                                        van_inventory_id: inventory.id,
+                                        remarks: `Unloaded from van (Sub User) - Batch ${batchLot.batch_number}`,
+                                    });
                                     await tx.van_inventory_items.create({
                                         data: {
                                             parent_id: inventory.id,
@@ -1337,6 +1391,11 @@ exports.vanInventoryController = {
                                         });
                                         console.log(` DECREASED inventory_stock for ${serialNumber}`);
                                     }
+                                    await updateSubUsersInventoryStock(tx, inventoryData, product.id, 1, 'U', null, existingSerial.id, userId, {
+                                        movement_type: 'VAN_UNLOAD',
+                                        van_inventory_id: inventory.id,
+                                        remarks: `Sold serial ${serialNumber} (Sub User)`,
+                                    });
                                     await createStockMovement(tx, {
                                         product_id: product.id,
                                         batch_id: null,
@@ -1421,6 +1480,11 @@ exports.vanInventoryController = {
                                         },
                                     });
                                 }
+                                await updateSubUsersInventoryStock(tx, inventoryData, product.id, qty, 'U', null, null, userId, {
+                                    movement_type: 'VAN_UNLOAD',
+                                    van_inventory_id: inventory.id,
+                                    remarks: `Sold ${qty} units from van (Sub User)`,
+                                });
                                 await createStockMovement(tx, {
                                     product_id: product.id,
                                     batch_id: null,
@@ -1461,6 +1525,11 @@ exports.vanInventoryController = {
                         van_inventory_users: true,
                         vehicle: true,
                         van_inventory_depot: true,
+                        van_inventory_sub_users: {
+                            include: {
+                                users: true,
+                            },
+                        },
                         van_inventory_items_inventory: {
                             include: {
                                 van_inventory_items_products: {
@@ -1552,6 +1621,11 @@ exports.vanInventoryController = {
                     van_inventory_users: true,
                     vehicle: true,
                     van_inventory_depot: true,
+                    van_inventory_sub_users: {
+                        include: {
+                            users: true,
+                        },
+                    },
                     van_inventory_items_inventory: {
                         include: {
                             van_inventory_items_products: {
@@ -1614,6 +1688,11 @@ exports.vanInventoryController = {
                     van_inventory_users: true,
                     van_inventory_depot: true,
                     van_inventory_stock_movements: true,
+                    van_inventory_sub_users: {
+                        include: {
+                            users: true,
+                        },
+                    },
                     van_inventory_items_inventory: {
                         include: {
                             van_inventory_items_products: {
@@ -1755,15 +1834,51 @@ exports.vanInventoryController = {
             if (inventoryData.is_active !== undefined) {
                 payload.is_active = inventoryData.is_active;
             }
-            const updated = await prisma_client_1.default.van_inventory.update({
-                where: { id: Number(id) },
-                data: payload,
-                include: {
-                    van_inventory_users: true,
-                    vehicle: true,
-                    van_inventory_depot: true,
-                    van_inventory_items_inventory: true,
-                },
+            if (inventoryData.sale_type !== undefined) {
+                payload.sale_type = inventoryData.sale_type;
+            }
+            const updated = await prisma_client_1.default.$transaction(async (tx) => {
+                const inv = await tx.van_inventory.update({
+                    where: { id: Number(id) },
+                    data: payload,
+                });
+                if (inventoryData.sub_inventory_user_ids !== undefined ||
+                    inventoryData.sale_type !== undefined) {
+                    await tx.van_inventory_sub_users.deleteMany({
+                        where: { parent_id: Number(id) },
+                    });
+                    const currentSaleType = inventoryData.sale_type !== undefined
+                        ? inventoryData.sale_type
+                        : inv.sale_type;
+                    const userIds = inventoryData.sub_inventory_user_ids || [];
+                    if (currentSaleType === 'container' &&
+                        Array.isArray(userIds) &&
+                        userIds.length > 0) {
+                        const subUsersData = userIds.map((subUserId) => ({
+                            parent_id: Number(id),
+                            user_id: Number(subUserId),
+                            createdby: userId,
+                            log_inst: 1,
+                        }));
+                        await tx.van_inventory_sub_users.createMany({
+                            data: subUsersData,
+                        });
+                    }
+                }
+                return tx.van_inventory.findUnique({
+                    where: { id: Number(id) },
+                    include: {
+                        van_inventory_users: true,
+                        vehicle: true,
+                        van_inventory_depot: true,
+                        van_inventory_sub_users: {
+                            include: {
+                                users: true,
+                            },
+                        },
+                        van_inventory_items_inventory: true,
+                    },
+                });
             });
             res.json({
                 message: 'Van inventory updated successfully',
@@ -2698,9 +2813,10 @@ exports.vanInventoryController = {
                     message: 'Salesperson not found',
                 });
             }
+            const targetSalespersonIds = await (0, inventory_utils_1.getContainerOwnerAndSelf)(prisma_client_1.default, salespersonIdNum);
             const vanInventories = await prisma_client_1.default.van_inventory.findMany({
                 where: {
-                    user_id: salespersonIdNum,
+                    user_id: { in: targetSalespersonIds },
                     is_active: 'Y',
                     status: 'A',
                     ...(loading_type && {

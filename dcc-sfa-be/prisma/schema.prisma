@@ -2246,8 +2246,9 @@ model van_inventory {
   user_id                       Int
   last_updated                  DateTime?                 @default(now(), map: "DF__van_inven__last___658C0CBD") @db.DateTime
   is_active                     String                    @default("Y") @db.Char(1)
-  is_cancelled                  String?                   @default("Y") @db.Char(1)
+  is_cancelled                  String?                   @default("N") @db.Char(1)
   remarks                       String?                   @db.NVarChar(Max)
+  approval_status               String?                   @default("P") @db.NVarChar(20)
   createdate                    DateTime?                 @default(now(), map: "DF__van_inven__creat__6774552F") @db.DateTime
   createdby                     Int
   updatedate                    DateTime?                 @db.DateTime

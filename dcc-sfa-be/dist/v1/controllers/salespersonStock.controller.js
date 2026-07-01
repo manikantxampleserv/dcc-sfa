@@ -5,6 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.salespersonStockController = void 0;
 const prisma_client_1 = __importDefault(require("../../configs/prisma.client"));
+const inventory_utils_1 = require("../utils/inventory.utils");
 /**
  * Salesperson Stock Controller
  *
@@ -54,9 +55,10 @@ exports.salespersonStockController = {
                     .status(404)
                     .json({ success: false, message: 'Salesperson not found' });
             }
+            const targetSalespersonIds = await (0, inventory_utils_1.getContainerOwnerAndSelf)(prisma_client_1.default, salespersonIdNum);
             const totalVanInventories = await prisma_client_1.default.van_inventory.count({
                 where: {
-                    user_id: salespersonIdNum,
+                    user_id: { in: targetSalespersonIds },
                     is_active: 'Y',
                 },
             });
@@ -65,7 +67,7 @@ exports.salespersonStockController = {
                 parsedDepotId = parseInt(depot_id, 10);
             }
             const stockWhere = {
-                salesperson_id: salespersonIdNum,
+                salesperson_id: { in: targetSalespersonIds },
                 is_active: 'Y',
             };
             if (parsedDepotId) {
@@ -315,6 +317,7 @@ exports.salespersonStockController = {
                     salesperson_phone: salesperson.phone_number,
                     salesperson_profile_image: salesperson.profile_image,
                     salesperson_address: salesperson.address,
+                    combined_salesperson_ids: targetSalespersonIds,
                     total_van_inventories: totalVanInventories,
                     total_products: products.length,
                     total_quantity: totalRemainingQty,
@@ -372,8 +375,9 @@ async function handleAllSalespersons(req, res, pageNum, limitNum) {
         parsedDepotId = parseInt(depot_id, 10);
     }
     for (const sp of allSalespersons) {
+        const targetSalespersonIds = await (0, inventory_utils_1.getContainerOwnerAndSelf)(prisma_client_1.default, sp.id);
         const stockWhere = {
-            salesperson_id: sp.id,
+            salesperson_id: { in: targetSalespersonIds },
             is_active: 'Y',
         };
         if (parsedDepotId) {
@@ -382,7 +386,7 @@ async function handleAllSalespersons(req, res, pageNum, limitNum) {
         if (product_id)
             stockWhere.product_id = parseInt(product_id, 10);
         const vanInventoriesCount = await prisma_client_1.default.van_inventory.count({
-            where: { user_id: sp.id, is_active: 'Y' },
+            where: { user_id: { in: targetSalespersonIds }, is_active: 'Y' },
         });
         const stockRecords = await prisma_client_1.default.inventory_stock.findMany({
             where: stockWhere,
@@ -429,6 +433,7 @@ async function handleAllSalespersons(req, res, pageNum, limitNum) {
             total_serials: serialIds.size,
         });
     }
+    consolidated.sort((a, b) => b.total_quantity - a.total_quantity);
     const startIndex = (pageNum - 1) * limitNum;
     const paginatedData = consolidated.slice(startIndex, startIndex + limitNum);
     return res.json({

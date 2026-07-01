@@ -71,6 +71,20 @@ class DepotsImportExportService extends import_export_service_1.ImportExportServ
             description: 'Unique depot code (required)',
         },
         {
+            key: 'sap_code',
+            header: 'SAP Code',
+            width: 20,
+            type: 'string',
+            validation: value => {
+                if (value && value.trim() !== '') {
+                    if (value.length > 100)
+                        return 'SAP Code must be less than 100 characters';
+                }
+                return true;
+            },
+            description: 'SAP code (optional, must be unique if provided)',
+        },
+        {
             key: 'address',
             header: 'Address',
             width: 40,
@@ -182,6 +196,7 @@ class DepotsImportExportService extends import_export_service_1.ImportExportServ
         return data.map(depot => ({
             name: depot.name,
             code: depot.code,
+            sap_code: depot.sap_code || '',
             parent_id: depot.parent_id,
             manager_id: depot.manager_id,
             supervisor_id: depot.supervisor_id,
@@ -197,7 +212,17 @@ class DepotsImportExportService extends import_export_service_1.ImportExportServ
     async checkDuplicate(data, tx) {
         const model = tx ? tx.depots : prisma_client_1.default.depots;
         const existing = await model.findFirst({ where: { code: data.code } });
-        return existing ? `Depot code "${data.code}" already exists` : null;
+        if (existing)
+            return `Depot code "${data.code}" already exists`;
+        if (data.sap_code && data.sap_code.trim() !== '') {
+            const existingSapCode = await model.findFirst({
+                where: { sap_code: data.sap_code.trim() },
+            });
+            if (existingSapCode) {
+                return `Depot with SAP code ${data.sap_code} already exists`;
+            }
+        }
+        return null;
     }
     async validateForeignKeys(data, tx) {
         const prismaClient = tx || prisma_client_1.default;
@@ -212,14 +237,18 @@ class DepotsImportExportService extends import_export_service_1.ImportExportServ
             return result;
         };
         const errorCompany = await checkCache('company', data.parent_id, async () => {
-            const company = await prismaClient.companies.findUnique({ where: { id: data.parent_id } });
+            const company = await prismaClient.companies.findUnique({
+                where: { id: data.parent_id },
+            });
             return company ? null : `Company ID ${data.parent_id} not found`;
         });
         if (errorCompany)
             return errorCompany;
         if (data.manager_id) {
             const error = await checkCache('user', data.manager_id, async () => {
-                const user = await prismaClient.users.findUnique({ where: { id: data.manager_id } });
+                const user = await prismaClient.users.findUnique({
+                    where: { id: data.manager_id },
+                });
                 return user ? null : `Manager ID ${data.manager_id} not found`;
             });
             if (error)
@@ -227,7 +256,9 @@ class DepotsImportExportService extends import_export_service_1.ImportExportServ
         }
         if (data.supervisor_id) {
             const error = await checkCache('user', data.supervisor_id, async () => {
-                const user = await prismaClient.users.findUnique({ where: { id: data.supervisor_id } });
+                const user = await prismaClient.users.findUnique({
+                    where: { id: data.supervisor_id },
+                });
                 return user ? null : `Supervisor ID ${data.supervisor_id} not found`;
             });
             if (error)
@@ -235,7 +266,9 @@ class DepotsImportExportService extends import_export_service_1.ImportExportServ
         }
         if (data.coordinator_id) {
             const error = await checkCache('user', data.coordinator_id, async () => {
-                const user = await prismaClient.users.findUnique({ where: { id: data.coordinator_id } });
+                const user = await prismaClient.users.findUnique({
+                    where: { id: data.coordinator_id },
+                });
                 return user ? null : `Coordinator ID ${data.coordinator_id} not found`;
             });
             if (error)
@@ -246,6 +279,9 @@ class DepotsImportExportService extends import_export_service_1.ImportExportServ
     async prepareDataForImport(data, userId, tx) {
         const preparedData = {
             ...data,
+            sap_code: data.sap_code && data.sap_code.trim() !== ''
+                ? data.sap_code.trim()
+                : null,
             createdby: userId,
             createdate: new Date(),
             log_inst: 1,
@@ -263,11 +299,21 @@ class DepotsImportExportService extends import_export_service_1.ImportExportServ
         const existing = await model.findFirst({ where: { code: data.code } });
         if (!existing)
             return null;
+        const { sap_code, ...restData } = data;
         const updateData = {
-            ...data,
+            ...restData,
+            ...(sap_code && sap_code.trim() !== '' && { sap_code: sap_code.trim() }),
             updatedby: userId,
             updatedate: new Date(),
         };
+        if (updateData.sap_code && updateData.sap_code !== existing.sap_code) {
+            const existingSapCode = await model.findFirst({
+                where: { sap_code: updateData.sap_code, id: { not: existing.id } },
+            });
+            if (existingSapCode) {
+                throw new Error(`Depot SAP code ${updateData.sap_code} already exists`);
+            }
+        }
         if (data.latitude !== null && data.latitude !== undefined) {
             updateData.latitude = new client_1.Prisma.Decimal(data.latitude);
         }

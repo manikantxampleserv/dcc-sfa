@@ -133,6 +133,7 @@ const MODULE_DISPLAY_NAMES = {
     installation: 'Cooler Installation',
     inspection: 'Cooler Inspection',
     'van-stock': 'Van Inventory',
+    reconciliation: 'Reconciliation',
     'stock-movement': 'Stock Movement',
     'inventory-management': 'Inventory Management',
     competitor: 'Competitor Activity',

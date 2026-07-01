@@ -7,6 +7,7 @@ import { paginate } from '../../utils/paginate';
 import { requestTypes } from '../../mock/requestTypes';
 import prisma from '../../configs/prisma.client';
 import { generateContractOnApproval } from '../../helpers/approvalWorkflow.helper';
+import { sapService } from '../services/sap.service';
 
 interface RequestSerialized {
   id: number;
@@ -596,6 +597,18 @@ export const createRequest = async (data: {
             })),
           });
         }
+      }
+
+      // 5. VAN_INVENTORY
+      if (data.request_type === 'VAN_INVENTORY' && data.reference_id) {
+        await prisma.van_inventory.update({
+          where: { id: data.reference_id },
+          data: {
+            approval_status: 'A',
+            updatedby: data.createdby,
+            updatedate: new Date(),
+          },
+        });
       }
 
       return approvedRequest;
@@ -1330,6 +1343,23 @@ export const requestsController = {
               );
             }
 
+            if (
+              request.request_type === 'VAN_INVENTORY' &&
+              request.reference_id
+            ) {
+              await tx.van_inventory.update({
+                where: { id: request.reference_id },
+                data: {
+                  approval_status: 'R',
+                  updatedby: userId,
+                  updatedate: new Date(),
+                },
+              });
+              console.log(
+                `Van Inventory ${request.reference_id} status updated to REJECTED`
+              );
+            }
+
             return { status: 'rejected', request };
           }
 
@@ -1527,6 +1557,20 @@ export const requestsController = {
             }
 
             if (
+              request.request_type === 'VAN_INVENTORY' &&
+              request.reference_id
+            ) {
+              await tx.van_inventory.update({
+                where: { id: request.reference_id },
+                data: {
+                  approval_status: 'A',
+                  updatedby: userId,
+                  updatedate: new Date(),
+                },
+              });
+            }
+
+            if (
               request.request_type === 'CUSTOMER_CREATION' &&
               action === 'A'
             ) {
@@ -1566,6 +1610,22 @@ export const requestsController = {
         }
       );
       if (result.status === 'fully_approved' && 'request' in result) {
+        if (
+          result.request.request_type === 'VAN_INVENTORY' &&
+          result.request.reference_id
+        ) {
+          try {
+            await sapService.processApprovedVanInventoryStock(
+              result.request.reference_id,
+              userId
+            );
+          } catch (err) {
+            console.error(
+              'Error processing approved van inventory stock:',
+              err
+            );
+          }
+        }
         if (result.request.request_type === 'LOCATION_RESET') {
           try {
             const requesterEmail =

@@ -5,6 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.loginHistoryController = void 0;
 const prisma_client_1 = __importDefault(require("../../configs/prisma.client"));
+const ipLocation_util_1 = require("../../utils/ipLocation.util");
 const serializeLoginHistory = (loginHistory) => ({
     id: loginHistory.id,
     user_id: loginHistory.user_id,
@@ -34,6 +35,7 @@ const serializeLoginHistory = (loginHistory) => ({
             email: loginHistory.users_login_history_user_idTousers.email,
         }
         : null,
+    location: loginHistory.location || 'Unknown',
 });
 exports.loginHistoryController = {
     async createLoginHistory(req, res) {
@@ -59,9 +61,13 @@ exports.loginHistoryController = {
                     },
                 },
             });
+            const locationMap = await (0, ipLocation_util_1.getLocationFromIPs)([loginHistory.ip_address]);
             res.status(201).json({
                 success: true,
-                data: serializeLoginHistory(loginHistory),
+                data: serializeLoginHistory({
+                    ...loginHistory,
+                    location: locationMap[loginHistory.ip_address || ''],
+                }),
                 message: 'Login history created successfully',
             });
         }
@@ -149,8 +155,13 @@ exports.loginHistoryController = {
                     },
                 },
             });
+            const ipsToLookup = loginHistory.map(lh => lh.ip_address);
+            const locationMap = await (0, ipLocation_util_1.getLocationFromIPs)(ipsToLookup);
             const paginatedData = {
-                data: loginHistory.map(serializeLoginHistory),
+                data: loginHistory.map(lh => serializeLoginHistory({
+                    ...lh,
+                    location: locationMap[lh.ip_address || ''],
+                })),
                 pagination: {
                     current_page: pageNum,
                     total_pages: Math.ceil(total / limitNum),
@@ -212,9 +223,13 @@ exports.loginHistoryController = {
                     message: 'Login history not found',
                 });
             }
+            const locationMap = await (0, ipLocation_util_1.getLocationFromIPs)([loginHistory.ip_address]);
             res.json({
                 success: true,
-                data: serializeLoginHistory(loginHistory),
+                data: serializeLoginHistory({
+                    ...loginHistory,
+                    location: locationMap[loginHistory.ip_address || ''],
+                }),
             });
         }
         catch (error) {
@@ -266,9 +281,15 @@ exports.loginHistoryController = {
                     },
                 },
             });
+            const locationMap = await (0, ipLocation_util_1.getLocationFromIPs)([
+                updatedLoginHistory.ip_address,
+            ]);
             res.json({
                 success: true,
-                data: serializeLoginHistory(updatedLoginHistory),
+                data: serializeLoginHistory({
+                    ...updatedLoginHistory,
+                    location: locationMap[updatedLoginHistory.ip_address || ''],
+                }),
                 message: 'Login history updated successfully',
             });
         }
