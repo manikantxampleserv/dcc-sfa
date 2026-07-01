@@ -7,7 +7,6 @@ import { paginate } from '../../utils/paginate';
 import { requestTypes } from '../../mock/requestTypes';
 import prisma from '../../configs/prisma.client';
 import { generateContractOnApproval } from '../../helpers/approvalWorkflow.helper';
-import { sapService } from '../services/sap.service';
 
 interface RequestSerialized {
   id: number;
@@ -1614,10 +1613,25 @@ export const requestsController = {
           result.request.request_type === 'VAN_INVENTORY' &&
           result.request.reference_id
         ) {
+          console.log(
+            `Approved VAN_INVENTORY request detected: requestId=${result.request.id}, referenceId=${result.request.reference_id}`
+          );
           try {
-            await sapService.processApprovedVanInventoryStock(
+            console.log(
+              `Calling stock processing for approved VAN_INVENTORY request ${result.request.reference_id}`
+            );
+            const { vanInventoryController } = await import(
+              '../controllers/vanInventory.controller'
+            );
+            await vanInventoryController.processApprovedVanInventoryStock(
               result.request.reference_id,
-              userId
+              userId,
+              result.request.request_data
+                ? JSON.parse(result.request.request_data)
+                : null
+            );
+            console.log(
+              `Completed stock processing for approved VAN_INVENTORY request ${result.request.reference_id}`
             );
           } catch (err) {
             console.error(
