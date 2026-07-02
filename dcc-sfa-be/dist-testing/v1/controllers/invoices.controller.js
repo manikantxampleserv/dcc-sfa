@@ -7,6 +7,7 @@ exports.invoicesController = void 0;
 const paginate_1 = require("../../utils/paginate");
 const prisma_client_1 = __importDefault(require("../../configs/prisma.client"));
 const dateFilters_1 = require("../../utils/dateFilters");
+const permissions_config_1 = require("../../configs/permissions.config");
 function calculateUnitConversion(quantity, unit, conversionRate) {
     if (unit?.toUpperCase() === 'PCS') {
         return quantity / (conversionRate || 1);
@@ -352,6 +353,19 @@ exports.invoicesController = {
             const limit_num = parseInt(limit, 10);
             const searchLower = search.toLowerCase();
             const timeBasedDateFilter = (0, dateFilters_1.getTimeFilter)(time_filter);
+            const user = req.user;
+            let isScopeRestricted = false;
+            let depotIds = [];
+            if (user && !(0, permissions_config_1.isAdminRole)(user.role)) {
+                isScopeRestricted = true;
+                const userDepots = await prisma_client_1.default.user_depots.findMany({
+                    where: { user_id: user.id },
+                    select: { depot_id: true },
+                });
+                depotIds = userDepots
+                    .map((ud) => ud.depot_id)
+                    .filter((id) => id !== null);
+            }
             const filters = {
                 is_active: is_active,
                 ...(search && {
@@ -380,8 +394,23 @@ exports.invoicesController = {
                                 }),
                             },
                         }
-                        : {}),
+                        : undefined),
             };
+            if (isScopeRestricted) {
+                if (depotIds.length > 0) {
+                    filters.invoices_salesperson = {
+                        ...filters.invoices_salesperson,
+                        users_depots_users: {
+                            some: {
+                                depot_id: { in: depotIds },
+                            },
+                        },
+                    };
+                }
+                else {
+                    filters.id = -1;
+                }
+            }
             const totalInvoices = await prisma_client_1.default.invoices.count({ where: filters });
             const totalAmount = await prisma_client_1.default.invoices.aggregate({
                 where: filters,
@@ -449,8 +478,37 @@ exports.invoicesController = {
     async getInvoiceById(req, res) {
         try {
             const { id } = req.params;
-            const invoice = await prisma_client_1.default.invoices.findUnique({
-                where: { id: Number(id) },
+            const user = req.user;
+            let isScopeRestricted = false;
+            let depotIds = [];
+            if (user && !(0, permissions_config_1.isAdminRole)(user.role)) {
+                isScopeRestricted = true;
+                const userDepots = await prisma_client_1.default.user_depots.findMany({
+                    where: { user_id: user.id },
+                    select: { depot_id: true },
+                });
+                depotIds = userDepots
+                    .map((ud) => ud.depot_id)
+                    .filter((id) => id !== null);
+            }
+            const whereClause = { id: Number(id) };
+            if (isScopeRestricted) {
+                if (depotIds.length > 0) {
+                    whereClause.invoices_salesperson = {
+                        ...whereClause.invoices_salesperson,
+                        users_depots_users: {
+                            some: {
+                                depot_id: { in: depotIds },
+                            },
+                        },
+                    };
+                }
+                else {
+                    whereClause.id = -1;
+                }
+            }
+            const invoice = await prisma_client_1.default.invoices.findFirst({
+                where: whereClause,
                 include: {
                     invoices_customers: {
                         select: {

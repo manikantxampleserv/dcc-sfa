@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.stockTransferRequestsController = void 0;
 const paginate_1 = require("../../utils/paginate");
 const prisma_client_1 = __importDefault(require("../../configs/prisma.client"));
+const permissions_config_1 = require("../../configs/permissions.config");
 const serializeStockTransferRequest = (request) => ({
     id: request.id,
     request_number: request.request_number,
@@ -262,6 +263,19 @@ exports.stockTransferRequestsController = {
             const limitNum = parseInt(limit, 10) || 10;
             const searchLower = search ? search.toLowerCase() : '';
             const statusLower = status ? status.toLowerCase() : '';
+            const user = req.user;
+            let isScopeRestricted = false;
+            let depotIds = [];
+            if (user && !(0, permissions_config_1.isAdminRole)(user.role)) {
+                isScopeRestricted = true;
+                const userDepots = await prisma_client_1.default.user_depots.findMany({
+                    where: { user_id: user.id },
+                    select: { depot_id: true },
+                });
+                depotIds = userDepots
+                    .map((ud) => ud.depot_id)
+                    .filter((id) => id !== null);
+            }
             const filters = {
                 ...(search && {
                     OR: [
@@ -273,6 +287,21 @@ exports.stockTransferRequestsController = {
                 ...(statusLower === 'active' && { is_active: 'Y' }),
                 ...(statusLower === 'inactive' && { is_active: 'N' }),
             };
+            if (isScopeRestricted) {
+                if (depotIds.length > 0) {
+                    filters.stock_transfer_requests_requested_by = {
+                        ...filters.stock_transfer_requests_requested_by,
+                        users_depots_users: {
+                            some: {
+                                depot_id: { in: depotIds },
+                            },
+                        },
+                    };
+                }
+                else {
+                    filters.id = -1;
+                }
+            }
             const { data, pagination } = await (0, paginate_1.paginate)({
                 model: prisma_client_1.default.stock_transfer_requests,
                 filters,
@@ -323,8 +352,37 @@ exports.stockTransferRequestsController = {
     async getStockTransferRequestById(req, res) {
         try {
             const { id } = req.params;
-            const record = await prisma_client_1.default.stock_transfer_requests.findUnique({
-                where: { id: Number(id) },
+            const user = req.user;
+            let isScopeRestricted = false;
+            let depotIds = [];
+            if (user && !(0, permissions_config_1.isAdminRole)(user.role)) {
+                isScopeRestricted = true;
+                const userDepots = await prisma_client_1.default.user_depots.findMany({
+                    where: { user_id: user.id },
+                    select: { depot_id: true },
+                });
+                depotIds = userDepots
+                    .map((ud) => ud.depot_id)
+                    .filter((id) => id !== null);
+            }
+            const whereClause = { id: Number(id) };
+            if (isScopeRestricted) {
+                if (depotIds.length > 0) {
+                    whereClause.stock_transfer_requests_requested_by = {
+                        ...whereClause.stock_transfer_requests_requested_by,
+                        users_depots_users: {
+                            some: {
+                                depot_id: { in: depotIds },
+                            },
+                        },
+                    };
+                }
+                else {
+                    whereClause.id = -1;
+                }
+            }
+            const record = await prisma_client_1.default.stock_transfer_requests.findFirst({
+                where: whereClause,
                 include: {
                     stock_transfer_lines: true,
                     stock_transfer_requests_requested_by: true,

@@ -9,6 +9,7 @@ const paginate_1 = require("../../utils/paginate");
 const requests_controller_1 = require("./requests.controller");
 const prisma_client_1 = __importDefault(require("../../configs/prisma.client"));
 const client_1 = require("@prisma/client");
+const permissions_config_1 = require("../../configs/permissions.config");
 const serializeOrder = (order) => ({
     id: order.id,
     order_number: order.order_number,
@@ -1592,7 +1593,35 @@ exports.ordersController = {
             const pageNum = parseInt(page, 10) || 1;
             const limitNum = parseInt(limit, 10) || 10;
             const searchLower = search ? search.toLowerCase() : '';
+            const user = req.user;
+            let isScopeRestricted = false;
+            let depotIds = [];
+            if (user && !(0, permissions_config_1.isAdminRole)(user.role)) {
+                isScopeRestricted = true;
+                const userDepots = await prisma_client_1.default.user_depots.findMany({
+                    where: { user_id: user.id },
+                    select: { depot_id: true },
+                });
+                depotIds = userDepots
+                    .map((ud) => ud.depot_id)
+                    .filter((id) => id !== null);
+            }
             const filters = {};
+            if (isScopeRestricted) {
+                if (depotIds.length > 0) {
+                    filters.orders_salesperson_users = {
+                        ...filters.orders_salesperson_users,
+                        users_depots_users: {
+                            some: {
+                                depot_id: { in: depotIds },
+                            },
+                        },
+                    };
+                }
+                else {
+                    filters.id = -1;
+                }
+            }
             if (search) {
                 filters.OR = [
                     { order_number: { contains: searchLower } },
@@ -1827,8 +1856,37 @@ exports.ordersController = {
     async getOrdersById(req, res) {
         try {
             const { id } = req.params;
-            const order = await prisma_client_1.default.orders.findUnique({
-                where: { id: Number(id) },
+            const user = req.user;
+            let isScopeRestricted = false;
+            let depotIds = [];
+            if (user && !(0, permissions_config_1.isAdminRole)(user.role)) {
+                isScopeRestricted = true;
+                const userDepots = await prisma_client_1.default.user_depots.findMany({
+                    where: { user_id: user.id },
+                    select: { depot_id: true },
+                });
+                depotIds = userDepots
+                    .map((ud) => ud.depot_id)
+                    .filter((id) => id !== null);
+            }
+            const whereClause = { id: Number(id) };
+            if (isScopeRestricted) {
+                if (depotIds.length > 0) {
+                    whereClause.orders_salesperson_users = {
+                        ...whereClause.orders_salesperson_users,
+                        users_depots_users: {
+                            some: {
+                                depot_id: { in: depotIds },
+                            },
+                        },
+                    };
+                }
+                else {
+                    whereClause.id = -1;
+                }
+            }
+            const order = await prisma_client_1.default.orders.findFirst({
+                where: whereClause,
                 include: {
                     orders_currencies: true,
                     orders_customers: {

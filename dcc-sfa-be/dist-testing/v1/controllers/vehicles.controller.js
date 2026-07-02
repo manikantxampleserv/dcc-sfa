@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.vehiclesController = void 0;
 const paginate_1 = require("../../utils/paginate");
 const prisma_client_1 = __importDefault(require("../../configs/prisma.client"));
+const permissions_config_1 = require("../../configs/permissions.config");
 const serializeVehicle = (vehicle) => ({
     id: vehicle.id,
     vehicle_number: vehicle.vehicle_number,
@@ -92,6 +93,19 @@ exports.vehiclesController = {
             const page_num = parseInt(page, 10);
             const limit_num = parseInt(limit, 10);
             const searchLower = search.toLowerCase();
+            const user = req.user;
+            let isScopeRestricted = false;
+            let depotIds = [];
+            if (user && !(0, permissions_config_1.isAdminRole)(user.role)) {
+                isScopeRestricted = true;
+                const userDepots = await prisma_client_1.default.user_depots.findMany({
+                    where: { user_id: user.id },
+                    select: { depot_id: true },
+                });
+                depotIds = userDepots
+                    .map((ud) => ud.depot_id)
+                    .filter((id) => id !== null);
+            }
             const filters = {
                 is_active: isActive,
                 ...(search && {
@@ -105,6 +119,21 @@ exports.vehiclesController = {
                 ...(type && { type: type }),
                 ...(status && { status: status }),
             };
+            if (isScopeRestricted) {
+                if (depotIds.length > 0) {
+                    filters.users = {
+                        ...filters.users,
+                        users_depots_users: {
+                            some: {
+                                depot_id: { in: depotIds },
+                            },
+                        },
+                    };
+                }
+                else {
+                    filters.id = -1;
+                }
+            }
             const totalVehicles = await prisma_client_1.default.vehicles.count();
             const activeVehicles = await prisma_client_1.default.vehicles.count({
                 where: { is_active: 'Y' },
@@ -159,8 +188,37 @@ exports.vehiclesController = {
     async getVehicleById(req, res) {
         try {
             const { id } = req.params;
-            const vehicle = await prisma_client_1.default.vehicles.findUnique({
-                where: { id: Number(id) },
+            const user = req.user;
+            let isScopeRestricted = false;
+            let depotIds = [];
+            if (user && !(0, permissions_config_1.isAdminRole)(user.role)) {
+                isScopeRestricted = true;
+                const userDepots = await prisma_client_1.default.user_depots.findMany({
+                    where: { user_id: user.id },
+                    select: { depot_id: true },
+                });
+                depotIds = userDepots
+                    .map((ud) => ud.depot_id)
+                    .filter((id) => id !== null);
+            }
+            const whereClause = { id: Number(id) };
+            if (isScopeRestricted) {
+                if (depotIds.length > 0) {
+                    whereClause.users = {
+                        ...whereClause.users,
+                        users_depots_users: {
+                            some: {
+                                depot_id: { in: depotIds },
+                            },
+                        },
+                    };
+                }
+                else {
+                    whereClause.id = -1;
+                }
+            }
+            const vehicle = await prisma_client_1.default.vehicles.findFirst({
+                where: whereClause,
             });
             if (!vehicle) {
                 return res.status(404).json({ message: 'Vehicle not found' });

@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.paymentsController = void 0;
 const paginate_1 = require("../../utils/paginate");
 const prisma_client_1 = __importDefault(require("../../configs/prisma.client"));
+const permissions_config_1 = require("../../configs/permissions.config");
 const serializePayment = (payment) => ({
     id: payment.id,
     payment_number: payment.payment_number,
@@ -98,6 +99,19 @@ exports.paymentsController = {
             const page_num = parseInt(page, 10);
             const limit_num = parseInt(limit, 10);
             const searchLower = search.toLowerCase();
+            const user = req.user;
+            let isScopeRestricted = false;
+            let depotIds = [];
+            if (user && !(0, permissions_config_1.isAdminRole)(user.role)) {
+                isScopeRestricted = true;
+                const userDepots = await prisma_client_1.default.user_depots.findMany({
+                    where: { user_id: user.id },
+                    select: { depot_id: true },
+                });
+                depotIds = userDepots
+                    .map((ud) => ud.depot_id)
+                    .filter((id) => id !== null);
+            }
             const filters = {
                 is_active: is_active,
                 ...(search && {
@@ -130,6 +144,21 @@ exports.paymentsController = {
                     }
                     : {}),
             };
+            if (isScopeRestricted) {
+                if (depotIds.length > 0) {
+                    filters.users_payments_collected_byTousers = {
+                        ...filters.users_payments_collected_byTousers,
+                        users_depots_users: {
+                            some: {
+                                depot_id: { in: depotIds },
+                            },
+                        },
+                    };
+                }
+                else {
+                    filters.id = -1;
+                }
+            }
             const totalPayments = await prisma_client_1.default.payments.count({ where: filters });
             const totalAmount = await prisma_client_1.default.payments.aggregate({
                 where: filters,
@@ -213,8 +242,37 @@ exports.paymentsController = {
     async getPaymentById(req, res) {
         try {
             const { id } = req.params;
-            const payment = await prisma_client_1.default.payments.findUnique({
-                where: { id: Number(id) },
+            const user = req.user;
+            let isScopeRestricted = false;
+            let depotIds = [];
+            if (user && !(0, permissions_config_1.isAdminRole)(user.role)) {
+                isScopeRestricted = true;
+                const userDepots = await prisma_client_1.default.user_depots.findMany({
+                    where: { user_id: user.id },
+                    select: { depot_id: true },
+                });
+                depotIds = userDepots
+                    .map((ud) => ud.depot_id)
+                    .filter((id) => id !== null);
+            }
+            const whereClause = { id: Number(id) };
+            if (isScopeRestricted) {
+                if (depotIds.length > 0) {
+                    whereClause.users_payments_collected_byTousers = {
+                        ...whereClause.users_payments_collected_byTousers,
+                        users_depots_users: {
+                            some: {
+                                depot_id: { in: depotIds },
+                            },
+                        },
+                    };
+                }
+                else {
+                    whereClause.id = -1;
+                }
+            }
+            const payment = await prisma_client_1.default.payments.findFirst({
+                where: whereClause,
                 include: {
                     payments_customers: true,
                     users_payments_collected_byTousers: true,

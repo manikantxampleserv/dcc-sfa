@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.salespersonStockController = void 0;
 const prisma_client_1 = __importDefault(require("../../configs/prisma.client"));
 const inventory_utils_1 = require("../utils/inventory.utils");
+const permissions_config_1 = require("../../configs/permissions.config");
 /**
  * Salesperson Stock Controller
  *
@@ -38,8 +39,34 @@ exports.salespersonStockController = {
                     .status(400)
                     .json({ success: false, message: 'Invalid salesperson_id' });
             }
-            const salesperson = await prisma_client_1.default.users.findUnique({
-                where: { id: salespersonIdNum },
+            const user = req.user;
+            let isScopeRestricted = false;
+            let depotIds = [];
+            if (user && !(0, permissions_config_1.isAdminRole)(user.role)) {
+                isScopeRestricted = true;
+                const userDepots = await prisma_client_1.default.user_depots.findMany({
+                    where: { user_id: user.id },
+                    select: { depot_id: true },
+                });
+                depotIds = userDepots
+                    .map((ud) => ud.depot_id)
+                    .filter((id) => id !== null);
+            }
+            const spWhere = { id: salespersonIdNum };
+            if (isScopeRestricted) {
+                if (depotIds.length > 0) {
+                    spWhere.users_depots_users = {
+                        some: {
+                            depot_id: { in: depotIds },
+                        },
+                    };
+                }
+                else {
+                    spWhere.id = -1;
+                }
+            }
+            const salesperson = await prisma_client_1.default.users.findFirst({
+                where: spWhere,
                 select: {
                     id: true,
                     name: true,
@@ -351,6 +378,31 @@ async function handleAllSalespersons(req, res, pageNum, limitNum) {
     const usersWhere = {};
     if (supervisor_id) {
         usersWhere.reporting_to = parseInt(supervisor_id, 10);
+    }
+    const user = req.user;
+    let isScopeRestricted = false;
+    let depotIds = [];
+    if (user && !(0, permissions_config_1.isAdminRole)(user.role)) {
+        isScopeRestricted = true;
+        const userDepots = await prisma_client_1.default.user_depots.findMany({
+            where: { user_id: user.id },
+            select: { depot_id: true },
+        });
+        depotIds = userDepots
+            .map((ud) => ud.depot_id)
+            .filter((id) => id !== null);
+    }
+    if (isScopeRestricted) {
+        if (depotIds.length > 0) {
+            usersWhere.users_depots_users = {
+                some: {
+                    depot_id: { in: depotIds },
+                },
+            };
+        }
+        else {
+            usersWhere.id = -1;
+        }
     }
     const allSalespersons = await prisma_client_1.default.users.findMany({
         where: usersWhere,
