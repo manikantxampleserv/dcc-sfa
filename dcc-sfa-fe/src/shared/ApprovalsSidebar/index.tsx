@@ -227,7 +227,7 @@ const ApprovalsSidebar: React.FC<ApprovalsSidebarProps> = ({
                           </span>{' '}
                           has requested{' '}
                           <span className="!font-medium !text-gray-800">
-                            {requestTypeLabel}
+                            {requestTypeLabel}{' '}
                           </span>
                           {request.request_type === 'ORDER_APPROVAL' && (
                             <>

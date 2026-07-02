@@ -45,7 +45,6 @@ export const startServer = async () => {
     const server = app.listen(port, async () => {
       AttendanceCronService.startAutoPunchOut();
       AttendanceCronService.startMidnightStatusReset();
-      logger.success('TEST ENVIRONMENT RUNNING');
       logger.success(`Server running at http://localhost:${port}`);
       logger.info(
         `GraphQL Playground available at http://localhost:${port}/graphql`

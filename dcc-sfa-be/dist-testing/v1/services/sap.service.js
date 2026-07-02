@@ -1792,14 +1792,19 @@ exports.sapService = {
                     if (!item.sap_docnum) {
                         throw new Error('sap_docnum is required for each item');
                     }
+                    if (!item.sap_lineid) {
+                        throw new Error('sap_lineid is required for each item');
+                    }
                     const sapDocEntry = item.sap_docentry.toString();
                     const sapDocNum = item.sap_docnum.toString();
+                    const sapLineid = item.sap_lineid.toString();
                     const sourceSystem = item.source_system;
-                    const compositeKey = `${sourceSystem}_${sapDocEntry}`;
+                    const compositeKey = `${sourceSystem}_${sapDocEntry}_${sapLineid}`;
                     const existingSapDoc = await tx.van_inventory_items.findFirst({
                         where: {
                             source_system: sourceSystem,
                             sap_docentry: sapDocEntry,
+                            sap_lineid: sapLineid,
                             ...(isUpdate && inventoryId
                                 ? {
                                     NOT: {

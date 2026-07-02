@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 /**
  * Error Logs Controller
- * Handles error log queries
+ * Handles error log queries and triggers a reload
  */
 export declare const errorLogsController: {
     /**

@@ -171,7 +171,9 @@ export const settingsController = {
         ...(currency_id !== undefined && {
           currency_id: currency_id ? Number(currency_id) : null,
         }),
-        ...(customer_grading_cron_time !== undefined && { customer_grading_cron_time }),
+        ...(customer_grading_cron_time !== undefined && {
+          customer_grading_cron_time,
+        }),
         updated_date: new Date(),
         updated_by: req.user?.id,
       };
@@ -200,8 +202,13 @@ export const settingsController = {
         }
       }
 
-      if (customer_grading_cron_time && customer_grading_cron_time !== existingCompany.customer_grading_cron_time) {
-        const { scheduleCustomerCategoryAssignment } = await import('../../jobs/customerCategoryAssignment.job');
+      if (
+        customer_grading_cron_time &&
+        customer_grading_cron_time !==
+          existingCompany.customer_grading_cron_time
+      ) {
+        const { scheduleCustomerCategoryAssignment } =
+          await import('../../jobs/customerCategoryAssignment.job');
         scheduleCustomerCategoryAssignment();
       }
 

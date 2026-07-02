@@ -13,17 +13,16 @@ exports.mockCompanies = void 0;
 exports.seedCompanies = seedCompanies;
 exports.clearCompanies = clearCompanies;
 const prisma_client_1 = __importDefault(require("../../configs/prisma.client"));
-// Mock Companies Data (11 companies)
 const mockCompanies = [
     {
-        name: 'Ampleserv Technologies Pvt Ltd',
-        code: 'AMP-001',
-        address: 'G-37, Sector 3, Noida, Uttar Pradesh, India',
-        city: 'Noida',
-        state: 'Uttar Pradesh',
-        zipcode: '201301',
-        phone_number: '+91-9818000000',
-        email: 'info@ampleserv.com',
+        name: 'BONITE BOTTLERS LIMITED',
+        code: 'BBL001',
+        address: 'Moshi Tanzania',
+        city: 'Moshi',
+        state: 'Kilimanjaro',
+        zipcode: '1352',
+        phone_number: '',
+        email: 'admin@bbl.co.tz',
         is_active: 'Y',
     },
 ];

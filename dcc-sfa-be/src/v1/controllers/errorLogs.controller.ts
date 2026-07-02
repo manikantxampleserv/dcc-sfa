@@ -5,7 +5,7 @@ import { getLocationFromIPs } from '../../utils/ipLocation.util';
 
 /**
  * Error Logs Controller
- * Handles error log queries
+ * Handles error log queries and triggers a reload
  */
 export const errorLogsController = {
   /**
