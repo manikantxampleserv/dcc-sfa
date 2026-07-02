@@ -612,12 +612,17 @@ async function processApprovedVanInventoryStock(
   const inventory = await prisma.van_inventory.findUnique({
     where: { id: inventoryId },
     include: {
-      van_inventory_items_inventory: true,
+      van_inventory_items_inventory: {
+        include: {
+          van_inventory_items_batch_lot: true,
+          van_inventory_serial: true,
+        },
+      },
     },
   });
 
   if (!inventory) {
-    console.log('❌ Inventory not found');
+    console.log(' Inventory not found');
     return;
   }
   console.log('Found inventory:', {
@@ -628,7 +633,7 @@ async function processApprovedVanInventoryStock(
   });
 
   if (inventory.approval_status !== 'A' || inventory.is_cancelled === 'Y') {
-    console.log('❌ Skipping: not approved or cancelled');
+    console.log(' Skipping: not approved or cancelled');
     return;
   }
 
@@ -650,7 +655,7 @@ async function processApprovedVanInventoryStock(
   console.log(` Found ${items.length} items from ${itemsSource}`);
 
   if (!Array.isArray(items) || items.length === 0) {
-    console.log('❌ No items to process');
+    console.log(' No items to process');
     return;
   }
 
@@ -668,7 +673,7 @@ async function processApprovedVanInventoryStock(
       );
 
       if (existingProcessedMovements > 0) {
-        console.log('❌ Skipping: stock movements already processed');
+        console.log(' Skipping: stock movements already processed');
         return;
       }
 
@@ -703,7 +708,7 @@ async function processApprovedVanInventoryStock(
 
         if (!productId) {
           console.log(
-            '  ⚠️ Skipping: no product_id and product not found by sap_code'
+            '   Skipping: no product_id and product not found by sap_code'
           );
           continue;
         }
@@ -721,7 +726,7 @@ async function processApprovedVanInventoryStock(
         });
 
         if (!product) {
-          console.log('  ❌ Skipping: product not found for id', productId);
+          console.log('   Skipping: product not found for id', productId);
           continue;
         }
         console.log(
@@ -740,7 +745,7 @@ async function processApprovedVanInventoryStock(
             console.log('  Tracking type: BATCH');
             const batchData = item.batches || item.product_batches;
             if (!Array.isArray(batchData) || batchData.length === 0) {
-              console.log('  ⚠️ Skipping: no batch data');
+              console.log('   Skipping: no batch data');
               continue;
             }
             console.log(`  Found ${batchData.length} batch(es)`);
@@ -756,7 +761,7 @@ async function processApprovedVanInventoryStock(
               );
               const batchQty = parseInt(batchInput.quantity, 10) || 0;
               if (batchQty <= 0) {
-                console.log('  ⚠️ Skipping batch: invalid quantity');
+                console.log('   Skipping batch: invalid quantity');
                 continue;
               }
               console.log('  Batch quantity:', batchQty);
@@ -932,7 +937,7 @@ async function processApprovedVanInventoryStock(
               JSON.stringify(serialData, null, 2)
             );
             if (!Array.isArray(serialData) || serialData.length === 0) {
-              console.log('  ⚠️ Skipping: no serial data');
+              console.log('   Skipping: no serial data');
               continue;
             }
             console.log(`  Found ${serialData.length} serials to process`);
@@ -953,7 +958,7 @@ async function processApprovedVanInventoryStock(
               console.log('  Extracted serial number:', serialNumber);
 
               if (!serialNumber) {
-                console.log('  ⚠️ Skipping serial: no serial number');
+                console.log('   Skipping serial: no serial number');
                 continue;
               }
 
@@ -968,7 +973,7 @@ async function processApprovedVanInventoryStock(
 
               if (existingSerial) {
                 if (existingSerial.status === 'in_van') {
-                  console.log('  ⚠️ Skipping: serial already in van');
+                  console.log('   Skipping: serial already in van');
                   continue;
                 }
 
@@ -1155,9 +1160,17 @@ async function processApprovedVanInventoryStock(
           console.log('  Processing as UNLOAD');
           if (trackingType === 'BATCH') {
             console.log('  Tracking type: BATCH');
-            const batchData = item.batches || item.product_batches;
+            let batchData = item.batches || item.product_batches;
+            if ((!Array.isArray(batchData) || batchData.length === 0) && item.van_inventory_items_batch_lot) {
+              batchData = [
+                {
+                  batch_number: item.van_inventory_items_batch_lot.batch_number,
+                  quantity: item.quantity,
+                },
+              ];
+            }
             if (!Array.isArray(batchData) || batchData.length === 0) {
-              console.log('  ⚠️ Skipping: no batch data');
+              console.log('   Skipping: no batch data');
               continue;
             }
             console.log(`  Found ${batchData.length} batch(es)`);
@@ -1173,7 +1186,7 @@ async function processApprovedVanInventoryStock(
               );
               const batchQty = parseInt(batchInput.quantity, 10) || 0;
               if (batchQty <= 0) {
-                console.log('  ⚠️ Skipping batch: invalid quantity');
+                console.log('   Skipping batch: invalid quantity');
                 continue;
               }
               console.log('  Batch quantity to unload:', batchQty);
@@ -1187,7 +1200,7 @@ async function processApprovedVanInventoryStock(
 
               if (!batchLot) {
                 console.log(
-                  '  ❌ Skipping: batch_lot not found for batch_number',
+                  '   Skipping: batch_lot not found for batch_number',
                   batchInput.batch_number
                 );
                 continue;
@@ -1211,7 +1224,7 @@ async function processApprovedVanInventoryStock(
 
               if (!vanItem) {
                 console.log(
-                  '  ❌ Skipping: van_inventory_item not found for this batch'
+                  '   Skipping: van_inventory_item not found for this batch'
                 );
                 continue;
               }
@@ -1222,7 +1235,7 @@ async function processApprovedVanInventoryStock(
 
               if (vanItem.quantity < batchQty) {
                 console.log(
-                  '  ⚠️ Skipping: van_item quantity (',
+                  '   Skipping: van_item quantity (',
                   vanItem.quantity,
                   ') < batchQty (',
                   batchQty,
@@ -1263,7 +1276,7 @@ async function processApprovedVanInventoryStock(
                 });
                 console.log('  inventory_stock updated');
               } else {
-                console.log('  ℹ️ inventory_stock not found for this batch');
+                console.log('   inventory_stock not found for this batch');
               }
 
               console.log('   Creating VAN_UNLOAD stock movement');
@@ -1285,13 +1298,23 @@ async function processApprovedVanInventoryStock(
             }
           } else if (trackingType === 'SERIAL') {
             console.log('  Tracking type: SERIAL');
-            const serialData = normalizeInventoryItemSerials(item);
+            let serialData = normalizeInventoryItemSerials(item);
+            if ((!Array.isArray(serialData) || serialData.length === 0) && item.van_inventory_serial) {
+              serialData = [
+                {
+                  serial_number: item.van_inventory_serial.serial_number,
+                  batch_id: item.van_inventory_serial.batch_id,
+                  warranty_expiry: item.van_inventory_serial.warranty_expiry,
+                  customer_id: item.van_inventory_serial.customer_id,
+                },
+              ];
+            }
             console.log(
               '  Normalized serial data:',
               JSON.stringify(serialData, null, 2)
             );
             if (!Array.isArray(serialData) || serialData.length === 0) {
-              console.log('  ⚠️ Skipping: no serial data');
+              console.log('   Skipping: no serial data');
               continue;
             }
             console.log(`  Found ${serialData.length} serials to unload`);
@@ -1312,7 +1335,7 @@ async function processApprovedVanInventoryStock(
               console.log('  Extracted serial number:', serialNumber);
 
               if (!serialNumber) {
-                console.log('  ⚠️ Skipping serial: no serial number');
+                console.log('   Skipping serial: no serial number');
                 continue;
               }
 
@@ -1321,7 +1344,7 @@ async function processApprovedVanInventoryStock(
               });
 
               if (!existingSerial) {
-                console.log('  ❌ Skipping: serial not found');
+                console.log('   Skipping: serial not found');
                 continue;
               }
               console.log(
@@ -1344,7 +1367,7 @@ async function processApprovedVanInventoryStock(
 
               if (!vanItem) {
                 console.log(
-                  '  ❌ Skipping: van_inventory_item not found for this serial'
+                  '   Skipping: van_inventory_item not found for this serial'
                 );
                 continue;
               }
@@ -1381,7 +1404,7 @@ async function processApprovedVanInventoryStock(
                 });
                 console.log('  inventory_stock updated');
               } else {
-                console.log('  ℹ️ inventory_stock not found for this serial');
+                console.log('   inventory_stock not found for this serial');
               }
 
               console.log('   Creating VAN_UNLOAD stock movement');
@@ -1418,7 +1441,7 @@ async function processApprovedVanInventoryStock(
             });
 
             if (!vanItem) {
-              console.log('  ❌ Skipping: van_inventory_item not found');
+              console.log('   Skipping: van_inventory_item not found');
               continue;
             }
             console.log(
@@ -1428,7 +1451,7 @@ async function processApprovedVanInventoryStock(
 
             if (vanItem.quantity < qty) {
               console.log(
-                '  ⚠️ Skipping: van_item quantity (',
+                '   Skipping: van_item quantity (',
                 vanItem.quantity,
                 ') < qty (',
                 qty,
@@ -1470,7 +1493,7 @@ async function processApprovedVanInventoryStock(
               });
               console.log('  inventory_stock updated');
             } else {
-              console.log('  ℹ️ inventory_stock not found');
+              console.log('   inventory_stock not found');
             }
 
             console.log('   Creating VAN_UNLOAD stock movement');
@@ -1493,7 +1516,7 @@ async function processApprovedVanInventoryStock(
         }
       }
     },
-    { maxWait: 10000, timeout: 60000 }
+    { maxWait: 60000, timeout: 1200000 }
   );
 }
 
@@ -6381,6 +6404,191 @@ export const vanInventoryController = {
     }
   },
 
+  // async unloadVanInventory(req: Request, res: Response) {
+  //   try {
+  //     const loggedInUserId = (req as any).user?.id;
+  //     const targetUserId = req.body.user_id || loggedInUserId;
+
+  //     if (!targetUserId) {
+  //       return res.status(401).json({
+  //         success: false,
+  //         message: 'User not authenticated or token invalid',
+  //       });
+  //     }
+
+  //     const userIdNum = parseInt(targetUserId.toString(), 10);
+
+  //     const vanLocations = await prisma.van_inventory.findMany({
+  //       where: { user_id: userIdNum, is_active: 'Y' },
+  //       select: { location_id: true, vehicle_id: true },
+  //       distinct: ['location_id'],
+  //     });
+
+  //     if (vanLocations.length === 0) {
+  //       return res.status(400).json({
+  //         success: false,
+  //         message: 'No active van inventory found for authenticated user',
+  //       });
+  //     }
+
+  //     let totalItemsUnloaded = 0;
+  //     const processedVanInventoryIds: number[] = [];
+  //     const errors: string[] = [];
+
+  //     for (const vanLoc of vanLocations) {
+  //       const locationId = vanLoc.location_id;
+  //       if (!locationId) continue;
+
+  //       try {
+  //         await prisma.$transaction(async tx => {
+  //           // Find stock to unload
+  //           const stockToUnload = await tx.inventory_stock.findMany({
+  //             where: {
+  //               location_id: locationId,
+  //               salesperson_id: userIdNum,
+  //               OR: [
+  //                 { current_stock: { gt: 0 } },
+  //                 { base_quantity: { gt: 0 } },
+  //               ],
+  //             },
+  //             include: {
+  //               inventory_stock_products: true,
+  //             },
+  //           });
+
+  //           if (stockToUnload.length === 0) return;
+
+  //           const newVanInventory = await tx.van_inventory.create({
+  //             data: {
+  //               user_id: userIdNum,
+  //               location_id: vanLoc.location_id,
+  //               vehicle_id: vanLoc.vehicle_id,
+  //               loading_type: 'U',
+  //               is_active: 'Y',
+  //               document_date: new Date(),
+  //               createdate: new Date(),
+  //               createdby: userIdNum,
+  //               log_inst: 1,
+  //             },
+  //           });
+
+  //           const stockMovementData: any[] = [];
+  //           const vanInventoryItemsData: any[] = [];
+  //           const serialNumberIds: number[] = [];
+  //           const stockIdsToUpdate: number[] = [];
+
+  //           for (const stock of stockToUnload) {
+  //             const product = (stock as any).inventory_stock_products;
+  //             if (!product) continue;
+
+  //             const unloadQty = stock.current_stock || 0;
+  //             const unloadBaseQty = stock.base_quantity || 0;
+
+  //             if (unloadQty <= 0 && unloadBaseQty <= 0) continue;
+
+  //             stockIdsToUpdate.push(stock.id);
+  //             if (stock.serial_number_id) {
+  //               serialNumberIds.push(stock.serial_number_id);
+  //             }
+
+  //             // Add to stock_movements
+  //             stockMovementData.push({
+  //               product_id: stock.product_id,
+  //               batch_id: stock.batch_id ?? null,
+  //               serial_id: stock.serial_number_id ?? null,
+  //               movement_type: 'VAN_UNLOAD',
+  //               reference_type: 'VAN_INVENTORY',
+  //               reference_id: newVanInventory.id,
+  //               from_location_id: null,
+  //               to_location_id: null,
+  //               quantity: unloadQty,
+  //               movement_date: new Date(),
+  //               remarks: `Van unloaded from ${vanLoc.vehicle_id ? `vehicle ${vanLoc.vehicle_id}` : 'location'} for user ${userIdNum}`,
+  //               is_active: 'Y',
+  //               createdate: new Date(),
+  //               createdby: userIdNum,
+  //               log_inst: 1,
+  //               van_inventory_id: newVanInventory.id,
+  //             });
+
+  //             // Add to van_inventory_items
+  //             vanInventoryItemsData.push({
+  //               parent_id: newVanInventory.id,
+  //               product_id: stock.product_id,
+  //               batch_lot_id: stock.batch_id ?? null,
+  //               serial_id: stock.serial_number_id ?? null,
+  //               quantity: unloadQty,
+  //               base_quantity: unloadBaseQty,
+  //               product_name: product.name,
+  //               unit: null,
+  //               unit_price: product.selling_price || 0,
+  //               discount_amount: 0,
+  //               tax_amount: 0,
+  //               total_amount: unloadQty * Number(product.selling_price || 0),
+  //               notes: 'Unloaded from inventory_stock',
+  //             });
+
+  //             totalItemsUnloaded++;
+  //           }
+
+  //           if (stockIdsToUpdate.length > 0) {
+  //             await tx.inventory_stock.updateMany({
+  //               where: { id: { in: stockIdsToUpdate } },
+  //               data: {
+  //                 current_stock: 0,
+  //                 available_stock: 0,
+  //                 base_quantity: 0,
+  //                 updatedate: new Date(),
+  //                 updatedby: userIdNum,
+  //               },
+  //             });
+  //           }
+
+  //           if (stockMovementData.length > 0) {
+  //             await tx.stock_movements.createMany({
+  //               data: stockMovementData,
+  //             });
+  //           }
+
+  //           if (vanInventoryItemsData.length > 0) {
+  //             await tx.van_inventory_items.createMany({
+  //               data: vanInventoryItemsData,
+  //             });
+  //           }
+
+  //           processedVanInventoryIds.push(newVanInventory.id);
+  //         });
+  //       } catch (vanLocError: any) {
+  //         console.error(
+  //           `Failed to process van location ${vanLoc.location_id}:`,
+  //           vanLocError
+  //         );
+  //         errors.push(`Location ${vanLoc.location_id}: ${vanLocError.message}`);
+  //         continue;
+  //       }
+  //     }
+
+  //     return res.json({
+  //       success: true,
+  //       message: 'Van inventory unloaded successfully for user',
+  //       data: {
+  //         user_id: userIdNum,
+  //         van_inventories_processed: processedVanInventoryIds,
+  //         total_items_unloaded: totalItemsUnloaded,
+  //         unloaded_date: new Date(),
+  //         errors: errors.length > 0 ? errors : undefined,
+  //       },
+  //     });
+  //   } catch (error: any) {
+  //     console.error('Unload Van Inventory Error:', error);
+  //     return res.status(500).json({
+  //       success: false,
+  //       message: 'Failed to unload van inventory',
+  //       error: error.message,
+  //     });
+  //   }
+  // },
+
   async unloadVanInventory(req: Request, res: Response) {
     try {
       const loggedInUserId = (req as any).user?.id;
@@ -6396,8 +6604,14 @@ export const vanInventoryController = {
       const userIdNum = parseInt(targetUserId.toString(), 10);
 
       const vanLocations = await prisma.van_inventory.findMany({
-        where: { user_id: userIdNum, is_active: 'Y' },
-        select: { location_id: true, vehicle_id: true },
+        where: {
+          user_id: userIdNum,
+          is_active: 'Y',
+        },
+        select: {
+          location_id: true,
+          vehicle_id: true,
+        },
         distinct: ['location_id'],
       });
 
@@ -6408,39 +6622,54 @@ export const vanInventoryController = {
         });
       }
 
-      let totalItemsUnloaded = 0;
+      let totalItemsRequested = 0;
       const processedVanInventoryIds: number[] = [];
       const errors: string[] = [];
 
       for (const vanLoc of vanLocations) {
         const locationId = vanLoc.location_id;
+
         if (!locationId) continue;
+
+        let createdVanInventoryId: number | null = null;
+        let createdReconciliationId: number | null = null;
 
         try {
           await prisma.$transaction(async tx => {
-            // Find stock to unload
             const stockToUnload = await tx.inventory_stock.findMany({
               where: {
                 location_id: locationId,
                 salesperson_id: userIdNum,
                 OR: [
-                  { current_stock: { gt: 0 } },
-                  { base_quantity: { gt: 0 } },
+                  {
+                    current_stock: {
+                      gt: 0,
+                    },
+                  },
+                  {
+                    base_quantity: {
+                      gt: 0,
+                    },
+                  },
                 ],
               },
               include: {
                 inventory_stock_products: true,
+                inventory_stock_batch: true,
               },
             });
 
-            if (stockToUnload.length === 0) return;
+            if (stockToUnload.length === 0) {
+              return;
+            }
 
             const newVanInventory = await tx.van_inventory.create({
               data: {
                 user_id: userIdNum,
-                location_id: vanLoc.location_id,
+                location_id: locationId,
                 vehicle_id: vanLoc.vehicle_id,
                 loading_type: 'U',
+                approval_status: 'P',
                 is_active: 'Y',
                 document_date: new Date(),
                 createdate: new Date(),
@@ -6449,13 +6678,13 @@ export const vanInventoryController = {
               },
             });
 
-            const stockMovementData: any[] = [];
+            createdVanInventoryId = newVanInventory.id;
+
             const vanInventoryItemsData: any[] = [];
-            const serialNumberIds: number[] = [];
-            const stockIdsToUpdate: number[] = [];
 
             for (const stock of stockToUnload) {
               const product = (stock as any).inventory_stock_products;
+
               if (!product) continue;
 
               const unloadQty = stock.current_stock || 0;
@@ -6463,32 +6692,6 @@ export const vanInventoryController = {
 
               if (unloadQty <= 0 && unloadBaseQty <= 0) continue;
 
-              stockIdsToUpdate.push(stock.id);
-              if (stock.serial_number_id) {
-                serialNumberIds.push(stock.serial_number_id);
-              }
-
-              // Add to stock_movements
-              stockMovementData.push({
-                product_id: stock.product_id,
-                batch_id: stock.batch_id ?? null,
-                serial_id: stock.serial_number_id ?? null,
-                movement_type: 'VAN_UNLOAD',
-                reference_type: 'VAN_INVENTORY',
-                reference_id: newVanInventory.id,
-                from_location_id: null,
-                to_location_id: null,
-                quantity: unloadQty,
-                movement_date: new Date(),
-                remarks: `Van unloaded from ${vanLoc.vehicle_id ? `vehicle ${vanLoc.vehicle_id}` : 'location'} for user ${userIdNum}`,
-                is_active: 'Y',
-                createdate: new Date(),
-                createdby: userIdNum,
-                log_inst: 1,
-                van_inventory_id: newVanInventory.id,
-              });
-
-              // Add to van_inventory_items
               vanInventoryItemsData.push({
                 parent_id: newVanInventory.id,
                 product_id: stock.product_id,
@@ -6502,29 +6705,10 @@ export const vanInventoryController = {
                 discount_amount: 0,
                 tax_amount: 0,
                 total_amount: unloadQty * Number(product.selling_price || 0),
-                notes: 'Unloaded from inventory_stock',
+                notes: 'Pending unload approval',
               });
 
-              totalItemsUnloaded++;
-            }
-
-            if (stockIdsToUpdate.length > 0) {
-              await tx.inventory_stock.updateMany({
-                where: { id: { in: stockIdsToUpdate } },
-                data: {
-                  current_stock: 0,
-                  available_stock: 0,
-                  base_quantity: 0,
-                  updatedate: new Date(),
-                  updatedby: userIdNum,
-                },
-              });
-            }
-
-            if (stockMovementData.length > 0) {
-              await tx.stock_movements.createMany({
-                data: stockMovementData,
-              });
+              totalItemsRequested++;
             }
 
             if (vanInventoryItemsData.length > 0) {
@@ -6533,34 +6717,166 @@ export const vanInventoryController = {
               });
             }
 
-            processedVanInventoryIds.push(newVanInventory.id);
+            // Create reconciliation entry if it does not exist for today
+            const user = await tx.users.findUnique({
+              where: { id: userIdNum },
+              select: {
+                id: true,
+                name: true,
+                employee_id: true,
+                depot_id: true,
+                sap_code: true,
+              },
+            });
+
+            if (user) {
+              const now = new Date();
+              const today = new Date(
+                Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())
+              );
+              const tomorrow = new Date(today);
+              tomorrow.setDate(tomorrow.getDate() + 1);
+
+              const existingRecon = await tx.reconciliation.findFirst({
+                where: {
+                  salesman_id: userIdNum,
+                  reconciliation_date: { gte: today, lt: tomorrow },
+                  is_active: 'Y',
+                },
+              });
+
+              if (!existingRecon) {
+                const productMap = new Map<string, {
+                  product_id: number;
+                  product_code: string;
+                  total_qty: number;
+                  batch_number: string | null;
+                }>();
+
+                for (const stock of stockToUnload) {
+                  if (stock.product_id === null) continue;
+                  const qty = Number(stock.current_stock) || 0;
+                  if (qty <= 0) continue;
+                  const batchNum = stock.inventory_stock_batch?.batch_number ?? null;
+                  const productCode = stock.inventory_stock_products?.code || String(stock.product_id);
+                  const key = `${stock.product_id}-${batchNum}`;
+                  const existing = productMap.get(key);
+
+                  if (existing) {
+                    existing.total_qty += qty;
+                  } else {
+                    productMap.set(key, {
+                      product_id: stock.product_id,
+                      product_code: productCode,
+                      total_qty: qty,
+                      batch_number: batchNum,
+                    });
+                  }
+                }
+
+                if (productMap.size > 0) {
+                  const reconciliation = await tx.reconciliation.create({
+                    data: {
+                      salesman_id: userIdNum,
+                      depot_id: user.depot_id ?? null,
+                      status: 'P',
+                      reconciliation_date: today,
+                      is_active: 'Y',
+                      createdate: new Date(),
+                      createdby: userIdNum,
+                    },
+                  });
+                  createdReconciliationId = reconciliation.id;
+
+                  const itemsData = Array.from(productMap.values()).map(p => ({
+                    reconciliation_id: reconciliation.id,
+                    product_id: p.product_id,
+                    batch_number: p.batch_number,
+                    expected_qty: p.total_qty,
+                    actual_qty: null,
+                    variance: null,
+                    resolution_action: 'Awaiting Verification',
+                    default_outlet_posting_qty: 0,
+                    unload_adjustment_qty: 0,
+                    stock_key: `${user.sap_code ?? user.id} | ${p.product_code} | ${p.batch_number}`,
+                    is_active: 'Y',
+                    createdate: new Date(),
+                    createdby: userIdNum,
+                  }));
+
+                  await tx.reconciliation_items.createMany({ data: itemsData });
+                }
+              }
+            }
           });
+
+          if (createdVanInventoryId) {
+            let targetReconciliationId: number | null = createdReconciliationId;
+
+            if (!targetReconciliationId) {
+              const now = new Date();
+              const today = new Date(
+                Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())
+              );
+              const tomorrow = new Date(today);
+              tomorrow.setDate(tomorrow.getDate() + 1);
+
+              const existingRecon = await prisma.reconciliation.findFirst({
+                where: {
+                  salesman_id: userIdNum,
+                  reconciliation_date: { gte: today, lt: tomorrow },
+                  is_active: 'Y',
+                },
+              });
+              if (existingRecon) {
+                targetReconciliationId = existingRecon.id;
+              }
+            }
+
+            const reqType = targetReconciliationId ? 'RECONCILIATION_APPROVAL' : 'VAN_INVENTORY';
+            const refId = targetReconciliationId || createdVanInventoryId;
+
+            await createRequest({
+              requester_id: userIdNum,
+              request_type: reqType,
+              reference_id: refId,
+              request_data: JSON.stringify({
+                loading_type: 'U',
+                van_inventory_id: createdVanInventoryId,
+              }),
+              createdby: userIdNum,
+              log_inst: 1,
+            });
+
+            processedVanInventoryIds.push(createdVanInventoryId);
+          }
         } catch (vanLocError: any) {
           console.error(
-            `Failed to process van location ${vanLoc.location_id}:`,
+            `Failed to process location ${locationId}:`,
             vanLocError
           );
-          errors.push(`Location ${vanLoc.location_id}: ${vanLocError.message}`);
-          continue;
+
+          errors.push(`Location ${locationId}: ${vanLocError.message}`);
         }
       }
 
       return res.json({
         success: true,
-        message: 'Van inventory unloaded successfully for user',
+        message: 'Unload request submitted for approval successfully.',
         data: {
           user_id: userIdNum,
-          van_inventories_processed: processedVanInventoryIds,
-          total_items_unloaded: totalItemsUnloaded,
-          unloaded_date: new Date(),
-          errors: errors.length > 0 ? errors : undefined,
+          van_inventory_ids: processedVanInventoryIds,
+          total_items_requested: totalItemsRequested,
+          request_date: new Date(),
+          errors: errors.length ? errors : undefined,
         },
       });
     } catch (error: any) {
       console.error('Unload Van Inventory Error:', error);
+
       return res.status(500).json({
         success: false,
-        message: 'Failed to unload van inventory',
+        message: 'Failed to submit unload request',
         error: error.message,
       });
     }

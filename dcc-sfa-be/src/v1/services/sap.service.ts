@@ -3733,7 +3733,7 @@ export const sapService = {
         return result;
       },
       {
-        maxWait: 60000,
+        maxWait: 6000000,
         timeout: 1200000,
       }
     );
@@ -4250,7 +4250,7 @@ export const sapService = {
         }
       },
       {
-        maxWait: 60000,
+        maxWait: 6000000,
         timeout: 300000,
       }
     );

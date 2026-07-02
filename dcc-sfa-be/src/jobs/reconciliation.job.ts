@@ -75,6 +75,23 @@ export async function runReconciliationJob() {
           continue;
         }
 
+        const hasUnloadToday = await prisma.van_inventory.findFirst({
+          where: {
+            user_id: salesman.id,
+            loading_type: 'U',
+            createdate: { gte: today, lt: tomorrow },
+            is_active: 'Y',
+          },
+        });
+
+        if (hasUnloadToday) {
+          results.skipped++;
+          logger.info(
+            `Reconciliation Cron: Skipping ${salesman.name} — has active unload request/entry today`
+          );
+          continue;
+        }
+
         const stockRecords = await prisma.inventory_stock.findMany({
           where: {
             salesperson_id: salesman.id,
