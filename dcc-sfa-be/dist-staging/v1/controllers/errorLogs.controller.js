@@ -9,7 +9,7 @@ const prisma_client_1 = __importDefault(require("../../configs/prisma.client"));
 const ipLocation_util_1 = require("../../utils/ipLocation.util");
 /**
  * Error Logs Controller
- * Handles error log queries
+ * Handles error log queries and triggers a reload
  */
 exports.errorLogsController = {
     /**

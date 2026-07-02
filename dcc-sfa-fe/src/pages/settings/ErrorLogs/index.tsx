@@ -55,7 +55,7 @@ const ErrorLogs: React.FC = () => {
       id: 'message',
       label: 'Error Message',
       render: value => (
-        <Tooltip title={value} placement="top">
+        <Tooltip title={value} placement="top" arrow>
           <div className="max-w-xs truncate text-red-600 font-medium">
             {value}
           </div>
