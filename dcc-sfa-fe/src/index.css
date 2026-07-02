@@ -188,3 +188,21 @@ body.ai-fullscreen-active .w-72,
 body.ai-fullscreen-active div:has(> .breadcrambs) {
   display: none !important;
 }
+
+
+.MuiTooltip-tooltip {
+  background-color: white !important;
+  border-radius: 6px !important;
+  color: black !important;
+  max-width: 400px !important;
+  border: 2px #b5b5b533 solid !important;
+  -tw-shadow: 0 1px 3px 0 var(--tw-shadow-color, #0000001a), 0 1px 2px -1px var(--tw-shadow-color, #0000001a);
+  box-shadow: var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)
+}
+
+.MuiTooltip-arrow::before {
+  border: 2px #b5b5b533 solid !important;
+  background-color: white !important;
+  --tw-shadow: 0 1px 3px 0 var(--tw-shadow-color, #0000001a), 0 1px 2px -1px var(--tw-shadow-color, #0000001a);
+  box-shadow: var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
+}

@@ -19,7 +19,7 @@ import {
   MdRoute,
   MdSettings,
   MdShoppingCart,
-  // MdSmartToy,
+  MdSmartToy,
   MdStore,
   MdSwapHoriz,
   MdTrendingUp,
@@ -33,6 +33,9 @@ export interface MenuItem {
   children?: MenuItem[];
   href?: string;
 }
+
+const isLocalOrStaging =
+  import.meta.env.MODE === 'development' || import.meta.env.MODE === 'staging';
 
 const menuItems: MenuItem[] = [
   {
@@ -53,18 +56,22 @@ const menuItems: MenuItem[] = [
       },
     ],
   },
-  // {
-  //   id: 'ai-assistant-group',
-  //   label: 'AI Assistant',
-  //   children: [
-  //     {
-  //       id: 'ai-assistant',
-  //       label: 'Ask Assistant',
-  //       icon: MdSmartToy,
-  //       href: '/ai-assistant',
-  //     },
-  //   ],
-  // },
+  ...(isLocalOrStaging
+    ? [
+        {
+          id: 'ai-assistant-group',
+          label: 'AI Assistant',
+          children: [
+            {
+              id: 'ai-assistant',
+              label: 'Ask Assistant',
+              icon: MdSmartToy,
+              href: '/ai-assistant',
+            },
+          ],
+        },
+      ]
+    : []),
   {
     id: 'masters',
     label: 'Masters',
@@ -74,11 +81,15 @@ const menuItems: MenuItem[] = [
         label: 'Organization Setup',
         icon: MdBusiness,
         children: [
-          // {
-          //   id: 'organization-chart',
-          //   label: 'Organization Chart',
-          //   href: '/masters/organization-chart',
-          // },
+          ...(isLocalOrStaging
+            ? [
+                {
+                  id: 'organization-chart',
+                  label: 'Organization Chart',
+                  href: '/masters/organization-chart',
+                },
+              ]
+            : []),
           {
             id: 'user-master',
             label: 'User Master',
