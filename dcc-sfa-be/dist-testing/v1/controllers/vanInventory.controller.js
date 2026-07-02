@@ -472,8 +472,19 @@ async function processApprovedVanInventoryStock(inventoryId, userId, requestData
             const item = items[i];
             console.log(`--- Processing item ${i + 1}/${items.length} ---`);
             console.log('  Item data:', JSON.stringify(item, null, 2));
-            if (!item?.product_id) {
-                console.log('  ⚠️ Skipping: no product_id');
+            let productId = item?.product_id;
+            if (!productId && item?.product_sap_code) {
+                console.log('  No product_id, trying to find product by product_sap_code:', item.product_sap_code);
+                const productBySapCode = await tx.products.findFirst({
+                    where: { sap_code: item.product_sap_code },
+                });
+                if (productBySapCode) {
+                    productId = productBySapCode.id;
+                    console.log('  Found product by sap_code, product_id:', productId);
+                }
+            }
+            if (!productId) {
+                console.log('  ⚠️ Skipping: no product_id and product not found by sap_code');
                 continue;
             }
             const qty = parseInt(item.quantity, 10) || 0;
@@ -483,11 +494,11 @@ async function processApprovedVanInventoryStock(inventoryId, userId, requestData
             }
             console.log('  Quantity:', qty);
             const product = await tx.products.findUnique({
-                where: { id: Number(item.product_id) },
+                where: { id: Number(productId) },
                 include: { product_unit_of_measurement: true },
             });
             if (!product) {
-                console.log('  ❌ Skipping: product not found for id', item.product_id);
+                console.log('  ❌ Skipping: product not found for id', productId);
                 continue;
             }
             console.log('  Product found:', product.name, '(tracking type:', product.tracking_type, ')');

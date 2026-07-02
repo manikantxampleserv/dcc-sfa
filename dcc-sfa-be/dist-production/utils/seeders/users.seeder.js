@@ -107,7 +107,7 @@ async function createAdminUser() {
                 zone_id: firstZone?.id || null,
                 phone_number: '+255-700-000000',
                 address: 'System Admin Address',
-                employee_id: 'ADMIN001',
+                employee_id: 'EMP001',
                 joining_date: new Date('2024-01-01'),
                 reporting_to: null,
                 profile_image: null,
