@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { paginate } from '../../utils/paginate';
 import prisma from '../../configs/prisma.client';
 import { deleteFile, uploadFile } from '../../utils/blackbaze';
+import { isAdminRole } from '../../configs/permissions.config';
 
 interface AssetMasterSerialized {
   id: number;
@@ -126,31 +127,31 @@ const serializeAssetMaster = (asset: any): AssetMasterSerialized => ({
   asset_master_asset_sub_types: asset.asset_master_asset_sub_types || null,
   asset_brand: asset.asset_master_brands
     ? {
-      id: asset.asset_master_brands.id,
-      name: asset.asset_master_brands.name,
-      code: asset.asset_master_brands.code,
-    }
+        id: asset.asset_master_brands.id,
+        name: asset.asset_master_brands.name,
+        code: asset.asset_master_brands.code,
+      }
     : null,
   last_read_user: asset.asset_master_last_read
     ? {
-      id: asset.asset_master_last_read.id,
-      name: asset.asset_master_last_read.name,
-      email: asset.asset_master_last_read.email,
-    }
+        id: asset.asset_master_last_read.id,
+        name: asset.asset_master_last_read.name,
+        email: asset.asset_master_last_read.email,
+      }
     : null,
   asset_master_depot: asset.asset_master_depot
     ? {
-      id: asset.asset_master_depot.id,
-      name: asset.asset_master_depot.name,
-      code: asset.asset_master_depot.code,
-    }
+        id: asset.asset_master_depot.id,
+        name: asset.asset_master_depot.name,
+        code: asset.asset_master_depot.code,
+      }
     : null,
   asset_master_outlet: asset.asset_master_outlet
     ? {
-      id: asset.asset_master_outlet.id,
-      name: asset.asset_master_outlet.name,
-      code: asset.asset_master_outlet.code,
-    }
+        id: asset.asset_master_outlet.id,
+        name: asset.asset_master_outlet.name,
+        code: asset.asset_master_outlet.code,
+      }
     : null,
   inspections:
     asset.inspections?.map((ins: any) => ({
@@ -392,6 +393,21 @@ export const assetMasterController = {
       const searchLower = search ? (search as string).toLowerCase() : '';
       const statusLower = status ? (status as string).toLowerCase() : '';
 
+      const reqUser = (req as any).user;
+      let isScopeRestricted = false;
+      let depotIds: number[] = [];
+
+      if (reqUser && !isAdminRole(reqUser.role)) {
+        isScopeRestricted = true;
+        const userDepots = await prisma.user_depots.findMany({
+          where: { user_id: reqUser.id },
+          select: { depot_id: true },
+        });
+        depotIds = userDepots
+          .map((ud: any) => ud.depot_id)
+          .filter((id: any) => id !== null) as number[];
+      }
+
       const filters: any = {
         ...(search && {
           OR: [
@@ -411,6 +427,14 @@ export const assetMasterController = {
         ...(outlet_id && { outlet_id: parseInt(outlet_id as string, 10) }),
         ...(only_available === 'true' && { outlet_id: null }),
       };
+
+      if (isScopeRestricted) {
+        if (depotIds.length > 0) {
+          filters.depot_id = { in: depotIds };
+        } else {
+          filters.id = -1;
+        }
+      }
 
       const { data, pagination } = await paginate({
         model: prisma.asset_master,
@@ -511,8 +535,34 @@ export const assetMasterController = {
   async getAssetMasterById(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      const asset = await prisma.asset_master.findUnique({
-        where: { id: Number(id) },
+
+      const reqUser = (req as any).user;
+      let isScopeRestricted = false;
+      let depotIds: number[] = [];
+
+      if (reqUser && !isAdminRole(reqUser.role)) {
+        isScopeRestricted = true;
+        const userDepots = await prisma.user_depots.findMany({
+          where: { user_id: reqUser.id },
+          select: { depot_id: true },
+        });
+        depotIds = userDepots
+          .map((ud: any) => ud.depot_id)
+          .filter((id: any) => id !== null) as number[];
+      }
+
+      const whereClause: any = { id: Number(id) };
+
+      if (isScopeRestricted) {
+        if (depotIds.length > 0) {
+          whereClause.depot_id = { in: depotIds };
+        } else {
+          whereClause.id = -1;
+        }
+      }
+
+      const asset = await prisma.asset_master.findFirst({
+        where: whereClause,
         include: {
           asset_master_image: true,
           asset_maintenance_master: true,

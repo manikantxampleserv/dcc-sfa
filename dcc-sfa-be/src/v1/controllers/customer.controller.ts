@@ -3,6 +3,7 @@ import { paginate } from '../../utils/paginate';
 import prisma from '../../configs/prisma.client';
 import { deleteFile, uploadFile } from '../../utils/blackbaze';
 import { createRequest } from './requests.controller';
+import { isAdminRole } from '../../configs/permissions.config';
 
 const generateCustomerCode = async (depotId: number) => {
   const depot = await prisma.depots.findUnique({
@@ -1510,417 +1511,6 @@ export const customerController = {
     }
   },
 
-  // async getAllCustomers(req: any, res: any) {
-  //   try {
-  //     const {
-  //       page,
-  //       limit,
-  //       search,
-  //       type,
-  //       salesperson_id,
-  //       isActive,
-  //       city_id,
-  //       district_id,
-  //       region_id,
-  //     } = req.query;
-  //     const pageNum = parseInt(page as string, 10) || 1;
-  //     const limitNum = parseInt(limit as string, 10) || 10;
-  //     const searchLower = search ? (search as string).toLowerCase() : '';
-
-  //     const filters: any = {
-  //       ...(search && {
-  //         OR: [
-  //           { name: { contains: searchLower } },
-  //           { code: { contains: searchLower } },
-  //           { email: { contains: searchLower } },
-  //           { phone_number: { contains: searchLower } },
-  //         ],
-  //       }),
-  //       ...(city_id && { city_id: Number(city_id) }),
-  //       ...(district_id && { district_id: Number(district_id) }),
-  //       ...(region_id && { region_id: Number(region_id) }),
-  //       ...(type && type !== 'All' && { type }),
-  //       ...(isActive && { is_active: isActive }),
-  //     };
-
-  //     if (salesperson_id) {
-  //       const salespersonIdNum = parseInt(salesperson_id as string, 10);
-
-  //       const salespersonRoutes = await prisma.routes.findMany({
-  //         where: {
-  //           is_active: 'Y',
-  //           salespersons: {
-  //             some: {
-  //               user_id: salespersonIdNum,
-  //               is_active: 'Y',
-  //             },
-  //           },
-  //         },
-  //         select: {
-  //           id: true,
-  //         },
-  //       });
-
-  //       const routeIds = salespersonRoutes.map(route => route.id);
-
-  //       if (routeIds.length > 0) {
-  //         filters.route_id = {
-  //           in: routeIds,
-  //         };
-  //       } else {
-  //         filters.route_id = -1;
-  //       }
-  //     }
-
-  //     const depots = await prisma.depots.findMany({
-  //       where: {
-  //         default_outlet_id: { not: null },
-  //       },
-  //       select: {
-  //         default_outlet_id: true,
-  //       },
-  //     });
-
-  //     const defaultOutletIds = depots
-  //       .map(depot => depot.default_outlet_id)
-  //       .filter((id): id is number => id != null);
-
-  //     const { data, pagination } = await paginate({
-  //       model: prisma.customers,
-  //       filters,
-  //       page: pageNum,
-  //       limit: limitNum,
-  //       orderBy: { createdate: 'desc' },
-  //       include: {
-  //         customer_zones: true,
-  //         customer_routes: {
-  //           select: {
-  //             id: true,
-  //             name: true,
-  //             code: true,
-  //             description: true,
-  //             start_location: true,
-  //             end_location: true,
-  //             estimated_distance: true,
-  //             estimated_time: true,
-  //             route_type: true,
-  //             outlet_group: true,
-  //             is_active: true,
-  //             salespersons: {
-  //               where: { is_active: 'Y' },
-  //               select: {
-  //                 id: true,
-  //                 user_id: true,
-  //                 role: true,
-  //                 assigned_at: true,
-  //                 is_active: true,
-  //                 user: {
-  //                   select: {
-  //                     id: true,
-  //                     email: true,
-  //                   },
-  //                 },
-  //               },
-  //             },
-  //           },
-  //         },
-  //         customer_users: {
-  //           select: {
-  //             id: true,
-  //             email: true,
-  //           },
-  //         },
-  //         customer_depot: {
-  //           select: {
-  //             id: true,
-  //             name: true,
-  //             code: true,
-  //           },
-  //         },
-  //         default_for_depots: {
-  //           select: {
-  //             id: true,
-  //             name: true,
-  //             code: true,
-  //           },
-  //         },
-  //         customers_city: {
-  //           select: {
-  //             id: true,
-  //             name: true,
-  //             code: true,
-  //           },
-  //         },
-  //         customers_districts: {
-  //           select: {
-  //             id: true,
-  //             name: true,
-  //             code: true,
-  //           },
-  //         },
-  //         customers_regions: {
-  //           select: {
-  //             id: true,
-  //             name: true,
-  //             code: true,
-  //           },
-  //         },
-  //         customer_type_customer: {
-  //           select: {
-  //             id: true,
-  //             type_name: true,
-  //             type_code: true,
-  //           },
-  //         },
-  //         customer_category_customer: {
-  //           select: {
-  //             id: true,
-  //             category_name: true,
-  //             category_code: true,
-  //             level: true,
-  //           },
-  //         },
-  //         customer_channel_customer: {
-  //           select: {
-  //             id: true,
-  //             channel_name: true,
-  //             channel_code: true,
-  //           },
-  //         },
-  //         outlet_images_customers: {
-  //           where: { is_active: 'Y' },
-  //           orderBy: { createdate: 'desc' },
-  //           select: {
-  //             id: true,
-  //             image_url: true,
-  //             createdate: true,
-  //             createdby: true,
-  //           },
-  //         },
-  //       },
-  //     });
-
-  //     let defaultOutlets: any[] = [];
-  //     if (defaultOutletIds.length > 0) {
-  //       defaultOutlets = await prisma.customers.findMany({
-  //         where: {
-  //           id: { in: defaultOutletIds },
-  //         },
-  //         include: {
-  //           customer_zones: true,
-  //           customer_routes: {
-  //             select: {
-  //               id: true,
-  //               name: true,
-  //               code: true,
-  //               description: true,
-  //               start_location: true,
-  //               end_location: true,
-  //               estimated_distance: true,
-  //               estimated_time: true,
-  //               route_type: true,
-  //               outlet_group: true,
-  //               is_active: true,
-  //               salespersons: {
-  //                 where: { is_active: 'Y' },
-  //                 select: {
-  //                   id: true,
-  //                   user_id: true,
-  //                   role: true,
-  //                   assigned_at: true,
-  //                   is_active: true,
-  //                   user: {
-  //                     select: {
-  //                       id: true,
-  //                       email: true,
-  //                     },
-  //                   },
-  //                 },
-  //               },
-  //             },
-  //           },
-  //           customer_users: {
-  //             select: {
-  //               id: true,
-  //               email: true,
-  //             },
-  //           },
-  //           customer_depot: {
-  //             select: {
-  //               id: true,
-  //               name: true,
-  //               code: true,
-  //             },
-  //           },
-  //           default_for_depots: {
-  //             select: {
-  //               id: true,
-  //               name: true,
-  //               code: true,
-  //             },
-  //           },
-  //           customers_city: {
-  //             select: {
-  //               id: true,
-  //               name: true,
-  //               code: true,
-  //             },
-  //           },
-  //           customers_districts: {
-  //             select: {
-  //               id: true,
-  //               name: true,
-  //               code: true,
-  //             },
-  //           },
-  //           customers_regions: {
-  //             select: {
-  //               id: true,
-  //               name: true,
-  //               code: true,
-  //             },
-  //           },
-  //           customer_type_customer: {
-  //             select: {
-  //               id: true,
-  //               type_name: true,
-  //               type_code: true,
-  //             },
-  //           },
-  //           customer_category_customer: {
-  //             select: {
-  //               id: true,
-  //               category_name: true,
-  //               category_code: true,
-  //               level: true,
-  //             },
-  //           },
-  //           customer_channel_customer: {
-  //             select: {
-  //               id: true,
-  //               channel_name: true,
-  //               channel_code: true,
-  //             },
-  //           },
-  //           outlet_images_customers: {
-  //             where: { is_active: 'Y' },
-  //             orderBy: { createdate: 'desc' },
-  //             select: {
-  //               id: true,
-  //               image_url: true,
-  //               createdate: true,
-  //               createdby: true,
-  //             },
-  //           },
-  //         },
-  //       });
-  //     }
-
-  //     const existingIds = new Set(data.map((c: any) => c.id));
-  //     const uniqueDefaultOutlets = defaultOutlets.filter(
-  //       (outlet: any) => !existingIds.has(outlet.id)
-  //     );
-  //     const mergedData = [...data, ...uniqueDefaultOutlets];
-
-  //     const statsFilter: any = {};
-  //     if (salesperson_id) {
-  //       const salespersonIdNum = parseInt(salesperson_id as string, 10);
-
-  //       const salespersonRoutes = await prisma.routes.findMany({
-  //         where: {
-  //           is_active: 'Y',
-  //           salespersons: {
-  //             some: {
-  //               user_id: salespersonIdNum,
-  //               is_active: 'Y',
-  //             },
-  //           },
-  //         },
-  //         select: {
-  //           id: true,
-  //         },
-  //       });
-
-  //       const routeIds = salespersonRoutes.map(route => route.id);
-
-  //       if (routeIds.length > 0) {
-  //         filters.route_id = {
-  //           in: routeIds,
-  //         };
-  //       } else {
-  //         filters.route_id = -1;
-  //       }
-  //     }
-
-  //     const distributors = await prisma.customers.count({
-  //       where: { type: 'Distributor', ...statsFilter },
-  //     });
-  //     const retailers = await prisma.customers.count({
-  //       where: { type: 'Retailer', ...statsFilter },
-  //     });
-  //     const wholesellers = await prisma.customers.count({
-  //       where: { type: 'Wholesaler', ...statsFilter },
-  //     });
-  //     const totalCustomers = await prisma.customers.count({
-  //       where: statsFilter,
-  //     });
-  //     const activeCustomers = await prisma.customers.count({
-  //       where: { is_active: 'Y', ...statsFilter },
-  //     });
-  //     const inactiveCustomers = await prisma.customers.count({
-  //       where: { is_active: 'N', ...statsFilter },
-  //     });
-  //     const totals = await prisma.customers.aggregate({
-  //       where: statsFilter,
-  //       _sum: {
-  //         credit_limit: true,
-  //         outstanding_amount: true,
-  //       },
-  //     });
-
-  //     const totalCreditLimit = totals._sum.credit_limit || 0;
-  //     const totalOutstandingAmount = totals._sum.outstanding_amount || 0;
-
-  //     const now = new Date();
-  //     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  //     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-  //     const newCustomersThisMonth = await prisma.customers.count({
-  //       where: {
-  //         createdate: {
-  //           gte: startOfMonth,
-  //           lte: endOfMonth,
-  //         },
-  //         ...statsFilter,
-  //       },
-  //     });
-
-  //     const serializedData = await Promise.all(
-  //       mergedData.map((c: any) => serializeCustomer(c))
-  //     );
-
-  //     res.success(
-  //       'Customers retrieved successfully',
-  //       serializedData,
-  //       200,
-  //       pagination,
-  //       {
-  //         new_customers_this_month: newCustomersThisMonth,
-  //         total_customers: totalCustomers,
-  //         active_customers: activeCustomers,
-  //         inactive_customers: inactiveCustomers,
-  //         distributors: distributors,
-  //         retailers: retailers,
-  //         wholesaler: wholesellers,
-  //         total_credit_limit: totalCreditLimit,
-  //         total_outstanding_amount: totalOutstandingAmount,
-  //       }
-  //     );
-  //   } catch (error: any) {
-  //     console.error('Get Customers Error:', error);
-  //     res.status(500).json({ message: error.message });
-  //   }
-  // },
-
   async getAllCustomers(req: any, res: any) {
     try {
       const {
@@ -1942,6 +1532,21 @@ export const customerController = {
       const limitNum = parseInt(limit as string, 10) || 10;
       const searchLower = search ? (search as string).toLowerCase() : '';
 
+      const user = (req as any).user;
+      let isScopeRestricted = false;
+      let depotIds: number[] = [];
+
+      if (user && !isAdminRole(user.role)) {
+        isScopeRestricted = true;
+        const userDepots = await prisma.user_depots.findMany({
+          where: { user_id: user.id },
+          select: { depot_id: true },
+        });
+        depotIds = userDepots
+          .map((ud: any) => ud.depot_id)
+          .filter((id: any) => id !== null) as number[];
+      }
+
       const filters: any = {
         ...(search && {
           OR: [
@@ -1958,9 +1563,19 @@ export const customerController = {
         ...(isActive && { is_active: isActive }),
         ...(depot_id && { depot_id: Number(depot_id) }),
         ...(customer_type_id && { customer_type_id: Number(customer_type_id) }),
-        ...(customer_category_id && { customer_category_id: Number(customer_category_id) }),
+        ...(customer_category_id && {
+          customer_category_id: Number(customer_category_id),
+        }),
         ...(customer_channel_id && { customer_channel_id: Number(customer_channel_id) }),
       };
+
+      if (isScopeRestricted) {
+        if (depotIds.length > 0) {
+          filters.depot_id = { in: depotIds };
+        } else {
+          filters.id = -1;
+        }
+      }
 
       let routeIds: number[] = [];
       if (salesperson_id) {
@@ -2357,8 +1972,34 @@ export const customerController = {
   async getCustomersById(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      const customer = await prisma.customers.findUnique({
-        where: { id: Number(id) },
+
+      const user = (req as any).user;
+      let isScopeRestricted = false;
+      let depotIds: number[] = [];
+
+      if (user && !isAdminRole(user.role)) {
+        isScopeRestricted = true;
+        const userDepots = await prisma.user_depots.findMany({
+          where: { user_id: user.id },
+          select: { depot_id: true },
+        });
+        depotIds = userDepots
+          .map((ud: any) => ud.depot_id)
+          .filter((id: any) => id !== null) as number[];
+      }
+
+      const whereClause: any = { id: Number(id) };
+
+      if (isScopeRestricted) {
+        if (depotIds.length > 0) {
+          whereClause.depot_id = { in: depotIds };
+        } else {
+          whereClause.id = -1;
+        }
+      }
+
+      const customer = await prisma.customers.findFirst({
+        where: whereClause,
         include: {
           customer_zones: true,
           customer_routes: true,
@@ -2758,7 +2399,30 @@ export const customerController = {
       const customerId = customer_id ? Number(customer_id) : null;
       const depotId = depot_id ? Number(depot_id) : null;
 
+      const user = (req as any).user;
+      let isScopeRestricted = false;
+      let depotIds: number[] = [];
+
+      if (user && !isAdminRole(user.role)) {
+        isScopeRestricted = true;
+        const userDepots = await prisma.user_depots.findMany({
+          where: { user_id: user.id },
+          select: { depot_id: true },
+        });
+        depotIds = userDepots
+          .map((ud: any) => ud.depot_id)
+          .filter((id: any) => id !== null) as number[];
+      }
+
       const where: any = { is_active: 'Y' };
+
+      if (isScopeRestricted) {
+        if (depotIds.length > 0) {
+          where.depot_id = { in: depotIds };
+        } else {
+          where.id = -1;
+        }
+      }
 
       if (depotId) {
         where.depot_id = depotId;

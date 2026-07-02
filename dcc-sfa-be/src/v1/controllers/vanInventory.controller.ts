@@ -5,6 +5,7 @@ import { getTimeFilter } from '../../utils/dateFilters';
 import { getContainerOwnerAndSelf } from '../utils/inventory.utils';
 import { getSourceSystemLabel } from '../../utils/sourceSystem';
 import { createRequest } from './requests.controller';
+import { isAdminRole } from '../../configs/permissions.config';
 interface VanInventoryItemSerialized {
   id: number;
   parent_id: number;
@@ -4131,6 +4132,21 @@ export const vanInventoryController = {
         time_filter as string | undefined
       );
 
+      const user = req.user;
+      let depotIds: number[] = [];
+      let isScopeRestricted = false;
+
+      if (user && !isAdminRole(user.role)) {
+        isScopeRestricted = true;
+        const userDepots = await prisma.user_depots.findMany({
+          where: { user_id: user.id },
+          select: { depot_id: true },
+        });
+        depotIds = userDepots
+          .map((ud: any) => ud.depot_id)
+          .filter((id: any) => id !== null) as number[];
+      }
+
       const filters: any = {
         ...(search && {
           OR: [
@@ -4145,6 +4161,21 @@ export const vanInventoryController = {
         ...(user_id && { user_id: parseInt(user_id as string, 10) }),
         ...(documentDateFilter && { document_date: documentDateFilter }),
       };
+
+      if (isScopeRestricted) {
+        if (depotIds.length > 0) {
+          filters.van_inventory_users = {
+            ...filters.van_inventory_users,
+            users_depots_users: {
+              some: {
+                depot_id: { in: depotIds },
+              },
+            },
+          };
+        } else {
+          filters.id = -1;
+        }
+      }
 
       const { data, pagination } = await paginate({
         model: prisma.van_inventory,
@@ -4195,11 +4226,14 @@ export const vanInventoryController = {
         inactiveVanInventory,
         vanInventoryThisMonth,
       ] = await Promise.all([
-        prisma.van_inventory.count(),
-        prisma.van_inventory.count({ where: { is_active: 'Y' } }),
-        prisma.van_inventory.count({ where: { is_active: 'N' } }),
+        prisma.van_inventory.count({
+          where: isScopeRestricted ? filters : undefined,
+        }),
+        prisma.van_inventory.count({ where: { ...filters, is_active: 'Y' } }),
+        prisma.van_inventory.count({ where: { ...filters, is_active: 'N' } }),
         prisma.van_inventory.count({
           where: {
+            ...filters,
             createdate: {
               gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
               lt: new Date(
@@ -4235,8 +4269,39 @@ export const vanInventoryController = {
   async getVanInventoryById(req: Request, res: Response) {
     try {
       const { id } = req.params;
+      const user = (req as any).user;
+      let depotIds: number[] = [];
+      let isScopeRestricted = false;
+
+      if (user && !isAdminRole(user.role)) {
+        isScopeRestricted = true;
+        const userDepots = await prisma.user_depots.findMany({
+          where: { user_id: user.id },
+          select: { depot_id: true },
+        });
+        depotIds = userDepots
+          .map((ud: any) => ud.depot_id)
+          .filter((id: any) => id !== null) as number[];
+      }
+
+      const whereClause: any = { id: Number(id) };
+
+      if (isScopeRestricted) {
+        if (depotIds.length > 0) {
+          whereClause.van_inventory_users = {
+            users_depots_users: {
+              some: {
+                depot_id: { in: depotIds },
+              },
+            },
+          };
+        } else {
+          whereClause.id = -1;
+        }
+      }
+
       const record = await prisma.van_inventory.findUnique({
-        where: { id: Number(id) },
+        where: whereClause,
         include: {
           van_inventory_users: true,
           van_inventory_depot: true,

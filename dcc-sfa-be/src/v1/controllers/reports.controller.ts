@@ -1,9 +1,17 @@
 import { Request, Response } from 'express';
 import { paginate } from '../../utils/paginate';
 import prisma from '../../configs/prisma.client';
+import { isAdminRole } from '../../configs/permissions.config';
 
 async function getReportData(filters: any) {
-  const { start_date, end_date, customer_id, status } = filters;
+  const {
+    start_date,
+    end_date,
+    customer_id,
+    status,
+    depotIds,
+    isScopeRestricted,
+  } = filters;
 
   const dateFilter: any = {};
   if (start_date) {
@@ -19,6 +27,20 @@ async function getReportData(filters: any) {
     ...(customer_id && { customer_id: parseInt(customer_id as string) }),
     ...(status && { status: status as string }),
   };
+
+  if (isScopeRestricted) {
+    if (depotIds && depotIds.length > 0) {
+      whereOrders.orders_salesperson_users = {
+        users_depots_users: {
+          some: {
+            depot_id: { in: depotIds },
+          },
+        },
+      };
+    } else {
+      whereOrders.id = -1;
+    }
+  }
 
   const orders = await prisma.orders.findMany({
     where: whereOrders,
@@ -39,6 +61,20 @@ async function getReportData(filters: any) {
     ...(customer_id && { customer_id: parseInt(customer_id as string) }),
     ...(status && { status: status as string }),
   };
+
+  if (isScopeRestricted) {
+    if (depotIds && depotIds.length > 0) {
+      whereInvoices.invoices_salesperson_users = {
+        users_depots_users: {
+          some: {
+            depot_id: { in: depotIds },
+          },
+        },
+      };
+    } else {
+      whereInvoices.id = -1;
+    }
+  }
 
   const invoices = await prisma.invoices.findMany({
     where: whereInvoices,
@@ -69,11 +105,28 @@ export const reportsController = {
     try {
       const { start_date, end_date, customer_id, status } = req.query;
 
+      const reqUser = (req as any).user;
+      let isScopeRestricted = false;
+      let depotIds: number[] = [];
+
+      if (reqUser && !isAdminRole(reqUser.role)) {
+        isScopeRestricted = true;
+        const userDepots = await prisma.user_depots.findMany({
+          where: { user_id: reqUser.id },
+          select: { depot_id: true },
+        });
+        depotIds = userDepots
+          .map((ud: any) => ud.depot_id)
+          .filter((id: any) => id !== null) as number[];
+      }
+
       const { orders, invoices } = await getReportData({
         start_date,
         end_date,
         customer_id,
         status,
+        depotIds,
+        isScopeRestricted,
       });
 
       const totalOrders = orders.length;
@@ -134,7 +187,7 @@ export const reportsController = {
         customer_name: order.orders_customers?.name || 'N/A',
         customer_code: order.orders_customers?.code || 'N/A',
         salesperson_name: order.orders_salesperson_users?.name || 'N/A',
-        salesperson_code: order.orders_salesperson_users?.name || "N/A",
+        salesperson_code: order.orders_salesperson_users?.name || 'N/A',
         salesperson_email: order.orders_salesperson_users?.email || 'N/A',
         salesperson_id: order.orders_salesperson_users?.id || null,
         order_date: order.order_date?.toISOString() || '',
@@ -364,6 +417,21 @@ export const reportsController = {
         sales_target_group_id,
       } = req.query;
 
+      const reqUser = (req as any).user;
+      let isScopeRestricted = false;
+      let depotIds: number[] = [];
+
+      if (reqUser && !isAdminRole(reqUser.role)) {
+        isScopeRestricted = true;
+        const userDepots = await prisma.user_depots.findMany({
+          where: { user_id: reqUser.id },
+          select: { depot_id: true },
+        });
+        depotIds = userDepots
+          .map((ud: any) => ud.depot_id)
+          .filter((id: any) => id !== null) as number[];
+      }
+
       const dateFilter: any = {};
       if (start_date) {
         dateFilter.gte = new Date(start_date as string);
@@ -440,13 +508,33 @@ export const reportsController = {
         salespersonIds.add(requestedSalespersonId);
       }
 
+      const salespersonsWhere: any = {
+        id: { in: Array.from(salespersonIds) },
+        is_active: 'Y',
+      };
+
+      if (isScopeRestricted) {
+        if (depotIds.length > 0) {
+          salespersonsWhere.users_depots_users = {
+            some: {
+              depot_id: { in: depotIds },
+            },
+          };
+        } else {
+          salespersonsWhere.id = -1; // Empty result
+        }
+      }
+
       const salespersons = await prisma.users.findMany({
-        where: {
-          id: { in: Array.from(salespersonIds) },
-          is_active: 'Y',
-        },
+        where: salespersonsWhere,
         select: { id: true, name: true, email: true },
       });
+
+      // Filter out salespersonIds that are not in the depot scope
+      const validSalespersonIds = new Set(salespersons.map(sp => sp.id));
+      const filteredSalespersonIds = Array.from(salespersonIds).filter(id =>
+        validSalespersonIds.has(id)
+      );
 
       const salespersonMap = new Map<number, string>();
       salespersons.forEach(sp => {
@@ -457,7 +545,7 @@ export const reportsController = {
         where: {
           orders: {
             is_active: 'Y',
-            salesperson_id: { in: Array.from(salespersonIds) },
+            salesperson_id: { in: filteredSalespersonIds },
             ...(Object.keys(dateFilter).length > 0 && {
               order_date: dateFilter,
             }),
@@ -992,6 +1080,21 @@ export const reportsController = {
       const { start_date, end_date, asset_type_id, asset_status, customer_id } =
         req.query;
 
+      const reqUser = (req as any).user;
+      let isScopeRestricted = false;
+      let depotIds: number[] = [];
+
+      if (reqUser && !isAdminRole(reqUser.role)) {
+        isScopeRestricted = true;
+        const userDepots = await prisma.user_depots.findMany({
+          where: { user_id: reqUser.id },
+          select: { depot_id: true },
+        });
+        depotIds = userDepots
+          .map((ud: any) => ud.depot_id)
+          .filter((id: any) => id !== null) as number[];
+      }
+
       // Build date filter
       const dateFilter: any = {};
       if (start_date) {
@@ -1009,6 +1112,14 @@ export const reportsController = {
         }),
         ...(asset_status && { current_status: asset_status as string }),
       };
+
+      if (isScopeRestricted) {
+        if (depotIds.length > 0) {
+          whereAssets.depot_id = { in: depotIds };
+        } else {
+          whereAssets.id = -1;
+        }
+      }
 
       const assets = await prisma.asset_master.findMany({
         where: whereAssets,
@@ -1527,6 +1638,21 @@ export const reportsController = {
       const { start_date, end_date, salesperson_id, customer_id, status } =
         req.query;
 
+      const reqUser = (req as any).user;
+      let isScopeRestricted = false;
+      let depotIds: number[] = [];
+
+      if (reqUser && !isAdminRole(reqUser.role)) {
+        isScopeRestricted = true;
+        const userDepots = await prisma.user_depots.findMany({
+          where: { user_id: reqUser.id },
+          select: { depot_id: true },
+        });
+        depotIds = userDepots
+          .map((ud: any) => ud.depot_id)
+          .filter((id: any) => id !== null) as number[];
+      }
+
       // Build date filter
       const dateFilter: any = {};
       if (start_date) {
@@ -1546,6 +1672,20 @@ export const reportsController = {
         ...(customer_id && { customer_id: parseInt(customer_id as string) }),
         ...(status && { status: status as string }),
       };
+
+      if (isScopeRestricted) {
+        if (depotIds.length > 0) {
+          whereVisits.visit_salesperson_users = {
+            users_depots_users: {
+              some: {
+                depot_id: { in: depotIds },
+              },
+            },
+          };
+        } else {
+          whereVisits.id = -1;
+        }
+      }
 
       const visits = await prisma.visits.findMany({
         where: whereVisits,
@@ -2033,6 +2173,21 @@ export const reportsController = {
       const { start_date, end_date, promotion_id, depot_id, zone_id } =
         req.query;
 
+      const reqUser = (req as any).user;
+      let isScopeRestricted = false;
+      let depotIds: number[] = [];
+
+      if (reqUser && !isAdminRole(reqUser.role)) {
+        isScopeRestricted = true;
+        const userDepots = await prisma.user_depots.findMany({
+          where: { user_id: reqUser.id },
+          select: { depot_id: true },
+        });
+        depotIds = userDepots
+          .map((ud: any) => ud.depot_id)
+          .filter((id: any) => id !== null) as number[];
+      }
+
       // Build date filter
       const dateFilter: any = {};
       if (start_date) {
@@ -2061,6 +2216,14 @@ export const reportsController = {
         ...(depot_id && { depot_id: parseInt(depot_id as string) }),
         ...(zone_id && { zone_id: parseInt(zone_id as string) }),
       };
+
+      if (isScopeRestricted) {
+        if (depotIds.length > 0) {
+          wherePromotions.depot_id = { in: depotIds };
+        } else {
+          wherePromotions.id = -1;
+        }
+      }
 
       const promotions = await prisma.promotions.findMany({
         where: wherePromotions,
@@ -2532,6 +2695,21 @@ export const reportsController = {
     try {
       const { start_date, end_date, zone_id, depot_id, route_id } = req.query;
 
+      const reqUser = (req as any).user;
+      let isScopeRestricted = false;
+      let depotIds: number[] = [];
+
+      if (reqUser && !isAdminRole(reqUser.role)) {
+        isScopeRestricted = true;
+        const userDepots = await prisma.user_depots.findMany({
+          where: { user_id: reqUser.id },
+          select: { depot_id: true },
+        });
+        depotIds = userDepots
+          .map((ud: any) => ud.depot_id)
+          .filter((id: any) => id !== null) as number[];
+      }
+
       // Build date filter
       const dateFilter: any = {};
       if (start_date) {
@@ -2547,6 +2725,14 @@ export const reportsController = {
         ...(depot_id && { depot_id: parseInt(depot_id as string) }),
         ...(zone_id && { id: parseInt(zone_id as string) }),
       };
+
+      if (isScopeRestricted) {
+        if (depotIds.length > 0) {
+          whereZones.depot_id = { in: depotIds };
+        } else {
+          whereZones.id = -1;
+        }
+      }
 
       const zones = await prisma.zones.findMany({
         where: whereZones,
@@ -2586,7 +2772,7 @@ export const reportsController = {
             select: { id: true, zones_id: true },
           },
           orders_salesperson_users: {
-            select: { id: true, name: true, email: true, employee_id:true },
+            select: { id: true, name: true, email: true, employee_id: true },
           },
         },
       });
@@ -2974,6 +3160,21 @@ export const reportsController = {
       const { start_date, end_date, salesperson_id, depot_id, zone_id } =
         req.query;
 
+      const reqUser = (req as any).user;
+      let isScopeRestricted = false;
+      let depotIds: number[] = [];
+
+      if (reqUser && !isAdminRole(reqUser.role)) {
+        isScopeRestricted = true;
+        const userDepots = await prisma.user_depots.findMany({
+          where: { user_id: reqUser.id },
+          select: { depot_id: true },
+        });
+        depotIds = userDepots
+          .map((ud: any) => ud.depot_id)
+          .filter((id: any) => id !== null) as number[];
+      }
+
       // Build date filter
       const dateFilter: any = {};
       if (start_date) {
@@ -2995,6 +3196,18 @@ export const reportsController = {
       }
       if (zone_id) {
         whereUsers.zone_id = parseInt(zone_id as string);
+      }
+
+      if (isScopeRestricted) {
+        if (depotIds.length > 0) {
+          whereUsers.users_depots_users = {
+            some: {
+              depot_id: { in: depotIds },
+            },
+          };
+        } else {
+          whereUsers.id = -1;
+        }
       }
 
       const users = await prisma.users.findMany({
@@ -3404,6 +3617,21 @@ export const reportsController = {
     try {
       const { start_date, end_date, customer_id, brand_name } = req.query;
 
+      const reqUser = (req as any).user;
+      let isScopeRestricted = false;
+      let depotIds: number[] = [];
+
+      if (reqUser && !isAdminRole(reqUser.role)) {
+        isScopeRestricted = true;
+        const userDepots = await prisma.user_depots.findMany({
+          where: { user_id: reqUser.id },
+          select: { depot_id: true },
+        });
+        depotIds = userDepots
+          .map((ud: any) => ud.depot_id)
+          .filter((id: any) => id !== null) as number[];
+      }
+
       const whereFilter: any = {
         is_active: 'Y',
       };
@@ -3415,6 +3643,16 @@ export const reportsController = {
         whereFilter.brand_name = {
           contains: brand_name as string,
         };
+      }
+
+      if (isScopeRestricted) {
+        if (depotIds.length > 0) {
+          whereFilter.competitor_activity_customers = {
+            depot_id: { in: depotIds },
+          };
+        } else {
+          whereFilter.id = -1;
+        }
       }
 
       const competitorActivities = await prisma.competitor_activity.findMany({
@@ -3688,11 +3926,36 @@ export const reportsController = {
     try {
       const { start_date, end_date, customer_id, invoice_status } = req.query;
 
+      const reqUser = (req as any).user;
+      let isScopeRestricted = false;
+      let depotIds: number[] = [];
+
+      if (reqUser && !isAdminRole(reqUser.role)) {
+        isScopeRestricted = true;
+        const userDepots = await prisma.user_depots.findMany({
+          where: { user_id: reqUser.id },
+          select: { depot_id: true },
+        });
+        depotIds = userDepots
+          .map((ud: any) => ud.depot_id)
+          .filter((id: any) => id !== null) as number[];
+      }
+
       // Fetch Invoices with outstanding amounts
       const whereInvoices: any = {
         is_active: 'Y',
         ...(invoice_status && { status: invoice_status as string }),
       };
+
+      if (isScopeRestricted) {
+        if (depotIds.length > 0) {
+          whereInvoices.invoices_customers = {
+            depot_id: { in: depotIds },
+          };
+        } else {
+          whereInvoices.id = -1;
+        }
+      }
 
       if (start_date || end_date) {
         whereInvoices.invoice_date = {};
@@ -3779,7 +4042,9 @@ export const reportsController = {
           customer_code: (invoice as any).invoices_customers?.code || 'N/A',
           salesperson_name:
             (invoice as any).orders?.orders_salesperson_users?.name || 'N/A',
-          salesperson_code: (invoice as any).orders?.orders_salesperson_users.employee_id || 'N/A',
+          salesperson_code:
+            (invoice as any).orders?.orders_salesperson_users.employee_id ||
+            'N/A',
           order_number: (invoice as any).orders?.order_number || 'N/A',
           total_amount: Number(invoice.total_amount || 0),
           amount_paid: Number(invoice.amount_paid || 0),
@@ -4084,6 +4349,21 @@ export const reportsController = {
         search,
       } = req.query;
 
+      const reqUser = (req as any).user;
+      let isScopeRestricted = false;
+      let depotIds: number[] = [];
+
+      if (reqUser && !isAdminRole(reqUser.role)) {
+        isScopeRestricted = true;
+        const userDepots = await prisma.user_depots.findMany({
+          where: { user_id: reqUser.id },
+          select: { depot_id: true },
+        });
+        depotIds = userDepots
+          .map((ud: any) => ud.depot_id)
+          .filter((id: any) => id !== null) as number[];
+      }
+
       const pageNum = parseInt(page as string, 10) || 1;
       const limitNum = parseInt(limit as string, 10) || 10;
 
@@ -4116,6 +4396,23 @@ export const reportsController = {
           { action_type: { contains: searchTerm } },
           { address: { contains: searchTerm } },
         ];
+      }
+
+      if (isScopeRestricted) {
+        if (depotIds.length > 0) {
+          filters.attendance_historys = {
+            ...filters.attendance_historys,
+            attendance_users: {
+              users_depots_users: {
+                some: {
+                  depot_id: { in: depotIds },
+                },
+              },
+            },
+          };
+        } else {
+          filters.id = -1;
+        }
       }
 
       const { data, pagination } = await paginate({

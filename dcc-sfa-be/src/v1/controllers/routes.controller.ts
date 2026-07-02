@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { paginate } from '../../utils/paginate';
 import prisma from '../../configs/prisma.client';
+import { isAdminRole } from '../../configs/permissions.config';
 
 interface RouteSerialized {
   id: number;
@@ -225,6 +226,21 @@ export const routesController = {
       const limitNum = parseInt(limit as string, 10) || 10;
       const searchLower = (search as string).toLowerCase();
 
+      const user = (req as any).user;
+      let isScopeRestricted = false;
+      let depotIds: number[] = [];
+
+      if (user && !isAdminRole(user.role)) {
+        isScopeRestricted = true;
+        const userDepots = await prisma.user_depots.findMany({
+          where: { user_id: user.id },
+          select: { depot_id: true },
+        });
+        depotIds = userDepots
+          .map((ud: any) => ud.depot_id)
+          .filter((id: any) => id !== null) as number[];
+      }
+
       const userFilters: any = {
         AND: [
           { is_active: 'Y' },
@@ -292,6 +308,20 @@ export const routesController = {
             },
           ],
         });
+      }
+
+      if (isScopeRestricted) {
+        if (depotIds.length > 0) {
+          userFilters.AND.push({
+            users_depots_users: {
+              some: {
+                depot_id: { in: depotIds },
+              },
+            },
+          });
+        } else {
+          userFilters.AND.push({ id: -1 });
+        }
       }
 
       const { data, pagination } = await paginate({
@@ -610,6 +640,21 @@ export const routesController = {
       const searchLower = search ? (search as string).toLowerCase() : '';
       const statusLower = status ? (status as string).toLowerCase() : '';
 
+      const user = (req as any).user;
+      let isScopeRestricted = false;
+      let depotIds: number[] = [];
+
+      if (user && !isAdminRole(user.role)) {
+        isScopeRestricted = true;
+        const userDepots = await prisma.user_depots.findMany({
+          where: { user_id: user.id },
+          select: { depot_id: true },
+        });
+        depotIds = userDepots
+          .map((ud: any) => ud.depot_id)
+          .filter((id: any) => id !== null) as number[];
+      }
+
       const filters: any = {
         ...(search && {
           OR: [
@@ -627,6 +672,14 @@ export const routesController = {
           is_active: statusLower === 'active' ? 'Y' : 'N',
         }),
       };
+
+      if (isScopeRestricted) {
+        if (depotIds.length > 0) {
+          filters.depot_id = { in: depotIds };
+        } else {
+          filters.id = -1;
+        }
+      }
 
       const { data, pagination } = await paginate({
         model: prisma.routes,
@@ -689,8 +742,34 @@ export const routesController = {
   async getRoutesById(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      const route = await prisma.routes.findUnique({
-        where: { id: Number(id) },
+
+      const user = (req as any).user;
+      let isScopeRestricted = false;
+      let depotIds: number[] = [];
+
+      if (user && !isAdminRole(user.role)) {
+        isScopeRestricted = true;
+        const userDepots = await prisma.user_depots.findMany({
+          where: { user_id: user.id },
+          select: { depot_id: true },
+        });
+        depotIds = userDepots
+          .map((ud: any) => ud.depot_id)
+          .filter((id: any) => id !== null) as number[];
+      }
+
+      const whereClause: any = { id: Number(id) };
+
+      if (isScopeRestricted) {
+        if (depotIds.length > 0) {
+          whereClause.depot_id = { in: depotIds };
+        } else {
+          whereClause.id = -1;
+        }
+      }
+
+      const route = await prisma.routes.findFirst({
+        where: whereClause,
         include: {
           customer_routes: true,
           route_depots: true,

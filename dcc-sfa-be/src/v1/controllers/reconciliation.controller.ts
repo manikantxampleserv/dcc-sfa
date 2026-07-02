@@ -3,6 +3,7 @@ import prisma from '../../configs/prisma.client';
 import { paginate } from '../../utils/paginate';
 import logger from '../../configs/logger';
 import { createRequest } from './requests.controller';
+import { isAdminRole } from '../../configs/permissions.config';
 
 const resolveStatusFilter = (status: string) => {
   if (status === 'Pending')
@@ -34,7 +35,37 @@ export const reconciliationController = {
       const date = req.query.date ? String(req.query.date).trim() : '';
       const status = req.query.status ? String(req.query.status).trim() : '';
 
+      const user = (req as any).user;
+      let isScopeRestricted = false;
+      let depotIds: number[] = [];
+
+      if (user && !isAdminRole(user.role)) {
+        isScopeRestricted = true;
+        const userDepots = await prisma.user_depots.findMany({
+          where: { user_id: user.id },
+          select: { depot_id: true },
+        });
+        depotIds = userDepots
+          .map((ud: any) => ud.depot_id)
+          .filter((id: any) => id !== null) as number[];
+      }
+
       const reconcFilters: any = { is_active: 'Y' };
+
+      if (isScopeRestricted) {
+        if (depotIds.length > 0) {
+          reconcFilters.salesman = {
+            ...reconcFilters.salesman,
+            users_depots_users: {
+              some: {
+                depot_id: { in: depotIds },
+              },
+            },
+          };
+        } else {
+          reconcFilters.id = -1;
+        }
+      }
       if (salesmanId) reconcFilters.salesman_id = salesmanId;
       if (depotId) reconcFilters.depot_id = depotId;
       if (date) {
@@ -197,8 +228,40 @@ export const reconciliationController = {
           .json({ success: false, message: 'Invalid reconciliation ID' });
       }
 
-      const reconciliation = await prisma.reconciliation.findUnique({
-        where: { id },
+      const user = (req as any).user;
+      let isScopeRestricted = false;
+      let depotIds: number[] = [];
+
+      if (user && !isAdminRole(user.role)) {
+        isScopeRestricted = true;
+        const userDepots = await prisma.user_depots.findMany({
+          where: { user_id: user.id },
+          select: { depot_id: true },
+        });
+        depotIds = userDepots
+          .map((ud: any) => ud.depot_id)
+          .filter((id: any) => id !== null) as number[];
+      }
+
+      const whereClause: any = { id };
+
+      if (isScopeRestricted) {
+        if (depotIds.length > 0) {
+          whereClause.salesman = {
+            ...whereClause.salesman,
+            users_depots_users: {
+              some: {
+                depot_id: { in: depotIds },
+              },
+            },
+          };
+        } else {
+          whereClause.id = -1;
+        }
+      }
+
+      const reconciliation = await prisma.reconciliation.findFirst({
+        where: whereClause,
         include: {
           salesman: {
             select: {
