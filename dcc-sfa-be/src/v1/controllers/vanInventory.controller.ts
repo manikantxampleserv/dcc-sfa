@@ -2955,7 +2955,7 @@ export const vanInventoryController = {
   async createOrUpdateVanInventory(req: Request, res: Response) {
     const data = req.body;
     console.log(
-      '=== createOrUpdateVanInventory INCOMING DATA ===',
+      ' createOrUpdateVanInventory INCOMING DATA ',
       JSON.stringify(data, null, 2)
     );
     const userId = (req as any).user?.id || 1;
@@ -2963,7 +2963,7 @@ export const vanInventoryController = {
     const { van_inventory_items, inventoryItems, ...inventoryData } = data;
     const items = van_inventory_items || inventoryItems || [];
     console.log(
-      '=== Extracted items for processing ===',
+      ' Extracted items for processing ',
       JSON.stringify(items, null, 2)
     );
     let inventoryId = inventoryData.id;
