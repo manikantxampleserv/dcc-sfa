@@ -5,6 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.gpsTrackingController = void 0;
 const prisma_client_1 = __importDefault(require("../../configs/prisma.client"));
+const permissions_config_1 = require("../../configs/permissions.config");
 /**
  * GPS Tracking Controller
  * Handles real-time and historical GPS tracking data for sales representatives
@@ -89,6 +90,34 @@ exports.gpsTrackingController = {
             };
             if (user_id) {
                 where.user_id = parseInt(user_id);
+            }
+            const reqUser = req.user;
+            let isScopeRestricted = false;
+            let depotIds = [];
+            if (reqUser && !(0, permissions_config_1.isAdminRole)(reqUser.role)) {
+                isScopeRestricted = true;
+                const userDepots = await prisma_client_1.default.user_depots.findMany({
+                    where: { user_id: reqUser.id },
+                    select: { depot_id: true },
+                });
+                depotIds = userDepots
+                    .map((ud) => ud.depot_id)
+                    .filter((id) => id !== null);
+            }
+            if (isScopeRestricted) {
+                if (depotIds.length > 0) {
+                    where.users_gps_logs_user_idTousers = {
+                        ...where.users_gps_logs_user_idTousers,
+                        users_depots_users: {
+                            some: {
+                                depot_id: { in: depotIds },
+                            },
+                        },
+                    };
+                }
+                else {
+                    where.id = -1;
+                }
             }
             if (start_date || end_date) {
                 where.log_time = {};
@@ -176,10 +205,36 @@ exports.gpsTrackingController = {
      */
     async getRealTimeGPSTracking(req, res) {
         try {
+            const reqUser = req.user;
+            let isScopeRestricted = false;
+            let depotIds = [];
+            if (reqUser && !(0, permissions_config_1.isAdminRole)(reqUser.role)) {
+                isScopeRestricted = true;
+                const userDepots = await prisma_client_1.default.user_depots.findMany({
+                    where: { user_id: reqUser.id },
+                    select: { depot_id: true },
+                });
+                depotIds = userDepots
+                    .map((ud) => ud.depot_id)
+                    .filter((id) => id !== null);
+            }
+            const usersWhere = {
+                is_active: 'Y',
+            };
+            if (isScopeRestricted) {
+                if (depotIds.length > 0) {
+                    usersWhere.users_depots_users = {
+                        some: {
+                            depot_id: { in: depotIds },
+                        },
+                    };
+                }
+                else {
+                    usersWhere.id = -1;
+                }
+            }
             const users = await prisma_client_1.default.users.findMany({
-                where: {
-                    is_active: 'Y',
-                },
+                where: usersWhere,
                 select: {
                     id: true,
                     name: true,
@@ -252,6 +307,34 @@ exports.gpsTrackingController = {
                 user_id: parseInt(user_id),
                 is_active: 'Y',
             };
+            const reqUser = req.user;
+            let isScopeRestricted = false;
+            let depotIds = [];
+            if (reqUser && !(0, permissions_config_1.isAdminRole)(reqUser.role)) {
+                isScopeRestricted = true;
+                const userDepots = await prisma_client_1.default.user_depots.findMany({
+                    where: { user_id: reqUser.id },
+                    select: { depot_id: true },
+                });
+                depotIds = userDepots
+                    .map((ud) => ud.depot_id)
+                    .filter((id) => id !== null);
+            }
+            if (isScopeRestricted) {
+                if (depotIds.length > 0) {
+                    where.users_gps_logs_user_idTousers = {
+                        ...where.users_gps_logs_user_idTousers,
+                        users_depots_users: {
+                            some: {
+                                depot_id: { in: depotIds },
+                            },
+                        },
+                    };
+                }
+                else {
+                    where.id = -1;
+                }
+            }
             if (start_date || end_date) {
                 where.log_time = {};
                 if (start_date) {
@@ -328,6 +411,19 @@ exports.gpsTrackingController = {
                 dateFilter.lte = new Date(end_date);
             }
             // Fetch Routes
+            const reqUser = req.user;
+            let isScopeRestricted = false;
+            let depotIds = [];
+            if (reqUser && !(0, permissions_config_1.isAdminRole)(reqUser.role)) {
+                isScopeRestricted = true;
+                const userDepots = await prisma_client_1.default.user_depots.findMany({
+                    where: { user_id: reqUser.id },
+                    select: { depot_id: true },
+                });
+                depotIds = userDepots
+                    .map((ud) => ud.depot_id)
+                    .filter((id) => id !== null);
+            }
             const whereRoutes = {
                 is_active: 'Y',
                 ...(depot_id && { depot_id: parseInt(depot_id) }),
@@ -336,6 +432,14 @@ exports.gpsTrackingController = {
                 }),
                 ...(route_id && { id: parseInt(route_id) }),
             };
+            if (isScopeRestricted) {
+                if (depotIds.length > 0) {
+                    whereRoutes.depot_id = { in: depotIds };
+                }
+                else {
+                    whereRoutes.id = -1;
+                }
+            }
             const routes = await prisma_client_1.default.routes.findMany({
                 where: whereRoutes,
                 include: {

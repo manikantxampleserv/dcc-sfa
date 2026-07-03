@@ -8,6 +8,7 @@ const paginate_1 = require("../../utils/paginate");
 const prisma_client_1 = __importDefault(require("../../configs/prisma.client"));
 const blackbaze_1 = require("../../utils/blackbaze");
 const inventory_utils_1 = require("../utils/inventory.utils");
+const permissions_config_1 = require("../../configs/permissions.config");
 function serializeVisit(visit) {
     return {
         id: visit.id,
@@ -1193,7 +1194,9 @@ exports.visitsController = {
                                                             await tx.inventory_stock.findFirst({
                                                                 where: {
                                                                     product_id: product.id,
-                                                                    salesperson_id: { in: targetSalespersonIds },
+                                                                    salesperson_id: {
+                                                                        in: targetSalespersonIds,
+                                                                    },
                                                                     serial_number_id: null,
                                                                     batch_id: null,
                                                                     ...(vanInventory?.location_id && {
@@ -1889,7 +1892,35 @@ exports.visitsController = {
                 console.log('Invalid isActive:', isActive);
                 return res.status(400).json({ message: 'Invalid isActive value' });
             }
+            const user = req.user;
+            let isScopeRestricted = false;
+            let depotIds = [];
+            if (user && !(0, permissions_config_1.isAdminRole)(user.role)) {
+                isScopeRestricted = true;
+                const userDepots = await prisma_client_1.default.user_depots.findMany({
+                    where: { user_id: user.id },
+                    select: { depot_id: true },
+                });
+                depotIds = userDepots
+                    .map((ud) => ud.depot_id)
+                    .filter((id) => id !== null);
+            }
             const filters = {};
+            if (isScopeRestricted) {
+                if (depotIds.length > 0) {
+                    filters.visits_salesperson = {
+                        ...filters.visits_salesperson,
+                        users_depots_users: {
+                            some: {
+                                depot_id: { in: depotIds },
+                            },
+                        },
+                    };
+                }
+                else {
+                    filters.id = -1;
+                }
+            }
             if (sales_person_id) {
                 const salesPersonIdNum = parseInt(sales_person_id, 10);
                 if (isNaN(salesPersonIdNum)) {
@@ -2208,8 +2239,37 @@ exports.visitsController = {
     async getVisitsById(req, res) {
         try {
             const { id } = req.params;
-            const visit = await prisma_client_1.default.visits.findUnique({
-                where: { id: Number(id) },
+            const user = req.user;
+            let isScopeRestricted = false;
+            let depotIds = [];
+            if (user && !(0, permissions_config_1.isAdminRole)(user.role)) {
+                isScopeRestricted = true;
+                const userDepots = await prisma_client_1.default.user_depots.findMany({
+                    where: { user_id: user.id },
+                    select: { depot_id: true },
+                });
+                depotIds = userDepots
+                    .map((ud) => ud.depot_id)
+                    .filter((id) => id !== null);
+            }
+            const whereClause = { id: Number(id) };
+            if (isScopeRestricted) {
+                if (depotIds.length > 0) {
+                    whereClause.visits_salesperson = {
+                        ...whereClause.visits_salesperson,
+                        users_depots_users: {
+                            some: {
+                                depot_id: { in: depotIds },
+                            },
+                        },
+                    };
+                }
+                else {
+                    whereClause.id = -1;
+                }
+            }
+            const visit = await prisma_client_1.default.visits.findFirst({
+                where: whereClause,
                 include: {
                     visit_customers: {
                         select: {

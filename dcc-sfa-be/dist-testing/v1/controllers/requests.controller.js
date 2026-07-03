@@ -353,6 +353,38 @@ const createRequest = async (data) => {
                         updatedby: data.createdby,
                     },
                 });
+                // If this reconciliation approval is linked to a van inventory unload,
+                // auto-approve the van_inventory and trigger stock deduction
+                if (data.request_data) {
+                    try {
+                        const reqData = JSON.parse(data.request_data);
+                        if (reqData && reqData.van_inventory_id) {
+                            await prisma_client_1.default.van_inventory.update({
+                                where: { id: Number(reqData.van_inventory_id) },
+                                data: {
+                                    approval_status: 'A',
+                                    updatedby: data.createdby,
+                                    updatedate: new Date(),
+                                },
+                            });
+                            console.log(`Van Inventory ${reqData.van_inventory_id} auto-approved via RECONCILIATION_APPROVAL (no workflow)`);
+                            // Trigger stock deduction asynchronously after returning
+                            setImmediate(async () => {
+                                try {
+                                    const { vanInventoryController } = await Promise.resolve().then(() => __importStar(require('./vanInventory.controller')));
+                                    await vanInventoryController.processApprovedVanInventoryStock(Number(reqData.van_inventory_id), data.createdby, reqData);
+                                    console.log(`Stock processing completed for auto-approved van inventory ${reqData.van_inventory_id}`);
+                                }
+                                catch (stockErr) {
+                                    console.error('Error processing stock on RECONCILIATION_APPROVAL auto-approve:', stockErr);
+                                }
+                            });
+                        }
+                    }
+                    catch (parseErr) {
+                        console.error('Error parsing request_data on RECONCILIATION_APPROVAL auto-approve:', parseErr);
+                    }
+                }
             }
             if (data.request_type === 'ASSET_MOVEMENT_APPROVAL' &&
                 data.reference_id) {
@@ -1083,6 +1115,51 @@ exports.requestsController = {
                                 updatedby: userId,
                             },
                         });
+                        if (request.request_data) {
+                            try {
+                                const reqData = JSON.parse(request.request_data);
+                                if (reqData && reqData.van_inventory_id) {
+                                    await tx.van_inventory.update({
+                                        where: { id: Number(reqData.van_inventory_id) },
+                                        data: {
+                                            approval_status: 'R',
+                                            updatedby: userId,
+                                            updatedate: new Date(),
+                                        },
+                                    });
+                                    console.log(`Van Inventory ${reqData.van_inventory_id} status updated to REJECTED via RECONCILIATION_APPROVAL rejection`);
+                                }
+                            }
+                            catch (e) {
+                                console.error('Error updating van_inventory status on reconciliation rejection:', e);
+                            }
+                        }
+                        // Delete duplicate pending RECONCILIATION_APPROVAL requests
+                        // sharing the same reconciliation (reference_id) or van_inventory_id
+                        try {
+                            const dupRequests = await tx.sfa_d_requests.findMany({
+                                where: {
+                                    id: { not: Number(request_id) },
+                                    request_type: 'RECONCILIATION_APPROVAL',
+                                    status: 'P',
+                                    reference_id: request.reference_id,
+                                },
+                                select: { id: true },
+                            });
+                            if (dupRequests.length > 0) {
+                                const dupIds = dupRequests.map(r => r.id);
+                                await tx.sfa_d_request_approvals.deleteMany({
+                                    where: { request_id: { in: dupIds } },
+                                });
+                                await tx.sfa_d_requests.deleteMany({
+                                    where: { id: { in: dupIds } },
+                                });
+                                console.log(`Deleted ${dupIds.length} duplicate RECONCILIATION_APPROVAL request(s) after rejection: [${dupIds.join(', ')}]`);
+                            }
+                        }
+                        catch (dupErr) {
+                            console.error('Error deleting duplicate RECONCILIATION_APPROVAL requests on rejection:', dupErr);
+                        }
                     }
                     if (request.request_type === 'ORDER_APPROVAL' &&
                         request.reference_id) {
@@ -1204,6 +1281,139 @@ exports.requestsController = {
                                 updatedby: userId,
                             },
                         });
+                        if (request.request_data) {
+                            try {
+                                const reqData = JSON.parse(request.request_data);
+                                if (reqData && reqData.van_inventory_id) {
+                                    const approvedInventory = await tx.van_inventory.update({
+                                        where: {
+                                            id: Number(reqData.van_inventory_id),
+                                        },
+                                        data: {
+                                            approval_status: 'A',
+                                            updatedby: userId,
+                                            updatedate: new Date(),
+                                        },
+                                    });
+                                    // Reject older requests/inventories for this salesman
+                                    const olderInventories = await tx.van_inventory.findMany({
+                                        where: {
+                                            user_id: approvedInventory.user_id,
+                                            loading_type: approvedInventory.loading_type,
+                                            approval_status: 'P',
+                                            id: {
+                                                not: approvedInventory.id,
+                                            },
+                                        },
+                                        select: {
+                                            id: true,
+                                        },
+                                    });
+                                    if (olderInventories.length > 0) {
+                                        const inventoryIds = olderInventories.map(x => x.id);
+                                        // Reject older inventories
+                                        await tx.van_inventory.updateMany({
+                                            where: {
+                                                id: {
+                                                    in: inventoryIds,
+                                                },
+                                            },
+                                            data: {
+                                                approval_status: 'R',
+                                                is_cancelled: 'Y',
+                                                updatedby: userId,
+                                                updatedate: new Date(),
+                                            },
+                                        });
+                                        // Find all pending workflow requests (both VAN_INVENTORY and RECONCILIATION_APPROVAL)
+                                        const pendingRequests = await tx.sfa_d_requests.findMany({
+                                            where: {
+                                                status: 'P',
+                                                OR: [
+                                                    {
+                                                        request_type: 'VAN_INVENTORY',
+                                                        reference_id: { in: inventoryIds },
+                                                    },
+                                                    {
+                                                        request_type: 'RECONCILIATION_APPROVAL',
+                                                        request_data: {
+                                                            contains: `"van_inventory_id":`
+                                                        }
+                                                    }
+                                                ]
+                                            }
+                                        });
+                                        const requestsToReject = pendingRequests.filter(r => {
+                                            if (r.request_type === 'VAN_INVENTORY')
+                                                return true;
+                                            try {
+                                                const data = JSON.parse(r.request_data || '{}');
+                                                return data.van_inventory_id && inventoryIds.includes(Number(data.van_inventory_id));
+                                            }
+                                            catch {
+                                                return false;
+                                            }
+                                        });
+                                        if (requestsToReject.length > 0) {
+                                            const requestIdsToReject = requestsToReject.map(r => r.id);
+                                            await tx.sfa_d_requests.updateMany({
+                                                where: {
+                                                    id: { in: requestIdsToReject },
+                                                },
+                                                data: {
+                                                    status: 'R',
+                                                    overall_status: 'REJECTED',
+                                                    updatedby: userId,
+                                                    updatedate: new Date(),
+                                                },
+                                            });
+                                            await tx.sfa_d_request_approvals.updateMany({
+                                                where: {
+                                                    request_id: { in: requestIdsToReject },
+                                                    status: 'P',
+                                                },
+                                                data: {
+                                                    status: 'R',
+                                                    remarks: 'Automatically rejected because a newer request was approved.',
+                                                    action_at: new Date(),
+                                                    updatedby: userId,
+                                                    updatedate: new Date(),
+                                                },
+                                            });
+                                        }
+                                    }
+                                }
+                            }
+                            catch (e) {
+                                console.error('Error in takeActionOnRequest for RECONCILIATION_APPROVAL approval side-effects:', e);
+                            }
+                        }
+                        // Delete duplicate pending RECONCILIATION_APPROVAL requests
+                        // sharing the same reconciliation (reference_id)
+                        try {
+                            const dupRequests = await tx.sfa_d_requests.findMany({
+                                where: {
+                                    id: { not: Number(request_id) },
+                                    request_type: 'RECONCILIATION_APPROVAL',
+                                    status: 'P',
+                                    reference_id: request.reference_id,
+                                },
+                                select: { id: true },
+                            });
+                            if (dupRequests.length > 0) {
+                                const dupIds = dupRequests.map(r => r.id);
+                                await tx.sfa_d_request_approvals.deleteMany({
+                                    where: { request_id: { in: dupIds } },
+                                });
+                                await tx.sfa_d_requests.deleteMany({
+                                    where: { id: { in: dupIds } },
+                                });
+                                console.log(`Deleted ${dupIds.length} duplicate RECONCILIATION_APPROVAL request(s) after approval: [${dupIds.join(', ')}]`);
+                            }
+                        }
+                        catch (dupErr) {
+                            console.error('Error deleting duplicate RECONCILIATION_APPROVAL requests on approval:', dupErr);
+                        }
                     }
                     if (request.request_type === 'ASSET_MOVEMENT_APPROVAL' &&
                         request.reference_id) {
@@ -1419,6 +1629,21 @@ exports.requestsController = {
                     }
                     catch (err) {
                         console.error('Error processing approved van inventory stock:', err);
+                    }
+                }
+                if (result.request.request_type === 'RECONCILIATION_APPROVAL' &&
+                    result.request.request_data) {
+                    try {
+                        const reqData = JSON.parse(result.request.request_data);
+                        if (reqData && reqData.van_inventory_id) {
+                            console.log(`Approved RECONCILIATION_APPROVAL request with van_inventory_id detected: requestId=${result.request.id}, vanInventoryId=${reqData.van_inventory_id}`);
+                            const { vanInventoryController } = await Promise.resolve().then(() => __importStar(require('../controllers/vanInventory.controller')));
+                            await vanInventoryController.processApprovedVanInventoryStock(Number(reqData.van_inventory_id), userId, reqData);
+                            console.log(`Completed stock processing for approved RECONCILIATION_APPROVAL request ${reqData.van_inventory_id}`);
+                        }
+                    }
+                    catch (err) {
+                        console.error('Error processing approved van inventory stock from reconciliation approval:', err);
                     }
                 }
                 if (result.request.request_type === 'LOCATION_RESET') {

@@ -7,6 +7,7 @@ exports.assetMasterController = void 0;
 const paginate_1 = require("../../utils/paginate");
 const prisma_client_1 = __importDefault(require("../../configs/prisma.client"));
 const blackbaze_1 = require("../../utils/blackbaze");
+const permissions_config_1 = require("../../configs/permissions.config");
 const generateAssetCode = async (name) => {
     const prefix = name.slice(0, 3).toUpperCase();
     const lastAssetCode = await prisma_client_1.default.asset_master.findFirst({
@@ -280,6 +281,19 @@ exports.assetMasterController = {
             const limitNum = parseInt(limit, 10) || 10;
             const searchLower = search ? search.toLowerCase() : '';
             const statusLower = status ? status.toLowerCase() : '';
+            const reqUser = req.user;
+            let isScopeRestricted = false;
+            let depotIds = [];
+            if (reqUser && !(0, permissions_config_1.isAdminRole)(reqUser.role)) {
+                isScopeRestricted = true;
+                const userDepots = await prisma_client_1.default.user_depots.findMany({
+                    where: { user_id: reqUser.id },
+                    select: { depot_id: true },
+                });
+                depotIds = userDepots
+                    .map((ud) => ud.depot_id)
+                    .filter((id) => id !== null);
+            }
             const filters = {
                 ...(search && {
                     OR: [
@@ -299,6 +313,14 @@ exports.assetMasterController = {
                 ...(outlet_id && { outlet_id: parseInt(outlet_id, 10) }),
                 ...(only_available === 'true' && { outlet_id: null }),
             };
+            if (isScopeRestricted) {
+                if (depotIds.length > 0) {
+                    filters.depot_id = { in: depotIds };
+                }
+                else {
+                    filters.id = -1;
+                }
+            }
             const { data, pagination } = await (0, paginate_1.paginate)({
                 model: prisma_client_1.default.asset_master,
                 filters,
@@ -389,8 +411,30 @@ exports.assetMasterController = {
     async getAssetMasterById(req, res) {
         try {
             const { id } = req.params;
-            const asset = await prisma_client_1.default.asset_master.findUnique({
-                where: { id: Number(id) },
+            const reqUser = req.user;
+            let isScopeRestricted = false;
+            let depotIds = [];
+            if (reqUser && !(0, permissions_config_1.isAdminRole)(reqUser.role)) {
+                isScopeRestricted = true;
+                const userDepots = await prisma_client_1.default.user_depots.findMany({
+                    where: { user_id: reqUser.id },
+                    select: { depot_id: true },
+                });
+                depotIds = userDepots
+                    .map((ud) => ud.depot_id)
+                    .filter((id) => id !== null);
+            }
+            const whereClause = { id: Number(id) };
+            if (isScopeRestricted) {
+                if (depotIds.length > 0) {
+                    whereClause.depot_id = { in: depotIds };
+                }
+                else {
+                    whereClause.id = -1;
+                }
+            }
+            const asset = await prisma_client_1.default.asset_master.findFirst({
+                where: whereClause,
                 include: {
                     asset_master_image: true,
                     asset_maintenance_master: true,

@@ -322,9 +322,6 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
   const movementTypeOptions = [
     { value: 'installation', label: 'Installation' },
     { value: 'transfer', label: 'Transfer' },
-    { value: 'maintenance', label: 'Maintenance' },
-    { value: 'repair', label: 'Repair' },
-    { value: 'disposal', label: 'Disposal' },
     { value: 'return', label: 'Return' },
   ];
 

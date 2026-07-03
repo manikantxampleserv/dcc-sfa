@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import prisma from '../../configs/prisma.client';
 import { RouteEffectivenessMetrics } from '../../types/gps-tracking.types';
+import { isAdminRole } from '../../configs/permissions.config';
 
 /**
  * GPS Tracking Controller
@@ -102,6 +103,36 @@ export const gpsTrackingController = {
         where.user_id = parseInt(user_id as string);
       }
 
+      const reqUser = (req as any).user;
+      let isScopeRestricted = false;
+      let depotIds: number[] = [];
+
+      if (reqUser && !isAdminRole(reqUser.role)) {
+        isScopeRestricted = true;
+        const userDepots = await prisma.user_depots.findMany({
+          where: { user_id: reqUser.id },
+          select: { depot_id: true },
+        });
+        depotIds = userDepots
+          .map((ud: any) => ud.depot_id)
+          .filter((id: any) => id !== null) as number[];
+      }
+
+      if (isScopeRestricted) {
+        if (depotIds.length > 0) {
+          where.users_gps_logs_user_idTousers = {
+            ...where.users_gps_logs_user_idTousers,
+            users_depots_users: {
+              some: {
+                depot_id: { in: depotIds },
+              },
+            },
+          };
+        } else {
+          where.id = -1;
+        }
+      }
+
       if (start_date || end_date) {
         where.log_time = {};
         if (start_date) {
@@ -198,10 +229,39 @@ export const gpsTrackingController = {
    */
   async getRealTimeGPSTracking(req: Request, res: Response) {
     try {
+      const reqUser = (req as any).user;
+      let isScopeRestricted = false;
+      let depotIds: number[] = [];
+
+      if (reqUser && !isAdminRole(reqUser.role)) {
+        isScopeRestricted = true;
+        const userDepots = await prisma.user_depots.findMany({
+          where: { user_id: reqUser.id },
+          select: { depot_id: true },
+        });
+        depotIds = userDepots
+          .map((ud: any) => ud.depot_id)
+          .filter((id: any) => id !== null) as number[];
+      }
+
+      const usersWhere: any = {
+        is_active: 'Y',
+      };
+
+      if (isScopeRestricted) {
+        if (depotIds.length > 0) {
+          usersWhere.users_depots_users = {
+            some: {
+              depot_id: { in: depotIds },
+            },
+          };
+        } else {
+          usersWhere.id = -1;
+        }
+      }
+
       const users = await prisma.users.findMany({
-        where: {
-          is_active: 'Y',
-        },
+        where: usersWhere,
         select: {
           id: true,
           name: true,
@@ -282,6 +342,36 @@ export const gpsTrackingController = {
         user_id: parseInt(user_id),
         is_active: 'Y',
       };
+
+      const reqUser = (req as any).user;
+      let isScopeRestricted = false;
+      let depotIds: number[] = [];
+
+      if (reqUser && !isAdminRole(reqUser.role)) {
+        isScopeRestricted = true;
+        const userDepots = await prisma.user_depots.findMany({
+          where: { user_id: reqUser.id },
+          select: { depot_id: true },
+        });
+        depotIds = userDepots
+          .map((ud: any) => ud.depot_id)
+          .filter((id: any) => id !== null) as number[];
+      }
+
+      if (isScopeRestricted) {
+        if (depotIds.length > 0) {
+          where.users_gps_logs_user_idTousers = {
+            ...where.users_gps_logs_user_idTousers,
+            users_depots_users: {
+              some: {
+                depot_id: { in: depotIds },
+              },
+            },
+          };
+        } else {
+          where.id = -1;
+        }
+      }
 
       if (start_date || end_date) {
         where.log_time = {};
@@ -366,6 +456,21 @@ export const gpsTrackingController = {
       }
 
       // Fetch Routes
+      const reqUser = (req as any).user;
+      let isScopeRestricted = false;
+      let depotIds: number[] = [];
+
+      if (reqUser && !isAdminRole(reqUser.role)) {
+        isScopeRestricted = true;
+        const userDepots = await prisma.user_depots.findMany({
+          where: { user_id: reqUser.id },
+          select: { depot_id: true },
+        });
+        depotIds = userDepots
+          .map((ud: any) => ud.depot_id)
+          .filter((id: any) => id !== null) as number[];
+      }
+
       const whereRoutes: any = {
         is_active: 'Y',
         ...(depot_id && { depot_id: parseInt(depot_id as string) }),
@@ -374,6 +479,14 @@ export const gpsTrackingController = {
         }),
         ...(route_id && { id: parseInt(route_id as string) }),
       };
+
+      if (isScopeRestricted) {
+        if (depotIds.length > 0) {
+          whereRoutes.depot_id = { in: depotIds };
+        } else {
+          whereRoutes.id = -1;
+        }
+      }
 
       const routes = await prisma.routes.findMany({
         where: whereRoutes,

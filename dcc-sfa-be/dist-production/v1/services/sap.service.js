@@ -3244,7 +3244,7 @@ exports.sapService = {
             };
             return result;
         }, {
-            maxWait: 60000,
+            maxWait: 6000000,
             timeout: 1200000,
         });
         // Create approval request if workflow exists and it's a new or pending update
@@ -3640,7 +3640,7 @@ exports.sapService = {
                 }
             }
         }, {
-            maxWait: 60000,
+            maxWait: 6000000,
             timeout: 300000,
         });
         console.log(`Successfully processed stock operations for van inventory ID: ${inventoryId}`);

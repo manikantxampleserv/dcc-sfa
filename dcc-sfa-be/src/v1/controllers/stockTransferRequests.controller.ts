@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { paginate } from '../../utils/paginate';
 import prisma from '../../configs/prisma.client';
+import { isAdminRole } from '../../configs/permissions.config';
 
 interface StockTransferRequestSerialized {
   id: number;
@@ -382,6 +383,21 @@ export const stockTransferRequestsController = {
       const searchLower = search ? (search as string).toLowerCase() : '';
       const statusLower = status ? (status as string).toLowerCase() : '';
 
+      const user = (req as any).user;
+      let isScopeRestricted = false;
+      let depotIds: number[] = [];
+
+      if (user && !isAdminRole(user.role)) {
+        isScopeRestricted = true;
+        const userDepots = await prisma.user_depots.findMany({
+          where: { user_id: user.id },
+          select: { depot_id: true },
+        });
+        depotIds = userDepots
+          .map((ud: any) => ud.depot_id)
+          .filter((id: any) => id !== null) as number[];
+      }
+
       const filters: any = {
         ...(search && {
           OR: [
@@ -393,6 +409,21 @@ export const stockTransferRequestsController = {
         ...(statusLower === 'active' && { is_active: 'Y' }),
         ...(statusLower === 'inactive' && { is_active: 'N' }),
       };
+
+      if (isScopeRestricted) {
+        if (depotIds.length > 0) {
+          filters.stock_transfer_requests_requested_by = {
+            ...filters.stock_transfer_requests_requested_by,
+            users_depots_users: {
+              some: {
+                depot_id: { in: depotIds },
+              },
+            },
+          };
+        } else {
+          filters.id = -1;
+        }
+      }
 
       const { data, pagination } = await paginate({
         model: prisma.stock_transfer_requests,
@@ -462,8 +493,40 @@ export const stockTransferRequestsController = {
     try {
       const { id } = req.params;
 
-      const record = await prisma.stock_transfer_requests.findUnique({
-        where: { id: Number(id) },
+      const user = (req as any).user;
+      let isScopeRestricted = false;
+      let depotIds: number[] = [];
+
+      if (user && !isAdminRole(user.role)) {
+        isScopeRestricted = true;
+        const userDepots = await prisma.user_depots.findMany({
+          where: { user_id: user.id },
+          select: { depot_id: true },
+        });
+        depotIds = userDepots
+          .map((ud: any) => ud.depot_id)
+          .filter((id: any) => id !== null) as number[];
+      }
+
+      const whereClause: any = { id: Number(id) };
+
+      if (isScopeRestricted) {
+        if (depotIds.length > 0) {
+          whereClause.stock_transfer_requests_requested_by = {
+            ...whereClause.stock_transfer_requests_requested_by,
+            users_depots_users: {
+              some: {
+                depot_id: { in: depotIds },
+              },
+            },
+          };
+        } else {
+          whereClause.id = -1;
+        }
+      }
+
+      const record = await prisma.stock_transfer_requests.findFirst({
+        where: whereClause,
         include: {
           stock_transfer_lines: true,
           stock_transfer_requests_requested_by: true,

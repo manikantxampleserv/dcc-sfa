@@ -3,6 +3,7 @@ import { validationResult } from 'express-validator';
 import prisma from '../../configs/prisma.client';
 import { deleteFile, uploadFile } from '../../utils/blackbaze';
 import { paginate } from '../../utils/paginate';
+import { isAdminRole } from '../../configs/permissions.config';
 
 const serializeUser = (
   user: any,
@@ -251,6 +252,21 @@ export const userController = {
       const limit_num = parseInt(limit as string, 10);
       const searchLower = (search as string).toLowerCase();
 
+      const user = (req as any).user;
+      let isScopeRestricted = false;
+      let depotIds: number[] = [];
+
+      if (user && !isAdminRole(user.role)) {
+        isScopeRestricted = true;
+        const userDepots = await prisma.user_depots.findMany({
+          where: { user_id: user.id },
+          select: { depot_id: true },
+        });
+        depotIds = userDepots
+          .map((ud: any) => ud.depot_id)
+          .filter((id: any) => id !== null) as number[];
+      }
+
       const filters: any = {
         is_active: isActive as string,
         id: { not: 27 },
@@ -278,13 +294,26 @@ export const userController = {
           users_depots_users: {
             some: {
               depot_id: Number(depot_id),
-              is_active: 'Y',
             },
           },
         }),
         ...(zone_id && { zone_id: Number(zone_id) }),
         ...(reporting_to && { reporting_to: Number(reporting_to) }),
       };
+
+      if (isScopeRestricted) {
+        if (depotIds.length > 0) {
+          filters.users_depots_users = {
+            ...(filters.users_depots_users || {}),
+            some: {
+              ...(filters.users_depots_users?.some || {}),
+              depot_id: { in: depotIds },
+            },
+          };
+        } else {
+          filters.id = -1;
+        }
+      }
 
       const { data, pagination } = await paginate({
         model: prisma.users,
@@ -358,8 +387,38 @@ export const userController = {
       }
 
       const id = Number(req.params.id);
+
+      const userReq = (req as any).user;
+      let isScopeRestricted = false;
+      let depotIds: number[] = [];
+
+      if (userReq && !isAdminRole(userReq.role)) {
+        isScopeRestricted = true;
+        const userDepots = await prisma.user_depots.findMany({
+          where: { user_id: userReq.id },
+          select: { depot_id: true },
+        });
+        depotIds = userDepots
+          .map((ud: any) => ud.depot_id)
+          .filter((id: any) => id !== null) as number[];
+      }
+
+      const whereClause: any = { id };
+
+      if (isScopeRestricted) {
+        if (depotIds.length > 0) {
+          whereClause.users_depots_users = {
+            some: {
+              depot_id: { in: depotIds },
+            },
+          };
+        } else {
+          whereClause.id = -1;
+        }
+      }
+
       const user = await prisma.users.findFirst({
-        where: { id },
+        where: whereClause,
         include: {
           user_role: true,
           companies: true,
@@ -1065,11 +1124,38 @@ export const userController = {
       const userId = user_id ? Number(user_id) : null;
       const depotId = depot_id ? Number(depot_id) : null;
 
+      const userReq = (req as any).user;
+      let isScopeRestricted = false;
+      let depotIds: number[] = [];
+
+      if (userReq && !isAdminRole(userReq.role)) {
+        isScopeRestricted = true;
+        const userDepots = await prisma.user_depots.findMany({
+          where: { user_id: userReq.id },
+          select: { depot_id: true },
+        });
+        depotIds = userDepots
+          .map((ud: any) => ud.depot_id)
+          .filter((id: any) => id !== null) as number[];
+      }
+
       const where: any = {
         is_active: 'Y',
         // Exclude specific users from dropdowns
         id: { not: 27 },
       };
+
+      if (isScopeRestricted) {
+        if (depotIds.length > 0) {
+          where.users_depots_users = {
+            some: {
+              depot_id: { in: depotIds },
+            },
+          };
+        } else {
+          where.id = -1;
+        }
+      }
 
       if (depotId) {
         where.users_depots_users = {

@@ -3,6 +3,7 @@ import { paginate } from '../../utils/paginate';
 import prisma from '../../configs/prisma.client';
 import { deleteFile, uploadFile } from '../../utils/blackbaze';
 import { getContainerOwnerAndSelf } from '../utils/inventory.utils';
+import { isAdminRole } from '../../configs/permissions.config';
 
 interface VisitSerialized {
   id: number;
@@ -1370,10 +1371,11 @@ export const visitsController = {
                         tx,
                         visit.sales_person_id
                       );
-                      const targetSalespersonIds = await getContainerOwnerAndSelf(
-                        tx,
-                        visit.sales_person_id
-                      );
+                      const targetSalespersonIds =
+                        await getContainerOwnerAndSelf(
+                          tx,
+                          visit.sales_person_id
+                        );
 
                       for (const item of invoiceItems) {
                         const product = await tx.products.findUnique({
@@ -1828,7 +1830,9 @@ export const visitsController = {
                                 await tx.inventory_stock.findFirst({
                                   where: {
                                     product_id: product.id,
-                                    salesperson_id: { in: targetSalespersonIds },
+                                    salesperson_id: {
+                                      in: targetSalespersonIds,
+                                    },
                                     serial_number_id: null,
                                     batch_id: null,
                                     ...(vanInventory?.location_id && {
@@ -2766,7 +2770,37 @@ export const visitsController = {
         return res.status(400).json({ message: 'Invalid isActive value' });
       }
 
+      const user = (req as any).user;
+      let isScopeRestricted = false;
+      let depotIds: number[] = [];
+
+      if (user && !isAdminRole(user.role)) {
+        isScopeRestricted = true;
+        const userDepots = await prisma.user_depots.findMany({
+          where: { user_id: user.id },
+          select: { depot_id: true },
+        });
+        depotIds = userDepots
+          .map((ud: any) => ud.depot_id)
+          .filter((id: any) => id !== null) as number[];
+      }
+
       const filters: any = {};
+
+      if (isScopeRestricted) {
+        if (depotIds.length > 0) {
+          filters.visits_salesperson = {
+            ...filters.visits_salesperson,
+            users_depots_users: {
+              some: {
+                depot_id: { in: depotIds },
+              },
+            },
+          };
+        } else {
+          filters.id = -1;
+        }
+      }
 
       if (sales_person_id) {
         const salesPersonIdNum = parseInt(sales_person_id as string, 10);
@@ -3183,8 +3217,41 @@ export const visitsController = {
   async getVisitsById(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      const visit = await prisma.visits.findUnique({
-        where: { id: Number(id) },
+
+      const user = (req as any).user;
+      let isScopeRestricted = false;
+      let depotIds: number[] = [];
+
+      if (user && !isAdminRole(user.role)) {
+        isScopeRestricted = true;
+        const userDepots = await prisma.user_depots.findMany({
+          where: { user_id: user.id },
+          select: { depot_id: true },
+        });
+        depotIds = userDepots
+          .map((ud: any) => ud.depot_id)
+          .filter((id: any) => id !== null) as number[];
+      }
+
+      const whereClause: any = { id: Number(id) };
+
+      if (isScopeRestricted) {
+        if (depotIds.length > 0) {
+          whereClause.visits_salesperson = {
+            ...whereClause.visits_salesperson,
+            users_depots_users: {
+              some: {
+                depot_id: { in: depotIds },
+              },
+            },
+          };
+        } else {
+          whereClause.id = -1;
+        }
+      }
+
+      const visit = await prisma.visits.findFirst({
+        where: whereClause,
         include: {
           visit_customers: {
             select: {

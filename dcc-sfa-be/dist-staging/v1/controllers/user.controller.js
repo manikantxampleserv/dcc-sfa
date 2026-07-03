@@ -9,6 +9,7 @@ const express_validator_1 = require("express-validator");
 const prisma_client_1 = __importDefault(require("../../configs/prisma.client"));
 const blackbaze_1 = require("../../utils/blackbaze");
 const paginate_1 = require("../../utils/paginate");
+const permissions_config_1 = require("../../configs/permissions.config");
 const serializeUser = (user, includeCreatedAt = false, includeUpdatedAt = false) => ({
     id: user.id,
     email: user.email,
@@ -207,6 +208,19 @@ exports.userController = {
             const page_num = parseInt(page, 10);
             const limit_num = parseInt(limit, 10);
             const searchLower = search.toLowerCase();
+            const user = req.user;
+            let isScopeRestricted = false;
+            let depotIds = [];
+            if (user && !(0, permissions_config_1.isAdminRole)(user.role)) {
+                isScopeRestricted = true;
+                const userDepots = await prisma_client_1.default.user_depots.findMany({
+                    where: { user_id: user.id },
+                    select: { depot_id: true },
+                });
+                depotIds = userDepots
+                    .map((ud) => ud.depot_id)
+                    .filter((id) => id !== null);
+            }
             const filters = {
                 is_active: isActive,
                 id: { not: 27 },
@@ -234,13 +248,26 @@ exports.userController = {
                     users_depots_users: {
                         some: {
                             depot_id: Number(depot_id),
-                            is_active: 'Y',
                         },
                     },
                 }),
                 ...(zone_id && { zone_id: Number(zone_id) }),
                 ...(reporting_to && { reporting_to: Number(reporting_to) }),
             };
+            if (isScopeRestricted) {
+                if (depotIds.length > 0) {
+                    filters.users_depots_users = {
+                        ...(filters.users_depots_users || {}),
+                        some: {
+                            ...(filters.users_depots_users?.some || {}),
+                            depot_id: { in: depotIds },
+                        },
+                    };
+                }
+                else {
+                    filters.id = -1;
+                }
+            }
             const { data, pagination } = await (0, paginate_1.paginate)({
                 model: prisma_client_1.default.users,
                 filters,
@@ -302,8 +329,34 @@ exports.userController = {
                 return;
             }
             const id = Number(req.params.id);
+            const userReq = req.user;
+            let isScopeRestricted = false;
+            let depotIds = [];
+            if (userReq && !(0, permissions_config_1.isAdminRole)(userReq.role)) {
+                isScopeRestricted = true;
+                const userDepots = await prisma_client_1.default.user_depots.findMany({
+                    where: { user_id: userReq.id },
+                    select: { depot_id: true },
+                });
+                depotIds = userDepots
+                    .map((ud) => ud.depot_id)
+                    .filter((id) => id !== null);
+            }
+            const whereClause = { id };
+            if (isScopeRestricted) {
+                if (depotIds.length > 0) {
+                    whereClause.users_depots_users = {
+                        some: {
+                            depot_id: { in: depotIds },
+                        },
+                    };
+                }
+                else {
+                    whereClause.id = -1;
+                }
+            }
             const user = await prisma_client_1.default.users.findFirst({
-                where: { id },
+                where: whereClause,
                 include: {
                     user_role: true,
                     companies: true,
@@ -897,11 +950,36 @@ exports.userController = {
             const searchLower = search.toLowerCase().trim();
             const userId = user_id ? Number(user_id) : null;
             const depotId = depot_id ? Number(depot_id) : null;
+            const userReq = req.user;
+            let isScopeRestricted = false;
+            let depotIds = [];
+            if (userReq && !(0, permissions_config_1.isAdminRole)(userReq.role)) {
+                isScopeRestricted = true;
+                const userDepots = await prisma_client_1.default.user_depots.findMany({
+                    where: { user_id: userReq.id },
+                    select: { depot_id: true },
+                });
+                depotIds = userDepots
+                    .map((ud) => ud.depot_id)
+                    .filter((id) => id !== null);
+            }
             const where = {
                 is_active: 'Y',
                 // Exclude specific users from dropdowns
                 id: { not: 27 },
             };
+            if (isScopeRestricted) {
+                if (depotIds.length > 0) {
+                    where.users_depots_users = {
+                        some: {
+                            depot_id: { in: depotIds },
+                        },
+                    };
+                }
+                else {
+                    where.id = -1;
+                }
+            }
             if (depotId) {
                 where.users_depots_users = {
                     some: {

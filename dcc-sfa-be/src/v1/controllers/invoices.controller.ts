@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { paginate } from '../../utils/paginate';
 import prisma from '../../configs/prisma.client';
 import { getTimeFilter } from '../../utils/dateFilters';
+import { isAdminRole } from '../../configs/permissions.config';
 
 function calculateUnitConversion(
   quantity: number,
@@ -490,6 +491,21 @@ export const invoicesController = {
         time_filter as string | undefined
       );
 
+      const user = (req as any).user;
+      let isScopeRestricted = false;
+      let depotIds: number[] = [];
+
+      if (user && !isAdminRole(user.role)) {
+        isScopeRestricted = true;
+        const userDepots = await prisma.user_depots.findMany({
+          where: { user_id: user.id },
+          select: { depot_id: true },
+        });
+        depotIds = userDepots
+          .map((ud: any) => ud.depot_id)
+          .filter((id: any) => id !== null) as number[];
+      }
+
       const filters: any = {
         is_active: is_active as string,
         ...(search && {
@@ -518,8 +534,23 @@ export const invoicesController = {
                   }),
                 },
               }
-            : {}),
+            : undefined),
       };
+
+      if (isScopeRestricted) {
+        if (depotIds.length > 0) {
+          filters.invoices_salesperson = {
+            ...filters.invoices_salesperson,
+            users_depots_users: {
+              some: {
+                depot_id: { in: depotIds },
+              },
+            },
+          };
+        } else {
+          filters.id = -1;
+        }
+      }
 
       const totalInvoices = await prisma.invoices.count({ where: filters });
       const totalAmount = await prisma.invoices.aggregate({
@@ -594,8 +625,41 @@ export const invoicesController = {
   async getInvoiceById(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      const invoice = await prisma.invoices.findUnique({
-        where: { id: Number(id) },
+
+      const user = (req as any).user;
+      let isScopeRestricted = false;
+      let depotIds: number[] = [];
+
+      if (user && !isAdminRole(user.role)) {
+        isScopeRestricted = true;
+        const userDepots = await prisma.user_depots.findMany({
+          where: { user_id: user.id },
+          select: { depot_id: true },
+        });
+        depotIds = userDepots
+          .map((ud: any) => ud.depot_id)
+          .filter((id: any) => id !== null) as number[];
+      }
+
+      const whereClause: any = { id: Number(id) };
+
+      if (isScopeRestricted) {
+        if (depotIds.length > 0) {
+          whereClause.invoices_salesperson = {
+            ...whereClause.invoices_salesperson,
+            users_depots_users: {
+              some: {
+                depot_id: { in: depotIds },
+              },
+            },
+          };
+        } else {
+          whereClause.id = -1;
+        }
+      }
+
+      const invoice = await prisma.invoices.findFirst({
+        where: whereClause,
         include: {
           invoices_customers: {
             select: {

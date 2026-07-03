@@ -473,9 +473,6 @@ const AssetMovementManagement: React.FC = () => {
                     <MenuItem value="all">All Types</MenuItem>
                     <MenuItem value="installation">Installation</MenuItem>
                     <MenuItem value="transfer">Transfer</MenuItem>
-                    <MenuItem value="maintenance">Maintenance</MenuItem>
-                    <MenuItem value="repair">Repair</MenuItem>
-                    <MenuItem value="disposal">Disposal</MenuItem>
                     <MenuItem value="return">Return</MenuItem>
                   </Select>
                 </div>
