@@ -33,12 +33,17 @@ export interface ReconciliationItem {
   skuCode: string;
   skuName: string;
   batchNumber: string;
+  loadQuantity?: number;
+  saleQuantity?: number;
+  saleValue?: number;
   expectedRop: number;
   actualRop: string;
   variance: number | null;
   resolutionAction: string;
   defaultOutletPostingQty: number;
   unloadAdjustmentQty: number;
+  categoryName: string;
+  basePrice: number;
   stockKey: string;
   status: string;
   createdate?: string | null;
@@ -52,6 +57,7 @@ export interface GetReconciliationParams {
   depot_id?: number;
   date?: string;
   status?: string;
+  rec_status?: string;
 }
 
 export interface SaveReconciliationPayload {

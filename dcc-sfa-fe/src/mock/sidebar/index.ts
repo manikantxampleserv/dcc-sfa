@@ -541,6 +541,12 @@ const menuItems: MenuItem[] = [
         href: '/settings/reconciliation',
       },
       {
+        id: 'settlement-sheet',
+        label: 'Settlement Sheet',
+        icon: MdReceipt,
+        href: '/settings/settlement-sheet',
+      },
+      {
         id: 'api-tokens',
         label: 'API Tokens',
         icon: MdSettings,

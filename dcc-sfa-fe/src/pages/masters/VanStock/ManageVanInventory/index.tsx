@@ -425,7 +425,7 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
             : {}),
           user_id: Number(values.user_id),
           loading_type: values.loading_type,
-          status: values.status,
+          status: 'A',
           document_date:
             values.document_date || new Date().toISOString().split('T')[0],
           vehicle_id: values.vehicle_id ? Number(values.vehicle_id) : null,
@@ -1056,12 +1056,24 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
                   : undefined
               }
             />
-            <Select name="loading_type" label="Type" formik={formik} required>
+            <Select
+              disableClearable
+              name="loading_type"
+              label="Type"
+              formik={formik}
+              required
+            >
               <MenuItem value="L">Load</MenuItem>
               <MenuItem value="U">Unload</MenuItem>
             </Select>
 
-            <Select name="sale_type" label="Sale Type" formik={formik} required>
+            <Select
+              disableClearable
+              name="sale_type"
+              label="Sale Type"
+              formik={formik}
+              required
+            >
               <MenuItem value="normal">Normal</MenuItem>
               <MenuItem value="container">Container</MenuItem>
             </Select>
@@ -1078,12 +1090,6 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
                 />
               </Box>
             )}
-
-            <Select name="status" label="Status" formik={formik} required>
-              <MenuItem value="D">Draft</MenuItem>
-              <MenuItem value="A">Confirmed</MenuItem>
-              <MenuItem value="C">Canceled</MenuItem>
-            </Select>
 
             <Input
               name="document_date"

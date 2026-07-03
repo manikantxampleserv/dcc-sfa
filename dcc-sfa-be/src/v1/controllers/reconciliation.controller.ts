@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import prisma from '../../configs/prisma.client';
+import { Prisma } from '@prisma/client';
 import { paginate } from '../../utils/paginate';
 import logger from '../../configs/logger';
 import { createRequest } from './requests.controller';
@@ -34,6 +35,9 @@ export const reconciliationController = {
       const depotId = req.query.depot_id ? Number(req.query.depot_id) : null;
       const date = req.query.date ? String(req.query.date).trim() : '';
       const status = req.query.status ? String(req.query.status).trim() : '';
+      const recStatus = req.query.rec_status
+        ? String(req.query.rec_status).trim()
+        : '';
 
       const user = (req as any).user;
       let isScopeRestricted = false;
@@ -74,6 +78,9 @@ export const reconciliationController = {
       }
       if (search) {
         reconcFilters.salesman = { name: { contains: search } };
+      }
+      if (recStatus) {
+        reconcFilters.status = recStatus;
       }
       if (status && status !== 'all') {
         reconcFilters.reconciliation_items = {
@@ -243,15 +250,16 @@ export const reconciliationController = {
           .filter((id: any) => id !== null) as number[];
       }
 
-      const whereClause: any = { id };
+      const whereClause: Prisma.reconciliationWhereInput = { id };
 
       if (isScopeRestricted) {
         if (depotIds.length > 0) {
           whereClause.salesman = {
-            ...whereClause.salesman,
-            users_depots_users: {
-              some: {
-                depot_id: { in: depotIds },
+            is: {
+              users_depots_users: {
+                some: {
+                  depot_id: { in: depotIds },
+                },
               },
             },
           };
@@ -277,7 +285,15 @@ export const reconciliationController = {
             where: { is_active: 'Y' },
             include: {
               product: {
-                select: { id: true, name: true, code: true, base_price: true },
+                select: {
+                  id: true,
+                  name: true,
+                  code: true,
+                  base_price: true,
+                  product_categories_products: {
+                    select: { category_name: true },
+                  },
+                },
               },
             },
             orderBy: { id: 'asc' },
@@ -306,6 +322,15 @@ export const reconciliationController = {
           product_id: item.product_id,
           skuCode: item.product?.code || 'UNKNOWN',
           skuName: item.product?.name || 'UNKNOWN',
+          categoryName:
+            item.product?.product_categories_products?.category_name ||
+            'Uncategorized',
+          basePrice:
+            item.product?.base_price !== null
+              ? Number(item.product?.base_price)
+              : 0,
+          loadQuantity: item.load_qty !== null ? Number(item.load_qty) : 0,
+          saleQuantity: item.sale_qty !== null ? Number(item.sale_qty) : 0,
           batchNumber: item.batch_number || '-',
           expectedRop: Number(item.expected_qty) || 0,
           actualRop:

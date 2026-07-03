@@ -330,6 +330,7 @@ const InventoryDetail = () => {
       {
         user_id: inventoryId,
         limit: 10000000,
+        status: 'approved',
         time_filter:
           timeFilter !== 'all' && timeFilter !== 'custom'
             ? timeFilter

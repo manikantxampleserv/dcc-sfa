@@ -7,8 +7,6 @@ import {
 import { saveReconciliationValidation } from '../validations/reconciliation.validation';
 import { validate } from '../../middlewares/validation.middleware';
 import { auditUpdate } from '../../middlewares/audit.middleware';
-import { runReconciliationJob } from '../../jobs/reconciliation.job';
-
 const router = express.Router();
 
 router.get(
@@ -34,22 +32,4 @@ router.post(
   auditUpdate('reconciliation_items'),
   reconciliationController.saveReconciliations
 );
-
-router.post(
-  '/reconciliation/run-cron',
-  authenticateToken,
-  requirePermission([{ module: 'reconciliation', action: 'update' }]),
-  async (_req, res) => {
-    try {
-      await runReconciliationJob();
-      res.json({
-        success: true,
-        message: 'Reconciliation cron job completed successfully',
-      });
-    } catch (err: any) {
-      res.status(500).json({ success: false, message: err.message });
-    }
-  }
-);
-
 export default router;

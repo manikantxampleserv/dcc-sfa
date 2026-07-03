@@ -3300,6 +3300,8 @@ model reconciliation_items {
   batch_number               String?   @db.NVarChar(100)
   expected_qty               Decimal?  @db.Decimal(18, 4)
   actual_qty                 Decimal?  @db.Decimal(18, 4)
+  load_qty                   Decimal?  @db.Decimal(18, 4)
+  sale_qty                   Decimal?  @db.Decimal(18, 4)
   variance                   Decimal?  @db.Decimal(18, 4)
   resolution_action          String?   @db.NVarChar(255)
   default_outlet_posting_qty Decimal?  @db.Decimal(18, 4)

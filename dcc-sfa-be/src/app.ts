@@ -5,7 +5,7 @@ import express, { Application } from 'express';
 import { resolve } from 'path';
 
 import { scheduleCustomerCategoryAssignment } from './jobs/customerCategoryAssignment.job';
-import { scheduleReconciliationJob } from './jobs/reconciliation.job';
+
 import { responseHandler } from './middlewares/response.middleware';
 import { errorLogger } from './middlewares/errorLogger.middleware';
 import routes from './routes';

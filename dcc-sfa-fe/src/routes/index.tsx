@@ -96,6 +96,8 @@ import SystemSettings from 'pages/settings/SystemSettings';
 import ErrorLogs from 'pages/settings/ErrorLogs';
 import Reconciliation from 'pages/settings/Reconciliation';
 import ReconciliationDetail from 'pages/settings/Reconciliation/ReconciliationDetail';
+import SettlementSheet from 'pages/settings/SettlementSheet';
+import SettlementSheetDetail from 'pages/settings/SettlementSheet/SettlementSheetDetail';
 import RepLocationTracking from 'pages/tracking/RepLocationTracking';
 import RouteEffectiveness from 'pages/tracking/RouteEffectiveness';
 import CoolerInspectionsManagement from 'pages/transactions/CoolerInspections';
@@ -680,6 +682,22 @@ const router = createBrowserRouter(
           element: (
             <PermissionGuard module="reconciliation" action="read">
               <ReconciliationDetail />
+            </PermissionGuard>
+          ),
+        },
+        {
+          path: '/settings/settlement-sheet',
+          element: (
+            <PermissionGuard module="settlement-sheet" action="read">
+              <SettlementSheet />
+            </PermissionGuard>
+          ),
+        },
+        {
+          path: '/settings/settlement-sheet/:id',
+          element: (
+            <PermissionGuard module="settlement-sheet" action="read">
+              <SettlementSheetDetail />
             </PermissionGuard>
           ),
         },
