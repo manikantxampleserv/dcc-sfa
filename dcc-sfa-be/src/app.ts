@@ -3,7 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import express, { Application } from 'express';
 import { resolve } from 'path';
-import { setupGraphQL } from './graphql/server';
+
 import { scheduleCustomerCategoryAssignment } from './jobs/customerCategoryAssignment.job';
 import { scheduleReconciliationJob } from './jobs/reconciliation.job';
 import { responseHandler } from './middlewares/response.middleware';
@@ -40,8 +40,6 @@ export const createApp = async (): Promise<Application> => {
 
   app.set('trust proxy', true);
 
-  await setupGraphQL(app);
-
   app.use(express.json({ limit: '10mb' }));
 
   app.use(express.urlencoded({ extended: true, limit: '10mb' }));
@@ -57,7 +55,6 @@ export const createApp = async (): Promise<Application> => {
   app.use('/api', routes);
 
   scheduleCustomerCategoryAssignment();
-  scheduleReconciliationJob();
 
   return app;
 };

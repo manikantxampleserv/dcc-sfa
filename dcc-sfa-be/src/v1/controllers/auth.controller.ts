@@ -220,8 +220,7 @@ export const login = async (req: any, res: any) => {
         return res.status(409).json({
           success: false,
           code: 'ACTIVE_SESSION_EXISTS',
-          message:
-            'You are already logged in on another device. Do you want to continue?',
+          message: 'You are already logged in on another device.',
         });
       }
     }

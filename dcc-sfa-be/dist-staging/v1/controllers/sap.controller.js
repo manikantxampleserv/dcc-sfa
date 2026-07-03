@@ -9,6 +9,8 @@ const prisma_client_1 = __importDefault(require("../../configs/prisma.client"));
 exports.sapController = {
     async syncVanInventory(req, res) {
         try {
+            console.log("req.body =", req.body);
+            console.log("req.user!.id =", req.user.id);
             const result = await sap_service_1.sapService.createOrUpdateVanInventorySAP(req.body, req.user.id);
             return res.status(201).json({
                 success: true,

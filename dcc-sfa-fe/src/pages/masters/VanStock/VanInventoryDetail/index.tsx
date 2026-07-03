@@ -17,6 +17,7 @@ import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
 import Table, { type TableColumn } from 'shared/Table';
 import { formatDate } from 'utils/dateUtils';
+import { getSourceSystemLabel } from 'utils/sourceSystem';
 
 const BatchList = ({ batches }: { batches: any[] }) => {
   const [expanded, setExpanded] = useState(false);
@@ -377,7 +378,7 @@ const VanInventoryDetail: React.FC<VanInventoryDetailProps> = ({
       label: 'SAP Source Type',
       render: (_value, row) => (
         <Typography variant="body2" className="!text-gray-900">
-          {row.source_system || '-'}
+          {getSourceSystemLabel(row.source_system) || '-'}
         </Typography>
       ),
     },

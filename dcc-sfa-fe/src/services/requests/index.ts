@@ -66,6 +66,7 @@ export interface Request {
     movement_date?: string;
     assets?: string;
     approval_status?: string;
+    vehicle_info?: string;
   } | null;
   approvals?: {
     id: number;

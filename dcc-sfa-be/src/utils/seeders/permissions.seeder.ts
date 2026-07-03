@@ -92,6 +92,7 @@ const MODULE_MAPPING: Record<string, string> = {
   attendance: 'Attendance',
   reconciliation: 'Reconciliation',
   'route-assignment': 'Route Assignment',
+  'settlement-sheet': 'Settlement Sheet',
 };
 
 /**

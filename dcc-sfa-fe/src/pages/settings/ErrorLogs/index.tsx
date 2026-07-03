@@ -10,6 +10,7 @@ import {
   Typography,
 } from '@mui/material';
 import { useErrorLogs } from 'hooks/useErrorLogs';
+import { usePermission } from 'hooks/usePermission';
 import { Activity, AlertTriangle, Calendar, Clock, X } from 'lucide-react';
 import React, { useState } from 'react';
 import type { ErrorLogData } from 'services/errorLogs';
@@ -27,11 +28,16 @@ const ErrorLogs: React.FC = () => {
   const [path, setPath] = useState('');
   const [selectedError, setSelectedError] = useState<ErrorLogData | null>(null);
 
-  const { data: responseData, isFetching } = useErrorLogs({
-    page,
-    limit: pageSize,
-    path: path === '' ? undefined : path,
-  });
+  const { isRead } = usePermission('error-logs');
+
+  const { data: responseData, isFetching } = useErrorLogs(
+    {
+      page,
+      limit: pageSize,
+      path: path === '' ? undefined : path,
+    },
+    { enabled: isRead }
+  );
 
   const logs = responseData?.data || [];
   const pagination = responseData?.pagination || {
@@ -169,38 +175,41 @@ const ErrorLogs: React.FC = () => {
         </Box>
       </Box>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-        <StatsCard
-          title="Total Errors"
-          value={responseData?.stats?.total_errors ?? 0}
-          icon={<AlertTriangle className="w-6 h-6" />}
-          color="red"
-          isLoading={isFetching}
-        />
-        <StatsCard
-          title="Today's Errors"
-          value={responseData?.stats?.today_errors ?? 0}
-          icon={<Activity className="w-6 h-6" />}
-          color="orange"
-          isLoading={isFetching}
-        />
-        <StatsCard
-          title="This Week's Errors"
-          value={responseData?.stats?.this_week_errors ?? 0}
-          icon={<Clock className="w-6 h-6" />}
-          color="blue"
-          isLoading={isFetching}
-        />
-        <StatsCard
-          title="This Month's Errors"
-          value={responseData?.stats?.this_month_errors ?? 0}
-          icon={<Calendar className="w-6 h-6" />}
-          color="purple"
-          isLoading={isFetching}
-        />
-      </div>
+      {isRead && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+          <StatsCard
+            title="Total Errors"
+            value={responseData?.stats?.total_errors ?? 0}
+            icon={<AlertTriangle className="w-6 h-6" />}
+            color="red"
+            isLoading={isFetching}
+          />
+          <StatsCard
+            title="Today's Errors"
+            value={responseData?.stats?.today_errors ?? 0}
+            icon={<Activity className="w-6 h-6" />}
+            color="orange"
+            isLoading={isFetching}
+          />
+          <StatsCard
+            title="This Week's Errors"
+            value={responseData?.stats?.this_week_errors ?? 0}
+            icon={<Clock className="w-6 h-6" />}
+            color="blue"
+            isLoading={isFetching}
+          />
+          <StatsCard
+            title="This Month's Errors"
+            value={responseData?.stats?.this_month_errors ?? 0}
+            icon={<Calendar className="w-6 h-6" />}
+            color="purple"
+            isLoading={isFetching}
+          />
+        </div>
+      )}
 
       <Table
+        isPermission={isRead}
         columns={columns}
         data={logs}
         loading={isFetching}

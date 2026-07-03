@@ -88,6 +88,7 @@ const MODULE_MAPPING = {
     attendance: 'Attendance',
     reconciliation: 'Reconciliation',
     'route-assignment': 'Route Assignment',
+    'settlement-sheet': 'Settlement Sheet',
 };
 /**
  * @constant MODULES

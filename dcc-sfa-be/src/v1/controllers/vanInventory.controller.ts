@@ -332,8 +332,6 @@ const serializeVanInventory = (item: any): VanInventorySerialized => {
 
   return {
     id: item.id,
-    // sap_docentry: firstInventoryItem?.sap_docentry || null,
-    // sap_docnum: firstInventoryItem?.sap_docnum || null,
     source_system: firstInventoryItem?.source_system || null,
     source_system_label: getSourceSystemLabel(
       firstInventoryItem?.source_system
@@ -4184,8 +4182,9 @@ export const vanInventoryController = {
             { vehicle: { vehicle_number: { contains: searchLower } } },
           ],
         }),
-        ...(statusLower === 'active' && { is_active: 'Y' }),
-        ...(statusLower === 'inactive' && { is_active: 'N' }),
+        ...(statusLower === 'pending' && { approval_status: 'P' }),
+        ...(statusLower === 'approved' && { approval_status: 'A' }),
+        ...(statusLower === 'rejected' && { approval_status: 'R' }),
         ...(loadingType === 'L' && { loading_type: 'L' }),
         ...(loadingType === 'U' && { loading_type: 'U' }),
         ...(user_id && { user_id: parseInt(user_id as string, 10) }),

@@ -5,15 +5,19 @@ import {
   DialogTitle,
   IconButton,
   Typography,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
 } from '@mui/material';
 import { useFormik } from 'formik';
 import { useTakeActionOnRequest } from 'hooks/useRequests';
-import { Check, FileText, X } from 'lucide-react';
+import { Check, FileText, X, ChevronDown } from 'lucide-react';
 import React from 'react';
 import type { Request } from 'services/requests';
 import Button from 'shared/Button';
 import Input from 'shared/Input';
 import * as yup from 'yup';
+import { getSourceSystemLabel } from 'utils/sourceSystem';
 
 interface ApprovalModalProps {
   open: boolean;
@@ -839,35 +843,51 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({
                         </Typography>
                       </div>
 
-                      {requestData?.sale_type && (
-                        <div className="!space-y-1">
-                          <Typography
-                            variant="caption"
-                            className="!text-gray-500 !text-xs !uppercase !tracking-wide"
-                          >
-                            Sale Type
-                          </Typography>
-                          <Typography
-                            variant="body2"
-                            className="!font-semibold !capitalize !text-gray-900"
-                          >
-                            {requestData.sale_type}
-                          </Typography>
-                        </div>
-                      )}
+                      <div className="!space-y-1">
+                        <Typography
+                          variant="caption"
+                          className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                        >
+                          Salesman
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          className="!font-semibold !text-gray-900"
+                        >
+                          {request.reference_details?.salesman_name || 'N/A'} (
+                          {requestData?.salesman_sap_code || 'N/A'})
+                        </Typography>
+                      </div>
 
                       <div className="!space-y-1">
                         <Typography
                           variant="caption"
                           className="!text-gray-500 !text-xs !uppercase !tracking-wide"
                         >
-                          Requester
+                          Depot
                         </Typography>
                         <Typography
                           variant="body2"
                           className="!font-semibold !text-gray-900"
                         >
-                          {request.requester?.name || 'Unknown'}
+                          {request.reference_details?.depot_name || 'N/A'} (
+                          {requestData?.depot_sap_code || 'N/A'})
+                        </Typography>
+                      </div>
+
+                      <div className="!space-y-1 md:!col-span-2">
+                        <Typography
+                          variant="caption"
+                          className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                        >
+                          Vehicle Info
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          className="!font-semibold !text-gray-900"
+                        >
+                          {request.reference_details?.vehicle_info || 'N/A'}{' '}
+                          (SAP: {requestData?.vehicle_sap_code || 'N/A'})
                         </Typography>
                       </div>
                     </div>
@@ -880,53 +900,132 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({
                       >
                         Requested Items
                       </Typography>
-                      <div className="!space-y-2 max-h-[250px] !overflow-y-auto !pr-1">
+                      <div className="!space-y-2 max-h-[300px] !overflow-y-auto !pr-1">
                         {(
                           requestData?.van_inventory_items ||
                           requestData?.items ||
                           []
                         ).map((item: any, idx: number) => (
-                          <div
+                          <Accordion
                             key={idx}
-                            className="!bg-white !rounded-md !p-3 !border !border-gray-200 !space-y-2 shadow-sm"
+                            className="!shadow-none !border !border-gray-200 !rounded-md before:!hidden"
                           >
-                            <div className="!flex !justify-between !items-start">
-                              <div>
-                                <Typography
-                                  variant="body2"
-                                  className="!font-semibold !text-gray-900"
-                                >
-                                  {item.product_name ||
-                                    `Product ID: ${item.product_id}`}
-                                </Typography>
-                                {item.tracking_type && (
+                            <AccordionSummary
+                              expandIcon={
+                                <ChevronDown className="w-5 h-5 text-gray-500" />
+                              }
+                              className="!min-h-0 !py-1"
+                            >
+                              <div className="!flex !justify-between !items-center !w-full !pr-4">
+                                <div className="!flex !flex-col">
+                                  <Typography
+                                    variant="body2"
+                                    className="!font-semibold !text-gray-900"
+                                  >
+                                    {item.product_name ||
+                                      item.notes ||
+                                      `Product ID: ${item.product_id || item.product_sap_code}`}
+                                  </Typography>
                                   <Typography
                                     variant="caption"
-                                    className="!text-gray-500 !text-xs"
+                                    className="!text-gray-500"
                                   >
-                                    Tracking Type: {item.tracking_type}
+                                    Code: {item.product_sap_code || 'N/A'}
                                   </Typography>
-                                )}
+                                </div>
+                                <Typography
+                                  variant="body2"
+                                  className="!font-bold !text-primary-600"
+                                >
+                                  Qty: {item.quantity}
+                                </Typography>
                               </div>
-                              <Typography
-                                variant="body2"
-                                className="!font-bold !text-primary-600"
-                              >
-                                Qty: {item.quantity}
-                              </Typography>
-                            </div>
+                            </AccordionSummary>
+                            <AccordionDetails className="!bg-gray-50 !border-t !border-gray-200 !p-3">
+                              <div className="!grid !grid-cols-3 !gap-2 !mb-3">
+                                <div className="!flex !flex-col">
+                                  <Typography
+                                    variant="caption"
+                                    className="!text-gray-500 !text-[10px] !uppercase"
+                                  >
+                                    SAP Doc Num
+                                  </Typography>
+                                  <Typography
+                                    variant="body2"
+                                    className="!text-gray-800 !text-xs !font-medium"
+                                  >
+                                    {item.sap_docnum || 'N/A'}
+                                  </Typography>
+                                </div>
+                                <div className="!flex !flex-col">
+                                  <Typography
+                                    variant="caption"
+                                    className="!text-gray-500 !text-[10px] !uppercase"
+                                  >
+                                    Source System
+                                  </Typography>
+                                  <Typography
+                                    variant="body2"
+                                    className="!text-gray-800 !text-xs !font-medium"
+                                  >
+                                    {getSourceSystemLabel(item.source_system) ||
+                                      'N/A'}
+                                  </Typography>
+                                </div>
+                                <div className="!flex !flex-col">
+                                  <Typography
+                                    variant="caption"
+                                    className="!text-gray-500 !text-[10px] !uppercase"
+                                  >
+                                    SAP Line ID
+                                  </Typography>
+                                  <Typography
+                                    variant="body2"
+                                    className="!text-gray-800 !text-xs !font-medium"
+                                  >
+                                    {item.sap_lineid || 'N/A'}
+                                  </Typography>
+                                </div>
+                              </div>
 
-                            {/* Batches details */}
-                            {item.product_batches &&
-                              item.product_batches.length > 0 && (
-                                <div className="!pl-3 !border-l-2 !border-gray-300 !space-y-1">
+                              {/* Batches details */}
+                              {item.product_batches &&
+                                item.product_batches.length > 0 && (
+                                  <div className="!pl-3 !border-l-2 !border-gray-300 !space-y-1 !mb-2">
+                                    <Typography
+                                      variant="caption"
+                                      className="!text-gray-500 !text-xs !font-medium"
+                                    >
+                                      Batches:
+                                    </Typography>
+                                    {item.product_batches.map(
+                                      (batch: any, bIdx: number) => (
+                                        <div
+                                          key={bIdx}
+                                          className="!flex !justify-between !text-xs !text-gray-600"
+                                        >
+                                          <span>
+                                            Batch: {batch.batch_number || 'N/A'}{' '}
+                                            {batch.expiry_date &&
+                                              `(Exp: ${batch.expiry_date.split('T')[0]})`}
+                                          </span>
+                                          <span className="!font-medium !text-gray-800">
+                                            Qty: {batch.quantity}
+                                          </span>
+                                        </div>
+                                      )
+                                    )}
+                                  </div>
+                                )}
+                              {item.batches && item.batches.length > 0 && (
+                                <div className="!pl-3 !border-l-2 !border-gray-300 !space-y-1 !mb-2">
                                   <Typography
                                     variant="caption"
                                     className="!text-gray-500 !text-xs !font-medium"
                                   >
                                     Batches:
                                   </Typography>
-                                  {item.product_batches.map(
+                                  {item.batches.map(
                                     (batch: any, bIdx: number) => (
                                       <div
                                         key={bIdx}
@@ -946,31 +1045,32 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({
                                 </div>
                               )}
 
-                            {/* Serials details */}
-                            {item.product_serials &&
-                              item.product_serials.length > 0 && (
-                                <div className="!pl-3 !border-l-2 !border-gray-300 !space-y-1">
-                                  <Typography
-                                    variant="caption"
-                                    className="!text-gray-500 !text-xs !font-medium"
-                                  >
-                                    Serials:
-                                  </Typography>
-                                  <div className="!flex !flex-wrap !gap-1">
-                                    {item.product_serials.map(
-                                      (serial: any, sIdx: number) => (
-                                        <span
-                                          key={sIdx}
-                                          className="!bg-gray-100 !text-gray-800 !text-[11px] !px-2 !py-0.5 !rounded"
-                                        >
-                                          {serial.serial_number || serial}
-                                        </span>
-                                      )
-                                    )}
+                              {/* Serials details */}
+                              {item.product_serials &&
+                                item.product_serials.length > 0 && (
+                                  <div className="!pl-3 !border-l-2 !border-gray-300 !space-y-1">
+                                    <Typography
+                                      variant="caption"
+                                      className="!text-gray-500 !text-xs !font-medium"
+                                    >
+                                      Serials:
+                                    </Typography>
+                                    <div className="!flex !flex-wrap !gap-1">
+                                      {item.product_serials.map(
+                                        (serial: any, sIdx: number) => (
+                                          <span
+                                            key={sIdx}
+                                            className="!bg-gray-200 !text-gray-800 !text-[10px] !px-2 !py-0.5 !rounded"
+                                          >
+                                            {serial.serial_number || serial}
+                                          </span>
+                                        )
+                                      )}
+                                    </div>
                                   </div>
-                                </div>
-                              )}
-                          </div>
+                                )}
+                            </AccordionDetails>
+                          </Accordion>
                         ))}
                       </div>
                     </div>
