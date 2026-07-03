@@ -6660,6 +6660,113 @@ export const vanInventoryController = {
   //   }
   // },
 
+  async createVanInventoryFromReconciliation(
+    reconciliationId: number,
+    approvedByUserId: number
+  ): Promise<number | null> {
+    return prisma.$transaction(async tx => {
+      const reconciliation = await tx.reconciliation.findUnique({
+        where: { id: reconciliationId },
+        include: { reconciliation_items: { where: { is_active: 'Y' } } },
+      });
+
+      if (!reconciliation) {
+        throw new Error(`Reconciliation ${reconciliationId} not found`);
+      }
+      if (reconciliation.reconciliation_items.length === 0) {
+        return null;
+      }
+
+      const userIdNum = reconciliation.salesman_id;
+
+      const vanLoc = await tx.van_inventory.findFirst({
+        where: {
+          user_id: userIdNum,
+          is_active: 'Y',
+          location_id: reconciliation.depot_id ?? undefined,
+        },
+        select: { location_id: true, vehicle_id: true },
+      });
+
+      const locationId = vanLoc?.location_id ?? reconciliation.depot_id;
+      const vehicleId = vanLoc?.vehicle_id ?? null;
+
+      if (!locationId) {
+        throw new Error(
+          `Unable to resolve location for reconciliation ${reconciliationId}`
+        );
+      }
+
+      const newVanInventory = await tx.van_inventory.create({
+        data: {
+          user_id: userIdNum,
+          location_id: locationId,
+          vehicle_id: vehicleId,
+          loading_type: 'U',
+          approval_status: 'A',
+          is_active: 'Y',
+          document_date: new Date(),
+          createdate: new Date(),
+          createdby: approvedByUserId,
+          updatedate: new Date(),
+          updatedby: approvedByUserId,
+          log_inst: 1,
+        },
+      });
+
+      const itemsData: any[] = [];
+
+      for (const item of reconciliation.reconciliation_items) {
+        if (item.product_id === null) continue; // product_id is nullable in schema
+
+        const qty =
+          item.actual_qty !== null
+            ? Number(item.actual_qty)
+            : Number(item.expected_qty) || 0;
+        if (qty <= 0) continue;
+
+        const product = await tx.products.findUnique({
+          where: { id: item.product_id },
+          select: { name: true, base_price: true }, // products has base_price, not selling_price
+        });
+
+        let batchLotId: number | null = null;
+        if (item.batch_number) {
+          const batch = await tx.batch_lots.findFirst({
+            where: {
+              batch_number: item.batch_number,
+              productsId: item.product_id, // batch_lots uses productsId, not product_id
+            },
+            select: { id: true },
+          });
+          batchLotId = batch?.id ?? null;
+        }
+
+        itemsData.push({
+          parent_id: newVanInventory.id,
+          product_id: item.product_id,
+          batch_lot_id: batchLotId,
+          serial_id: null,
+          quantity: qty,
+          base_quantity: qty,
+          product_name: product?.name ?? null,
+          unit: null,
+          unit_price: product?.base_price || 0,
+          discount_amount: 0,
+          tax_amount: 0,
+          total_amount: qty * Number(product?.base_price || 0),
+          notes: `Unloaded via reconciliation #${reconciliationId} approval`,
+        });
+      }
+
+      if (itemsData.length > 0) {
+        await tx.van_inventory_items.createMany({ data: itemsData });
+      }
+
+      return newVanInventory.id;
+    });
+  },
+
   async unloadVanInventory(req: Request, res: Response) {
     try {
       const loggedInUserId = (req as any).user?.id;
@@ -6675,14 +6782,8 @@ export const vanInventoryController = {
       const userIdNum = parseInt(targetUserId.toString(), 10);
 
       const vanLocations = await prisma.van_inventory.findMany({
-        where: {
-          user_id: userIdNum,
-          is_active: 'Y',
-        },
-        select: {
-          location_id: true,
-          vehicle_id: true,
-        },
+        where: { user_id: userIdNum, is_active: 'Y' },
+        select: { location_id: true, vehicle_id: true },
         distinct: ['location_id'],
       });
 
@@ -6694,34 +6795,22 @@ export const vanInventoryController = {
       }
 
       let totalItemsRequested = 0;
-      const processedVanInventoryIds: number[] = [];
+      const reconciliationIds: number[] = [];
       const errors: string[] = [];
 
       for (const vanLoc of vanLocations) {
         const locationId = vanLoc.location_id;
-
         if (!locationId) continue;
 
-        let createdVanInventoryId: number | null = null;
-        let createdReconciliationId: number | null = null;
-
         try {
-          await prisma.$transaction(async tx => {
+          const reconciliationId = await prisma.$transaction(async tx => {
             const stockToUnload = await tx.inventory_stock.findMany({
               where: {
                 location_id: locationId,
                 salesperson_id: userIdNum,
                 OR: [
-                  {
-                    current_stock: {
-                      gt: 0,
-                    },
-                  },
-                  {
-                    base_quantity: {
-                      gt: 0,
-                    },
-                  },
+                  { current_stock: { gt: 0 } },
+                  { base_quantity: { gt: 0 } },
                 ],
               },
               include: {
@@ -6730,65 +6819,8 @@ export const vanInventoryController = {
               },
             });
 
-            if (stockToUnload.length === 0) {
-              return;
-            }
+            if (stockToUnload.length === 0) return null;
 
-            const newVanInventory = await tx.van_inventory.create({
-              data: {
-                user_id: userIdNum,
-                location_id: locationId,
-                vehicle_id: vanLoc.vehicle_id,
-                loading_type: 'U',
-                approval_status: 'P',
-                is_active: 'Y',
-                document_date: new Date(),
-                createdate: new Date(),
-                createdby: userIdNum,
-                log_inst: 1,
-              },
-            });
-
-            createdVanInventoryId = newVanInventory.id;
-
-            const vanInventoryItemsData: any[] = [];
-
-            for (const stock of stockToUnload) {
-              const product = (stock as any).inventory_stock_products;
-
-              if (!product) continue;
-
-              const unloadQty = stock.current_stock || 0;
-              const unloadBaseQty = stock.base_quantity || 0;
-
-              if (unloadQty <= 0 && unloadBaseQty <= 0) continue;
-
-              vanInventoryItemsData.push({
-                parent_id: newVanInventory.id,
-                product_id: stock.product_id,
-                batch_lot_id: stock.batch_id ?? null,
-                serial_id: stock.serial_number_id ?? null,
-                quantity: unloadQty,
-                base_quantity: unloadBaseQty,
-                product_name: product.name,
-                unit: null,
-                unit_price: product.selling_price || 0,
-                discount_amount: 0,
-                tax_amount: 0,
-                total_amount: unloadQty * Number(product.selling_price || 0),
-                notes: 'Pending unload approval',
-              });
-
-              totalItemsRequested++;
-            }
-
-            if (vanInventoryItemsData.length > 0) {
-              await tx.van_inventory_items.createMany({
-                data: vanInventoryItemsData,
-              });
-            }
-
-            // Create reconciliation entry if it does not exist for today
             const user = await tx.users.findUnique({
               where: { id: userIdNum },
               select: {
@@ -6799,152 +6831,136 @@ export const vanInventoryController = {
                 sap_code: true,
               },
             });
+            if (!user) return null;
 
-            if (user) {
-              const now = new Date();
-              const today = new Date(
-                Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())
-              );
-              const tomorrow = new Date(today);
-              tomorrow.setDate(tomorrow.getDate() + 1);
+            const now = new Date();
+            const today = new Date(
+              Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())
+            );
+            const tomorrow = new Date(today);
+            tomorrow.setDate(tomorrow.getDate() + 1);
 
-              const existingRecon = await tx.reconciliation.findFirst({
-                where: {
-                  salesman_id: userIdNum,
-                  reconciliation_date: { gte: today, lt: tomorrow },
-                  is_active: 'Y',
-                },
-              });
-
-              if (!existingRecon) {
-                const productMap = new Map<
-                  string,
-                  {
-                    product_id: number;
-                    product_code: string;
-                    total_qty: number;
-                    batch_number: string | null;
-                  }
-                >();
-
-                for (const stock of stockToUnload) {
-                  if (stock.product_id === null) continue;
-                  const qty = Number(stock.current_stock) || 0;
-                  if (qty <= 0) continue;
-                  const batchNum =
-                    stock.inventory_stock_batch?.batch_number ?? null;
-                  const productCode =
-                    stock.inventory_stock_products?.code ||
-                    String(stock.product_id);
-                  const key = `${stock.product_id}-${batchNum}`;
-                  const existing = productMap.get(key);
-
-                  if (existing) {
-                    existing.total_qty += qty;
-                  } else {
-                    productMap.set(key, {
-                      product_id: stock.product_id,
-                      product_code: productCode,
-                      total_qty: qty,
-                      batch_number: batchNum,
-                    });
-                  }
-                }
-
-                if (productMap.size > 0) {
-                  const reconciliation = await tx.reconciliation.create({
-                    data: {
-                      salesman_id: userIdNum,
-                      depot_id: user.depot_id ?? null,
-                      status: 'P',
-                      reconciliation_date: today,
-                      is_active: 'Y',
-                      createdate: new Date(),
-                      createdby: userIdNum,
-                    },
-                  });
-                  createdReconciliationId = reconciliation.id;
-
-                  const itemsData = Array.from(productMap.values()).map(p => ({
-                    reconciliation_id: reconciliation.id,
-                    product_id: p.product_id,
-                    batch_number: p.batch_number,
-                    expected_qty: p.total_qty,
-                    actual_qty: null,
-                    variance: null,
-                    resolution_action: 'Awaiting Verification',
-                    default_outlet_posting_qty: 0,
-                    unload_adjustment_qty: 0,
-                    stock_key: `${user.sap_code ?? user.id} | ${p.product_code} | ${p.batch_number}`,
-                    is_active: 'Y',
-                    createdate: new Date(),
-                    createdby: userIdNum,
-                  }));
-
-                  await tx.reconciliation_items.createMany({ data: itemsData });
-                }
-              }
-            }
-          });
-
-          if (createdVanInventoryId) {
-            let targetReconciliationId: number | null = createdReconciliationId;
-
-            if (!targetReconciliationId) {
-              const now = new Date();
-              const today = new Date(
-                Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())
-              );
-              const tomorrow = new Date(today);
-              tomorrow.setDate(tomorrow.getDate() + 1);
-
-              const existingRecon = await prisma.reconciliation.findFirst({
-                where: {
-                  salesman_id: userIdNum,
-                  reconciliation_date: { gte: today, lt: tomorrow },
-                  is_active: 'Y',
-                },
-              });
-              if (existingRecon) {
-                targetReconciliationId = existingRecon.id;
-              }
-            }
-
-            const reqType = targetReconciliationId
-              ? 'RECONCILIATION_APPROVAL'
-              : 'VAN_INVENTORY';
-            const refId = targetReconciliationId || createdVanInventoryId;
-
-            await createRequest({
-              requester_id: userIdNum,
-              request_type: reqType,
-              reference_id: refId,
-              request_data: JSON.stringify({
-                loading_type: 'U',
-                van_inventory_id: createdVanInventoryId,
-              }),
-              createdby: userIdNum,
-              log_inst: 1,
+            let recon = await tx.reconciliation.findFirst({
+              where: {
+                salesman_id: userIdNum,
+                reconciliation_date: { gte: today, lt: tomorrow },
+                is_active: 'Y',
+              },
             });
 
-            processedVanInventoryIds.push(createdVanInventoryId);
-          }
+            const productMap = new Map<
+              string,
+              {
+                product_id: number;
+                product_code: string;
+                total_qty: number;
+                batch_number: string | null;
+              }
+            >();
+
+            for (const stock of stockToUnload) {
+              if (stock.product_id === null) continue;
+              const qty = Number(stock.current_stock) || 0;
+              if (qty <= 0) continue;
+
+              const batchNum =
+                stock.inventory_stock_batch?.batch_number ?? null;
+              const productCode =
+                stock.inventory_stock_products?.code ||
+                String(stock.product_id);
+              const key = `${stock.product_id}-${batchNum}`;
+
+              const existing = productMap.get(key);
+              if (existing) {
+                existing.total_qty += qty;
+              } else {
+                productMap.set(key, {
+                  product_id: stock.product_id,
+                  product_code: productCode,
+                  total_qty: qty,
+                  batch_number: batchNum,
+                });
+              }
+              totalItemsRequested++;
+            }
+
+            if (productMap.size === 0) return null;
+
+            if (!recon) {
+              recon = await tx.reconciliation.create({
+                data: {
+                  salesman_id: userIdNum,
+                  depot_id: user.depot_id ?? locationId,
+                  status: 'P',
+                  reconciliation_date: today,
+                  is_active: 'Y',
+                  createdate: new Date(),
+                  createdby: userIdNum,
+                },
+              });
+            }
+
+            const existingItems = await tx.reconciliation_items.findMany({
+              where: { reconciliation_id: recon.id, is_active: 'Y' },
+            });
+            const existingByKey = new Map(
+              existingItems.map(i => [`${i.product_id}-${i.batch_number}`, i])
+            );
+
+            const toCreate: any[] = [];
+            for (const p of productMap.values()) {
+              const key = `${p.product_id}-${p.batch_number}`;
+              const existingItem = existingByKey.get(key);
+
+              if (existingItem) {
+                await tx.reconciliation_items.update({
+                  where: { id: existingItem.id },
+                  data: { expected_qty: p.total_qty, updatedate: new Date() },
+                });
+                continue;
+              }
+
+              toCreate.push({
+                reconciliation_id: recon.id,
+                product_id: p.product_id,
+                batch_number: p.batch_number,
+                expected_qty: p.total_qty,
+                actual_qty: null,
+                variance: null,
+                resolution_action: 'Awaiting Verification',
+                default_outlet_posting_qty: 0,
+                unload_adjustment_qty: 0,
+                stock_key: `${user.sap_code ?? user.id} | ${p.product_code} | ${p.batch_number}`,
+                is_active: 'Y',
+                createdate: new Date(),
+                createdby: userIdNum,
+              });
+            }
+
+            if (toCreate.length > 0) {
+              await tx.reconciliation_items.createMany({ data: toCreate });
+            }
+
+            return recon.id;
+          });
+
+          if (reconciliationId) reconciliationIds.push(reconciliationId);
         } catch (vanLocError: any) {
           console.error(
             `Failed to process location ${locationId}:`,
             vanLocError
           );
-
           errors.push(`Location ${locationId}: ${vanLocError.message}`);
         }
       }
 
       return res.json({
         success: true,
-        message: 'Unload request submitted for approval successfully.',
+        message:
+          'Stock staged for reconciliation. Save the reconciliation to submit for unload approval.',
         data: {
           user_id: userIdNum,
-          van_inventory_ids: processedVanInventoryIds,
+          reconciliation_ids: reconciliationIds,
           total_items_requested: totalItemsRequested,
           request_date: new Date(),
           errors: errors.length ? errors : undefined,
@@ -6952,10 +6968,9 @@ export const vanInventoryController = {
       });
     } catch (error: any) {
       console.error('Unload Van Inventory Error:', error);
-
       return res.status(500).json({
         success: false,
-        message: 'Failed to submit unload request',
+        message: 'Failed to stage unload reconciliation',
         error: error.message,
       });
     }
