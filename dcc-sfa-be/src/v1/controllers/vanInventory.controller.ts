@@ -581,7 +581,6 @@ async function updateSubUsersInventoryStock(
     van_inventory_id: number;
   }
 ): Promise<void> {
-  // No-op - container sub-users now directly share the parent user's stock record!
   return;
 }
 
@@ -637,7 +636,6 @@ async function processApprovedVanInventoryStock(
     return;
   }
 
-  // First try to get items from requestData, if not available, use database items
   let items = Array.isArray(requestData?.items)
     ? requestData.items
     : Array.isArray(requestData?.van_inventory_items)
@@ -647,7 +645,6 @@ async function processApprovedVanInventoryStock(
         : [];
 
   let itemsSource = 'requestData';
-  // If no items from requestData, use the items stored in the database
   if (!Array.isArray(items) || items.length === 0) {
     items = inventory.van_inventory_items_inventory || [];
     itemsSource = 'database';
@@ -661,23 +658,43 @@ async function processApprovedVanInventoryStock(
 
   await prisma.$transaction(
     async (tx: any) => {
-      // Check if there are existing stock movements for this van inventory instead of counting items
-      const existingProcessedMovements = await tx.stock_movements.count({
-        where: {
-          reference_type: 'VAN_INVENTORY',
-          reference_id: inventory.id,
-        },
-      });
-      console.log(
-        ` Existing stock movements for this inventory: ${existingProcessedMovements}`
-      );
+      const loadingType = inventory.loading_type || 'L';
+      if (loadingType === 'L') {
+        const existingProcessedMovements = await tx.stock_movements.count({
+          where: {
+            reference_type: 'VAN_INVENTORY',
+            reference_id: inventory.id,
+            movement_type: 'VAN_LOAD',
+          },
+        });
+        console.log(
+          ` Existing VAN_LOAD stock movements for this inventory: ${existingProcessedMovements}`
+        );
 
-      if (existingProcessedMovements > 0) {
-        console.log(' Skipping: stock movements already processed');
-        return;
+        if (existingProcessedMovements > 0) {
+          console.log(' Skipping: VAN_LOAD stock movements already processed');
+          return;
+        }
+      } else if (loadingType === 'U') {
+        const existingProcessedMovements = await tx.stock_movements.count({
+          where: {
+            reference_type: 'VAN_INVENTORY',
+            reference_id: inventory.id,
+            movement_type: 'VAN_UNLOAD',
+          },
+        });
+        console.log(
+          ` Existing VAN_UNLOAD stock movements for this inventory: ${existingProcessedMovements}`
+        );
+
+        if (existingProcessedMovements > 0) {
+          console.log(
+            ' Skipping: VAN_UNLOAD stock movements already processed'
+          );
+          return;
+        }
       }
 
-      const loadingType = inventory.loading_type || 'L';
       const inventoryUserId = Number(inventory.user_id);
       const inventoryLocationId = inventory.location_id
         ? Number(inventory.location_id)
@@ -752,9 +769,7 @@ async function processApprovedVanInventoryStock(
 
             for (let b = 0; b < batchData.length; b++) {
               const batchInput = batchData[b];
-              console.log(
-                `  --- Processing batch ${b + 1}/${batchData.length} ---`
-              );
+              console.log(`  Processing batch ${b + 1}/${batchData.length} `);
               console.log(
                 '  Batch input:',
                 JSON.stringify(batchInput, null, 2)
@@ -776,7 +791,7 @@ async function processApprovedVanInventoryStock(
               });
 
               if (batchLot) {
-                console.log('  Found existing batch_lot, updating...');
+                console.log('  Found existing batch_lot, updating.');
                 await tx.batch_lots.update({
                   where: { id: batchLot.id },
                   data: {
@@ -852,12 +867,9 @@ async function processApprovedVanInventoryStock(
 
               const existingVanItem = await tx.van_inventory_items.findFirst({
                 where: {
+                  parent_id: inventory.id,
                   product_id: product.id,
                   batch_lot_id: batchLot.id,
-                  van_inventory_items_inventory: {
-                    user_id: inventoryUserId,
-                    is_active: 'Y',
-                  },
                 },
                 include: {
                   van_inventory_items_inventory: true,
@@ -865,7 +877,9 @@ async function processApprovedVanInventoryStock(
               });
 
               if (existingVanItem) {
-                console.log('  Found existing van_inventory_item, updating...');
+                console.log(
+                  '  Found existing van_inventory_item in current inventory, updating...'
+                );
                 const newQuantity = existingVanItem.quantity + batchQty;
                 await tx.van_inventory_items.update({
                   where: { id: existingVanItem.id },
@@ -879,7 +893,7 @@ async function processApprovedVanInventoryStock(
                   newQuantity
                 );
               } else {
-                console.log(' Creating new van_inventory_item...');
+                console.log(' Creating new van_inventory_item..');
                 await tx.van_inventory_items.create({
                   data: {
                     parent_id: inventory.id,
@@ -912,7 +926,7 @@ async function processApprovedVanInventoryStock(
               );
               console.log('  Inventory stock updated');
 
-              console.log('   Creating stock movement...');
+              console.log('   Creating stock movement..');
               await createStockMovement(tx, {
                 product_id: product.id,
                 batch_id: batchLot.id,
@@ -944,9 +958,7 @@ async function processApprovedVanInventoryStock(
 
             for (let s = 0; s < serialData.length; s++) {
               const serialInput = serialData[s];
-              console.log(
-                `  --- Processing serial ${s + 1}/${serialData.length} ---`
-              );
+              console.log(`  Processing serial ${s + 1}/${serialData.length}`);
               console.log(
                 '  Serial input:',
                 JSON.stringify(serialInput, null, 2)
@@ -989,7 +1001,7 @@ async function processApprovedVanInventoryStock(
                 });
                 console.log('  Serial updated');
               } else {
-                console.log('  Creating new serial...');
+                console.log('  Creating new serial..');
                 existingSerial = await tx.serial_numbers.create({
                   data: {
                     product_id: product.id,
@@ -1012,25 +1024,24 @@ async function processApprovedVanInventoryStock(
 
               const existingVanItem = await tx.van_inventory_items.findFirst({
                 where: {
+                  parent_id: inventory.id,
                   product_id: product.id,
                   serial_id: existingSerial.id,
-                  van_inventory_items_inventory: {
-                    user_id: inventoryUserId,
-                    is_active: 'Y',
-                  },
                 },
                 include: {
                   van_inventory_items_inventory: true,
                 },
               });
               console.log(
-                '  Found existing van item for serial?',
+                '  Found existing van item for serial in current inventory?',
                 !!existingVanItem
               );
 
               if (existingVanItem) {
-                console.log('  Found existing van item, updating quantity...');
-                const newQuantity = existingVanItem.quantity + 1;
+                console.log(
+                  '  Found existing van item for serial, updating...'
+                );
+                const newQuantity = 1;
                 await tx.van_inventory_items.update({
                   where: { id: existingVanItem.id },
                   data: {
@@ -1161,7 +1172,10 @@ async function processApprovedVanInventoryStock(
           if (trackingType === 'BATCH') {
             console.log('  Tracking type: BATCH');
             let batchData = item.batches || item.product_batches;
-            if ((!Array.isArray(batchData) || batchData.length === 0) && item.van_inventory_items_batch_lot) {
+            if (
+              (!Array.isArray(batchData) || batchData.length === 0) &&
+              item.van_inventory_items_batch_lot
+            ) {
               batchData = [
                 {
                   batch_number: item.van_inventory_items_batch_lot.batch_number,
@@ -1299,7 +1313,10 @@ async function processApprovedVanInventoryStock(
           } else if (trackingType === 'SERIAL') {
             console.log('  Tracking type: SERIAL');
             let serialData = normalizeInventoryItemSerials(item);
-            if ((!Array.isArray(serialData) || serialData.length === 0) && item.van_inventory_serial) {
+            if (
+              (!Array.isArray(serialData) || serialData.length === 0) &&
+              item.van_inventory_serial
+            ) {
               serialData = [
                 {
                   serial_number: item.van_inventory_serial.serial_number,
@@ -3232,10 +3249,9 @@ export const vanInventoryController = {
             `Van inventory stock processing gate: approvalStatus=${payload.approval_status}, cancelled=${payload.is_cancelled}, shouldProcess=${shouldPerformLoadingUnloading}, inventoryId=${inventoryId}`
           );
 
-          // First: ALWAYS save the items to van_inventory_items (regardless of approval status)
           if (Array.isArray(items) && items.length > 0) {
             console.log(
-              `=== Saving ${items.length} items to van_inventory_items for inventory ${inventory.id}`
+              `Saving ${items.length} items to van_inventory_items for inventory ${inventory.id}`
             );
             for (const item of items) {
               const qty = parseInt(item.quantity, 10) || 0;
@@ -3259,7 +3275,6 @@ export const vanInventoryController = {
                   const batchQty = parseInt(batchInput.quantity, 10) || 0;
                   if (batchQty <= 0) continue;
 
-                  // For items, we just need batch_lot_id, so find or create? Wait no, for unload we just need to find existing batchLot!
                   let batchLot = null;
                   if (batchInput.batch_number) {
                     batchLot = await tx.batch_lots.findFirst({
@@ -3358,7 +3373,6 @@ export const vanInventoryController = {
             console.log(`=== Finished saving items to van_inventory_items`);
           }
 
-          // Second: Perform stock movements and updates only if approved and not cancelled!
           if (Array.isArray(items) && items.length > 0) {
             for (const item of items) {
               if (!shouldPerformLoadingUnloading) {
@@ -3495,8 +3509,6 @@ export const vanInventoryController = {
                       console.log(` Created product_batches`);
                     }
 
-                    // Skip updating van_inventory_items here since we already saved them in first loop!
-
                     await updateInventoryStock(
                       tx,
                       product.id,
@@ -3609,8 +3621,6 @@ export const vanInventoryController = {
                       console.log(` Created new serial ${serialNumber}`);
                     }
 
-                    // Skip updating van_inventory_items here since we already saved them in first loop!
-
                     await updateInventoryStock(
                       tx,
                       product.id,
@@ -3658,9 +3668,6 @@ export const vanInventoryController = {
                     );
                   }
                 } else {
-                  // NONE tracking type
-                  // Skip updating van_inventory_items here since we already saved them in first loop!
-
                   await updateInventoryStock(
                     tx,
                     product.id,
@@ -6746,19 +6753,25 @@ export const vanInventoryController = {
               });
 
               if (!existingRecon) {
-                const productMap = new Map<string, {
-                  product_id: number;
-                  product_code: string;
-                  total_qty: number;
-                  batch_number: string | null;
-                }>();
+                const productMap = new Map<
+                  string,
+                  {
+                    product_id: number;
+                    product_code: string;
+                    total_qty: number;
+                    batch_number: string | null;
+                  }
+                >();
 
                 for (const stock of stockToUnload) {
                   if (stock.product_id === null) continue;
                   const qty = Number(stock.current_stock) || 0;
                   if (qty <= 0) continue;
-                  const batchNum = stock.inventory_stock_batch?.batch_number ?? null;
-                  const productCode = stock.inventory_stock_products?.code || String(stock.product_id);
+                  const batchNum =
+                    stock.inventory_stock_batch?.batch_number ?? null;
+                  const productCode =
+                    stock.inventory_stock_products?.code ||
+                    String(stock.product_id);
                   const key = `${stock.product_id}-${batchNum}`;
                   const existing = productMap.get(key);
 
@@ -6833,7 +6846,9 @@ export const vanInventoryController = {
               }
             }
 
-            const reqType = targetReconciliationId ? 'RECONCILIATION_APPROVAL' : 'VAN_INVENTORY';
+            const reqType = targetReconciliationId
+              ? 'RECONCILIATION_APPROVAL'
+              : 'VAN_INVENTORY';
             const refId = targetReconciliationId || createdVanInventoryId;
 
             await createRequest({

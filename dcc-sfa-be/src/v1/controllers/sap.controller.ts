@@ -5,10 +5,13 @@ import prisma from '../../configs/prisma.client';
 export const sapController = {
   async syncVanInventory(req: Request, res: Response) {
     try {
+      console.log("req.body =", req.body);
+      console.log("req.user!.id =", req.user!.id);
       const result = await sapService.createOrUpdateVanInventorySAP(
         req.body,
         req.user!.id
       );
+
       return res.status(201).json({
         success: true,
         message: 'SAP inventory synced successfully',

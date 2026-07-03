@@ -1717,7 +1717,10 @@ export const sapService = {
 
     const items = van_inventory_items || inventoryItems || payload.items || [];
     let inventoryId = inventoryData.id;
-    const loadingType = inventoryData.loading_type || 'L';
+    let loadingType = inventoryData.loading_type || 'L';
+    if (!['L', 'U'].includes(loadingType.toUpperCase())) {
+      loadingType = 'L';
+    }
 
     if (!inventoryData.salesman_sap_code) {
       throw new Error('salesman_sap_code is required');
@@ -1814,7 +1817,6 @@ export const sapService = {
           ? new Date(inventoryData.document_date)
           : new Date();
 
-        // Normalize the date to remove time part
         const normalizedDocDate = new Date(
           docDate.getFullYear(),
           docDate.getMonth(),
@@ -2027,43 +2029,85 @@ export const sapService = {
             const itemIsCancelled =
               item.is_cancelled === 'T' || item.is_cancelled === 'Y';
 
-            if (loadingType === 'L') {
-              if (trackingType === 'BATCH') {
-                const batchData = item.batches || item.product_batches;
-
-                if (
-                  !batchData ||
-                  !Array.isArray(batchData) ||
-                  batchData.length === 0
-                ) {
-                  throw new Error(
-                    `Batches are required for batch-tracked product ${product.name}`
-                  );
-                }
-
-                const totalBatchQty = (batchData || []).reduce(
-                  (acc: number, b: any) =>
-                    acc + (parseInt(b.quantity, 10) || 0),
-                  0
+            // Validate batches/serials for BOTH load AND unload!
+            const batchData = item.batches || item.product_batches;
+            const serialData = item.serials || item.product_serials;
+            if (trackingType === 'BATCH') {
+              if (
+                !batchData ||
+                !Array.isArray(batchData) ||
+                batchData.length === 0
+              ) {
+                throw new Error(
+                  `Batches are required for batch-tracked product ${product.name}`
                 );
-                if (
-                  typeof item.quantity === 'undefined' ||
-                  item.quantity === null
-                ) {
+              }
+
+              for (const batchInput of batchData) {
+                if (!batchInput.batch_number) {
                   throw new Error(
-                    `Quantity is required for batch-tracked product "${product.name}" when batches are provided`
+                    `Batch number is required for each batch for product "${product.name}"`
                   );
                 }
+              }
+
+              const totalBatchQty = (batchData || []).reduce(
+                (acc: number, b: any) => acc + (parseInt(b.quantity, 10) || 0),
+                0
+              );
+              if (
+                typeof item.quantity === 'undefined' ||
+                item.quantity === null
+              ) {
+                throw new Error(
+                  `Quantity is required for batch-tracked product "${product.name}" when batches are provided`
+                );
+              }
+              const declaredQty = parseInt(item.quantity, 10);
+              if (Number.isNaN(declaredQty) || declaredQty !== totalBatchQty) {
+                throw new Error(
+                  `Quantity mismatch for batch-tracked product "${product.name}": declared quantity ${item.quantity} does not match sum of batches ${totalBatchQty}`
+                );
+              }
+            } else if (trackingType === 'SERIAL') {
+              if (
+                !serialData ||
+                !Array.isArray(serialData) ||
+                serialData.length === 0
+              ) {
+                throw new Error(
+                  `Serial numbers are required for serial-tracked product "${product.name}"`
+                );
+              }
+
+              if (
+                typeof item.quantity !== 'undefined' &&
+                item.quantity !== null
+              ) {
                 const declaredQty = parseInt(item.quantity, 10);
                 if (
-                  Number.isNaN(declaredQty) ||
-                  declaredQty !== totalBatchQty
+                  !Number.isNaN(declaredQty) &&
+                  declaredQty !== serialData.length
                 ) {
                   throw new Error(
-                    `Quantity mismatch for batch-tracked product "${product.name}": declared quantity ${item.quantity} does not match sum of batches ${totalBatchQty}`
+                    `Quantity mismatch for serial-tracked product "${product.name}": declared quantity ${declaredQty} does not match number of serials ${serialData.length}`
                   );
                 }
+              }
 
+              for (const serialInput of serialData) {
+                const serialNumber =
+                  typeof serialInput === 'string'
+                    ? serialInput
+                    : serialInput?.serial_number;
+                if (!serialNumber) {
+                  throw new Error('Serial number is required');
+                }
+              }
+            }
+
+            if (loadingType === 'L') {
+              if (trackingType === 'BATCH') {
                 for (const batchInput of batchData) {
                   const batchQty = parseInt(batchInput.quantity, 10) || 0;
 
@@ -2091,7 +2135,6 @@ export const sapService = {
                     },
                   });
 
-                  // Only modify batch_lots and product_batches if we're performing loading/unloading AND item isn't cancelled
                   if (shouldPerformLoadingUnloading && !itemIsCancelled) {
                     if (batchLot) {
                       await tx.batch_lots.update({
@@ -2226,6 +2269,7 @@ export const sapService = {
                         source_system: sourceSystem,
                         sap_docentry: sapDocEntry,
                         sap_docnum: sapDocNum,
+                        sap_lineid: sapLineid,
                         van_inventory_items_inventory: {
                           user_id: inventoryData.user_id,
                           is_active: 'Y',
@@ -2326,32 +2370,6 @@ export const sapService = {
                 }
               } else if (trackingType === 'SERIAL') {
                 const serialData = item.serials || item.product_serials;
-
-                if (
-                  !serialData ||
-                  !Array.isArray(serialData) ||
-                  serialData.length === 0
-                ) {
-                  throw new Error(
-                    `Serial numbers are required for serial-tracked product "${product.name}"`
-                  );
-                }
-
-                if (
-                  typeof item.quantity !== 'undefined' &&
-                  item.quantity !== null
-                ) {
-                  const declaredQty = parseInt(item.quantity, 10);
-                  if (
-                    !Number.isNaN(declaredQty) &&
-                    declaredQty !== serialData.length
-                  ) {
-                    throw new Error(
-                      `Quantity mismatch for serial-tracked product "${product.name}": declared quantity ${declaredQty} does not match number of serials ${serialData.length}`
-                    );
-                  }
-                }
-
                 console.log(` Product: ${product.name}, ID: ${product.id}`);
 
                 for (const serialInput of serialData) {
@@ -2359,10 +2377,6 @@ export const sapService = {
                     typeof serialInput === 'string'
                       ? serialInput
                       : serialInput.serial_number;
-
-                  if (!serialNumber) {
-                    throw new Error('Serial number is required');
-                  }
 
                   let existingSerial = await tx.serial_numbers.findUnique({
                     where: { serial_number: serialNumber },
@@ -2460,14 +2474,32 @@ export const sapService = {
                         source_system: sourceSystem,
                         sap_docentry: sapDocEntry,
                         sap_docnum: sapDocNum,
+                        sap_lineid: sapLineid,
                         van_inventory_items_inventory: {
                           user_id: inventoryData.user_id,
                           is_active: 'Y',
                         },
                       },
                     });
+                  console.log({
+                    serial: serialNumber,
+                    serialId: existingSerial.id,
+                    inventoryId: inventory.id,
+                    existingVanItem: existingVanItem
+                      ? {
+                          id: existingVanItem.id,
+                          quantity: existingVanItem.quantity,
+                          parent_id: existingVanItem.parent_id,
+                        }
+                      : null,
+                  });
                   if (existingVanItem) {
-                    const newQuantity = existingVanItem.quantity + 1;
+                    console.log(`Updating existing serial item`, {
+                      serial: serialNumber,
+                      qty: existingVanItem.quantity,
+                    });
+                    // For serial items, quantity should always be 1, don't increment it!
+                    const newQuantity = 1;
                     await tx.van_inventory_items.update({
                       where: { id: existingVanItem.id },
                       data: {
@@ -2494,9 +2526,13 @@ export const sapService = {
                       },
                     });
                     console.log(
-                      ` Updated van_inventory_items ID: ${existingVanItem.id}, quantity: ${existingVanItem.quantity}→${newQuantity}`
+                      ` Updated van_inventory_items ID: ${existingVanItem.id}, quantity set to ${newQuantity}`
                     );
                   } else {
+                    console.log(`Creating new serial item`, {
+                      serial: serialNumber,
+                      quantity: 1,
+                    });
                     await tx.van_inventory_items.create({
                       data: {
                         parent_id: inventory.id,
@@ -2579,6 +2615,7 @@ export const sapService = {
                     source_system: sourceSystem,
                     sap_docentry: sapDocEntry,
                     sap_docnum: sapDocNum,
+                    sap_lineid: sapLineid,
                   },
                 });
 
@@ -3762,6 +3799,10 @@ export const sapService = {
     inventoryId: number,
     userId: number = 1
   ) {
+    console.log('processApprovedVanInventoryStock called', {
+      inventoryId,
+      userId,
+    });
     console.log(
       `Processing stock operations for approved van inventory ID: ${inventoryId}`
     );
@@ -3800,6 +3841,44 @@ export const sapService = {
 
     await prisma.$transaction(
       async tx => {
+        if (loadingType === 'L') {
+          const existingProcessedMovements = await tx.stock_movements.count({
+            where: {
+              reference_type: 'VAN_INVENTORY',
+              reference_id: inventoryId,
+              movement_type: 'VAN_LOAD',
+            },
+          });
+          console.log(
+            ` Existing VAN_LOAD stock movements for this inventory: ${existingProcessedMovements}`
+          );
+
+          if (existingProcessedMovements > 0) {
+            console.log(
+              ' Skipping: VAN_LOAD stock movements already processed'
+            );
+            return;
+          }
+        } else if (loadingType === 'U') {
+          const existingProcessedMovements = await tx.stock_movements.count({
+            where: {
+              reference_type: 'VAN_INVENTORY',
+              reference_id: inventoryId,
+              movement_type: 'VAN_UNLOAD',
+            },
+          });
+          console.log(
+            ` Existing VAN_UNLOAD stock movements for this inventory: ${existingProcessedMovements}`
+          );
+
+          if (existingProcessedMovements > 0) {
+            console.log(
+              ' Skipping: VAN_UNLOAD stock movements already processed'
+            );
+            return;
+          }
+        }
+
         // Process each item
         for (const item of items) {
           if (!item.product_sap_code) continue;
