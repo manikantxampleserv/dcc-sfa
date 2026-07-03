@@ -332,8 +332,6 @@ const serializeVanInventory = (item: any): VanInventorySerialized => {
 
   return {
     id: item.id,
-    // sap_docentry: firstInventoryItem?.sap_docentry || null,
-    // sap_docnum: firstInventoryItem?.sap_docnum || null,
     source_system: firstInventoryItem?.source_system || null,
     source_system_label: getSourceSystemLabel(
       firstInventoryItem?.source_system
@@ -1162,7 +1160,10 @@ async function processApprovedVanInventoryStock(
           if (trackingType === 'BATCH') {
             console.log('  Tracking type: BATCH');
             let batchData = item.batches || item.product_batches;
-            if ((!Array.isArray(batchData) || batchData.length === 0) && item.van_inventory_items_batch_lot) {
+            if (
+              (!Array.isArray(batchData) || batchData.length === 0) &&
+              item.van_inventory_items_batch_lot
+            ) {
               batchData = [
                 {
                   batch_number: item.van_inventory_items_batch_lot.batch_number,
@@ -1300,7 +1301,10 @@ async function processApprovedVanInventoryStock(
           } else if (trackingType === 'SERIAL') {
             console.log('  Tracking type: SERIAL');
             let serialData = normalizeInventoryItemSerials(item);
-            if ((!Array.isArray(serialData) || serialData.length === 0) && item.van_inventory_serial) {
+            if (
+              (!Array.isArray(serialData) || serialData.length === 0) &&
+              item.van_inventory_serial
+            ) {
               serialData = [
                 {
                   serial_number: item.van_inventory_serial.serial_number,
@@ -4177,8 +4181,9 @@ export const vanInventoryController = {
             { vehicle: { vehicle_number: { contains: searchLower } } },
           ],
         }),
-        ...(statusLower === 'active' && { is_active: 'Y' }),
-        ...(statusLower === 'inactive' && { is_active: 'N' }),
+        ...(statusLower === 'pending' && { approval_status: 'P' }),
+        ...(statusLower === 'approved' && { approval_status: 'A' }),
+        ...(statusLower === 'rejected' && { approval_status: 'R' }),
         ...(loadingType === 'L' && { loading_type: 'L' }),
         ...(loadingType === 'U' && { loading_type: 'U' }),
         ...(user_id && { user_id: parseInt(user_id as string, 10) }),
@@ -6811,19 +6816,25 @@ export const vanInventoryController = {
               });
 
               if (!existingRecon) {
-                const productMap = new Map<string, {
-                  product_id: number;
-                  product_code: string;
-                  total_qty: number;
-                  batch_number: string | null;
-                }>();
+                const productMap = new Map<
+                  string,
+                  {
+                    product_id: number;
+                    product_code: string;
+                    total_qty: number;
+                    batch_number: string | null;
+                  }
+                >();
 
                 for (const stock of stockToUnload) {
                   if (stock.product_id === null) continue;
                   const qty = Number(stock.current_stock) || 0;
                   if (qty <= 0) continue;
-                  const batchNum = stock.inventory_stock_batch?.batch_number ?? null;
-                  const productCode = stock.inventory_stock_products?.code || String(stock.product_id);
+                  const batchNum =
+                    stock.inventory_stock_batch?.batch_number ?? null;
+                  const productCode =
+                    stock.inventory_stock_products?.code ||
+                    String(stock.product_id);
                   const key = `${stock.product_id}-${batchNum}`;
                   const existing = productMap.get(key);
 
@@ -6898,7 +6909,9 @@ export const vanInventoryController = {
               }
             }
 
-            const reqType = targetReconciliationId ? 'RECONCILIATION_APPROVAL' : 'VAN_INVENTORY';
+            const reqType = targetReconciliationId
+              ? 'RECONCILIATION_APPROVAL'
+              : 'VAN_INVENTORY';
             const refId = targetReconciliationId || createdVanInventoryId;
 
             await createRequest({

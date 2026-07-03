@@ -1,7 +1,7 @@
 /**
  * @fileoverview Auto-Generated Menu Permissions Hook
  * @description Generated automatically from menu items and backend modules
- * @generated-at 2026-07-01T09:49:57.039Z
+ * @generated-at 2026-07-03T07:12:19.544Z
  */
 
 import { useCallback, useMemo } from 'react';
@@ -16,6 +16,7 @@ export const useMenuPermissions = () => {
   const executiveDashboardPerms = usePermission('executive-dashboard' as BackendModule);
   const gradingDashboardPerms = usePermission('grading-dashboard' as BackendModule);
   const reconciliationPerms = usePermission('reconciliation' as BackendModule);
+  const settlementSheetPerms = usePermission('settlement-sheet' as BackendModule);
   const userPerms = usePermission('user' as BackendModule);
   const rolePerms = usePermission('role' as BackendModule);
   const depotPerms = usePermission('depot' as BackendModule);
@@ -80,11 +81,13 @@ export const useMenuPermissions = () => {
   const tokenPerms = usePermission('token' as BackendModule);
   const settingPerms = usePermission('setting' as BackendModule);
   const templatesPerms = usePermission('templates' as BackendModule);
+  const errorLogsPerms = usePermission('error-logs' as BackendModule);
 
   const permissions = useMemo(() => ({
     'executive-dashboard': executiveDashboardPerms,
     'grading-dashboard': gradingDashboardPerms,
     'reconciliation': reconciliationPerms,
+    'settlement-sheet': settlementSheetPerms,
     'user': userPerms,
     'role': rolePerms,
     'depot': depotPerms,
@@ -149,10 +152,12 @@ export const useMenuPermissions = () => {
     'token': tokenPerms,
     'setting': settingPerms,
     'templates': templatesPerms,
+    'error-logs': errorLogsPerms,
   }), [
     executiveDashboardPerms,
     gradingDashboardPerms,
     reconciliationPerms,
+    settlementSheetPerms,
     userPerms,
     rolePerms,
     depotPerms,
@@ -217,6 +222,7 @@ export const useMenuPermissions = () => {
     tokenPerms,
     settingPerms,
     templatesPerms,
+    errorLogsPerms,
   ]);
 
   const hasPermission = useCallback(

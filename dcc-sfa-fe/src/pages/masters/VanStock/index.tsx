@@ -447,8 +447,9 @@ const VanInventories: React.FC = () => {
                     disableClearable
                   >
                     <MenuItem value="all">All Status</MenuItem>
-                    <MenuItem value="active">Active</MenuItem>
-                    <MenuItem value="inactive">Inactive</MenuItem>
+                    <MenuItem value="pending">Pending</MenuItem>
+                    <MenuItem value="approved">Approved</MenuItem>
+                    <MenuItem value="rejected">Rejected</MenuItem>
                   </Select>
                   <Select
                     value={typeFilter}

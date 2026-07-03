@@ -203,8 +203,6 @@ const serializeVanInventory = (item) => {
     const firstInventoryItem = item.van_inventory_items_inventory?.[0];
     return {
         id: item.id,
-        // sap_docentry: firstInventoryItem?.sap_docentry || null,
-        // sap_docnum: firstInventoryItem?.sap_docnum || null,
         source_system: firstInventoryItem?.source_system || null,
         source_system_label: (0, sourceSystem_1.getSourceSystemLabel)(firstInventoryItem?.source_system),
         is_cancelled: item.is_cancelled,
@@ -862,7 +860,8 @@ async function processApprovedVanInventoryStock(inventoryId, userId, requestData
                 if (trackingType === 'BATCH') {
                     console.log('  Tracking type: BATCH');
                     let batchData = item.batches || item.product_batches;
-                    if ((!Array.isArray(batchData) || batchData.length === 0) && item.van_inventory_items_batch_lot) {
+                    if ((!Array.isArray(batchData) || batchData.length === 0) &&
+                        item.van_inventory_items_batch_lot) {
                         batchData = [
                             {
                                 batch_number: item.van_inventory_items_batch_lot.batch_number,
@@ -959,7 +958,8 @@ async function processApprovedVanInventoryStock(inventoryId, userId, requestData
                 else if (trackingType === 'SERIAL') {
                     console.log('  Tracking type: SERIAL');
                     let serialData = normalizeInventoryItemSerials(item);
-                    if ((!Array.isArray(serialData) || serialData.length === 0) && item.van_inventory_serial) {
+                    if ((!Array.isArray(serialData) || serialData.length === 0) &&
+                        item.van_inventory_serial) {
                         serialData = [
                             {
                                 serial_number: item.van_inventory_serial.serial_number,
@@ -3347,8 +3347,9 @@ exports.vanInventoryController = {
                         { vehicle: { vehicle_number: { contains: searchLower } } },
                     ],
                 }),
-                ...(statusLower === 'active' && { is_active: 'Y' }),
-                ...(statusLower === 'inactive' && { is_active: 'N' }),
+                ...(statusLower === 'pending' && { approval_status: 'P' }),
+                ...(statusLower === 'approved' && { approval_status: 'A' }),
+                ...(statusLower === 'rejected' && { approval_status: 'R' }),
                 ...(loadingType === 'L' && { loading_type: 'L' }),
                 ...(loadingType === 'U' && { loading_type: 'U' }),
                 ...(user_id && { user_id: parseInt(user_id, 10) }),
@@ -5638,7 +5639,8 @@ exports.vanInventoryController = {
                                     if (qty <= 0)
                                         continue;
                                     const batchNum = stock.inventory_stock_batch?.batch_number ?? null;
-                                    const productCode = stock.inventory_stock_products?.code || String(stock.product_id);
+                                    const productCode = stock.inventory_stock_products?.code ||
+                                        String(stock.product_id);
                                     const key = `${stock.product_id}-${batchNum}`;
                                     const existing = productMap.get(key);
                                     if (existing) {
@@ -5704,7 +5706,9 @@ exports.vanInventoryController = {
                                 targetReconciliationId = existingRecon.id;
                             }
                         }
-                        const reqType = targetReconciliationId ? 'RECONCILIATION_APPROVAL' : 'VAN_INVENTORY';
+                        const reqType = targetReconciliationId
+                            ? 'RECONCILIATION_APPROVAL'
+                            : 'VAN_INVENTORY';
                         const refId = targetReconciliationId || createdVanInventoryId;
                         await (0, requests_controller_1.createRequest)({
                             requester_id: userIdNum,

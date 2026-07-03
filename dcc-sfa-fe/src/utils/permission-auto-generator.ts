@@ -15,6 +15,7 @@ export const BACKEND_MODULES = [
   'executive-dashboard',
   'grading-dashboard',
   'reconciliation',
+  'settlement-sheet',
   'user',
   'role',
   'depot',
@@ -79,6 +80,7 @@ export const BACKEND_MODULES = [
   'token',
   'setting',
   'templates',
+  'error-logs',
 ] as const;
 
 export type BackendModule = (typeof BACKEND_MODULES)[number];

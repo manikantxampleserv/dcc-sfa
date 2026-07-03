@@ -288,6 +288,42 @@ async function getRequestDetailsByType(
             : 'N/A',
         };
 
+      case 'VAN_INVENTORY':
+        if (request_data) {
+          try {
+            const parsedData = JSON.parse(request_data);
+            const salesman = parsedData.user_id
+              ? await prisma.users.findUnique({
+                  where: { id: parsedData.user_id },
+                  select: { name: true },
+                })
+              : null;
+            const depot = parsedData.location_id
+              ? await prisma.depots.findUnique({
+                  where: { id: parsedData.location_id },
+                  select: { name: true },
+                })
+              : null;
+            const vehicle = parsedData.vehicle_id
+              ? await prisma.vehicles.findUnique({
+                  where: { id: parsedData.vehicle_id },
+                  select: { vehicle_number: true, make: true, model: true },
+                })
+              : null;
+
+            return {
+              salesman_name: salesman?.name || 'N/A',
+              depot_name: depot?.name || 'N/A',
+              vehicle_info: vehicle
+                ? `${vehicle.vehicle_number} (${vehicle.make || ''} ${vehicle.model || ''})`.trim()
+                : 'N/A',
+            };
+          } catch (e) {
+            console.error('Error parsing VAN_INVENTORY request data:', e);
+          }
+        }
+        return {};
+
       default:
         return {};
     }

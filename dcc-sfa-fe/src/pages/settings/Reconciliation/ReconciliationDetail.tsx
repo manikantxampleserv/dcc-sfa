@@ -1,4 +1,4 @@
-import { Chip, TextField } from '@mui/material';
+import { Chip, Skeleton, TextField } from '@mui/material';
 import {
   useReconciliationById,
   useSaveReconciliation,
@@ -264,25 +264,35 @@ export default function ReconciliationDetail() {
       <div className="flex flex-row justify-between items-center">
         <div className="flex items-center gap-3">
           <div>
-            <h1 className="!font-bold text-xl !text-gray-900">
-              {meta?.salesman?.name || 'Salesman'}
-            </h1>
-            <p className="text-sm text-gray-500">
-              {meta?.depot?.code && (
-                <>Depot: {meta?.depot?.code} &nbsp;|&nbsp;</>
-              )}
-              {meta?.reconciliation_date
-                ? new Date(meta.reconciliation_date).toLocaleDateString(
-                    'en-GB',
-                    {
-                      day: '2-digit',
-                      month: 'short',
-                      year: 'numeric',
-                    }
-                  )
-                : '-'}{' '}
-              &nbsp;|&nbsp; SAP Code: {meta?.salesman?.sap_code || '-'} &nbsp;
-            </p>
+            {isFetching ? (
+              <>
+                <Skeleton width={200} height={32} />
+                <Skeleton width={300} height={20} />
+              </>
+            ) : (
+              <>
+                <h1 className="!font-bold text-xl !text-gray-900">
+                  {meta?.salesman?.name || 'Salesman'}
+                </h1>
+                <p className="text-sm text-gray-500">
+                  {meta?.depot?.code && (
+                    <>Depot: {meta?.depot?.code} &nbsp;|&nbsp;</>
+                  )}
+                  {meta?.reconciliation_date
+                    ? new Date(meta.reconciliation_date).toLocaleDateString(
+                        'en-GB',
+                        {
+                          day: '2-digit',
+                          month: 'short',
+                          year: 'numeric',
+                        }
+                      )
+                    : '-'}{' '}
+                  &nbsp;|&nbsp; SAP Code: {meta?.salesman?.sap_code || '-'}{' '}
+                  &nbsp;
+                </p>
+              </>
+            )}
           </div>
         </div>
         {isUpdate && (

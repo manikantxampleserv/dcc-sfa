@@ -183,7 +183,8 @@ export type Modules =
   | 'audit-log'
   | 'attendance'
   | 'request'
-  | 'reconciliation';
+  | 'reconciliation'
+  | 'settlement-sheet';
 
 /**
  * @type Actions
@@ -268,6 +269,7 @@ const MODULE_DISPLAY_NAMES: Record<string, string> = {
   'audit-log': 'Audit Log',
   attendance: 'Attendance',
   request: 'Request',
+  'settlement-sheet': 'Settlement Sheet',
 };
 
 /**

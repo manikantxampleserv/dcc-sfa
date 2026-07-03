@@ -165,6 +165,7 @@ const MODULE_DISPLAY_NAMES = {
     'audit-log': 'Audit Log',
     attendance: 'Attendance',
     request: 'Request',
+    'settlement-sheet': 'Settlement Sheet',
 };
 /**
  * @constant ACTION_DISPLAY_NAMES
