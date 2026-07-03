@@ -42,13 +42,10 @@ export const startServer = async () => {
       await new Promise(resolve => setTimeout(resolve, 1000));
     }
 
-    const server = app.listen(port, async () => {
+    app.listen(port, async () => {
       AttendanceCronService.startAutoPunchOut();
       AttendanceCronService.startMidnightStatusReset();
-      logger.success(`Server running at http://localhost:${port}`);
-      logger.info(
-        `GraphQL Playground available at http://localhost:${port}/graphql`
-      );
+      logger.info(`Server running at http://localhost:${port}`);
     });
   } catch (error) {
     logger.error('Failed to start server:', error);

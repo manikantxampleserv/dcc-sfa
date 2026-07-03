@@ -14,32 +14,31 @@ const router = express.Router();
 router.get(
   '/reconciliation',
   authenticateToken,
-  // requirePermission([{ module: 'reconciliation', action: 'read' }]),
+  requirePermission([{ module: 'reconciliation', action: 'read' }]),
   reconciliationController.getAllReconciliations
 );
 
 router.get(
   '/reconciliation/:id',
   authenticateToken,
-  // requirePermission([{ module: 'reconciliation', action: 'read' }]),
+  requirePermission([{ module: 'reconciliation', action: 'read' }]),
   reconciliationController.getReconciliationById
 );
 
 router.post(
   '/reconciliation/save',
   authenticateToken,
-  // requirePermission([{ module: 'reconciliation', action: 'update' }]),
+  requirePermission([{ module: 'reconciliation', action: 'update' }]),
   saveReconciliationValidation,
   validate,
   auditUpdate('reconciliation_items'),
   reconciliationController.saveReconciliations
 );
 
-// Manual trigger for reconciliation cron (for testing)
 router.post(
   '/reconciliation/run-cron',
   authenticateToken,
-  // requirePermission([{ module: 'reconciliation', action: 'update' }]),
+  requirePermission([{ module: 'reconciliation', action: 'update' }]),
   async (_req, res) => {
     try {
       await runReconciliationJob();
