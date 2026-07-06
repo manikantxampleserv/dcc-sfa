@@ -69,7 +69,7 @@ async function main() {
   }
 
   try {
-    // ── Pre-run counts ─────────────────────────────────────────────────────
+    /** Pre-run counts */
     log('Pre-cleanup record counts:');
     console.table({
       stock_movements: await prisma.stock_movements.count(),
@@ -81,8 +81,11 @@ async function main() {
       invoices: await prisma.invoices.count(),
       order_items: await prisma.order_items.count(),
       orders: await prisma.orders.count(),
+      van_inventory_sub_users: await prisma.van_inventory_sub_users.count(),
       van_inventory_items: await prisma.van_inventory_items.count(),
       van_inventory: await prisma.van_inventory.count(),
+      reconciliation_items: await prisma.reconciliation_items.count(),
+      reconciliation: await prisma.reconciliation.count(),
       inventory_stock: await prisma.inventory_stock.count(),
       serial_numbers: await prisma.serial_numbers.count(),
       product_batches: await prisma.product_batches.count(),
@@ -90,55 +93,62 @@ async function main() {
     });
     console.log('');
 
-    // ── 1. Stock Movements ─────────────────────────────────────────────────
+    /** 1. Stock Movements */
     await del('stock_movements', () => prisma.stock_movements.deleteMany({}));
 
-    // ── 2. Invoice Items ───────────────────────────────────────────────────
+    /** 2. Invoice Items */
     await del('invoice_items', () => prisma.invoice_items.deleteMany({}));
 
-    // ── 3. Refund Lines (child of payment_refunds, refs invoices) ──────────
+    /** 3. Refund Lines (child of payment_refunds, refs invoices) */
     await del('refund_lines', () => prisma.refund_lines.deleteMany({}));
 
-    // ── 4. Payment Refunds (child of payments) ─────────────────────────────
+    /** 4. Payment Refunds (child of payments) */
     await del('payment_refunds', () => prisma.payment_refunds.deleteMany({}));
 
-    // ── 5. Payment Lines (refs payments + invoices) ────────────────────────
+    /** 5. Payment Lines (refs payments + invoices) */
     await del('payment_lines', () => prisma.payment_lines.deleteMany({}));
 
-    // ── 6. Payments ────────────────────────────────────────────────────────
+    /** 6. Payments */
     await del('payments', () => prisma.payments.deleteMany({}));
 
-    // ── 7. Invoices (now safe — no FK children remain) ─────────────────────
+    /** 7. Invoices (now safe — no FK children remain) */
     await del('invoices', () => prisma.invoices.deleteMany({}));
 
-    // ── 8. Order Items ─────────────────────────────────────────────────────
+    /** 8. Order Items */
     await del('order_items', () => prisma.order_items.deleteMany({}));
 
-    // ── 9. Orders ──────────────────────────────────────────────────────────
+    /** 9. Orders */
     await del('orders', () => prisma.orders.deleteMany({}));
 
-    // ── 10. Van Inventory Items ────────────────────────────────────────────
+    /** 10. Van Inventory Items & Sub Users & Reconciliations */
+    await del('reconciliation_items', () =>
+      prisma.reconciliation_items.deleteMany({})
+    );
+    await del('reconciliation', () => prisma.reconciliation.deleteMany({}));
+    await del('van_inventory_sub_users', () =>
+      prisma.van_inventory_sub_users.deleteMany({})
+    );
     await del('van_inventory_items', () =>
       prisma.van_inventory_items.deleteMany({})
     );
 
-    // ── 11. Van Inventory ──────────────────────────────────────────────────
+    /** 11. Van Inventory */
     await del('van_inventory', () => prisma.van_inventory.deleteMany({}));
 
-    // ── 12. Inventory Stock ────────────────────────────────────────────────
+    /** 12. Inventory Stock */
     await del('inventory_stock', () => prisma.inventory_stock.deleteMany({}));
 
-    // ── 13. Serial Numbers (refs batch_lots, products) ─────────────────────
+    /** 13. Serial Numbers (refs batch_lots, products) */
     await del('serial_numbers', () => prisma.serial_numbers.deleteMany({}));
 
-    // ── 14. Product Batches junction (products ↔ batch_lots) ───────────────
+    /** 14. Product Batches junction (products ↔ batch_lots) */
     await del('product_batches', () => prisma.product_batches.deleteMany({}));
 
-    // ── 15. Batch Lots ─────────────────────────────────────────────────────
+    /** 15. Batch Lots */
     await del('batch_lots', () => prisma.batch_lots.deleteMany({}));
 
-    // ── 16. Products (master — deleted last) ───────────────────────────────
-    // Skipping product deletion as requested
+    /** 16. Products (master — deleted last) */
+    /** Skipping product deletion as requested */
     // await del('products', () => prisma.products.deleteMany({}));
 
     console.log('');
@@ -147,7 +157,7 @@ async function main() {
     } else {
       log('✅ Cleanup complete — all transactional data has been deleted.');
 
-      // Post-run verification
+      /** Post-run verification */
       console.log('');
       log('Post-cleanup verification (should all be 0):');
       console.table({
@@ -166,7 +176,8 @@ async function main() {
         serial_numbers: await prisma.serial_numbers.count(),
         product_batches: await prisma.product_batches.count(),
         batch_lots: await prisma.batch_lots.count(),
-        // products:           await prisma.products.count(), // Not deleting products
+        /** Not deleting products */
+        // products:           await prisma.products.count(),
       });
     }
   } catch (error: any) {

@@ -6915,21 +6915,24 @@ export const vanInventoryController = {
               loadQtyMap.set(key, current + (record.quantity || 0));
             }
     
-            const saleQtyRecords = await tx.invoice_items.groupBy({
-              by: ['product_id'],
+            const saleQtyRecords = await tx.stock_movements.findMany({
               where: {
-                invoices: {
-                  salesperson_id: userIdNum,
-                  invoice_date: { gte: todayStart, lt: todayEnd },
-                  status: { not: 'cancelled' }
-                }
+                createdby: userIdNum,
+                movement_type: 'SALE',
+                movement_date: { gte: todayStart, lt: todayEnd },
+                is_active: 'Y'
               },
-              _sum: { quantity: true }
+              include: {
+                batch_lots: { select: { batch_number: true } }
+              }
             });
     
-            const saleQtyMap = new Map<number, number>();
+            const saleQtyMap = new Map<string, number>();
             for (const record of saleQtyRecords) {
-              saleQtyMap.set(record.product_id, record._sum.quantity || 0);
+              const batchNum = record.batch_lots?.batch_number || '';
+              const key = `${record.product_id}-${batchNum}`;
+              const current = saleQtyMap.get(key) || 0;
+              saleQtyMap.set(key, current + (record.quantity || 0));
             }
 
             if (!recon) {
@@ -6964,7 +6967,7 @@ export const vanInventoryController = {
                   data: { 
                     expected_qty: p.total_qty, 
                     load_qty: loadQtyMap.get(`${p.product_id}-${p.batch_number || ''}`) || 0,
-                    sale_qty: saleQtyMap.get(p.product_id) || 0,
+                    sale_qty: saleQtyMap.get(`${p.product_id}-${p.batch_number || ''}`) || 0,
                     updatedate: new Date() 
                   },
                 });
@@ -6978,7 +6981,7 @@ export const vanInventoryController = {
                 expected_qty: p.total_qty,
                 actual_qty: null,
                 load_qty: loadQtyMap.get(`${p.product_id}-${p.batch_number || ''}`) || 0,
-                sale_qty: saleQtyMap.get(p.product_id) || 0,
+                sale_qty: saleQtyMap.get(`${p.product_id}-${p.batch_number || ''}`) || 0,
                 variance: null,
                 resolution_action: 'Awaiting Verification',
                 default_outlet_posting_qty: 0,

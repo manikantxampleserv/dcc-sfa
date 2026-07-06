@@ -25,6 +25,7 @@ export interface Request {
     id: number;
     name: string;
     email: string;
+    employee_id: string;
   } | null;
   reference_details?: {
     salesman_employee_id: any;

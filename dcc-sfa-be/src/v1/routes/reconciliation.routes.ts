@@ -23,6 +23,14 @@ router.get(
   reconciliationController.getReconciliationById
 );
 
+router.get(
+  '/reconciliation/:id/export',
+  authenticateToken,
+  requirePermission([{ module: 'reconciliation', action: 'read' }]),
+  reconciliationController.exportReconciliationExcel
+);
+
+
 router.post(
   '/reconciliation/save',
   authenticateToken,

@@ -124,7 +124,7 @@ async function getWorkflowForRequest(
         orderBy: { sequence: 'asc' },
         include: {
           approval_work_flow_approver: {
-            select: { id: true, name: true, email: true },
+            select: { id: true, name: true, email: true, employee_id: true },
           },
         },
       });
@@ -150,7 +150,7 @@ async function getWorkflowForRequest(
         orderBy: { sequence: 'asc' },
         include: {
           approval_work_flow_approver: {
-            select: { id: true, name: true, email: true },
+            select: { id: true, name: true, email: true, employee_id: true },
           },
         },
       });
@@ -176,7 +176,7 @@ async function getWorkflowForRequest(
         orderBy: { sequence: 'asc' },
         include: {
           approval_work_flow_approver: {
-            select: { id: true, name: true, email: true },
+            select: { id: true, name: true, email: true, employee_id: true },
           },
         },
       });
@@ -201,7 +201,7 @@ async function getWorkflowForRequest(
       orderBy: { sequence: 'asc' },
       include: {
         approval_work_flow_approver: {
-          select: { id: true, name: true, email: true },
+          select: { id: true, name: true, email: true, employee_id: true },
         },
       },
     });
@@ -331,7 +331,7 @@ export const createRequest = async (data: {
         orderBy: { sequence: 'asc' },
         include: {
           approval_work_flow_approver: {
-            select: { id: true, name: true, email: true },
+            select: { id: true, name: true, email: true, employee_id: true },
           },
         },
       });
@@ -351,7 +351,7 @@ export const createRequest = async (data: {
         orderBy: { sequence: 'asc' },
         include: {
           approval_work_flow_approver: {
-            select: { id: true, name: true, email: true },
+            select: { id: true, name: true, email: true, employee_id: true },
           },
         },
       });
@@ -371,7 +371,7 @@ export const createRequest = async (data: {
         orderBy: { sequence: 'asc' },
         include: {
           approval_work_flow_approver: {
-            select: { id: true, name: true, email: true },
+            select: { id: true, name: true, email: true, employee_id: true },
           },
         },
       });
@@ -391,7 +391,7 @@ export const createRequest = async (data: {
         orderBy: { sequence: 'asc' },
         include: {
           approval_work_flow_approver: {
-            select: { id: true, name: true, email: true },
+            select: { id: true, name: true, email: true, employee_id: true },
           },
         },
       });
@@ -428,9 +428,8 @@ export const createRequest = async (data: {
 
         setImmediate(async () => {
           try {
-            const { vanInventoryController } = await import(
-              './vanInventory.controller'
-            );
+            const { vanInventoryController } =
+              await import('./vanInventory.controller');
 
             let vanInventoryIdToProcess: number | null = null;
             let reqData: any = null;
@@ -1011,7 +1010,12 @@ export const requestsController = {
             where: { id: request.id },
             include: {
               sfa_d_requests_requester: {
-                select: { id: true, name: true, email: true },
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                  employee_id: true,
+                },
               },
               sfa_d_requests_approvals_request: {
                 select: {
@@ -1156,7 +1160,7 @@ export const requestsController = {
         orderBy: { createdate: 'desc' },
         include: {
           sfa_d_requests_requester: {
-            select: { id: true, name: true, email: true },
+            select: { id: true, name: true, email: true, employee_id: true },
           },
           sfa_d_requests_approvals_request: {
             select: {
@@ -1238,7 +1242,7 @@ export const requestsController = {
         where: { id: Number(id) },
         include: {
           sfa_d_requests_requester: {
-            select: { id: true, name: true, email: true },
+            select: { id: true, name: true, email: true, employee_id: true },
           },
           sfa_d_requests_approvals_request: {
             select: {
@@ -1303,7 +1307,7 @@ export const requestsController = {
         },
         include: {
           sfa_d_requests_requester: {
-            select: { id: true, name: true, email: true },
+            select: { id: true, name: true, email: true, employee_id: true },
           },
           sfa_d_requests_approvals_request: true,
         },
@@ -1355,7 +1359,12 @@ export const requestsController = {
             where: { id: Number(request_id) },
             include: {
               sfa_d_requests_requester: {
-                select: { id: true, name: true, email: true },
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                  employee_id: true,
+                },
               },
             },
           });
@@ -1368,7 +1377,12 @@ export const requestsController = {
             where: { id: Number(approval_id) },
             include: {
               sfa_d_requests_approvals_approver: {
-                select: { id: true, name: true, email: true },
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                  employee_id: true,
+                },
               },
             },
           });
@@ -1580,7 +1594,12 @@ export const requestsController = {
             orderBy: { sequence: 'asc' },
             include: {
               sfa_d_requests_approvals_approver: {
-                select: { id: true, name: true, email: true },
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                  employee_id: true,
+                },
               },
             },
           });
@@ -2205,9 +2224,8 @@ export const requestsController = {
             `Approved VAN_INVENTORY request detected: requestId=${result.request.id}, referenceId=${result.request.reference_id}`
           );
           try {
-            const { vanInventoryController } = await import(
-              '../controllers/vanInventory.controller'
-            );
+            const { vanInventoryController } =
+              await import('../controllers/vanInventory.controller');
             await vanInventoryController.processApprovedVanInventoryStock(
               result.request.reference_id,
               userId,
@@ -2260,9 +2278,8 @@ export const requestsController = {
           result.request.reference_id
         ) {
           try {
-            const { vanInventoryController } = await import(
-              '../controllers/vanInventory.controller'
-            );
+            const { vanInventoryController } =
+              await import('../controllers/vanInventory.controller');
 
             const vanInventoryId =
               await vanInventoryController.createVanInventoryFromReconciliation(
@@ -2659,12 +2676,17 @@ export const requestsController = {
           sfa_d_requests_approvals_request: {
             include: {
               sfa_d_requests_requester: {
-                select: { id: true, name: true, email: true },
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                  employee_id: true,
+                },
               },
             },
           },
           sfa_d_requests_approvals_approver: {
-            select: { id: true, name: true, email: true },
+            select: { id: true, name: true, email: true, employee_id: true },
           },
         },
         orderBy: {
@@ -2811,7 +2833,7 @@ export const requestsController = {
         },
         include: {
           sfa_d_requests_requester: {
-            select: { id: true, name: true, email: true },
+            select: { id: true, name: true, email: true, employee_id: true },
           },
           sfa_d_requests_approvals_request: {
             select: {

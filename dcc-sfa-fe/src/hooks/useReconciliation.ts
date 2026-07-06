@@ -65,3 +65,25 @@ export const useSaveReconciliation = () => {
     loadingMessage: 'Saving reconciliation data...',
   });
 };
+
+/**
+ * Hook to export reconciliation settlement sheet to Excel
+ */
+export const useExportReconciliation = () => {
+  return useApiMutation({
+    mutationFn: reconciliationService.exportReconciliationExcel,
+    loadingMessage: 'Exporting settlement sheet...',
+    successMessage: 'Settlement sheet exported successfully!',
+  });
+};
+
+/**
+ * Hook to export reconciliation settlement sheet to PDF
+ */
+export const useExportReconciliationPdf = () => {
+  return useApiMutation({
+    mutationFn: reconciliationService.exportReconciliationPdf,
+    loadingMessage: 'Exporting settlement sheet to PDF...',
+    successMessage: 'Settlement sheet exported to PDF successfully!',
+  });
+};

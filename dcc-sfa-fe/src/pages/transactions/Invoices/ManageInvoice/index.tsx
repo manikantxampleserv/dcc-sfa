@@ -65,6 +65,7 @@ export interface InvoiceItemFormData {
   product_serials?: ProductSerial[];
   conversion_rate?: number;
   isLoaded?: boolean;
+  price_edited?: boolean;
 }
 
 const ManageInvoice: React.FC<ManageInvoiceProps> = ({
@@ -94,7 +95,7 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
 
   const formik = useFormik({
     initialValues: {
-      invoice_method: invoiceData?.invoice_method || 'order',
+      invoice_method: invoiceData?.invoice_method || 'direct',
       parent_id: invoiceData?.parent_id || '',
       salesperson_id: invoiceData?.salesperson_id?.toString() || '',
       customer_id: invoiceData?.customer_id || '',
@@ -236,7 +237,9 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
           balance_due: totals.balance_due,
           pricelist_id: appliedPricelistId,
           invoiceItems: invoiceItems
-            .filter(item => item.product_id !== '')
+            .filter(
+              item => typeof item.product_id === 'number' && item.product_id > 0
+            )
             .map(item => {
               const unitPrice = Number(item.unit_price) || 0;
               const quantity = Number(item.quantity) || 0;
@@ -480,7 +483,18 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
     }
   }, [open, invoiceItemsStr]);
 
+  const prevCustomerId = useRef(formik.values.customer_id);
+  const prevCustomerPriceLists = useRef(customerPriceLists);
+
   useEffect(() => {
+    if (
+      prevCustomerId.current === formik.values.customer_id &&
+      prevCustomerPriceLists.current === customerPriceLists
+    ) {
+      return;
+    }
+    prevCustomerId.current = formik.values.customer_id;
+    prevCustomerPriceLists.current = customerPriceLists;
     if (invoiceItems.length > 0 && !formik.values.customer_id) {
       let hasChanges = false;
       const updatedItems = invoiceItems.map(item => {
@@ -503,6 +517,8 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
       let hasChanges = false;
       const updatedItems = invoiceItems.map(item => {
         if (!item.product_id) return item;
+        if (item.price_edited) return item;
+
         const unit = item.unit || item.uom || 'CASE';
         const conversionRate = getProductConversionRate(
           item.product_id as number
@@ -732,6 +748,9 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
   ) => {
     const updatedItems = [...invoiceItems];
     updatedItems[index] = { ...updatedItems[index], [field]: value };
+    if (field === 'unit_price') {
+      updatedItems[index].price_edited = true;
+    }
     setInvoiceItems(updatedItems);
     formik.setFieldValue('invoiceItems', updatedItems, false);
     formikSyncRef.current = JSON.stringify(updatedItems);

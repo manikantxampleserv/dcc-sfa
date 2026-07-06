@@ -1101,12 +1101,17 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({
 
       <DialogActions className="!px-4 !pb-4 !gap-2">
         {type === 'view' ? (
-          <Button variant="contained" onClick={handleCancel} className="!px-6">
+          <Button
+            size="small"
+            variant="contained"
+            onClick={handleCancel}
+            className="!px-6"
+          >
             Close
           </Button>
         ) : (
           <>
-            <Button variant="outlined" onClick={handleCancel}>
+            <Button size="small" variant="outlined" onClick={handleCancel}>
               Cancel
             </Button>
             <Button

@@ -1,15 +1,23 @@
+import { Download } from '@mui/icons-material';
+import { Box, Chip } from '@mui/material';
+import { useCurrencyCode } from 'hooks/useCurrency';
 import { usePermission } from 'hooks/usePermission';
 import {
+  useExportReconciliation,
   useReconciliationById,
   type ReconciliationItem,
 } from 'hooks/useReconciliation';
 import { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
+import Button from 'shared/Button';
+import { PopConfirm } from 'shared/DeleteConfirmation';
 import Table, { type TableColumn } from 'shared/Table';
 
 export default function SettlementSheetDetail() {
   const { id } = useParams<{ id: string }>();
   const { isRead } = usePermission('settlement-sheet');
+  const exportMutation = useExportReconciliation();
+  const currencyCode = useCurrencyCode();
 
   const { data: responseData, isFetching } = useReconciliationById(Number(id), {
     enabled: isRead && !!id,
@@ -29,8 +37,48 @@ export default function SettlementSheetDetail() {
         }
       : null;
 
+  const aggregatedItems = useMemo(() => {
+    const skuMap = new Map<string, ReconciliationItem>();
+    items.forEach(item => {
+      const key = `${item.categoryName}_${item.skuCode}`;
+      if (skuMap.has(key)) {
+        const existing = skuMap.get(key)!;
+        existing.loadQuantity =
+          (Number(existing.loadQuantity) || 0) +
+          (Number(item.loadQuantity) || 0);
+        existing.saleQuantity =
+          (Number(existing.saleQuantity) || 0) +
+          (Number(item.saleQuantity) || 0);
+        existing.expectedRop =
+          (Number(existing.expectedRop) || 0) + (Number(item.expectedRop) || 0);
+        const actualExisting =
+          existing.actualRop !== '' && existing.actualRop !== null
+            ? Number(existing.actualRop)
+            : 0;
+        const actualItem =
+          item.actualRop !== '' && item.actualRop !== null
+            ? Number(item.actualRop)
+            : 0;
+        existing.actualRop = String(actualExisting + actualItem);
+        existing.variance =
+          (Number(existing.variance) || 0) + (Number(item.variance) || 0);
+        if (
+          !existing.resolutionAction ||
+          existing.resolutionAction === 'CLEAN' ||
+          existing.resolutionAction === '-'
+        ) {
+          existing.resolutionAction =
+            item.resolutionAction || existing.resolutionAction;
+        }
+      } else {
+        skuMap.set(key, { ...item });
+      }
+    });
+    return Array.from(skuMap.values());
+  }, [items]);
+
   const groupedItems = useMemo(() => {
-    return items.reduce(
+    return aggregatedItems.reduce(
       (acc, item) => {
         const cat = item.categoryName || 'Uncategorized';
         if (!acc[cat]) acc[cat] = [];
@@ -39,35 +87,36 @@ export default function SettlementSheetDetail() {
       },
       {} as Record<string, ReconciliationItem[]>
     );
-  }, [items]);
+  }, [aggregatedItems]);
 
   const grandTotal = useMemo(() => {
     let totalSaleValue = 0;
     let totalDefaultOutletValue = 0;
 
-    items.forEach(item => {
+    aggregatedItems.forEach(item => {
+      const saleVal = (item.saleQuantity || 0) * (item.basePrice || 0);
+      totalSaleValue += saleVal;
+
       const variance = Number(item.variance) || 0;
-      if (item.resolutionAction === 'Default Outlet Posting' && variance < 0) {
+      const action = item.resolutionAction || '';
+
+      if (action.includes('Default Outlet Posting') && variance < 0) {
+        totalDefaultOutletValue += Math.abs(variance) * (item.basePrice || 0);
+      } else if (action.includes('Post to Default Outlet') && variance > 0) {
         totalDefaultOutletValue += Math.abs(variance) * (item.basePrice || 0);
       }
     });
-
     return { totalSaleValue, totalDefaultOutletValue };
-  }, [items]);
+  }, [aggregatedItems]);
 
   const columns: TableColumn<ReconciliationItem>[] = [
-    { id: 'skuCode', label: 'SKU Code', sortable: true },
+    { id: 'skuCode', label: 'SKU Code', sortable: false },
     {
       id: 'skuName',
       label: 'SKU Name',
       sortable: true,
+      className: '!px-1',
       render: val => <span className="font-medium text-left block">{val}</span>,
-    },
-    {
-      id: 'batchNumber',
-      label: 'Batch',
-      sortable: true,
-      render: val => <span className="block text-center">{val || '-'}</span>,
     },
     {
       id: 'loadQuantity',
@@ -104,6 +153,7 @@ export default function SettlementSheetDetail() {
     {
       id: 'variance',
       label: 'Variance',
+      sortable: false,
       render: val => {
         const numVal = Number(val);
         const color =
@@ -129,13 +179,29 @@ export default function SettlementSheetDetail() {
     {
       id: 'resolutionAction',
       label: 'Action',
-      render: val => (
-        <div className="text-center block">
-          <span className="inline-flex items-center rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-500/10">
-            {val}
-          </span>
-        </div>
-      ),
+      render: val => {
+        let color:
+          | 'default'
+          | 'primary'
+          | 'secondary'
+          | 'error'
+          | 'info'
+          | 'success'
+          | 'warning' = 'default';
+        if (val === 'CLEAN') color = 'success';
+        else if (val?.includes('Default Outlet')) color = 'error';
+        else if (val?.includes('Adjustment')) color = 'warning';
+        return (
+          <div className="text-center block">
+            <Chip
+              label={val || '-'}
+              color={color}
+              size="small"
+              variant="outlined"
+            />
+          </div>
+        );
+      },
     },
   ];
 
@@ -150,12 +216,53 @@ export default function SettlementSheetDetail() {
     );
   }
 
+  const handleExport = async () => {
+    try {
+      await exportMutation.mutateAsync({
+        id: Number(id),
+        salesmanName: headerInfo?.salesmanName,
+        currency: currencyCode,
+      });
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Settlement Sheet</h1>
-          <p className="text-sm text-gray-500">Daily Salesman Settlement</p>
+    <div className="space-y-3">
+      <div className="flex items-center justify-between gap-4">
+        <Box className="!flex !justify-between !items-center">
+          <Box>
+            <p className="!font-bold text-xl !text-gray-900">
+              Settlement Sheet
+            </p>
+            <p className="!text-gray-500 text-sm">
+              Review daily sales data, inventory discrepancies, and cash
+              settlement details.
+            </p>
+          </Box>
+        </Box>
+
+        <div className="flex gap-2 print:hidden">
+          <PopConfirm
+            title="Export Settlement Sheet"
+            description="Are you sure you want to export this settlement sheet to Excel?"
+            onConfirm={handleExport}
+            confirmText="Export"
+            cancelText="Cancel"
+            placement="top"
+          >
+            <Button
+              variant="outlined"
+              className="!capitalize"
+              startIcon={<Download />}
+              disabled={
+                exportMutation.isPending || isFetching || items.length === 0
+              }
+            >
+              {exportMutation.isPending ? 'Exporting...' : 'Export to Excel'}
+            </Button>
+          </PopConfirm>
         </div>
       </div>
 
@@ -214,6 +321,7 @@ export default function SettlementSheetDetail() {
                 loading={isFetching}
                 isPermission={isRead}
                 pagination={false}
+                compact
                 emptyMessage="No items found."
               />
             </div>
@@ -224,33 +332,41 @@ export default function SettlementSheetDetail() {
             <h3 className="text-lg font-bold text-gray-900 mb-4">
               CASH SETTLEMENT
             </h3>
-            <div className="max-w-2xl space-y-3">
+            <div className="space-y-3">
               <div className="flex justify-between items-center py-2 border-b border-gray-200">
                 <span className="text-gray-600">
-                  Default Outlet Posting Value (Shortage):
+                  Total Sales Value (Mobile-recorded sales to outlets):
                 </span>
                 <span className="font-semibold text-gray-900">
+                  {grandTotal.totalSaleValue.toLocaleString()} TZS
+                </span>
+              </div>
+              <div className="flex justify-between items-center py-2 border-b border-gray-200">
+                <span className="text-gray-600">
+                  Default Outlet Posting Value (Shortage — Salesman
+                  accountable):
+                </span>
+                <span className="font-semibold text-red-600">
                   {grandTotal.totalDefaultOutletValue.toLocaleString()} TZS
                 </span>
               </div>
-              <div className="flex justify-between items-center py-3 bg-blue-100/50 px-4 rounded-lg print:bg-transparent print:border print:border-black">
+              <div className="flex justify-between items-center rounded-lg print:bg-transparent print:border print:border-black">
                 <span className="font-bold text-gray-900">
                   TOTAL CASH SALESMAN MUST DEPOSIT:
                 </span>
                 <span className="text-xl font-bold text-blue-700 print:text-black">
-                  {grandTotal.totalDefaultOutletValue.toLocaleString()} TZS
+                  {(
+                    grandTotal.totalSaleValue +
+                    grandTotal.totalDefaultOutletValue
+                  ).toLocaleString()}{' '}
+                  TZS
                 </span>
               </div>
-              <p className="text-xs text-gray-500 italic mt-2">
-                * Note: Total Sales Value omitted based on current backend
-                constraints. Only shortages (Default Outlet Postings) are
-                currently calculated in the deposit total.
-              </p>
             </div>
           </div>
 
           {/* Signatures */}
-          <div className="p-6 pt-12 border-t border-gray-200 mt-8">
+          <div className="p-6 border-t border-gray-200">
             <h3 className="text-md font-bold text-gray-900 mb-8 uppercase tracking-wider">
               Signatures
             </h3>

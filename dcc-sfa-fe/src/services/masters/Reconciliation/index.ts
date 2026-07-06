@@ -111,3 +111,78 @@ export const saveReconciliations = async (
     );
   }
 };
+
+/** Export settlement sheet to Excel */
+export const exportReconciliationExcel = async ({
+  id,
+  salesmanName,
+  currency,
+}: {
+  id: number;
+  salesmanName?: string;
+  currency?: string;
+}): Promise<any> => {
+  try {
+    const response = await api.get(`/reconciliation/${id}/export`, {
+      responseType: 'blob',
+      params: { currency },
+    });
+
+    const blob = response.data;
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const timeStamp = new Date()
+      .toISOString()
+      .replace(/T/, '_')
+      .replace(/:/g, '-')
+      .split('.')[0];
+    a.download = `Settlement_Sheet_${salesmanName || id}_${timeStamp}.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+
+    return { message: 'Settlement sheet exported successfully!' };
+  } catch (error: any) {
+    console.error('Error exporting reconciliation:', error);
+    throw new Error('Failed to export Excel file');
+  }
+};
+
+/** Export settlement sheet to PDF */
+export const exportReconciliationPdf = async ({
+  id,
+  salesmanName,
+  currency,
+}: {
+  id: number;
+  salesmanName?: string;
+  currency?: string;
+}): Promise<any> => {
+  try {
+    const response = await api.get(`/reconciliation/${id}/export`, {
+      responseType: 'blob',
+      params: { currency, format: 'pdf' },
+    });
+
+    const blob = response.data;
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const timeStamp = new Date()
+      .toISOString()
+      .replace(/T/, '_')
+      .replace(/:/g, '-')
+      .split('.')[0];
+    a.download = `Settlement_Sheet_${salesmanName || id}_${timeStamp}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+    return { message: 'Settlement sheet exported to PDF successfully!' };
+  } catch (error: any) {
+    console.error('Error exporting reconciliation to PDF:', error);
+    throw new Error('Failed to export PDF file');
+  }
+};

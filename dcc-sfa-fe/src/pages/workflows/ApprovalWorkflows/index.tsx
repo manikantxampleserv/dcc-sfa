@@ -1,11 +1,11 @@
-import { Chip, MenuItem, Typography } from '@mui/material';
+import { Visibility } from '@mui/icons-material';
+import { Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
 import { usePermission } from 'hooks/usePermission';
 import { useRequestsByUsers, useRequestTypes } from 'hooks/useRequests';
 import {
   AlertTriangle,
   Check,
   CheckCircle,
-  Eye,
   FileText,
   X,
   XCircle,
@@ -14,11 +14,11 @@ import React, { useState } from 'react';
 import type { Request } from 'services/requests';
 import { ActionButton } from 'shared/ActionButton';
 import ApprovalModal from 'shared/ApprovalModal';
+import { CurrentApproverTooltip } from 'shared/CurrentApproverTooltip';
 import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
-import { CurrentApproverTooltip } from 'shared/CurrentApproverTooltip';
 import { formatDateTime } from 'utils/dateUtils';
 
 const ApprovalWorkflows: React.FC = () => {
@@ -130,7 +130,7 @@ const ApprovalWorkflows: React.FC = () => {
     }
 
     return request.reference_id
-      ? `#${request.reference_id}`
+      ? `REF-${request.reference_id}`
       : `REQ-${request.id}`;
   };
 
@@ -181,21 +181,47 @@ const ApprovalWorkflows: React.FC = () => {
       ),
     },
     {
+      id: 'requester',
+      label: 'Requested By',
+      render: (_value, row) => (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+          <Avatar
+            sx={{
+              width: 36,
+              height: 36,
+              fontSize: '0.9rem',
+              bgcolor: 'primary.100',
+              color: 'primary.500',
+            }}
+          >
+            {row.requester?.name?.charAt(0) || 'U'}
+          </Avatar>
+          <Box>
+            <Typography
+              variant="body2"
+              sx={{ fontWeight: 500, lineHeight: 1.2 }}
+            >
+              {row.requester?.name || `User #${row.requester_id}`}
+            </Typography>
+            {row.requester?.employee_id && (
+              <Typography variant="caption" color="text.secondary">
+                {row.requester.employee_id}
+              </Typography>
+            )}
+          </Box>
+        </Box>
+      ),
+    },
+    {
       id: 'request_type',
       label: 'Request Type',
       render: (_value, row) => (
         <Chip
           label={formatRequestType(row.request_type)}
           size="small"
-          className="!capitalize"
+          variant="outlined"
         />
       ),
-    },
-    {
-      id: 'requester',
-      label: 'Requested By',
-      render: (_value, row) =>
-        row.requester?.name || `User #${row.requester_id}`,
     },
     {
       id: 'status',
@@ -275,7 +301,7 @@ const ApprovalWorkflows: React.FC = () => {
               <ActionButton
                 onClick={() => handleViewClick(row)}
                 tooltip="View Details"
-                icon={<Eye className="!w-5 !h-5" />}
+                icon={<Visibility className="!w-5 !h-5" />}
                 color="info"
               />
             )}

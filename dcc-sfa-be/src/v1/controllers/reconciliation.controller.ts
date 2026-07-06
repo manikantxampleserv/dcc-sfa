@@ -5,6 +5,8 @@ import { paginate } from '../../utils/paginate';
 import logger from '../../configs/logger';
 import { createRequest } from './requests.controller';
 import { isAdminRole } from '../../configs/permissions.config';
+import { exportReconciliationExcelService } from '../services/reconciliation-export.service';
+import { exportReconciliationPdfService } from '../services/reconciliation-pdf-export.service';
 
 const resolveStatusFilter = (status: string) => {
   if (status === 'Pending')
@@ -556,6 +558,70 @@ export const reconciliationController = {
       res.status(500).json({
         success: false,
         message: error.message || 'Failed to save reconciliation data',
+      });
+    }
+  },
+
+  /**
+   * Export reconciliation sheet to styled Excel
+   */
+  exportReconciliationExcel: async (req: Request, res: Response) => {
+    try {
+      const data: any = await new Promise(resolve => {
+        const mockRes = {
+          status: (code: number) => mockRes,
+          json: (responseData: any) => {
+            resolve(responseData);
+            return mockRes;
+          },
+        } as unknown as Response;
+        reconciliationController.getReconciliationById(req, mockRes);
+      });
+
+      if (data && data.success === false) {
+        return res.status(400).json(data);
+      }
+
+      if (!data || !(data as any).data || (data as any).data.length === 0) {
+        return res
+          .status(404)
+          .json({ success: false, message: 'No reconciliation items found.' });
+      }
+
+      const currency = req.query.currency as string;
+      if (currency) {
+        data.meta.currency = currency;
+      }
+
+      const format = req.query.format as string;
+
+      if (format === 'pdf') {
+        const buffer = await exportReconciliationPdfService(data);
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader(
+          'Content-Disposition',
+          `attachment; filename=reconciliation_${req.params.id}_${Date.now()}.pdf`
+        );
+        res.setHeader('Content-Length', buffer.length.toString());
+        res.send(buffer);
+      } else {
+        const buffer = await exportReconciliationExcelService(data);
+        res.setHeader(
+          'Content-Type',
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        );
+        res.setHeader(
+          'Content-Disposition',
+          `attachment; filename=reconciliation_${req.params.id}_${Date.now()}.xlsx`
+        );
+        res.setHeader('Content-Length', buffer.length.toString());
+        res.send(buffer);
+      }
+    } catch (error: any) {
+      logger.error('Export Reconciliation Error:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Failed to export reconciliation',
       });
     }
   },
