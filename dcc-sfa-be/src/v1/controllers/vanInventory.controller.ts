@@ -6719,15 +6719,12 @@ export const vanInventoryController = {
       for (const item of reconciliation.reconciliation_items) {
         if (item.product_id === null) continue; // product_id is nullable in schema
 
-        const qty =
-          item.actual_qty !== null
-            ? Number(item.actual_qty)
-            : Number(item.expected_qty) || 0;
+        const qty = Number(item.expected_qty) || 0;
         if (qty <= 0) continue;
 
         const product = await tx.products.findUnique({
           where: { id: item.product_id },
-          select: { name: true, base_price: true }, // products has base_price, not selling_price
+          select: { name: true, base_price: true },
         });
 
         let batchLotId: number | null = null;
@@ -6890,7 +6887,7 @@ export const vanInventoryController = {
             todayStart.setHours(0, 0, 0, 0);
             const todayEnd = new Date(today);
             todayEnd.setHours(23, 59, 59, 999);
-    
+
             const loadQtyRecords = await tx.van_inventory_items.findMany({
               where: {
                 van_inventory_items_inventory: {
@@ -6898,35 +6895,36 @@ export const vanInventoryController = {
                   loading_type: 'L',
                   status: 'A',
                   createdate: { gte: todayStart, lt: todayEnd },
-                }
+                },
               },
               include: {
                 van_inventory_items_batch_lot: {
-                  select: { batch_number: true }
-                }
-              }
+                  select: { batch_number: true },
+                },
+              },
             });
-    
+
             const loadQtyMap = new Map<string, number>();
             for (const record of loadQtyRecords) {
-              const batchNum = record.van_inventory_items_batch_lot?.batch_number || '';
+              const batchNum =
+                record.van_inventory_items_batch_lot?.batch_number || '';
               const key = `${record.product_id}-${batchNum}`;
               const current = loadQtyMap.get(key) || 0;
               loadQtyMap.set(key, current + (record.quantity || 0));
             }
-    
+
             const saleQtyRecords = await tx.stock_movements.findMany({
               where: {
                 createdby: userIdNum,
                 movement_type: 'SALE',
                 movement_date: { gte: todayStart, lt: todayEnd },
-                is_active: 'Y'
+                is_active: 'Y',
               },
               include: {
-                batch_lots: { select: { batch_number: true } }
-              }
+                batch_lots: { select: { batch_number: true } },
+              },
             });
-    
+
             const saleQtyMap = new Map<string, number>();
             for (const record of saleQtyRecords) {
               const batchNum = record.batch_lots?.batch_number || '';
@@ -6964,11 +6962,17 @@ export const vanInventoryController = {
               if (existingItem) {
                 await tx.reconciliation_items.update({
                   where: { id: existingItem.id },
-                  data: { 
-                    expected_qty: p.total_qty, 
-                    load_qty: loadQtyMap.get(`${p.product_id}-${p.batch_number || ''}`) || 0,
-                    sale_qty: saleQtyMap.get(`${p.product_id}-${p.batch_number || ''}`) || 0,
-                    updatedate: new Date() 
+                  data: {
+                    expected_qty: p.total_qty,
+                    load_qty:
+                      loadQtyMap.get(
+                        `${p.product_id}-${p.batch_number || ''}`
+                      ) || 0,
+                    sale_qty:
+                      saleQtyMap.get(
+                        `${p.product_id}-${p.batch_number || ''}`
+                      ) || 0,
+                    updatedate: new Date(),
                   },
                 });
                 continue;
@@ -6980,8 +6984,12 @@ export const vanInventoryController = {
                 batch_number: p.batch_number,
                 expected_qty: p.total_qty,
                 actual_qty: null,
-                load_qty: loadQtyMap.get(`${p.product_id}-${p.batch_number || ''}`) || 0,
-                sale_qty: saleQtyMap.get(`${p.product_id}-${p.batch_number || ''}`) || 0,
+                load_qty:
+                  loadQtyMap.get(`${p.product_id}-${p.batch_number || ''}`) ||
+                  0,
+                sale_qty:
+                  saleQtyMap.get(`${p.product_id}-${p.batch_number || ''}`) ||
+                  0,
                 variance: null,
                 resolution_action: 'Awaiting Verification',
                 default_outlet_posting_qty: 0,
