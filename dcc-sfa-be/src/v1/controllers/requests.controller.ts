@@ -57,10 +57,10 @@ const serializeRequest = (request: any): RequestSerialized => ({
   log_inst: request.log_inst,
   requester: request.sfa_d_requests_requester
     ? {
-      id: request.sfa_d_requests_requester.id,
-      name: request.sfa_d_requests_requester.name,
-      email: request.sfa_d_requests_requester.email,
-    }
+        id: request.sfa_d_requests_requester.id,
+        name: request.sfa_d_requests_requester.name,
+        email: request.sfa_d_requests_requester.email,
+      }
     : null,
   approvals:
     request.sfa_d_requests_approvals_request?.map((approval: any) => ({
@@ -72,14 +72,14 @@ const serializeRequest = (request: any): RequestSerialized => ({
       action_at: approval.action_at,
       approver: approval.sfa_d_requests_approvals_approver
         ? {
-          id: approval.sfa_d_requests_approvals_approver.id,
-          name: approval.sfa_d_requests_approvals_approver.name,
-          email: approval.sfa_d_requests_approvals_approver.email,
-          profile_image:
-            approval.sfa_d_requests_approvals_approver.profile_image || null,
-          employee_id:
-            approval.sfa_d_requests_approvals_approver.employee_id || null,
-        }
+            id: approval.sfa_d_requests_approvals_approver.id,
+            name: approval.sfa_d_requests_approvals_approver.name,
+            email: approval.sfa_d_requests_approvals_approver.email,
+            profile_image:
+              approval.sfa_d_requests_approvals_approver.profile_image || null,
+            employee_id:
+              approval.sfa_d_requests_approvals_approver.employee_id || null,
+          }
         : null,
       reference_details: request.reference_details || null,
     })) || [],
@@ -426,7 +426,6 @@ export const createRequest = async (data: {
           },
         });
 
-        // Trigger stock deduction asynchronously after returning
         setImmediate(async () => {
           try {
             const { vanInventoryController } = await import(
@@ -521,7 +520,10 @@ export const createRequest = async (data: {
               await vanInventoryController.processApprovedVanInventoryStock(
                 vanInventoryIdToProcess,
                 data.createdby,
-                reqData || { loading_type: 'U', van_inventory_id: vanInventoryIdToProcess }
+                reqData || {
+                  loading_type: 'U',
+                  van_inventory_id: vanInventoryIdToProcess,
+                }
               );
 
               console.log(
@@ -1890,7 +1892,7 @@ export const requestsController = {
 
                 if (
                   assetMovement.movement_type?.toLowerCase() ===
-                  'maintenance' ||
+                    'maintenance' ||
                   assetMovement.movement_type?.toLowerCase() === 'repair'
                 ) {
                   try {
@@ -2043,7 +2045,6 @@ export const requestsController = {
                   updatedate: new Date(),
                 },
               });
-
 
               let shouldRejectPendingRequests = false;
 
