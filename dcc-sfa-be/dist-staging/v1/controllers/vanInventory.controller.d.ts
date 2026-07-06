@@ -19,6 +19,7 @@ export declare const vanInventoryController: {
     getBulkProductBatches(req: Request, res: Response): Promise<Response<any, Record<string, any>> | undefined>;
     getSalespersonInventory(req: Request, res: Response): Promise<Response<any, Record<string, any>> | undefined>;
     getinventoryItemSalesperson(req: Request, res: Response): Promise<Response<any, Record<string, any>> | undefined>;
+    createVanInventoryFromReconciliation(reconciliationId: number, approvedByUserId: number): Promise<number | null>;
     unloadVanInventory(req: Request, res: Response): Promise<Response<any, Record<string, any>>>;
     getProducts(req: Request, res: Response): Promise<Response<any, Record<string, any>> | undefined>;
 };

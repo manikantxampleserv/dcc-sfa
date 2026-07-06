@@ -231,173 +231,7 @@ async function generateInvoiceNumberInTransaction(tx) {
     const sequence = (existingCount + 1).toString().padStart(4, '0');
     return `${prefix}-${sequence}`;
 }
-const validateAndGetLocationId = async (tx, locationId) => {
-    if (!locationId) {
-        return null;
-    }
-    try {
-        const locationExists = await tx.warehouses.findUnique({
-            where: { id: locationId },
-            select: { id: true },
-        });
-        if (!locationExists) {
-            console.warn(`Location ID ${locationId} not found in warehouses, using null`);
-            return null;
-        }
-        return locationId;
-    }
-    catch (error) {
-        console.warn(`Error validating location ${locationId}, using null:`, error);
-        return null;
-    }
-};
-function getOrderedQuantities(item) {
-    const conversionFactor = Number(item.conversion_factor) || 1;
-    const rawUnit = (item.uom || 'CASE').toUpperCase().trim();
-    const PCS_VARIANTS = [
-        'UNIT',
-        'PC',
-        'PIECE',
-        'PIECES',
-        'PSC',
-        'PEC',
-        'PCE',
-        'PICS',
-    ];
-    const CASE_VARIANTS = [
-        'CASE',
-        'CASES',
-        'CS',
-        'CTN',
-        'CARTON',
-        'BOX',
-        'BOXES',
-    ];
-    let normalizedUnit;
-    if (PCS_VARIANTS.includes(rawUnit)) {
-        normalizedUnit = 'UNIT';
-    }
-    else if (CASE_VARIANTS.includes(rawUnit)) {
-        normalizedUnit = 'CASE';
-    }
-    else {
-        console.warn(` Unknown unit "${rawUnit}" — defaulting to CASE`);
-        normalizedUnit = 'CASE';
-    }
-    const quantityInCases = Number(item.quantity) || 0;
-    const baseQuantityInPcs = Number(item.base_quantity) || 0;
-    const isPcsUnit = normalizedUnit === 'UNIT';
-    console.log(`Unit normalize: "${rawUnit}" → "${normalizedUnit}" | ` +
-        `Cases: ${quantityInCases}, Pcs: ${baseQuantityInPcs}, CF: ${conversionFactor}`);
-    if (isPcsUnit) {
-        return {
-            orderedQty: 0,
-            orderedPieces: baseQuantityInPcs,
-            conversionFactor,
-            uom: normalizedUnit,
-        };
-    }
-    else {
-        return {
-            orderedQty: quantityInCases,
-            orderedPieces: quantityInCases * conversionFactor,
-            conversionFactor,
-            uom: normalizedUnit,
-        };
-    }
-}
-function calculateStockDeduction(currentCases, currentPcs, piecesToDeduct, conversionFactor, unit, orderedCases) {
-    const cf = conversionFactor || 1;
-    const unitUpper = (unit || 'CASE').toUpperCase();
-    const isPcsUnit = ['UNIT', 'PC', 'PIECE', 'PIECES'].includes(unitUpper);
-    const totalAvailablePieces = currentCases * cf + currentPcs;
-    if (isPcsUnit) {
-        if (piecesToDeduct > totalAvailablePieces) {
-            return {
-                newQuantity: -1,
-                newBaseQuantity: 0,
-                totalAvailablePieces,
-                deductedPieces: piecesToDeduct,
-            };
-        }
-        const remainingPieces = totalAvailablePieces - piecesToDeduct;
-        const newCases = Math.floor(remainingPieces / cf);
-        const newPcs = remainingPieces % cf;
-        return {
-            newQuantity: newCases,
-            newBaseQuantity: newPcs,
-            totalAvailablePieces,
-            deductedPieces: piecesToDeduct,
-        };
-    }
-    else {
-        const casesToDeduct = orderedCases ?? Math.floor(piecesToDeduct / cf);
-        if (casesToDeduct > currentCases) {
-            return {
-                newQuantity: -1,
-                newBaseQuantity: currentPcs,
-                totalAvailablePieces,
-                deductedPieces: piecesToDeduct,
-            };
-        }
-        return {
-            newQuantity: currentCases - casesToDeduct,
-            newBaseQuantity: currentPcs,
-            totalAvailablePieces,
-            deductedPieces: piecesToDeduct,
-        };
-    }
-}
-async function getContainerGroupUsers(tx, userId) {
-    // 1. Check if userId is the main user of an active container van inventory
-    const activeContainerAsMain = await tx.van_inventory.findFirst({
-        where: {
-            user_id: userId,
-            sale_type: 'container',
-            is_active: 'Y',
-            status: 'A', // Confirmed/Approved
-        },
-        include: {
-            van_inventory_sub_users: {
-                where: { is_active: 'Y' },
-                select: { user_id: true },
-            },
-        },
-    });
-    if (activeContainerAsMain) {
-        const subUserIds = activeContainerAsMain.van_inventory_sub_users.map((su) => su.user_id);
-        return [userId, ...subUserIds];
-    }
-    // 2. Check if userId is a sub-user in an active container van inventory
-    const activeContainerAsSub = await tx.van_inventory_sub_users.findFirst({
-        where: {
-            user_id: userId,
-            is_active: 'Y',
-            van_inventory: {
-                sale_type: 'container',
-                is_active: 'Y',
-                status: 'A',
-            },
-        },
-        include: {
-            van_inventory: {
-                include: {
-                    van_inventory_sub_users: {
-                        where: { is_active: 'Y' },
-                        select: { user_id: true },
-                    },
-                },
-            },
-        },
-    });
-    if (activeContainerAsSub?.van_inventory) {
-        const mainUserId = activeContainerAsSub.van_inventory.user_id;
-        const subUserIds = activeContainerAsSub.van_inventory.van_inventory_sub_users.map((su) => su.user_id);
-        return [mainUserId, ...subUserIds];
-    }
-    // If not part of any container group, return just the userId
-    return [userId];
-}
+// Removed helper functions (moved to inventory.utils.ts)
 async function syncDeductionsForContainerGroup(tx, originalSalesPersonId, productId, piecesToDeduct, conversionFactor, itemUnit, orderedQty, isUnitPcs, batchLotId, serialNumberId, userId, referenceType, referenceId, referenceLabel) {
     // No-op - container sub-users directly share the main/parent user's stock record!
     return;
@@ -888,7 +722,7 @@ exports.visitsController = {
                                         const referenceType = 'INVOICE';
                                         const referenceId = createdInvoice.id;
                                         const referenceLabel = `invoice ${createdInvoice.invoice_number}`;
-                                        const groupUsers = await getContainerGroupUsers(tx, visit.sales_person_id);
+                                        const groupUsers = await (0, inventory_utils_1.getContainerGroupUsers)(tx, visit.sales_person_id);
                                         const targetSalespersonIds = await (0, inventory_utils_1.getContainerOwnerAndSelf)(tx, visit.sales_person_id);
                                         for (const item of invoiceItems) {
                                             const product = await tx.products.findUnique({
@@ -900,7 +734,7 @@ exports.visitsController = {
                                             }
                                             const trackingType = product.tracking_type?.toUpperCase() ||
                                                 'NONE';
-                                            const { orderedQty, orderedPieces, conversionFactor, uom: itemUnit, } = getOrderedQuantities(item);
+                                            const { orderedQty, orderedPieces, conversionFactor, uom: itemUnit, } = (0, inventory_utils_1.getOrderedQuantities)(item);
                                             const isUnitPcs = itemUnit === 'UNIT';
                                             console.log(`Processing ${trackingType} - Product: ${product.name}, ` +
                                                 `Unit: ${itemUnit}, ` +
@@ -995,7 +829,7 @@ exports.visitsController = {
                                                     if (!vanItem) {
                                                         throw new Error(`Batch ${batchOrder.batch_lot_id} not found in van for product "${product.name}"`);
                                                     }
-                                                    const vanDeduction = calculateStockDeduction(vanItem.quantity || 0, vanItem.base_quantity || 0, piecesToDeduct, conversionFactor, itemUnit, orderedQty);
+                                                    const vanDeduction = (0, inventory_utils_1.calculateStockDeduction)(vanItem.quantity || 0, vanItem.base_quantity || 0, piecesToDeduct, conversionFactor, itemUnit, orderedQty);
                                                     if (vanDeduction.newQuantity < 0) {
                                                         const availableMsg = isUnitPcs
                                                             ? `${vanDeduction.totalAvailablePieces} pcs`
@@ -1033,7 +867,7 @@ exports.visitsController = {
                                                         },
                                                     });
                                                     if (inventoryStock) {
-                                                        const stockDeduction = calculateStockDeduction(inventoryStock.current_stock || 0, inventoryStock.base_quantity || 0, piecesToDeduct, conversionFactor, itemUnit, orderedQty);
+                                                        const stockDeduction = (0, inventory_utils_1.calculateStockDeduction)(inventoryStock.current_stock || 0, inventoryStock.base_quantity || 0, piecesToDeduct, conversionFactor, itemUnit, orderedQty);
                                                         if (stockDeduction.newQuantity < 0) {
                                                             const availableMsg = isUnitPcs
                                                                 ? `${stockDeduction.totalAvailablePieces} pcs`
@@ -1076,7 +910,7 @@ exports.visitsController = {
                                                     else {
                                                         throw new Error(`Inventory stock not found for product ${product.name} batch ${batchOrder.batch_lot_id}`);
                                                     }
-                                                    const validatedFromLocationId = await validateAndGetLocationId(tx, vanInventory?.location_id);
+                                                    const validatedFromLocationId = await (0, inventory_utils_1.validateAndGetLocationId)(tx, vanInventory?.location_id);
                                                     await tx.stock_movements.create({
                                                         data: {
                                                             product_id: product.id,
@@ -1225,7 +1059,7 @@ exports.visitsController = {
                                                         });
                                                         await syncDeductionsForContainerGroup(tx, visit.sales_person_id, product.id, 1, 1, 'PCS', 1, true, null, serial.id, req.user?.id || visit.createdby || 1, referenceType, referenceId, referenceLabel);
                                                     }
-                                                    const validatedFromLocationId = await validateAndGetLocationId(tx, vanInventory?.location_id);
+                                                    const validatedFromLocationId = await (0, inventory_utils_1.validateAndGetLocationId)(tx, vanInventory?.location_id);
                                                     await tx.stock_movements.create({
                                                         data: {
                                                             product_id: product.id,
@@ -1302,7 +1136,7 @@ exports.visitsController = {
                                                 if (!vanItem) {
                                                     throw new Error(`Product "${product.name}" not found in van inventory`);
                                                 }
-                                                const vanDeduction = calculateStockDeduction(vanItem.quantity || 0, vanItem.base_quantity || 0, orderedPieces, conversionFactor, itemUnit, orderedQty);
+                                                const vanDeduction = (0, inventory_utils_1.calculateStockDeduction)(vanItem.quantity || 0, vanItem.base_quantity || 0, orderedPieces, conversionFactor, itemUnit, orderedQty);
                                                 if (vanDeduction.newQuantity < 0) {
                                                     const availableMsg = isUnitPcs
                                                         ? `${vanDeduction.totalAvailablePieces} pcs`
@@ -1343,7 +1177,7 @@ exports.visitsController = {
                                                     },
                                                 });
                                                 if (inventoryStock) {
-                                                    const stockDeduction = calculateStockDeduction(inventoryStock.current_stock || 0, inventoryStock.base_quantity || 0, orderedPieces, conversionFactor, itemUnit, orderedQty);
+                                                    const stockDeduction = (0, inventory_utils_1.calculateStockDeduction)(inventoryStock.current_stock || 0, inventoryStock.base_quantity || 0, orderedPieces, conversionFactor, itemUnit, orderedQty);
                                                     if (stockDeduction.newQuantity < 0) {
                                                         const availableMsg = isUnitPcs
                                                             ? `${stockDeduction.totalAvailablePieces} pcs`
@@ -1384,7 +1218,7 @@ exports.visitsController = {
                                                 else {
                                                     throw new Error(`Inventory stock not found for product ${product.name}`);
                                                 }
-                                                const validatedFromLocationId = await validateAndGetLocationId(tx, vanInventory?.location_id);
+                                                const validatedFromLocationId = await (0, inventory_utils_1.validateAndGetLocationId)(tx, vanInventory?.location_id);
                                                 await tx.stock_movements.create({
                                                     data: {
                                                         product_id: product.id,

@@ -41,11 +41,10 @@ const startServer = async () => {
             await (0, killPort_1.killPort)(port);
             await new Promise(resolve => setTimeout(resolve, 1000));
         }
-        const server = app.listen(port, async () => {
+        app.listen(port, async () => {
             attendance_cron_service_1.AttendanceCronService.startAutoPunchOut();
             attendance_cron_service_1.AttendanceCronService.startMidnightStatusReset();
-            logger_1.default.success(`Server running at http://localhost:${port}`);
-            logger_1.default.info(`GraphQL Playground available at http://localhost:${port}/graphql`);
+            logger_1.default.info(`Server running at http://localhost:${port}`);
         });
     }
     catch (error) {

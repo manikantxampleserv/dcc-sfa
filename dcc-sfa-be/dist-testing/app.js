@@ -9,9 +9,7 @@ const cors_1 = __importDefault(require("cors"));
 const dotenv_1 = __importDefault(require("dotenv"));
 const express_1 = __importDefault(require("express"));
 const path_1 = require("path");
-const server_1 = require("./graphql/server");
 const customerCategoryAssignment_job_1 = require("./jobs/customerCategoryAssignment.job");
-const reconciliation_job_1 = require("./jobs/reconciliation.job");
 const response_middleware_1 = require("./middlewares/response.middleware");
 const errorLogger_middleware_1 = require("./middlewares/errorLogger.middleware");
 const routes_1 = __importDefault(require("./routes"));
@@ -42,7 +40,6 @@ for (const path of possiblePaths) {
 const createApp = async () => {
     const app = (0, express_1.default)();
     app.set('trust proxy', true);
-    await (0, server_1.setupGraphQL)(app);
     app.use(express_1.default.json({ limit: '10mb' }));
     app.use(express_1.default.urlencoded({ extended: true, limit: '10mb' }));
     app.use((0, cookie_parser_1.default)());
@@ -51,7 +48,6 @@ const createApp = async () => {
     app.use(errorLogger_middleware_1.errorLogger);
     app.use('/api', routes_1.default);
     (0, customerCategoryAssignment_job_1.scheduleCustomerCategoryAssignment)();
-    (0, reconciliation_job_1.scheduleReconciliationJob)();
     return app;
 };
 exports.createApp = createApp;

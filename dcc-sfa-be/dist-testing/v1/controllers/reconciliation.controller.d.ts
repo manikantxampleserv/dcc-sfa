@@ -13,5 +13,9 @@ export declare const reconciliationController: {
      * Save and reconcile updated actual quantity values
      */
     saveReconciliations: (req: Request, res: Response) => Promise<Response<any, Record<string, any>> | undefined>;
+    /**
+     * Export reconciliation sheet to styled Excel
+     */
+    exportReconciliationExcel: (req: Request, res: Response) => Promise<Response<any, Record<string, any>> | undefined>;
 };
 //# sourceMappingURL=reconciliation.controller.d.ts.map

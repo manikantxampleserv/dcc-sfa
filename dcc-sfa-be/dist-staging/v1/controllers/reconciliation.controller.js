@@ -9,6 +9,8 @@ const paginate_1 = require("../../utils/paginate");
 const logger_1 = __importDefault(require("../../configs/logger"));
 const requests_controller_1 = require("./requests.controller");
 const permissions_config_1 = require("../../configs/permissions.config");
+const reconciliation_export_service_1 = require("../services/reconciliation-export.service");
+const reconciliation_pdf_export_service_1 = require("../services/reconciliation-pdf-export.service");
 const resolveStatusFilter = (status) => {
     if (status === 'Pending')
         return { in: ['Awaiting Verification', 'Awaiting Force-Push'] };
@@ -38,6 +40,9 @@ exports.reconciliationController = {
             const depotId = req.query.depot_id ? Number(req.query.depot_id) : null;
             const date = req.query.date ? String(req.query.date).trim() : '';
             const status = req.query.status ? String(req.query.status).trim() : '';
+            const recStatus = req.query.rec_status
+                ? String(req.query.rec_status).trim()
+                : '';
             const user = req.user;
             let isScopeRestricted = false;
             let depotIds = [];
@@ -78,6 +83,9 @@ exports.reconciliationController = {
             }
             if (search) {
                 reconcFilters.salesman = { name: { contains: search } };
+            }
+            if (recStatus) {
+                reconcFilters.status = recStatus;
             }
             if (status && status !== 'all') {
                 reconcFilters.reconciliation_items = {
@@ -229,10 +237,11 @@ exports.reconciliationController = {
             if (isScopeRestricted) {
                 if (depotIds.length > 0) {
                     whereClause.salesman = {
-                        ...whereClause.salesman,
-                        users_depots_users: {
-                            some: {
-                                depot_id: { in: depotIds },
+                        is: {
+                            users_depots_users: {
+                                some: {
+                                    depot_id: { in: depotIds },
+                                },
                             },
                         },
                     };
@@ -258,7 +267,15 @@ exports.reconciliationController = {
                         where: { is_active: 'Y' },
                         include: {
                             product: {
-                                select: { id: true, name: true, code: true, base_price: true },
+                                select: {
+                                    id: true,
+                                    name: true,
+                                    code: true,
+                                    base_price: true,
+                                    product_categories_products: {
+                                        select: { category_name: true },
+                                    },
+                                },
                             },
                         },
                         orderBy: { id: 'asc' },
@@ -284,6 +301,13 @@ exports.reconciliationController = {
                 product_id: item.product_id,
                 skuCode: item.product?.code || 'UNKNOWN',
                 skuName: item.product?.name || 'UNKNOWN',
+                categoryName: item.product?.product_categories_products?.category_name ||
+                    'Uncategorized',
+                basePrice: item.product?.base_price !== null
+                    ? Number(item.product?.base_price)
+                    : 0,
+                loadQuantity: item.load_qty !== null ? Number(item.load_qty) : 0,
+                saleQuantity: item.sale_qty !== null ? Number(item.sale_qty) : 0,
                 batchNumber: item.batch_number || '-',
                 expectedRop: Number(item.expected_qty) || 0,
                 actualRop: item.actual_qty !== null ? Number(item.actual_qty).toString() : '',
@@ -474,6 +498,57 @@ exports.reconciliationController = {
             res.status(500).json({
                 success: false,
                 message: error.message || 'Failed to save reconciliation data',
+            });
+        }
+    },
+    /**
+     * Export reconciliation sheet to styled Excel
+     */
+    exportReconciliationExcel: async (req, res) => {
+        try {
+            const data = await new Promise(resolve => {
+                const mockRes = {
+                    status: (code) => mockRes,
+                    json: (responseData) => {
+                        resolve(responseData);
+                        return mockRes;
+                    },
+                };
+                exports.reconciliationController.getReconciliationById(req, mockRes);
+            });
+            if (data && data.success === false) {
+                return res.status(400).json(data);
+            }
+            if (!data || !data.data || data.data.length === 0) {
+                return res
+                    .status(404)
+                    .json({ success: false, message: 'No reconciliation items found.' });
+            }
+            const currency = req.query.currency;
+            if (currency) {
+                data.meta.currency = currency;
+            }
+            const format = req.query.format;
+            if (format === 'pdf') {
+                const buffer = await (0, reconciliation_pdf_export_service_1.exportReconciliationPdfService)(data);
+                res.setHeader('Content-Type', 'application/pdf');
+                res.setHeader('Content-Disposition', `attachment; filename=reconciliation_${req.params.id}_${Date.now()}.pdf`);
+                res.setHeader('Content-Length', buffer.length.toString());
+                res.send(buffer);
+            }
+            else {
+                const buffer = await (0, reconciliation_export_service_1.exportReconciliationExcelService)(data);
+                res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+                res.setHeader('Content-Disposition', `attachment; filename=reconciliation_${req.params.id}_${Date.now()}.xlsx`);
+                res.setHeader('Content-Length', buffer.length.toString());
+                res.send(buffer);
+            }
+        }
+        catch (error) {
+            logger_1.default.error('Export Reconciliation Error:', error);
+            res.status(500).json({
+                success: false,
+                message: error.message || 'Failed to export reconciliation',
             });
         }
     },

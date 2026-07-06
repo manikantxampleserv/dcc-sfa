@@ -16,4 +16,19 @@ export declare function createStockMovement(tx: any, data: {
 }): Promise<void>;
 export declare function processVanInventoryItems(tx: any, inventory: any, items: any[], userId: number, loadingType: string, inventoryData: any): Promise<void>;
 export declare function getContainerOwnerAndSelf(tx: any, userId: number): Promise<number[]>;
+export declare function validateAndGetLocationId(tx: any, locationId: number | null | undefined): Promise<number | null>;
+export declare function getOrderedQuantities(item: any): {
+    orderedQty: number;
+    orderedPieces: number;
+    conversionFactor: number;
+    uom: string;
+};
+export interface StockDeductionResult {
+    newQuantity: number;
+    newBaseQuantity: number;
+    totalAvailablePieces: number;
+    deductedPieces: number;
+}
+export declare function calculateStockDeduction(currentCases: number, currentPcs: number, piecesToDeduct: number, conversionFactor: number, unit?: string, orderedCases?: number): StockDeductionResult;
+export declare function getContainerGroupUsers(tx: any, userId: number): Promise<number[]>;
 //# sourceMappingURL=inventory.utils.d.ts.map

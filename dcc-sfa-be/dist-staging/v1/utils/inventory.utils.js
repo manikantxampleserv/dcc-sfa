@@ -5,6 +5,10 @@ exports.updateInventoryStock = updateInventoryStock;
 exports.createStockMovement = createStockMovement;
 exports.processVanInventoryItems = processVanInventoryItems;
 exports.getContainerOwnerAndSelf = getContainerOwnerAndSelf;
+exports.validateAndGetLocationId = validateAndGetLocationId;
+exports.getOrderedQuantities = getOrderedQuantities;
+exports.calculateStockDeduction = calculateStockDeduction;
+exports.getContainerGroupUsers = getContainerGroupUsers;
 async function getAvailableBatchesForProduct(tx, productId, loadingType) {
     const productBatches = await tx.product_batches.findMany({
         where: {
@@ -614,23 +618,6 @@ async function processVanInventoryItems(tx, inventory, items, userId, loadingTyp
                             throw new Error(`Serial ${serialNumber} not found in any van inventory`);
                         }
                         console.log(` Found in van_inventory_items ID: ${vanItem.id}, parent_id: ${vanItem.parent_id}`);
-                        // const vanInventoryId = vanItem.parent_id;
-                        // await tx.van_inventory_items.update({
-                        //   where: { id: vanItem.id },
-                        //   data: { quantity: 0 },
-                        // });
-                        // await tx.serial_numbers.update({
-                        //   where: { id: existingSerial.id },
-                        //   data: {
-                        //     status: 'available',
-                        //     location_id: defaultLocationId,
-                        //     updatedate: new Date(),
-                        //     updatedby: userId,
-                        //   },
-                        // });
-                        // console.log(
-                        //   ` Updated serial ${serialNumber} status → available`
-                        // );
                         const inventoryStock = await tx.inventory_stock.findFirst({
                             where: {
                                 product_id: product.id,
@@ -681,14 +668,6 @@ async function processVanInventoryItems(tx, inventory, items, userId, loadingTyp
                     }
                 }
                 else {
-                    //   const vanItem = await tx.van_inventory_items.findFirst({
-                    //     where: {
-                    //       parent_id: inventory.id,
-                    //       product_id: product.id,
-                    //       batch_lot_id: null,
-                    //       serial_id: null,
-                    //     },
-                    //   });
                     const vanItem = await tx.van_inventory_items.findFirst({
                         where: {
                             product_id: product.id,
@@ -705,15 +684,6 @@ async function processVanInventoryItems(tx, inventory, items, userId, loadingTyp
                         throw new Error(`Product not found in van`);
                     if (vanItem.quantity < qty)
                         throw new Error(`Insufficient van quantity`);
-                    // await tx.van_inventory_items.update({
-                    //   where: { id: vanItem.id },
-                    //   data: {
-                    //     quantity: vanItem.quantity - qty,
-                    //     total_amount:
-                    //       (vanItem.quantity - qty) *
-                    //       Number(vanItem.unit_price || 0),
-                    //   },
-                    // });
                     const inventoryStock = await tx.inventory_stock.findFirst({
                         where: {
                             product_id: product.id,
@@ -788,6 +758,173 @@ async function getContainerOwnerAndSelf(tx, userId) {
     if (containerSub?.van_inventory) {
         return Array.from(new Set([containerSub.van_inventory.user_id, userId]));
     }
+    return [userId];
+}
+async function validateAndGetLocationId(tx, locationId) {
+    if (!locationId) {
+        return null;
+    }
+    try {
+        const locationExists = await tx.warehouses.findUnique({
+            where: { id: locationId },
+            select: { id: true },
+        });
+        if (!locationExists) {
+            console.warn(`Location ID ${locationId} not found in warehouses, using null`);
+            return null;
+        }
+        return locationId;
+    }
+    catch (error) {
+        console.warn(`Error validating location ${locationId}, using null:`, error);
+        return null;
+    }
+}
+function getOrderedQuantities(item) {
+    const conversionFactor = Number(item.conversion_factor) || 1;
+    const rawUnit = (item.uom || 'CASE').toUpperCase().trim();
+    const PCS_VARIANTS = [
+        'UNIT',
+        'PC',
+        'PIECE',
+        'PIECES',
+        'PSC',
+        'PEC',
+        'PCE',
+        'PICS',
+    ];
+    const CASE_VARIANTS = [
+        'CASE',
+        'CASES',
+        'CS',
+        'CTN',
+        'CARTON',
+        'BOX',
+        'BOXES',
+    ];
+    let normalizedUnit;
+    if (PCS_VARIANTS.includes(rawUnit)) {
+        normalizedUnit = 'UNIT';
+    }
+    else if (CASE_VARIANTS.includes(rawUnit)) {
+        normalizedUnit = 'CASE';
+    }
+    else {
+        console.warn(` Unknown unit "${rawUnit}" — defaulting to CASE`);
+        normalizedUnit = 'CASE';
+    }
+    const quantityInCases = Number(item.quantity) || 0;
+    const baseQuantityInPcs = Number(item.base_quantity) || 0;
+    const isPcsUnit = normalizedUnit === 'UNIT';
+    console.log(`Unit normalize: "${rawUnit}" → "${normalizedUnit}" | ` +
+        `Cases: ${quantityInCases}, Pcs: ${baseQuantityInPcs}, CF: ${conversionFactor}`);
+    if (isPcsUnit) {
+        return {
+            orderedQty: 0,
+            orderedPieces: baseQuantityInPcs,
+            conversionFactor,
+            uom: normalizedUnit,
+        };
+    }
+    else {
+        return {
+            orderedQty: quantityInCases,
+            orderedPieces: quantityInCases * conversionFactor,
+            conversionFactor,
+            uom: normalizedUnit,
+        };
+    }
+}
+function calculateStockDeduction(currentCases, currentPcs, piecesToDeduct, conversionFactor, unit, orderedCases) {
+    const cf = conversionFactor || 1;
+    const unitUpper = (unit || 'CASE').toUpperCase();
+    const isPcsUnit = ['UNIT', 'PC', 'PIECE', 'PIECES'].includes(unitUpper);
+    const totalAvailablePieces = currentCases * cf + currentPcs;
+    if (isPcsUnit) {
+        if (piecesToDeduct > totalAvailablePieces) {
+            return {
+                newQuantity: -1,
+                newBaseQuantity: 0,
+                totalAvailablePieces,
+                deductedPieces: piecesToDeduct,
+            };
+        }
+        const remainingPieces = totalAvailablePieces - piecesToDeduct;
+        const newCases = Math.floor(remainingPieces / cf);
+        const newPcs = remainingPieces % cf;
+        return {
+            newQuantity: newCases,
+            newBaseQuantity: newPcs,
+            totalAvailablePieces,
+            deductedPieces: piecesToDeduct,
+        };
+    }
+    else {
+        const casesToDeduct = orderedCases ?? Math.floor(piecesToDeduct / cf);
+        if (casesToDeduct > currentCases) {
+            return {
+                newQuantity: -1,
+                newBaseQuantity: currentPcs,
+                totalAvailablePieces,
+                deductedPieces: piecesToDeduct,
+            };
+        }
+        return {
+            newQuantity: currentCases - casesToDeduct,
+            newBaseQuantity: currentPcs,
+            totalAvailablePieces,
+            deductedPieces: piecesToDeduct,
+        };
+    }
+}
+async function getContainerGroupUsers(tx, userId) {
+    // 1. Check if userId is the main user of an active container van inventory
+    const activeContainerAsMain = await tx.van_inventory.findFirst({
+        where: {
+            user_id: userId,
+            sale_type: 'container',
+            is_active: 'Y',
+            status: 'A', // Confirmed/Approved
+        },
+        include: {
+            van_inventory_sub_users: {
+                where: { is_active: 'Y' },
+                select: { user_id: true },
+            },
+        },
+    });
+    if (activeContainerAsMain) {
+        const subUserIds = activeContainerAsMain.van_inventory_sub_users.map((su) => su.user_id);
+        return [userId, ...subUserIds];
+    }
+    // 2. Check if userId is a sub-user in an active container van inventory
+    const activeContainerAsSub = await tx.van_inventory_sub_users.findFirst({
+        where: {
+            user_id: userId,
+            is_active: 'Y',
+            van_inventory: {
+                sale_type: 'container',
+                is_active: 'Y',
+                status: 'A',
+            },
+        },
+        include: {
+            van_inventory: {
+                include: {
+                    van_inventory_sub_users: {
+                        where: { is_active: 'Y' },
+                        select: { user_id: true },
+                    },
+                },
+            },
+        },
+    });
+    if (activeContainerAsSub?.van_inventory) {
+        const mainUserId = activeContainerAsSub.van_inventory.user_id;
+        const subUserIds = activeContainerAsSub.van_inventory.van_inventory_sub_users.map((su) => su.user_id);
+        return [mainUserId, ...subUserIds];
+    }
+    // If not part of any container group, return just the userId
     return [userId];
 }
 //# sourceMappingURL=inventory.utils.js.map
