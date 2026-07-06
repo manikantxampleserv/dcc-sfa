@@ -57,10 +57,10 @@ const serializeRequest = (request: any): RequestSerialized => ({
   log_inst: request.log_inst,
   requester: request.sfa_d_requests_requester
     ? {
-        id: request.sfa_d_requests_requester.id,
-        name: request.sfa_d_requests_requester.name,
-        email: request.sfa_d_requests_requester.email,
-      }
+      id: request.sfa_d_requests_requester.id,
+      name: request.sfa_d_requests_requester.name,
+      email: request.sfa_d_requests_requester.email,
+    }
     : null,
   approvals:
     request.sfa_d_requests_approvals_request?.map((approval: any) => ({
@@ -72,14 +72,14 @@ const serializeRequest = (request: any): RequestSerialized => ({
       action_at: approval.action_at,
       approver: approval.sfa_d_requests_approvals_approver
         ? {
-            id: approval.sfa_d_requests_approvals_approver.id,
-            name: approval.sfa_d_requests_approvals_approver.name,
-            email: approval.sfa_d_requests_approvals_approver.email,
-            profile_image:
-              approval.sfa_d_requests_approvals_approver.profile_image || null,
-            employee_id:
-              approval.sfa_d_requests_approvals_approver.employee_id || null,
-          }
+          id: approval.sfa_d_requests_approvals_approver.id,
+          name: approval.sfa_d_requests_approvals_approver.name,
+          email: approval.sfa_d_requests_approvals_approver.email,
+          profile_image:
+            approval.sfa_d_requests_approvals_approver.profile_image || null,
+          employee_id:
+            approval.sfa_d_requests_approvals_approver.employee_id || null,
+        }
         : null,
       reference_details: request.reference_details || null,
     })) || [],
@@ -426,54 +426,119 @@ export const createRequest = async (data: {
           },
         });
 
-        // If this reconciliation approval is linked to a van inventory unload,
-        // auto-approve the van_inventory and trigger stock deduction
-        if (data.request_data) {
+        // Trigger stock deduction asynchronously after returning
+        setImmediate(async () => {
           try {
-            const reqData = JSON.parse(data.request_data);
-            if (reqData && reqData.van_inventory_id) {
-              await prisma.van_inventory.update({
-                where: { id: Number(reqData.van_inventory_id) },
-                data: {
-                  approval_status: 'A',
-                  updatedby: data.createdby,
-                  updatedate: new Date(),
-                },
-              });
+            const { vanInventoryController } = await import(
+              './vanInventory.controller'
+            );
 
-              console.log(
-                `Van Inventory ${reqData.van_inventory_id} auto-approved via RECONCILIATION_APPROVAL (no workflow)`
-              );
+            let vanInventoryIdToProcess: number | null = null;
+            let reqData: any = null;
 
-              // Trigger stock deduction asynchronously after returning
-              setImmediate(async () => {
-                try {
-                  const { vanInventoryController } = await import(
-                    './vanInventory.controller'
-                  );
-                  await vanInventoryController.processApprovedVanInventoryStock(
-                    Number(reqData.van_inventory_id),
-                    data.createdby,
-                    reqData
-                  );
+            if (data.request_data) {
+              try {
+                reqData = JSON.parse(data.request_data);
+                if (reqData && reqData.van_inventory_id) {
+                  vanInventoryIdToProcess = Number(reqData.van_inventory_id);
+                  await prisma.van_inventory.update({
+                    where: { id: vanInventoryIdToProcess },
+                    data: {
+                      approval_status: 'A',
+                      updatedby: data.createdby,
+                      updatedate: new Date(),
+                    },
+                  });
                   console.log(
-                    `Stock processing completed for auto-approved van inventory ${reqData.van_inventory_id}`
-                  );
-                } catch (stockErr) {
-                  console.error(
-                    'Error processing stock on RECONCILIATION_APPROVAL auto-approve:',
-                    stockErr
+                    `Van Inventory ${vanInventoryIdToProcess} auto-approved via RECONCILIATION_APPROVAL (no workflow)`
                   );
                 }
-              });
+              } catch (parseErr) {
+                console.error(
+                  'Error parsing request_data on RECONCILIATION_APPROVAL auto-approve:',
+                  parseErr
+                );
+              }
             }
-          } catch (parseErr) {
+
+            if (!vanInventoryIdToProcess) {
+              vanInventoryIdToProcess =
+                await vanInventoryController.createVanInventoryFromReconciliation(
+                  data.reference_id!,
+                  data.createdby
+                );
+            }
+
+            if (vanInventoryIdToProcess) {
+              const newVan = await prisma.van_inventory.findUnique({
+                where: { id: vanInventoryIdToProcess },
+              });
+
+              if (newVan) {
+                const olderInventories = await prisma.van_inventory.findMany({
+                  where: {
+                    user_id: newVan.user_id,
+                    loading_type: newVan.loading_type,
+                    approval_status: 'P',
+                    id: { not: newVan.id },
+                  },
+                  select: { id: true },
+                });
+
+                if (olderInventories.length > 0) {
+                  const inventoryIds = olderInventories.map(x => x.id);
+
+                  await prisma.van_inventory.updateMany({
+                    where: { id: { in: inventoryIds } },
+                    data: {
+                      approval_status: 'R',
+                      is_cancelled: 'Y',
+                      updatedby: data.createdby,
+                      updatedate: new Date(),
+                    },
+                  });
+
+                  await prisma.sfa_d_requests.updateMany({
+                    where: {
+                      request_type: 'VAN_INVENTORY',
+                      reference_id: { in: inventoryIds },
+                      status: 'P',
+                    },
+                    data: {
+                      status: 'R',
+                      overall_status: 'REJECTED',
+                      updatedby: data.createdby,
+                      updatedate: new Date(),
+                    },
+                  });
+
+                  console.log(
+                    `Rejected ${inventoryIds.length} older pending VAN_INVENTORY request(s) for salesman ${newVan.user_id} on auto-approve`
+                  );
+                }
+              }
+
+              await vanInventoryController.processApprovedVanInventoryStock(
+                vanInventoryIdToProcess,
+                data.createdby,
+                reqData || { loading_type: 'U', van_inventory_id: vanInventoryIdToProcess }
+              );
+
+              console.log(
+                `Completed van inventory creation & stock processing for auto-approved reconciliation ${data.reference_id}, van inventory ${vanInventoryIdToProcess}`
+              );
+            } else {
+              console.log(
+                `Reconciliation ${data.reference_id} auto-approved but had no items to unload`
+              );
+            }
+          } catch (err) {
             console.error(
-              'Error parsing request_data on RECONCILIATION_APPROVAL auto-approve:',
-              parseErr
+              'Error processing stock on RECONCILIATION_APPROVAL auto-approve:',
+              err
             );
           }
-        }
+        });
       }
 
       if (
@@ -1825,7 +1890,7 @@ export const requestsController = {
 
                 if (
                   assetMovement.movement_type?.toLowerCase() ===
-                    'maintenance' ||
+                  'maintenance' ||
                   assetMovement.movement_type?.toLowerCase() === 'repair'
                 ) {
                   try {
@@ -1979,9 +2044,7 @@ export const requestsController = {
                 },
               });
 
-              // -----------------------------------------
-              // Run rejection logic ONLY for SAP AR Invoice
-              // -----------------------------------------
+
               let shouldRejectPendingRequests = false;
 
               if (request.request_data) {
