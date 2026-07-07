@@ -864,7 +864,7 @@ async function processApprovedVanInventoryStock(
                 console.log('  New product_batch created');
               }
 
-              const existingVanItem = await tx.van_inventory_items.findFirst({
+              let existingVanItem = await tx.van_inventory_items.findFirst({
                 where: {
                   parent_id: inventory.id,
                   product_id: product.id,
@@ -875,21 +875,31 @@ async function processApprovedVanInventoryStock(
                 },
               });
 
-              if (existingVanItem) {
-                console.log(
-                  '  Found existing van_inventory_item in current inventory, updating...'
-                );
-                const newQuantity = existingVanItem.quantity + batchQty;
-                await tx.van_inventory_items.update({
-                  where: { id: existingVanItem.id },
-                  data: {
-                    quantity: newQuantity,
-                    total_amount: newQuantity * Number(item.unit_price || 0),
+              if (!existingVanItem) {
+                const unlinkedVanItem = await tx.van_inventory_items.findFirst({
+                  where: {
+                    parent_id: inventory.id,
+                    product_id: product.id,
+                    batch_lot_id: null,
                   },
                 });
+
+                if (unlinkedVanItem) {
+                  existingVanItem = await tx.van_inventory_items.update({
+                    where: { id: unlinkedVanItem.id },
+                    data: {
+                      batch_lot_id: batchLot.id,
+                    },
+                  });
+                  console.log(
+                    `  Linked existing unlinked van_inventory_item (ID: ${unlinkedVanItem.id}) to batch_lot: ${batchLot.id}`
+                  );
+                }
+              }
+
+              if (existingVanItem) {
                 console.log(
-                  '  Van_inventory_item updated, new quantity:',
-                  newQuantity
+                  '  Found existing van_inventory_item in current inventory, skipping quantity update after approval.'
                 );
               } else {
                 console.log(' Creating new van_inventory_item..');
@@ -1021,7 +1031,7 @@ async function processApprovedVanInventoryStock(
                 console.log('  New serial created:', existingSerial.id);
               }
 
-              const existingVanItem = await tx.van_inventory_items.findFirst({
+              let existingVanItem = await tx.van_inventory_items.findFirst({
                 where: {
                   parent_id: inventory.id,
                   product_id: product.id,
@@ -1036,19 +1046,32 @@ async function processApprovedVanInventoryStock(
                 !!existingVanItem
               );
 
-              if (existingVanItem) {
-                console.log(
-                  '  Found existing van item for serial, updating...'
-                );
-                const newQuantity = 1;
-                await tx.van_inventory_items.update({
-                  where: { id: existingVanItem.id },
-                  data: {
-                    quantity: newQuantity,
-                    total_amount: newQuantity * Number(item.unit_price || 0),
+              if (!existingVanItem) {
+                const unlinkedVanItem = await tx.van_inventory_items.findFirst({
+                  where: {
+                    parent_id: inventory.id,
+                    product_id: product.id,
+                    serial_id: null,
                   },
                 });
-                console.log('  Van item updated to quantity:', newQuantity);
+
+                if (unlinkedVanItem) {
+                  existingVanItem = await tx.van_inventory_items.update({
+                    where: { id: unlinkedVanItem.id },
+                    data: {
+                      serial_id: existingSerial.id,
+                    },
+                  });
+                  console.log(
+                    `  Linked existing unlinked serial van_item (ID: ${unlinkedVanItem.id}) to serial: ${existingSerial.id}`
+                  );
+                }
+              }
+
+              if (existingVanItem) {
+                console.log(
+                  '  Found existing van item for serial, skipping quantity update after approval.'
+                );
               } else {
                 console.log(' Creating new van item for serial...');
                 await tx.van_inventory_items.create({
@@ -1111,15 +1134,9 @@ async function processApprovedVanInventoryStock(
             });
 
             if (existingVanItem) {
-              await tx.van_inventory_items.update({
-                where: { id: existingVanItem.id },
-                data: {
-                  quantity: existingVanItem.quantity + qty,
-                  total_amount:
-                    (existingVanItem.quantity + qty) *
-                    Number(item.unit_price || 0),
-                },
-              });
+              console.log(
+                '  Found existing van item, skipping quantity update after approval.'
+              );
             } else {
               await tx.van_inventory_items.create({
                 data: {
