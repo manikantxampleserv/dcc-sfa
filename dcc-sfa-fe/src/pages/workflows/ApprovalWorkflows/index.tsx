@@ -184,30 +184,25 @@ const ApprovalWorkflows: React.FC = () => {
       id: 'requester',
       label: 'Requested By',
       render: (_value, row) => (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+        <Box className="!flex !gap-2 !items-center">
           <Avatar
-            sx={{
-              width: 36,
-              height: 36,
-              fontSize: '0.9rem',
-              bgcolor: 'primary.100',
-              color: 'primary.500',
-            }}
-          >
-            {row.requester?.name?.charAt(0) || 'U'}
-          </Avatar>
+            alt={row.requester?.name?.trim()}
+            src="mkx"
+            className="!rounded !bg-primary-100 !text-primary-500"
+          />
           <Box>
             <Typography
-              variant="body2"
-              sx={{ fontWeight: 500, lineHeight: 1.2 }}
+              variant="body1"
+              className="!text-gray-900 !leading-tight !font-medium"
             >
-              {row.requester?.name || `User #${row.requester_id}`}
+              {row.requester?.name}
             </Typography>
-            {row.requester?.employee_id && (
-              <Typography variant="caption" color="text.secondary">
-                {row.requester.employee_id}
-              </Typography>
-            )}
+            <Typography
+              variant="caption"
+              className="!text-gray-500 !text-xs !block !mt-0.5"
+            >
+              {row?.requester?.employee_id}
+            </Typography>
           </Box>
         </Box>
       ),
@@ -392,7 +387,7 @@ const ApprovalWorkflows: React.FC = () => {
                 <Select
                   value={requestTypeFilter}
                   onChange={e => setRequestTypeFilter(e.target.value)}
-                  className="!w-48"
+                  className="!w-60"
                   disableClearable
                 >
                   <MenuItem value="all">All Types</MenuItem>

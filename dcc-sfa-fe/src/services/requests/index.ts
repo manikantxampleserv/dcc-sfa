@@ -68,6 +68,7 @@ export interface Request {
     assets?: string;
     approval_status?: string;
     vehicle_info?: string;
+    items_details?: Record<string, any>;
   } | null;
   approvals?: {
     id: number;

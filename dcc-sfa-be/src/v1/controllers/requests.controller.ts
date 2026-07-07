@@ -1148,10 +1148,6 @@ export const requestsController = {
         };
       }
 
-      const customerCreationRequests = await prisma.sfa_d_requests.count({
-        where: { request_type: 'CUSTOMER_CREATION' },
-      });
-
       const { data, pagination } = await paginate({
         model: prisma.sfa_d_requests,
         filters,

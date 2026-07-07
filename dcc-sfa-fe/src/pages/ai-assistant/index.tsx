@@ -150,7 +150,7 @@ const AIAssistant: React.FC = () => {
             </p>
           </Box>
           <Box className="!flex !items-center !border !border-gray-200 !rounded-md !px-1 !py-0.5 bg-white">
-            <Tooltip title="Clear Chat">
+            <Tooltip placement="top" title="Clear Chat" arrow>
               <IconButton
                 onClick={clearChat}
                 className="!text-gray-600 hover:!text-gray-900 hover:!bg-gray-100 !p-1.5 !rounded-md !outline-none"
@@ -159,7 +159,11 @@ const AIAssistant: React.FC = () => {
               </IconButton>
             </Tooltip>
             <div className="w-[1px] h-4 bg-gray-300 mx-1" />
-            <Tooltip title={isFullscreen ? 'Exit Full Screen' : 'Full Screen'}>
+            <Tooltip
+              title={isFullscreen ? 'Exit Full Screen' : 'Full Screen'}
+              arrow
+              placement="top"
+            >
               <IconButton
                 onClick={() => setIsFullscreen(!isFullscreen)}
                 className="!text-gray-600 hover:!text-gray-900 hover:!bg-gray-100 !p-1.5 !rounded-md !outline-none"

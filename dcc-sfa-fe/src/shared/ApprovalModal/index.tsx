@@ -1,22 +1,21 @@
 import {
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
   IconButton,
   Typography,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
 } from '@mui/material';
 import { useFormik } from 'formik';
 import { useTakeActionOnRequest } from 'hooks/useRequests';
-import { Check, FileText, X, ChevronDown } from 'lucide-react';
+import { Check, ChevronDown, FileText, X } from 'lucide-react';
 import React from 'react';
 import type { Request } from 'services/requests';
 import Button from 'shared/Button';
 import Input from 'shared/Input';
-import * as yup from 'yup';
 import { getSourceSystemLabel } from 'utils/sourceSystem';
 
 interface ApprovalModalProps {
@@ -38,21 +37,6 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({
     initialValues: {
       remarks: '',
     },
-    validationSchema: yup.object({
-      remarks:
-        type === 'view'
-          ? yup.string().optional()
-          : yup
-              .string()
-              .required(
-                `${type === 'approve' ? 'Approval' : 'Rejection'} remarks are required`
-              )
-              .trim()
-              .min(
-                1,
-                `${type === 'approve' ? 'Approval' : 'Rejection'} remarks are required`
-              ),
-    }),
     enableReinitialize: true,
     onSubmit: async values => {
       if (type === 'view') return;
@@ -922,15 +906,18 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({
                                     variant="body2"
                                     className="!font-semibold !text-gray-900"
                                   >
-                                    {item.product_name ||
-                                      item.notes ||
-                                      `Product ID: ${item.product_id || item.product_sap_code}`}
+                                    {item.product_name || item.notes}
                                   </Typography>
                                   <Typography
                                     variant="caption"
                                     className="!text-gray-500"
                                   >
-                                    Code: {item.product_sap_code || 'N/A'}
+                                    Code:{' '}
+                                    {item.product_sap_code ||
+                                      request?.reference_details
+                                        ?.items_details?.[item.product_id]
+                                        ?.code ||
+                                      'N/A'}
                                   </Typography>
                                 </div>
                                 <Typography
@@ -1115,6 +1102,7 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({
               Cancel
             </Button>
             <Button
+              size="small"
               variant="contained"
               color={type === 'approve' ? 'success' : 'error'}
               startIcon={

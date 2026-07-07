@@ -56,15 +56,12 @@ const Profile: React.FC = () => {
         formData.append('phone_number', values.phone_number);
         formData.append('address', values.address);
         formData.append('joining_date', values.joining_date);
-
         if (values.password) {
           formData.append('password', values.password);
         }
-
         if (uploadedFile) {
           formData.append('profile_image', uploadedFile);
         }
-
         await updateProfileMutation.mutateAsync(formData);
       } catch (error) {
         console.error('Error updating profile:', error);

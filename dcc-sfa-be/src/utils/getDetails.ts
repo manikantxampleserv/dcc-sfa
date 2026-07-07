@@ -311,12 +311,34 @@ async function getRequestDetailsByType(
                 })
               : null;
 
+            const items =
+              parsedData.van_inventory_items || parsedData.items || [];
+            const items_details: any = {};
+
+            if (items.length > 0) {
+              const productIds = items
+                .map((i: any) => Number(i.product_id))
+                .filter((id: number) => !isNaN(id));
+
+              if (productIds.length > 0) {
+                const products = await prisma.products.findMany({
+                  where: { id: { in: productIds } },
+                  select: { id: true, code: true, name: true },
+                });
+
+                products.forEach(p => {
+                  items_details[p.id] = { code: p.code, name: p.name };
+                });
+              }
+            }
+
             return {
-              salesman_name: salesman?.name || 'N/A',
-              depot_name: depot?.name || 'N/A',
+              salesman_name: salesman?.name || '',
+              depot_name: depot?.name || '',
               vehicle_info: vehicle
                 ? `${vehicle.vehicle_number} (${vehicle.make || ''} ${vehicle.model || ''})`.trim()
-                : 'N/A',
+                : '',
+              items_details,
             };
           } catch (e) {
             console.error('Error parsing VAN_INVENTORY request data:', e);
