@@ -52,15 +52,18 @@ const authenticateToken = async (req, res, next) => {
                     message: 'This token has expired. Please login again.',
                 });
             }
-            prisma_client_1.default.api_tokens
-                .update({
-                where: { id: dbToken.id },
-                data: {
-                    ip_address: req.ip || req.socket.remoteAddress || 'unknown',
-                    updated_date: new Date(),
-                },
-            })
-                .catch(err => console.error('Error updating token usage:', err));
+            try {
+                await prisma_client_1.default.api_tokens.update({
+                    where: { id: dbToken.id },
+                    data: {
+                        ip_address: req.ip || req.socket.remoteAddress || 'unknown',
+                        updated_date: new Date(),
+                    },
+                });
+            }
+            catch (err) {
+                console.error('Error updating token usage:', err);
+            }
         }
         const user = await prisma_client_1.default.users.findUnique({
             where: { id: decoded.id },
@@ -166,15 +169,18 @@ const authenticateApiToken = async (req, res, next) => {
                 message: 'User has no role assigned',
             });
         }
-        prisma_client_1.default.api_tokens
-            .update({
-            where: { id: apiToken.id },
-            data: {
-                ip_address: req.ip || req.socket.remoteAddress || 'unknown',
-                updated_date: new Date(),
-            },
-        })
-            .catch(err => console.error('Error updating token usage:', err));
+        try {
+            await prisma_client_1.default.api_tokens.update({
+                where: { id: apiToken.id },
+                data: {
+                    ip_address: req.ip || req.socket.remoteAddress || 'unknown',
+                    updated_date: new Date(),
+                },
+            });
+        }
+        catch (err) {
+            console.error('Error updating token usage:', err);
+        }
         req.user = {
             id: user.id,
             email: user.email,
