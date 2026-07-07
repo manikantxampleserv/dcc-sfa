@@ -86,7 +86,7 @@ const ActivityLogs: React.FC = () => {
       label: 'User',
       render: (_value, row) => (
         <div className="flex items-center gap-2">
-          <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+          <div className="w-10 h-10 bg-blue-100 rounded flex items-center justify-center">
             <span className="text-lg text-blue-600">
               {row.user_name?.charAt(0).toUpperCase() || 'U'}
             </span>

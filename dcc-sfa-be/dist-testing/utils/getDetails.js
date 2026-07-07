@@ -282,12 +282,29 @@ async function getRequestDetailsByType(request_type, reference_id, request_data)
                                 select: { vehicle_number: true, make: true, model: true },
                             })
                             : null;
+                        const items = parsedData.van_inventory_items || parsedData.items || [];
+                        const items_details = {};
+                        if (items.length > 0) {
+                            const productIds = items
+                                .map((i) => Number(i.product_id))
+                                .filter((id) => !isNaN(id));
+                            if (productIds.length > 0) {
+                                const products = await prisma_client_1.default.products.findMany({
+                                    where: { id: { in: productIds } },
+                                    select: { id: true, code: true, name: true },
+                                });
+                                products.forEach(p => {
+                                    items_details[p.id] = { code: p.code, name: p.name };
+                                });
+                            }
+                        }
                         return {
-                            salesman_name: salesman?.name || 'N/A',
-                            depot_name: depot?.name || 'N/A',
+                            salesman_name: salesman?.name || '',
+                            depot_name: depot?.name || '',
                             vehicle_info: vehicle
                                 ? `${vehicle.vehicle_number} (${vehicle.make || ''} ${vehicle.model || ''})`.trim()
-                                : 'N/A',
+                                : '',
+                            items_details,
                         };
                     }
                     catch (e) {

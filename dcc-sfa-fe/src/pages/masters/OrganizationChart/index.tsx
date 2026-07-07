@@ -9,19 +9,11 @@ import {
   PersonOutlined,
   RouteOutlined,
   StoreOutlined,
-  VisibilityOutlined,
-  EditOutlined,
-  DeleteOutline,
 } from '@mui/icons-material';
-import {
-  Skeleton,
-  Menu,
-  MenuItem,
-  ListItemIcon,
-  ListItemText,
-} from '@mui/material';
+import { Skeleton } from '@mui/material';
 import { useOrgChart, type TreeNode } from 'hooks/useOrgChart';
 import React, { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ActionButton } from 'shared/ActionButton';
 
 const typeIconMap: Record<string, React.ReactElement> = {
@@ -55,27 +47,9 @@ const typeBorderMap: Record<string, string> = {
 };
 
 const OrganizationChart: React.FC = () => {
+  const navigate = useNavigate();
   const { data = [], isLoading: loading } = useOrgChart();
   const [currentPath, setCurrentPath] = useState<TreeNode[]>([]);
-  const [contextMenu, setContextMenu] = useState<{
-    mouseX: number;
-    mouseY: number;
-  } | null>(null);
-  const [, setContextNode] = useState<TreeNode | null>(null);
-  const handleContextMenu = (event: React.MouseEvent, node: TreeNode) => {
-    event.preventDefault();
-    setContextNode(node);
-    setContextMenu(
-      contextMenu === null
-        ? {
-            mouseX: event.clientX + 2,
-            mouseY: event.clientY - 6,
-          }
-        : null
-    );
-  };
-
-  const handleCloseContextMenu = () => setContextMenu(null);
 
   const currentGridNodes = useMemo(() => {
     let nodesToSort = data;
@@ -257,7 +231,12 @@ const OrganizationChart: React.FC = () => {
               return (
                 <div
                   key={node.id}
-                  onContextMenu={e => handleContextMenu(e, node)}
+                  onClick={() => {
+                    if (node.type === 'outlet') {
+                      const id = node.id.split('-').pop();
+                      navigate(`/masters/outlets/${id}`);
+                    }
+                  }}
                   onDoubleClick={() => {
                     if (hasChildren) {
                       setCurrentPath(prev => [...prev, node]);
@@ -293,60 +272,6 @@ const OrganizationChart: React.FC = () => {
           </div>
         </div>
       )}
-
-      <Menu
-        open={contextMenu !== null}
-        onClose={handleCloseContextMenu}
-        anchorReference="anchorPosition"
-        anchorPosition={
-          contextMenu !== null
-            ? { top: contextMenu.mouseY, left: contextMenu.mouseX }
-            : undefined
-        }
-        PaperProps={{
-          elevation: 3,
-          sx: {
-            borderRadius: '5px',
-            minWidth: '160px',
-            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-            border: '1px solid #e5e7eb',
-          },
-        }}
-      >
-        <MenuItem onClick={handleCloseContextMenu} className="!text-gray-700">
-          <ListItemIcon>
-            <VisibilityOutlined fontSize="small" className="text-gray-500" />
-          </ListItemIcon>
-          <ListItemText
-            primaryTypographyProps={{ fontSize: '14px', fontWeight: 500 }}
-          >
-            View Details
-          </ListItemText>
-        </MenuItem>
-        <MenuItem onClick={handleCloseContextMenu} className="!text-gray-700">
-          <ListItemIcon>
-            <EditOutlined fontSize="small" className="text-gray-500" />
-          </ListItemIcon>
-          <ListItemText
-            primaryTypographyProps={{ fontSize: '14px', fontWeight: 500 }}
-          >
-            Edit Node
-          </ListItemText>
-        </MenuItem>
-        <MenuItem
-          onClick={handleCloseContextMenu}
-          className="!text-red-600 hover:!bg-red-50"
-        >
-          <ListItemIcon>
-            <DeleteOutline fontSize="small" className="text-red-500" />
-          </ListItemIcon>
-          <ListItemText
-            primaryTypographyProps={{ fontSize: '14px', fontWeight: 500 }}
-          >
-            Delete
-          </ListItemText>
-        </MenuItem>
-      </Menu>
     </div>
   );
 };

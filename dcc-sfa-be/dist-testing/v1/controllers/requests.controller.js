@@ -933,9 +933,6 @@ exports.requestsController = {
                     lte: new Date(endDate),
                 };
             }
-            const customerCreationRequests = await prisma_client_1.default.sfa_d_requests.count({
-                where: { request_type: 'CUSTOMER_CREATION' },
-            });
             const { data, pagination } = await (0, paginate_1.paginate)({
                 model: prisma_client_1.default.sfa_d_requests,
                 filters,
