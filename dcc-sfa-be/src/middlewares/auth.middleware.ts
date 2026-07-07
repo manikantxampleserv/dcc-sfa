@@ -65,15 +65,17 @@ export const authenticateToken = async (req: any, res: any, next: any) => {
         });
       }
 
-      prisma.api_tokens
-        .update({
+      try {
+        await prisma.api_tokens.update({
           where: { id: dbToken.id },
           data: {
             ip_address: req.ip || req.socket.remoteAddress || 'unknown',
             updated_date: new Date(),
           },
-        })
-        .catch(err => console.error('Error updating token usage:', err));
+        });
+      } catch (err) {
+        console.error('Error updating token usage:', err);
+      }
     }
 
     const user = await prisma.users.findUnique({
@@ -192,15 +194,17 @@ export const authenticateApiToken = async (req: any, res: any, next: any) => {
       });
     }
 
-    prisma.api_tokens
-      .update({
+    try {
+      await prisma.api_tokens.update({
         where: { id: apiToken.id },
         data: {
           ip_address: req.ip || req.socket.remoteAddress || 'unknown',
           updated_date: new Date(),
         },
-      })
-      .catch(err => console.error('Error updating token usage:', err));
+      });
+    } catch (err) {
+      console.error('Error updating token usage:', err);
+    }
 
     req.user = {
       id: user.id,
