@@ -108,6 +108,10 @@ export declare const sapService: {
                     expiry_date: Date;
                     batch_number: string;
                 } | null;
+                van_inventory_serial: {
+                    id: number;
+                    serial_number: string;
+                } | null;
             }[] | undefined;
             van_inventory_stock_movements: {
                 id: number;

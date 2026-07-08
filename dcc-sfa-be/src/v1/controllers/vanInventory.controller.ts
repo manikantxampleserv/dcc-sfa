@@ -125,7 +125,9 @@ const serializeVanInventory = (item: any): VanInventorySerialized => {
       let batchLot: any = null;
       let serialNumbers: any = null;
 
-      if (
+      if (it.van_inventory_items_batch_lot) {
+        batchLot = it.van_inventory_items_batch_lot;
+      } else if (
         it.batch_lot_id &&
         it.van_inventory_items_products?.product_product_batches
       ) {
@@ -139,11 +141,10 @@ const serializeVanInventory = (item: any): VanInventorySerialized => {
         }
       }
 
-      if (it.van_inventory_items_products?.serial_numbers_products) {
-        const serialsData =
-          it.van_inventory_items_products.serial_numbers_products;
-        if (serialsData && serialsData.length > 0) {
-          serialNumbers = serialsData.map((sn: any) => ({
+      if (it.van_inventory_serial) {
+        const sn = it.van_inventory_serial;
+        serialNumbers = [
+          {
             id: sn.id,
             serial_number: sn.serial_number,
             status: sn.status,
@@ -159,8 +160,8 @@ const serializeVanInventory = (item: any): VanInventorySerialized => {
               : null,
             sold_date: sn.sold_date || null,
             created_date: sn.createdate || null,
-          }));
-        }
+          },
+        ];
       }
 
       totalQuantity += it.quantity || 0;
@@ -635,10 +636,10 @@ async function processApprovedVanInventoryStock(
     return;
   }
 
-  let items = Array.isArray(requestData?.items)
-    ? requestData.items
-    : Array.isArray(requestData?.van_inventory_items)
-      ? requestData.van_inventory_items
+  let items = Array.isArray(requestData?.van_inventory_items)
+    ? requestData.van_inventory_items
+    : Array.isArray(requestData?.items)
+      ? requestData.items
       : Array.isArray(requestData?.inventoryItems)
         ? requestData.inventoryItems
         : [];
@@ -4095,6 +4096,11 @@ export const vanInventoryController = {
                     },
                   },
                   van_inventory_items_batch_lot: true,
+                  van_inventory_serial: {
+                    include: {
+                      serial_numbers_customers: true,
+                    },
+                  },
                 },
               },
               van_inventory_stock_movements: true,
@@ -4260,6 +4266,11 @@ export const vanInventoryController = {
                 },
               },
               van_inventory_items_batch_lot: true,
+              van_inventory_serial: {
+                include: {
+                  serial_numbers_customers: true,
+                },
+              },
             },
           },
           van_inventory_stock_movements: true,
@@ -4378,6 +4389,12 @@ export const vanInventoryController = {
                   product_tax_master: true,
                 },
               },
+              van_inventory_serial: {
+                include: {
+                  serial_numbers_customers: true,
+                },
+              },
+              van_inventory_items_batch_lot: true,
             },
           },
           vehicle: true,

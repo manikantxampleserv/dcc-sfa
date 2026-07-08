@@ -111,7 +111,6 @@ const ImportBrand: React.FC<ImportBrandProps> = ({
       open={drawerOpen}
       setOpen={handleCancel}
       title="Import Brands"
-      size="large"
     >
       <Box className="!p-5">
         <form onSubmit={formik.handleSubmit} className="!space-y-6">

@@ -114,7 +114,6 @@ const ImportProductCategory: React.FC<ImportProductCategoryProps> = ({
       open={drawerOpen}
       setOpen={handleCancel}
       title="Import Product Categories"
-      size="large"
     >
       <Box className="!p-5">
         <form onSubmit={formik.handleSubmit} className="!space-y-6">

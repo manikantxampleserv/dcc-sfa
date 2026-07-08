@@ -112,7 +112,6 @@ const ImportSalesTargetGroup: React.FC<ImportSalesTargetGroupProps> = ({
       open={drawerOpen}
       setOpen={handleCancel}
       title="Import Sales Target Groups"
-      size="large"
     >
       <Box className="!p-5">
         <form onSubmit={formik.handleSubmit} className="!space-y-6">
@@ -304,7 +303,7 @@ const ImportSalesTargetGroup: React.FC<ImportSalesTargetGroupProps> = ({
             )}
           </Box>
 
-          <Box className="!flex !justify-end items-center">
+          <Box className="!flex !justify-end items-center gap-3">
             <Button
               type="button"
               variant="outlined"
@@ -313,7 +312,6 @@ const ImportSalesTargetGroup: React.FC<ImportSalesTargetGroupProps> = ({
             >
               Cancel
             </Button>
-
             {step === 'upload' && (
               <Button
                 type="submit"
@@ -321,7 +319,7 @@ const ImportSalesTargetGroup: React.FC<ImportSalesTargetGroupProps> = ({
                 disabled={!uploadedFile || importDataMutation.isPending}
                 loading={importDataMutation.isPending}
               >
-                {importDataMutation.isPending ? 'Importing...' : 'Import Data'}
+                {importDataMutation.isPending ? 'Importing...' : 'Import'}
               </Button>
             )}
 

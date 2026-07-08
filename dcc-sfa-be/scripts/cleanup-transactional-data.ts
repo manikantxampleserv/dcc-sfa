@@ -82,6 +82,8 @@ async function main() {
       order_items: await prisma.order_items.count(),
       orders: await prisma.orders.count(),
       van_inventory_sub_users: await prisma.van_inventory_sub_users.count(),
+      sfa_d_request_approvals: await prisma.sfa_d_request_approvals.count(),
+      sfa_d_requests: await prisma.sfa_d_requests.count(),
       van_inventory_items: await prisma.van_inventory_items.count(),
       van_inventory: await prisma.van_inventory.count(),
       reconciliation_items: await prisma.reconciliation_items.count(),
@@ -120,7 +122,7 @@ async function main() {
     /** 9. Orders */
     await del('orders', () => prisma.orders.deleteMany({}));
 
-    /** 10. Van Inventory Items & Sub Users & Reconciliations */
+    /** 10. Van Inventory Items & Sub Users & Reconciliations & Requests */
     await del('reconciliation_items', () =>
       prisma.reconciliation_items.deleteMany({})
     );
@@ -128,6 +130,10 @@ async function main() {
     await del('van_inventory_sub_users', () =>
       prisma.van_inventory_sub_users.deleteMany({})
     );
+    await del('sfa_d_request_approvals', () =>
+      prisma.sfa_d_request_approvals.deleteMany({})
+    );
+    await del('sfa_d_requests', () => prisma.sfa_d_requests.deleteMany({}));
     await del('van_inventory_items', () =>
       prisma.van_inventory_items.deleteMany({})
     );
@@ -170,6 +176,8 @@ async function main() {
         invoices: await prisma.invoices.count(),
         order_items: await prisma.order_items.count(),
         orders: await prisma.orders.count(),
+        sfa_d_request_approvals: await prisma.sfa_d_request_approvals.count(),
+        sfa_d_requests: await prisma.sfa_d_requests.count(),
         van_inventory_items: await prisma.van_inventory_items.count(),
         van_inventory: await prisma.van_inventory.count(),
         inventory_stock: await prisma.inventory_stock.count(),

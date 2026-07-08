@@ -114,7 +114,6 @@ const ImportSalesBonusRule: React.FC<ImportSalesBonusRuleProps> = ({
       open={drawerOpen}
       setOpen={handleCancel}
       title="Import Sales Bonus Rules"
-      size="large"
     >
       <Box className="!p-5">
         <form onSubmit={formik.handleSubmit} className="!space-y-6">
@@ -325,7 +324,7 @@ const ImportSalesBonusRule: React.FC<ImportSalesBonusRuleProps> = ({
                 disabled={!uploadedFile || importDataMutation.isPending}
                 loading={importDataMutation.isPending}
               >
-                {importDataMutation.isPending ? 'Importing...' : 'Import Data'}
+                {importDataMutation.isPending ? 'Importing...' : 'Import'}
               </Button>
             )}
 

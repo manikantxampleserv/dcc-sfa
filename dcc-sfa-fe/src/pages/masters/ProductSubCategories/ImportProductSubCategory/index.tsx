@@ -114,7 +114,6 @@ const ImportProductSubCategory: React.FC<ImportProductSubCategoryProps> = ({
       open={drawerOpen}
       setOpen={handleCancel}
       title="Import Product Sub Categories"
-      size="large"
     >
       <Box className="!p-5">
         <form onSubmit={formik.handleSubmit} className="!space-y-6">
@@ -308,7 +307,7 @@ const ImportProductSubCategory: React.FC<ImportProductSubCategoryProps> = ({
             )}
           </Box>
 
-          <Box className="!flex !justify-end items-center">
+          <Box className="!flex !justify-end items-center gap-3">
             <Button
               type="button"
               variant="outlined"
@@ -325,7 +324,7 @@ const ImportProductSubCategory: React.FC<ImportProductSubCategoryProps> = ({
                 disabled={!uploadedFile || importDataMutation.isPending}
                 loading={importDataMutation.isPending}
               >
-                {importDataMutation.isPending ? 'Importing...' : 'Import Data'}
+                {importDataMutation.isPending ? 'Importing...' : 'Import'}
               </Button>
             )}
 

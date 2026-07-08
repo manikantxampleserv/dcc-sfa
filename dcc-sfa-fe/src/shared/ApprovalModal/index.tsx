@@ -9,13 +9,13 @@ import {
   IconButton,
   Typography,
 } from '@mui/material';
-import { useFormik } from 'formik';
+
 import { useTakeActionOnRequest } from 'hooks/useRequests';
 import { Check, ChevronDown, FileText, X } from 'lucide-react';
 import React from 'react';
 import type { Request } from 'services/requests';
 import Button from 'shared/Button';
-import Input from 'shared/Input';
+import { formatCalendarTime } from 'utils/dateUtils';
 import { getSourceSystemLabel } from 'utils/sourceSystem';
 
 interface ApprovalModalProps {
@@ -33,32 +33,24 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({
 }) => {
   const takeActionMutation = useTakeActionOnRequest();
 
-  const formik = useFormik({
-    initialValues: {
-      remarks: '',
-    },
-    enableReinitialize: true,
-    onSubmit: async values => {
-      if (type === 'view') return;
-      if (!request || !request.approvals?.[0]) return;
+  const handleSubmit = async () => {
+    if (type === 'view') return;
+    if (!request || !request.approvals?.[0]) return;
 
-      try {
-        await takeActionMutation.mutateAsync({
-          request_id: request.id,
-          approval_id: request.approvals[0].id,
-          action: type === 'approve' ? 'A' : 'R',
-          remarks: values.remarks.trim(),
-        });
-        formik.resetForm();
-        onClose();
-      } catch (error) {
-        console.error('Error taking action on request:', error);
-      }
-    },
-  });
+    try {
+      await takeActionMutation.mutateAsync({
+        request_id: request.id,
+        approval_id: request.approvals[0].id,
+        action: type === 'approve' ? 'A' : 'R',
+        remarks: type === 'approve' ? 'Approved' : 'Rejected',
+      });
+      onClose();
+    } catch (error) {
+      console.error('Error taking action on request:', error);
+    }
+  };
 
   const handleCancel = () => {
-    formik.resetForm();
     onClose();
   };
 
@@ -823,7 +815,8 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({
                           variant="body2"
                           className="!font-semibold !text-gray-900"
                         >
-                          {requestData?.document_date || 'N/A'}
+                          {formatCalendarTime(requestData?.document_date) ||
+                            'N/A'}
                         </Typography>
                       </div>
 
@@ -1085,23 +1078,6 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({
             ) : null}
           </div>
         )}
-        {type !== 'view' && (
-          <Input
-            name="remarks"
-            multiline
-            rows={3}
-            label={
-              type === 'approve' ? 'Approval Remarks' : 'Rejection Remarks'
-            }
-            placeholder={
-              type === 'approve'
-                ? 'Enter approval remarks...'
-                : 'Enter rejection remarks...'
-            }
-            formik={formik}
-            required
-          />
-        )}
       </DialogContent>
 
       <DialogActions className="!px-4 !pb-4 !gap-2">
@@ -1117,7 +1093,7 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({
         ) : (
           <>
             <Button size="small" variant="outlined" onClick={handleCancel}>
-              Cancel
+              Close
             </Button>
             <Button
               size="small"
@@ -1130,7 +1106,7 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({
                   <X className="!w-4 !h-4" />
                 )
               }
-              onClick={() => formik.handleSubmit()}
+              onClick={handleSubmit}
               disabled={takeActionMutation.isPending}
             >
               {takeActionMutation.isPending
@@ -1138,8 +1114,8 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({
                   ? 'Approving...'
                   : 'Rejecting...'
                 : type === 'approve'
-                  ? 'Yes, Approve'
-                  : 'Yes, Reject'}
+                  ? 'Confirm'
+                  : 'Reject'}
             </Button>
           </>
         )}

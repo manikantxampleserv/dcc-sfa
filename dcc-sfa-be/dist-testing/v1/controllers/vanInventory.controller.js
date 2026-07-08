@@ -37,7 +37,10 @@ const serializeVanInventory = (item) => {
             let productBatch = null;
             let batchLot = null;
             let serialNumbers = null;
-            if (it.batch_lot_id &&
+            if (it.van_inventory_items_batch_lot) {
+                batchLot = it.van_inventory_items_batch_lot;
+            }
+            else if (it.batch_lot_id &&
                 it.van_inventory_items_products?.product_product_batches) {
                 productBatch =
                     it.van_inventory_items_products.product_product_batches.find((pb) => pb.batch_lot_id === it.batch_lot_id);
@@ -45,10 +48,10 @@ const serializeVanInventory = (item) => {
                     batchLot = productBatch.batch_lot_product_batches;
                 }
             }
-            if (it.van_inventory_items_products?.serial_numbers_products) {
-                const serialsData = it.van_inventory_items_products.serial_numbers_products;
-                if (serialsData && serialsData.length > 0) {
-                    serialNumbers = serialsData.map((sn) => ({
+            if (it.van_inventory_serial) {
+                const sn = it.van_inventory_serial;
+                serialNumbers = [
+                    {
                         id: sn.id,
                         serial_number: sn.serial_number,
                         status: sn.status,
@@ -64,8 +67,8 @@ const serializeVanInventory = (item) => {
                             : null,
                         sold_date: sn.sold_date || null,
                         created_date: sn.createdate || null,
-                    }));
-                }
+                    },
+                ];
             }
             totalQuantity += it.quantity || 0;
             totalAmount += parseFloat(it.total_amount || 0);
@@ -433,10 +436,10 @@ async function processApprovedVanInventoryStock(inventoryId, userId, requestData
         console.log(' Skipping: not approved or cancelled');
         return;
     }
-    let items = Array.isArray(requestData?.items)
-        ? requestData.items
-        : Array.isArray(requestData?.van_inventory_items)
-            ? requestData.van_inventory_items
+    let items = Array.isArray(requestData?.van_inventory_items)
+        ? requestData.van_inventory_items
+        : Array.isArray(requestData?.items)
+            ? requestData.items
             : Array.isArray(requestData?.inventoryItems)
                 ? requestData.inventoryItems
                 : [];
@@ -3277,6 +3280,11 @@ exports.vanInventoryController = {
                                     },
                                 },
                                 van_inventory_items_batch_lot: true,
+                                van_inventory_serial: {
+                                    include: {
+                                        serial_numbers_customers: true,
+                                    },
+                                },
                             },
                         },
                         van_inventory_stock_movements: true,
@@ -3418,6 +3426,11 @@ exports.vanInventoryController = {
                                 },
                             },
                             van_inventory_items_batch_lot: true,
+                            van_inventory_serial: {
+                                include: {
+                                    serial_numbers_customers: true,
+                                },
+                            },
                         },
                     },
                     van_inventory_stock_movements: true,
@@ -3515,6 +3528,12 @@ exports.vanInventoryController = {
                                     product_tax_master: true,
                                 },
                             },
+                            van_inventory_serial: {
+                                include: {
+                                    serial_numbers_customers: true,
+                                },
+                            },
+                            van_inventory_items_batch_lot: true,
                         },
                     },
                     vehicle: true,
