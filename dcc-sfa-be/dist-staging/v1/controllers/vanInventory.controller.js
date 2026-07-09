@@ -2679,12 +2679,8 @@ exports.vanInventoryController = {
                                         where: {
                                             batch_number: batchInput.batch_number,
                                             is_active: 'Y',
-                                            ...(loadingType === 'L'
-                                                ? {
-                                                    productsId: product.id,
-                                                    createdby: Number(inventoryData.user_id),
-                                                }
-                                                : {}),
+                                            productsId: product.id,
+                                            createdby: Number(inventoryData.user_id),
                                         },
                                     });
                                 }
@@ -3337,7 +3333,7 @@ exports.vanInventoryController = {
     },
     async getAllVanInventory(req, res) {
         try {
-            const { page, limit, search, status, loading_type, user_id, time_filter, } = req.query;
+            const { page, limit, search, status, loading_type, user_id, approval_status, time_filter, } = req.query;
             const pageNum = parseInt(page, 10) || 1;
             const limitNum = parseInt(limit, 10) || 10;
             const searchLower = search ? search.toLowerCase() : '';
@@ -3359,6 +3355,29 @@ exports.vanInventoryController = {
                     .map((ud) => ud.depot_id)
                     .filter((id) => id !== null);
             }
+            let finalApprovalStatus = undefined;
+            if (approval_status) {
+                if (approval_status.toUpperCase() === 'ALL') {
+                    finalApprovalStatus = undefined;
+                }
+                else {
+                    const statuses = approval_status
+                        .split(',')
+                        .map(s => s.trim().toUpperCase());
+                    finalApprovalStatus =
+                        statuses.length === 1 ? statuses[0] : { in: statuses };
+                }
+            }
+            else if (statusLower) {
+                if (statusLower === 'pending')
+                    finalApprovalStatus = 'P';
+                else if (statusLower === 'approved')
+                    finalApprovalStatus = 'A';
+                else if (statusLower === 'rejected')
+                    finalApprovalStatus = 'R';
+                else if (statusLower === 'all')
+                    finalApprovalStatus = undefined;
+            }
             const filters = {
                 ...(search && {
                     OR: [
@@ -3366,9 +3385,7 @@ exports.vanInventoryController = {
                         { vehicle: { vehicle_number: { contains: searchLower } } },
                     ],
                 }),
-                ...(statusLower === 'pending' && { approval_status: 'P' }),
-                ...(statusLower === 'approved' && { approval_status: 'A' }),
-                ...(statusLower === 'rejected' && { approval_status: 'R' }),
+                ...(finalApprovalStatus && { approval_status: finalApprovalStatus }),
                 ...(loadingType === 'L' && { loading_type: 'L' }),
                 ...(loadingType === 'U' && { loading_type: 'U' }),
                 ...(user_id && { user_id: parseInt(user_id, 10) }),
@@ -5572,7 +5589,7 @@ exports.vanInventoryController = {
             const itemsData = [];
             for (const item of reconciliation.reconciliation_items) {
                 if (item.product_id === null)
-                    continue; // product_id is nullable in schema
+                    continue;
                 const qty = Number(item.expected_qty) || 0;
                 if (qty <= 0)
                     continue;
@@ -5676,13 +5693,7 @@ exports.vanInventoryController = {
                         const today = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
                         const tomorrow = new Date(today);
                         tomorrow.setDate(tomorrow.getDate() + 1);
-                        let recon = await tx.reconciliation.findFirst({
-                            where: {
-                                salesman_id: userIdNum,
-                                reconciliation_date: { gte: today, lt: tomorrow },
-                                is_active: 'Y',
-                            },
-                        });
+                        // Always create a new reconciliation
                         const productMap = new Map();
                         for (const stock of stockToUnload) {
                             if (stock.product_id === null)
@@ -5754,39 +5765,19 @@ exports.vanInventoryController = {
                             const current = saleQtyMap.get(key) || 0;
                             saleQtyMap.set(key, current + (record.quantity || 0));
                         }
-                        if (!recon) {
-                            recon = await tx.reconciliation.create({
-                                data: {
-                                    salesman_id: userIdNum,
-                                    depot_id: user.depot_id ?? locationId,
-                                    status: 'P',
-                                    reconciliation_date: today,
-                                    is_active: 'Y',
-                                    createdate: new Date(),
-                                    createdby: userIdNum,
-                                },
-                            });
-                        }
-                        const existingItems = await tx.reconciliation_items.findMany({
-                            where: { reconciliation_id: recon.id, is_active: 'Y' },
+                        const recon = await tx.reconciliation.create({
+                            data: {
+                                salesman_id: userIdNum,
+                                depot_id: user.depot_id ?? locationId,
+                                status: 'P',
+                                reconciliation_date: today,
+                                is_active: 'Y',
+                                createdate: new Date(),
+                                createdby: userIdNum,
+                            },
                         });
-                        const existingByKey = new Map(existingItems.map(i => [`${i.product_id}-${i.batch_number}`, i]));
                         const toCreate = [];
                         for (const p of productMap.values()) {
-                            const key = `${p.product_id}-${p.batch_number}`;
-                            const existingItem = existingByKey.get(key);
-                            if (existingItem) {
-                                await tx.reconciliation_items.update({
-                                    where: { id: existingItem.id },
-                                    data: {
-                                        expected_qty: p.total_qty,
-                                        load_qty: loadQtyMap.get(`${p.product_id}-${p.batch_number || ''}`) || 0,
-                                        sale_qty: saleQtyMap.get(`${p.product_id}-${p.batch_number || ''}`) || 0,
-                                        updatedate: new Date(),
-                                    },
-                                });
-                                continue;
-                            }
                             toCreate.push({
                                 reconciliation_id: recon.id,
                                 product_id: p.product_id,
