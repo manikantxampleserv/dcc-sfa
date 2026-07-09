@@ -281,13 +281,13 @@ export default function ReconciliationDetail() {
                   )}
                   {meta?.reconciliation_date
                     ? new Date(meta.reconciliation_date).toLocaleDateString(
-                        'en-GB',
-                        {
-                          day: '2-digit',
-                          month: 'short',
-                          year: 'numeric',
-                        }
-                      )
+                      'en-GB',
+                      {
+                        day: '2-digit',
+                        month: 'short',
+                        year: 'numeric',
+                      }
+                    )
                     : '-'}{' '}
                   &nbsp;|&nbsp; SAP Code: {meta?.salesman?.sap_code || '-'}{' '}
                   &nbsp;
@@ -345,7 +345,7 @@ export default function ReconciliationDetail() {
         totalCount={items.length}
         page={0}
         rowsPerPage={items.length || 10}
-        onPageChange={() => {}}
+        onPageChange={() => { }}
         isPermission={isRead}
         emptyMessage="No items found for this reconciliation."
       />

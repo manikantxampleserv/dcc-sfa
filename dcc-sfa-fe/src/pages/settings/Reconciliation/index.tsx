@@ -81,10 +81,10 @@ export default function Reconciliation() {
       render: val =>
         val
           ? new Date(val as string).toLocaleDateString('en-GB', {
-              day: '2-digit',
-              month: 'short',
-              year: 'numeric',
-            })
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric',
+          })
           : '-',
     },
     {

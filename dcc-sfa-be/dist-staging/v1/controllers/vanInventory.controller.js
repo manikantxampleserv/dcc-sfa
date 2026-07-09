@@ -881,11 +881,12 @@ async function processApprovedVanInventoryStock(inventoryId, userId, requestData
                     console.log('  Tracking type: BATCH');
                     let batchData = item.batches || item.product_batches;
                     if ((!Array.isArray(batchData) || batchData.length === 0) &&
-                        item.van_inventory_items_batch_lot) {
+                        (item.van_inventory_items_batch_lot || item.batch_lot_id)) {
                         batchData = [
                             {
-                                batch_number: item.van_inventory_items_batch_lot.batch_number,
+                                batch_number: item.van_inventory_items_batch_lot?.batch_number || item.notes || '',
                                 quantity: item.quantity,
+                                batch_lot_id: item.batch_lot_id || item.van_inventory_items_batch_lot?.id,
                             },
                         ];
                     }
@@ -904,34 +905,49 @@ async function processApprovedVanInventoryStock(inventoryId, userId, requestData
                             continue;
                         }
                         console.log('  Batch quantity to unload:', batchQty);
-                        const batchLot = await tx.batch_lots.findFirst({
-                            where: {
-                                batch_number: batchInput.batch_number,
-                                is_active: 'Y',
-                            },
-                        });
+                        let batchLot = null;
+                        const batchLotId = batchInput.batch_lot_id || item.batch_lot_id;
+                        if (batchLotId) {
+                            batchLot = await tx.batch_lots.findFirst({
+                                where: {
+                                    id: Number(batchLotId),
+                                    is_active: 'Y',
+                                },
+                            });
+                        }
+                        if (!batchLot) {
+                            batchLot = await tx.batch_lots.findFirst({
+                                where: {
+                                    batch_number: batchInput.batch_number,
+                                    productsId: product.id,
+                                    is_active: 'Y',
+                                },
+                            });
+                        }
                         if (!batchLot) {
                             console.log('   Skipping: batch_lot not found for batch_number', batchInput.batch_number);
                             continue;
                         }
                         console.log('  Found batch_lot:', batchLot.id, batchLot.batch_number);
-                        const vanItem = await tx.van_inventory_items.findFirst({
+                        const vanItems = await tx.van_inventory_items.findMany({
                             where: {
                                 product_id: product.id,
                                 batch_lot_id: batchLot.id,
                                 van_inventory_items_inventory: {
                                     user_id: inventoryUserId,
                                     is_active: 'Y',
+                                    loading_type: 'L',
                                 },
                             },
                         });
-                        if (!vanItem) {
+                        if (vanItems.length === 0) {
                             console.log('   Skipping: van_inventory_item not found for this batch');
                             continue;
                         }
-                        console.log('  Found van_inventory_item with quantity:', vanItem.quantity);
-                        if (vanItem.quantity < batchQty) {
-                            console.log('   Skipping: van_item quantity (', vanItem.quantity, ') < batchQty (', batchQty, ')');
+                        const totalVanQty = vanItems.reduce((sum, vi) => sum + (vi.quantity || 0), 0);
+                        console.log('  Found van_inventory_items with total quantity:', totalVanQty);
+                        if (totalVanQty < batchQty) {
+                            console.log('   Skipping: van_item total quantity (', totalVanQty, ') < batchQty (', batchQty, ')');
                             continue;
                         }
                         const inventoryStock = await tx.inventory_stock.findFirst({
@@ -939,6 +955,7 @@ async function processApprovedVanInventoryStock(inventoryId, userId, requestData
                                 product_id: product.id,
                                 location_id: inventoryLocationId || 1,
                                 batch_id: batchLot.id,
+                                salesperson_id: inventoryUserId,
                             },
                         });
                         if (inventoryStock) {
@@ -1023,6 +1040,7 @@ async function processApprovedVanInventoryStock(inventoryId, userId, requestData
                                 van_inventory_items_inventory: {
                                     user_id: inventoryUserId,
                                     is_active: 'Y',
+                                    loading_type: 'L',
                                 },
                             },
                         });
@@ -1034,7 +1052,9 @@ async function processApprovedVanInventoryStock(inventoryId, userId, requestData
                         const inventoryStock = await tx.inventory_stock.findFirst({
                             where: {
                                 product_id: product.id,
+                                location_id: inventoryLocationId || 1,
                                 serial_number_id: existingSerial.id,
+                                salesperson_id: inventoryUserId,
                             },
                         });
                         if (inventoryStock) {
@@ -1074,7 +1094,7 @@ async function processApprovedVanInventoryStock(inventoryId, userId, requestData
                 else {
                     console.log('  Tracking type: NONE (plain quantity)');
                     console.log('  Quantity to unload:', qty);
-                    const vanItem = await tx.van_inventory_items.findFirst({
+                    const vanItems = await tx.van_inventory_items.findMany({
                         where: {
                             product_id: product.id,
                             batch_lot_id: null,
@@ -1086,13 +1106,14 @@ async function processApprovedVanInventoryStock(inventoryId, userId, requestData
                             },
                         },
                     });
-                    if (!vanItem) {
+                    if (vanItems.length === 0) {
                         console.log('   Skipping: van_inventory_item not found');
                         continue;
                     }
-                    console.log('  Found van_inventory_item with quantity:', vanItem.quantity);
-                    if (vanItem.quantity < qty) {
-                        console.log('   Skipping: van_item quantity (', vanItem.quantity, ') < qty (', qty, ')');
+                    const totalVanQty = vanItems.reduce((sum, vi) => sum + (vi.quantity || 0), 0);
+                    console.log('  Found van_inventory_items with total quantity:', totalVanQty);
+                    if (totalVanQty < qty) {
+                        console.log('   Skipping: van_item total quantity (', totalVanQty, ') < qty (', qty, ')');
                         continue;
                     }
                     const inventoryStock = await tx.inventory_stock.findFirst({
@@ -1101,6 +1122,7 @@ async function processApprovedVanInventoryStock(inventoryId, userId, requestData
                             location_id: inventoryLocationId || 1,
                             batch_id: null,
                             serial_number_id: null,
+                            salesperson_id: inventoryUserId,
                         },
                     });
                     if (inventoryStock) {
@@ -5630,6 +5652,60 @@ exports.vanInventoryController = {
                     log_inst: 1,
                 },
             });
+            const productIds = Array.from(new Set(reconciliation.reconciliation_items
+                .map(item => item.product_id)
+                .filter((id) => id !== null)));
+            const batchNumbers = Array.from(new Set(reconciliation.reconciliation_items
+                .map(item => item.batch_number)
+                .filter((bn) => bn !== null && bn !== '')));
+            const products = await tx.products.findMany({
+                where: { id: { in: productIds } },
+                select: { id: true, name: true, base_price: true },
+            });
+            const productMap = new Map(products.map(p => [p.id, p]));
+            const batchLotsMap = new Map();
+            if (batchNumbers.length > 0) {
+                const batchLots = await tx.batch_lots.findMany({
+                    where: {
+                        batch_number: { in: batchNumbers },
+                        productsId: { in: productIds },
+                    },
+                    select: { id: true, batch_number: true, productsId: true },
+                });
+                for (const b of batchLots) {
+                    if (b.batch_number && b.productsId) {
+                        batchLotsMap.set(`${b.productsId}_${b.batch_number}`, b.id);
+                    }
+                }
+            }
+            // Query loaded van inventory items to get the specific batch_lot_id actually loaded in this salesperson's van
+            const loadedVanItems = await tx.van_inventory_items.findMany({
+                where: {
+                    product_id: { in: productIds },
+                    van_inventory_items_batch_lot: {
+                        batch_number: { in: batchNumbers },
+                    },
+                    van_inventory_items_inventory: {
+                        user_id: userIdNum,
+                        is_active: 'Y',
+                        loading_type: 'L',
+                    },
+                },
+                select: {
+                    product_id: true,
+                    batch_lot_id: true,
+                    van_inventory_items_batch_lot: {
+                        select: { batch_number: true },
+                    },
+                },
+            });
+            const salespersonLoadedBatchMap = new Map();
+            for (const item of loadedVanItems) {
+                const bn = item.van_inventory_items_batch_lot?.batch_number;
+                if (item.product_id && bn && item.batch_lot_id) {
+                    salespersonLoadedBatchMap.set(`${item.product_id}_${bn}`, item.batch_lot_id);
+                }
+            }
             const itemsData = [];
             for (const item of reconciliation.reconciliation_items) {
                 if (item.product_id === null)
@@ -5637,20 +5713,17 @@ exports.vanInventoryController = {
                 const qty = Number(item.expected_qty) || 0;
                 if (qty <= 0)
                     continue;
-                const product = await tx.products.findUnique({
-                    where: { id: item.product_id },
-                    select: { name: true, base_price: true },
-                });
+                const product = productMap.get(item.product_id);
                 let batchLotId = null;
                 if (item.batch_number) {
-                    const batch = await tx.batch_lots.findFirst({
-                        where: {
-                            batch_number: item.batch_number,
-                            productsId: item.product_id, // batch_lots uses productsId, not product_id
-                        },
-                        select: { id: true },
-                    });
-                    batchLotId = batch?.id ?? null;
+                    // First, try to match the batch lot loaded in this salesperson's van
+                    batchLotId =
+                        salespersonLoadedBatchMap.get(`${item.product_id}_${item.batch_number}`) ?? null;
+                    // Fallback to the global query if not found
+                    if (!batchLotId) {
+                        batchLotId =
+                            batchLotsMap.get(`${item.product_id}_${item.batch_number}`) ?? null;
+                    }
                 }
                 itemsData.push({
                     parent_id: newVanInventory.id,
@@ -5672,6 +5745,9 @@ exports.vanInventoryController = {
                 await tx.van_inventory_items.createMany({ data: itemsData });
             }
             return newVanInventory.id;
+        }, {
+            maxWait: 30000,
+            timeout: 90000,
         });
     },
     async unloadVanInventory(req, res) {

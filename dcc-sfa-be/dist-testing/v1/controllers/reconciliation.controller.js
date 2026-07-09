@@ -434,16 +434,21 @@ exports.reconciliationController = {
                     });
                 }
                 if (reconciliationIds.size > 0) {
-                    await Promise.all(Array.from(reconciliationIds).map(reconciliationId => tx.reconciliation.update({
-                        where: { id: reconciliationId },
-                        data: {
-                            status: 'P',
-                            updatedate: new Date(),
-                            updatedby: userId,
-                        },
-                    })));
+                    for (const reconciliationId of reconciliationIds) {
+                        await tx.reconciliation.update({
+                            where: { id: reconciliationId },
+                            data: {
+                                status: 'P',
+                                updatedate: new Date(),
+                                updatedby: userId,
+                            },
+                        });
+                    }
                 }
                 return updatedItems;
+            }, {
+                maxWait: 1500000,
+                timeout: 3000000,
             });
             const reconciliationIds = Array.from(new Set(results.map((item) => item.reconciliation_id)));
             const requestResults = [];
