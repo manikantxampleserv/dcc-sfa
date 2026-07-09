@@ -2,12 +2,12 @@ import { Request, Response } from 'express';
 import { paginate } from '../../utils/paginate';
 import prisma from '../../configs/prisma.client';
 import { deleteFile, uploadFile } from '../../utils/blackbaze';
-import { 
+import {
   getContainerOwnerAndSelf,
   validateAndGetLocationId,
   getOrderedQuantities,
   calculateStockDeduction,
-  getContainerGroupUsers
+  getContainerGroupUsers,
 } from '../utils/inventory.utils';
 import { isAdminRole } from '../../configs/permissions.config';
 
@@ -1218,7 +1218,14 @@ export const visitsController = {
                               await tx.inventory_stock.findFirst({
                                 where: {
                                   product_id: product.id,
-                                  salesperson_id: { in: targetSalespersonIds },
+                                  OR: [
+                                    {
+                                      salesperson_id: {
+                                        in: targetSalespersonIds,
+                                      },
+                                    },
+                                    { createdby: visit.sales_person_id },
+                                  ],
                                   inventory_stock_batch: {
                                     batch_number: batchNumber,
                                   },
@@ -1285,7 +1292,10 @@ export const visitsController = {
                             const vanInventory =
                               await tx.van_inventory.findFirst({
                                 where: {
-                                  user_id: { in: groupUsers },
+                                  OR: [
+                                    { user_id: { in: groupUsers } },
+                                    { createdby: visit.sales_person_id }
+                                  ],
                                   status: 'A',
                                   is_active: 'Y',
                                   van_inventory_items_inventory: {
@@ -1365,7 +1375,14 @@ export const visitsController = {
                               await tx.inventory_stock.findFirst({
                                 where: {
                                   product_id: product.id,
-                                  salesperson_id: { in: targetSalespersonIds },
+                                  OR: [
+                                    {
+                                      salesperson_id: {
+                                        in: targetSalespersonIds,
+                                      },
+                                    },
+                                    { createdby: visit.sales_person_id },
+                                  ],
                                   batch_id: batchOrder.batch_lot_id,
                                 },
                               });
@@ -1609,7 +1626,10 @@ export const visitsController = {
                               await tx.inventory_stock.findFirst({
                                 where: {
                                   product_id: product.id,
-                                  salesperson_id: { in: targetSalespersonIds },
+                                  OR: [
+                                    { salesperson_id: { in: targetSalespersonIds } },
+                                    { createdby: visit.sales_person_id }
+                                  ],
                                   serial_number_id: serial.id,
                                 },
                               });
@@ -1619,9 +1639,10 @@ export const visitsController = {
                                 await tx.inventory_stock.findFirst({
                                   where: {
                                     product_id: product.id,
-                                    salesperson_id: {
-                                      in: targetSalespersonIds,
-                                    },
+                                    OR: [
+                                      { salesperson_id: { in: targetSalespersonIds } },
+                                      { createdby: visit.sales_person_id }
+                                    ],
                                     serial_number_id: null,
                                     batch_id: null,
                                     ...(vanInventory?.location_id && {

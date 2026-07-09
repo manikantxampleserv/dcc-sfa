@@ -108,7 +108,10 @@ export const salespersonStockController = {
       }
 
       const stockWhere: any = {
-        salesperson_id: { in: targetSalespersonIds },
+        OR: [
+          { salesperson_id: { in: targetSalespersonIds } },
+          { createdby: salespersonIdNum }
+        ],
         is_active: 'Y',
       };
       if (parsedDepotId) {
@@ -482,7 +485,10 @@ async function handleAllSalespersons(
     const targetSalespersonIds = await getContainerOwnerAndSelf(prisma, sp.id);
 
     const stockWhere: any = {
-      salesperson_id: { in: targetSalespersonIds },
+      OR: [
+        { salesperson_id: { in: targetSalespersonIds } },
+        { createdby: sp.id }
+      ],
       is_active: 'Y',
     };
     if (parsedDepotId) {

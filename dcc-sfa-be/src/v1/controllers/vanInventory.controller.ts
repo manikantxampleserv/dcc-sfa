@@ -786,7 +786,6 @@ async function processApprovedVanInventoryStock(
                   batch_number: batchInput.batch_number,
                   productsId: product.id,
                   is_active: 'Y',
-                  createdby: inventoryUserId,
                 },
               });
 
@@ -3299,7 +3298,6 @@ export const vanInventoryController = {
                         batch_number: batchInput.batch_number,
                         is_active: 'Y',
                         productsId: product.id,
-                        createdby: Number(inventoryData.user_id),
                       },
                     });
                   }

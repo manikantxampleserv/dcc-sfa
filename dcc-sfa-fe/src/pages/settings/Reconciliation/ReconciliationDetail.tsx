@@ -34,6 +34,7 @@ export default function ReconciliationDetail() {
 
   const items = responseData?.data || [];
   const meta = responseData?.meta as any;
+  const isApproved = meta?.status === 'A';
 
   const saveMutation = useSaveReconciliation();
 
@@ -175,7 +176,7 @@ export default function ReconciliationDetail() {
             size="small"
             placeholder={isBlocked ? 'BLOCKED' : '0.00'}
             value={details.actualRop}
-            disabled={isBlocked || !isUpdate}
+            disabled={isBlocked || !isUpdate || isApproved}
             onChange={e => handleActualChange(row.id, e.target.value)}
             inputProps={{
               min: 0,
@@ -295,7 +296,16 @@ export default function ReconciliationDetail() {
             )}
           </div>
         </div>
-        {isUpdate && (
+        {isFetching ? null : isApproved ? (
+          <div className="flex items-center">
+            <Chip
+              label="Approved"
+              color="success"
+              variant="filled"
+              className="!font-bold px-2 py-5 text-sm uppercase tracking-wide"
+            />
+          </div>
+        ) : isUpdate ? (
           <div className="flex items-center gap-3">
             <PopConfirm
               title="Auto-Fill Expected"
@@ -320,7 +330,7 @@ export default function ReconciliationDetail() {
               {saveMutation.isPending ? 'Saving...' : 'Save & Reconcile'}
             </Button>
           </div>
-        )}
+        ) : null}
       </div>
 
       {/* Items Table */}
