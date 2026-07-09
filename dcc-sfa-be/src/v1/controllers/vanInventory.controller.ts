@@ -6889,13 +6889,7 @@ export const vanInventoryController = {
             const tomorrow = new Date(today);
             tomorrow.setDate(tomorrow.getDate() + 1);
 
-            let recon = await tx.reconciliation.findFirst({
-              where: {
-                salesman_id: userIdNum,
-                reconciliation_date: { gte: today, lt: tomorrow },
-                is_active: 'Y',
-              },
-            });
+            // Always create a new reconciliation
 
             const productMap = new Map<
               string,
@@ -6985,51 +6979,20 @@ export const vanInventoryController = {
               saleQtyMap.set(key, current + (record.quantity || 0));
             }
 
-            if (!recon) {
-              recon = await tx.reconciliation.create({
-                data: {
-                  salesman_id: userIdNum,
-                  depot_id: user.depot_id ?? locationId,
-                  status: 'P',
-                  reconciliation_date: today,
-                  is_active: 'Y',
-                  createdate: new Date(),
-                  createdby: userIdNum,
-                },
-              });
-            }
-
-            const existingItems = await tx.reconciliation_items.findMany({
-              where: { reconciliation_id: recon.id, is_active: 'Y' },
+            const recon = await tx.reconciliation.create({
+              data: {
+                salesman_id: userIdNum,
+                depot_id: user.depot_id ?? locationId,
+                status: 'P',
+                reconciliation_date: today,
+                is_active: 'Y',
+                createdate: new Date(),
+                createdby: userIdNum,
+              },
             });
-            const existingByKey = new Map(
-              existingItems.map(i => [`${i.product_id}-${i.batch_number}`, i])
-            );
 
             const toCreate: any[] = [];
             for (const p of productMap.values()) {
-              const key = `${p.product_id}-${p.batch_number}`;
-              const existingItem = existingByKey.get(key);
-
-              if (existingItem) {
-                await tx.reconciliation_items.update({
-                  where: { id: existingItem.id },
-                  data: {
-                    expected_qty: p.total_qty,
-                    load_qty:
-                      loadQtyMap.get(
-                        `${p.product_id}-${p.batch_number || ''}`
-                      ) || 0,
-                    sale_qty:
-                      saleQtyMap.get(
-                        `${p.product_id}-${p.batch_number || ''}`
-                      ) || 0,
-                    updatedate: new Date(),
-                  },
-                });
-                continue;
-              }
-
               toCreate.push({
                 reconciliation_id: recon.id,
                 product_id: p.product_id,
