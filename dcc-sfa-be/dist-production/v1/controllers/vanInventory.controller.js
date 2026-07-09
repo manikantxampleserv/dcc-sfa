@@ -548,7 +548,6 @@ async function processApprovedVanInventoryStock(inventoryId, userId, requestData
                                 batch_number: batchInput.batch_number,
                                 productsId: product.id,
                                 is_active: 'Y',
-                                createdby: inventoryUserId,
                             },
                         });
                         if (batchLot) {
@@ -2673,17 +2672,62 @@ exports.vanInventoryController = {
                                 const batchQty = parseInt(batchInput.quantity, 10) || 0;
                                 if (batchQty <= 0)
                                     continue;
+                                // let batchLot = null;
+                                // if (batchInput.batch_number) {
+                                //   batchLot = await tx.batch_lots.findFirst({
+                                //     where: {
+                                //       batch_number: batchInput.batch_number,
+                                //       is_active: 'Y',
+                                //       ...(loadingType === 'L'
+                                //         ? {
+                                //           productsId: product.id,
+                                //           createdby: Number(inventoryData.user_id),
+                                //         }
+                                //         : {}),
+                                //     },
+                                //   });
+                                // }
                                 let batchLot = null;
                                 if (batchInput.batch_number) {
                                     batchLot = await tx.batch_lots.findFirst({
                                         where: {
                                             batch_number: batchInput.batch_number,
                                             is_active: 'Y',
-                                            productsId: product.id,
-                                            createdby: Number(inventoryData.user_id),
+                                            ...(loadingType === 'L'
+                                                ? {
+                                                    productsId: product.id,
+                                                    createdby: Number(inventoryData.user_id),
+                                                }
+                                                : {}),
                                         },
                                     });
+                                    if (!batchLot) {
+                                        batchLot = await tx.batch_lots.create({
+                                            data: {
+                                                batch_number: batchInput.batch_number,
+                                                lot_number: batchInput.lot_number || `LOT-${Date.now()}`,
+                                                manufacturing_date: batchInput.manufacturing_date
+                                                    ? new Date(batchInput.manufacturing_date)
+                                                    : new Date(),
+                                                expiry_date: batchInput.expiry_date
+                                                    ? new Date(batchInput.expiry_date)
+                                                    : new Date(new Date().setFullYear(new Date().getFullYear() + 2)),
+                                                quantity: batchQty,
+                                                remaining_quantity: batchQty,
+                                                supplier_name: batchInput.supplier_name || null,
+                                                purchase_price: batchInput.purchase_price || null,
+                                                quality_grade: batchInput.quality_grade || 'A',
+                                                storage_location: batchInput.storage_location || null,
+                                                is_active: 'Y',
+                                                createdate: new Date(),
+                                                createdby: Number(inventoryData.user_id),
+                                                productsId: product.id,
+                                            },
+                                        });
+                                    }
                                 }
+                                // Always has a value if batch_number was provided
+                                const batch_lot_id = batchLot?.id;
                                 await tx.van_inventory_items.create({
                                     data: {
                                         parent_id: inventory.id,

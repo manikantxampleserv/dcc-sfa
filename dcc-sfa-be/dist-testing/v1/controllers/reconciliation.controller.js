@@ -333,6 +333,7 @@ exports.reconciliationController = {
                 data: items,
                 meta: {
                     reconciliation_id: reconciliation.id,
+                    status: reconciliation.status,
                     salesman: reconciliation.salesman
                         ? {
                             ...reconciliation.salesman,

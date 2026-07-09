@@ -94,7 +94,10 @@ exports.salespersonStockController = {
                 parsedDepotId = parseInt(depot_id, 10);
             }
             const stockWhere = {
-                salesperson_id: { in: targetSalespersonIds },
+                OR: [
+                    { salesperson_id: { in: targetSalespersonIds } },
+                    { createdby: salespersonIdNum }
+                ],
                 is_active: 'Y',
             };
             if (parsedDepotId) {
@@ -429,7 +432,10 @@ async function handleAllSalespersons(req, res, pageNum, limitNum) {
     for (const sp of allSalespersons) {
         const targetSalespersonIds = await (0, inventory_utils_1.getContainerOwnerAndSelf)(prisma_client_1.default, sp.id);
         const stockWhere = {
-            salesperson_id: { in: targetSalespersonIds },
+            OR: [
+                { salesperson_id: { in: targetSalespersonIds } },
+                { createdby: sp.id }
+            ],
             is_active: 'Y',
         };
         if (parsedDepotId) {

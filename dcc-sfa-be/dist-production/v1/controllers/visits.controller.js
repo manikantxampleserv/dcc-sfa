@@ -751,7 +751,14 @@ exports.visitsController = {
                                                     const stockRecord = await tx.inventory_stock.findFirst({
                                                         where: {
                                                             product_id: product.id,
-                                                            salesperson_id: { in: targetSalespersonIds },
+                                                            OR: [
+                                                                {
+                                                                    salesperson_id: {
+                                                                        in: targetSalespersonIds,
+                                                                    },
+                                                                },
+                                                                { createdby: visit.sales_person_id },
+                                                            ],
                                                             inventory_stock_batch: {
                                                                 batch_number: batchNumber,
                                                             },
@@ -804,7 +811,10 @@ exports.visitsController = {
                                                     }
                                                     const vanInventory = await tx.van_inventory.findFirst({
                                                         where: {
-                                                            user_id: { in: groupUsers },
+                                                            OR: [
+                                                                { user_id: { in: groupUsers } },
+                                                                { createdby: visit.sales_person_id }
+                                                            ],
                                                             status: 'A',
                                                             is_active: 'Y',
                                                             van_inventory_items_inventory: {
@@ -862,7 +872,14 @@ exports.visitsController = {
                                                     const inventoryStock = await tx.inventory_stock.findFirst({
                                                         where: {
                                                             product_id: product.id,
-                                                            salesperson_id: { in: targetSalespersonIds },
+                                                            OR: [
+                                                                {
+                                                                    salesperson_id: {
+                                                                        in: targetSalespersonIds,
+                                                                    },
+                                                                },
+                                                                { createdby: visit.sales_person_id },
+                                                            ],
                                                             batch_id: batchOrder.batch_lot_id,
                                                         },
                                                     });
@@ -1019,7 +1036,10 @@ exports.visitsController = {
                                                     let inventoryStock = await tx.inventory_stock.findFirst({
                                                         where: {
                                                             product_id: product.id,
-                                                            salesperson_id: { in: targetSalespersonIds },
+                                                            OR: [
+                                                                { salesperson_id: { in: targetSalespersonIds } },
+                                                                { createdby: visit.sales_person_id }
+                                                            ],
                                                             serial_number_id: serial.id,
                                                         },
                                                     });
@@ -1028,9 +1048,10 @@ exports.visitsController = {
                                                             await tx.inventory_stock.findFirst({
                                                                 where: {
                                                                     product_id: product.id,
-                                                                    salesperson_id: {
-                                                                        in: targetSalespersonIds,
-                                                                    },
+                                                                    OR: [
+                                                                        { salesperson_id: { in: targetSalespersonIds } },
+                                                                        { createdby: visit.sales_person_id }
+                                                                    ],
                                                                     serial_number_id: null,
                                                                     batch_id: null,
                                                                     ...(vanInventory?.location_id && {
