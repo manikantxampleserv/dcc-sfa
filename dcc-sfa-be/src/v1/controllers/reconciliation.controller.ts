@@ -365,9 +365,9 @@ export const reconciliationController = {
           status: reconciliation.status,
           salesman: reconciliation.salesman
             ? {
-                ...reconciliation.salesman,
-                sap_code: reconciliation.salesman.sap_code,
-              }
+              ...reconciliation.salesman,
+              sap_code: reconciliation.salesman.sap_code,
+            }
             : null,
           depot: reconciliation.depot,
           reconciliation_date: reconciliation.reconciliation_date,
@@ -403,99 +403,103 @@ export const reconciliationController = {
         `Starting saveReconciliations transaction for ${items.length} items...`
       );
 
-      const results = await prisma.$transaction(async tx => {
-        const updatedItems = [];
-        const reconciliationIds = new Set<number>();
+      const results = await prisma.$transaction(
+        async tx => {
+          const updatedItems = [];
+          const reconciliationIds = new Set<number>();
 
-        for (const itemPayload of items) {
-          const { id, actual_qty } = itemPayload;
-          const parsedActual =
-            actual_qty !== null && actual_qty !== ''
-              ? Number(actual_qty)
-              : null;
+          for (const itemPayload of items) {
+            const { id, actual_qty } = itemPayload;
+            const parsedActual =
+              actual_qty !== null && actual_qty !== ''
+                ? Number(actual_qty)
+                : null;
 
-          const record = await tx.reconciliation_items.findUnique({
-            where: { id },
-            include: {
-              reconciliation: { include: { salesman: true, depot: true } },
-            },
-          });
+            const record = await tx.reconciliation_items.findUnique({
+              where: { id },
+              include: {
+                reconciliation: { include: { salesman: true, depot: true } },
+              },
+            });
 
-          if (!record) {
-            throw new Error(`Reconciliation item with ID ${id} not found.`);
-          }
-
-          if (record.reconciliation?.salesman?.employee_id === 'MOS100801') {
-            logger.warn(`Skipping blocked salesman update for item ID ${id}`);
-            continue;
-          }
-
-          let variance: number | null = null;
-          let resAction = 'Awaiting Verification';
-          const expectedQty = Number(record.expected_qty) || 0;
-
-          if (parsedActual !== null) {
-            variance = expectedQty - parsedActual;
-            if (Math.abs(variance) < 0.0001) {
-              variance = 0;
-              resAction = 'CLEAN';
-            } else if (variance > 0) {
-              resAction = 'Post to Default Outlet';
-            } else {
-              resAction = 'Adjust Unload Upward';
+            if (!record) {
+              throw new Error(`Reconciliation item with ID ${id} not found.`);
             }
+
+            if (record.reconciliation?.salesman?.employee_id === 'MOS100801') {
+              logger.warn(`Skipping blocked salesman update for item ID ${id}`);
+              continue;
+            }
+
+            let variance: number | null = null;
+            let resAction = 'Awaiting Verification';
+            const expectedQty = Number(record.expected_qty) || 0;
+
+            if (parsedActual !== null) {
+              variance = expectedQty - parsedActual;
+              if (Math.abs(variance) < 0.0001) {
+                variance = 0;
+                resAction = 'CLEAN';
+              } else if (variance > 0) {
+                resAction = 'Post to Default Outlet';
+              } else {
+                resAction = 'Adjust Unload Upward';
+              }
+            }
+
+            const defaultOutletPostingQty =
+              resAction === 'Post to Default Outlet' && variance !== null
+                ? variance
+                : 0;
+            const unloadAdjustmentQty =
+              resAction === 'Adjust Unload Upward' && variance !== null
+                ? -variance
+                : 0;
+
+            const updatedItem = await tx.reconciliation_items.update({
+              where: { id },
+              data: {
+                actual_qty: parsedActual,
+                variance,
+                resolution_action: resAction,
+                default_outlet_posting_qty: defaultOutletPostingQty,
+                unload_adjustment_qty: unloadAdjustmentQty,
+                updatedate: new Date(),
+                updatedby: userId,
+              },
+            });
+
+            const reconciliationId = record.reconciliation?.id;
+            if (reconciliationId) {
+              reconciliationIds.add(reconciliationId);
+            }
+
+            updatedItems.push({
+              ...updatedItem,
+              reconciliation_id: reconciliationId,
+            });
           }
 
-          const defaultOutletPostingQty =
-            resAction === 'Post to Default Outlet' && variance !== null
-              ? variance
-              : 0;
-          const unloadAdjustmentQty =
-            resAction === 'Adjust Unload Upward' && variance !== null
-              ? -variance
-              : 0;
-
-          const updatedItem = await tx.reconciliation_items.update({
-            where: { id },
-            data: {
-              actual_qty: parsedActual,
-              variance,
-              resolution_action: resAction,
-              default_outlet_posting_qty: defaultOutletPostingQty,
-              unload_adjustment_qty: unloadAdjustmentQty,
-              updatedate: new Date(),
-              updatedby: userId,
-            },
-          });
-
-          const reconciliationId = record.reconciliation?.id;
-          if (reconciliationId) {
-            reconciliationIds.add(reconciliationId);
-          }
-
-          updatedItems.push({
-            ...updatedItem,
-            reconciliation_id: reconciliationId,
-          });
-        }
-
-        if (reconciliationIds.size > 0) {
-          await Promise.all(
-            Array.from(reconciliationIds).map(reconciliationId =>
-              tx.reconciliation.update({
+          if (reconciliationIds.size > 0) {
+            for (const reconciliationId of reconciliationIds) {
+              await tx.reconciliation.update({
                 where: { id: reconciliationId },
                 data: {
                   status: 'P',
                   updatedate: new Date(),
                   updatedby: userId,
                 },
-              })
-            )
-          );
-        }
+              });
+            }
+          }
 
-        return updatedItems;
-      });
+          return updatedItems;
+        },
+        {
+          maxWait: 1500000,
+          timeout: 3000000,
+        }
+      );
 
       const reconciliationIds = Array.from(
         new Set(results.map((item: any) => item.reconciliation_id))

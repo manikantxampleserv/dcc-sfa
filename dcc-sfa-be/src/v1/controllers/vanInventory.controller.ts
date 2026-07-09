@@ -1189,12 +1189,13 @@ async function processApprovedVanInventoryStock(
             let batchData = item.batches || item.product_batches;
             if (
               (!Array.isArray(batchData) || batchData.length === 0) &&
-              item.van_inventory_items_batch_lot
+              (item.van_inventory_items_batch_lot || item.batch_lot_id)
             ) {
               batchData = [
                 {
-                  batch_number: item.van_inventory_items_batch_lot.batch_number,
+                  batch_number: item.van_inventory_items_batch_lot?.batch_number || item.notes || '',
                   quantity: item.quantity,
+                  batch_lot_id: item.batch_lot_id || item.van_inventory_items_batch_lot?.id,
                 },
               ];
             }
@@ -1220,12 +1221,25 @@ async function processApprovedVanInventoryStock(
               }
               console.log('  Batch quantity to unload:', batchQty);
 
-              const batchLot = await tx.batch_lots.findFirst({
-                where: {
-                  batch_number: batchInput.batch_number,
-                  is_active: 'Y',
-                },
-              });
+              let batchLot = null;
+              const batchLotId = batchInput.batch_lot_id || item.batch_lot_id;
+              if (batchLotId) {
+                batchLot = await tx.batch_lots.findFirst({
+                  where: {
+                    id: Number(batchLotId),
+                    is_active: 'Y',
+                  },
+                });
+              }
+              if (!batchLot) {
+                batchLot = await tx.batch_lots.findFirst({
+                  where: {
+                    batch_number: batchInput.batch_number,
+                    productsId: product.id,
+                    is_active: 'Y',
+                  },
+                });
+              }
 
               if (!batchLot) {
                 console.log(
@@ -1240,32 +1254,39 @@ async function processApprovedVanInventoryStock(
                 batchLot.batch_number
               );
 
-              const vanItem = await tx.van_inventory_items.findFirst({
+              const vanItems = await tx.van_inventory_items.findMany({
                 where: {
                   product_id: product.id,
                   batch_lot_id: batchLot.id,
                   van_inventory_items_inventory: {
                     user_id: inventoryUserId,
                     is_active: 'Y',
+                    loading_type: 'L',
                   },
                 },
               });
 
-              if (!vanItem) {
+              if (vanItems.length === 0) {
                 console.log(
                   '   Skipping: van_inventory_item not found for this batch'
                 );
                 continue;
               }
-              console.log(
-                '  Found van_inventory_item with quantity:',
-                vanItem.quantity
+
+              const totalVanQty = vanItems.reduce(
+                (sum: number, vi: any) => sum + (vi.quantity || 0),
+                0
               );
 
-              if (vanItem.quantity < batchQty) {
+              console.log(
+                '  Found van_inventory_items with total quantity:',
+                totalVanQty
+              );
+
+              if (totalVanQty < batchQty) {
                 console.log(
-                  '   Skipping: van_item quantity (',
-                  vanItem.quantity,
+                  '   Skipping: van_item total quantity (',
+                  totalVanQty,
                   ') < batchQty (',
                   batchQty,
                   ')'
@@ -1278,6 +1299,7 @@ async function processApprovedVanInventoryStock(
                   product_id: product.id,
                   location_id: inventoryLocationId || 1,
                   batch_id: batchLot.id,
+                  salesperson_id: inventoryUserId,
                 },
               });
 
@@ -1393,6 +1415,7 @@ async function processApprovedVanInventoryStock(
                   van_inventory_items_inventory: {
                     user_id: inventoryUserId,
                     is_active: 'Y',
+                    loading_type: 'L',
                   },
                 },
               });
@@ -1408,7 +1431,9 @@ async function processApprovedVanInventoryStock(
               const inventoryStock = await tx.inventory_stock.findFirst({
                 where: {
                   product_id: product.id,
+                  location_id: inventoryLocationId || 1,
                   serial_number_id: existingSerial.id,
+                  salesperson_id: inventoryUserId,
                 },
               });
 
@@ -1459,7 +1484,7 @@ async function processApprovedVanInventoryStock(
           } else {
             console.log('  Tracking type: NONE (plain quantity)');
             console.log('  Quantity to unload:', qty);
-            const vanItem = await tx.van_inventory_items.findFirst({
+            const vanItems = await tx.van_inventory_items.findMany({
               where: {
                 product_id: product.id,
                 batch_lot_id: null,
@@ -1472,19 +1497,25 @@ async function processApprovedVanInventoryStock(
               },
             });
 
-            if (!vanItem) {
+            if (vanItems.length === 0) {
               console.log('   Skipping: van_inventory_item not found');
               continue;
             }
-            console.log(
-              '  Found van_inventory_item with quantity:',
-              vanItem.quantity
+
+            const totalVanQty = vanItems.reduce(
+              (sum: number, vi: any) => sum + (vi.quantity || 0),
+              0
             );
 
-            if (vanItem.quantity < qty) {
+            console.log(
+              '  Found van_inventory_items with total quantity:',
+              totalVanQty
+            );
+
+            if (totalVanQty < qty) {
               console.log(
-                '   Skipping: van_item quantity (',
-                vanItem.quantity,
+                '   Skipping: van_item total quantity (',
+                totalVanQty,
                 ') < qty (',
                 qty,
                 ')'
@@ -1498,6 +1529,7 @@ async function processApprovedVanInventoryStock(
                 location_id: inventoryLocationId || 1,
                 batch_id: null,
                 serial_number_id: null,
+                salesperson_id: inventoryUserId,
               },
             });
 
@@ -6764,104 +6796,175 @@ export const vanInventoryController = {
     reconciliationId: number,
     approvedByUserId: number
   ): Promise<number | null> {
-    return prisma.$transaction(async tx => {
-      const reconciliation = await tx.reconciliation.findUnique({
-        where: { id: reconciliationId },
-        include: { reconciliation_items: { where: { is_active: 'Y' } } },
-      });
-
-      if (!reconciliation) {
-        throw new Error(`Reconciliation ${reconciliationId} not found`);
-      }
-      if (reconciliation.reconciliation_items.length === 0) {
-        return null;
-      }
-
-      const userIdNum = reconciliation.salesman_id;
-
-      const vanLoc = await tx.van_inventory.findFirst({
-        where: {
-          user_id: userIdNum,
-          is_active: 'Y',
-          location_id: reconciliation.depot_id ?? undefined,
-        },
-        select: { location_id: true, vehicle_id: true },
-      });
-
-      const locationId = vanLoc?.location_id ?? reconciliation.depot_id;
-      const vehicleId = vanLoc?.vehicle_id ?? null;
-
-      if (!locationId) {
-        throw new Error(
-          `Unable to resolve location for reconciliation ${reconciliationId}`
-        );
-      }
-
-      const newVanInventory = await tx.van_inventory.create({
-        data: {
-          user_id: userIdNum,
-          location_id: locationId,
-          vehicle_id: vehicleId,
-          loading_type: 'U',
-          approval_status: 'A',
-          is_active: 'Y',
-          document_date: new Date(),
-          createdate: new Date(),
-          createdby: approvedByUserId,
-          updatedate: new Date(),
-          updatedby: approvedByUserId,
-          log_inst: 1,
-        },
-      });
-
-      const itemsData: any[] = [];
-
-      for (const item of reconciliation.reconciliation_items) {
-        if (item.product_id === null) continue;
-
-        const qty = Number(item.expected_qty) || 0;
-        if (qty <= 0) continue;
-
-        const product = await tx.products.findUnique({
-          where: { id: item.product_id },
-          select: { name: true, base_price: true },
+    return prisma.$transaction(
+      async tx => {
+        const reconciliation = await tx.reconciliation.findUnique({
+          where: { id: reconciliationId },
+          include: { reconciliation_items: { where: { is_active: 'Y' } } },
         });
 
-        let batchLotId: number | null = null;
-        if (item.batch_number) {
-          const batch = await tx.batch_lots.findFirst({
-            where: {
-              batch_number: item.batch_number,
-              productsId: item.product_id, // batch_lots uses productsId, not product_id
-            },
-            select: { id: true },
-          });
-          batchLotId = batch?.id ?? null;
+        if (!reconciliation) {
+          throw new Error(`Reconciliation ${reconciliationId} not found`);
+        }
+        if (reconciliation.reconciliation_items.length === 0) {
+          return null;
         }
 
-        itemsData.push({
-          parent_id: newVanInventory.id,
-          product_id: item.product_id,
-          batch_lot_id: batchLotId,
-          serial_id: null,
-          quantity: qty,
-          base_quantity: qty,
-          product_name: product?.name ?? null,
-          unit: null,
-          unit_price: product?.base_price || 0,
-          discount_amount: 0,
-          tax_amount: 0,
-          total_amount: qty * Number(product?.base_price || 0),
-          notes: `Unloaded via reconciliation #${reconciliationId} approval`,
+        const userIdNum = reconciliation.salesman_id;
+
+        const vanLoc = await tx.van_inventory.findFirst({
+          where: {
+            user_id: userIdNum,
+            is_active: 'Y',
+            location_id: reconciliation.depot_id ?? undefined,
+          },
+          select: { location_id: true, vehicle_id: true },
         });
-      }
 
-      if (itemsData.length > 0) {
-        await tx.van_inventory_items.createMany({ data: itemsData });
-      }
+        const locationId = vanLoc?.location_id ?? reconciliation.depot_id;
+        const vehicleId = vanLoc?.vehicle_id ?? null;
 
-      return newVanInventory.id;
-    });
+        if (!locationId) {
+          throw new Error(
+            `Unable to resolve location for reconciliation ${reconciliationId}`
+          );
+        }
+
+        const newVanInventory = await tx.van_inventory.create({
+          data: {
+            user_id: userIdNum,
+            location_id: locationId,
+            vehicle_id: vehicleId,
+            loading_type: 'U',
+            approval_status: 'A',
+            is_active: 'Y',
+            document_date: new Date(),
+            createdate: new Date(),
+            createdby: approvedByUserId,
+            updatedate: new Date(),
+            updatedby: approvedByUserId,
+            log_inst: 1,
+          },
+        });
+
+        const productIds = Array.from(
+          new Set(
+            reconciliation.reconciliation_items
+              .map(item => item.product_id)
+              .filter((id): id is number => id !== null)
+          )
+        );
+
+        const batchNumbers = Array.from(
+          new Set(
+            reconciliation.reconciliation_items
+              .map(item => item.batch_number)
+              .filter((bn): bn is string => bn !== null && bn !== '')
+          )
+        );
+
+        const products = await tx.products.findMany({
+          where: { id: { in: productIds } },
+          select: { id: true, name: true, base_price: true },
+        });
+        const productMap = new Map(products.map(p => [p.id, p]));
+
+        const batchLotsMap = new Map<string, number>();
+        if (batchNumbers.length > 0) {
+          const batchLots = await tx.batch_lots.findMany({
+            where: {
+              batch_number: { in: batchNumbers },
+              productsId: { in: productIds },
+            },
+            select: { id: true, batch_number: true, productsId: true },
+          });
+          for (const b of batchLots) {
+            if (b.batch_number && b.productsId) {
+              batchLotsMap.set(`${b.productsId}_${b.batch_number}`, b.id);
+            }
+          }
+        }
+
+        // Query loaded van inventory items to get the specific batch_lot_id actually loaded in this salesperson's van
+        const loadedVanItems = await tx.van_inventory_items.findMany({
+          where: {
+            product_id: { in: productIds },
+            van_inventory_items_batch_lot: {
+              batch_number: { in: batchNumbers },
+            },
+            van_inventory_items_inventory: {
+              user_id: userIdNum,
+              is_active: 'Y',
+              loading_type: 'L',
+            },
+          },
+          select: {
+            product_id: true,
+            batch_lot_id: true,
+            van_inventory_items_batch_lot: {
+              select: { batch_number: true },
+            },
+          },
+        });
+
+        const salespersonLoadedBatchMap = new Map<string, number>();
+        for (const item of loadedVanItems) {
+          const bn = item.van_inventory_items_batch_lot?.batch_number;
+          if (item.product_id && bn && item.batch_lot_id) {
+            salespersonLoadedBatchMap.set(`${item.product_id}_${bn}`, item.batch_lot_id);
+          }
+        }
+
+        const itemsData: any[] = [];
+
+        for (const item of reconciliation.reconciliation_items) {
+          if (item.product_id === null) continue;
+
+          const qty = Number(item.expected_qty) || 0;
+          if (qty <= 0) continue;
+
+          const product = productMap.get(item.product_id);
+          let batchLotId: number | null = null;
+          if (item.batch_number) {
+            // First, try to match the batch lot loaded in this salesperson's van
+            batchLotId =
+              salespersonLoadedBatchMap.get(`${item.product_id}_${item.batch_number}`) ?? null;
+            
+            // Fallback to the global query if not found
+            if (!batchLotId) {
+              batchLotId =
+                batchLotsMap.get(`${item.product_id}_${item.batch_number}`) ?? null;
+            }
+          }
+
+          itemsData.push({
+            parent_id: newVanInventory.id,
+            product_id: item.product_id,
+            batch_lot_id: batchLotId,
+            serial_id: null,
+            quantity: qty,
+            base_quantity: qty,
+            product_name: product?.name ?? null,
+            unit: null,
+            unit_price: product?.base_price || 0,
+            discount_amount: 0,
+            tax_amount: 0,
+            total_amount: qty * Number(product?.base_price || 0),
+            notes: `Unloaded via reconciliation #${reconciliationId} approval`,
+          });
+        }
+
+        if (itemsData.length > 0) {
+          await tx.van_inventory_items.createMany({ data: itemsData });
+        }
+
+        return newVanInventory.id;
+      },
+      {
+        maxWait: 30000,
+        timeout: 90000,
+      }
+    );
   },
 
   async unloadVanInventory(req: Request, res: Response) {

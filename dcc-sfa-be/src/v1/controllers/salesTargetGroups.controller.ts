@@ -211,20 +211,18 @@ export const salesTargetGroupsController = {
           );
 
           if (membersToUpdate.length > 0) {
-            await Promise.all(
-              membersToUpdate.map((member: any) =>
-                tx.sales_target_group_members.update({
-                  where: { id: Number(member.id) },
-                  data: {
-                    sales_person_id: member.sales_person_id,
-                    is_active: member.is_active ?? 'Y',
-                    updatedate: new Date(),
-                    updatedby: userId,
-                    log_inst: member.log_inst ?? 1,
-                  },
-                })
-              )
-            );
+            for (const member of membersToUpdate) {
+              await tx.sales_target_group_members.update({
+                where: { id: Number(member.id) },
+                data: {
+                  sales_person_id: member.sales_person_id,
+                  is_active: member.is_active ?? 'Y',
+                  updatedate: new Date(),
+                  updatedby: userId,
+                  log_inst: member.log_inst ?? 1,
+                },
+              });
+            }
           }
 
           if (membersToCreate.length > 0) {
@@ -272,6 +270,9 @@ export const salesTargetGroupsController = {
             },
           });
         }
+      }, {
+        maxWait: 15000,
+        timeout: 30000,
       });
 
       res.status(isUpdate ? 200 : 201).json({
