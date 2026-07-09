@@ -3298,12 +3298,7 @@ export const vanInventoryController = {
                       where: {
                         batch_number: batchInput.batch_number,
                         is_active: 'Y',
-                        ...(loadingType === 'L'
-                          ? {
-                              productsId: product.id,
-                              createdby: Number(inventoryData.user_id),
-                            }
-                          : {}),
+                        productsId: product.id,
                       },
                     });
                   }
@@ -6751,7 +6746,7 @@ export const vanInventoryController = {
       const itemsData: any[] = [];
 
       for (const item of reconciliation.reconciliation_items) {
-        if (item.product_id === null) continue; // product_id is nullable in schema
+        if (item.product_id === null) continue;
 
         const qty = Number(item.expected_qty) || 0;
         if (qty <= 0) continue;

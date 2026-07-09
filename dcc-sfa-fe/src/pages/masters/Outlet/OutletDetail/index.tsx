@@ -5,8 +5,6 @@ import {
   History,
   Inventory,
   LocationOn,
-  MonetizationOn,
-  Phone,
   Schedule,
   Star,
   Verified,
@@ -27,10 +25,12 @@ import {
   Building2,
   Calendar,
   CreditCard,
+  DollarSign,
   ExternalLink,
   FileText,
   MapPin,
   Package,
+  PhoneCall,
 } from 'lucide-react';
 import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
@@ -818,7 +818,7 @@ const OutletDetail: React.FC = () => {
               </Typography>
               <div className="space-y-3">
                 <div className="flex items-center gap-3">
-                  <Phone className="h-4 w-4 text-gray-400" />
+                  <PhoneCall className="h-4 w-4 text-gray-400" />
                   <div>
                     <Typography variant="body2" className="!text-gray-500">
                       Phone Number
@@ -907,7 +907,7 @@ const OutletDetail: React.FC = () => {
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <MonetizationOn className="h-4 w-4 text-gray-400" />
+                  <DollarSign className="h-4 w-4 text-gray-400" />
                   <div>
                     <Typography variant="body2" className="!text-gray-500">
                       Outstanding Amount

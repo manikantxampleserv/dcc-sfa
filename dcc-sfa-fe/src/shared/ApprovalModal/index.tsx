@@ -831,8 +831,10 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({
                           variant="body2"
                           className="!font-semibold !text-gray-900"
                         >
-                          {request.reference_details?.salesman_name || 'N/A'} (
-                          {requestData?.salesman_sap_code || 'N/A'})
+                          {request.reference_details?.salesman_name || 'N/A'}
+                          {requestData?.salesman_sap_code
+                            ? ` (${requestData.salesman_sap_code})`
+                            : ''}
                         </Typography>
                       </div>
 
@@ -847,26 +849,33 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({
                           variant="body2"
                           className="!font-semibold !text-gray-900"
                         >
-                          {request.reference_details?.depot_name || 'N/A'} (
-                          {requestData?.depot_sap_code || 'N/A'})
+                          {request.reference_details?.depot_name || 'N/A'}
+                          {requestData?.depot_sap_code
+                            ? ` (${requestData.depot_sap_code})`
+                            : ''}
                         </Typography>
                       </div>
 
-                      <div className="!space-y-1 md:!col-span-2">
-                        <Typography
-                          variant="caption"
-                          className="!text-gray-500 !text-xs !uppercase !tracking-wide"
-                        >
-                          Vehicle Info
-                        </Typography>
-                        <Typography
-                          variant="body2"
-                          className="!font-semibold !text-gray-900"
-                        >
-                          {request.reference_details?.vehicle_info || 'N/A'}{' '}
-                          (SAP: {requestData?.vehicle_sap_code || 'N/A'})
-                        </Typography>
-                      </div>
+                      {(request.reference_details?.vehicle_info ||
+                        requestData?.vehicle_sap_code) && (
+                        <div className="!space-y-1 md:!col-span-2">
+                          <Typography
+                            variant="caption"
+                            className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                          >
+                            Vehicle Info
+                          </Typography>
+                          <Typography
+                            variant="body2"
+                            className="!font-semibold !text-gray-900"
+                          >
+                            {request.reference_details?.vehicle_info || 'N/A'}
+                            {requestData?.vehicle_sap_code
+                              ? ` (SAP: ${requestData.vehicle_sap_code})`
+                              : ''}
+                          </Typography>
+                        </div>
+                      )}
                     </div>
 
                     {/* Items Section */}
@@ -895,13 +904,21 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({
                             groupIdx: number
                           ) => (
                             <div key={groupIdx} className="!space-y-2">
-                              <Typography
-                                variant="subtitle2"
-                                className="!font-bold !text-gray-800 !bg-gray-100 !px-3 !py-2 !rounded-md !border !border-gray-200"
+                              {docNum !== 'Unassigned' && (
+                                <Typography
+                                  variant="subtitle2"
+                                  className="!font-bold !text-gray-800 !bg-gray-100 !px-3 !py-2 !rounded-md !border !border-gray-200"
+                                >
+                                  SAP Document Number: {docNum}
+                                </Typography>
+                              )}
+                              <div
+                                className={
+                                  docNum !== 'Unassigned'
+                                    ? '!space-y-2 !pl-2'
+                                    : '!space-y-2'
+                                }
                               >
-                                SAP Document Number: {docNum}
-                              </Typography>
-                              <div className="!space-y-2 !pl-2">
                                 {items.map((item: any, idx: number) => (
                                   <Accordion
                                     key={idx}
@@ -943,38 +960,45 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({
                                       </div>
                                     </AccordionSummary>
                                     <AccordionDetails className="!bg-gray-50 !border-t !border-gray-200 !p-3">
-                                      <div className="!grid !grid-cols-2 !gap-2 !mb-3">
-                                        <div className="!flex !flex-col">
-                                          <Typography
-                                            variant="caption"
-                                            className="!text-gray-500 !text-[10px] !uppercase"
-                                          >
-                                            Source System
-                                          </Typography>
-                                          <Typography
-                                            variant="body2"
-                                            className="!text-gray-800 !text-xs !font-medium"
-                                          >
-                                            {getSourceSystemLabel(
-                                              item.source_system
-                                            ) || 'N/A'}
-                                          </Typography>
+                                      {(item.source_system ||
+                                        item.sap_lineid) && (
+                                        <div className="!grid !grid-cols-2 !gap-2 !mb-3">
+                                          {item.source_system && (
+                                            <div className="!flex !flex-col">
+                                              <Typography
+                                                variant="caption"
+                                                className="!text-gray-500 !text-[10px] !uppercase"
+                                              >
+                                                Source System
+                                              </Typography>
+                                              <Typography
+                                                variant="body2"
+                                                className="!text-gray-800 !text-xs !font-medium"
+                                              >
+                                                {getSourceSystemLabel(
+                                                  item.source_system
+                                                ) || '-'}
+                                              </Typography>
+                                            </div>
+                                          )}
+                                          {item.sap_lineid && (
+                                            <div className="!flex !flex-col">
+                                              <Typography
+                                                variant="caption"
+                                                className="!text-gray-500 !text-[10px] !uppercase"
+                                              >
+                                                SAP Line ID
+                                              </Typography>
+                                              <Typography
+                                                variant="body2"
+                                                className="!text-gray-800 !text-xs !font-medium"
+                                              >
+                                                {item.sap_lineid || '-'}
+                                              </Typography>
+                                            </div>
+                                          )}
                                         </div>
-                                        <div className="!flex !flex-col">
-                                          <Typography
-                                            variant="caption"
-                                            className="!text-gray-500 !text-[10px] !uppercase"
-                                          >
-                                            SAP Line ID
-                                          </Typography>
-                                          <Typography
-                                            variant="body2"
-                                            className="!text-gray-800 !text-xs !font-medium"
-                                          >
-                                            {item.sap_lineid || 'N/A'}
-                                          </Typography>
-                                        </div>
-                                      </div>
+                                      )}
 
                                       {/* Batches details */}
                                       {item.product_batches &&
