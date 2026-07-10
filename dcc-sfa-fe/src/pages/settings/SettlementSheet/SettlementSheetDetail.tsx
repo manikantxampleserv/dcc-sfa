@@ -4,6 +4,7 @@ import { useCurrencyCode } from 'hooks/useCurrency';
 import { usePermission } from 'hooks/usePermission';
 import {
   useExportReconciliation,
+  useExportReconciliationPdf,
   useReconciliationById,
   type ReconciliationItem,
 } from 'hooks/useReconciliation';
@@ -17,6 +18,7 @@ export default function SettlementSheetDetail() {
   const { id } = useParams<{ id: string }>();
   const { isRead } = usePermission('settlement-sheet');
   const exportMutation = useExportReconciliation();
+  const exportPdfMutation = useExportReconciliationPdf();
   const currencyCode = useCurrencyCode();
 
   const { data: responseData, isFetching } = useReconciliationById(Number(id), {
@@ -228,6 +230,18 @@ export default function SettlementSheetDetail() {
     }
   };
 
+  const handleExportPdf = async () => {
+    try {
+      await exportPdfMutation.mutateAsync({
+        id: Number(id),
+        salesmanName: headerInfo?.salesmanName,
+        currency: currencyCode,
+      });
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-4">
@@ -245,10 +259,30 @@ export default function SettlementSheetDetail() {
 
         <div className="flex gap-2 print:hidden">
           <PopConfirm
-            title="Export Settlement Sheet"
+            title="Export Settlement Sheet PDF"
+            description="Are you sure you want to export this settlement sheet to PDF?"
+            onConfirm={handleExportPdf}
+            confirmText="Export PDF"
+            cancelText="Cancel"
+            placement="top"
+          >
+            <Button
+              variant="outlined"
+              className="!capitalize"
+              startIcon={<Download />}
+              disabled={
+                exportPdfMutation.isPending || isFetching || items.length === 0
+              }
+            >
+              {exportPdfMutation.isPending ? 'Exporting...' : 'Export to PDF'}
+            </Button>
+          </PopConfirm>
+
+          <PopConfirm
+            title="Export Settlement Sheet Excel"
             description="Are you sure you want to export this settlement sheet to Excel?"
             onConfirm={handleExport}
-            confirmText="Export"
+            confirmText="Export Excel"
             cancelText="Cancel"
             placement="top"
           >

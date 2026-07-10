@@ -4,6 +4,7 @@ import {
   Download,
   Upload,
   Visibility,
+  Inventory,
 } from '@mui/icons-material';
 import {
   Avatar,
@@ -533,12 +534,22 @@ const InventoryDetail = () => {
     if (!salespersonData?.products || !Array.isArray(salespersonData.products))
       return [];
 
-    return salespersonData.products.map(product => ({
-      ...product,
-      product_name: product.product_name ?? '',
-      batches: product.batches ?? [],
-      serials: product.serials ?? [],
-    }));
+    return salespersonData.products
+      .map(product => ({
+        ...product,
+        product_name: product.product_name ?? '',
+        batches: (product.batches ?? []).filter(batch => {
+          const qty = Number(batch.remaining_quantity) || 0;
+          const baseQty = Number(batch.base_quantity) || 0;
+          return qty > 0 || baseQty > 0;
+        }),
+        serials: product.serials ?? [],
+      }))
+      .filter(product => {
+        const totalQty = Number(product.total_remaining_quantity) || 0;
+        const totalBaseQty = Number(product.total_remaining_base_quantity) || 0;
+        return totalQty > 0 || totalBaseQty > 0;
+      });
   }, [salespersonData]);
 
   const batchRows: Array<
@@ -1165,9 +1176,9 @@ const InventoryDetail = () => {
       </Box>
 
       <TabPanel value={tabValue} index={0}>
-        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5">
-          {Array.isArray(products) &&
-            products
+        {Array.isArray(products) && products.length > 0 ? (
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5">
+            {products
               ?.sort(
                 (a, b) =>
                   (b.total_remaining_quantity || 0) -
@@ -1260,7 +1271,23 @@ const InventoryDetail = () => {
                   </div>
                 );
               })}
-        </div>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-5 px-4 text-center bg-gray-50/50 rounded-lg border border-dashed border-gray-200">
+            <div className="w-16 h-16 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center mb-4">
+              <Inventory className="w-8 h-8" />
+            </div>
+            <Typography
+              variant="h6"
+              className="text-gray-900 font-semibold mb-1"
+            >
+              No items loaded
+            </Typography>
+            <Typography variant="body2" className="text-gray-500 max-w-sm">
+              This salesperson currently has no active inventory items.
+            </Typography>
+          </div>
+        )}
       </TabPanel>
 
       <TabPanel value={tabValue} index={1}>

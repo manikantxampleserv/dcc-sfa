@@ -353,7 +353,20 @@ export const salespersonStockController = {
         }
       }
 
-      const products = Array.from(productsMap.values());
+      const products = Array.from(productsMap.values())
+        .map(p => {
+          p.batches = p.batches.filter(
+            (b: any) =>
+              (Number(b.remaining_quantity) || 0) > 0 ||
+              (Number(b.base_quantity) || 0) > 0
+          );
+          return p;
+        })
+        .filter(
+          p =>
+            (Number(p.total_remaining_quantity) || 0) > 0 ||
+            (Number(p.total_remaining_base_quantity) || 0) > 0
+        );
 
       let totalBatches = 0;
       let totalSerials = 0;

@@ -17,18 +17,34 @@ export const exportReconciliationExcelService = async (
     const key = `${item.categoryName}_${item.skuCode}`;
     const existing = acc.find(i => `${i.categoryName}_${i.skuCode}` === key);
     if (existing) {
-      existing.loadQuantity = (Number(existing.loadQuantity) || 0) + (Number(item.loadQuantity) || 0);
-      existing.saleQuantity = (Number(existing.saleQuantity) || 0) + (Number(item.saleQuantity) || 0);
-      existing.expectedRop = (Number(existing.expectedRop) || 0) + (Number(item.expectedRop) || 0);
-      
-      const actualExisting = existing.actualRop !== '' && existing.actualRop !== null ? Number(existing.actualRop) : 0;
-      const actualItem = item.actualRop !== '' && item.actualRop !== null ? Number(item.actualRop) : 0;
+      existing.loadQuantity =
+        (Number(existing.loadQuantity) || 0) + (Number(item.loadQuantity) || 0);
+      existing.saleQuantity =
+        (Number(existing.saleQuantity) || 0) + (Number(item.saleQuantity) || 0);
+      existing.expectedRop =
+        (Number(existing.expectedRop) || 0) + (Number(item.expectedRop) || 0);
+
+      const actualExisting =
+        existing.actualRop !== '' && existing.actualRop !== null
+          ? Number(existing.actualRop)
+          : 0;
+      const actualItem =
+        item.actualRop !== '' && item.actualRop !== null
+          ? Number(item.actualRop)
+          : 0;
       existing.actualRop = String(actualExisting + actualItem);
-      
-      existing.variance = String((Number(existing.variance) || 0) + (Number(item.variance) || 0));
-      
-      if (!existing.resolutionAction || existing.resolutionAction === 'CLEAN' || existing.resolutionAction === '-') {
-        existing.resolutionAction = item.resolutionAction || existing.resolutionAction;
+
+      existing.variance = String(
+        (Number(existing.variance) || 0) + (Number(item.variance) || 0)
+      );
+
+      if (
+        !existing.resolutionAction ||
+        existing.resolutionAction === 'CLEAN' ||
+        existing.resolutionAction === '-'
+      ) {
+        existing.resolutionAction =
+          item.resolutionAction || existing.resolutionAction;
       }
     } else {
       acc.push({ ...item });
@@ -37,12 +53,14 @@ export const exportReconciliationExcelService = async (
   }, []);
 
   sheet.columns = [
-    { width: 15 },
+    { width: 6 },
+    { width: 12 },
     { width: 35 },
-    { width: 12 },
-    { width: 12 },
-    { width: 12 },
-    { width: 12 },
+    { width: 15 },
+    { width: 15 },
+    { width: 15 },
+    { width: 15 },
+    { width: 15 },
     { width: 12 },
     { width: 18 },
     { width: 18 },
@@ -71,7 +89,7 @@ export const exportReconciliationExcelService = async (
 
   sheet.mergeCells('A1:J2');
   const titleCell = sheet.getCell('A1');
-  titleCell.value = 'R_SettlementSheet — Daily Salesman Settlement';
+  titleCell.value = 'SettlementSheet — Daily Salesman Settlement';
   titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
   applyFont(titleCell, { size: 16, bold: true, color: { argb: 'FF1F4E78' } });
 
@@ -122,6 +140,7 @@ export const exportReconciliationExcelService = async (
   const currencyCode = meta.currency || 'TZS';
 
   const headers = [
+    'S.No',
     'SKU Code',
     'SKU Name',
     'Load Qty',
@@ -163,7 +182,7 @@ export const exportReconciliationExcelService = async (
 
   Object.entries(groupedItems).forEach(
     ([category, catItems]: [string, any]) => {
-      sheet.mergeCells(`A${currentRow}:J${currentRow}`);
+      sheet.mergeCells(`A${currentRow}:K${currentRow}`);
       const catCell = sheet.getCell(`A${currentRow}`);
       catCell.value = category;
       applyFont(catCell, { bold: true, color: { argb: 'FFFFFFFF' } });
@@ -177,31 +196,32 @@ export const exportReconciliationExcelService = async (
       let catVariance = 0;
       let catSaleValue = 0;
 
-      catItems.forEach((item: any) => {
+      catItems.forEach((item: any, idx: number) => {
         const row = sheet.getRow(currentRow);
-        row.getCell(1).value = item.skuCode;
-        row.getCell(2).value = item.skuName;
-        row.getCell(3).value = Number(item.loadQuantity) || 0;
-        row.getCell(4).value = Number(item.saleQuantity) || 0;
-        row.getCell(5).value = Number(item.expectedRop) || 0;
+        row.getCell(1).value = idx + 1;
+        row.getCell(2).value = item.skuCode;
+        row.getCell(3).value = item.skuName;
+        row.getCell(4).value = Number(item.loadQuantity) || 0;
+        row.getCell(5).value = Number(item.saleQuantity) || 0;
+        row.getCell(6).value = Number(item.expectedRop) || 0;
 
         const actualVal =
           item.actualRop !== '' && item.actualRop !== null
             ? Number(item.actualRop)
             : 0;
-        row.getCell(6).value = actualVal;
+        row.getCell(7).value = actualVal;
 
         const varianceVal = Number(item.variance) || 0;
-        row.getCell(7).value = varianceVal;
+        row.getCell(8).value = varianceVal;
 
-        row.getCell(8).value = Number(item.basePrice) || 0;
+        row.getCell(9).value = Number(item.basePrice) || 0;
 
         const saleVal =
           (Number(item.saleQuantity) || 0) * (Number(item.basePrice) || 0);
-        row.getCell(9).value = saleVal;
+        row.getCell(10).value = saleVal;
 
         const action = item.resolutionAction || '-';
-        row.getCell(10).value = action;
+        row.getCell(11).value = action;
 
         catLoad += Number(item.loadQuantity) || 0;
         catSales += Number(item.saleQuantity) || 0;
@@ -213,22 +233,25 @@ export const exportReconciliationExcelService = async (
         if (action.includes('Default Outlet Posting') && varianceVal < 0) {
           grandTotalDefaultOutletValue +=
             Math.abs(varianceVal) * (Number(item.basePrice) || 0);
-        } else if (action.includes('Post to Default Outlet') && varianceVal > 0) {
+        } else if (
+          action.includes('Post to Default Outlet') &&
+          varianceVal > 0
+        ) {
           grandTotalDefaultOutletValue +=
             Math.abs(varianceVal) * (Number(item.basePrice) || 0);
         }
 
-        for (let i = 1; i <= 10; i++) {
+        for (let i = 1; i <= 11; i++) {
           const cell = row.getCell(i);
           applyBorder(cell);
-          if (i >= 3 && i <= 9) {
+          if (i >= 4 && i <= 10) {
             cell.alignment = { horizontal: 'right' };
             cell.numFmt = '#,##0.00';
-            if (i === 8 || i === 9) {
+            if (i === 9 || i === 10) {
               cell.numFmt = '#,##0';
             }
           }
-          if (i === 10) {
+          if (i === 11) {
             cell.alignment = { horizontal: 'center' };
             if (action.includes('Unload Adjustment')) {
               applyFill(cell, 'FFFFD966');
@@ -241,7 +264,7 @@ export const exportReconciliationExcelService = async (
               applyFill(cell, 'FFEAEAEA');
             }
           } else {
-            if (i === 1 || i === 2) applyFill(cell, 'FFEEEEEE');
+            if (i === 1 || i === 2 || i === 3) applyFill(cell, 'FFEEEEEE');
           }
 
           if (i === 7) {
