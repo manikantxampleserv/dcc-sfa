@@ -365,9 +365,9 @@ export const reconciliationController = {
           status: reconciliation.status,
           salesman: reconciliation.salesman
             ? {
-              ...reconciliation.salesman,
-              sap_code: reconciliation.salesman.sap_code,
-            }
+                ...reconciliation.salesman,
+                sap_code: reconciliation.salesman.sap_code,
+              }
             : null,
           depot: reconciliation.depot,
           reconciliation_date: reconciliation.reconciliation_date,

@@ -34,4 +34,5 @@ router.get(
   authenticateToken,
   vanInventoryController.getSalespersonInventoryItems
 );
+
 export default router;

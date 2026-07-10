@@ -975,7 +975,6 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
         const tracking = (row.tracking_type || '').toString().toLowerCase();
         const isNoneTracking = !tracking || tracking === 'none';
         const displayQuantity = Number(row.quantity) || 0;
-
         return (
           <Input
             value={displayQuantity.toString()}

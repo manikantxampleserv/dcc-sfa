@@ -25,20 +25,41 @@ export const exportReconciliationPdfService = async (
 
       const items = (rawItems || []).reduce((acc: any[], item: any) => {
         const key = `${item.categoryName}_${item.skuCode}`;
-        const existing = acc.find(i => `${i.categoryName}_${i.skuCode}` === key);
+        const existing = acc.find(
+          i => `${i.categoryName}_${i.skuCode}` === key
+        );
         if (existing) {
-          existing.loadQuantity = (Number(existing.loadQuantity) || 0) + (Number(item.loadQuantity) || 0);
-          existing.saleQuantity = (Number(existing.saleQuantity) || 0) + (Number(item.saleQuantity) || 0);
-          existing.expectedRop = (Number(existing.expectedRop) || 0) + (Number(item.expectedRop) || 0);
-          
-          const actualExisting = existing.actualRop !== '' && existing.actualRop !== null ? Number(existing.actualRop) : 0;
-          const actualItem = item.actualRop !== '' && item.actualRop !== null ? Number(item.actualRop) : 0;
+          existing.loadQuantity =
+            (Number(existing.loadQuantity) || 0) +
+            (Number(item.loadQuantity) || 0);
+          existing.saleQuantity =
+            (Number(existing.saleQuantity) || 0) +
+            (Number(item.saleQuantity) || 0);
+          existing.expectedRop =
+            (Number(existing.expectedRop) || 0) +
+            (Number(item.expectedRop) || 0);
+
+          const actualExisting =
+            existing.actualRop !== '' && existing.actualRop !== null
+              ? Number(existing.actualRop)
+              : 0;
+          const actualItem =
+            item.actualRop !== '' && item.actualRop !== null
+              ? Number(item.actualRop)
+              : 0;
           existing.actualRop = String(actualExisting + actualItem);
-          
-          existing.variance = String((Number(existing.variance) || 0) + (Number(item.variance) || 0));
-          
-          if (!existing.resolutionAction || existing.resolutionAction === 'CLEAN' || existing.resolutionAction === '-') {
-            existing.resolutionAction = item.resolutionAction || existing.resolutionAction;
+
+          existing.variance = String(
+            (Number(existing.variance) || 0) + (Number(item.variance) || 0)
+          );
+
+          if (
+            !existing.resolutionAction ||
+            existing.resolutionAction === 'CLEAN' ||
+            existing.resolutionAction === '-'
+          ) {
+            existing.resolutionAction =
+              item.resolutionAction || existing.resolutionAction;
           }
         } else {
           acc.push({ ...item });
@@ -49,7 +70,7 @@ export const exportReconciliationPdfService = async (
       doc
         .fontSize(16)
         .fillColor('#1F4E78')
-        .text('R_SettlementSheet — Daily Salesman Settlement', {
+        .text('SettlementSheet — Daily Salesman Settlement', {
           align: 'center',
           underline: true,
         });
@@ -232,12 +253,10 @@ export const exportReconciliationPdfService = async (
 
         (catItems as any[]).forEach(item => {
           checkPageBreak();
-
           const actualVal = Number(item.actualRop) || 0;
           const varianceVal = Number(item.variance) || 0;
           const saleVal =
             (Number(item.saleQuantity) || 0) * (Number(item.basePrice) || 0);
-
           y = drawRow(
             y,
             [
@@ -261,15 +280,16 @@ export const exportReconciliationPdfService = async (
           catActual += actualVal;
           catVariance += varianceVal;
           catSaleValue += saleVal;
-
           if (
-            item.resolutionAction && item.resolutionAction.includes('Default Outlet Posting') &&
+            item.resolutionAction &&
+            item.resolutionAction.includes('Default Outlet Posting') &&
             varianceVal < 0
           ) {
             grandTotalDefaultOutletValue +=
               Math.abs(varianceVal) * (Number(item.basePrice) || 0);
           } else if (
-            item.resolutionAction && item.resolutionAction.includes('Post to Default Outlet') &&
+            item.resolutionAction &&
+            item.resolutionAction.includes('Post to Default Outlet') &&
             varianceVal > 0
           ) {
             grandTotalDefaultOutletValue +=
@@ -301,47 +321,176 @@ export const exportReconciliationPdfService = async (
       y += 25;
 
       doc.fillColor('black').font('Helvetica').fontSize(10);
-      doc.text('Total Sales Value (Mobile-recorded sales to outlets):', 30, y, {
-        width: 400,
-        align: 'right',
-      });
+      doc.text('Total Sales Value (Mobile-recorded sales to outlets):', 30, y);
       doc.text(
         `${formatNum(grandTotalSaleValue)} ${meta.currency || 'TZS'}`,
-        440,
-        y
+        30,
+        y,
+        { width: 745, align: 'right' }
       );
       y += 20;
 
       doc
         .fillColor('red')
-        .text('Default Outlet Posting Value (Shortage):', 30, y, {
-          width: 400,
-          align: 'right',
-        });
+        .text('Default Outlet Posting Value (Shortage):', 30, y);
       doc.text(
         `${formatNum(grandTotalDefaultOutletValue)} ${meta.currency || 'TZS'}`,
-        440,
-        y
+        30,
+        y,
+        { width: 745, align: 'right' }
       );
       y += 20;
 
       doc
         .fillColor('red')
         .font('Helvetica-Bold')
-        .text('TOTAL CASH SALESMAN MUST DEPOSIT:', 30, y, {
-          width: 400,
-          align: 'right',
-        });
-      doc.rect(435, y - 5, 150, 20).fill('#FFC000');
+        .text('TOTAL CASH SALESMAN MUST DEPOSIT:', 30, y);
+
+      const totalStr = `${formatNum(grandTotalSaleValue + grandTotalDefaultOutletValue)} ${meta.currency || 'TZS'}`;
+      const textWidth = doc.widthOfString(totalStr);
+      const rectWidth = Math.max(150, textWidth + 20);
+      doc.rect(775 - rectWidth, y - 5, rectWidth, 20).fill('#FFC000');
+
       doc
         .fillColor('red')
-        .text(
-          `${formatNum(grandTotalSaleValue + grandTotalDefaultOutletValue)} ${meta.currency || 'TZS'}`,
-          440,
-          y
-        );
+        .text(totalStr, 30, y, { width: 735, align: 'right' });
 
-      y += 40;
+      if (y > 350) {
+        doc.addPage();
+        y = 30;
+      } else {
+        y += 40;
+      }
+
+      // --- STATIC SUMMARY TABLE ---
+      const rowHeight = 16;
+      const b1X = 30,
+        b1C1 = 30,
+        b1C2 = 110,
+        b1C3 = 100;
+      const b2X = 280,
+        b2C1 = 30,
+        b2C2 = 110,
+        b2C3 = 100;
+      const b3X = 530,
+        b3C1 = 150,
+        b3C2 = 95;
+
+      const drawCell = (
+        x: number,
+        yPos: number,
+        width: number,
+        text: string,
+        isBold = false,
+        align: 'left' | 'center' | 'right' = 'left',
+        drawBorder = true,
+        fontSize = 8
+      ) => {
+        if (drawBorder) {
+          doc.lineWidth(0.5).strokeColor('#A6A6A6');
+          doc.rect(x, yPos, width, rowHeight).stroke();
+        }
+        doc
+          .fillColor('black')
+          .font(isBold ? 'Helvetica-Bold' : 'Helvetica')
+          .fontSize(fontSize);
+        doc.text(text, x + 2, yPos + 4, { width: width - 4, align });
+      };
+
+      // Header Row
+      drawCell(b1X, y, b1C1, 'S.No', true, 'center');
+      drawCell(b1X + b1C1, y, b1C2, 'Cash', true, 'left');
+      drawCell(b1X + b1C1 + b1C2, y, b1C3, 'Amount', true, 'left');
+
+      drawCell(b2X, y, b2C1, 'S.No', true, 'center');
+      drawCell(b2X + b2C1, y, b2C2, 'Bank Name', true, 'left');
+      drawCell(b2X + b2C1 + b2C2, y, b2C3, 'Amount', true, 'left');
+
+      drawCell(b3X, y, b3C1, 'Invoice Total:', false, 'left');
+      drawCell(b3X + b3C1, y, b3C2, '', false, 'left');
+
+      y += rowHeight;
+
+      const rightLabels = [
+        'Less: ROP Total:',
+        'Less: RRE (Empties) Total',
+        'Total Sales :',
+        'Less: Bank Slips total :',
+        'Less: Cash Deposit :',
+        '',
+        'Overage / (Shortage):',
+        '',
+        'Total Sales Value',
+        'EFD Value',
+        'Difference',
+      ];
+
+      for (let i = 1; i <= 11; i++) {
+        // Left block
+        if (i <= 7) {
+          drawCell(b1X, y, b1C1, String(i), false, 'center');
+          drawCell(b1X + b1C1, y, b1C2, '', false, 'left');
+          drawCell(b1X + b1C1 + b1C2, y, b1C3, '', false, 'left');
+        } else if (i === 8) {
+          drawCell(b1X, y, b1C1 + b1C2, 'Total', true, 'left');
+          drawCell(b1X + b1C1 + b1C2, y, b1C3, '', false, 'left');
+        } else if (i === 9) {
+          drawCell(
+            b1X,
+            y,
+            b1C1 + b1C2,
+            'Empties Loan Quantity',
+            true,
+            'left',
+            true,
+            7.5
+          );
+          drawCell(b1X + b1C1 + b1C2, y, b1C3, '', false, 'left');
+        } else if (i === 10) {
+          drawCell(
+            b1X,
+            y,
+            b1C1 + b1C2,
+            'Empties Loan Returned Quantity',
+            true,
+            'left',
+            true,
+            7.5
+          );
+          drawCell(b1X + b1C1 + b1C2, y, b1C3, '', false, 'left');
+        } else if (i === 11) {
+          drawCell(b1X, y, b1C1 + b1C2, 'Balance', true, 'left');
+          drawCell(b1X + b1C1 + b1C2, y, b1C3, '', false, 'left');
+        }
+
+        // Middle block
+        if (i <= 10) {
+          drawCell(b2X, y, b2C1, String(i), false, 'center');
+          drawCell(b2X + b2C1, y, b2C2, '', false, 'left');
+          drawCell(b2X + b2C1 + b2C2, y, b2C3, '', false, 'left');
+        } else if (i === 11) {
+          drawCell(b2X, y, b2C1 + b2C2, 'Total', true, 'left');
+          drawCell(b2X + b2C1 + b2C2, y, b2C3, '', false, 'left');
+        }
+
+        // Right block
+        const label = rightLabels[i - 1];
+        if (label !== undefined && label !== '') {
+          const isBold =
+            label.includes('Total Sales') || label.includes('Overage');
+          drawCell(b3X, y, b3C1, label, isBold, 'left');
+          drawCell(b3X + b3C1, y, b3C2, '', false, 'left');
+        }
+
+        y += rowHeight;
+      }
+
+      if (y > 400) {
+        doc.addPage();
+        y = 30;
+      } else {
+        y += 40;
+      }
 
       doc.rect(30, y, 745, 20).fill('#203764');
       doc
