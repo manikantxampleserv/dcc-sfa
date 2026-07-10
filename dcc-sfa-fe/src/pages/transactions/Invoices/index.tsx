@@ -200,9 +200,7 @@ const InvoicesManagement: React.FC = () => {
         <Box>
           <Typography variant="body2" className="!text-gray-900 !font-medium">
             Total:{' '}
-            {formatCurrency(
-              Number(row.total_amount) + Number(row.tax_amount) || 0
-            )}
+            {formatCurrency(Number(row.subtotal) + Number(row.tax_amount) || 0)}
           </Typography>
           <Typography
             variant="caption"

@@ -553,7 +553,7 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
                 </Typography>
                 <Typography variant="subtitle2" className="!font-bold">
                   {formatCurrencyWithInvoiceCurrency(
-                    Number(invoiceData.total_amount) +
+                    Number(invoiceData.subtotal) +
                       Number(invoiceData.tax_amount) +
                       Number(invoiceData.shipping_amount) -
                       Number(invoiceData.discount_amount)
