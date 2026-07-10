@@ -1,4 +1,13 @@
 "use strict";
+// import { Request, Response } from 'express';
+// import { generateEmailContent } from '../../utils/emailTemplates';
+// import templateKeyMap from '../../utils/templateKeyMap';
+// import { sendEmail } from '../../utils/mailer';
+// import getRequestDetailsByType from '../../utils/getDetails';
+// import { paginate } from '../../utils/paginate';
+// import { requestTypes } from '../../mock/requestTypes';
+// import prisma from '../../configs/prisma.client';
+// import { generateContractOnApproval } from '../../helpers/approvalWorkflow.helper';
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     var desc = Object.getOwnPropertyDescriptor(m, k);
@@ -37,6 +46,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.requestsController = exports.createRequest = void 0;
+exports.resolveRequesterDepotId = resolveRequesterDepotId;
 const emailTemplates_1 = require("../../utils/emailTemplates");
 const templateKeyMap_1 = __importDefault(require("../../utils/templateKeyMap"));
 const mailer_1 = require("../../utils/mailer");
@@ -238,6 +248,37 @@ function shouldRejectPendingVanInventories(requestData) {
         return false;
     }
 }
+async function resolveRequesterDepotId(tx, requesterId, requestType, requestDataStr) {
+    const userDepots = await tx.user_depots.findMany({
+        where: { user_id: requesterId, is_active: 'Y' },
+        select: { depot_id: true },
+    });
+    if (userDepots.length === 0) {
+        return null;
+    }
+    if (userDepots.length === 1) {
+        return userDepots[0].depot_id;
+    }
+    if (requestDataStr) {
+        try {
+            const parsedData = JSON.parse(requestDataStr);
+            const potentialDepotId = parsedData.location_id ||
+                parsedData.depot_id ||
+                parsedData.customer_data?.depot_id ||
+                parsedData.customer_data?.location_id;
+            if (potentialDepotId) {
+                const depotIdNum = Number(potentialDepotId);
+                if (userDepots.some((ud) => ud.depot_id === depotIdNum)) {
+                    return depotIdNum;
+                }
+            }
+        }
+        catch (e) {
+            // ignore
+        }
+    }
+    return userDepots[0].depot_id;
+}
 const createRequest = async (data) => {
     try {
         console.log(' Creating request:', data.request_type);
@@ -267,14 +308,15 @@ const createRequest = async (data) => {
             },
         });
         console.log('Request created:', request.id);
+        const requesterDepotId = await resolveRequesterDepotId(prisma_client_1.default, data.requester_id, data.request_type, data.request_data);
         let workflowSteps;
         let workflowType = 'NONE';
-        if (requester.zone_id && requester.depot_id) {
+        if (requester.zone_id && requesterDepotId) {
             workflowSteps = await prisma_client_1.default.approval_work_flow.findMany({
                 where: {
                     request_type: data.request_type,
                     zone_id: requester.zone_id,
-                    depot_id: requester.depot_id,
+                    depot_id: requesterDepotId,
                     is_active: 'Y',
                 },
                 orderBy: { sequence: 'asc' },
@@ -307,11 +349,11 @@ const createRequest = async (data) => {
                 workflowType = 'ZONE_SPECIFIC';
             }
         }
-        if ((!workflowSteps || workflowSteps.length === 0) && requester.depot_id) {
+        if ((!workflowSteps || workflowSteps.length === 0) && requesterDepotId) {
             workflowSteps = await prisma_client_1.default.approval_work_flow.findMany({
                 where: {
                     request_type: data.request_type,
-                    depot_id: requester.depot_id,
+                    depot_id: requesterDepotId,
                     zone_id: null,
                     is_active: 'Y',
                 },
@@ -803,7 +845,8 @@ exports.requestsController = {
                     },
                 });
                 console.log(' Request created, ID:', request.id);
-                const { workflow: workflowSteps, workflowType } = await getWorkflowForRequest(request_type, requester.zone_id, requester.depot_id);
+                const resolvedDepotId = await resolveRequesterDepotId(tx, Number(requestData.requester_id), request_type, requestData.request_data);
+                const { workflow: workflowSteps, workflowType } = await getWorkflowForRequest(request_type, requester.zone_id, resolvedDepotId);
                 if (!workflowSteps || workflowSteps.length === 0) {
                     throw new Error(`No approval workflow defined for '${request_type}'`);
                 }
