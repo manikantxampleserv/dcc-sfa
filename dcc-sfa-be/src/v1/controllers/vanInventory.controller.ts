@@ -4,7 +4,7 @@ import prisma from '../../configs/prisma.client';
 import { getTimeFilter } from '../../utils/dateFilters';
 import { getContainerOwnerAndSelf } from '../utils/inventory.utils';
 import { getSourceSystemLabel } from '../../utils/sourceSystem';
-import { createRequest } from './requests.controller';
+import { createRequest, resolveRequesterDepotId } from './requests.controller';
 import { isAdminRole } from '../../configs/permissions.config';
 interface VanInventoryItemSerialized {
   id: number;
@@ -3088,9 +3088,50 @@ export const vanInventoryController = {
           inventoryData.user_id = spUser.id;
           const spUserId = Number(spUser.id);
 
+          const locationIdentifier =
+            inventoryData.location_id ?? inventoryData.location_sap;
+          if (
+            locationIdentifier !== undefined &&
+            locationIdentifier !== null &&
+            locationIdentifier !== ''
+          ) {
+            const resolvedLocation = await resolveRecordByIdOrSap(
+              'depots',
+              inventoryData.location_id,
+              inventoryData.location_sap,
+              'Location'
+            );
+            inventoryData.location_id = resolvedLocation.id;
+          } else {
+            const depotName = `Van - ${spUser?.name || spUserId}`;
+            let vanDepot = await tx.depots.findFirst({
+              where: { name: depotName },
+            });
+            if (!vanDepot) {
+              const parentDepot = await tx.depots.findFirst({
+                orderBy: { id: 'asc' },
+              });
+              vanDepot = await tx.depots.create({
+                data: {
+                  parent_id: parentDepot ? parentDepot.parent_id : 1,
+                  name: depotName,
+                  code: `VAN-${spUserId}`,
+                  is_active: 'Y',
+                  createdby: userId || 1,
+                },
+              });
+            }
+            inventoryData.location_id = vanDepot.id;
+          }
+
           let workflowExists = false;
           const requesterZoneId = spUser.zone_id;
-          const requesterDepotId = spUser.depot_id;
+          const requesterDepotId = await resolveRequesterDepotId(
+            tx,
+            spUser.id,
+            'VAN_INVENTORY',
+            JSON.stringify({ ...data, location_id: inventoryData.location_id })
+          );
 
           if (requesterZoneId && requesterDepotId) {
             const zoneDepotWorkflow = await tx.approval_work_flow.findMany({
@@ -3145,42 +3186,6 @@ export const vanInventoryController = {
             (!isUpdate || existingInventoryToCheck?.approval_status === 'P')
           ) {
             inventoryData.approval_status = 'A';
-          }
-
-          const locationIdentifier =
-            inventoryData.location_id ?? inventoryData.location_sap;
-          if (
-            locationIdentifier !== undefined &&
-            locationIdentifier !== null &&
-            locationIdentifier !== ''
-          ) {
-            const resolvedLocation = await resolveRecordByIdOrSap(
-              'depots',
-              inventoryData.location_id,
-              inventoryData.location_sap,
-              'Location'
-            );
-            inventoryData.location_id = resolvedLocation.id;
-          } else {
-            const depotName = `Van - ${spUser?.name || spUserId}`;
-            let vanDepot = await tx.depots.findFirst({
-              where: { name: depotName },
-            });
-            if (!vanDepot) {
-              const parentDepot = await tx.depots.findFirst({
-                orderBy: { id: 'asc' },
-              });
-              vanDepot = await tx.depots.create({
-                data: {
-                  parent_id: parentDepot ? parentDepot.parent_id : 1,
-                  name: depotName,
-                  code: `VAN-${spUserId}`,
-                  is_active: 'Y',
-                  createdby: userId || 1,
-                },
-              });
-            }
-            inventoryData.location_id = vanDepot.id;
           }
 
           const vehicleIdentifier =
