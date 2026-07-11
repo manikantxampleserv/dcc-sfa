@@ -122,6 +122,7 @@ export declare const sapService: {
             }[] | undefined;
         };
         wasUpdate: boolean;
+        workflowExists: boolean;
     }>;
     processApprovedVanInventoryStock(inventoryId: number, userId?: number): Promise<void>;
 };

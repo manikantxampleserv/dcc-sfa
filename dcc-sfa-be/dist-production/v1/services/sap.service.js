@@ -152,61 +152,81 @@ exports.sapService = {
             throw new Error(`Salesman with SAP code ${inventoryData.salesman_sap_code} not found`);
         }
         inventoryData.user_id = spUser.id;
-        let workflowExists = false;
-        const requesterZoneId = spUser.zone_id;
-        const requesterDepotId = spUser.depot_id;
-        if (requesterZoneId && requesterDepotId) {
-            const zoneDepotWorkflow = await prisma_client_1.default.approval_work_flow.findMany({
-                where: {
-                    request_type: 'VAN_INVENTORY',
-                    zone_id: requesterZoneId,
-                    depot_id: requesterDepotId,
-                    is_active: 'Y',
-                },
-            });
-            if (zoneDepotWorkflow.length > 0)
-                workflowExists = true;
-        }
-        if (!workflowExists && requesterZoneId) {
-            const zoneWorkflow = await prisma_client_1.default.approval_work_flow.findMany({
-                where: {
-                    request_type: 'VAN_INVENTORY',
-                    zone_id: requesterZoneId,
-                    depot_id: null,
-                    is_active: 'Y',
-                },
-            });
-            if (zoneWorkflow.length > 0)
-                workflowExists = true;
-        }
-        if (!workflowExists && requesterDepotId) {
-            const depotWorkflow = await prisma_client_1.default.approval_work_flow.findMany({
-                where: {
-                    request_type: 'VAN_INVENTORY',
-                    zone_id: null,
-                    depot_id: requesterDepotId,
-                    is_active: 'Y',
-                },
-            });
-            if (depotWorkflow.length > 0)
-                workflowExists = true;
-        }
-        if (!workflowExists) {
-            const globalWorkflow = await prisma_client_1.default.approval_work_flow.findMany({
-                where: {
-                    request_type: 'VAN_INVENTORY',
-                    zone_id: null,
-                    depot_id: null,
-                    is_active: 'Y',
-                },
-            });
-            if (globalWorkflow.length > 0)
-                workflowExists = true;
-        }
         const finalResult = await prisma_client_1.default.$transaction(async (tx) => {
             let inventory;
             let isUpdate = false;
             let existingInventoryToCheck = null;
+            // Resolve depot location first
+            let depot;
+            if (inventoryData.depot_sap_code) {
+                depot = await tx.depots.findFirst({
+                    where: { sap_code: inventoryData.depot_sap_code },
+                });
+                if (!depot) {
+                    throw new Error(`Depot with SAP code ${inventoryData.depot_sap_code} not found`);
+                }
+            }
+            else {
+                depot = await tx.depots.findFirst({
+                    where: { name: { contains: 'MOSHI' } },
+                });
+                if (!depot) {
+                    throw new Error('depot_sap_code is missing and default MOSHI depot was not found');
+                }
+            }
+            inventoryData.location_id = depot.id;
+            // Resolve workflowExists using resolveRequesterDepotId
+            let workflowExists = false;
+            const requesterZoneId = spUser.zone_id;
+            const requesterDepotId = await (0, requests_controller_1.resolveRequesterDepotId)(tx, spUser.id, 'VAN_INVENTORY', JSON.stringify({ location_id: inventoryData.location_id }));
+            if (requesterZoneId && requesterDepotId) {
+                const zoneDepotWorkflow = await tx.approval_work_flow.findMany({
+                    where: {
+                        request_type: 'VAN_INVENTORY',
+                        zone_id: requesterZoneId,
+                        depot_id: requesterDepotId,
+                        is_active: 'Y',
+                    },
+                });
+                if (zoneDepotWorkflow.length > 0)
+                    workflowExists = true;
+            }
+            if (!workflowExists && requesterZoneId) {
+                const zoneWorkflow = await tx.approval_work_flow.findMany({
+                    where: {
+                        request_type: 'VAN_INVENTORY',
+                        zone_id: requesterZoneId,
+                        depot_id: null,
+                        is_active: 'Y',
+                    },
+                });
+                if (zoneWorkflow.length > 0)
+                    workflowExists = true;
+            }
+            if (!workflowExists && requesterDepotId) {
+                const depotWorkflow = await tx.approval_work_flow.findMany({
+                    where: {
+                        request_type: 'VAN_INVENTORY',
+                        zone_id: null,
+                        depot_id: requesterDepotId,
+                        is_active: 'Y',
+                    },
+                });
+                if (depotWorkflow.length > 0)
+                    workflowExists = true;
+            }
+            if (!workflowExists) {
+                const globalWorkflow = await tx.approval_work_flow.findMany({
+                    where: {
+                        request_type: 'VAN_INVENTORY',
+                        zone_id: null,
+                        depot_id: null,
+                        is_active: 'Y',
+                    },
+                });
+                if (globalWorkflow.length > 0)
+                    workflowExists = true;
+            }
             if (inventoryId) {
                 const existingInventory = await tx.van_inventory.findUnique({
                     where: { id: Number(inventoryId) },
@@ -258,24 +278,6 @@ exports.sapService = {
                     }
                 }
             }
-            let depot;
-            if (inventoryData.depot_sap_code) {
-                depot = await tx.depots.findFirst({
-                    where: { sap_code: inventoryData.depot_sap_code },
-                });
-                if (!depot) {
-                    throw new Error(`Depot with SAP code ${inventoryData.depot_sap_code} not found`);
-                }
-            }
-            else {
-                depot = await tx.depots.findFirst({
-                    where: { name: { contains: 'MOSHI' } },
-                });
-                if (!depot) {
-                    throw new Error('depot_sap_code is missing and default MOSHI depot was not found');
-                }
-            }
-            inventoryData.location_id = depot.id;
             if (isUpdate && existingInventoryToCheck && loadingType !== 'U') {
                 const effectiveApprovalStatus = existingInventoryToCheck.approval_status || 'P';
                 if (effectiveApprovalStatus !== 'P') {
@@ -1262,12 +1264,14 @@ exports.sapService = {
                     van_inventory_stock_movements: finalInventory?.van_inventory_stock_movements,
                 },
                 wasUpdate: isUpdate,
+                workflowExists: workflowExists,
             };
             return result;
         }, {
             maxWait: 6000000,
             timeout: 1200000,
         });
+        const workflowExists = finalResult.workflowExists;
         if (workflowExists && finalResult.finalInventory.approval_status === 'P') {
             const dbItems = finalResult.finalInventory.van_inventory_items_inventory || [];
             const groupedItemsMap = new Map();
