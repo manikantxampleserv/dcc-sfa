@@ -31,20 +31,38 @@ const exportReconciliationPdfService = async (reconciliationData) => {
                     existing.loadQuantity =
                         (Number(existing.loadQuantity) || 0) +
                             (Number(item.loadQuantity) || 0);
+                    existing.loadBaseQty =
+                        (Number(existing.loadBaseQty) || 0) +
+                            (Number(item.loadBaseQty) || 0);
                     existing.saleQuantity =
                         (Number(existing.saleQuantity) || 0) +
                             (Number(item.saleQuantity) || 0);
+                    existing.saleBaseQty =
+                        (Number(existing.saleBaseQty) || 0) +
+                            (Number(item.saleBaseQty) || 0);
                     existing.expectedRop =
                         (Number(existing.expectedRop) || 0) +
                             (Number(item.expectedRop) || 0);
+                    existing.expectedBaseQty =
+                        (Number(existing.expectedBaseQty) || 0) +
+                            (Number(item.expectedBaseQty) || 0);
                     const actualExisting = existing.actualRop !== '' && existing.actualRop !== null
                         ? Number(existing.actualRop)
+                        : 0;
+                    const actualExistingBase = existing.actualBaseQty !== '' && existing.actualBaseQty !== null
+                        ? Number(existing.actualBaseQty)
                         : 0;
                     const actualItem = item.actualRop !== '' && item.actualRop !== null
                         ? Number(item.actualRop)
                         : 0;
+                    const actualItemBase = item.actualBaseQty !== '' && item.actualBaseQty !== null
+                        ? Number(item.actualBaseQty)
+                        : 0;
                     existing.actualRop = String(actualExisting + actualItem);
+                    existing.actualBaseQty = String(actualExistingBase + actualItemBase);
                     existing.variance = String((Number(existing.variance) || 0) + (Number(item.variance) || 0));
+                    existing.varianceBaseQty = String((Number(existing.varianceBaseQty) || 0) +
+                        (Number(item.varianceBaseQty) || 0));
                     if (!existing.resolutionAction ||
                         existing.resolutionAction === 'CLEAN' ||
                         existing.resolutionAction === '-') {
@@ -157,7 +175,7 @@ const exportReconciliationPdfService = async (reconciliationData) => {
                 'Sale Value',
                 'Action',
             ];
-            const colWidths = [60, 160, 45, 45, 45, 45, 45, 70, 80, 150];
+            const colWidths = [50, 115, 60, 60, 60, 60, 65, 55, 65, 110];
             y = drawRow(y, columns, colWidths, true);
             const groupedItems = items.reduce((acc, item) => {
                 const cat = item.categoryName || 'Uncategorized';
@@ -205,18 +223,42 @@ const exportReconciliationPdfService = async (reconciliationData) => {
                 let catLoad = 0, catSales = 0, catExpected = 0, catActual = 0, catVariance = 0, catSaleValue = 0;
                 catItems.forEach(item => {
                     checkPageBreak();
-                    const actualVal = Number(item.actualRop) || 0;
+                    const conv = Number(item.conversionRate) || 1;
+                    const price = Number(item.basePrice) || 0;
+                    const basePricePerPc = price / conv;
+                    const hasActualCases = item.actualRop !== '' &&
+                        item.actualRop !== null &&
+                        item.actualRop !== undefined;
+                    const hasActualPCs = item.actualBaseQty !== '' &&
+                        item.actualBaseQty !== null &&
+                        item.actualBaseQty !== undefined;
+                    const actualVal = hasActualCases ? Number(item.actualRop) : 0;
+                    const actualBaseVal = hasActualPCs ? Number(item.actualBaseQty) : 0;
                     const varianceVal = Number(item.variance) || 0;
-                    const saleVal = (Number(item.saleQuantity) || 0) * (Number(item.basePrice) || 0);
+                    const varianceBaseVal = Number(item.varianceBaseQty) || 0;
+                    const saleVal = (Number(item.saleQuantity) || 0) * price +
+                        (Number(item.saleBaseQty) || 0) * basePricePerPc;
+                    const sign = varianceVal < 0 || varianceBaseVal < 0
+                        ? '-'
+                        : varianceVal > 0 || varianceBaseVal > 0
+                            ? '+'
+                            : '';
+                    const absCases = Math.abs(varianceVal);
+                    const absPcs = Math.abs(varianceBaseVal);
+                    const varianceStr = varianceVal === 0 && varianceBaseVal === 0
+                        ? '0 Cs 0 PCs'
+                        : `${sign}${absCases} Cs ${absPcs} PCs`;
                     y = drawRow(y, [
                         String(item.skuCode),
                         String(item.skuName),
-                        String(item.loadQuantity || 0),
-                        String(item.saleQuantity || 0),
-                        String(item.expectedRop || 0),
-                        String(actualVal),
-                        String(varianceVal),
-                        formatNum(item.basePrice),
+                        `${item.loadQuantity || 0} Cs ${item.loadBaseQty || 0} PCs`,
+                        `${item.saleQuantity || 0} Cs ${item.saleBaseQty || 0} PCs`,
+                        `${item.expectedRop || 0} Cs ${item.expectedBaseQty || 0} PCs`,
+                        hasActualCases || hasActualPCs
+                            ? `${actualVal} Cs ${actualBaseVal} PCs`
+                            : '-',
+                        varianceStr,
+                        formatNum(price),
                         formatNum(saleVal),
                         String(item.resolutionAction || '-'),
                     ], colWidths);
@@ -227,16 +269,11 @@ const exportReconciliationPdfService = async (reconciliationData) => {
                     catVariance += varianceVal;
                     catSaleValue += saleVal;
                     if (item.resolutionAction &&
-                        item.resolutionAction.includes('Default Outlet Posting') &&
-                        varianceVal < 0) {
+                        item.resolutionAction.includes('Default Outlet') &&
+                        (varianceVal < 0 || varianceBaseVal < 0)) {
                         grandTotalDefaultOutletValue +=
-                            Math.abs(varianceVal) * (Number(item.basePrice) || 0);
-                    }
-                    else if (item.resolutionAction &&
-                        item.resolutionAction.includes('Post to Default Outlet') &&
-                        varianceVal > 0) {
-                        grandTotalDefaultOutletValue +=
-                            Math.abs(varianceVal) * (Number(item.basePrice) || 0);
+                            Math.abs(varianceVal) * price +
+                                Math.abs(varianceBaseVal) * basePricePerPc;
                     }
                 });
                 grandTotalLoad += catLoad;

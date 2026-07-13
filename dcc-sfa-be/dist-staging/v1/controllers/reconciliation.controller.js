@@ -275,6 +275,9 @@ exports.reconciliationController = {
                                     product_categories_products: {
                                         select: { category_name: true },
                                     },
+                                    product_unit_of_measurement: {
+                                        select: { conversion_rate: true, sub_unit: true },
+                                    },
                                 },
                             },
                         },
@@ -303,18 +306,31 @@ exports.reconciliationController = {
                 skuName: item.product?.name || 'UNKNOWN',
                 categoryName: item.product?.product_categories_products?.category_name ||
                     'Uncategorized',
+                conversionRate: Number(item.product?.product_unit_of_measurement?.conversion_rate) || 1,
+                subUnit: item.product?.product_unit_of_measurement?.sub_unit || 'PCs',
                 basePrice: item.product?.base_price !== null
                     ? Number(item.product?.base_price)
                     : 0,
                 loadQuantity: item.load_qty !== null ? Number(item.load_qty) : 0,
+                loadBaseQty: item.load_base_qty !== null ? Number(item.load_base_qty) : 0,
                 saleQuantity: item.sale_qty !== null ? Number(item.sale_qty) : 0,
+                saleBaseQty: item.sale_base_qty !== null ? Number(item.sale_base_qty) : 0,
                 batchNumber: item.batch_number || '-',
                 expectedRop: Number(item.expected_qty) || 0,
+                expectedBaseQty: Number(item.expected_base_qty) || 0,
                 actualRop: item.actual_qty !== null ? Number(item.actual_qty).toString() : '',
+                actualBaseQty: item.actual_base_qty !== null
+                    ? Number(item.actual_base_qty).toString()
+                    : '',
                 variance: item.variance !== null ? Number(item.variance) : null,
+                varianceBaseQty: item.variance_base_qty !== null
+                    ? Number(item.variance_base_qty)
+                    : 0,
                 resolutionAction: item.resolution_action || 'Awaiting Verification',
                 defaultOutletPostingQty: Number(item.default_outlet_posting_qty) || 0,
+                defaultOutletPostingBaseQty: Number(item.default_outlet_posting_base_qty) || 0,
                 unloadAdjustmentQty: Number(item.unload_adjustment_qty) || 0,
+                unloadAdjustmentBaseQty: Number(item.unload_adjustment_base_qty) || 0,
                 stockKey: item.stock_key || '',
                 status: item.resolution_action === 'Awaiting Force-Push'
                     ? 'Blocked - Force-Push Required'
@@ -373,14 +389,22 @@ exports.reconciliationController = {
                 const updatedItems = [];
                 const reconciliationIds = new Set();
                 for (const itemPayload of items) {
-                    const { id, actual_qty } = itemPayload;
-                    const parsedActual = actual_qty !== null && actual_qty !== ''
+                    const { id, actual_qty, actual_base_qty } = itemPayload;
+                    const parsedActual = actual_qty !== null &&
+                        actual_qty !== '' &&
+                        actual_qty !== undefined
                         ? Number(actual_qty)
+                        : null;
+                    const parsedActualBase = actual_base_qty !== null &&
+                        actual_base_qty !== '' &&
+                        actual_base_qty !== undefined
+                        ? Number(actual_base_qty)
                         : null;
                     const record = await tx.reconciliation_items.findUnique({
                         where: { id },
                         include: {
                             reconciliation: { include: { salesman: true, depot: true } },
+                            product: { include: { product_unit_of_measurement: true } },
                         },
                     });
                     if (!record) {
@@ -391,35 +415,59 @@ exports.reconciliationController = {
                         continue;
                     }
                     let variance = null;
+                    let variance_base_qty = null;
                     let resAction = 'Awaiting Verification';
                     const expectedQty = Number(record.expected_qty) || 0;
-                    if (parsedActual !== null) {
-                        variance = expectedQty - parsedActual;
-                        if (Math.abs(variance) < 0.0001) {
+                    const expectedBaseQty = Number(record.expected_base_qty) || 0;
+                    const conv = Number(record.product?.product_unit_of_measurement?.conversion_rate) || 1;
+                    if (parsedActual !== null || parsedActualBase !== null) {
+                        const actual = parsedActual || 0;
+                        const actualBase = parsedActualBase || 0;
+                        const expectedTotalPieces = expectedQty * conv + expectedBaseQty;
+                        const actualTotalPieces = actual * conv + actualBase;
+                        const variancePieces = actualTotalPieces - expectedTotalPieces;
+                        if (variancePieces === 0) {
                             variance = 0;
+                            variance_base_qty = 0;
                             resAction = 'CLEAN';
                         }
-                        else if (variance > 0) {
-                            resAction = 'Post to Default Outlet';
-                        }
                         else {
-                            resAction = 'Adjust Unload Upward';
+                            const absV = Math.abs(variancePieces);
+                            variance = Math.floor(absV / conv) * Math.sign(variancePieces);
+                            variance_base_qty = (absV % conv) * Math.sign(variancePieces);
+                            if (variancePieces > 0) {
+                                resAction = 'Adjust Unload Upward';
+                            }
+                            else {
+                                resAction = 'Post to Default Outlet';
+                            }
                         }
                     }
                     const defaultOutletPostingQty = resAction === 'Post to Default Outlet' && variance !== null
-                        ? variance
+                        ? Math.abs(variance)
+                        : 0;
+                    const defaultOutletPostingBaseQty = resAction === 'Post to Default Outlet' &&
+                        variance_base_qty !== null
+                        ? Math.abs(variance_base_qty)
                         : 0;
                     const unloadAdjustmentQty = resAction === 'Adjust Unload Upward' && variance !== null
-                        ? -variance
+                        ? variance
+                        : 0;
+                    const unloadAdjustmentBaseQty = resAction === 'Adjust Unload Upward' && variance_base_qty !== null
+                        ? variance_base_qty
                         : 0;
                     const updatedItem = await tx.reconciliation_items.update({
                         where: { id },
                         data: {
                             actual_qty: parsedActual,
+                            actual_base_qty: parsedActualBase,
                             variance,
+                            variance_base_qty,
                             resolution_action: resAction,
                             default_outlet_posting_qty: defaultOutletPostingQty,
+                            default_outlet_posting_base_qty: defaultOutletPostingBaseQty,
                             unload_adjustment_qty: unloadAdjustmentQty,
+                            unload_adjustment_base_qty: unloadAdjustmentBaseQty,
                             updatedate: new Date(),
                             updatedby: userId,
                         },

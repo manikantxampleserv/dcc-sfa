@@ -775,7 +775,8 @@ exports.visitsController = {
                                                         {
                                                             batch_lot_id: batchLot.id,
                                                             pieces: orderedPieces,
-                                                            uomQty: isUnitPcs ? orderedPieces : orderedQty,
+                                                            uomQty: isUnitPcs ? Math.floor(orderedPieces / conversionFactor) : orderedQty,
+                                                            baseQty: isUnitPcs ? orderedPieces % conversionFactor : (orderedPieces - orderedQty * conversionFactor),
                                                         },
                                                     ];
                                                 }
@@ -783,14 +784,25 @@ exports.visitsController = {
                                                     const batchData = item.product_batches ||
                                                         item.batches;
                                                     batchDeductions = batchData.map((b) => {
-                                                        const bUomQty = parseInt(b.quantity, 10);
-                                                        const bPieces = b.base_quantity
-                                                            ? parseInt(b.base_quantity, 10)
-                                                            : bUomQty * conversionFactor;
+                                                        let bUomQty;
+                                                        let bBaseQty;
+                                                        let bPieces;
+                                                        if (isUnitPcs) {
+                                                            const totalPcs = parseInt(b.quantity, 10) || 0;
+                                                            bPieces = totalPcs;
+                                                            bUomQty = Math.floor(totalPcs / conversionFactor);
+                                                            bBaseQty = totalPcs % conversionFactor;
+                                                        }
+                                                        else {
+                                                            bUomQty = parseInt(b.quantity, 10) || 0;
+                                                            bBaseQty = parseInt(b.base_quantity, 10) || 0;
+                                                            bPieces = bUomQty * conversionFactor + bBaseQty;
+                                                        }
                                                         return {
                                                             batch_lot_id: b.batch_lot_id,
                                                             pieces: bPieces,
                                                             uomQty: bUomQty,
+                                                            baseQty: bBaseQty,
                                                         };
                                                     });
                                                 }
@@ -945,7 +957,8 @@ exports.visitsController = {
                                                             reference_id: referenceId,
                                                             from_location_id: validatedFromLocationId,
                                                             to_location_id: null,
-                                                            quantity: piecesToDeduct,
+                                                            quantity: batchOrder.uomQty,
+                                                            base_quantity: batchOrder.baseQty || 0,
                                                             movement_date: new Date(),
                                                             remarks: isUnitPcs
                                                                 ? `Sold via ${referenceLabel} - Batch: ${batchLot.batch_number} - ${piecesToDeduct} PCS`

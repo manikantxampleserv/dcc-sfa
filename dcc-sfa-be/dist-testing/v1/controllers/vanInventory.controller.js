@@ -285,7 +285,7 @@ async function getAvailableBatchesForProduct(tx, productId, loadingType) {
     });
     return batches;
 }
-async function updateInventoryStock(tx, productId, locationId, quantity, loadingType, batchId, serialId, userId, vanUserId) {
+async function updateInventoryStock(tx, productId, locationId, quantity, loadingType, batchId, serialId, userId, vanUserId, baseQuantity = 0) {
     let validLocationId = locationId;
     let salespersonId = vanUserId || null;
     if (!validLocationId) {
@@ -325,6 +325,7 @@ async function updateInventoryStock(tx, productId, locationId, quantity, loading
                 data: {
                     current_stock: (existingStock.current_stock ?? 0) + quantity,
                     available_stock: (existingStock.available_stock ?? 0) + quantity,
+                    base_quantity: (existingStock.base_quantity ?? 0) + baseQuantity,
                     updatedate: new Date(),
                     updatedby: userId,
                 },
@@ -343,6 +344,7 @@ async function updateInventoryStock(tx, productId, locationId, quantity, loading
                     maximum_stock: 0,
                     batch_id: batchId || null,
                     serial_number_id: serialId || null,
+                    base_quantity: baseQuantity,
                     is_active: 'Y',
                     createdate: new Date(),
                     createdby: userId || 1,
@@ -355,11 +357,13 @@ async function updateInventoryStock(tx, productId, locationId, quantity, loading
         if (existingStock) {
             const newCurrentStock = Math.max(0, (existingStock.current_stock ?? 0) - quantity);
             const newAvailableStock = Math.max(0, (existingStock.available_stock ?? 0) - quantity);
+            const newBaseQuantity = Math.max(0, (existingStock.base_quantity ?? 0) - baseQuantity);
             await tx.inventory_stock.update({
                 where: { id: existingStock.id },
                 data: {
                     current_stock: newCurrentStock,
                     available_stock: newAvailableStock,
+                    base_quantity: newBaseQuantity,
                     updatedate: new Date(),
                     updatedby: userId,
                 },
@@ -383,6 +387,7 @@ async function createStockMovement(tx, data) {
             from_location_id: data.from_location_id ?? null,
             to_location_id: data.to_location_id ?? null,
             quantity: data.quantity,
+            base_quantity: data.base_quantity ?? 0,
             movement_date: new Date(),
             remarks: data.remarks || null,
             is_active: 'Y',
@@ -508,11 +513,12 @@ async function processApprovedVanInventoryStock(inventoryId, userId, requestData
                 continue;
             }
             const qty = parseInt(item.quantity, 10) || 0;
-            if (qty <= 0) {
+            const baseQty = parseInt(item.base_quantity, 10) || 0;
+            if (qty <= 0 && baseQty <= 0) {
                 console.log('   Skipping: invalid quantity');
                 continue;
             }
-            console.log('  Quantity:', qty);
+            console.log('  Quantity:', qty, 'Base Quantity:', baseQty);
             const product = await tx.products.findUnique({
                 where: { id: Number(productId) },
                 include: { product_unit_of_measurement: true },
@@ -538,11 +544,12 @@ async function processApprovedVanInventoryStock(inventoryId, userId, requestData
                         console.log(`  Processing batch ${b + 1}/${batchData.length} `);
                         console.log('  Batch input:', JSON.stringify(batchInput, null, 2));
                         const batchQty = parseInt(batchInput.quantity, 10) || 0;
-                        if (batchQty <= 0) {
+                        const batchBaseQty = parseInt(batchInput.base_quantity, 10) || 0;
+                        if (batchQty <= 0 && batchBaseQty <= 0) {
                             console.log('   Skipping batch: invalid quantity');
                             continue;
                         }
-                        console.log('  Batch quantity:', batchQty);
+                        console.log('  Batch quantity:', batchQty, 'Base Quantity:', batchBaseQty);
                         let batchLot = await tx.batch_lots.findFirst({
                             where: {
                                 batch_number: batchInput.batch_number,
@@ -662,6 +669,7 @@ async function processApprovedVanInventoryStock(inventoryId, userId, requestData
                                     product_name: product.name,
                                     unit: product.product_unit_of_measurement?.name || 'pcs',
                                     quantity: batchQty,
+                                    base_quantity: batchBaseQty,
                                     unit_price: Number(item.unit_price || 0),
                                     discount_amount: Number(item.discount_amount || 0),
                                     tax_amount: Number(item.tax_amount || 0),
@@ -673,7 +681,7 @@ async function processApprovedVanInventoryStock(inventoryId, userId, requestData
                             console.log('  New van_inventory_item created');
                         }
                         console.log('   Updating inventory stock...');
-                        await updateInventoryStock(tx, product.id, inventoryLocationId, batchQty, 'L', batchLot.id, null, userId, inventoryUserId);
+                        await updateInventoryStock(tx, product.id, inventoryLocationId, batchQty, 'L', batchLot.id, null, userId, inventoryUserId, batchBaseQty);
                         console.log('  Inventory stock updated');
                         console.log('   Creating stock movement..');
                         await createStockMovement(tx, {
@@ -686,6 +694,7 @@ async function processApprovedVanInventoryStock(inventoryId, userId, requestData
                             from_location_id: null,
                             to_location_id: null,
                             quantity: batchQty,
+                            base_quantity: batchBaseQty,
                             remarks: `Loaded to van - Batch ${batchLot.batch_number}`,
                             van_inventory_id: inventory.id,
                             createdby: userId,
@@ -848,6 +857,7 @@ async function processApprovedVanInventoryStock(inventoryId, userId, requestData
                                 product_name: product.name,
                                 unit: product.product_unit_of_measurement?.name || 'pcs',
                                 quantity: qty,
+                                base_quantity: baseQty,
                                 unit_price: Number(item.unit_price || 0),
                                 discount_amount: Number(item.discount_amount || 0),
                                 tax_amount: Number(item.tax_amount || 0),
@@ -858,7 +868,7 @@ async function processApprovedVanInventoryStock(inventoryId, userId, requestData
                             },
                         });
                     }
-                    await updateInventoryStock(tx, product.id, inventoryLocationId, qty, 'L', null, null, userId, inventoryUserId);
+                    await updateInventoryStock(tx, product.id, inventoryLocationId, qty, 'L', null, null, userId, inventoryUserId, baseQty);
                     await createStockMovement(tx, {
                         product_id: product.id,
                         batch_id: null,
@@ -869,6 +879,7 @@ async function processApprovedVanInventoryStock(inventoryId, userId, requestData
                         from_location_id: null,
                         to_location_id: null,
                         quantity: qty,
+                        base_quantity: baseQty,
                         remarks: `Loaded ${qty} units to van`,
                         van_inventory_id: inventory.id,
                         createdby: userId,
@@ -884,7 +895,9 @@ async function processApprovedVanInventoryStock(inventoryId, userId, requestData
                         (item.van_inventory_items_batch_lot || item.batch_lot_id)) {
                         batchData = [
                             {
-                                batch_number: item.van_inventory_items_batch_lot?.batch_number || item.notes || '',
+                                batch_number: item.van_inventory_items_batch_lot?.batch_number ||
+                                    item.notes ||
+                                    '',
                                 quantity: item.quantity,
                                 batch_lot_id: item.batch_lot_id || item.van_inventory_items_batch_lot?.id,
                             },
@@ -900,11 +913,12 @@ async function processApprovedVanInventoryStock(inventoryId, userId, requestData
                         console.log(`  --- Processing unload batch ${b + 1}/${batchData.length} ---`);
                         console.log('  Batch input:', JSON.stringify(batchInput, null, 2));
                         const batchQty = parseInt(batchInput.quantity, 10) || 0;
-                        if (batchQty <= 0) {
+                        const batchBaseQty = parseInt(batchInput.base_quantity, 10) || 0;
+                        if (batchQty <= 0 && batchBaseQty <= 0) {
                             console.log('   Skipping batch: invalid quantity');
                             continue;
                         }
-                        console.log('  Batch quantity to unload:', batchQty);
+                        console.log('  Batch quantity to unload:', batchQty, 'Base Quantity:', batchBaseQty);
                         let batchLot = null;
                         const batchLotId = batchInput.batch_lot_id || item.batch_lot_id;
                         if (batchLotId) {
@@ -945,8 +959,9 @@ async function processApprovedVanInventoryStock(inventoryId, userId, requestData
                             continue;
                         }
                         const totalVanQty = vanItems.reduce((sum, vi) => sum + (vi.quantity || 0), 0);
-                        console.log('  Found van_inventory_items with total quantity:', totalVanQty);
-                        if (totalVanQty < batchQty) {
+                        const totalVanBaseQty = vanItems.reduce((sum, vi) => sum + (vi.base_quantity || 0), 0);
+                        console.log('  Found van_inventory_items with total quantity:', totalVanQty, 'and base quantity:', totalVanBaseQty);
+                        if (totalVanQty < batchQty && batchQty > 0) {
                             console.log('   Skipping: van_item total quantity (', totalVanQty, ') < batchQty (', batchQty, ')');
                             continue;
                         }
@@ -965,6 +980,7 @@ async function processApprovedVanInventoryStock(inventoryId, userId, requestData
                                 data: {
                                     current_stock: Math.max(0, (inventoryStock.current_stock || 0) - batchQty),
                                     available_stock: Math.max(0, (inventoryStock.available_stock || 0) - batchQty),
+                                    base_quantity: Math.max(0, (inventoryStock.base_quantity || 0) - batchBaseQty),
                                     updatedate: new Date(),
                                     updatedby: userId,
                                 },
@@ -985,6 +1001,7 @@ async function processApprovedVanInventoryStock(inventoryId, userId, requestData
                             from_location_id: null,
                             to_location_id: null,
                             quantity: batchQty,
+                            base_quantity: batchBaseQty,
                             remarks: `Unloaded from van - Batch ${batchLot.batch_number}`,
                             van_inventory_id: inventory.id,
                             createdby: userId,
@@ -1093,7 +1110,7 @@ async function processApprovedVanInventoryStock(inventoryId, userId, requestData
                 }
                 else {
                     console.log('  Tracking type: NONE (plain quantity)');
-                    console.log('  Quantity to unload:', qty);
+                    console.log('  Quantity to unload:', qty, 'Base Quantity:', baseQty);
                     const vanItems = await tx.van_inventory_items.findMany({
                         where: {
                             product_id: product.id,
@@ -1111,8 +1128,9 @@ async function processApprovedVanInventoryStock(inventoryId, userId, requestData
                         continue;
                     }
                     const totalVanQty = vanItems.reduce((sum, vi) => sum + (vi.quantity || 0), 0);
-                    console.log('  Found van_inventory_items with total quantity:', totalVanQty);
-                    if (totalVanQty < qty) {
+                    const totalVanBaseQty = vanItems.reduce((sum, vi) => sum + (vi.base_quantity || 0), 0);
+                    console.log('  Found van_inventory_items with total quantity:', totalVanQty, 'and base quantity:', totalVanBaseQty);
+                    if (totalVanQty < qty && qty > 0) {
                         console.log('   Skipping: van_item total quantity (', totalVanQty, ') < qty (', qty, ')');
                         continue;
                     }
@@ -1132,6 +1150,7 @@ async function processApprovedVanInventoryStock(inventoryId, userId, requestData
                             data: {
                                 current_stock: Math.max(0, (inventoryStock.current_stock || 0) - qty),
                                 available_stock: Math.max(0, (inventoryStock.available_stock || 0) - qty),
+                                base_quantity: Math.max(0, (inventoryStock.base_quantity || 0) - baseQty),
                                 updatedate: new Date(),
                                 updatedby: userId,
                             },
@@ -1152,6 +1171,7 @@ async function processApprovedVanInventoryStock(inventoryId, userId, requestData
                         from_location_id: null,
                         to_location_id: null,
                         quantity: qty,
+                        base_quantity: baseQty,
                         remarks: `Sold ${qty} units from van`,
                         van_inventory_id: inventory.id,
                         createdby: userId,
@@ -1166,6 +1186,130 @@ exports.vanInventoryController = {
     async processApprovedVanInventoryStock(inventoryId, userId, requestData) {
         await processApprovedVanInventoryStock(inventoryId, userId, requestData);
     },
+    // async getSalespersonInventoryItems(req: Request, res: Response) {
+    //   try {
+    //     const { salesperson_id } = req.params;
+    //     const { page, limit, product_id } = req.query;
+    //     if (!salesperson_id) {
+    //       return res.status(400).json({
+    //         success: false,
+    //         message: 'Salesperson ID is required',
+    //       });
+    //     }
+    //     const pageNum = parseInt(page as string, 10) || 1;
+    //     const limitNum = parseInt(limit as string, 10) || 50;
+    //     const salespersonIdNum = parseInt(salesperson_id as string, 10);
+    //     const user = await prisma.users.findUnique({
+    //       where: { id: salespersonIdNum },
+    //       select: { id: true, name: true, email: true },
+    //     });
+    //     if (!user) {
+    //       return res.status(404).json({
+    //         success: false,
+    //         message: 'Salesperson not found',
+    //       });
+    //     }
+    //     const vans = await prisma.van_inventory.findMany({
+    //       where: { user_id: salespersonIdNum, is_active: 'Y' },
+    //       select: { id: true },
+    //     });
+    //     const vanIds = vans.map(v => v.id);
+    //     if (vanIds.length === 0) {
+    //       return res.json({
+    //         success: true,
+    //         message: 'No inventory items found for salesperson',
+    //         data: [],
+    //         pagination: {
+    //           current_page: pageNum,
+    //           per_page: limitNum,
+    //           total_pages: 0,
+    //           total_count: 0,
+    //           has_next: false,
+    //           has_prev: false,
+    //         },
+    //       });
+    //     }
+    //     const itemsRaw = (await prisma.van_inventory_items.findMany({
+    //       where: {
+    //         parent_id: { in: vanIds },
+    //         ...(product_id
+    //           ? { product_id: parseInt(product_id as string, 10) }
+    //           : {}),
+    //       },
+    //       include: {
+    //         van_inventory_items_products: {
+    //           select: {
+    //             id: true,
+    //             name: true,
+    //             code: true,
+    //             unit_of_measurement: true,
+    //             tracking_type: true,
+    //             product_unit_of_measurement: true,
+    //           },
+    //         },
+    //         van_inventory_items_batch_lot: {
+    //           select: {
+    //             id: true,
+    //             batch_number: true,
+    //             lot_number: true,
+    //             expiry_date: true,
+    //           },
+    //         },
+    //       },
+    //       orderBy: { id: 'desc' },
+    //     })) as any;
+    //     const totalCount = itemsRaw.length;
+    //     const startIndex = (pageNum - 1) * limitNum;
+    //     const paginated = itemsRaw.slice(startIndex, startIndex + limitNum);
+    //     const data = paginated.map((it: any) => ({
+    //       item_id: it.id,
+    //       van_inventory_id: it.parent_id,
+    //       product_id: it.product_id,
+    //       product_name:
+    //         it.van_inventory_items_products?.name || it.product_name || null,
+    //       product_code: it.van_inventory_items_products?.code || null,
+    //       tracking_type: it.van_inventory_items_products?.tracking_type || null,
+    //       unit: it.unit || null,
+    //       unit_of_measurement:
+    //         it.van_inventory_items_products?.product_unit_of_measurement,
+    //       quantity: it.quantity,
+    //       unit_price: Number(it.unit_price || 0),
+    //       discount_amount: Number(it.discount_amount || 0),
+    //       tax_amount: Number(it.tax_amount || 0),
+    //       total_amount: Number(it.total_amount || 0),
+    //       notes: it.notes || null,
+    //       batch_lot_id: it.batch_lot_id || null,
+    //       batch: it.van_inventory_items_batch_lot
+    //         ? {
+    //           id: it.van_inventory_items_batch_lot.id,
+    //           batch_number: it.van_inventory_items_batch_lot.batch_number,
+    //           lot_number: it.van_inventory_items_batch_lot.lot_number,
+    //           expiry_date: it.van_inventory_items_batch_lot.expiry_date,
+    //         }
+    //         : null,
+    //     }));
+    //     return res.json({
+    //       success: true,
+    //       message: 'Salesperson inventory items fetched successfully',
+    //       data,
+    //       pagination: {
+    //         current_page: pageNum,
+    //         per_page: limitNum,
+    //         total_pages: Math.ceil(totalCount / limitNum),
+    //         total_count: totalCount,
+    //         has_next: startIndex + limitNum < totalCount,
+    //         has_prev: startIndex > 0,
+    //       },
+    //     });
+    //   } catch (error: any) {
+    //     console.error('Get Salesperson Inventory Items Error:', error);
+    //     return res.status(500).json({
+    //       success: false,
+    //       message: 'Failed to retrieve salesperson inventory items',
+    //       error: error.message,
+    //     });
+    //   }
+    // },
     async getSalespersonInventoryItems(req, res) {
         try {
             const { salesperson_id } = req.params;
@@ -1179,6 +1323,27 @@ exports.vanInventoryController = {
             const pageNum = parseInt(page, 10) || 1;
             const limitNum = parseInt(limit, 10) || 50;
             const salespersonIdNum = parseInt(salesperson_id, 10);
+            const stagedStocks = await prisma_client_1.default.inventory_stock.findMany({
+                where: {
+                    salesperson_id: salespersonIdNum,
+                    is_unloadAll: 'Y',
+                    is_active: 'Y',
+                },
+                select: {
+                    product_id: true,
+                    batch_id: true,
+                    serial_number_id: true,
+                },
+            });
+            const stagedBatches = new Set(stagedStocks
+                .map(s => s.batch_id)
+                .filter((id) => id !== null));
+            const stagedSerials = new Set(stagedStocks
+                .map(s => s.serial_number_id)
+                .filter((id) => id !== null));
+            const stagedProductIds = new Set(stagedStocks
+                .filter(s => s.batch_id === null && s.serial_number_id === null)
+                .map(s => s.product_id));
             const user = await prisma_client_1.default.users.findUnique({
                 where: { id: salespersonIdNum },
                 select: { id: true, name: true, email: true },
@@ -1238,9 +1403,20 @@ exports.vanInventoryController = {
                 },
                 orderBy: { id: 'desc' },
             }));
-            const totalCount = itemsRaw.length;
+            const filteredItems = itemsRaw.filter((it) => {
+                if (it.serial_id && stagedSerials.has(it.serial_id))
+                    return false;
+                if (it.batch_lot_id && stagedBatches.has(it.batch_lot_id))
+                    return false;
+                if (!it.serial_id &&
+                    !it.batch_lot_id &&
+                    stagedProductIds.has(it.product_id))
+                    return false;
+                return true;
+            });
+            const totalCount = filteredItems.length;
             const startIndex = (pageNum - 1) * limitNum;
-            const paginated = itemsRaw.slice(startIndex, startIndex + limitNum);
+            const paginated = filteredItems.slice(startIndex, startIndex + limitNum);
             const data = paginated.map((it) => ({
                 item_id: it.id,
                 van_inventory_id: it.parent_id,
@@ -1289,6 +1465,144 @@ exports.vanInventoryController = {
             });
         }
     },
+    // async getSalespersonInventoryItemsDropdown(req: Request, res: Response) {
+    //   try {
+    //     const { salesperson_id } = req.params;
+    //     const { search } = req.query;
+    //     if (!salesperson_id) {
+    //       return res.status(400).json({
+    //         success: false,
+    //         message: 'Salesperson ID is required',
+    //       });
+    //     }
+    //     const salespersonIdNum = parseInt(salesperson_id as string, 10);
+    //     const vans = await prisma.van_inventory.findMany({
+    //       where: { user_id: salespersonIdNum, is_active: 'Y' },
+    //       select: { id: true },
+    //     });
+    //     const vanIds = vans.map(v => v.id);
+    //     if (vanIds.length === 0) {
+    //       return res.json({
+    //         success: true,
+    //         message: 'No items found',
+    //         data: [],
+    //       });
+    //     }
+    //     const items = await prisma.van_inventory_items.findMany({
+    //       where: { parent_id: { in: vanIds } },
+    //       select: {
+    //         id: true,
+    //         product_id: true,
+    //         quantity: true,
+    //         van_inventory_items_products: {
+    //           select: {
+    //             id: true,
+    //             name: true,
+    //             code: true,
+    //             tracking_type: true,
+    //             base_price: true,
+    //             product_tax_master: {
+    //               select: {
+    //                 id: true,
+    //                 name: true,
+    //                 code: true,
+    //                 tax_rate: true,
+    //                 description: true,
+    //               },
+    //             },
+    //           },
+    //         },
+    //         van_inventory_items_batch_lot: {
+    //           select: {
+    //             id: true,
+    //             remaining_quantity: true,
+    //           },
+    //         },
+    //       },
+    //     });
+    //     const productInventoryMap = new Map<number, number>();
+    //     items.forEach(it => {
+    //       const productId = it.van_inventory_items_products?.id;
+    //       const trackingType =
+    //         it.van_inventory_items_products?.tracking_type?.toLowerCase() ||
+    //         'none';
+    //       if (productId) {
+    //         const currentRemaining = productInventoryMap.get(productId) || 0;
+    //         let itemRemaining = 0;
+    //         if (trackingType === 'batch') {
+    //           itemRemaining =
+    //             it.van_inventory_items_batch_lot?.remaining_quantity || 0;
+    //         } else if (trackingType === 'serial') {
+    //           itemRemaining = it.quantity || 0;
+    //         } else {
+    //           itemRemaining = it.quantity || 0;
+    //         }
+    //         productInventoryMap.set(productId, currentRemaining + itemRemaining);
+    //       }
+    //     });
+    //     const map = new Map<
+    //       number,
+    //       {
+    //         id: number;
+    //         name: string;
+    //         code: string;
+    //         unit_price: number;
+    //         product_id: number;
+    //         tracking_type: string | null;
+    //         tax_details?: {
+    //           id: number;
+    //           name: string;
+    //           code: string;
+    //           tax_rate: number;
+    //           description?: string | null;
+    //         } | null;
+    //       }
+    //     >();
+    //     items.forEach(it => {
+    //       const p = it.van_inventory_items_products;
+    //       if (p) {
+    //         const productRemainingQuantity = productInventoryMap.get(p.id) || 0;
+    //         if (productRemainingQuantity > 0) {
+    //           if (
+    //             !search ||
+    //             (p.name &&
+    //               p.name.toLowerCase().includes((search as string).toLowerCase()))
+    //           ) {
+    //             map.set(p.id, {
+    //               id: it.id,
+    //               name: p.name || 'N/A',
+    //               code: p.code || '',
+    //               unit_price: Number(p.base_price || 0),
+    //               product_id: p.id,
+    //               tracking_type: p.tracking_type || null,
+    //               tax_details: p.product_tax_master
+    //                 ? {
+    //                   id: p.product_tax_master.id,
+    //                   name: p.product_tax_master.name,
+    //                   code: p.product_tax_master.code,
+    //                   tax_rate: Number(p.product_tax_master.tax_rate),
+    //                   description: p.product_tax_master.description,
+    //                 }
+    //                 : null,
+    //             });
+    //           }
+    //         }
+    //       }
+    //     });
+    //     return res.json({
+    //       success: true,
+    //       message: 'Dropdown items fetched successfully',
+    //       data: Array.from(map.values()),
+    //     });
+    //   } catch (error: any) {
+    //     console.error('Get Salesperson Inventory Items Dropdown Error:', error);
+    //     return res.status(500).json({
+    //       success: false,
+    //       message: 'Failed to retrieve dropdown items',
+    //       error: error.message,
+    //     });
+    //   }
+    // },
     async getSalespersonInventoryItemsDropdown(req, res) {
         try {
             const { salesperson_id } = req.params;
@@ -1300,6 +1614,27 @@ exports.vanInventoryController = {
                 });
             }
             const salespersonIdNum = parseInt(salesperson_id, 10);
+            const stagedStocks = await prisma_client_1.default.inventory_stock.findMany({
+                where: {
+                    salesperson_id: salespersonIdNum,
+                    is_unloadAll: 'Y',
+                    is_active: 'Y',
+                },
+                select: {
+                    product_id: true,
+                    batch_id: true,
+                    serial_number_id: true,
+                },
+            });
+            const stagedBatches = new Set(stagedStocks
+                .map(s => s.batch_id)
+                .filter((id) => id !== null));
+            const stagedSerials = new Set(stagedStocks
+                .map(s => s.serial_number_id)
+                .filter((id) => id !== null));
+            const stagedProductIds = new Set(stagedStocks
+                .filter(s => s.batch_id === null && s.serial_number_id === null)
+                .map(s => s.product_id));
             const vans = await prisma_client_1.default.van_inventory.findMany({
                 where: { user_id: salespersonIdNum, is_active: 'Y' },
                 select: { id: true },
@@ -1318,6 +1653,7 @@ exports.vanInventoryController = {
                     id: true,
                     product_id: true,
                     quantity: true,
+                    serial_id: true,
                     van_inventory_items_products: {
                         select: {
                             id: true,
@@ -1345,7 +1681,19 @@ exports.vanInventoryController = {
                 },
             });
             const productInventoryMap = new Map();
-            items.forEach(it => {
+            const filteredItems = items.filter((it) => {
+                if (it.serial_id && stagedSerials.has(it.serial_id))
+                    return false;
+                if (it.van_inventory_items_batch_lot?.id &&
+                    stagedBatches.has(it.van_inventory_items_batch_lot.id))
+                    return false;
+                if (!it.serial_id &&
+                    !it.van_inventory_items_batch_lot?.id &&
+                    stagedProductIds.has(it.product_id))
+                    return false;
+                return true;
+            });
+            filteredItems.forEach(it => {
                 const productId = it.van_inventory_items_products?.id;
                 const trackingType = it.van_inventory_items_products?.tracking_type?.toLowerCase() ||
                     'none';
@@ -1366,7 +1714,7 @@ exports.vanInventoryController = {
                 }
             });
             const map = new Map();
-            items.forEach(it => {
+            filteredItems.forEach(it => {
                 const p = it.van_inventory_items_products;
                 if (p) {
                     const productRemainingQuantity = productInventoryMap.get(p.id) || 0;
@@ -4902,13 +5250,797 @@ exports.vanInventoryController = {
             });
         }
     },
+    // async getinventoryItemSalesperson(req: Request, res: Response) {
+    //   try {
+    //     const { salesperson_id } = req.params;
+    //     const {
+    //       page,
+    //       limit,
+    //       product_id,
+    //       document_date,
+    //       include_expired_batches = 'false',
+    //       batch_status,
+    //       serial_status,
+    //     } = req.query;
+    //     const pageNum = parseInt(page as string, 10) || 1;
+    //     const limitNum = parseInt(limit as string, 10) || 50;
+    //     const processVanInventoryItems = (vanInventories: any[]) => {
+    //       let totalQuantity = 0;
+    //       let totalRemainingQuantity = 0;
+    //       const allProducts = new Set<number>();
+    //       let totalBatches = 0;
+    //       let totalSerials = 0;
+    //       const processedVanInventories = vanInventories
+    //         .map(vanInventory => {
+    //           const products: Map<number, any> = new Map();
+    //           for (const item of vanInventory.van_inventory_items_inventory) {
+    //             if (
+    //               product_id &&
+    //               item.product_id !== parseInt(product_id as string, 10)
+    //             ) {
+    //               continue;
+    //             }
+    //             const product = item.van_inventory_items_products;
+    //             const batch = item.van_inventory_items_batch_lot;
+    //             const trackingType = (
+    //               product?.tracking_type || 'none'
+    //             ).toLowerCase();
+    //             let shouldSkipItem = false;
+    //             let allProductBatches: any[] = [];
+    //             if (batch && trackingType === 'batch') {
+    //               allProductBatches.push({
+    //                 id: batch.id,
+    //                 batch_lot_id: batch.id,
+    //                 batch_number: batch.batch_number,
+    //                 lot_number: batch.lot_number,
+    //                 manufacturing_date: batch.manufacturing_date,
+    //                 expiry_date: batch.expiry_date,
+    //                 supplier_name: batch.supplier_name,
+    //                 quality_grade: batch.quality_grade,
+    //                 quantity: batch.quantity,
+    //                 remaining_quantity: batch.remaining_quantity,
+    //                 loaded_quantity: item.quantity || 0,
+    //               });
+    //             }
+    //             if (shouldSkipItem) {
+    //               continue;
+    //             }
+    //             // Process serials using normalized trackingType
+    //             let serials: any[] = [];
+    //             if (trackingType === 'serial') {
+    //               // Only use serial directly linked to this van inventory item
+    //               const linkedSerial = item.van_inventory_serial;
+    //               if (linkedSerial && linkedSerial.status === 'in_van') {
+    //                 const warrantyExpired =
+    //                   linkedSerial.warranty_expiry &&
+    //                   new Date(linkedSerial.warranty_expiry) <= new Date();
+    //                 serials = [
+    //                   {
+    //                     serial_id: linkedSerial.id,
+    //                     serial_number: linkedSerial.serial_number,
+    //                     status: linkedSerial.status,
+    //                     warranty_expiry: linkedSerial.warranty_expiry,
+    //                     warranty_expired: warrantyExpired,
+    //                     warranty_days_remaining: linkedSerial.warranty_expiry
+    //                       ? Math.floor(
+    //                         (new Date(linkedSerial.warranty_expiry).getTime() -
+    //                           Date.now()) /
+    //                         (1000 * 60 * 60 * 24)
+    //                       )
+    //                       : null,
+    //                     customer_id: linkedSerial.customer_id,
+    //                     customer: linkedSerial.serial_numbers_customers,
+    //                     sold_date: linkedSerial.sold_date,
+    //                   },
+    //                 ];
+    //               }
+    //             }
+    //             const productId = item.product_id;
+    //             if (trackingType === 'serial' && serials.length === 0) {
+    //               continue;
+    //             }
+    //             let itemQuantity = 0;
+    //             if (trackingType === 'serial') {
+    //               itemQuantity = item.quantity || serials.length;
+    //             } else if (
+    //               trackingType === 'batch' &&
+    //               allProductBatches.length > 0
+    //             ) {
+    //               itemQuantity = item.quantity || 0;
+    //             } else {
+    //               itemQuantity = item.quantity || 0;
+    //             }
+    //             if (!products.has(productId)) {
+    //               products.set(productId, {
+    //                 product_id: productId,
+    //                 product_name: product?.name || null,
+    //                 product_code: product?.code || null,
+    //                 unit_of_measurment: product.product_unit_of_measurement,
+    //                 unit_price: product?.base_price
+    //                   ? Number(product.base_price)
+    //                   : null,
+    //                 tracking_type: product?.tracking_type || 'none',
+    //                 quantity: 0,
+    //                 batches: [],
+    //                 serials: [],
+    //                 tax_details: product?.product_tax_master
+    //                   ? {
+    //                     id: product.product_tax_master.id,
+    //                     name: product.product_tax_master.name,
+    //                     code: product.product_tax_master.code,
+    //                     tax_rate: Number(product.product_tax_master.tax_rate),
+    //                     description: product.product_tax_master.description,
+    //                   }
+    //                   : null,
+    //               });
+    //             }
+    //             const productData = products.get(productId)!;
+    //             productData.quantity += itemQuantity;
+    //             totalQuantity += itemQuantity;
+    //             allProducts.add(productId);
+    //             allProductBatches.forEach(batchInfo => {
+    //               const existingBatch = productData.batches.find(
+    //                 (b: any) => b.batch_lot_id === batchInfo.batch_lot_id
+    //               );
+    //               if (!existingBatch) {
+    //                 productData.batches.push(batchInfo);
+    //                 totalRemainingQuantity += batchInfo.remaining_quantity || 0;
+    //                 totalBatches++;
+    //               } else {
+    //                 existingBatch.loaded_quantity =
+    //                   (existingBatch.loaded_quantity || 0) +
+    //                   (batchInfo.loaded_quantity || 0);
+    //               }
+    //             });
+    //             if (serials.length > 0) {
+    //               serials.forEach((serial: any) => {
+    //                 if (
+    //                   !productData.serials.find(
+    //                     (existing: any) => existing.serial_id === serial.serial_id
+    //                   )
+    //                 ) {
+    //                   productData.serials.push(serial);
+    //                   totalSerials++;
+    //                 }
+    //               });
+    //             }
+    //           }
+    //           // if (products.size === 0) {
+    //           //   return null;
+    //           // }
+    //           // return {
+    //           //   van_inventory_id: vanInventory.id,
+    //           //   document_date: vanInventory.document_date,
+    //           //   status: vanInventory.status,
+    //           //   loading_type: vanInventory.loading_type,
+    //           //   location_id: vanInventory.location_id,
+    //           //   location_type: vanInventory.location_type,
+    //           //   vehicle_id: vanInventory.vehicle_id,
+    //           //   vehicle: vanInventory.vehicle
+    //           //     ? {
+    //           //         vehicle_id: vanInventory.vehicle.id,
+    //           //         vehicle_number: vanInventory.vehicle.vehicle_number,
+    //           //       }
+    //           //     : null,
+    //           //   products: Array.from(products.values()),
+    //           // };
+    //           return {
+    //             van_inventory_id: vanInventory.id,
+    //             document_date: vanInventory.document_date,
+    //             status: vanInventory.status,
+    //             loading_type: vanInventory.loading_type,
+    //             location_id: vanInventory.location_id,
+    //             location_type: vanInventory.location_type,
+    //             vehicle_id: vanInventory.vehicle_id,
+    //             vehicle: vanInventory.vehicle
+    //               ? {
+    //                 vehicle_id: vanInventory.vehicle.id,
+    //                 vehicle_number: vanInventory.vehicle.vehicle_number,
+    //               }
+    //               : null,
+    //             products: Array.from(products.values()),
+    //           };
+    //         })
+    //         .filter(vanInventory => vanInventory !== null);
+    //       return {
+    //         vanInventories: processedVanInventories,
+    //         totalProducts: allProducts.size,
+    //         totalQuantity,
+    //         totalRemainingQuantity,
+    //         totalBatches,
+    //         totalSerials,
+    //       };
+    //     };
+    //     let dateFilter = {};
+    //     if (document_date) {
+    //       const date = new Date(document_date as string);
+    //       if (isNaN(date.getTime())) {
+    //         return res.status(400).json({
+    //           success: false,
+    //           message: 'Invalid document_date format. Use YYYY-MM-DD',
+    //         });
+    //       }
+    //       const startOfDay = new Date(date);
+    //       startOfDay.setHours(0, 0, 0, 0);
+    //       const endOfDay = new Date(date);
+    //       endOfDay.setHours(23, 59, 59, 999);
+    //       dateFilter = {
+    //         document_date: {
+    //           gte: startOfDay,
+    //           lte: endOfDay,
+    //         },
+    //       };
+    //     }
+    //     if (
+    //       !salesperson_id ||
+    //       salesperson_id === '' ||
+    //       salesperson_id === 'all'
+    //     ) {
+    //       const allSalespersons = await prisma.users.findMany({
+    //         where: {},
+    //         select: {
+    //           id: true,
+    //           name: true,
+    //           email: true,
+    //           phone_number: true,
+    //           profile_image: true,
+    //           user_role: {
+    //             select: {
+    //               name: true,
+    //             },
+    //           },
+    //         },
+    //       });
+    //       const consolidatedSalespersons: any[] = [];
+    //       for (const salesperson of allSalespersons) {
+    //         const vanInventories = await prisma.van_inventory.findMany({
+    //           where: {
+    //             user_id: salesperson.id,
+    //             is_active: 'Y',
+    //             status: 'A',
+    //             ...dateFilter,
+    //           },
+    //           select: {
+    //             id: true,
+    //             status: true,
+    //             loading_type: true,
+    //             document_date: true,
+    //             location_id: true,
+    //             location_type: true,
+    //             vehicle_id: true,
+    //             vehicle: {
+    //               select: {
+    //                 id: true,
+    //                 vehicle_number: true,
+    //               },
+    //             },
+    //             van_inventory_items_inventory: {
+    //               select: {
+    //                 id: true,
+    //                 product_id: true,
+    //                 quantity: true,
+    //                 batch_lot_id: true,
+    //                 serial_id: true,
+    //                 unit_price: true,
+    //                 van_inventory_items_batch_lot: {
+    //                   select: {
+    //                     id: true,
+    //                     batch_number: true,
+    //                     lot_number: true,
+    //                     manufacturing_date: true,
+    //                     expiry_date: true,
+    //                     supplier_name: true,
+    //                     quality_grade: true,
+    //                     quantity: true,
+    //                     remaining_quantity: true,
+    //                   },
+    //                 },
+    //                 van_inventory_serial: {
+    //                   select: {
+    //                     id: true,
+    //                     serial_number: true,
+    //                     status: true,
+    //                     warranty_expiry: true,
+    //                     batch_id: true,
+    //                     customer_id: true,
+    //                     sold_date: true,
+    //                     batch_lots: {
+    //                       select: {
+    //                         id: true,
+    //                         batch_number: true,
+    //                         lot_number: true,
+    //                         expiry_date: true,
+    //                       },
+    //                     },
+    //                     serial_numbers_customers: {
+    //                       select: {
+    //                         id: true,
+    //                         name: true,
+    //                         code: true,
+    //                       },
+    //                     },
+    //                   },
+    //                 },
+    //                 van_inventory_items_products: {
+    //                   select: {
+    //                     id: true,
+    //                     name: true,
+    //                     code: true,
+    //                     base_price: true,
+    //                     product_unit_of_measurement: true,
+    //                     tracking_type: true,
+    //                     tax_id: true,
+    //                     product_tax_master: {
+    //                       select: {
+    //                         id: true,
+    //                         name: true,
+    //                         code: true,
+    //                         tax_rate: true,
+    //                         description: true,
+    //                       },
+    //                     },
+    //                   },
+    //                 },
+    //               },
+    //             },
+    //           },
+    //           orderBy: { document_date: 'desc' },
+    //         });
+    //         if (vanInventories.length === 0) continue;
+    //         const {
+    //           vanInventories: processedVanInventories,
+    //           totalProducts,
+    //           totalQuantity,
+    //           totalRemainingQuantity,
+    //           totalBatches,
+    //           totalSerials,
+    //         } = processVanInventoryItems(vanInventories);
+    //         if (processedVanInventories.length === 0) continue;
+    //         consolidatedSalespersons.push({
+    //           salesperson_id: salesperson.id,
+    //           salesperson_name: salesperson.name,
+    //           salesperson_email: salesperson.email,
+    //           salesperson_phone: salesperson.phone_number,
+    //           salesperson_profile_image: salesperson.profile_image,
+    //           salesperson_role: salesperson.user_role.name,
+    //           total_van_inventories: processedVanInventories.length,
+    //           total_products: totalProducts,
+    //           total_quantity: totalQuantity,
+    //           total_remaining_quantity: totalRemainingQuantity,
+    //           total_batches: totalBatches,
+    //           total_serials: totalSerials,
+    //           van_inventories: processedVanInventories,
+    //         });
+    //       }
+    //       const startIndex = (pageNum - 1) * limitNum;
+    //       const paginatedData = consolidatedSalespersons.slice(
+    //         startIndex,
+    //         startIndex + limitNum
+    //       );
+    //       const pagination = {
+    //         current_page: pageNum,
+    //         per_page: limitNum,
+    //         total_pages: Math.ceil(consolidatedSalespersons.length / limitNum),
+    //         total_count: consolidatedSalespersons.length,
+    //         has_next:
+    //           pageNum < Math.ceil(consolidatedSalespersons.length / limitNum),
+    //         has_prev: pageNum > 1,
+    //       };
+    //       return res.json({
+    //         success: true,
+    //         message: 'All salesperson inventory data retrieved successfully',
+    //         data: paginatedData,
+    //         filters: {
+    //           document_date: document_date || null,
+    //           product_id: product_id || null,
+    //           batch_status: batch_status || null,
+    //           serial_status: serial_status || null,
+    //         },
+    //         pagination,
+    //       });
+    //     }
+    //     const salespersonIdNum = parseInt(salesperson_id as string, 10);
+    //     const salesperson = await prisma.users.findUnique({
+    //       where: { id: salespersonIdNum },
+    //       select: {
+    //         id: true,
+    //         name: true,
+    //         email: true,
+    //         phone_number: true,
+    //         profile_image: true,
+    //         user_role: {
+    //           select: {
+    //             name: true,
+    //           },
+    //         },
+    //       },
+    //     });
+    //     if (!salesperson) {
+    //       return res.status(404).json({
+    //         success: false,
+    //         message: 'Salesperson not found',
+    //       });
+    //     }
+    //     const vanInventories = await prisma.van_inventory.findMany({
+    //       where: {
+    //         user_id: salespersonIdNum,
+    //         is_active: 'Y',
+    //         status: 'A',
+    //         ...dateFilter,
+    //       },
+    //       select: {
+    //         id: true,
+    //         status: true,
+    //         loading_type: true,
+    //         document_date: true,
+    //         location_id: true,
+    //         location_type: true,
+    //         vehicle_id: true,
+    //         vehicle: {
+    //           select: {
+    //             id: true,
+    //             vehicle_number: true,
+    //           },
+    //         },
+    //         van_inventory_items_inventory: {
+    //           select: {
+    //             id: true,
+    //             product_id: true,
+    //             quantity: true,
+    //             batch_lot_id: true,
+    //             serial_id: true,
+    //             unit_price: true,
+    //             van_inventory_items_batch_lot: {
+    //               select: {
+    //                 id: true,
+    //                 batch_number: true,
+    //                 lot_number: true,
+    //                 manufacturing_date: true,
+    //                 expiry_date: true,
+    //                 supplier_name: true,
+    //                 quality_grade: true,
+    //                 quantity: true,
+    //                 remaining_quantity: true,
+    //               },
+    //             },
+    //             van_inventory_serial: {
+    //               select: {
+    //                 id: true,
+    //                 serial_number: true,
+    //                 status: true,
+    //                 warranty_expiry: true,
+    //                 batch_id: true,
+    //                 customer_id: true,
+    //                 sold_date: true,
+    //                 batch_lots: {
+    //                   select: {
+    //                     id: true,
+    //                     batch_number: true,
+    //                     lot_number: true,
+    //                     expiry_date: true,
+    //                   },
+    //                 },
+    //                 serial_numbers_customers: {
+    //                   select: {
+    //                     id: true,
+    //                     name: true,
+    //                     code: true,
+    //                   },
+    //                 },
+    //               },
+    //             },
+    //             van_inventory_items_products: {
+    //               select: {
+    //                 id: true,
+    //                 name: true,
+    //                 code: true,
+    //                 base_price: true,
+    //                 product_unit_of_measurement: true,
+    //                 tracking_type: true,
+    //                 tax_id: true,
+    //                 product_tax_master: {
+    //                   select: {
+    //                     id: true,
+    //                     name: true,
+    //                     code: true,
+    //                     tax_rate: true,
+    //                     description: true,
+    //                   },
+    //                 },
+    //               },
+    //             },
+    //           },
+    //         },
+    //       },
+    //       orderBy: { document_date: 'desc' },
+    //     });
+    //     if (vanInventories.length === 0) {
+    //       return res.json({
+    //         success: true,
+    //         message: 'No inventory found for this salesperson',
+    //         data: {
+    //           salesperson_id: salesperson.id,
+    //           salesperson_name: salesperson.name,
+    //           salesperson_email: salesperson.email,
+    //           salesperson_phone: salesperson.phone_number,
+    //           salesperson_role: salesperson.user_role.name,
+    //           salesperson_profile_image: salesperson.profile_image,
+    //           total_van_inventories: 0,
+    //           total_products: 0,
+    //           total_quantity: 0,
+    //           total_remaining_quantity: 0,
+    //           total_batches: 0,
+    //           total_serials: 0,
+    //           van_inventories: [],
+    //         },
+    //         filters: {
+    //           document_date: document_date || null,
+    //           product_id: product_id || null,
+    //           batch_status: batch_status || null,
+    //           serial_status: serial_status || null,
+    //         },
+    //       });
+    //     }
+    //     const {
+    //       vanInventories: processedVanInventories,
+    //       totalProducts,
+    //       totalQuantity,
+    //       totalRemainingQuantity,
+    //       totalBatches,
+    //       totalSerials,
+    //     } = processVanInventoryItems(vanInventories);
+    //     const startIndex = (pageNum - 1) * limitNum;
+    //     const paginatedVanInventories = processedVanInventories.slice(
+    //       startIndex,
+    //       startIndex + limitNum
+    //     );
+    //     const pagination = {
+    //       current_page: pageNum,
+    //       per_page: limitNum,
+    //       total_pages: Math.ceil(processedVanInventories.length / limitNum),
+    //       total_count: processedVanInventories.length,
+    //       has_next:
+    //         pageNum < Math.ceil(processedVanInventories.length / limitNum),
+    //       has_prev: pageNum > 1,
+    //     };
+    //     res.json({
+    //       success: true,
+    //       message: 'Salesperson inventory retrieved successfully',
+    //       data: {
+    //         salesperson_id: salesperson.id,
+    //         salesperson_name: salesperson.name,
+    //         salesperson_email: salesperson.email,
+    //         salesperson_phone: salesperson.phone_number,
+    //         salesperson_profile_image: salesperson.profile_image,
+    //         total_van_inventories: processedVanInventories.length,
+    //         total_products: totalProducts,
+    //         total_quantity: totalQuantity,
+    //         total_remaining_quantity: totalRemainingQuantity,
+    //         total_batches: totalBatches,
+    //         total_serials: totalSerials,
+    //         van_inventories: paginatedVanInventories,
+    //       },
+    //       filters: {
+    //         document_date: document_date || null,
+    //         product_id: product_id || null,
+    //         batch_status: batch_status || null,
+    //         serial_status: serial_status || null,
+    //       },
+    //       pagination,
+    //     });
+    //   } catch (error: any) {
+    //     console.error('Get Salesperson Inventory Error:', error);
+    //     res.status(500).json({
+    //       success: false,
+    //       message: 'Failed to retrieve salesperson inventory',
+    //       error: error.message,
+    //     });
+    //   }
+    // },
+    // async unloadVanInventory(req: Request, res: Response) {
+    //   try {
+    //     const loggedInUserId = (req as any).user?.id;
+    //     const targetUserId = req.body.user_id || loggedInUserId;
+    //     if (!targetUserId) {
+    //       return res.status(401).json({
+    //         success: false,
+    //         message: 'User not authenticated or token invalid',
+    //       });
+    //     }
+    //     const userIdNum = parseInt(targetUserId.toString(), 10);
+    //     const vanLocations = await prisma.van_inventory.findMany({
+    //       where: { user_id: userIdNum, is_active: 'Y' },
+    //       select: { location_id: true, vehicle_id: true },
+    //       distinct: ['location_id'],
+    //     });
+    //     if (vanLocations.length === 0) {
+    //       return res.status(400).json({
+    //         success: false,
+    //         message: 'No active van inventory found for authenticated user',
+    //       });
+    //     }
+    //     let totalItemsUnloaded = 0;
+    //     const processedVanInventoryIds: number[] = [];
+    //     const errors: string[] = [];
+    //     for (const vanLoc of vanLocations) {
+    //       const locationId = vanLoc.location_id;
+    //       if (!locationId) continue;
+    //       try {
+    //         await prisma.$transaction(async tx => {
+    //           // Find stock to unload
+    //           const stockToUnload = await tx.inventory_stock.findMany({
+    //             where: {
+    //               location_id: locationId,
+    //               salesperson_id: userIdNum,
+    //               OR: [
+    //                 { current_stock: { gt: 0 } },
+    //                 { base_quantity: { gt: 0 } },
+    //               ],
+    //             },
+    //             include: {
+    //               inventory_stock_products: true,
+    //             },
+    //           });
+    //           if (stockToUnload.length === 0) return;
+    //           const newVanInventory = await tx.van_inventory.create({
+    //             data: {
+    //               user_id: userIdNum,
+    //               location_id: vanLoc.location_id,
+    //               vehicle_id: vanLoc.vehicle_id,
+    //               loading_type: 'U',
+    //               is_active: 'Y',
+    //               document_date: new Date(),
+    //               createdate: new Date(),
+    //               createdby: userIdNum,
+    //               log_inst: 1,
+    //             },
+    //           });
+    //           const stockMovementData: any[] = [];
+    //           const vanInventoryItemsData: any[] = [];
+    //           const serialNumberIds: number[] = [];
+    //           const stockIdsToUpdate: number[] = [];
+    //           for (const stock of stockToUnload) {
+    //             const product = (stock as any).inventory_stock_products;
+    //             if (!product) continue;
+    //             const unloadQty = stock.current_stock || 0;
+    //             const unloadBaseQty = stock.base_quantity || 0;
+    //             if (unloadQty <= 0 && unloadBaseQty <= 0) continue;
+    //             stockIdsToUpdate.push(stock.id);
+    //             if (stock.serial_number_id) {
+    //               serialNumberIds.push(stock.serial_number_id);
+    //             }
+    //             // Add to stock_movements
+    //             stockMovementData.push({
+    //               product_id: stock.product_id,
+    //               batch_id: stock.batch_id ?? null,
+    //               serial_id: stock.serial_number_id ?? null,
+    //               movement_type: 'VAN_UNLOAD',
+    //               reference_type: 'VAN_INVENTORY',
+    //               reference_id: newVanInventory.id,
+    //               from_location_id: null,
+    //               to_location_id: null,
+    //               quantity: unloadQty,
+    //               movement_date: new Date(),
+    //               remarks: `Van unloaded from ${vanLoc.vehicle_id ? `vehicle ${vanLoc.vehicle_id}` : 'location'} for user ${userIdNum}`,
+    //               is_active: 'Y',
+    //               createdate: new Date(),
+    //               createdby: userIdNum,
+    //               log_inst: 1,
+    //               van_inventory_id: newVanInventory.id,
+    //             });
+    //             // Add to van_inventory_items
+    //             vanInventoryItemsData.push({
+    //               parent_id: newVanInventory.id,
+    //               product_id: stock.product_id,
+    //               batch_lot_id: stock.batch_id ?? null,
+    //               serial_id: stock.serial_number_id ?? null,
+    //               quantity: unloadQty,
+    //               base_quantity: unloadBaseQty,
+    //               product_name: product.name,
+    //               unit: null,
+    //               unit_price: product.selling_price || 0,
+    //               discount_amount: 0,
+    //               tax_amount: 0,
+    //               total_amount: unloadQty * Number(product.selling_price || 0),
+    //               notes: 'Unloaded from inventory_stock',
+    //             });
+    //             totalItemsUnloaded++;
+    //           }
+    //           if (stockIdsToUpdate.length > 0) {
+    //             await tx.inventory_stock.updateMany({
+    //               where: { id: { in: stockIdsToUpdate } },
+    //               data: {
+    //                 current_stock: 0,
+    //                 available_stock: 0,
+    //                 base_quantity: 0,
+    //                 updatedate: new Date(),
+    //                 updatedby: userIdNum,
+    //               },
+    //             });
+    //           }
+    //           if (stockMovementData.length > 0) {
+    //             await tx.stock_movements.createMany({
+    //               data: stockMovementData,
+    //             });
+    //           }
+    //           if (vanInventoryItemsData.length > 0) {
+    //             await tx.van_inventory_items.createMany({
+    //               data: vanInventoryItemsData,
+    //             });
+    //           }
+    //           processedVanInventoryIds.push(newVanInventory.id);
+    //         });
+    //       } catch (vanLocError: any) {
+    //         console.error(
+    //           `Failed to process van location ${vanLoc.location_id}:`,
+    //           vanLocError
+    //         );
+    //         errors.push(`Location ${vanLoc.location_id}: ${vanLocError.message}`);
+    //         continue;
+    //       }
+    //     }
+    //     return res.json({
+    //       success: true,
+    //       message: 'Van inventory unloaded successfully for user',
+    //       data: {
+    //         user_id: userIdNum,
+    //         van_inventories_processed: processedVanInventoryIds,
+    //         total_items_unloaded: totalItemsUnloaded,
+    //         unloaded_date: new Date(),
+    //         errors: errors.length > 0 ? errors : undefined,
+    //       },
+    //     });
+    //   } catch (error: any) {
+    //     console.error('Unload Van Inventory Error:', error);
+    //     return res.status(500).json({
+    //       success: false,
+    //       message: 'Failed to unload van inventory',
+    //       error: error.message,
+    //     });
+    //   }
+    // },
     async getinventoryItemSalesperson(req, res) {
         try {
             const { salesperson_id } = req.params;
             const { page, limit, product_id, document_date, include_expired_batches = 'false', batch_status, serial_status, } = req.query;
             const pageNum = parseInt(page, 10) || 1;
             const limitNum = parseInt(limit, 10) || 50;
-            const processVanInventoryItems = (vanInventories) => {
+            const stagedStocks = await prisma_client_1.default.inventory_stock.findMany({
+                where: {
+                    is_unloadAll: 'Y',
+                    is_active: 'Y',
+                },
+                select: {
+                    salesperson_id: true,
+                    product_id: true,
+                    batch_id: true,
+                    serial_number_id: true,
+                },
+            });
+            const stagedStocksBySalesperson = new Map();
+            for (const stock of stagedStocks) {
+                if (!stock.salesperson_id)
+                    continue;
+                let entry = stagedStocksBySalesperson.get(stock.salesperson_id);
+                if (!entry) {
+                    entry = {
+                        stagedBatches: new Set(),
+                        stagedSerials: new Set(),
+                        stagedProductIds: new Set(),
+                    };
+                    stagedStocksBySalesperson.set(stock.salesperson_id, entry);
+                }
+                if (stock.serial_number_id) {
+                    entry.stagedSerials.add(stock.serial_number_id);
+                }
+                else if (stock.batch_id) {
+                    entry.stagedBatches.add(stock.batch_id);
+                }
+                else {
+                    entry.stagedProductIds.add(stock.product_id);
+                }
+            }
+            const processVanInventoryItems = (vanInventories, currentSalespersonId) => {
                 let totalQuantity = 0;
                 let totalRemainingQuantity = 0;
                 const allProducts = new Set();
@@ -4917,7 +6049,24 @@ exports.vanInventoryController = {
                 const processedVanInventories = vanInventories
                     .map(vanInventory => {
                     const products = new Map();
-                    for (const item of vanInventory.van_inventory_items_inventory) {
+                    // Filter items under reconciliation
+                    const stagedEntry = stagedStocksBySalesperson.get(currentSalespersonId);
+                    const items = vanInventory.van_inventory_items_inventory.filter((it) => {
+                        if (stagedEntry) {
+                            if (it.serial_id &&
+                                stagedEntry.stagedSerials.has(it.serial_id))
+                                return false;
+                            if (it.batch_lot_id &&
+                                stagedEntry.stagedBatches.has(it.batch_lot_id))
+                                return false;
+                            if (!it.serial_id &&
+                                !it.batch_lot_id &&
+                                stagedEntry.stagedProductIds.has(it.product_id))
+                                return false;
+                        }
+                        return true;
+                    });
+                    for (const item of items) {
                         if (product_id &&
                             item.product_id !== parseInt(product_id, 10)) {
                             continue;
@@ -5218,7 +6367,7 @@ exports.vanInventoryController = {
                     });
                     if (vanInventories.length === 0)
                         continue;
-                    const { vanInventories: processedVanInventories, totalProducts, totalQuantity, totalRemainingQuantity, totalBatches, totalSerials, } = processVanInventoryItems(vanInventories);
+                    const { vanInventories: processedVanInventories, totalProducts, totalQuantity, totalRemainingQuantity, totalBatches, totalSerials, } = processVanInventoryItems(vanInventories, salesperson.id);
                     if (processedVanInventories.length === 0)
                         continue;
                     consolidatedSalespersons.push({
@@ -5402,7 +6551,7 @@ exports.vanInventoryController = {
                     },
                 });
             }
-            const { vanInventories: processedVanInventories, totalProducts, totalQuantity, totalRemainingQuantity, totalBatches, totalSerials, } = processVanInventoryItems(vanInventories);
+            const { vanInventories: processedVanInventories, totalProducts, totalQuantity, totalRemainingQuantity, totalBatches, totalSerials, } = processVanInventoryItems(vanInventories, salespersonIdNum);
             const startIndex = (pageNum - 1) * limitNum;
             const paginatedVanInventories = processedVanInventories.slice(startIndex, startIndex + limitNum);
             const pagination = {
@@ -5448,168 +6597,6 @@ exports.vanInventoryController = {
             });
         }
     },
-    // async unloadVanInventory(req: Request, res: Response) {
-    //   try {
-    //     const loggedInUserId = (req as any).user?.id;
-    //     const targetUserId = req.body.user_id || loggedInUserId;
-    //     if (!targetUserId) {
-    //       return res.status(401).json({
-    //         success: false,
-    //         message: 'User not authenticated or token invalid',
-    //       });
-    //     }
-    //     const userIdNum = parseInt(targetUserId.toString(), 10);
-    //     const vanLocations = await prisma.van_inventory.findMany({
-    //       where: { user_id: userIdNum, is_active: 'Y' },
-    //       select: { location_id: true, vehicle_id: true },
-    //       distinct: ['location_id'],
-    //     });
-    //     if (vanLocations.length === 0) {
-    //       return res.status(400).json({
-    //         success: false,
-    //         message: 'No active van inventory found for authenticated user',
-    //       });
-    //     }
-    //     let totalItemsUnloaded = 0;
-    //     const processedVanInventoryIds: number[] = [];
-    //     const errors: string[] = [];
-    //     for (const vanLoc of vanLocations) {
-    //       const locationId = vanLoc.location_id;
-    //       if (!locationId) continue;
-    //       try {
-    //         await prisma.$transaction(async tx => {
-    //           // Find stock to unload
-    //           const stockToUnload = await tx.inventory_stock.findMany({
-    //             where: {
-    //               location_id: locationId,
-    //               salesperson_id: userIdNum,
-    //               OR: [
-    //                 { current_stock: { gt: 0 } },
-    //                 { base_quantity: { gt: 0 } },
-    //               ],
-    //             },
-    //             include: {
-    //               inventory_stock_products: true,
-    //             },
-    //           });
-    //           if (stockToUnload.length === 0) return;
-    //           const newVanInventory = await tx.van_inventory.create({
-    //             data: {
-    //               user_id: userIdNum,
-    //               location_id: vanLoc.location_id,
-    //               vehicle_id: vanLoc.vehicle_id,
-    //               loading_type: 'U',
-    //               is_active: 'Y',
-    //               document_date: new Date(),
-    //               createdate: new Date(),
-    //               createdby: userIdNum,
-    //               log_inst: 1,
-    //             },
-    //           });
-    //           const stockMovementData: any[] = [];
-    //           const vanInventoryItemsData: any[] = [];
-    //           const serialNumberIds: number[] = [];
-    //           const stockIdsToUpdate: number[] = [];
-    //           for (const stock of stockToUnload) {
-    //             const product = (stock as any).inventory_stock_products;
-    //             if (!product) continue;
-    //             const unloadQty = stock.current_stock || 0;
-    //             const unloadBaseQty = stock.base_quantity || 0;
-    //             if (unloadQty <= 0 && unloadBaseQty <= 0) continue;
-    //             stockIdsToUpdate.push(stock.id);
-    //             if (stock.serial_number_id) {
-    //               serialNumberIds.push(stock.serial_number_id);
-    //             }
-    //             // Add to stock_movements
-    //             stockMovementData.push({
-    //               product_id: stock.product_id,
-    //               batch_id: stock.batch_id ?? null,
-    //               serial_id: stock.serial_number_id ?? null,
-    //               movement_type: 'VAN_UNLOAD',
-    //               reference_type: 'VAN_INVENTORY',
-    //               reference_id: newVanInventory.id,
-    //               from_location_id: null,
-    //               to_location_id: null,
-    //               quantity: unloadQty,
-    //               movement_date: new Date(),
-    //               remarks: `Van unloaded from ${vanLoc.vehicle_id ? `vehicle ${vanLoc.vehicle_id}` : 'location'} for user ${userIdNum}`,
-    //               is_active: 'Y',
-    //               createdate: new Date(),
-    //               createdby: userIdNum,
-    //               log_inst: 1,
-    //               van_inventory_id: newVanInventory.id,
-    //             });
-    //             // Add to van_inventory_items
-    //             vanInventoryItemsData.push({
-    //               parent_id: newVanInventory.id,
-    //               product_id: stock.product_id,
-    //               batch_lot_id: stock.batch_id ?? null,
-    //               serial_id: stock.serial_number_id ?? null,
-    //               quantity: unloadQty,
-    //               base_quantity: unloadBaseQty,
-    //               product_name: product.name,
-    //               unit: null,
-    //               unit_price: product.selling_price || 0,
-    //               discount_amount: 0,
-    //               tax_amount: 0,
-    //               total_amount: unloadQty * Number(product.selling_price || 0),
-    //               notes: 'Unloaded from inventory_stock',
-    //             });
-    //             totalItemsUnloaded++;
-    //           }
-    //           if (stockIdsToUpdate.length > 0) {
-    //             await tx.inventory_stock.updateMany({
-    //               where: { id: { in: stockIdsToUpdate } },
-    //               data: {
-    //                 current_stock: 0,
-    //                 available_stock: 0,
-    //                 base_quantity: 0,
-    //                 updatedate: new Date(),
-    //                 updatedby: userIdNum,
-    //               },
-    //             });
-    //           }
-    //           if (stockMovementData.length > 0) {
-    //             await tx.stock_movements.createMany({
-    //               data: stockMovementData,
-    //             });
-    //           }
-    //           if (vanInventoryItemsData.length > 0) {
-    //             await tx.van_inventory_items.createMany({
-    //               data: vanInventoryItemsData,
-    //             });
-    //           }
-    //           processedVanInventoryIds.push(newVanInventory.id);
-    //         });
-    //       } catch (vanLocError: any) {
-    //         console.error(
-    //           `Failed to process van location ${vanLoc.location_id}:`,
-    //           vanLocError
-    //         );
-    //         errors.push(`Location ${vanLoc.location_id}: ${vanLocError.message}`);
-    //         continue;
-    //       }
-    //     }
-    //     return res.json({
-    //       success: true,
-    //       message: 'Van inventory unloaded successfully for user',
-    //       data: {
-    //         user_id: userIdNum,
-    //         van_inventories_processed: processedVanInventoryIds,
-    //         total_items_unloaded: totalItemsUnloaded,
-    //         unloaded_date: new Date(),
-    //         errors: errors.length > 0 ? errors : undefined,
-    //       },
-    //     });
-    //   } catch (error: any) {
-    //     console.error('Unload Van Inventory Error:', error);
-    //     return res.status(500).json({
-    //       success: false,
-    //       message: 'Failed to unload van inventory',
-    //       error: error.message,
-    //     });
-    //   }
-    // },
     async createVanInventoryFromReconciliation(reconciliationId, approvedByUserId) {
         return prisma_client_1.default.$transaction(async (tx) => {
             const reconciliation = await tx.reconciliation.findUnique({
@@ -5722,7 +6709,8 @@ exports.vanInventoryController = {
                     // Fallback to the global query if not found
                     if (!batchLotId) {
                         batchLotId =
-                            batchLotsMap.get(`${item.product_id}_${item.batch_number}`) ?? null;
+                            batchLotsMap.get(`${item.product_id}_${item.batch_number}`) ??
+                                null;
                     }
                 }
                 itemsData.push({
@@ -5750,6 +6738,217 @@ exports.vanInventoryController = {
             timeout: 90000,
         });
     },
+    // async unloadVanInventory(req: Request, res: Response) {
+    //   try {
+    //     const loggedInUserId = (req as any).user?.id;
+    //     const targetUserId = req.body.user_id || loggedInUserId;
+    //     if (!targetUserId) {
+    //       return res.status(401).json({
+    //         success: false,
+    //         message: 'User not authenticated or token invalid',
+    //       });
+    //     }
+    //     const userIdNum = parseInt(targetUserId.toString(), 10);
+    //     const vanLocations = await prisma.van_inventory.findMany({
+    //       where: { user_id: userIdNum, is_active: 'Y' },
+    //       select: { location_id: true, vehicle_id: true },
+    //       distinct: ['location_id'],
+    //     });
+    //     if (vanLocations.length === 0) {
+    //       return res.status(400).json({
+    //         success: false,
+    //         message: 'No active van inventory found for authenticated user',
+    //       });
+    //     }
+    //     let totalItemsRequested = 0;
+    //     const reconciliationIds: number[] = [];
+    //     const errors: string[] = [];
+    //     for (const vanLoc of vanLocations) {
+    //       const locationId = vanLoc.location_id;
+    //       if (!locationId) continue;
+    //       try {
+    //         const reconciliationId = await prisma.$transaction(async tx => {
+    //           const stockToUnload = await tx.inventory_stock.findMany({
+    //             where: {
+    //               location_id: locationId,
+    //               salesperson_id: userIdNum,
+    //               OR: [
+    //                 { current_stock: { gt: 0 } },
+    //                 { base_quantity: { gt: 0 } },
+    //               ],
+    //             },
+    //             include: {
+    //               inventory_stock_products: true,
+    //               inventory_stock_batch: true,
+    //             },
+    //           });
+    //           if (stockToUnload.length === 0) return null;
+    //           const user = await tx.users.findUnique({
+    //             where: { id: userIdNum },
+    //             select: {
+    //               id: true,
+    //               name: true,
+    //               employee_id: true,
+    //               depot_id: true,
+    //               sap_code: true,
+    //             },
+    //           });
+    //           if (!user) return null;
+    //           const now = new Date();
+    //           const today = new Date(
+    //             Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())
+    //           );
+    //           const tomorrow = new Date(today);
+    //           tomorrow.setDate(tomorrow.getDate() + 1);
+    //           // Always create a new reconciliation
+    //           const productMap = new Map<
+    //             string,
+    //             {
+    //               product_id: number;
+    //               product_code: string;
+    //               total_qty: number;
+    //               batch_number: string | null;
+    //             }
+    //           >();
+    //           for (const stock of stockToUnload) {
+    //             if (stock.product_id === null) continue;
+    //             const qty = Number(stock.current_stock) || 0;
+    //             if (qty <= 0) continue;
+    //             const batchNum =
+    //               stock.inventory_stock_batch?.batch_number ?? null;
+    //             const productCode =
+    //               stock.inventory_stock_products?.code ||
+    //               String(stock.product_id);
+    //             const key = `${stock.product_id}-${batchNum}`;
+    //             const existing = productMap.get(key);
+    //             if (existing) {
+    //               existing.total_qty += qty;
+    //             } else {
+    //               productMap.set(key, {
+    //                 product_id: stock.product_id,
+    //                 product_code: productCode,
+    //                 total_qty: qty,
+    //                 batch_number: batchNum,
+    //               });
+    //             }
+    //             totalItemsRequested++;
+    //           }
+    //           if (productMap.size === 0) return null;
+    //           const todayStart = new Date(today);
+    //           todayStart.setHours(0, 0, 0, 0);
+    //           const todayEnd = new Date(today);
+    //           todayEnd.setHours(23, 59, 59, 999);
+    //           const loadQtyRecords = await tx.van_inventory_items.findMany({
+    //             where: {
+    //               van_inventory_items_inventory: {
+    //                 user_id: userIdNum,
+    //                 loading_type: 'L',
+    //                 status: 'A',
+    //                 createdate: { gte: todayStart, lt: todayEnd },
+    //               },
+    //             },
+    //             include: {
+    //               van_inventory_items_batch_lot: {
+    //                 select: { batch_number: true },
+    //               },
+    //             },
+    //           });
+    //           const loadQtyMap = new Map<string, number>();
+    //           for (const record of loadQtyRecords) {
+    //             const batchNum =
+    //               record.van_inventory_items_batch_lot?.batch_number || '';
+    //             const key = `${record.product_id}-${batchNum}`;
+    //             const current = loadQtyMap.get(key) || 0;
+    //             loadQtyMap.set(key, current + (record.quantity || 0));
+    //           }
+    //           const saleQtyRecords = await tx.stock_movements.findMany({
+    //             where: {
+    //               createdby: userIdNum,
+    //               movement_type: 'SALE',
+    //               movement_date: { gte: todayStart, lt: todayEnd },
+    //               is_active: 'Y',
+    //             },
+    //             include: {
+    //               batch_lots: { select: { batch_number: true } },
+    //             },
+    //           });
+    //           const saleQtyMap = new Map<string, number>();
+    //           for (const record of saleQtyRecords) {
+    //             const batchNum = record.batch_lots?.batch_number || '';
+    //             const key = `${record.product_id}-${batchNum}`;
+    //             const current = saleQtyMap.get(key) || 0;
+    //             saleQtyMap.set(key, current + (record.quantity || 0));
+    //           }
+    //           const recon = await tx.reconciliation.create({
+    //             data: {
+    //               salesman_id: userIdNum,
+    //               depot_id: user.depot_id ?? locationId,
+    //               status: 'P',
+    //               reconciliation_date: today,
+    //               is_active: 'Y',
+    //               createdate: new Date(),
+    //               createdby: userIdNum,
+    //             },
+    //           });
+    //           const toCreate: any[] = [];
+    //           for (const p of productMap.values()) {
+    //             toCreate.push({
+    //               reconciliation_id: recon.id,
+    //               product_id: p.product_id,
+    //               batch_number: p.batch_number,
+    //               expected_qty: p.total_qty,
+    //               actual_qty: null,
+    //               load_qty:
+    //                 loadQtyMap.get(`${p.product_id}-${p.batch_number || ''}`) ||
+    //                 0,
+    //               sale_qty:
+    //                 saleQtyMap.get(`${p.product_id}-${p.batch_number || ''}`) ||
+    //                 0,
+    //               variance: null,
+    //               resolution_action: 'Awaiting Verification',
+    //               default_outlet_posting_qty: 0,
+    //               unload_adjustment_qty: 0,
+    //               stock_key: `${user.sap_code ?? user.id} | ${p.product_code} | ${p.batch_number}`,
+    //               is_active: 'Y',
+    //               createdate: new Date(),
+    //               createdby: userIdNum,
+    //             });
+    //           }
+    //           if (toCreate.length > 0) {
+    //             await tx.reconciliation_items.createMany({ data: toCreate });
+    //           }
+    //           return recon.id;
+    //         });
+    //         if (reconciliationId) reconciliationIds.push(reconciliationId);
+    //       } catch (vanLocError: any) {
+    //         console.error(
+    //           `Failed to process location ${locationId}:`,
+    //           vanLocError
+    //         );
+    //         errors.push(`Location ${locationId}: ${vanLocError.message}`);
+    //       }
+    //     }
+    //     return res.json({
+    //       success: true,
+    //       message:
+    //         'Stock staged for reconciliation. Save the reconciliation to submit for unload approval.',
+    //       data: {
+    //         user_id: userIdNum,
+    //         reconciliation_ids: reconciliationIds,
+    //         total_items_requested: totalItemsRequested,
+    //         request_date: new Date(),
+    //         errors: errors.length ? errors : undefined,
+    //       },
+    //     });
+    //   } catch (error: any) {
+    //     console.error('Unload Van Inventory Error:', error);
+    //     return res.status(500).json({
+    //       success: false,
+    //       message: 'Failed to stage unload reconciliation',
+    //       error: error.message,
+    //     });
+    //   }
+    // },
     async unloadVanInventory(req, res) {
         try {
             const loggedInUserId = req.user?.id;
@@ -5761,6 +6960,7 @@ exports.vanInventoryController = {
                 });
             }
             const userIdNum = parseInt(targetUserId.toString(), 10);
+            // Staging checked-out inventory directly by reconciliation ID
             const vanLocations = await prisma_client_1.default.van_inventory.findMany({
                 where: { user_id: userIdNum, is_active: 'Y' },
                 select: { location_id: true, vehicle_id: true },
@@ -5785,9 +6985,17 @@ exports.vanInventoryController = {
                             where: {
                                 location_id: locationId,
                                 salesperson_id: userIdNum,
-                                OR: [
-                                    { current_stock: { gt: 0 } },
-                                    { base_quantity: { gt: 0 } },
+                                is_active: 'Y',
+                                AND: [
+                                    {
+                                        OR: [{ is_unloadAll: 'N' }, { is_unloadAll: null }],
+                                    },
+                                    {
+                                        OR: [
+                                            { current_stock: { gt: 0 } },
+                                            { base_quantity: { gt: 0 } },
+                                        ],
+                                    },
                                 ],
                             },
                             include: {
@@ -5811,15 +7019,17 @@ exports.vanInventoryController = {
                             return null;
                         const now = new Date();
                         const today = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
-                        const tomorrow = new Date(today);
-                        tomorrow.setDate(tomorrow.getDate() + 1);
-                        // Always create a new reconciliation
+                        const todayStart = new Date(today);
+                        todayStart.setHours(0, 0, 0, 0);
+                        const todayEnd = new Date(today);
+                        todayEnd.setHours(23, 59, 59, 999);
                         const productMap = new Map();
                         for (const stock of stockToUnload) {
                             if (stock.product_id === null)
                                 continue;
                             const qty = Number(stock.current_stock) || 0;
-                            if (qty <= 0)
+                            const baseQty = Number(stock.base_quantity) || 0;
+                            if (qty <= 0 && baseQty <= 0)
                                 continue;
                             const batchNum = stock.inventory_stock_batch?.batch_number ?? null;
                             const productCode = stock.inventory_stock_products?.code ||
@@ -5828,12 +7038,14 @@ exports.vanInventoryController = {
                             const existing = productMap.get(key);
                             if (existing) {
                                 existing.total_qty += qty;
+                                existing.total_base_qty += baseQty;
                             }
                             else {
                                 productMap.set(key, {
                                     product_id: stock.product_id,
                                     product_code: productCode,
                                     total_qty: qty,
+                                    total_base_qty: baseQty,
                                     batch_number: batchNum,
                                 });
                             }
@@ -5841,10 +7053,6 @@ exports.vanInventoryController = {
                         }
                         if (productMap.size === 0)
                             return null;
-                        const todayStart = new Date(today);
-                        todayStart.setHours(0, 0, 0, 0);
-                        const todayEnd = new Date(today);
-                        todayEnd.setHours(23, 59, 59, 999);
                         const loadQtyRecords = await tx.van_inventory_items.findMany({
                             where: {
                                 van_inventory_items_inventory: {
@@ -5864,15 +7072,24 @@ exports.vanInventoryController = {
                         for (const record of loadQtyRecords) {
                             const batchNum = record.van_inventory_items_batch_lot?.batch_number || '';
                             const key = `${record.product_id}-${batchNum}`;
-                            const current = loadQtyMap.get(key) || 0;
-                            loadQtyMap.set(key, current + (record.quantity || 0));
+                            const current = loadQtyMap.get(key) || { qty: 0, baseQty: 0 };
+                            loadQtyMap.set(key, {
+                                qty: current.qty + (record.quantity || 0),
+                                baseQty: current.baseQty + (record.base_quantity || 0),
+                            });
                         }
                         const saleQtyRecords = await tx.stock_movements.findMany({
                             where: {
-                                createdby: userIdNum,
+                                OR: [
+                                    { createdby: userIdNum },
+                                    { from_location_id: locationId },
+                                ],
                                 movement_type: 'SALE',
-                                movement_date: { gte: todayStart, lt: todayEnd },
+                                movement_date: { gte: todayStart, lte: todayEnd },
                                 is_active: 'Y',
+                                product_id: {
+                                    in: Array.from(productMap.values()).map(p => p.product_id),
+                                },
                             },
                             include: {
                                 batch_lots: { select: { batch_number: true } },
@@ -5882,8 +7099,11 @@ exports.vanInventoryController = {
                         for (const record of saleQtyRecords) {
                             const batchNum = record.batch_lots?.batch_number || '';
                             const key = `${record.product_id}-${batchNum}`;
-                            const current = saleQtyMap.get(key) || 0;
-                            saleQtyMap.set(key, current + (record.quantity || 0));
+                            const current = saleQtyMap.get(key) || { qty: 0, baseQty: 0 };
+                            saleQtyMap.set(key, {
+                                qty: current.qty + (record.quantity || 0),
+                                baseQty: current.baseQty + (record.base_quantity || 0),
+                            });
                         }
                         const recon = await tx.reconciliation.create({
                             data: {
@@ -5903,12 +7123,19 @@ exports.vanInventoryController = {
                                 product_id: p.product_id,
                                 batch_number: p.batch_number,
                                 expected_qty: p.total_qty,
+                                expected_base_qty: p.total_base_qty,
                                 actual_qty: null,
-                                load_qty: loadQtyMap.get(`${p.product_id}-${p.batch_number || ''}`) ||
-                                    0,
-                                sale_qty: saleQtyMap.get(`${p.product_id}-${p.batch_number || ''}`) ||
-                                    0,
+                                actual_base_qty: 0,
+                                load_qty: loadQtyMap.get(`${p.product_id}-${p.batch_number || ''}`)
+                                    ?.qty || 0,
+                                load_base_qty: loadQtyMap.get(`${p.product_id}-${p.batch_number || ''}`)
+                                    ?.baseQty || 0,
+                                sale_qty: saleQtyMap.get(`${p.product_id}-${p.batch_number || ''}`)
+                                    ?.qty || 0,
+                                sale_base_qty: saleQtyMap.get(`${p.product_id}-${p.batch_number || ''}`)
+                                    ?.baseQty || 0,
                                 variance: null,
+                                variance_base_qty: 0,
                                 resolution_action: 'Awaiting Verification',
                                 default_outlet_posting_qty: 0,
                                 unload_adjustment_qty: 0,
@@ -5921,6 +7148,17 @@ exports.vanInventoryController = {
                         if (toCreate.length > 0) {
                             await tx.reconciliation_items.createMany({ data: toCreate });
                         }
+                        await tx.inventory_stock.updateMany({
+                            where: {
+                                location_id: locationId,
+                                salesperson_id: userIdNum,
+                                is_active: 'Y',
+                                OR: [{ is_unloadAll: 'N' }, { is_unloadAll: null }],
+                            },
+                            data: {
+                                is_unloadAll: 'Y',
+                            },
+                        });
                         return recon.id;
                     });
                     if (reconciliationId)

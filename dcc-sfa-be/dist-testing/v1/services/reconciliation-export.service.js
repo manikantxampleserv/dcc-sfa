@@ -20,18 +20,34 @@ const exportReconciliationExcelService = async (reconciliationData) => {
         if (existing) {
             existing.loadQuantity =
                 (Number(existing.loadQuantity) || 0) + (Number(item.loadQuantity) || 0);
+            existing.loadBaseQty =
+                (Number(existing.loadBaseQty) || 0) + (Number(item.loadBaseQty) || 0);
             existing.saleQuantity =
                 (Number(existing.saleQuantity) || 0) + (Number(item.saleQuantity) || 0);
+            existing.saleBaseQty =
+                (Number(existing.saleBaseQty) || 0) + (Number(item.saleBaseQty) || 0);
             existing.expectedRop =
                 (Number(existing.expectedRop) || 0) + (Number(item.expectedRop) || 0);
+            existing.expectedBaseQty =
+                (Number(existing.expectedBaseQty) || 0) +
+                    (Number(item.expectedBaseQty) || 0);
             const actualExisting = existing.actualRop !== '' && existing.actualRop !== null
                 ? Number(existing.actualRop)
+                : 0;
+            const actualExistingBase = existing.actualBaseQty !== '' && existing.actualBaseQty !== null
+                ? Number(existing.actualBaseQty)
                 : 0;
             const actualItem = item.actualRop !== '' && item.actualRop !== null
                 ? Number(item.actualRop)
                 : 0;
+            const actualItemBase = item.actualBaseQty !== '' && item.actualBaseQty !== null
+                ? Number(item.actualBaseQty)
+                : 0;
             existing.actualRop = String(actualExisting + actualItem);
+            existing.actualBaseQty = String(actualExistingBase + actualItemBase);
             existing.variance = String((Number(existing.variance) || 0) + (Number(item.variance) || 0));
+            existing.varianceBaseQty = String((Number(existing.varianceBaseQty) || 0) +
+                (Number(item.varianceBaseQty) || 0));
             if (!existing.resolutionAction ||
                 existing.resolutionAction === 'CLEAN' ||
                 existing.resolutionAction === '-') {
@@ -48,13 +64,12 @@ const exportReconciliationExcelService = async (reconciliationData) => {
         { width: 6 },
         { width: 12 },
         { width: 35 },
-        { width: 15 },
-        { width: 15 },
-        { width: 15 },
-        { width: 15 },
-        { width: 15 },
-        { width: 12 },
         { width: 18 },
+        { width: 18 },
+        { width: 18 },
+        { width: 18 },
+        { width: 18 },
+        { width: 15 },
         { width: 18 },
         { width: 25 },
     ];
@@ -168,17 +183,43 @@ const exportReconciliationExcelService = async (reconciliationData) => {
             row.getCell(1).value = idx + 1;
             row.getCell(2).value = item.skuCode;
             row.getCell(3).value = item.skuName;
-            row.getCell(4).value = Number(item.loadQuantity) || 0;
-            row.getCell(5).value = Number(item.saleQuantity) || 0;
-            row.getCell(6).value = Number(item.expectedRop) || 0;
-            const actualVal = item.actualRop !== '' && item.actualRop !== null
-                ? Number(item.actualRop)
-                : 0;
-            row.getCell(7).value = actualVal;
+            const conv = Number(item.conversionRate) || 1;
+            const price = Number(item.basePrice) || 0;
+            const basePricePerPc = price / conv;
+            row.getCell(4).value =
+                `${Number(item.loadQuantity) || 0} Cases ${Number(item.loadBaseQty) || 0} PCs`;
+            row.getCell(5).value =
+                `${Number(item.saleQuantity) || 0} Cases ${Number(item.saleBaseQty) || 0} PCs`;
+            row.getCell(6).value =
+                `${Number(item.expectedRop) || 0} Cases ${Number(item.expectedBaseQty) || 0} PCs`;
+            const hasActualCases = item.actualRop !== '' &&
+                item.actualRop !== null &&
+                item.actualRop !== undefined;
+            const hasActualPCs = item.actualBaseQty !== '' &&
+                item.actualBaseQty !== null &&
+                item.actualBaseQty !== undefined;
+            const actualVal = hasActualCases ? Number(item.actualRop) : 0;
+            const actualBaseVal = hasActualPCs ? Number(item.actualBaseQty) : 0;
+            row.getCell(7).value =
+                hasActualCases || hasActualPCs
+                    ? `${actualVal} Cases ${actualBaseVal} PCs`
+                    : '-';
             const varianceVal = Number(item.variance) || 0;
-            row.getCell(8).value = varianceVal;
-            row.getCell(9).value = Number(item.basePrice) || 0;
-            const saleVal = (Number(item.saleQuantity) || 0) * (Number(item.basePrice) || 0);
+            const varianceBaseVal = Number(item.varianceBaseQty) || 0;
+            const sign = varianceVal < 0 || varianceBaseVal < 0
+                ? '-'
+                : varianceVal > 0 || varianceBaseVal > 0
+                    ? '+'
+                    : '';
+            const absCases = Math.abs(varianceVal);
+            const absPcs = Math.abs(varianceBaseVal);
+            row.getCell(8).value =
+                varianceVal === 0 && varianceBaseVal === 0
+                    ? '0 Cases 0 PCs'
+                    : `${sign}${absCases} Cases ${absPcs} PCs`;
+            row.getCell(9).value = price;
+            const saleVal = (Number(item.saleQuantity) || 0) * price +
+                (Number(item.saleBaseQty) || 0) * basePricePerPc;
             row.getCell(10).value = saleVal;
             const action = item.resolutionAction || '-';
             row.getCell(11).value = action;
@@ -188,14 +229,11 @@ const exportReconciliationExcelService = async (reconciliationData) => {
             catActual += actualVal;
             catVariance += varianceVal;
             catSaleValue += saleVal;
-            if (action.includes('Default Outlet Posting') && varianceVal < 0) {
+            if (action.includes('Default Outlet') &&
+                (varianceVal < 0 || varianceBaseVal < 0)) {
                 grandTotalDefaultOutletValue +=
-                    Math.abs(varianceVal) * (Number(item.basePrice) || 0);
-            }
-            else if (action.includes('Post to Default Outlet') &&
-                varianceVal > 0) {
-                grandTotalDefaultOutletValue +=
-                    Math.abs(varianceVal) * (Number(item.basePrice) || 0);
+                    Math.abs(varianceVal) * price +
+                        Math.abs(varianceBaseVal) * basePricePerPc;
             }
             for (let i = 1; i <= 11; i++) {
                 const cell = row.getCell(i);
@@ -212,7 +250,7 @@ const exportReconciliationExcelService = async (reconciliationData) => {
                     if (action.includes('Unload Adjustment')) {
                         applyFill(cell, 'FFFFD966');
                     }
-                    else if (action.includes('Default Outlet Posting')) {
+                    else if (action.includes('Default Outlet')) {
                         applyFill(cell, 'FFF4B084');
                     }
                     else if (action === 'CLEAN') {

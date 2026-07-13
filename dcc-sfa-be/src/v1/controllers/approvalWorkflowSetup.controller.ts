@@ -277,9 +277,26 @@ export const approvalWorkflowSetupController = {
   async deleteApprovalWorkFlow(req: Request, res: Response) {
     try {
       const { requestType } = req.params;
+      const { depot_id, zone_id, is_global } = req.query;
+
+      const whereClause: any = {
+        request_type: requestType,
+      };
+
+      if (depot_id && depot_id !== 'null') {
+        whereClause.depot_id = Number(depot_id);
+      } else if (is_global === 'true' || depot_id === 'null') {
+        whereClause.depot_id = null;
+      }
+
+      if (zone_id && zone_id !== 'null') {
+        whereClause.zone_id = Number(zone_id);
+      } else if (is_global === 'true' || zone_id === 'null') {
+        whereClause.zone_id = null;
+      }
 
       const result = await prisma.approval_work_flow.deleteMany({
-        where: { request_type: requestType },
+        where: whereClause,
       });
 
       console.log(`🗑 Deleted ${result.count} workflows for ${requestType}`);

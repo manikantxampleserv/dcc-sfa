@@ -279,6 +279,145 @@ async function resolveRequesterDepotId(tx, requesterId, requestType, requestData
     }
     return userDepots[0].depot_id;
 }
+async function processDefaultOutletInvoice(reconciliationIdForInvoice, userIdForInvoice) {
+    try {
+        const reconciliation = await prisma_client_1.default.reconciliation.findUnique({
+            where: { id: reconciliationIdForInvoice },
+            include: {
+                salesman: {
+                    select: { id: true, depot_id: true },
+                },
+                depot: {
+                    select: {
+                        id: true,
+                        name: true,
+                        default_outlet_id: true,
+                    },
+                },
+                reconciliation_items: {
+                    where: {
+                        is_active: 'Y',
+                        resolution_action: 'Post to Default Outlet',
+                    },
+                    include: {
+                        product: {
+                            select: {
+                                id: true,
+                                base_price: true,
+                                product_unit_of_measurement: {
+                                    select: { conversion_rate: true },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        });
+        if (!reconciliation)
+            return;
+        const shortageItems = reconciliation.reconciliation_items;
+        if (!shortageItems || shortageItems.length === 0) {
+            console.log(`[DefaultOutletInvoice] No shortage items for reconciliation ${reconciliationIdForInvoice}. Skipping.`);
+            return;
+        }
+        const defaultOutletId = reconciliation.depot?.default_outlet_id;
+        if (!defaultOutletId) {
+            console.warn(`[DefaultOutletInvoice] Depot "${reconciliation.depot?.name}" has no Default Outlet configured. Cannot auto-create invoice for reconciliation ${reconciliationIdForInvoice}.`);
+            return;
+        }
+        // Idempotency check
+        const existing = await prisma_client_1.default.invoices.findFirst({
+            where: {
+                notes: {
+                    contains: `RECON-${reconciliationIdForInvoice}-DEFAULT-OUTLET`,
+                },
+            },
+        });
+        if (existing) {
+            console.log(`[DefaultOutletInvoice] Invoice ${existing.invoice_number} already exists for reconciliation ${reconciliationIdForInvoice}. Skipping.`);
+            return;
+        }
+        const salespersonId = reconciliation.salesman?.id || null;
+        const invoiceItems = shortageItems.map((item) => {
+            const conv = Number(item.product?.product_unit_of_measurement?.conversion_rate) || 1;
+            const price = Number(item.product?.base_price) || 0;
+            const shortCases = Number(item.default_outlet_posting_qty) || 0;
+            const shortPcs = Number(item.default_outlet_posting_base_qty) || 0;
+            const unitPricePerPc = conv > 0 ? price / conv : 0;
+            const lineTotal = shortCases * price + shortPcs * unitPricePerPc;
+            return {
+                product_id: item.product_id,
+                quantity: shortCases,
+                base_quantity: shortPcs,
+                unit_price: price,
+                subtotal: lineTotal,
+                tax_amount: 0,
+                discount_amount: 0,
+                total_amount: lineTotal,
+                notes: `Variance shortage - ${shortCases} Cases ${shortPcs} PCs`,
+                batch_lot_id: item.batch_lot_id || null,
+            };
+        });
+        const invoiceSubtotal = invoiceItems.reduce((s, i) => s + i.total_amount, 0);
+        await prisma_client_1.default.$transaction(async (txInner) => {
+            const invoiceNumber = `DO-RECON-${reconciliationIdForInvoice}-${Date.now()}`;
+            const newInvoice = await txInner.invoices.create({
+                data: {
+                    invoice_number: invoiceNumber,
+                    customer_id: defaultOutletId,
+                    salesperson_id: salespersonId,
+                    currency_id: null,
+                    invoice_date: reconciliation.reconciliation_date || new Date(),
+                    due_date: null,
+                    status: 'paid',
+                    payment_method: 'cash',
+                    subtotal: invoiceSubtotal,
+                    discount_amount: 0,
+                    tax_amount: 0,
+                    shipping_amount: 0,
+                    total_amount: invoiceSubtotal,
+                    amount_paid: invoiceSubtotal,
+                    balance_due: 0,
+                    notes: `RECON-${reconciliationIdForInvoice}-DEFAULT-OUTLET | Auto-generated for shortage posting on approval`,
+                    is_active: 'Y',
+                    createdby: userIdForInvoice,
+                    log_inst: 1,
+                    createdate: new Date(),
+                },
+            });
+            for (const item of invoiceItems) {
+                await txInner.invoice_items.create({
+                    data: {
+                        parent_id: newInvoice.id,
+                        product_id: item.product_id,
+                        quantity: item.quantity,
+                        base_quantity: item.base_quantity,
+                        unit_price: item.unit_price,
+                        tax_amount: item.tax_amount,
+                        discount_amount: item.discount_amount,
+                        total_amount: item.total_amount,
+                        notes: item.notes,
+                    },
+                });
+            }
+            await txInner.reconciliation_items.updateMany({
+                where: {
+                    reconciliation_id: reconciliationIdForInvoice,
+                    resolution_action: 'Post to Default Outlet',
+                },
+                data: {
+                    resolution_action: 'Posted to Default Outlet',
+                    updatedate: new Date(),
+                    updatedby: userIdForInvoice,
+                },
+            });
+            console.log(`[DefaultOutletInvoice] Created invoice ${invoiceNumber} for reconciliation ${reconciliationIdForInvoice} — ${invoiceItems.length} item(s), total ${invoiceSubtotal}`);
+        });
+    }
+    catch (err) {
+        console.error('[DefaultOutletInvoice] Error creating default outlet invoice after reconciliation approval:', err);
+    }
+}
 const createRequest = async (data) => {
     try {
         console.log(' Creating request:', data.request_type);
@@ -408,6 +547,50 @@ const createRequest = async (data) => {
                         updatedby: data.createdby,
                     },
                 });
+                const recon = await prisma_client_1.default.reconciliation.findUnique({
+                    where: { id: data.reference_id },
+                    select: { salesman_id: true }
+                });
+                if (recon) {
+                    const reconItems = await prisma_client_1.default.reconciliation_items.findMany({
+                        where: { reconciliation_id: data.reference_id },
+                        select: { product_id: true, batch_number: true }
+                    });
+                    const conditions = [];
+                    for (const item of reconItems) {
+                        if (!item.product_id)
+                            continue;
+                        let batchId = null;
+                        if (item.batch_number) {
+                            const batch = await prisma_client_1.default.batch_lots.findFirst({
+                                where: {
+                                    batch_number: item.batch_number,
+                                    productsId: item.product_id,
+                                },
+                                select: { id: true }
+                            });
+                            if (batch)
+                                batchId = batch.id;
+                        }
+                        conditions.push({
+                            product_id: item.product_id,
+                            batch_id: batchId,
+                        });
+                    }
+                    if (conditions.length > 0) {
+                        await prisma_client_1.default.inventory_stock.updateMany({
+                            where: {
+                                salesperson_id: recon.salesman_id,
+                                is_active: 'Y',
+                                is_unloadAll: 'Y',
+                                OR: conditions,
+                            },
+                            data: {
+                                is_unloadAll: 'N',
+                            },
+                        });
+                    }
+                }
                 setImmediate(async () => {
                     try {
                         const { vanInventoryController } = await Promise.resolve().then(() => __importStar(require('./vanInventory.controller')));
@@ -487,6 +670,9 @@ const createRequest = async (data) => {
                         else {
                             console.log(`Reconciliation ${data.reference_id} auto-approved but had no items to unload`);
                         }
+                        // Auto-create Default Outlet invoice for all 'Post to Default Outlet'
+                        // shortage items when a RECONCILIATION_APPROVAL is fully approved.
+                        await processDefaultOutletInvoice(data.reference_id, data.createdby);
                     }
                     catch (err) {
                         console.error('Error processing stock on RECONCILIATION_APPROVAL auto-approve:', err);
@@ -1235,6 +1421,50 @@ exports.requestsController = {
                                 updatedby: userId,
                             },
                         });
+                        const recon = await tx.reconciliation.findUnique({
+                            where: { id: request.reference_id },
+                            select: { salesman_id: true }
+                        });
+                        if (recon) {
+                            const reconItems = await tx.reconciliation_items.findMany({
+                                where: { reconciliation_id: request.reference_id },
+                                select: { product_id: true, batch_number: true }
+                            });
+                            const conditions = [];
+                            for (const item of reconItems) {
+                                if (!item.product_id)
+                                    continue;
+                                let batchId = null;
+                                if (item.batch_number) {
+                                    const batch = await tx.batch_lots.findFirst({
+                                        where: {
+                                            batch_number: item.batch_number,
+                                            productsId: item.product_id,
+                                        },
+                                        select: { id: true }
+                                    });
+                                    if (batch)
+                                        batchId = batch.id;
+                                }
+                                conditions.push({
+                                    product_id: item.product_id,
+                                    batch_id: batchId,
+                                });
+                            }
+                            if (conditions.length > 0) {
+                                await tx.inventory_stock.updateMany({
+                                    where: {
+                                        salesperson_id: recon.salesman_id,
+                                        is_active: 'Y',
+                                        is_unloadAll: 'Y',
+                                        OR: conditions,
+                                    },
+                                    data: {
+                                        is_unloadAll: 'N',
+                                    },
+                                });
+                            }
+                        }
                         if (request.request_data) {
                             try {
                                 const reqData = JSON.parse(request.request_data);
@@ -1406,6 +1636,50 @@ exports.requestsController = {
                                 updatedby: userId,
                             },
                         });
+                        const recon = await tx.reconciliation.findUnique({
+                            where: { id: request.reference_id },
+                            select: { salesman_id: true }
+                        });
+                        if (recon) {
+                            const reconItems = await tx.reconciliation_items.findMany({
+                                where: { reconciliation_id: request.reference_id },
+                                select: { product_id: true, batch_number: true }
+                            });
+                            const conditions = [];
+                            for (const item of reconItems) {
+                                if (!item.product_id)
+                                    continue;
+                                let batchId = null;
+                                if (item.batch_number) {
+                                    const batch = await tx.batch_lots.findFirst({
+                                        where: {
+                                            batch_number: item.batch_number,
+                                            productsId: item.product_id,
+                                        },
+                                        select: { id: true }
+                                    });
+                                    if (batch)
+                                        batchId = batch.id;
+                                }
+                                conditions.push({
+                                    product_id: item.product_id,
+                                    batch_id: batchId,
+                                });
+                            }
+                            if (conditions.length > 0) {
+                                await tx.inventory_stock.updateMany({
+                                    where: {
+                                        salesperson_id: recon.salesman_id,
+                                        is_active: 'Y',
+                                        is_unloadAll: 'Y',
+                                        OR: conditions,
+                                    },
+                                    data: {
+                                        is_unloadAll: 'N',
+                                    },
+                                });
+                            }
+                        }
                         if (request.request_data) {
                             try {
                                 const reqData = JSON.parse(request.request_data);
@@ -1519,8 +1793,6 @@ exports.requestsController = {
                                 console.error('Error in takeActionOnRequest for RECONCILIATION_APPROVAL approval side-effects:', e);
                             }
                         }
-                        // Delete duplicate pending RECONCILIATION_APPROVAL requests
-                        // sharing the same reconciliation (reference_id)
                         try {
                             const dupRequests = await tx.sfa_d_requests.findMany({
                                 where: {
@@ -1545,6 +1817,14 @@ exports.requestsController = {
                         catch (dupErr) {
                             console.error('Error deleting duplicate RECONCILIATION_APPROVAL requests on approval:', dupErr);
                         }
+                    }
+                    if (request.request_type === 'RECONCILIATION_APPROVAL' &&
+                        request.reference_id) {
+                        const reconciliationIdForInvoice = request.reference_id;
+                        const userIdForInvoice = userId;
+                        setImmediate(async () => {
+                            await processDefaultOutletInvoice(reconciliationIdForInvoice, userIdForInvoice);
+                        });
                     }
                     if (request.request_type === 'ASSET_MOVEMENT_APPROVAL' &&
                         request.reference_id) {
