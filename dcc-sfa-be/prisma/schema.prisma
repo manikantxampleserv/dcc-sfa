@@ -1135,6 +1135,7 @@ model inventory_stock {
   reserved_stock           Int?            @default(0)
   batch_id                 Int?
   serial_number_id         Int?
+  is_unloadAll             String?         @default("N") @db.NVarChar(50)
   available_stock          Int?            @default(0)
   minimum_stock            Int?            @default(0)
   maximum_stock            Int?            @default(0)

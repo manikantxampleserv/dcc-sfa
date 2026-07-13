@@ -3339,6 +3339,52 @@ export const createRequest = async (data: {
           },
         });
 
+        const recon = await prisma.reconciliation.findUnique({
+          where: { id: data.reference_id },
+          select: { salesman_id: true }
+        });
+
+        if (recon) {
+          const reconItems = await prisma.reconciliation_items.findMany({
+            where: { reconciliation_id: data.reference_id },
+            select: { product_id: true, batch_number: true }
+          });
+
+          const conditions: any[] = [];
+          for (const item of reconItems) {
+            if (!item.product_id) continue;
+            let batchId: number | null = null;
+            if (item.batch_number) {
+              const batch = await prisma.batch_lots.findFirst({
+                where: {
+                  batch_number: item.batch_number,
+                  productsId: item.product_id,
+                },
+                select: { id: true }
+              });
+              if (batch) batchId = batch.id;
+            }
+            conditions.push({
+              product_id: item.product_id,
+              batch_id: batchId,
+            });
+          }
+
+          if (conditions.length > 0) {
+            await prisma.inventory_stock.updateMany({
+              where: {
+                salesperson_id: recon.salesman_id,
+                is_active: 'Y',
+                is_unloadAll: 'Y',
+                OR: conditions,
+              },
+              data: {
+                is_unloadAll: 'N',
+              },
+            });
+          }
+        }
+
         setImmediate(async () => {
           try {
             const { vanInventoryController } =
@@ -4370,6 +4416,52 @@ export const requestsController = {
                 },
               });
 
+              const recon = await tx.reconciliation.findUnique({
+                where: { id: request.reference_id },
+                select: { salesman_id: true }
+              });
+
+              if (recon) {
+                const reconItems = await tx.reconciliation_items.findMany({
+                  where: { reconciliation_id: request.reference_id },
+                  select: { product_id: true, batch_number: true }
+                });
+
+                const conditions: any[] = [];
+                for (const item of reconItems) {
+                  if (!item.product_id) continue;
+                  let batchId: number | null = null;
+                  if (item.batch_number) {
+                    const batch = await tx.batch_lots.findFirst({
+                      where: {
+                        batch_number: item.batch_number,
+                        productsId: item.product_id,
+                      },
+                      select: { id: true }
+                    });
+                    if (batch) batchId = batch.id;
+                  }
+                  conditions.push({
+                    product_id: item.product_id,
+                    batch_id: batchId,
+                  });
+                }
+
+                if (conditions.length > 0) {
+                  await tx.inventory_stock.updateMany({
+                    where: {
+                      salesperson_id: recon.salesman_id,
+                      is_active: 'Y',
+                      is_unloadAll: 'Y',
+                      OR: conditions,
+                    },
+                    data: {
+                      is_unloadAll: 'N',
+                    },
+                  });
+                }
+              }
+
               if (request.request_data) {
                 try {
                   const reqData = JSON.parse(request.request_data);
@@ -4586,6 +4678,52 @@ export const requestsController = {
                   updatedby: userId,
                 },
               });
+
+              const recon = await tx.reconciliation.findUnique({
+                where: { id: request.reference_id },
+                select: { salesman_id: true }
+              });
+
+              if (recon) {
+                const reconItems = await tx.reconciliation_items.findMany({
+                  where: { reconciliation_id: request.reference_id },
+                  select: { product_id: true, batch_number: true }
+                });
+
+                const conditions: any[] = [];
+                for (const item of reconItems) {
+                  if (!item.product_id) continue;
+                  let batchId: number | null = null;
+                  if (item.batch_number) {
+                    const batch = await tx.batch_lots.findFirst({
+                      where: {
+                        batch_number: item.batch_number,
+                        productsId: item.product_id,
+                      },
+                      select: { id: true }
+                    });
+                    if (batch) batchId = batch.id;
+                  }
+                  conditions.push({
+                    product_id: item.product_id,
+                    batch_id: batchId,
+                  });
+                }
+
+                if (conditions.length > 0) {
+                  await tx.inventory_stock.updateMany({
+                    where: {
+                      salesperson_id: recon.salesman_id,
+                      is_active: 'Y',
+                      is_unloadAll: 'Y',
+                      OR: conditions,
+                    },
+                    data: {
+                      is_unloadAll: 'N',
+                    },
+                  });
+                }
+              }
 
               if (request.request_data) {
                 try {
