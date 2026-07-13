@@ -110,7 +110,7 @@ export const salespersonStockController = {
       const stockWhere: any = {
         OR: [
           { salesperson_id: { in: targetSalespersonIds } },
-          { createdby: salespersonIdNum }
+          { createdby: salespersonIdNum },
         ],
         is_active: 'Y',
       };
@@ -438,7 +438,18 @@ async function handleAllSalespersons(
   const { product_id, batch_status, serial_status, depot_id, supervisor_id } =
     req.query;
 
-  const usersWhere: any = {};
+  const usersWhere: any = {
+    user_role: {
+      OR: [
+        { name: { contains: 'Salesman' } },
+        { name: { contains: 'salesman' } },
+        { name: { contains: 'Sales Person' } },
+        { name: { contains: 'sales person' } },
+        { name: { contains: 'Sales Man' } },
+        { name: { contains: 'sales man' } },
+      ],
+    },
+  };
   if (supervisor_id) {
     usersWhere.reporting_to = parseInt(supervisor_id as string, 10);
   }
@@ -500,7 +511,7 @@ async function handleAllSalespersons(
     const stockWhere: any = {
       OR: [
         { salesperson_id: { in: targetSalespersonIds } },
-        { createdby: sp.id }
+        { createdby: sp.id },
       ],
       is_active: 'Y',
     };

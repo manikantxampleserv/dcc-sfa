@@ -1,4 +1,4 @@
-import { Box, Chip, MenuItem } from '@mui/material';
+import { Avatar, Box, MenuItem } from '@mui/material';
 import { useCurrency } from 'hooks/useCurrency';
 import { useCustomers } from 'hooks/useCustomers';
 import { usePermission } from 'hooks/usePermission';
@@ -9,9 +9,7 @@ import {
   Clock,
   Download,
   FileText,
-  Receipt,
   TrendingUp,
-  Users,
 } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { exportOutstandingCollectionReport } from 'services/reports/outstandingCollection';
@@ -56,8 +54,6 @@ const OutstandingCollectionReport: React.FC = () => {
     avg_days_overdue: 0,
   };
 
-  const outstandingInvoices = reportData?.data?.outstanding_invoices || [];
-  const customerSummary = reportData?.data?.customer_summary || [];
   const collections = reportData?.data?.collections || [];
 
   const handleExportToExcel = useCallback(async () => {
@@ -73,157 +69,15 @@ const OutstandingCollectionReport: React.FC = () => {
     }
   }, [startDate, endDate, customerId, invoiceStatus]);
 
-  const outstandingColumns: TableColumn<any>[] = [
-    {
-      id: 'invoice_number',
-      label: 'Invoice#',
-      render: value => (
-        <div className="flex items-center gap-2">
-          <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
-            <Receipt className="w-5 h-5 text-red-600" />
-          </div>
-          <span className="font-semibold text-sm">{value}</span>
-        </div>
-      ),
-    },
-    {
-      id: 'customer_name',
-      label: 'Customer',
-      render: value => <span className="text-sm">{value}</span>,
-    },
-    {
-      id: 'salesperson_name',
-      label: 'Salesperson',
-      render: value => <span className="text-sm">{value}</span>,
-    },
-    {
-      id: 'invoice_date',
-      label: 'Invoice Date',
-      render: value => formatDate(value) || 'N/A',
-    },
-    {
-      id: 'due_date',
-      label: 'Due Date',
-      render: value => formatDate(value) || 'N/A',
-    },
-    {
-      id: 'balance_due',
-      label: 'Balance Due',
-      numeric: true,
-      render: value => formatCurrency(Number(value)),
-    },
-    {
-      id: 'days_overdue',
-      label: 'Days Overdue',
-      numeric: true,
-      render: value => {
-        const days = Number(value);
-        let chipColor: 'success' | 'warning' | 'error' | 'info' | 'default' =
-          'default';
-
-        if (days === 0) {
-          chipColor = 'success';
-        } else if (days <= 30) {
-          chipColor = 'warning';
-        } else {
-          chipColor = 'error';
-        }
-
-        return (
-          <Chip
-            label={days}
-            size="small"
-            color={chipColor}
-            variant="outlined"
-          />
-        );
-      },
-    },
-    {
-      id: 'status',
-      label: 'Status',
-      render: value => {
-        const statusLower = String(value || '').toLowerCase();
-        let chipColor: 'success' | 'warning' | 'error' | 'info' | 'default' =
-          'default';
-
-        if (statusLower === 'paid' || statusLower === 'completed') {
-          chipColor = 'success';
-        } else if (statusLower === 'overdue' || statusLower === 'pending') {
-          chipColor = 'error';
-        } else {
-          chipColor = 'warning';
-        }
-
-        return (
-          <Chip
-            label={value}
-            size="small"
-            className="!capitalize"
-            color={chipColor}
-            variant="outlined"
-          />
-        );
-      },
-    },
-  ];
-
-  const customerSummaryColumns: TableColumn<any>[] = [
-    {
-      id: 'customer_name',
-      label: 'Customer',
-      render: value => <span className="font-semibold text-sm">{value}</span>,
-    },
-    {
-      id: 'invoice_count',
-      label: 'Invoice Count',
-      numeric: true,
-      render: value => <span className="text-sm">{value}</span>,
-    },
-    {
-      id: 'total_outstanding',
-      label: 'Total Outstanding',
-      numeric: true,
-      render: value => formatCurrency(Number(value)),
-    },
-    {
-      id: 'avg_days_overdue',
-      label: 'Avg Days Overdue',
-      numeric: true,
-      render: value => {
-        const days = Number(value);
-        let chipColor: 'success' | 'warning' | 'error' | 'info' | 'default' =
-          'default';
-
-        if (days === 0) {
-          chipColor = 'success';
-        } else if (days <= 30) {
-          chipColor = 'warning';
-        } else {
-          chipColor = 'error';
-        }
-
-        return (
-          <Chip
-            label={days.toFixed(0)}
-            size="small"
-            color={chipColor}
-            variant="outlined"
-          />
-        );
-      },
-    },
-  ];
-
   const collectionsColumns: TableColumn<any>[] = [
     {
       id: 'payment_number',
       label: 'Payment#',
       render: value => (
         <div className="flex items-center gap-2">
-          <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+          <Avatar className="w-10 h-10 !rounded !bg-green-100">
             <CheckCircle className="w-5 h-5 text-green-600" />
-          </div>
+          </Avatar>
           <span className="font-semibold text-sm">{value}</span>
         </div>
       ),
@@ -236,7 +90,23 @@ const OutstandingCollectionReport: React.FC = () => {
     {
       id: 'customer_name',
       label: 'Customer',
-      render: value => <span className="text-sm">{value}</span>,
+      render: value => (
+        <div className="flex items-center gap-3">
+          <Avatar className="w-10 h-10 !rounded !bg-blue-100">
+            <span className="text-blue-600 font-semibold text-sm">
+              {value
+                ? String(value)
+                    .split(' ')
+                    .map((n: string) => n[0])
+                    .join('')
+                    .toUpperCase()
+                    .slice(0, 2)
+                : 'C'}
+            </span>
+          </Avatar>
+          <span className="text-sm font-semibold">{value}</span>
+        </div>
+      ),
     },
     {
       id: 'amount',
@@ -338,26 +208,12 @@ const OutstandingCollectionReport: React.FC = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
         <StatsCard
           title="Outstanding Amount"
           value={formatCurrency(summary.total_outstanding_amount)}
           icon={<AlertCircle className="w-6 h-6" />}
           color="red"
-        />
-
-        <StatsCard
-          title="Outstanding Invoices"
-          value={summary.total_outstanding_invoices}
-          icon={<Receipt className="w-6 h-6" />}
-          color="orange"
-        />
-
-        <StatsCard
-          title="Customers with Outstanding"
-          value={summary.total_customers_with_outstanding}
-          icon={<Users className="w-6 h-6" />}
-          color="purple"
         />
 
         <StatsCard
@@ -382,33 +238,6 @@ const OutstandingCollectionReport: React.FC = () => {
         />
       </div>
 
-      <Table
-        actions={
-          <Box className="flex font-bold items-center gap-2">
-            <Receipt className="w-5 h-5" />
-            Outstanding Invoices ({outstandingInvoices.length})
-          </Box>
-        }
-        columns={outstandingColumns}
-        data={outstandingInvoices}
-        loading={isFetching}
-        pagination={false}
-        isPermission={isRead}
-      />
-
-      <Table
-        actions={
-          <Box className="flex font-bold items-center gap-2">
-            <Users className="w-5 h-5" />
-            Customer Summary ({customerSummary.length})
-          </Box>
-        }
-        columns={customerSummaryColumns}
-        data={customerSummary}
-        loading={isFetching}
-        pagination={false}
-        isPermission={isRead}
-      />
       <Table
         actions={
           <Box className="flex font-bold items-center gap-2">
