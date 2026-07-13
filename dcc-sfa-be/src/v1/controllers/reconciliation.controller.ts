@@ -533,12 +533,18 @@ export const reconciliationController = {
             actual_qty: item.actual_qty,
           }));
 
+        const rec = await prisma.reconciliation.findUnique({
+          where: { id: reconciliationId },
+          select: { depot_id: true },
+        });
+
         const createdRequest = await createRequest({
           requester_id: userId,
           request_type: 'RECONCILIATION_APPROVAL',
           reference_id: reconciliationId,
           request_data: JSON.stringify({
             reconciliation_items: reconciliationItems,
+            depot_id: rec?.depot_id,
           }),
           createdby: userId,
           log_inst: 1,

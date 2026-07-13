@@ -1289,8 +1289,8 @@ export const visitsController = {
                               );
                             }
 
-                            const vanInventory =
-                              await tx.van_inventory.findFirst({
+                            const vanInventories =
+                              await tx.van_inventory.findMany({
                                 where: {
                                   OR: [
                                     { user_id: { in: groupUsers } },
@@ -1305,30 +1305,37 @@ export const visitsController = {
                                     },
                                   },
                                 },
-                                include: {
-                                  van_inventory_items_inventory: true,
-                                },
                                 orderBy: { document_date: 'desc' },
                               });
 
-                            const vanItem =
-                              await tx.van_inventory_items.findFirst({
+                            const vanInventoryIds = vanInventories.map((v: any) => v.id);
+                            const vanInventory = vanInventories[0] || null;
+
+                            const vanItems =
+                              await tx.van_inventory_items.findMany({
                                 where: {
                                   product_id: product.id,
                                   batch_lot_id: batchOrder.batch_lot_id,
-                                  parent_id: vanInventory?.id ?? -1,
+                                  parent_id: { in: vanInventoryIds },
                                 },
                               });
 
-                            if (!vanItem) {
+                            if (vanItems.length === 0) {
                               throw new Error(
                                 `Batch ${batchOrder.batch_lot_id} not found in van for product "${product.name}"`
                               );
                             }
 
+                            let totalVanQty = 0;
+                            let totalVanBaseQty = 0;
+                            for (const item of vanItems) {
+                              totalVanQty += item.quantity || 0;
+                              totalVanBaseQty += item.base_quantity || 0;
+                            }
+
                             const vanDeduction = calculateStockDeduction(
-                              vanItem.quantity || 0,
-                              vanItem.base_quantity || 0,
+                              totalVanQty,
+                              totalVanBaseQty,
                               piecesToDeduct,
                               conversionFactor,
                               itemUnit,
@@ -1338,7 +1345,7 @@ export const visitsController = {
                             if (vanDeduction.newQuantity < 0) {
                               const availableMsg = isUnitPcs
                                 ? `${vanDeduction.totalAvailablePieces} pcs`
-                                : `${vanItem.quantity} cases`;
+                                : `${totalVanQty} cases`;
                               const requestedMsg = isUnitPcs
                                 ? `${piecesToDeduct} pcs`
                                 : `${orderedQty} cases`;
@@ -1350,8 +1357,10 @@ export const visitsController = {
 
                             console.log(
                               `BATCH VAN [${itemUnit}]: ` +
-                                `${vanItem.quantity}cs + ${vanItem.base_quantity || 0}pc → ` +
-                                `${vanDeduction.newQuantity}cs + ${vanDeduction.newBaseQuantity}pc`
+                                `${totalVanQty}cs + ` +
+                                `${totalVanBaseQty}pc → ` +
+                                `${vanDeduction.newQuantity}cs + ` +
+                                `${vanDeduction.newBaseQuantity}pc`
                             );
 
                             // if (
@@ -1765,66 +1774,74 @@ export const visitsController = {
                             },
                           });
                         } else {
-                          const vanInventory = await tx.van_inventory.findFirst(
-                            {
-                              where: {
-                                user_id: { in: groupUsers },
-                                status: 'A',
-                                is_active: 'Y',
-                                van_inventory_items_inventory: {
-                                  some: {
-                                    product_id: product.id,
-                                    batch_lot_id: null,
-                                    serial_id: null,
-                                  },
-                                },
-                              },
-                              include: { van_inventory_items_inventory: true },
-                              orderBy: { document_date: 'desc' },
-                            }
-                          );
+                          const vanInventories = await tx.van_inventory.findMany({
+                             where: {
+                               user_id: { in: groupUsers },
+                               status: 'A',
+                               is_active: 'Y',
+                               van_inventory_items_inventory: {
+                                 some: {
+                                   product_id: product.id,
+                                   batch_lot_id: null,
+                                   serial_id: null,
+                                 },
+                               },
+                             },
+                             orderBy: { document_date: 'desc' },
+                           });
 
-                          const vanItem =
-                            await tx.van_inventory_items.findFirst({
-                              where: {
-                                product_id: product.id,
-                                batch_lot_id: null,
-                                serial_id: null,
-                              },
-                            });
+                           const vanInventoryIds = vanInventories.map((v: any) => v.id);
+                           const vanInventory = vanInventories[0] || null;
 
-                          if (!vanItem) {
-                            throw new Error(
-                              `Product "${product.name}" not found in van inventory`
-                            );
-                          }
+                           const vanItems =
+                             await tx.van_inventory_items.findMany({
+                               where: {
+                                 product_id: product.id,
+                                 batch_lot_id: null,
+                                 serial_id: null,
+                                 parent_id: { in: vanInventoryIds },
+                               },
+                             });
 
-                          const vanDeduction = calculateStockDeduction(
-                            vanItem.quantity || 0,
-                            vanItem.base_quantity || 0,
-                            orderedPieces,
-                            conversionFactor,
-                            itemUnit,
-                            orderedQty
-                          );
+                           if (vanItems.length === 0) {
+                             throw new Error(
+                               `Product "${product.name}" not found in van inventory`
+                             );
+                           }
 
-                          if (vanDeduction.newQuantity < 0) {
-                            const availableMsg = isUnitPcs
-                              ? `${vanDeduction.totalAvailablePieces} pcs`
-                              : `${vanItem.quantity} cases`;
-                            const requestedMsg = isUnitPcs
-                              ? `${orderedPieces} pcs`
-                              : `${orderedQty} cases`;
-                            throw new Error(
-                              `Insufficient van quantity for "${product.name}". ` +
-                                `Available: ${availableMsg}, Requested: ${requestedMsg}`
-                            );
-                          }
+                           let totalVanQty = 0;
+                           let totalVanBaseQty = 0;
+                           for (const item of vanItems) {
+                             totalVanQty += item.quantity || 0;
+                             totalVanBaseQty += item.base_quantity || 0;
+                           }
 
-                          console.log(
-                            `NONE VAN [${itemUnit}]: ${vanItem.quantity}cs + ${vanItem.base_quantity || 0}pc → ` +
-                              `${vanDeduction.newQuantity}cs + ${vanDeduction.newBaseQuantity}pc`
-                          );
+                           const vanDeduction = calculateStockDeduction(
+                             totalVanQty,
+                             totalVanBaseQty,
+                             orderedPieces,
+                             conversionFactor,
+                             itemUnit,
+                             orderedQty
+                           );
+
+                           if (vanDeduction.newQuantity < 0) {
+                             const availableMsg = isUnitPcs
+                               ? `${vanDeduction.totalAvailablePieces} pcs`
+                               : `${totalVanQty} cases`;
+                             const requestedMsg = isUnitPcs
+                               ? `${orderedPieces} pcs`
+                               : `${orderedQty} cases`;
+                             throw new Error(
+                               `Insufficient van quantity for "${product.name}". ` +
+                                 `Available: ${availableMsg}, Requested: ${requestedMsg}`
+                             );
+                           }
+
+                           console.log(
+                             `NONE VAN [${itemUnit}]: ${totalVanQty}cs + ${totalVanBaseQty}pc → ` +
+                               `${vanDeduction.newQuantity}cs + ${vanDeduction.newBaseQuantity}pc`
+                           );
 
                           // if (
                           //   vanDeduction.newQuantity > 0 ||
