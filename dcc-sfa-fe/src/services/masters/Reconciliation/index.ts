@@ -34,14 +34,23 @@ export interface ReconciliationItem {
   skuName: string;
   batchNumber: string;
   loadQuantity?: number;
+  loadBaseQty?: number;
   saleQuantity?: number;
+  saleBaseQty?: number;
   saleValue?: number;
   expectedRop: number;
+  expectedBaseQty: number;
   actualRop: string;
+  actualBaseQty: string;
   variance: number | null;
+  varianceBaseQty: number | null;
   resolutionAction: string;
   defaultOutletPostingQty: number;
+  defaultOutletPostingBaseQty: number;
   unloadAdjustmentQty: number;
+  unloadAdjustmentBaseQty: number;
+  conversionRate: number;
+  subUnit: string;
   categoryName: string;
   basePrice: number;
   stockKey: string;
@@ -64,6 +73,7 @@ export interface SaveReconciliationPayload {
   items: Array<{
     id: number;
     actual_qty: number | null;
+    actual_base_qty: number | null;
   }>;
 }
 

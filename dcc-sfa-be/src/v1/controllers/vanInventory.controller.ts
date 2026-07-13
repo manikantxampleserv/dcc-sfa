@@ -432,7 +432,8 @@ async function updateInventoryStock(
   batchId?: number | null,
   serialId?: number | null,
   userId?: number,
-  vanUserId?: number | null
+  vanUserId?: number | null,
+  baseQuantity: number = 0
 ): Promise<void> {
   let validLocationId = locationId;
   let salespersonId: number | null = vanUserId || null;
@@ -476,6 +477,7 @@ async function updateInventoryStock(
         data: {
           current_stock: (existingStock.current_stock ?? 0) + quantity,
           available_stock: (existingStock.available_stock ?? 0) + quantity,
+          base_quantity: (existingStock.base_quantity ?? 0) + baseQuantity,
           updatedate: new Date(),
           updatedby: userId,
         },
@@ -493,6 +495,7 @@ async function updateInventoryStock(
           maximum_stock: 0,
           batch_id: batchId || null,
           serial_number_id: serialId || null,
+          base_quantity: baseQuantity,
           is_active: 'Y',
           createdate: new Date(),
           createdby: userId || 1,
@@ -510,11 +513,16 @@ async function updateInventoryStock(
         0,
         (existingStock.available_stock ?? 0) - quantity
       );
+      const newBaseQuantity = Math.max(
+        0,
+        (existingStock.base_quantity ?? 0) - baseQuantity
+      );
       await tx.inventory_stock.update({
         where: { id: existingStock.id },
         data: {
           current_stock: newCurrentStock,
           available_stock: newAvailableStock,
+          base_quantity: newBaseQuantity,
           updatedate: new Date(),
           updatedby: userId,
         },
@@ -538,6 +546,7 @@ async function createStockMovement(
     from_location_id?: number | null;
     to_location_id?: number | null;
     quantity: number;
+    base_quantity?: number;
     remarks?: string;
     van_inventory_id?: number;
     createdby: number;
@@ -554,6 +563,7 @@ async function createStockMovement(
       from_location_id: data.from_location_id ?? null,
       to_location_id: data.to_location_id ?? null,
       quantity: data.quantity,
+      base_quantity: data.base_quantity ?? 0,
       movement_date: new Date(),
       remarks: data.remarks || null,
       is_active: 'Y',
@@ -730,11 +740,12 @@ async function processApprovedVanInventoryStock(
         }
 
         const qty = parseInt(item.quantity, 10) || 0;
-        if (qty <= 0) {
+        const baseQty = parseInt(item.base_quantity, 10) || 0;
+        if (qty <= 0 && baseQty <= 0) {
           console.log('   Skipping: invalid quantity');
           continue;
         }
-        console.log('  Quantity:', qty);
+        console.log('  Quantity:', qty, 'Base Quantity:', baseQty);
 
         const product = await tx.products.findUnique({
           where: { id: Number(productId) },
@@ -774,11 +785,17 @@ async function processApprovedVanInventoryStock(
                 JSON.stringify(batchInput, null, 2)
               );
               const batchQty = parseInt(batchInput.quantity, 10) || 0;
-              if (batchQty <= 0) {
+              const batchBaseQty = parseInt(batchInput.base_quantity, 10) || 0;
+              if (batchQty <= 0 && batchBaseQty <= 0) {
                 console.log('   Skipping batch: invalid quantity');
                 continue;
               }
-              console.log('  Batch quantity:', batchQty);
+              console.log(
+                '  Batch quantity:',
+                batchQty,
+                'Base Quantity:',
+                batchBaseQty
+              );
 
               let batchLot = await tx.batch_lots.findFirst({
                 where: {
@@ -909,6 +926,7 @@ async function processApprovedVanInventoryStock(
                     product_name: product.name,
                     unit: product.product_unit_of_measurement?.name || 'pcs',
                     quantity: batchQty,
+                    base_quantity: batchBaseQty,
                     unit_price: Number(item.unit_price || 0),
                     discount_amount: Number(item.discount_amount || 0),
                     tax_amount: Number(item.tax_amount || 0),
@@ -930,7 +948,8 @@ async function processApprovedVanInventoryStock(
                 batchLot.id,
                 null,
                 userId,
-                inventoryUserId
+                inventoryUserId,
+                batchBaseQty
               );
               console.log('  Inventory stock updated');
 
@@ -945,6 +964,7 @@ async function processApprovedVanInventoryStock(
                 from_location_id: null,
                 to_location_id: null,
                 quantity: batchQty,
+                base_quantity: batchBaseQty,
                 remarks: `Loaded to van - Batch ${batchLot.batch_number}`,
                 van_inventory_id: inventory.id,
                 createdby: userId,
@@ -1144,6 +1164,7 @@ async function processApprovedVanInventoryStock(
                   product_name: product.name,
                   unit: product.product_unit_of_measurement?.name || 'pcs',
                   quantity: qty,
+                  base_quantity: baseQty,
                   unit_price: Number(item.unit_price || 0),
                   discount_amount: Number(item.discount_amount || 0),
                   tax_amount: Number(item.tax_amount || 0),
@@ -1164,7 +1185,8 @@ async function processApprovedVanInventoryStock(
               null,
               null,
               userId,
-              inventoryUserId
+              inventoryUserId,
+              baseQty
             );
 
             await createStockMovement(tx, {
@@ -1177,6 +1199,7 @@ async function processApprovedVanInventoryStock(
               from_location_id: null,
               to_location_id: null,
               quantity: qty,
+              base_quantity: baseQty,
               remarks: `Loaded ${qty} units to van`,
               van_inventory_id: inventory.id,
               createdby: userId,
@@ -1193,9 +1216,13 @@ async function processApprovedVanInventoryStock(
             ) {
               batchData = [
                 {
-                  batch_number: item.van_inventory_items_batch_lot?.batch_number || item.notes || '',
+                  batch_number:
+                    item.van_inventory_items_batch_lot?.batch_number ||
+                    item.notes ||
+                    '',
                   quantity: item.quantity,
-                  batch_lot_id: item.batch_lot_id || item.van_inventory_items_batch_lot?.id,
+                  batch_lot_id:
+                    item.batch_lot_id || item.van_inventory_items_batch_lot?.id,
                 },
               ];
             }
@@ -1215,11 +1242,17 @@ async function processApprovedVanInventoryStock(
                 JSON.stringify(batchInput, null, 2)
               );
               const batchQty = parseInt(batchInput.quantity, 10) || 0;
-              if (batchQty <= 0) {
+              const batchBaseQty = parseInt(batchInput.base_quantity, 10) || 0;
+              if (batchQty <= 0 && batchBaseQty <= 0) {
                 console.log('   Skipping batch: invalid quantity');
                 continue;
               }
-              console.log('  Batch quantity to unload:', batchQty);
+              console.log(
+                '  Batch quantity to unload:',
+                batchQty,
+                'Base Quantity:',
+                batchBaseQty
+              );
 
               let batchLot = null;
               const batchLotId = batchInput.batch_lot_id || item.batch_lot_id;
@@ -1277,13 +1310,19 @@ async function processApprovedVanInventoryStock(
                 (sum: number, vi: any) => sum + (vi.quantity || 0),
                 0
               );
+              const totalVanBaseQty = vanItems.reduce(
+                (sum: number, vi: any) => sum + (vi.base_quantity || 0),
+                0
+              );
 
               console.log(
                 '  Found van_inventory_items with total quantity:',
-                totalVanQty
+                totalVanQty,
+                'and base quantity:',
+                totalVanBaseQty
               );
 
-              if (totalVanQty < batchQty) {
+              if (totalVanQty < batchQty && batchQty > 0) {
                 console.log(
                   '   Skipping: van_item total quantity (',
                   totalVanQty,
@@ -1321,6 +1360,10 @@ async function processApprovedVanInventoryStock(
                       0,
                       (inventoryStock.available_stock || 0) - batchQty
                     ),
+                    base_quantity: Math.max(
+                      0,
+                      (inventoryStock.base_quantity || 0) - batchBaseQty
+                    ),
                     updatedate: new Date(),
                     updatedby: userId,
                   },
@@ -1341,6 +1384,7 @@ async function processApprovedVanInventoryStock(
                 from_location_id: null,
                 to_location_id: null,
                 quantity: batchQty,
+                base_quantity: batchBaseQty,
                 remarks: `Unloaded from van - Batch ${batchLot.batch_number}`,
                 van_inventory_id: inventory.id,
                 createdby: userId,
@@ -1483,7 +1527,7 @@ async function processApprovedVanInventoryStock(
             }
           } else {
             console.log('  Tracking type: NONE (plain quantity)');
-            console.log('  Quantity to unload:', qty);
+            console.log('  Quantity to unload:', qty, 'Base Quantity:', baseQty);
             const vanItems = await tx.van_inventory_items.findMany({
               where: {
                 product_id: product.id,
@@ -1506,13 +1550,19 @@ async function processApprovedVanInventoryStock(
               (sum: number, vi: any) => sum + (vi.quantity || 0),
               0
             );
+            const totalVanBaseQty = vanItems.reduce(
+              (sum: number, vi: any) => sum + (vi.base_quantity || 0),
+              0
+            );
 
             console.log(
               '  Found van_inventory_items with total quantity:',
-              totalVanQty
+              totalVanQty,
+              'and base quantity:',
+              totalVanBaseQty
             );
 
-            if (totalVanQty < qty) {
+            if (totalVanQty < qty && qty > 0) {
               console.log(
                 '   Skipping: van_item total quantity (',
                 totalVanQty,
@@ -1551,6 +1601,10 @@ async function processApprovedVanInventoryStock(
                     0,
                     (inventoryStock.available_stock || 0) - qty
                   ),
+                  base_quantity: Math.max(
+                    0,
+                    (inventoryStock.base_quantity || 0) - baseQty
+                  ),
                   updatedate: new Date(),
                   updatedby: userId,
                 },
@@ -1571,6 +1625,7 @@ async function processApprovedVanInventoryStock(
               from_location_id: null,
               to_location_id: null,
               quantity: qty,
+              base_quantity: baseQty,
               remarks: `Sold ${qty} units from van`,
               van_inventory_id: inventory.id,
               createdby: userId,
@@ -6916,7 +6971,10 @@ export const vanInventoryController = {
         for (const item of loadedVanItems) {
           const bn = item.van_inventory_items_batch_lot?.batch_number;
           if (item.product_id && bn && item.batch_lot_id) {
-            salespersonLoadedBatchMap.set(`${item.product_id}_${bn}`, item.batch_lot_id);
+            salespersonLoadedBatchMap.set(
+              `${item.product_id}_${bn}`,
+              item.batch_lot_id
+            );
           }
         }
 
@@ -6933,12 +6991,15 @@ export const vanInventoryController = {
           if (item.batch_number) {
             // First, try to match the batch lot loaded in this salesperson's van
             batchLotId =
-              salespersonLoadedBatchMap.get(`${item.product_id}_${item.batch_number}`) ?? null;
-            
+              salespersonLoadedBatchMap.get(
+                `${item.product_id}_${item.batch_number}`
+              ) ?? null;
+
             // Fallback to the global query if not found
             if (!batchLotId) {
               batchLotId =
-                batchLotsMap.get(`${item.product_id}_${item.batch_number}`) ?? null;
+                batchLotsMap.get(`${item.product_id}_${item.batch_number}`) ??
+                null;
             }
           }
 
@@ -7042,10 +7103,12 @@ export const vanInventoryController = {
             const today = new Date(
               Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())
             );
-            const tomorrow = new Date(today);
-            tomorrow.setDate(tomorrow.getDate() + 1);
 
-            // Always create a new reconciliation
+            const todayStart = new Date(today);
+            todayStart.setHours(0, 0, 0, 0);
+
+            const todayEnd = new Date(today);
+            todayEnd.setHours(23, 59, 59, 999);
 
             const productMap = new Map<
               string,
@@ -7053,6 +7116,7 @@ export const vanInventoryController = {
                 product_id: number;
                 product_code: string;
                 total_qty: number;
+                total_base_qty: number;
                 batch_number: string | null;
               }
             >();
@@ -7060,7 +7124,8 @@ export const vanInventoryController = {
             for (const stock of stockToUnload) {
               if (stock.product_id === null) continue;
               const qty = Number(stock.current_stock) || 0;
-              if (qty <= 0) continue;
+              const baseQty = Number(stock.base_quantity) || 0;
+              if (qty <= 0 && baseQty <= 0) continue;
 
               const batchNum =
                 stock.inventory_stock_batch?.batch_number ?? null;
@@ -7072,11 +7137,13 @@ export const vanInventoryController = {
               const existing = productMap.get(key);
               if (existing) {
                 existing.total_qty += qty;
+                existing.total_base_qty += baseQty;
               } else {
                 productMap.set(key, {
                   product_id: stock.product_id,
                   product_code: productCode,
                   total_qty: qty,
+                  total_base_qty: baseQty,
                   batch_number: batchNum,
                 });
               }
@@ -7084,11 +7151,6 @@ export const vanInventoryController = {
             }
 
             if (productMap.size === 0) return null;
-
-            const todayStart = new Date(today);
-            todayStart.setHours(0, 0, 0, 0);
-            const todayEnd = new Date(today);
-            todayEnd.setHours(23, 59, 59, 999);
 
             const loadQtyRecords = await tx.van_inventory_items.findMany({
               where: {
@@ -7106,33 +7168,51 @@ export const vanInventoryController = {
               },
             });
 
-            const loadQtyMap = new Map<string, number>();
+            const loadQtyMap = new Map<
+              string,
+              { qty: number; baseQty: number }
+            >();
             for (const record of loadQtyRecords) {
               const batchNum =
                 record.van_inventory_items_batch_lot?.batch_number || '';
               const key = `${record.product_id}-${batchNum}`;
-              const current = loadQtyMap.get(key) || 0;
-              loadQtyMap.set(key, current + (record.quantity || 0));
+              const current = loadQtyMap.get(key) || { qty: 0, baseQty: 0 };
+              loadQtyMap.set(key, {
+                qty: current.qty + (record.quantity || 0),
+                baseQty: current.baseQty + (record.base_quantity || 0),
+              });
             }
 
             const saleQtyRecords = await tx.stock_movements.findMany({
               where: {
-                createdby: userIdNum,
+                OR: [
+                  { createdby: userIdNum },
+                  { from_location_id: locationId },
+                ],
                 movement_type: 'SALE',
-                movement_date: { gte: todayStart, lt: todayEnd },
+                movement_date: { gte: todayStart, lte: todayEnd },
                 is_active: 'Y',
+                product_id: {
+                  in: Array.from(productMap.values()).map(p => p.product_id),
+                },
               },
               include: {
                 batch_lots: { select: { batch_number: true } },
               },
             });
 
-            const saleQtyMap = new Map<string, number>();
+            const saleQtyMap = new Map<
+              string,
+              { qty: number; baseQty: number }
+            >();
             for (const record of saleQtyRecords) {
               const batchNum = record.batch_lots?.batch_number || '';
               const key = `${record.product_id}-${batchNum}`;
-              const current = saleQtyMap.get(key) || 0;
-              saleQtyMap.set(key, current + (record.quantity || 0));
+              const current = saleQtyMap.get(key) || { qty: 0, baseQty: 0 };
+              saleQtyMap.set(key, {
+                qty: current.qty + (record.quantity || 0),
+                baseQty: current.baseQty + ((record as any).base_quantity || 0),
+              });
             }
 
             const recon = await tx.reconciliation.create({
@@ -7154,14 +7234,23 @@ export const vanInventoryController = {
                 product_id: p.product_id,
                 batch_number: p.batch_number,
                 expected_qty: p.total_qty,
+                expected_base_qty: p.total_base_qty,
                 actual_qty: null,
+                actual_base_qty: 0,
                 load_qty:
-                  loadQtyMap.get(`${p.product_id}-${p.batch_number || ''}`) ||
-                  0,
+                  loadQtyMap.get(`${p.product_id}-${p.batch_number || ''}`)
+                    ?.qty || 0,
+                load_base_qty:
+                  loadQtyMap.get(`${p.product_id}-${p.batch_number || ''}`)
+                    ?.baseQty || 0,
                 sale_qty:
-                  saleQtyMap.get(`${p.product_id}-${p.batch_number || ''}`) ||
-                  0,
+                  saleQtyMap.get(`${p.product_id}-${p.batch_number || ''}`)
+                    ?.qty || 0,
+                sale_base_qty:
+                  saleQtyMap.get(`${p.product_id}-${p.batch_number || ''}`)
+                    ?.baseQty || 0,
                 variance: null,
+                variance_base_qty: 0,
                 resolution_action: 'Awaiting Verification',
                 default_outlet_posting_qty: 0,
                 unload_adjustment_qty: 0,

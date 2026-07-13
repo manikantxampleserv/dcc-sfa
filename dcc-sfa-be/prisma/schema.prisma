@@ -2104,6 +2104,7 @@ model stock_movements {
   from_location_id              Int?
   to_location_id                Int?
   quantity                      Int
+  base_quantity                 Int?            @default(0)
   movement_date                 DateTime?       @default(now(), map: "DF__stock_mov__movem__1E6F845E")
   remarks                       String?         @db.NVarChar(500)
   is_active                     String          @default("Y") @db.Char(1)
@@ -3299,13 +3300,20 @@ model reconciliation_items {
   product_id                 Int?
   batch_number               String?   @db.NVarChar(100)
   expected_qty               Decimal?  @db.Decimal(18, 4)
+  expected_base_qty          Int?      @default(0)
   actual_qty                 Decimal?  @db.Decimal(18, 4)
+  actual_base_qty            Int?      @default(0)
   load_qty                   Decimal?  @db.Decimal(18, 4)
+  load_base_qty              Int?      @default(0)
   sale_qty                   Decimal?  @db.Decimal(18, 4)
+  sale_base_qty              Int?      @default(0)
   variance                   Decimal?  @db.Decimal(18, 4)
+  variance_base_qty          Int?      @default(0)
   resolution_action          String?   @db.NVarChar(255)
   default_outlet_posting_qty Decimal?  @db.Decimal(18, 4)
+  default_outlet_posting_base_qty Int? @default(0)
   unload_adjustment_qty      Decimal?  @db.Decimal(18, 4)
+  unload_adjustment_base_qty Int?      @default(0)
   stock_key                  String?   @db.NVarChar(255)
   is_active                  String    @default("Y") @db.Char(1)
   createdate                 DateTime? @default(now()) @db.DateTime

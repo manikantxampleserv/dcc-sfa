@@ -2860,7 +2860,6 @@
 //   },
 // };
 
-
 import { Request, Response } from 'express';
 import { generateEmailContent } from '../../utils/emailTemplates';
 import templateKeyMap from '../../utils/templateKeyMap';
@@ -2920,10 +2919,10 @@ const serializeRequest = (request: any): RequestSerialized => ({
   log_inst: request.log_inst,
   requester: request.sfa_d_requests_requester
     ? {
-      id: request.sfa_d_requests_requester.id,
-      name: request.sfa_d_requests_requester.name,
-      email: request.sfa_d_requests_requester.email,
-    }
+        id: request.sfa_d_requests_requester.id,
+        name: request.sfa_d_requests_requester.name,
+        email: request.sfa_d_requests_requester.email,
+      }
     : null,
   approvals:
     request.sfa_d_requests_approvals_request?.map((approval: any) => ({
@@ -2935,14 +2934,14 @@ const serializeRequest = (request: any): RequestSerialized => ({
       action_at: approval.action_at,
       approver: approval.sfa_d_requests_approvals_approver
         ? {
-          id: approval.sfa_d_requests_approvals_approver.id,
-          name: approval.sfa_d_requests_approvals_approver.name,
-          email: approval.sfa_d_requests_approvals_approver.email,
-          profile_image:
-            approval.sfa_d_requests_approvals_approver.profile_image || null,
-          employee_id:
-            approval.sfa_d_requests_approvals_approver.employee_id || null,
-        }
+            id: approval.sfa_d_requests_approvals_approver.id,
+            name: approval.sfa_d_requests_approvals_approver.name,
+            email: approval.sfa_d_requests_approvals_approver.email,
+            profile_image:
+              approval.sfa_d_requests_approvals_approver.profile_image || null,
+            employee_id:
+              approval.sfa_d_requests_approvals_approver.employee_id || null,
+          }
         : null,
       reference_details: request.reference_details || null,
     })) || [],
@@ -3180,6 +3179,174 @@ export async function resolveRequesterDepotId(
   }
 
   return userDepots[0].depot_id;
+}
+
+async function processDefaultOutletInvoice(
+  reconciliationIdForInvoice: number,
+  userIdForInvoice: number
+) {
+  try {
+    const reconciliation = await prisma.reconciliation.findUnique({
+      where: { id: reconciliationIdForInvoice },
+      include: {
+        salesman: {
+          select: { id: true, depot_id: true },
+        },
+        depot: {
+          select: {
+            id: true,
+            name: true,
+            default_outlet_id: true,
+          },
+        },
+        reconciliation_items: {
+          where: {
+            is_active: 'Y',
+            resolution_action: 'Post to Default Outlet',
+          },
+          include: {
+            product: {
+              select: {
+                id: true,
+                base_price: true,
+                product_unit_of_measurement: {
+                  select: { conversion_rate: true },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!reconciliation) return;
+
+    const shortageItems = reconciliation.reconciliation_items;
+    if (!shortageItems || shortageItems.length === 0) {
+      console.log(
+        `[DefaultOutletInvoice] No shortage items for reconciliation ${reconciliationIdForInvoice}. Skipping.`
+      );
+      return;
+    }
+
+    const defaultOutletId = (reconciliation.depot as any)?.default_outlet_id;
+    if (!defaultOutletId) {
+      console.warn(
+        `[DefaultOutletInvoice] Depot "${reconciliation.depot?.name}" has no Default Outlet configured. Cannot auto-create invoice for reconciliation ${reconciliationIdForInvoice}.`
+      );
+      return;
+    }
+
+    // Idempotency check
+    const existing = await prisma.invoices.findFirst({
+      where: {
+        notes: {
+          contains: `RECON-${reconciliationIdForInvoice}-DEFAULT-OUTLET`,
+        },
+      },
+    });
+    if (existing) {
+      console.log(
+        `[DefaultOutletInvoice] Invoice ${existing.invoice_number} already exists for reconciliation ${reconciliationIdForInvoice}. Skipping.`
+      );
+      return;
+    }
+
+    const salespersonId = reconciliation.salesman?.id || null;
+
+    const invoiceItems = shortageItems.map((item: any) => {
+      const conv =
+        Number(item.product?.product_unit_of_measurement?.conversion_rate) || 1;
+      const price = Number(item.product?.base_price) || 0;
+      const shortCases = Number(item.default_outlet_posting_qty) || 0;
+      const shortPcs = Number(item.default_outlet_posting_base_qty) || 0;
+      const unitPricePerPc = conv > 0 ? price / conv : 0;
+      const lineTotal = shortCases * price + shortPcs * unitPricePerPc;
+      return {
+        product_id: item.product_id,
+        quantity: shortCases,
+        base_quantity: shortPcs,
+        unit_price: price,
+        subtotal: lineTotal,
+        tax_amount: 0,
+        discount_amount: 0,
+        total_amount: lineTotal,
+        notes: `Variance shortage - ${shortCases} Cases ${shortPcs} PCs`,
+        batch_lot_id: item.batch_lot_id || null,
+      };
+    });
+
+    const invoiceSubtotal = invoiceItems.reduce(
+      (s: number, i: any) => s + i.total_amount,
+      0
+    );
+
+    await prisma.$transaction(async (txInner: any) => {
+      const invoiceNumber = `DO-RECON-${reconciliationIdForInvoice}-${Date.now()}`;
+
+      const newInvoice = await txInner.invoices.create({
+        data: {
+          invoice_number: invoiceNumber,
+          customer_id: defaultOutletId,
+          salesperson_id: salespersonId,
+          currency_id: null,
+          invoice_date: reconciliation.reconciliation_date || new Date(),
+          due_date: null,
+          status: 'paid',
+          payment_method: 'cash',
+          subtotal: invoiceSubtotal,
+          discount_amount: 0,
+          tax_amount: 0,
+          shipping_amount: 0,
+          total_amount: invoiceSubtotal,
+          amount_paid: invoiceSubtotal,
+          balance_due: 0,
+          notes: `RECON-${reconciliationIdForInvoice}-DEFAULT-OUTLET | Auto-generated for shortage posting on approval`,
+          is_active: 'Y',
+          createdby: userIdForInvoice,
+          log_inst: 1,
+          createdate: new Date(),
+        },
+      });
+
+      for (const item of invoiceItems) {
+        await txInner.invoice_items.create({
+          data: {
+            parent_id: newInvoice.id,
+            product_id: item.product_id,
+            quantity: item.quantity,
+            base_quantity: item.base_quantity,
+            unit_price: item.unit_price,
+            tax_amount: item.tax_amount,
+            discount_amount: item.discount_amount,
+            total_amount: item.total_amount,
+            notes: item.notes,
+          },
+        });
+      }
+
+      await txInner.reconciliation_items.updateMany({
+        where: {
+          reconciliation_id: reconciliationIdForInvoice,
+          resolution_action: 'Post to Default Outlet',
+        },
+        data: {
+          resolution_action: 'Posted to Default Outlet',
+          updatedate: new Date(),
+          updatedby: userIdForInvoice,
+        },
+      });
+
+      console.log(
+        `[DefaultOutletInvoice] Created invoice ${invoiceNumber} for reconciliation ${reconciliationIdForInvoice} — ${invoiceItems.length} item(s), total ${invoiceSubtotal}`
+      );
+    });
+  } catch (err) {
+    console.error(
+      '[DefaultOutletInvoice] Error creating default outlet invoice after reconciliation approval:',
+      err
+    );
+  }
 }
 
 export const createRequest = async (data: {
@@ -3446,6 +3613,13 @@ export const createRequest = async (data: {
                 `Reconciliation ${data.reference_id} auto-approved but had no items to unload`
               );
             }
+
+            // Auto-create Default Outlet invoice for all 'Post to Default Outlet'
+            // shortage items when a RECONCILIATION_APPROVAL is fully approved.
+            await processDefaultOutletInvoice(
+              data.reference_id!,
+              data.createdby
+            );
           } catch (err) {
             console.error(
               'Error processing stock on RECONCILIATION_APPROVAL auto-approve:',
@@ -4717,8 +4891,6 @@ export const requestsController = {
                 }
               }
 
-              // Delete duplicate pending RECONCILIATION_APPROVAL requests
-              // sharing the same reconciliation (reference_id)
               try {
                 const dupRequests = await tx.sfa_d_requests.findMany({
                   where: {
@@ -4748,6 +4920,20 @@ export const requestsController = {
                   dupErr
                 );
               }
+            }
+
+            if (
+              request.request_type === 'RECONCILIATION_APPROVAL' &&
+              request.reference_id
+            ) {
+              const reconciliationIdForInvoice = request.reference_id;
+              const userIdForInvoice = userId;
+              setImmediate(async () => {
+                await processDefaultOutletInvoice(
+                  reconciliationIdForInvoice,
+                  userIdForInvoice
+                );
+              });
             }
 
             if (
@@ -4827,7 +5013,7 @@ export const requestsController = {
 
                 if (
                   assetMovement.movement_type?.toLowerCase() ===
-                  'maintenance' ||
+                    'maintenance' ||
                   assetMovement.movement_type?.toLowerCase() === 'repair'
                 ) {
                   try {

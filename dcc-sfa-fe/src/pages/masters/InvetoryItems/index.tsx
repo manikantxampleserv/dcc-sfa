@@ -66,6 +66,7 @@ const InventoryItems: React.FC = () => {
     salesperson_profile_image?: string | null;
     total_van_inventories: number;
     total_quantity: number;
+    total_base_quantity?: number;
     total_batches: number;
     total_serials: number;
     total_products: number;
@@ -80,7 +81,10 @@ const InventoryItems: React.FC = () => {
 
   const summary = useMemo(() => {
     const lowStockCount = summaryData.filter(
-      p => p.total_quantity > 0 && p.total_quantity <= 10
+      p =>
+        (p.total_quantity > 0 ||
+          (p.total_base_quantity && p.total_base_quantity > 0)) &&
+        p.total_quantity <= 10
     ).length;
     const totalValue = stats?.total_quantity
       ? Number(stats.total_quantity) * 100
@@ -295,7 +299,18 @@ const InventoryItems: React.FC = () => {
                           <div className="flex items-center gap-1.5 text-sm">
                             <TrendingIcon className="!w-4 !h-4 text-green-500" />
                             <span className="text-gray-700 font-medium">
-                              Total Quantity: {person.total_quantity}
+                              Total Quantity:{' '}
+                              {[
+                                person.total_quantity > 0
+                                  ? `${person.total_quantity} Crates`
+                                  : null,
+                                person.total_base_quantity &&
+                                person.total_base_quantity > 0
+                                  ? `${person.total_base_quantity} PCs`
+                                  : null,
+                              ]
+                                .filter(Boolean)
+                                .join(' and ') || '0 Crates'}
                             </span>
                           </div>
                           <div className="flex items-center gap-1.5 text-sm">
@@ -320,7 +335,9 @@ const InventoryItems: React.FC = () => {
                           </div>
                         </div>
                       </div>
-                      {person.total_quantity > 0 &&
+                      {(person.total_quantity > 0 ||
+                        (person.total_base_quantity &&
+                          person.total_base_quantity > 0)) &&
                         person.total_quantity <= 10 && (
                           <div className="p-3 border-t border-gray-100">
                             <div className="flex items-center gap-2 text-orange-600 text-sm">

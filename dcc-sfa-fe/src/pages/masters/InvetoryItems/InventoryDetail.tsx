@@ -1186,7 +1186,7 @@ const InventoryDetail = () => {
               )
               .map(product => {
                 const stockStatus = getStockStatus(
-                  Number(product.total_remaining_quantity)
+                  Number(product.total_remaining_quantity) || Number(product.total_remaining_base_quantity) || 0
                 );
                 return (
                   <div
@@ -1663,7 +1663,7 @@ const InventoryDetail = () => {
                     Current Stock Availability
                   </span>
                   <span className="font-black text-emerald-600 font-mono">
-                    {(salespersonData?.total_remaining_quantity || 0) > 0
+                    {(salespersonData?.total_remaining_quantity || salespersonData?.total_remaining_base_quantity || 0) > 0
                       ? 'In Stock'
                       : 'Out of Stock'}
                   </span>

@@ -201,7 +201,12 @@ export const invoicesController = {
       }
 
       const invalidItems = data.invoiceItems.filter(
-        (item: any) => !item.product_id || !item.quantity || item.unit_price === undefined || item.unit_price === null || item.unit_price === ''
+        (item: any) =>
+          !item.product_id ||
+          !item.quantity ||
+          item.unit_price === undefined ||
+          item.unit_price === null ||
+          item.unit_price === ''
       );
 
       if (invalidItems.length > 0) {
@@ -281,7 +286,10 @@ export const invoicesController = {
 
           const salespersonId = Number(data.salesperson_id);
           const groupUsers = await getContainerGroupUsers(tx, salespersonId);
-          const targetSalespersonIds = await getContainerOwnerAndSelf(tx, salespersonId);
+          const targetSalespersonIds = await getContainerOwnerAndSelf(
+            tx,
+            salespersonId
+          );
           const referenceType = 'INVOICE';
           const referenceId = newInvoice.id;
           const referenceLabel = `invoice ${newInvoice.invoice_number}`;
@@ -293,7 +301,9 @@ export const invoicesController = {
             const discountAmount = Number(item.discount_amount) || 0;
             const itemSubtotal = quantity * unitPrice;
             const taxRate = Number(product?.product_tax_master?.tax_rate) || 0;
-            const taxAmount = Number(item.tax_amount) || ((itemSubtotal - discountAmount) * taxRate) / 100;
+            const taxAmount =
+              Number(item.tax_amount) ||
+              ((itemSubtotal - discountAmount) * taxRate) / 100;
             const totalAmount = itemSubtotal - discountAmount + taxAmount;
 
             calculatedSubtotal += itemSubtotal;
@@ -305,31 +315,60 @@ export const invoicesController = {
               orderedPieces,
               conversionFactor: conversionRate,
               uom: itemUnit,
-            } = getOrderedQuantities({ ...item, conversion_factor: product?.product_unit_of_measurement?.conversion_rate });
+            } = getOrderedQuantities({
+              ...item,
+              conversion_factor:
+                product?.product_unit_of_measurement?.conversion_rate,
+            });
 
             const isUnitPcs = itemUnit === 'UNIT';
             const baseQuantity = orderedPieces;
 
             let trackingNotes = '';
-            const trackingType = product?.tracking_type?.toUpperCase() || 'NONE';
+            const trackingType =
+              product?.tracking_type?.toUpperCase() || 'NONE';
 
             if (trackingType === 'BATCH') {
               const batchData = (item as any).product_batches || [];
-              const batchDataParsed = Array.isArray(batchData) ? batchData : JSON.parse(batchData || '[]');
-              
+              const batchDataParsed = Array.isArray(batchData)
+                ? batchData
+                : JSON.parse(batchData || '[]');
+
               trackingNotes = `Batches: ${batchDataParsed.map((b: any) => b.batch_number || b.batch_lot_id).join(', ')}`;
 
               if (data.invoice_method !== 'order') {
                 let batchDeductions = batchDataParsed.map((b: any) => {
-                  const bUomQty = parseInt(b.quantity, 10);
-                  const bPieces = b.base_quantity ? parseInt(b.base_quantity, 10) : bUomQty * conversionRate;
-                  return { batch_lot_id: b.batch_lot_id, pieces: bPieces, uomQty: bUomQty };
+                  let bUomQty: number;
+                  let bBaseQty: number;
+                  let bPieces: number;
+
+                  if (isUnitPcs) {
+                    // In PCS mode, b.quantity is already in pieces (individual units)
+                    const totalPcs = parseInt(b.quantity, 10) || 0;
+                    bPieces = totalPcs;
+                    bUomQty = Math.floor(totalPcs / conversionRate); // how many full cases
+                    bBaseQty = totalPcs % conversionRate; // leftover PCs
+                  } else {
+                    // In CASE mode, b.quantity is in cases, b.base_quantity is in PCs
+                    bUomQty = parseInt(b.quantity, 10) || 0;
+                    bBaseQty = parseInt(b.base_quantity, 10) || 0;
+                    bPieces = bUomQty * conversionRate + bBaseQty;
+                  }
+
+                  return {
+                    batch_lot_id: b.batch_lot_id,
+                    pieces: bPieces,
+                    uomQty: bUomQty,
+                    baseQty: bBaseQty,
+                  };
                 });
 
                 for (const batchOrder of batchDeductions) {
                   const piecesToDeduct = batchOrder.pieces;
-                  const batchLot = await tx.batch_lots.findUnique({ where: { id: batchOrder.batch_lot_id } });
-                  
+                  const batchLot = await tx.batch_lots.findUnique({
+                    where: { id: batchOrder.batch_lot_id },
+                  });
+
                   if (!batchLot) continue;
 
                   const vanInventory = await tx.van_inventory.findFirst({
@@ -337,7 +376,12 @@ export const invoicesController = {
                       user_id: { in: groupUsers },
                       status: 'A',
                       is_active: 'Y',
-                      van_inventory_items_inventory: { some: { product_id: product?.id, batch_lot_id: batchOrder.batch_lot_id } },
+                      van_inventory_items_inventory: {
+                        some: {
+                          product_id: product?.id,
+                          batch_lot_id: batchOrder.batch_lot_id,
+                        },
+                      },
                     },
                     orderBy: { document_date: 'desc' },
                   });
@@ -362,11 +406,22 @@ export const invoicesController = {
 
                     let newAvailableQty: number;
                     if (isUnitPcs) {
-                      const availableTotalPieces = (inventoryStock.available_stock || 0) * conversionRate + (inventoryStock.base_quantity || 0);
-                      const newAvailablePieces = Math.max(0, availableTotalPieces - piecesToDeduct);
-                      newAvailableQty = Math.floor(newAvailablePieces / conversionRate);
+                      const availableTotalPieces =
+                        (inventoryStock.available_stock || 0) * conversionRate +
+                        (inventoryStock.base_quantity || 0);
+                      const newAvailablePieces = Math.max(
+                        0,
+                        availableTotalPieces - piecesToDeduct
+                      );
+                      newAvailableQty = Math.floor(
+                        newAvailablePieces / conversionRate
+                      );
                     } else {
-                      newAvailableQty = Math.max(0, (inventoryStock.available_stock || 0) - batchOrder.uomQty);
+                      newAvailableQty = Math.max(
+                        0,
+                        (inventoryStock.available_stock || 0) -
+                          batchOrder.uomQty
+                      );
                     }
 
                     await tx.inventory_stock.update({
@@ -381,7 +436,11 @@ export const invoicesController = {
                     });
                   }
 
-                  const validatedFromLocationId = await validateAndGetLocationId(tx, vanInventory?.location_id);
+                  const validatedFromLocationId =
+                    await validateAndGetLocationId(
+                      tx,
+                      vanInventory?.location_id
+                    );
                   await tx.stock_movements.create({
                     data: {
                       product_id: product?.id || 0,
@@ -393,6 +452,7 @@ export const invoicesController = {
                       from_location_id: validatedFromLocationId,
                       to_location_id: null,
                       quantity: batchOrder.uomQty,
+                      base_quantity: batchOrder.baseQty || 0,
                       movement_date: new Date(),
                       remarks: `Sold via ${referenceLabel} - Batch ${batchLot.batch_number}`,
                       is_active: 'Y',
@@ -406,34 +466,62 @@ export const invoicesController = {
               }
             } else if (trackingType === 'SERIAL') {
               const serialData = (item as any).product_serials || [];
-              const serialDataParsed = Array.isArray(serialData) ? serialData : JSON.parse(serialData || '[]');
-              const selectedSerials = serialDataParsed.filter((s: any) => s.selected !== false);
-              
+              const serialDataParsed = Array.isArray(serialData)
+                ? serialData
+                : JSON.parse(serialData || '[]');
+              const selectedSerials = serialDataParsed.filter(
+                (s: any) => s.selected !== false
+              );
+
               trackingNotes = `Serials: ${selectedSerials.map((s: any) => s.serial_number).join(', ')}`;
 
               if (data.invoice_method !== 'order') {
                 for (const serialInput of selectedSerials) {
-                  const serial = await tx.serial_numbers.findUnique({ where: { id: serialInput.id } });
+                  const serial = await tx.serial_numbers.findUnique({
+                    where: { id: serialInput.id },
+                  });
                   if (!serial) continue;
-                  
+
                   await tx.serial_numbers.update({
                     where: { id: serial.id },
                     data: { status: 'sold', sold_date: new Date() },
                   });
 
-                  const vanItemWithSerial = await tx.van_inventory_items.findFirst({
-                    where: { product_id: product?.id, serial_id: serial.id, van_inventory_items_inventory: { user_id: { in: groupUsers }, is_active: 'Y', status: 'A' } },
-                    include: { van_inventory_items_inventory: true },
-                  });
-                  const vanInventory = vanItemWithSerial?.van_inventory_items_inventory;
+                  const vanItemWithSerial =
+                    await tx.van_inventory_items.findFirst({
+                      where: {
+                        product_id: product?.id,
+                        serial_id: serial.id,
+                        van_inventory_items_inventory: {
+                          user_id: { in: groupUsers },
+                          is_active: 'Y',
+                          status: 'A',
+                        },
+                      },
+                      include: { van_inventory_items_inventory: true },
+                    });
+                  const vanInventory =
+                    vanItemWithSerial?.van_inventory_items_inventory;
 
                   let inventoryStock = await tx.inventory_stock.findFirst({
-                    where: { product_id: product?.id, salesperson_id: { in: targetSalespersonIds }, serial_number_id: serial.id },
+                    where: {
+                      product_id: product?.id,
+                      salesperson_id: { in: targetSalespersonIds },
+                      serial_number_id: serial.id,
+                    },
                   });
 
                   if (!inventoryStock) {
                     inventoryStock = await tx.inventory_stock.findFirst({
-                      where: { product_id: product?.id, salesperson_id: { in: targetSalespersonIds }, serial_number_id: null, batch_id: null, ...(vanInventory?.location_id && { location_id: vanInventory.location_id }) },
+                      where: {
+                        product_id: product?.id,
+                        salesperson_id: { in: targetSalespersonIds },
+                        serial_number_id: null,
+                        batch_id: null,
+                        ...(vanInventory?.location_id && {
+                          location_id: vanInventory.location_id,
+                        }),
+                      },
                     });
                   }
 
@@ -441,15 +529,25 @@ export const invoicesController = {
                     await tx.inventory_stock.update({
                       where: { id: inventoryStock.id },
                       data: {
-                        current_stock: Math.max(0, (inventoryStock.current_stock || 0) - 1),
-                        available_stock: Math.max(0, (inventoryStock.available_stock || 0) - 1),
+                        current_stock: Math.max(
+                          0,
+                          (inventoryStock.current_stock || 0) - 1
+                        ),
+                        available_stock: Math.max(
+                          0,
+                          (inventoryStock.available_stock || 0) - 1
+                        ),
                         updatedate: new Date(),
                         updatedby: 1,
                       },
                     });
                   }
 
-                  const validatedFromLocationId = await validateAndGetLocationId(tx, vanInventory?.location_id);
+                  const validatedFromLocationId =
+                    await validateAndGetLocationId(
+                      tx,
+                      vanInventory?.location_id
+                    );
                   await tx.stock_movements.create({
                     data: {
                       product_id: product?.id || 0,
@@ -460,7 +558,8 @@ export const invoicesController = {
                       reference_id: referenceId,
                       from_location_id: validatedFromLocationId,
                       to_location_id: null,
-                      quantity: 1,
+                      quantity: 0,
+                      base_quantity: 1, // serials are pieces
                       movement_date: new Date(),
                       remarks: `Sold via ${referenceLabel} - Serial ${serial.serial_number}`,
                       is_active: 'Y',
@@ -475,12 +574,31 @@ export const invoicesController = {
             } else {
               if (data.invoice_method !== 'order') {
                 const vanInventory = await tx.van_inventory.findFirst({
-                  where: { user_id: { in: groupUsers }, status: 'A', is_active: 'Y', van_inventory_items_inventory: { some: { product_id: product?.id, batch_lot_id: null, serial_id: null } } },
+                  where: {
+                    user_id: { in: groupUsers },
+                    status: 'A',
+                    is_active: 'Y',
+                    van_inventory_items_inventory: {
+                      some: {
+                        product_id: product?.id,
+                        batch_lot_id: null,
+                        serial_id: null,
+                      },
+                    },
+                  },
                   orderBy: { document_date: 'desc' },
                 });
 
                 const inventoryStock = await tx.inventory_stock.findFirst({
-                  where: { product_id: product?.id, salesperson_id: { in: targetSalespersonIds }, batch_id: null, serial_number_id: null, ...(vanInventory?.location_id && { location_id: vanInventory.location_id }) },
+                  where: {
+                    product_id: product?.id,
+                    salesperson_id: { in: targetSalespersonIds },
+                    batch_id: null,
+                    serial_number_id: null,
+                    ...(vanInventory?.location_id && {
+                      location_id: vanInventory.location_id,
+                    }),
+                  },
                 });
 
                 if (inventoryStock) {
@@ -495,11 +613,21 @@ export const invoicesController = {
 
                   let newAvailableQty: number;
                   if (isUnitPcs) {
-                    const availableTotalPieces = (inventoryStock.available_stock || 0) * conversionRate + (inventoryStock.base_quantity || 0);
-                    const newAvailablePieces = Math.max(0, availableTotalPieces - orderedPieces);
-                    newAvailableQty = Math.floor(newAvailablePieces / conversionRate);
+                    const availableTotalPieces =
+                      (inventoryStock.available_stock || 0) * conversionRate +
+                      (inventoryStock.base_quantity || 0);
+                    const newAvailablePieces = Math.max(
+                      0,
+                      availableTotalPieces - orderedPieces
+                    );
+                    newAvailableQty = Math.floor(
+                      newAvailablePieces / conversionRate
+                    );
                   } else {
-                    newAvailableQty = Math.max(0, (inventoryStock.available_stock || 0) - orderedQty);
+                    newAvailableQty = Math.max(
+                      0,
+                      (inventoryStock.available_stock || 0) - orderedQty
+                    );
                   }
 
                   await tx.inventory_stock.update({
@@ -514,7 +642,10 @@ export const invoicesController = {
                   });
                 }
 
-                const validatedFromLocationId = await validateAndGetLocationId(tx, vanInventory?.location_id);
+                const validatedFromLocationId = await validateAndGetLocationId(
+                  tx,
+                  vanInventory?.location_id
+                );
                 await tx.stock_movements.create({
                   data: {
                     product_id: product?.id || 0,
@@ -526,6 +657,9 @@ export const invoicesController = {
                     from_location_id: validatedFromLocationId,
                     to_location_id: null,
                     quantity: orderedQty || 0,
+                    base_quantity: isUnitPcs
+                      ? orderedPieces
+                      : parseInt((item as any).base_quantity, 10) || 0,
                     movement_date: new Date(),
                     remarks: `Sold via ${referenceLabel}`,
                     is_active: 'Y',
@@ -543,8 +677,15 @@ export const invoicesController = {
                 parent_id: newInvoice.id,
                 product_id: Number(item.product_id),
                 product_name: product?.name || '',
-                uom: item.uom || product?.product_unit_of_measurement?.name || product?.product_unit_of_measurement?.symbol || 'pcs',
-                unit: product?.product_unit_of_measurement?.name || product?.product_unit_of_measurement?.symbol || 'pcs',
+                uom:
+                  item.uom ||
+                  product?.product_unit_of_measurement?.name ||
+                  product?.product_unit_of_measurement?.symbol ||
+                  'pcs',
+                unit:
+                  product?.product_unit_of_measurement?.name ||
+                  product?.product_unit_of_measurement?.symbol ||
+                  'pcs',
                 quantity: quantity,
                 unit_price: unitPrice,
                 discount_amount: discountAmount,
@@ -552,7 +693,9 @@ export const invoicesController = {
                 total_amount: totalAmount,
                 conversion_factor: conversionRate,
                 base_quantity: baseQuantity,
-                notes: item.notes ? `${item.notes}${trackingNotes ? ` (${trackingNotes})` : ''}` : trackingNotes || null,
+                notes: item.notes
+                  ? `${item.notes}${trackingNotes ? ` (${trackingNotes})` : ''}`
+                  : trackingNotes || null,
               },
             });
           }

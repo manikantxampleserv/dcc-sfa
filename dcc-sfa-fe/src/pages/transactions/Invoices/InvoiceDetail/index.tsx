@@ -448,20 +448,18 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
                         className="!font-semibold !text-gray-900"
                       >
                         {formatCurrencyWithInvoiceCurrency(
-                          (item.quantity || item.base_quantity || 1) *
-                            item.unit_price -
-                            (item.discount_amount || 0)
+                          item.total_amount ??
+                            (item.quantity || item.base_quantity || 1) *
+                              item.unit_price -
+                              (item.discount_amount || 0)
                         )}
                       </Typography>
                     </div>
                     <div className="!flex !justify-between !text-xs !text-gray-500">
                       <span>
-                        Qty: {item.quantity || item.base_quantity}{' '}
-                        {item.quantity
-                          ? 'Crates x '
-                          : item.base_quantity
-                            ? 'PCs x '
-                            : ''}
+                        Qty: {item.quantity ? `${item.quantity} Cases ` : ''}
+                        {item.base_quantity ? `${item.base_quantity} PCs ` : ''}
+                        {!item.quantity && !item.base_quantity ? '0 ' : ''}x{' '}
                         {formatCurrencyWithInvoiceCurrency(item.unit_price)}
                       </span>
                       {item.discount_amount && item.discount_amount > 0 ? (

@@ -529,6 +529,7 @@ async function handleAllSalespersons(
       select: {
         product_id: true,
         current_stock: true,
+        base_quantity: true,
         batch_id: true,
         serial_number_id: true,
       },
@@ -537,21 +538,31 @@ async function handleAllSalespersons(
     if (stockRecords.length === 0) continue;
 
     const productStockMap = new Map<number, number>();
+    const productBaseStockMap = new Map<number, number>();
     const batchIds = new Set<number>();
     const serialIds = new Set<number>();
 
     for (const s of stockRecords) {
       const qty = Number(s.current_stock) || 0;
-      if (qty <= 0) continue;
+      const baseQty = Number(s.base_quantity) || 0;
+      if (qty <= 0 && baseQty <= 0) continue;
       productStockMap.set(
         s.product_id,
         (productStockMap.get(s.product_id) || 0) + qty
+      );
+      productBaseStockMap.set(
+        s.product_id,
+        (productBaseStockMap.get(s.product_id) || 0) + baseQty
       );
       if (s.batch_id) batchIds.add(s.batch_id);
       if (s.serial_number_id) serialIds.add(s.serial_number_id);
     }
 
     const totalQty = Array.from(productStockMap.values()).reduce(
+      (a, b) => a + b,
+      0
+    );
+    const totalBaseQty = Array.from(productBaseStockMap.values()).reduce(
       (a, b) => a + b,
       0
     );
@@ -572,6 +583,7 @@ async function handleAllSalespersons(
       total_van_inventories: vanInventoriesCount,
       total_products: productStockMap.size,
       total_quantity: totalQty,
+      total_base_quantity: totalBaseQty,
       total_remaining_quantity: totalQty,
       total_batches: batchIds.size,
       total_serials: serialIds.size,
@@ -615,25 +627,6 @@ interface SalespersonData {
   user_role: {
     name: string;
   } | null;
-}
-
-function buildEmptyResponse(salesperson: SalespersonData) {
-  return {
-    salesperson_id: salesperson.id,
-    salesperson_name: salesperson.name,
-    salesperson_role: salesperson.user_role?.name || 'Unknown',
-    salesperson_email: salesperson.email,
-    salesperson_phone: salesperson.phone_number,
-    salesperson_profile_image: salesperson.profile_image,
-    salesperson_address: salesperson.address,
-    total_van_inventories: 0,
-    total_products: 0,
-    total_quantity: 0,
-    total_remaining_quantity: 0,
-    total_batches: 0,
-    total_serials: 0,
-    products: [],
-  };
 }
 
 function buildPagination(page: number, limit: number, total: number) {

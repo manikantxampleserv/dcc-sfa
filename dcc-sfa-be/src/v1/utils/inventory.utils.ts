@@ -1062,22 +1062,28 @@ export function calculateStockDeduction(
       deductedPieces: piecesToDeduct,
     };
   } else {
+    // CASE mode: deduct in total-pieces space, then repack to Cases + PCs
     const casesToDeduct = orderedCases ?? Math.floor(piecesToDeduct / cf);
+    const piecesForCaseSale = casesToDeduct * cf; // 1 case = cf pieces
 
-    if (casesToDeduct > currentCases) {
+    if (casesToDeduct > currentCases + Math.floor(currentPcs / cf)) {
       return {
         newQuantity: -1,
         newBaseQuantity: currentPcs,
         totalAvailablePieces,
-        deductedPieces: piecesToDeduct,
+        deductedPieces: piecesForCaseSale,
       };
     }
 
+    const remainingPieces = totalAvailablePieces - piecesForCaseSale;
+    const newCases = Math.floor(remainingPieces / cf);
+    const newPcs = remainingPieces % cf;
+
     return {
-      newQuantity: currentCases - casesToDeduct,
-      newBaseQuantity: currentPcs,
+      newQuantity: newCases,
+      newBaseQuantity: newPcs,
       totalAvailablePieces,
-      deductedPieces: piecesToDeduct,
+      deductedPieces: piecesForCaseSale,
     };
   }
 }

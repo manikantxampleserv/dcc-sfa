@@ -48,22 +48,42 @@ export default function SettlementSheetDetail() {
         existing.loadQuantity =
           (Number(existing.loadQuantity) || 0) +
           (Number(item.loadQuantity) || 0);
+        existing.loadBaseQty =
+          (Number(existing.loadBaseQty) || 0) + (Number(item.loadBaseQty) || 0);
+
         existing.saleQuantity =
           (Number(existing.saleQuantity) || 0) +
           (Number(item.saleQuantity) || 0);
+        existing.saleBaseQty =
+          (Number(existing.saleBaseQty) || 0) + (Number(item.saleBaseQty) || 0);
+
         existing.expectedRop =
           (Number(existing.expectedRop) || 0) + (Number(item.expectedRop) || 0);
-        const actualExisting =
-          existing.actualRop !== '' && existing.actualRop !== null
-            ? Number(existing.actualRop)
-            : 0;
-        const actualItem =
-          item.actualRop !== '' && item.actualRop !== null
-            ? Number(item.actualRop)
-            : 0;
-        existing.actualRop = String(actualExisting + actualItem);
+        existing.expectedBaseQty =
+          (Number(existing.expectedBaseQty) || 0) +
+          (Number(item.expectedBaseQty) || 0);
+
+        const hasActualExisting =
+          existing.actualRop !== '' || existing.actualBaseQty !== '';
+        const hasActualItem =
+          item.actualRop !== '' || item.actualBaseQty !== '';
+
+        if (hasActualExisting || hasActualItem) {
+          const actualExisting = Number(existing.actualRop) || 0;
+          const actualItem = Number(item.actualRop) || 0;
+          const actualBaseExisting = Number(existing.actualBaseQty) || 0;
+          const actualBaseItem = Number(item.actualBaseQty) || 0;
+
+          existing.actualRop = String(actualExisting + actualItem);
+          existing.actualBaseQty = String(actualBaseExisting + actualBaseItem);
+        }
+
         existing.variance =
           (Number(existing.variance) || 0) + (Number(item.variance) || 0);
+        existing.varianceBaseQty =
+          (Number(existing.varianceBaseQty) || 0) +
+          (Number(item.varianceBaseQty) || 0);
+
         if (
           !existing.resolutionAction ||
           existing.resolutionAction === 'CLEAN' ||
@@ -96,16 +116,22 @@ export default function SettlementSheetDetail() {
     let totalDefaultOutletValue = 0;
 
     aggregatedItems.forEach(item => {
-      const saleVal = (item.saleQuantity || 0) * (item.basePrice || 0);
+      const conv = item.conversionRate || 1;
+      const price = item.basePrice || 0;
+      const basePricePerPc = price / conv;
+
+      const saleVal =
+        (item.saleQuantity || 0) * price +
+        (item.saleBaseQty || 0) * basePricePerPc;
       totalSaleValue += saleVal;
 
       const variance = Number(item.variance) || 0;
+      const varianceBase = Number(item.varianceBaseQty) || 0;
       const action = item.resolutionAction || '';
 
-      if (action.includes('Default Outlet Posting') && variance < 0) {
-        totalDefaultOutletValue += Math.abs(variance) * (item.basePrice || 0);
-      } else if (action.includes('Post to Default Outlet') && variance > 0) {
-        totalDefaultOutletValue += Math.abs(variance) * (item.basePrice || 0);
+      if (action === 'Post to Default Outlet') {
+        totalDefaultOutletValue +=
+          Math.abs(variance) * price + Math.abs(varianceBase) * basePricePerPc;
       }
     });
     return { totalSaleValue, totalDefaultOutletValue };
@@ -124,20 +150,35 @@ export default function SettlementSheetDetail() {
       id: 'loadQuantity',
       label: 'Load Qty',
       sortable: true,
-      render: val => <span className="block text-center">{val || 0}</span>,
+      render: (_, row) => (
+        <span className="block text-center">
+          {row.loadQuantity || 0} Cases {row.loadBaseQty || 0} PCs
+        </span>
+      ),
     },
     {
       id: 'saleQuantity',
       label: 'Sale Qty',
       sortable: true,
-      render: val => <span className="block text-center">{val || 0}</span>,
+      render: (_, row) => (
+        <span className="block text-center">
+          {row.saleQuantity || 0} Cases {row.saleBaseQty || 0} PCs
+        </span>
+      ),
     },
     {
       id: 'saleValue',
       label: 'Sale Value',
       render: (_, row) => (
         <span className="block text-center font-medium">
-          {((row.saleQuantity || 0) * (row.basePrice || 0)).toLocaleString()}
+          {(
+            (row.saleQuantity || 0) * (row.basePrice || 0) +
+            (row.saleBaseQty || 0) *
+              ((row.basePrice || 0) / (row.conversionRate || 1))
+          ).toLocaleString(undefined, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })}
         </span>
       ),
     },
@@ -145,28 +186,72 @@ export default function SettlementSheetDetail() {
       id: 'expectedRop',
       label: 'Expected ROP',
       sortable: true,
-      render: val => <span className="block text-center">{val}</span>,
+      render: (_, row) => (
+        <span className="block text-center">
+          {row.expectedRop} Cases {row.expectedBaseQty} PCs
+        </span>
+      ),
     },
     {
       id: 'actualRop',
       label: 'Actual ROP',
-      render: val => <span className="block text-center">{val || '-'}</span>,
+      render: (_, row) => {
+        const hasActualCases =
+          row.actualRop !== '' &&
+          row.actualRop !== null &&
+          row.actualRop !== undefined;
+        const hasActualPCs =
+          row.actualBaseQty !== '' &&
+          row.actualBaseQty !== null &&
+          row.actualBaseQty !== undefined;
+
+        return (
+          <span className="block text-center">
+            {hasActualCases || hasActualPCs
+              ? `${row.actualRop || 0} Cases ${row.actualBaseQty || 0} PCs`
+              : '-'}
+          </span>
+        );
+      },
     },
     {
       id: 'variance',
       label: 'Variance',
       sortable: false,
-      render: val => {
-        const numVal = Number(val);
-        const color =
-          numVal < 0
-            ? 'text-red-600'
-            : numVal > 0
-              ? 'text-blue-600'
-              : 'text-gray-900';
+      render: (_, row) => {
+        const val = row.variance;
+        const baseVal = row.varianceBaseQty;
+        if (val === null || val === undefined)
+          return (
+            <span className="block text-center font-medium text-gray-900">
+              -
+            </span>
+          );
+
+        const isShort = Number(val) < 0 || Number(baseVal) < 0;
+        const isExcess = Number(val) > 0 || Number(baseVal) > 0;
+        const color = isShort
+          ? 'text-red-600'
+          : isExcess
+            ? 'text-blue-600'
+            : 'text-gray-900';
+
+        const sign = isShort ? '-' : isExcess ? '+' : '';
+        const cases = Math.abs(Number(val));
+        const pcs = Math.abs(Number(baseVal));
+
+        if (cases === 0 && pcs === 0) {
+          return (
+            <span className="block text-center font-medium text-gray-900">
+              0 Cases 0 PCs
+            </span>
+          );
+        }
+
         return (
           <span className={`block text-center font-medium ${color}`}>
-            {val !== null ? val : '-'}
+            {sign}
+            {cases} Cases {pcs} PCs
           </span>
         );
       },
