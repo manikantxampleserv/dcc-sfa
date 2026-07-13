@@ -76,12 +76,11 @@ const ErrorLogs: React.FC = () => {
           <span className="px-2 py-1 text-xs font-semibold rounded bg-gray-100 text-gray-700 border border-gray-200">
             {row.method}
           </span>
-          <span
-            className="text-gray-600 truncate max-w-[200px]"
-            title={row.path}
-          >
-            {row.path}
-          </span>
+          <Tooltip title={row.path} placement="top" arrow>
+            <span className="text-gray-600 truncate max-w-[200px]">
+              {row.path}
+            </span>
+          </Tooltip>
         </div>
       ),
     },

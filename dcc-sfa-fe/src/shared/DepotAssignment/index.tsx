@@ -139,6 +139,7 @@ const DepotAssignment: React.FC<DepotAssignmentProps> = ({
                   value={availableSearch}
                   onChange={setAvailableSearch}
                   className="!w-full"
+                  size="small"
                 />
               </Box>
             </Box>

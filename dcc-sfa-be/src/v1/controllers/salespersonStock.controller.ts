@@ -520,15 +520,12 @@ export const salespersonStockController = {
           {
             OR: [
               { salesperson_id: { in: targetSalespersonIds } },
-              { createdby: salespersonIdNum }
-            ]
+              { createdby: salespersonIdNum },
+            ],
           },
           {
-            OR: [
-              { is_unloadAll: 'N' },
-              { is_unloadAll: null }
-            ]
-          }
+            OR: [{ is_unloadAll: 'N' }, { is_unloadAll: null }],
+          },
         ],
         is_active: 'Y',
       };
@@ -645,12 +642,12 @@ export const salespersonStockController = {
               product?.product_unit_of_measurement || null,
             tax_details: product?.product_tax_master
               ? {
-                id: product.product_tax_master.id,
-                name: product.product_tax_master.name,
-                code: product.product_tax_master.code,
-                tax_rate: Number(product.product_tax_master.tax_rate),
-                description: product.product_tax_master.description,
-              }
+                  id: product.product_tax_master.id,
+                  name: product.product_tax_master.name,
+                  code: product.product_tax_master.code,
+                  tax_rate: Number(product.product_tax_master.tax_rate),
+                  description: product.product_tax_master.description,
+                }
               : null,
             total_quantity: 0,
             total_remaining_quantity: 0,
@@ -733,9 +730,9 @@ export const salespersonStockController = {
               : false,
             warranty_days_remaining: serial.warranty_expiry
               ? Math.floor(
-                (new Date(serial.warranty_expiry).getTime() - Date.now()) /
-                (1000 * 60 * 60 * 24)
-              )
+                  (new Date(serial.warranty_expiry).getTime() - Date.now()) /
+                    (1000 * 60 * 60 * 24)
+                )
               : null,
             batch_id: serial.batch_id,
             batch: serial.batch_lots,
@@ -757,9 +754,9 @@ export const salespersonStockController = {
                 : false,
               warranty_days_remaining: sn.warranty_expiry
                 ? Math.floor(
-                  (new Date(sn.warranty_expiry).getTime() - Date.now()) /
-                  (1000 * 60 * 60 * 24)
-                )
+                    (new Date(sn.warranty_expiry).getTime() - Date.now()) /
+                      (1000 * 60 * 60 * 24)
+                  )
                 : null,
               batch_id: sn.batch_id,
               batch: sn.batch_lots,
@@ -856,7 +853,18 @@ async function handleAllSalespersons(
   const { product_id, batch_status, serial_status, depot_id, supervisor_id } =
     req.query;
 
-  const usersWhere: any = {};
+  const usersWhere: any = {
+    user_role: {
+      OR: [
+        { name: { contains: 'Salesman' } },
+        { name: { contains: 'salesman' } },
+        { name: { contains: 'Sales Person' } },
+        { name: { contains: 'sales person' } },
+        { name: { contains: 'Sales Man' } },
+        { name: { contains: 'sales man' } },
+      ],
+    },
+  };
   if (supervisor_id) {
     usersWhere.reporting_to = parseInt(supervisor_id as string, 10);
   }
@@ -918,7 +926,7 @@ async function handleAllSalespersons(
     const stockWhere: any = {
       OR: [
         { salesperson_id: { in: targetSalespersonIds } },
-        { createdby: sp.id }
+        { createdby: sp.id },
       ],
       is_active: 'Y',
     };
