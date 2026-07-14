@@ -815,72 +815,54 @@ function getOrderedQuantities(item) {
     }
     const quantityInCases = Number(item.quantity) || 0;
     const baseQuantityInPcs = Number(item.base_quantity) || 0;
+    const quantityPieces = Number(item.quantity_pieces);
     const isPcsUnit = normalizedUnit === 'UNIT';
-    console.log(`Unit normalize: "${rawUnit}" → "${normalizedUnit}" | ` +
-        `Cases: ${quantityInCases}, Pcs: ${baseQuantityInPcs}, CF: ${conversionFactor}`);
-    if (isPcsUnit) {
-        return {
-            orderedQty: 0,
-            orderedPieces: baseQuantityInPcs,
-            conversionFactor,
-            uom: normalizedUnit,
-        };
+    let totalPieces = 0;
+    if (!isNaN(quantityPieces) && quantityPieces > 0) {
+        totalPieces = quantityPieces;
     }
     else {
-        return {
-            orderedQty: quantityInCases,
-            orderedPieces: quantityInCases * conversionFactor,
-            conversionFactor,
-            uom: normalizedUnit,
-        };
+        if (isPcsUnit) {
+            if (baseQuantityInPcs > 0) {
+                totalPieces = quantityInCases * conversionFactor + baseQuantityInPcs;
+            }
+            else {
+                totalPieces = quantityInCases; // If only quantity is present, it stores pieces
+            }
+        }
+        else {
+            totalPieces = quantityInCases * conversionFactor + baseQuantityInPcs;
+        }
     }
+    console.log(`Unit normalize: "${rawUnit}" → "${normalizedUnit}" | ` +
+        `Cases: ${quantityInCases}, Pcs: ${baseQuantityInPcs}, CF: ${conversionFactor}, TotalPieces: ${totalPieces}`);
+    return {
+        orderedQty: quantityInCases,
+        orderedPieces: totalPieces,
+        conversionFactor,
+        uom: normalizedUnit,
+    };
 }
 function calculateStockDeduction(currentCases, currentPcs, piecesToDeduct, conversionFactor, unit, orderedCases) {
     const cf = conversionFactor || 1;
-    const unitUpper = (unit || 'CASE').toUpperCase();
-    const isPcsUnit = ['UNIT', 'PC', 'PIECE', 'PIECES'].includes(unitUpper);
     const totalAvailablePieces = currentCases * cf + currentPcs;
-    if (isPcsUnit) {
-        if (piecesToDeduct > totalAvailablePieces) {
-            return {
-                newQuantity: -1,
-                newBaseQuantity: 0,
-                totalAvailablePieces,
-                deductedPieces: piecesToDeduct,
-            };
-        }
-        const remainingPieces = totalAvailablePieces - piecesToDeduct;
-        const newCases = Math.floor(remainingPieces / cf);
-        const newPcs = remainingPieces % cf;
+    if (piecesToDeduct > totalAvailablePieces) {
         return {
-            newQuantity: newCases,
-            newBaseQuantity: newPcs,
+            newQuantity: -1,
+            newBaseQuantity: currentPcs,
             totalAvailablePieces,
             deductedPieces: piecesToDeduct,
         };
     }
-    else {
-        // CASE mode: deduct in total-pieces space, then repack to Cases + PCs
-        const casesToDeduct = orderedCases ?? Math.floor(piecesToDeduct / cf);
-        const piecesForCaseSale = casesToDeduct * cf; // 1 case = cf pieces
-        if (casesToDeduct > currentCases + Math.floor(currentPcs / cf)) {
-            return {
-                newQuantity: -1,
-                newBaseQuantity: currentPcs,
-                totalAvailablePieces,
-                deductedPieces: piecesForCaseSale,
-            };
-        }
-        const remainingPieces = totalAvailablePieces - piecesForCaseSale;
-        const newCases = Math.floor(remainingPieces / cf);
-        const newPcs = remainingPieces % cf;
-        return {
-            newQuantity: newCases,
-            newBaseQuantity: newPcs,
-            totalAvailablePieces,
-            deductedPieces: piecesForCaseSale,
-        };
-    }
+    const remainingPieces = totalAvailablePieces - piecesToDeduct;
+    const newCases = Math.floor(remainingPieces / cf);
+    const newPcs = remainingPieces % cf;
+    return {
+        newQuantity: newCases,
+        newBaseQuantity: newPcs,
+        totalAvailablePieces,
+        deductedPieces: piecesToDeduct,
+    };
 }
 async function getContainerGroupUsers(tx, userId) {
     // 1. Check if userId is the main user of an active container van inventory

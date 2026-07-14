@@ -980,15 +980,16 @@ exports.visitsController = {
                                                         product_id: product.id,
                                                         product_name: item.product_name || product.name,
                                                         unit: item.unit || 'CASE',
-                                                        quantity: isUnitPcs ? 0 : totalUomDeducted,
+                                                        quantity: Math.floor(totalPiecesDeducted / conversionFactor),
                                                         unit_price: Number(item.unit_price) || 0,
                                                         discount_amount: Number(item.discount_amount) || 0,
                                                         tax_amount: Number(item.tax_amount) || 0,
                                                         total_amount: isUnitPcs
                                                             ? totalPiecesDeducted *
                                                                 (Number(item.unit_price) || 0)
-                                                            : totalUomDeducted *
-                                                                (Number(item.unit_price) || 0),
+                                                            : Math.floor(totalPiecesDeducted / conversionFactor) * (Number(item.unit_price) || 0) +
+                                                                (totalPiecesDeducted % conversionFactor) *
+                                                                    ((Number(item.unit_price) || 0) / conversionFactor),
                                                         notes: hasBatchNumber
                                                             ? `Batch: ${item.batch_number}`
                                                             : `Batches: ${batchDeductions.map(b => b.batch_lot_id).join(', ')}`,
@@ -997,9 +998,7 @@ exports.visitsController = {
                                                             tax_rate: item.tax_rate,
                                                         }),
                                                         conversion_factor: conversionFactor,
-                                                        base_quantity: isUnitPcs
-                                                            ? totalPiecesDeducted
-                                                            : 0,
+                                                        base_quantity: totalPiecesDeducted % conversionFactor,
                                                         ...(item.expiry_date && {
                                                             expiry_date: new Date(item.expiry_date),
                                                         }),
@@ -1296,20 +1295,22 @@ exports.visitsController = {
                                                         product_id: product.id,
                                                         product_name: item.product_name || product.name,
                                                         unit: item.unit || 'CASE',
-                                                        quantity: isUnitPcs ? 0 : orderedQty,
+                                                        quantity: Math.floor(orderedPieces / conversionFactor),
                                                         unit_price: Number(item.unit_price) || 0,
                                                         discount_amount: Number(item.discount_amount) || 0,
                                                         tax_amount: Number(item.tax_amount) || 0,
                                                         total_amount: isUnitPcs
                                                             ? orderedPieces * (Number(item.unit_price) || 0)
-                                                            : orderedQty * (Number(item.unit_price) || 0),
+                                                            : Math.floor(orderedPieces / conversionFactor) * (Number(item.unit_price) || 0) +
+                                                                (orderedPieces % conversionFactor) *
+                                                                    ((Number(item.unit_price) || 0) / conversionFactor),
                                                         notes: item.notes || null,
                                                         ...(item.tax_code && { tax_code: item.tax_code }),
                                                         ...(item.tax_rate !== undefined && {
                                                             tax_rate: item.tax_rate,
                                                         }),
                                                         conversion_factor: conversionFactor,
-                                                        base_quantity: isUnitPcs ? orderedPieces : 0,
+                                                        base_quantity: orderedPieces % conversionFactor,
                                                         ...(item.expiry_date && {
                                                             expiry_date: new Date(item.expiry_date),
                                                         }),
