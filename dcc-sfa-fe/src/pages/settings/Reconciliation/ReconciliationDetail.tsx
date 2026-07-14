@@ -5,7 +5,7 @@ import {
   type ReconciliationItem,
 } from 'hooks/useReconciliation';
 import { FileSpreadsheet, Save } from 'lucide-react';
-import { useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { usePermission } from 'hooks/usePermission';
@@ -15,9 +15,7 @@ import Table, { type TableColumn } from 'shared/Table';
 
 export default function ReconciliationDetail() {
   const { id } = useParams<{ id: string }>();
-
   const reconciliationId = id ? Number(id) : null;
-
   const { isRead, isUpdate } = usePermission('reconciliation');
 
   const [editedRecords, setEditedRecords] = useState<Record<number, string>>(
@@ -41,88 +39,89 @@ export default function ReconciliationDetail() {
 
   const saveMutation = useSaveReconciliation();
 
-  const handleActualChange = (itemId: number, value: string) => {
+  const handleActualChange = useCallback((itemId: number, value: string) => {
     setEditedRecords(prev => ({ ...prev, [itemId]: value }));
-  };
-  const handleActualBaseChange = (itemId: number, value: string) => {
-    setEditedBaseRecords(prev => ({ ...prev, [itemId]: value }));
-  };
+  }, []);
 
-  const getLocalItemDetails = (row: ReconciliationItem) => {
-    const localActualStr =
-      editedRecords[row.id] !== undefined
-        ? editedRecords[row.id]
-        : row.actualRop;
-    const localActualBaseStr =
-      editedBaseRecords[row.id] !== undefined
-        ? editedBaseRecords[row.id]
-        : row.actualBaseQty;
+  const handleActualBaseChange = useCallback(
+    (itemId: number, value: string) => {
+      setEditedBaseRecords(prev => ({ ...prev, [itemId]: value }));
+    },
+    []
+  );
 
-    const isBlocked = row.status === 'Blocked - Force-Push Required';
+  const getLocalItemDetails = useCallback(
+    (row: ReconciliationItem) => {
+      const localActualStr =
+        editedRecords[row.id] !== undefined
+          ? editedRecords[row.id]
+          : row.actualRop;
+      const localActualBaseStr =
+        editedBaseRecords[row.id] !== undefined
+          ? editedBaseRecords[row.id]
+          : row.actualBaseQty;
 
-    if (isBlocked) {
+      const isBlocked = row.status === 'Blocked - Force-Push Required';
+      if (isBlocked) {
+        return {
+          actualRop: '',
+          actualBaseQty: '',
+          varianceDisplay: '-',
+          status: 'Blocked - Force-Push Required',
+          resolutionAction: 'Awaiting Force-Push',
+        };
+      }
+
+      const isPending =
+        (localActualStr === '' || localActualStr == null) &&
+        (localActualBaseStr === '' || localActualBaseStr == null);
+
+      if (isPending) {
+        return {
+          actualRop: '',
+          actualBaseQty: '',
+          varianceDisplay: '-',
+          status: 'Pending Verification',
+          resolutionAction: 'Awaiting Verification',
+        };
+      }
+
+      const actual = parseFloat(localActualStr as string) || 0;
+      const actualBase = parseFloat(localActualBaseStr as string) || 0;
+      const conv = row.conversionRate || 1;
+
+      const expectedTotalPieces = row.expectedRop * conv + row.expectedBaseQty;
+      const actualTotalPieces = actual * conv + actualBase;
+
+      const variancePieces = actualTotalPieces - expectedTotalPieces;
+
+      let status = 'Matched';
+      let resolutionAction = 'CLEAN';
+      if (variancePieces < 0) {
+        status = 'Short';
+        resolutionAction = 'Post to Default Outlet';
+      } else if (variancePieces > 0) {
+        status = 'Excess';
+        resolutionAction = 'Adjust Unload Upward';
+      }
+
+      const absV = Math.abs(variancePieces);
+      const vCases = Math.floor(absV / conv);
+      const vPcs = absV % conv;
+      const sign = variancePieces > 0 ? '+' : variancePieces < 0 ? '-' : '';
+
       return {
-        actualRop: '',
-        actualBaseQty: '',
-        varianceDisplay: '-',
-        status: 'Blocked - Force-Push Required',
-        resolutionAction: 'Awaiting Force-Push',
+        actualRop: localActualStr ?? '',
+        actualBaseQty: localActualBaseStr ?? '',
+        varianceDisplay: `${sign}${vCases} Cases ${vPcs} PCs`,
+        status,
+        resolutionAction,
       };
-    }
+    },
+    [editedRecords, editedBaseRecords]
+  );
 
-    const isPending =
-      localActualStr === '' ||
-      localActualStr === null ||
-      localActualStr === undefined;
-
-    if (isPending) {
-      return {
-        actualRop: '',
-        actualBaseQty: '',
-        varianceDisplay: '-',
-        status: 'Pending Verification',
-        resolutionAction: 'Awaiting Verification',
-      };
-    }
-
-    const actual = parseFloat(localActualStr as string) || 0;
-    const actualBase = parseFloat(localActualBaseStr as string) || 0;
-    const conv = row.conversionRate || 1;
-
-    const expectedTotalPieces = row.expectedRop * conv + row.expectedBaseQty;
-    const actualTotalPieces = actual * conv + actualBase;
-
-    const variancePieces = actualTotalPieces - expectedTotalPieces;
-
-    let status = 'Matched';
-    let resolutionAction = 'CLEAN';
-    if (variancePieces === 0) {
-      status = 'Matched';
-      resolutionAction = 'CLEAN';
-    } else if (variancePieces < 0) {
-      status = 'Short';
-      resolutionAction = 'Post to Default Outlet';
-    } else {
-      status = 'Excess';
-      resolutionAction = 'Adjust Unload Upward';
-    }
-
-    const absV = Math.abs(variancePieces);
-    const vCases = Math.floor(absV / conv);
-    const vPcs = absV % conv;
-    const sign = variancePieces > 0 ? '+' : variancePieces < 0 ? '-' : '';
-    const varianceDisplay = `${sign}${vCases} Cases ${vPcs} PCs`;
-
-    return {
-      actualRop: localActualStr,
-      actualBaseQty: localActualBaseStr,
-      varianceDisplay,
-      status,
-      resolutionAction,
-    };
-  };
-
-  const autoFillMatchAll = () => {
+  const autoFillMatchAll = useCallback(() => {
     if (items.length === 0) return;
 
     const updates: Record<number, string> = { ...editedRecords };
@@ -134,25 +133,32 @@ export default function ReconciliationDetail() {
         editedRecords[row.id] !== undefined
           ? editedRecords[row.id]
           : row.actualRop;
+      const localActualBase =
+        editedBaseRecords[row.id] !== undefined
+          ? editedBaseRecords[row.id]
+          : row.actualBaseQty;
 
       const isPending =
-        localActual === '' || localActual === null || localActual === undefined;
+        (localActual === '' || localActual == null) &&
+        (localActualBase === '' || localActualBase == null);
 
       if (!isBlocked && isPending) {
         updates[row.id] = row.expectedRop.toString();
         baseUpdates[row.id] = row.expectedBaseQty.toString();
       }
     });
+
     setEditedRecords(updates);
     setEditedBaseRecords(baseUpdates);
     toast.info('Filled empty quantities locally. Remember to click Save.');
-  };
+  }, [items, editedRecords, editedBaseRecords]);
 
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
     const allEditedIds = new Set([
       ...Object.keys(editedRecords),
       ...Object.keys(editedBaseRecords),
     ]);
+
     const payloadItems = Array.from(allEditedIds).map(idStr => {
       const id = Number(idStr);
       const cVal = editedRecords[id];
@@ -175,6 +181,7 @@ export default function ReconciliationDetail() {
         (item.actual_qty !== null && isNaN(item.actual_qty)) ||
         (item.actual_base_qty !== null && isNaN(item.actual_base_qty))
     );
+
     if (hasInvalid) {
       toast.error('Please enter valid numeric values for Actual ROP.');
       return;
@@ -183,147 +190,162 @@ export default function ReconciliationDetail() {
     try {
       await saveMutation.mutateAsync({ items: payloadItems });
       setEditedRecords({});
+      setEditedBaseRecords({});
       refetch();
     } catch (error: any) {
       console.error('Failed to save reconciliation:', error);
     }
-  };
+  }, [editedRecords, editedBaseRecords, saveMutation, refetch]);
 
-  const columns: TableColumn<ReconciliationItem>[] = [
-    {
-      id: 'id',
-      label: 'Item ID',
-      sortable: true,
-      render: (_val, row) => (
-        <span className="font-medium text-gray-700">
-          ROP-{row.id.toString().padStart(4, '0')}
-        </span>
-      ),
-    },
-    { id: 'stockKey', label: 'Stock Key', sortable: true },
-    { id: 'skuCode', label: 'SKU Code', sortable: true },
-    { id: 'skuName', label: 'SKU Name', sortable: true },
-    { id: 'batchNumber', label: 'Batch', sortable: true },
-    {
-      id: 'expectedRop',
-      label: 'Expected',
-      sortable: true,
-      render: (_, row) => (
-        <span className="font-semibold text-gray-800">
-          {row.expectedRop} Cases {row.expectedBaseQty} PCs
-        </span>
-      ),
-    },
-    {
-      id: 'actualRop',
-      label: 'Actual ROP (Clerk)',
-      render: (_, row) => {
-        const details = getLocalItemDetails(row);
-        const isBlocked = row.status === 'Blocked - Force-Push Required';
-        return (
-          <div className="flex gap-2 items-center">
-            <TextField
-              type="number"
-              size="small"
-              placeholder={isBlocked ? 'BLOCKED' : 'Cases'}
-              value={details.actualRop}
-              disabled={isBlocked || !isUpdate || isApproved}
-              onChange={e => handleActualChange(row.id, e.target.value)}
-              inputProps={{
-                min: 0,
-                style: { textAlign: 'right', width: '60px' },
-              }}
-              className={isBlocked ? 'bg-red-50/20' : 'bg-yellow-50/30'}
-            />
-            <span className="text-xs text-gray-500">Cases</span>
-            <TextField
-              type="number"
-              size="small"
-              placeholder={isBlocked ? 'BLOCKED' : 'PCs'}
-              value={details.actualBaseQty}
-              disabled={isBlocked || !isUpdate || isApproved}
-              onChange={e => handleActualBaseChange(row.id, e.target.value)}
-              inputProps={{
-                min: 0,
-                style: { textAlign: 'right', width: '60px' },
-              }}
-              className={isBlocked ? 'bg-red-50/20' : 'bg-yellow-50/30'}
-            />
-            <span className="text-xs text-gray-500">PCs</span>
-          </div>
-        );
-      },
-    },
-    {
-      id: 'variance',
-      label: 'Variance',
-      render: (_, row) => {
-        const details = getLocalItemDetails(row);
-        if (details.varianceDisplay === '-')
-          return <span className="text-gray-400">-</span>;
+  // Pre-calculate details for all items to avoid doing it multiple times per cell render
+  const itemsWithDetails = useMemo(() => {
+    return items.map(item => ({
+      ...item,
+      details: getLocalItemDetails(item),
+    }));
+  }, [items, getLocalItemDetails]);
 
-        const isMatched = details.status === 'Matched';
-        const isShort = details.status === 'Short';
-        const color = isMatched
-          ? 'text-green-600'
-          : isShort
-            ? 'text-red-600'
-            : 'text-blue-600';
-        return (
-          <span className={`font-bold ${color}`}>
-            {details.varianceDisplay}
+  const columns = useMemo<
+    TableColumn<
+      ReconciliationItem & { details: ReturnType<typeof getLocalItemDetails> }
+    >[]
+  >(
+    () => [
+      {
+        id: 'id',
+        label: 'Item ID',
+        sortable: true,
+        render: (_val, row) => (
+          <span className="font-medium text-gray-700">
+            ROP-{row.id.toString().padStart(4, '0')}
           </span>
-        );
+        ),
       },
-    },
-    {
-      id: 'resolutionAction',
-      label: 'Resolution Action',
-      render: (_, row) => {
-        const details = getLocalItemDetails(row);
-        let color = 'default';
-        if (details.resolutionAction === 'CLEAN') color = 'success';
-        else if (details.resolutionAction === 'Post to Default Outlet')
-          color = 'error';
-        else if (details.resolutionAction === 'Adjust Unload Upward')
-          color = 'info';
-        else if (details.resolutionAction === 'Awaiting Force-Push')
-          color = 'warning';
-        return (
-          <Chip
-            label={details.resolutionAction}
-            color={color as any}
-            size="small"
-            variant="outlined"
-            className="font-medium"
-          />
-        );
+      { id: 'stockKey', label: 'Stock Key', sortable: true },
+      { id: 'skuCode', label: 'SKU Code', sortable: true },
+      { id: 'skuName', label: 'SKU Name', sortable: true },
+      { id: 'batchNumber', label: 'Batch', sortable: true },
+      {
+        id: 'expectedRop',
+        label: 'Expected',
+        sortable: true,
+        render: (_, row) => (
+          <span className="font-semibold text-gray-800">
+            {row.expectedRop} Cases {row.expectedBaseQty} PCs
+          </span>
+        ),
       },
-    },
-    {
-      id: 'status',
-      label: 'Status',
-      sortable: true,
-      render: (_, row) => {
-        const details = getLocalItemDetails(row);
-        let color: 'warning' | 'success' | 'error' | 'info' = 'warning';
-        if (details.status === 'Matched') color = 'success';
-        else if (details.status === 'Short') color = 'error';
-        else if (details.status === 'Excess') color = 'info';
-        else if (details.status === 'Blocked - Force-Push Required')
-          color = 'error';
-        return (
-          <Chip
-            label={details.status}
-            color={color}
-            size="small"
-            variant="filled"
-            className="!capitalize font-medium"
-          />
-        );
+      {
+        id: 'actualRop',
+        label: 'Actual ROP (Clerk)',
+        render: (_, row) => {
+          const { details } = row;
+          const isBlocked = row.status === 'Blocked - Force-Push Required';
+          return (
+            <div className="flex gap-2 items-center">
+              <TextField
+                type="number"
+                size="small"
+                placeholder={isBlocked ? 'BLOCKED' : 'Cases'}
+                value={details.actualRop}
+                disabled={isBlocked || !isUpdate || isApproved}
+                onChange={e => handleActualChange(row.id, e.target.value)}
+                inputProps={{
+                  min: 0,
+                  style: { textAlign: 'right', width: '60px' },
+                }}
+                className={isBlocked ? 'bg-red-50/20' : 'bg-yellow-50/30'}
+              />
+              <span className="text-xs text-gray-500">Cases</span>
+              <TextField
+                type="number"
+                size="small"
+                placeholder={isBlocked ? 'BLOCKED' : 'PCs'}
+                value={details.actualBaseQty}
+                disabled={isBlocked || !isUpdate || isApproved}
+                onChange={e => handleActualBaseChange(row.id, e.target.value)}
+                inputProps={{
+                  min: 0,
+                  style: { textAlign: 'right', width: '60px' },
+                }}
+                className={isBlocked ? 'bg-red-50/20' : 'bg-yellow-50/30'}
+              />
+              <span className="text-xs text-gray-500">PCs</span>
+            </div>
+          );
+        },
       },
-    },
-  ];
+      {
+        id: 'variance',
+        label: 'Variance',
+        render: (_, row) => {
+          const { details } = row;
+          if (details.varianceDisplay === '-')
+            return <span className="text-gray-400">-</span>;
+
+          const color =
+            details.status === 'Matched'
+              ? 'text-green-600'
+              : details.status === 'Short'
+                ? 'text-red-600'
+                : 'text-blue-600';
+          return (
+            <span className={`font-bold ${color}`}>
+              {details.varianceDisplay}
+            </span>
+          );
+        },
+      },
+      {
+        id: 'resolutionAction',
+        label: 'Resolution Action',
+        render: (_, row) => {
+          const { details } = row;
+          let color = 'default';
+          if (details.resolutionAction === 'CLEAN') color = 'success';
+          else if (details.resolutionAction === 'Post to Default Outlet')
+            color = 'error';
+          else if (details.resolutionAction === 'Adjust Unload Upward')
+            color = 'info';
+          else if (details.resolutionAction === 'Awaiting Force-Push')
+            color = 'warning';
+          return (
+            <Chip
+              label={details.resolutionAction}
+              color={color as any}
+              size="small"
+              variant="outlined"
+              className="font-medium"
+            />
+          );
+        },
+      },
+      {
+        id: 'status',
+        label: 'Status',
+        sortable: true,
+        render: (_, row) => {
+          const { details } = row;
+          let color: 'warning' | 'success' | 'error' | 'info' = 'warning';
+          if (details.status === 'Matched') color = 'success';
+          else if (details.status === 'Short') color = 'error';
+          else if (details.status === 'Excess') color = 'info';
+          else if (details.status === 'Blocked - Force-Push Required')
+            color = 'error';
+          return (
+            <Chip
+              label={details.status}
+              color={color}
+              size="small"
+              variant="filled"
+              className="!capitalize font-medium"
+            />
+          );
+        },
+      },
+    ],
+    [handleActualChange, handleActualBaseChange, isUpdate, isApproved]
+  );
 
   return (
     <div className="space-y-4">
@@ -401,16 +423,16 @@ export default function ReconciliationDetail() {
 
       {/* Items Table */}
       <Table
-        data={items}
+        data={itemsWithDetails}
         getRowId={row => row.id}
         tableId="reconciliation-items-table"
         initialOrder="asc"
         stickyHeader
-        columns={columns}
+        columns={columns as any}
         loading={isFetching}
-        totalCount={items.length}
+        totalCount={itemsWithDetails.length}
         page={0}
-        rowsPerPage={items.length || 10}
+        rowsPerPage={itemsWithDetails.length || 10}
         onPageChange={() => {}}
         isPermission={isRead}
         emptyMessage="No items found for this reconciliation."

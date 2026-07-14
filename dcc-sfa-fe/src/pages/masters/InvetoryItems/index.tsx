@@ -338,16 +338,16 @@ const InventoryItems: React.FC = () => {
                       {(person.total_quantity > 0 ||
                         (person.total_base_quantity &&
                           person.total_base_quantity > 0)) &&
-                        person.total_quantity <= 10 && (
-                          <div className="p-3 border-t border-gray-100">
-                            <div className="flex items-center gap-2 text-orange-600 text-sm">
-                              <AlertTriangle className="w-4 h-4" />
-                              <span className="font-medium">
-                                Low Quantity Alert
-                              </span>
-                            </div>
+                      person.total_quantity <= 10 ? (
+                        <div className="p-3 border-t border-gray-100">
+                          <div className="flex items-center gap-2 text-orange-600 text-sm">
+                            <AlertTriangle className="w-4 h-4" />
+                            <span className="font-medium">
+                              Low Quantity Alert
+                            </span>
                           </div>
-                        )}
+                        </div>
+                      ) : null}
                     </div>
                   );
                 })}

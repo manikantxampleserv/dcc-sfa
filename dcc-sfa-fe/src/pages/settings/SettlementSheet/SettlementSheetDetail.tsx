@@ -129,7 +129,10 @@ export default function SettlementSheetDetail() {
       const varianceBase = Number(item.varianceBaseQty) || 0;
       const action = item.resolutionAction || '';
 
-      if (action === 'Post to Default Outlet') {
+      if (
+        action.includes('Default Outlet') &&
+        (variance < 0 || varianceBase < 0)
+      ) {
         totalDefaultOutletValue +=
           Math.abs(variance) * price + Math.abs(varianceBase) * basePricePerPc;
       }
