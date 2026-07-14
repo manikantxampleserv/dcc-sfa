@@ -1248,8 +1248,8 @@ export const visitsController = {
                               {
                                 batch_lot_id: batchLot.id,
                                 pieces: orderedPieces,
-                                uomQty: isUnitPcs ? Math.floor(orderedPieces / conversionFactor) : orderedQty,
-                                baseQty: isUnitPcs ? orderedPieces % conversionFactor : (orderedPieces - orderedQty * conversionFactor),
+                                uomQty: Math.floor(orderedPieces / conversionFactor),
+                                baseQty: orderedPieces % conversionFactor,
                               },
                             ];
                           } else if (hasProductBatches) {
@@ -1261,16 +1261,11 @@ export const visitsController = {
                               let bBaseQty: number;
                               let bPieces: number;
 
-                              if (isUnitPcs) {
-                                const totalPcs = parseInt(b.quantity, 10) || 0;
-                                bPieces = totalPcs;
-                                bUomQty = Math.floor(totalPcs / conversionFactor);
-                                bBaseQty = totalPcs % conversionFactor;
-                              } else {
-                                bUomQty = parseInt(b.quantity, 10) || 0;
-                                bBaseQty = parseInt(b.base_quantity, 10) || 0;
-                                bPieces = bUomQty * conversionFactor + bBaseQty;
-                              }
+                              const inputUomQty = parseInt(b.quantity, 10) || 0;
+                              const inputBaseQty = parseInt(b.base_quantity, 10) || 0;
+                              bPieces = isUnitPcs ? inputUomQty : (inputUomQty * conversionFactor + inputBaseQty);
+                              bUomQty = Math.floor(bPieces / conversionFactor);
+                              bBaseQty = bPieces % conversionFactor;
                               return {
                                 batch_lot_id: b.batch_lot_id,
                                 pieces: bPieces,
