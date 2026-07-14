@@ -36,7 +36,14 @@ const BatchList = ({ batches }: { batches: any[] }) => {
             {batch.batch_number}
           </span>
           {batch.expiry_date && ` • Exp: ${formatDate(batch.expiry_date)}`}
-          {batch.quantity && ` • Qty: ${batch.quantity}`}
+          {batch.base_quantity > 0 ? (
+            <>
+              {` • Cases: ${batch.quantity || 0}`}
+              {` • Pcs: ${batch.base_quantity}`}
+            </>
+          ) : (
+            batch.quantity != null && ` • Qty: ${batch.quantity}`
+          )}
         </div>
       ))}
       {hasMore && (
@@ -53,7 +60,14 @@ const BatchList = ({ batches }: { batches: any[] }) => {
                   </span>
                   {batch.expiry_date &&
                     ` • Exp: ${formatDate(batch.expiry_date)}`}
-                  {batch.quantity && ` • Qty: ${batch.quantity}`}
+                  {batch.base_quantity > 0 ? (
+                    <>
+                      {` • Cases: ${batch.quantity || 0}`}
+                      {` • Pcs: ${batch.base_quantity}`}
+                    </>
+                  ) : (
+                    batch.quantity != null && ` • Qty: ${batch.quantity}`
+                  )}
                 </div>
               ))}
             </div>
@@ -409,9 +423,22 @@ const VanInventoryDetail: React.FC<VanInventoryDetailProps> = ({
       id: 'quantity',
       label: 'Quantity',
       render: (_value, row) => (
-        <Typography variant="body2" className="!text-gray-700">
-          {row.quantity}
-        </Typography>
+        <div className="flex flex-col gap-0.5">
+          {row.base_quantity > 0 ? (
+            <>
+              <Typography variant="body2" className="!text-gray-700">
+                {row.quantity || 0} Cases
+              </Typography>
+              <Typography variant="body2" className="!text-gray-700 !text-xs">
+                {row.base_quantity} Pcs
+              </Typography>
+            </>
+          ) : (
+            <Typography variant="body2" className="!text-gray-700">
+              {row.quantity || 0}
+            </Typography>
+          )}
+        </div>
       ),
     },
     {

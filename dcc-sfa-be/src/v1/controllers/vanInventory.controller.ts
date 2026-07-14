@@ -113,6 +113,7 @@ const serializeVanInventory = (item: any): VanInventorySerialized => {
     const trackingType = product?.tracking_type?.toLowerCase() || 'none';
 
     let totalQuantity = 0;
+    let totalBaseQuantity = 0;
     let totalAmount = 0;
     const batches: any[] = [];
     const serials: any[] = [];
@@ -164,6 +165,7 @@ const serializeVanInventory = (item: any): VanInventorySerialized => {
       }
 
       totalQuantity += it.quantity || 0;
+      totalBaseQuantity += it.base_quantity || 0;
       totalAmount += parseFloat(it.total_amount || 0);
 
       if (trackingType === 'batch' && batchLot) {
@@ -200,6 +202,10 @@ const serializeVanInventory = (item: any): VanInventorySerialized => {
           (sum, it) => sum + (it.quantity || 0),
           0
         );
+        const batchBaseQuantity = batchItems.reduce(
+          (sum, it) => sum + (it.base_quantity || 0),
+          0
+        );
         const batchAmount = batchItems.reduce(
           (sum, it) => sum + parseFloat(it.total_amount || 0),
           0
@@ -211,6 +217,7 @@ const serializeVanInventory = (item: any): VanInventorySerialized => {
           lot_number: batch.lot_number,
           expiry_date: batch.expiry_date,
           quantity: batchQuantity,
+          base_quantity: batchBaseQuantity,
           remaining_quantity: batch.remaining_quantity,
           unit_price: batchItems[0]?.unit_price || '0',
           total_amount: String(batchAmount),
@@ -277,6 +284,7 @@ const serializeVanInventory = (item: any): VanInventorySerialized => {
       product_name: product?.name || firstItem.product_name,
       unit: firstItem.unit,
       quantity: totalQuantity,
+      base_quantity: totalBaseQuantity,
       unit_price: firstItem.unit_price ? String(firstItem.unit_price) : null,
       discount_amount: firstItem.discount_amount
         ? String(firstItem.discount_amount)
@@ -1221,6 +1229,7 @@ async function processApprovedVanInventoryStock(
                     item.notes ||
                     '',
                   quantity: item.quantity,
+                  base_quantity: item.base_quantity || 0,
                   batch_lot_id:
                     item.batch_lot_id || item.van_inventory_items_batch_lot?.id,
                 },
@@ -8050,7 +8059,8 @@ export const vanInventoryController = {
           if (item.product_id === null) continue;
 
           const qty = Number(item.expected_qty) || 0;
-          if (qty <= 0) continue;
+          const baseQty = Number((item as any).expected_base_qty) || 0;
+          if (qty <= 0 && baseQty <= 0) continue;
 
           const product = productMap.get(item.product_id);
           let batchLotId: number | null = null;
@@ -8075,7 +8085,7 @@ export const vanInventoryController = {
             batch_lot_id: batchLotId,
             serial_id: null,
             quantity: qty,
-            base_quantity: qty,
+            base_quantity: baseQty,
             product_name: product?.name ?? null,
             unit: null,
             unit_price: product?.base_price || 0,

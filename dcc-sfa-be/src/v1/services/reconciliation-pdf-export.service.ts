@@ -208,7 +208,7 @@ export const exportReconciliationPdfService = async (
         'Sale Value',
         'Action',
       ];
-      const colWidths = [50, 115, 60, 60, 60, 60, 65, 55, 65, 110];
+      const colWidths = [50, 130, 60, 60, 60, 60, 65, 60, 75, 125];
 
       y = drawRow(y, columns, colWidths, true);
 
@@ -386,7 +386,7 @@ export const exportReconciliationPdfService = async (
         `${formatNum(grandTotalSaleValue)} ${meta.currency || 'TZS'}`,
         30,
         y,
-        { width: 745, align: 'right' }
+        { width: 735, align: 'right' }
       );
       y += 20;
 
@@ -397,7 +397,7 @@ export const exportReconciliationPdfService = async (
         `${formatNum(grandTotalDefaultOutletValue)} ${meta.currency || 'TZS'}`,
         30,
         y,
-        { width: 745, align: 'right' }
+        { width: 735, align: 'right' }
       );
       y += 20;
 

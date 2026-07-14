@@ -87,12 +87,12 @@ const exportReconciliationExcelService = async (reconciliationData) => {
             right: { style: 'thin', color: { argb: 'FFA6A6A6' } },
         };
     };
-    sheet.mergeCells('A1:J2');
+    sheet.mergeCells('A1:K2');
     const titleCell = sheet.getCell('A1');
     titleCell.value = 'SettlementSheet — Daily Salesman Settlement';
     titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
     applyFont(titleCell, { size: 16, bold: true, color: { argb: 'FF1F4E78' } });
-    sheet.mergeCells('A3:J3');
+    sheet.mergeCells('A3:K3');
     const subTitleCell = sheet.getCell('A3');
     subTitleCell.value =
         'Dynamic template: select a salesman from the dropdown to populate all figures. Printable per day, per salesman.';
@@ -119,7 +119,7 @@ const exportReconciliationExcelService = async (reconciliationData) => {
     sheet.getCell('F7').value = 'Generated On:';
     sheet.getCell('G7').value = genDate;
     let currentRow = 9;
-    sheet.mergeCells(`A${currentRow}:J${currentRow}`);
+    sheet.mergeCells(`A${currentRow}:K${currentRow}`);
     const pageHeaderCell = sheet.getCell(`A${currentRow}`);
     pageHeaderCell.value = 'SETTLEMENT BY SKU';
     pageHeaderCell.alignment = { vertical: 'middle' };
@@ -223,11 +223,17 @@ const exportReconciliationExcelService = async (reconciliationData) => {
             row.getCell(10).value = saleVal;
             const action = item.resolutionAction || '-';
             row.getCell(11).value = action;
-            catLoad += Number(item.loadQuantity) || 0;
-            catSales += Number(item.saleQuantity) || 0;
-            catExpected += Number(item.expectedRop) || 0;
-            catActual += actualVal;
-            catVariance += varianceVal;
+            catLoad +=
+                (Number(item.loadQuantity) || 0) +
+                    (Number(item.loadBaseQty) || 0) / conv;
+            catSales +=
+                (Number(item.saleQuantity) || 0) +
+                    (Number(item.saleBaseQty) || 0) / conv;
+            catExpected +=
+                (Number(item.expectedRop) || 0) +
+                    (Number(item.expectedBaseQty) || 0) / conv;
+            catActual += actualVal + actualBaseVal / conv;
+            catVariance += varianceVal + varianceBaseVal / conv;
             catSaleValue += saleVal;
             if (action.includes('Default Outlet') &&
                 (varianceVal < 0 || varianceBaseVal < 0)) {
@@ -291,7 +297,7 @@ const exportReconciliationExcelService = async (reconciliationData) => {
         grandTotalSaleValue += catSaleValue;
     });
     currentRow++;
-    sheet.mergeCells(`A${currentRow}:J${currentRow}`);
+    sheet.mergeCells(`A${currentRow}:K${currentRow}`);
     const subtotalsHeader = sheet.getCell(`A${currentRow}`);
     subtotalsHeader.value = 'SUBTOTALS BY CATEGORY';
     applyFont(subtotalsHeader, { bold: true, color: { argb: 'FFFFFFFF' } });
@@ -323,8 +329,9 @@ const exportReconciliationExcelService = async (reconciliationData) => {
     subActCell.value = 'Actual ROP';
     const subVarCell = sheet.getCell(`H${currentRow}`);
     subVarCell.value = 'Variance';
-    sheet.mergeCells(`I${currentRow}:J${currentRow}`);
-    const subValCell = sheet.getCell(`I${currentRow}`);
+    const subPriceCell = sheet.getCell(`I${currentRow}`);
+    subPriceCell.value = '';
+    const subValCell = sheet.getCell(`J${currentRow}`);
     subValCell.value = 'Sale Value';
     [
         subCatCell,
@@ -334,6 +341,7 @@ const exportReconciliationExcelService = async (reconciliationData) => {
         subExpCell,
         subActCell,
         subVarCell,
+        subPriceCell,
         subValCell,
     ].forEach(cell => {
         applyFont(cell, { bold: true, color: { argb: 'FFFFFFFF' } });
@@ -352,9 +360,9 @@ const exportReconciliationExcelService = async (reconciliationData) => {
         row.getCell(6).value = totals.expected;
         row.getCell(7).value = totals.actual;
         row.getCell(8).value = totals.variance;
-        sheet.mergeCells(`I${currentRow}:J${currentRow}`);
-        row.getCell(9).value = totals.saleValue;
-        for (let i = 1; i <= 10; i++) {
+        row.getCell(9).value = '';
+        row.getCell(10).value = totals.saleValue;
+        for (let i = 1; i <= 11; i++) {
             const cell = row.getCell(i);
             applyBorder(cell);
             applyFill(cell, 'FFEAEAEA');
@@ -376,9 +384,9 @@ const exportReconciliationExcelService = async (reconciliationData) => {
     gtRow.getCell(6).value = grandTotalExpected;
     gtRow.getCell(7).value = grandTotalActual;
     gtRow.getCell(8).value = grandTotalVariance;
-    sheet.mergeCells(`I${currentRow}:J${currentRow}`);
-    gtRow.getCell(9).value = grandTotalSaleValue;
-    for (let i = 1; i <= 10; i++) {
+    gtRow.getCell(9).value = '';
+    gtRow.getCell(10).value = grandTotalSaleValue;
+    for (let i = 1; i <= 11; i++) {
         const cell = gtRow.getCell(i);
         applyBorder(cell);
         applyFill(cell, 'FFFFC000');
@@ -391,50 +399,56 @@ const exportReconciliationExcelService = async (reconciliationData) => {
             applyFont(cell, { color: { argb: 'FFFF0000' }, bold: true });
     }
     currentRow += 2;
-    sheet.mergeCells(`A${currentRow}:J${currentRow}`);
+    sheet.mergeCells(`A${currentRow}:K${currentRow}`);
     const cashHeader = sheet.getCell(`A${currentRow}`);
     cashHeader.value = 'CASH SETTLEMENT';
     applyFont(cashHeader, { bold: true, color: { argb: 'FFFFFFFF' } });
     applyFill(cashHeader, 'FF548235');
     currentRow++;
-    sheet.mergeCells(`A${currentRow}:G${currentRow}`);
+    sheet.mergeCells(`A${currentRow}:I${currentRow}`);
     sheet.getCell(`A${currentRow}`).value =
         'Total Sales Value (Mobile-recorded sales to outlets):';
     sheet.getCell(`A${currentRow}`).alignment = { horizontal: 'right' };
-    sheet.mergeCells(`H${currentRow}:J${currentRow}`);
-    const tsvCell = sheet.getCell(`H${currentRow}`);
+    sheet.mergeCells(`J${currentRow}:K${currentRow}`);
+    const tsvCell = sheet.getCell(`J${currentRow}`);
     tsvCell.value = grandTotalSaleValue;
     tsvCell.numFmt = '#,##0';
     applyFont(tsvCell, { bold: true });
     applyFill(tsvCell, 'FFEAEAEA');
+    applyFill(sheet.getCell(`K${currentRow}`), 'FFEAEAEA');
     applyBorder(tsvCell);
+    applyBorder(sheet.getCell(`K${currentRow}`));
     currentRow++;
-    sheet.mergeCells(`A${currentRow}:G${currentRow}`);
+    sheet.mergeCells(`A${currentRow}:I${currentRow}`);
     const shortageText = sheet.getCell(`A${currentRow}`);
     shortageText.value =
         'Default Outlet Posting Value (Shortage — Salesman accountable):';
     shortageText.alignment = { horizontal: 'right' };
     applyFont(shortageText, { color: { argb: 'FFFF0000' } });
-    sheet.mergeCells(`H${currentRow}:J${currentRow}`);
-    const shortageCell = sheet.getCell(`H${currentRow}`);
+    sheet.mergeCells(`J${currentRow}:K${currentRow}`);
+    const shortageCell = sheet.getCell(`J${currentRow}`);
     shortageCell.value = grandTotalDefaultOutletValue;
     shortageCell.numFmt = '#,##0';
     applyFont(shortageCell, { bold: true, color: { argb: 'FFFF0000' } });
     applyFill(shortageCell, 'FFEAEAEA');
+    applyFill(sheet.getCell(`K${currentRow}`), 'FFEAEAEA');
     applyBorder(shortageCell);
+    applyBorder(sheet.getCell(`K${currentRow}`));
     currentRow++;
-    sheet.mergeCells(`A${currentRow}:G${currentRow}`);
+    sheet.mergeCells(`A${currentRow}:I${currentRow}`);
     const totalText = sheet.getCell(`A${currentRow}`);
     totalText.value = `TOTAL CASH SALESMAN MUST DEPOSIT AT DEPOT (${currencyCode}):`;
     totalText.alignment = { horizontal: 'right' };
     applyFont(totalText, { bold: true, color: { argb: 'FFFF0000' } });
-    sheet.mergeCells(`H${currentRow}:J${currentRow}`);
-    const depositCell = sheet.getCell(`H${currentRow}`);
+    sheet.mergeCells(`J${currentRow}:K${currentRow}`);
+    const depositCell = sheet.getCell(`J${currentRow}`);
     depositCell.value = grandTotalSaleValue + grandTotalDefaultOutletValue;
     depositCell.numFmt = '#,##0';
     applyFont(depositCell, { bold: true, color: { argb: 'FFFF0000' } });
     applyFill(depositCell, 'FFFFC000');
+    applyFill(sheet.getCell(`K${currentRow}`), 'FFFFC000');
     applyBorder(depositCell);
+    applyBorder(sheet.getCell(`K${currentRow}`));
     currentRow += 3;
     // --- STATIC SUMMARY TABLE ---
     // Row 1 (Header)
@@ -447,9 +461,10 @@ const exportReconciliationExcelService = async (reconciliationData) => {
     hRow.getCell(5).value = 'Bank Name';
     hRow.getCell(7).value = 'Amount';
     hRow.getCell(9).value = 'Invoice Total:';
+    sheet.mergeCells(`J${currentRow}:K${currentRow}`);
     const boldCells = [1, 2, 3, 4, 5, 7];
     boldCells.forEach(col => applyFont(hRow.getCell(col), { bold: true }));
-    [1, 2, 3, 4, 5, 6, 7, 9, 10].forEach(col => applyBorder(hRow.getCell(col)));
+    [1, 2, 3, 4, 5, 6, 7, 9, 10, 11].forEach(col => applyBorder(hRow.getCell(col)));
     currentRow++;
     // Rows 1 to 7 for Cash, 1 to 10 for Bank
     const rightLabels = [
@@ -515,12 +530,13 @@ const exportReconciliationExcelService = async (reconciliationData) => {
             applyFont(row.getCell(9), {
                 bold: label.includes('Total Sales') || label.includes('Overage'),
             });
-            [9, 10].forEach(col => applyBorder(row.getCell(col)));
+            sheet.mergeCells(`J${currentRow}:K${currentRow}`);
+            [9, 10, 11].forEach(col => applyBorder(row.getCell(col)));
         }
         currentRow++;
     }
     currentRow += 2;
-    sheet.mergeCells(`A${currentRow}:J${currentRow}`);
+    sheet.mergeCells(`A${currentRow}:K${currentRow}`);
     const sigHeader = sheet.getCell(`A${currentRow}`);
     sigHeader.value = 'SIGNATURES';
     applyFont(sigHeader, { bold: true, color: { argb: 'FFFFFFFF' } });

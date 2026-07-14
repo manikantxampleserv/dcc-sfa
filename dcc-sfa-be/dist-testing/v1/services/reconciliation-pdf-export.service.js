@@ -175,7 +175,7 @@ const exportReconciliationPdfService = async (reconciliationData) => {
                 'Sale Value',
                 'Action',
             ];
-            const colWidths = [50, 115, 60, 60, 60, 60, 65, 55, 65, 110];
+            const colWidths = [50, 130, 60, 60, 60, 60, 65, 60, 75, 125];
             y = drawRow(y, columns, colWidths, true);
             const groupedItems = items.reduce((acc, item) => {
                 const cat = item.categoryName || 'Uncategorized';
@@ -262,11 +262,17 @@ const exportReconciliationPdfService = async (reconciliationData) => {
                         formatNum(saleVal),
                         String(item.resolutionAction || '-'),
                     ], colWidths);
-                    catLoad += Number(item.loadQuantity) || 0;
-                    catSales += Number(item.saleQuantity) || 0;
-                    catExpected += Number(item.expectedRop) || 0;
-                    catActual += actualVal;
-                    catVariance += varianceVal;
+                    catLoad +=
+                        (Number(item.loadQuantity) || 0) +
+                            (Number(item.loadBaseQty) || 0) / conv;
+                    catSales +=
+                        (Number(item.saleQuantity) || 0) +
+                            (Number(item.saleBaseQty) || 0) / conv;
+                    catExpected +=
+                        (Number(item.expectedRop) || 0) +
+                            (Number(item.expectedBaseQty) || 0) / conv;
+                    catActual += actualVal + actualBaseVal / conv;
+                    catVariance += varianceVal + varianceBaseVal / conv;
                     catSaleValue += saleVal;
                     if (item.resolutionAction &&
                         item.resolutionAction.includes('Default Outlet') &&
@@ -298,12 +304,12 @@ const exportReconciliationPdfService = async (reconciliationData) => {
             y += 25;
             doc.fillColor('black').font('Helvetica').fontSize(10);
             doc.text('Total Sales Value (Mobile-recorded sales to outlets):', 30, y);
-            doc.text(`${formatNum(grandTotalSaleValue)} ${meta.currency || 'TZS'}`, 30, y, { width: 745, align: 'right' });
+            doc.text(`${formatNum(grandTotalSaleValue)} ${meta.currency || 'TZS'}`, 30, y, { width: 735, align: 'right' });
             y += 20;
             doc
                 .fillColor('red')
                 .text('Default Outlet Posting Value (Shortage):', 30, y);
-            doc.text(`${formatNum(grandTotalDefaultOutletValue)} ${meta.currency || 'TZS'}`, 30, y, { width: 745, align: 'right' });
+            doc.text(`${formatNum(grandTotalDefaultOutletValue)} ${meta.currency || 'TZS'}`, 30, y, { width: 735, align: 'right' });
             y += 20;
             doc
                 .fillColor('red')
