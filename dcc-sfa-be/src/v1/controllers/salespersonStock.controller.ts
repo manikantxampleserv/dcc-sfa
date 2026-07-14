@@ -924,9 +924,16 @@ async function handleAllSalespersons(
     const targetSalespersonIds = await getContainerOwnerAndSelf(prisma, sp.id);
 
     const stockWhere: any = {
-      OR: [
-        { salesperson_id: { in: targetSalespersonIds } },
-        { createdby: sp.id },
+      AND: [
+        {
+          OR: [
+            { salesperson_id: { in: targetSalespersonIds } },
+            { createdby: sp.id },
+          ],
+        },
+        {
+          OR: [{ is_unloadAll: 'N' }, { is_unloadAll: null }],
+        },
       ],
       is_active: 'Y',
     };

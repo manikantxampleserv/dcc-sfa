@@ -483,6 +483,7 @@ async function updateInventoryStock(
       await tx.inventory_stock.update({
         where: { id: existingStock.id },
         data: {
+          is_unloadAll: 'N',
           current_stock: (existingStock.current_stock ?? 0) + quantity,
           available_stock: (existingStock.available_stock ?? 0) + quantity,
           base_quantity: (existingStock.base_quantity ?? 0) + baseQuantity,
@@ -505,6 +506,7 @@ async function updateInventoryStock(
           serial_number_id: serialId || null,
           base_quantity: baseQuantity,
           is_active: 'Y',
+          is_unloadAll: 'N',
           createdate: new Date(),
           createdby: userId || 1,
           log_inst: 1,
