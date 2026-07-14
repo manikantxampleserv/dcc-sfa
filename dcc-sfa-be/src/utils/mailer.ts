@@ -134,6 +134,11 @@ export const sendEmail = async (emailData: EmailData): Promise<boolean> => {
   const { to, subject, html, cc, bcc, attachments, createdby, log_inst } =
     emailData;
 
+  if (subject === '__SKIP_EMAIL__' || html === '__SKIP_EMAIL__') {
+    console.log('Skipping email send as template was not found.');
+    return false;
+  }
+
   try {
     const config = await getSMTPConfig(log_inst);
     const transporter = await createTransporter(log_inst);
