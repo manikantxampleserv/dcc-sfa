@@ -333,11 +333,17 @@ export const exportReconciliationPdfService = async (
             colWidths
           );
 
-          catLoad += Number(item.loadQuantity) || 0;
-          catSales += Number(item.saleQuantity) || 0;
-          catExpected += Number(item.expectedRop) || 0;
-          catActual += actualVal;
-          catVariance += varianceVal;
+          catLoad +=
+            (Number(item.loadQuantity) || 0) +
+            (Number(item.loadBaseQty) || 0) / conv;
+          catSales +=
+            (Number(item.saleQuantity) || 0) +
+            (Number(item.saleBaseQty) || 0) / conv;
+          catExpected +=
+            (Number(item.expectedRop) || 0) +
+            (Number(item.expectedBaseQty) || 0) / conv;
+          catActual += actualVal + actualBaseVal / conv;
+          catVariance += varianceVal + varianceBaseVal / conv;
           catSaleValue += saleVal;
 
           if (
