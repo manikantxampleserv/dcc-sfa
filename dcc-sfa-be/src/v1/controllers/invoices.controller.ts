@@ -296,10 +296,27 @@ export const invoicesController = {
 
           for (const item of data.invoiceItems) {
             const product = productMap.get(Number(item.product_id));
-            const quantity = Number(item.quantity);
-            const unitPrice = Number(item.unit_price);
+            const conversionRate = Number(product?.product_unit_of_measurement?.conversion_rate) || 1;
+            const {
+              orderedQty,
+              orderedPieces,
+              uom: itemUnit,
+            } = getOrderedQuantities({
+              ...item,
+              conversion_factor: conversionRate,
+            });
+
+            const isUnitPcs = itemUnit === 'UNIT';
+            const baseQuantity = orderedPieces;
+
+            // Calculate quantity for pricing calculation
+            const pricingQuantity = isUnitPcs 
+              ? orderedPieces 
+              : orderedQty + (Number(item.base_quantity || 0) / conversionRate);
+
+            const unitPrice = Number(item.unit_price) || 0;
             const discountAmount = Number(item.discount_amount) || 0;
-            const itemSubtotal = quantity * unitPrice;
+            const itemSubtotal = pricingQuantity * unitPrice;
             const taxRate = Number(product?.product_tax_master?.tax_rate) || 0;
             const taxAmount =
               Number(item.tax_amount) ||
@@ -309,20 +326,6 @@ export const invoicesController = {
             calculatedSubtotal += itemSubtotal;
             calculatedDiscountAmount += discountAmount;
             calculatedTaxAmount += taxAmount;
-
-            const {
-              orderedQty,
-              orderedPieces,
-              conversionFactor: conversionRate,
-              uom: itemUnit,
-            } = getOrderedQuantities({
-              ...item,
-              conversion_factor:
-                product?.product_unit_of_measurement?.conversion_rate,
-            });
-
-            const isUnitPcs = itemUnit === 'UNIT';
-            const baseQuantity = orderedPieces;
 
             let trackingNotes = '';
             const trackingType =
@@ -656,10 +659,10 @@ export const invoicesController = {
                     reference_id: referenceId,
                     from_location_id: validatedFromLocationId,
                     to_location_id: null,
-                    quantity: orderedQty || 0,
+                    quantity: isUnitPcs ? Math.floor(orderedPieces / conversionRate) : (orderedQty || 0),
                     base_quantity: isUnitPcs
-                      ? orderedPieces
-                      : parseInt((item as any).base_quantity, 10) || 0,
+                      ? (orderedPieces % conversionRate)
+                      : (orderedPieces - (orderedQty || 0) * conversionRate),
                     movement_date: new Date(),
                     remarks: `Sold via ${referenceLabel}`,
                     is_active: 'Y',
@@ -686,13 +689,13 @@ export const invoicesController = {
                   product?.product_unit_of_measurement?.name ||
                   product?.product_unit_of_measurement?.symbol ||
                   'pcs',
-                quantity: quantity,
+                quantity: isUnitPcs ? Math.floor(orderedPieces / conversionRate) : (orderedQty || 0),
                 unit_price: unitPrice,
                 discount_amount: discountAmount,
                 tax_amount: taxAmount,
                 total_amount: totalAmount,
                 conversion_factor: conversionRate,
-                base_quantity: baseQuantity,
+                base_quantity: isUnitPcs ? (orderedPieces % conversionRate) : (orderedPieces - (orderedQty || 0) * conversionRate),
                 notes: item.notes
                   ? `${item.notes}${trackingNotes ? ` (${trackingNotes})` : ''}`
                   : trackingNotes || null,
@@ -1081,10 +1084,27 @@ export const invoicesController = {
 
             for (const item of data.invoiceItems) {
               const product = productMap.get(Number(item.product_id));
-              const quantity = Number(item.quantity);
-              const unitPrice = Number(item.unit_price);
+              const conversionRate = Number(product?.product_unit_of_measurement?.conversion_rate) || 1;
+              const {
+                orderedQty,
+                orderedPieces,
+                uom: itemUnit,
+              } = getOrderedQuantities({
+                ...item,
+                conversion_factor: conversionRate,
+              });
+
+              const isUnitPcs = itemUnit === 'UNIT';
+              const baseQuantity = orderedPieces;
+
+              // Calculate quantity for pricing calculation
+              const pricingQuantity = isUnitPcs 
+                ? orderedPieces 
+                : orderedQty + (Number(item.base_quantity || 0) / conversionRate);
+
+              const unitPrice = Number(item.unit_price) || 0;
               const discountAmount = Number(item.discount_amount) || 0;
-              const itemSubtotal = quantity * unitPrice;
+              const itemSubtotal = pricingQuantity * unitPrice;
               const taxRate =
                 Number(product?.product_tax_master?.tax_rate) || 0;
               const taxAmount =
@@ -1117,22 +1137,18 @@ export const invoicesController = {
                   parent_id: Number(id),
                   product_id: Number(item.product_id),
                   product_name: product?.name || '',
-                  uom:
-                    item.uom ||
-                    product?.product_unit_of_measurement?.name ||
-                    product?.product_unit_of_measurement?.symbol ||
-                    'pcs',
+                  uom: itemUnit,
                   unit:
                     product?.product_unit_of_measurement?.name ||
                     product?.product_unit_of_measurement?.symbol ||
                     'pcs',
-                  quantity: quantity,
+                  quantity: isUnitPcs ? Math.floor(orderedPieces / conversionRate) : (orderedQty || 0),
                   unit_price: unitPrice,
                   discount_amount: discountAmount,
                   tax_amount: taxAmount,
                   total_amount: totalAmount,
-                  conversion_factor: Number(item.conversion_factor) || 1,
-                  base_quantity: Number(item.base_quantity) || 0,
+                  conversion_factor: conversionRate,
+                  base_quantity: isUnitPcs ? (orderedPieces % conversionRate) : (orderedPieces - (orderedQty || 0) * conversionRate),
                   notes: item.notes
                     ? `${item.notes}${trackingNotes ? ` (${trackingNotes})` : ''}`
                     : trackingNotes || null,
