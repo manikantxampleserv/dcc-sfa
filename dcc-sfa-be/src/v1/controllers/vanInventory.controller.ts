@@ -812,6 +812,7 @@ async function processApprovedVanInventoryStock(
                   batch_number: batchInput.batch_number,
                   productsId: product.id,
                   is_active: 'Y',
+                  createdby: inventoryUserId,
                 },
               });
 
@@ -1281,6 +1282,7 @@ async function processApprovedVanInventoryStock(
                     batch_number: batchInput.batch_number,
                     productsId: product.id,
                     is_active: 'Y',
+                    createdby: inventoryUserId,
                   },
                 });
               }
@@ -3774,13 +3776,9 @@ export const vanInventoryController = {
                     batchLot = await tx.batch_lots.findFirst({
                       where: {
                         batch_number: batchInput.batch_number,
+                        productsId: product.id,
                         is_active: 'Y',
-                        ...(loadingType === 'L'
-                          ? {
-                              productsId: product.id,
-                              createdby: Number(inventoryData.user_id),
-                            }
-                          : {}),
+                        createdby: Number(inventoryData.user_id),
                       },
                     });
 
@@ -4252,7 +4250,9 @@ export const vanInventoryController = {
                     const batchLot = await tx.batch_lots.findFirst({
                       where: {
                         batch_number: batchInput.batch_number,
+                        productsId: product.id,
                         is_active: 'Y',
+                        createdby: Number(inventoryData.user_id),
                       },
                     });
 
