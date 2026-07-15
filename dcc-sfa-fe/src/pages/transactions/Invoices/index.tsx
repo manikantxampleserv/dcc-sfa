@@ -85,16 +85,6 @@ const InvoicesManagement: React.FC = () => {
     setDetailDrawerOpen(true);
   }, []);
 
-  // const handleManageItems = useCallback((invoice: Invoice) => {
-  //   setSelectedInvoice(invoice);
-  //   setItemsDrawerOpen(true);
-  // }, []);
-
-  // const handlePaymentTracking = useCallback((invoice: Invoice) => {
-  //   setSelectedInvoice(invoice);
-  //   setPaymentTrackingDrawerOpen(true);
-  // }, []);
-
   const handleDeleteInvoice = useCallback(
     async (id: number) => {
       try {
@@ -227,26 +217,9 @@ const InvoicesManagement: React.FC = () => {
                       icon={<Visibility className="!text-[20px]" />}
                       color="success"
                     />
-                    {/* <ActionButton
-                      onClick={() => handleManageItems(row)}
-                      tooltip="Manage invoice items"
-                      icon={<Package />}
-                      color="info"
-                    /> */}
-                    {/* <ActionButton
-                      onClick={() => handlePaymentTracking(row)}
-                      tooltip="Track payments"
-                      icon={<CreditCard />}
-                      color="secondary"
-                    /> */}
                   </>
                 )}
-                {/* {isUpdate && (
-                  <EditButton
-                    onClick={() => handleEditInvoice(row)}
-                    tooltip={`Edit ${row.invoice_number}`}
-                  />
-                )} */}
+
                 {isDelete && (
                   <DeleteButton
                     onClick={() => handleDeleteInvoice(row.id)}

@@ -441,6 +441,9 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
                           {item.tracking_type ||
                             item.product?.tracking_type ||
                             'None'}
+                          {item.batch_number
+                            ? ` | Batch: ${item.batch_number}`
+                            : ''}
                         </Typography>
                       </div>
                       <Typography
@@ -459,7 +462,9 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
                       <span>
                         Qty: {item.quantity ? `${item.quantity} Cases ` : ''}
                         {item.base_quantity ? `${item.base_quantity} PCs ` : ''}
-                        {!item.quantity && !item.base_quantity ? '0 ' : ''}x{' '}
+                        {!item.quantity && !item.base_quantity
+                          ? '0 '
+                          : ''}x{' '}
                         {formatCurrencyWithInvoiceCurrency(item.unit_price)}
                       </span>
                       {item.discount_amount && item.discount_amount > 0 ? (

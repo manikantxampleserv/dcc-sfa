@@ -27,7 +27,7 @@ import { Bar, Chart, Doughnut, Line } from 'react-chartjs-2';
 import {
   FaClipboardList,
   FaMoneyBillWave,
-  FaShoppingCart,
+  FaFileInvoice,
   FaTruck,
   FaUsers,
 } from 'react-icons/fa';
@@ -151,14 +151,14 @@ const ExecutiveDashboard: React.FC = () => {
 
   const stats_cards = [
     {
-      title: 'Total Orders',
-      value: stats?.totalOrders.value.toLocaleString() || '0',
-      description: `${stats?.totalOrders.growthPercentage || '0'}% This Month`,
-      icon: FaShoppingCart,
+      title: 'Total Invoices',
+      value: stats?.totalInvoices.value.toLocaleString() || '0',
+      description: `${stats?.totalInvoices.growthPercentage || '0'}% This Month`,
+      icon: FaFileInvoice,
       color: 'blue',
       progress: stats
         ? Math.min(
-            (stats.totalOrders.thisMonth / stats.totalOrders.value) * 100,
+            (stats.totalInvoices.thisMonth / stats.totalInvoices.value) * 100,
             100
           )
         : 0,
@@ -266,7 +266,7 @@ const ExecutiveDashboard: React.FC = () => {
   };
 
   const averageDailyOrders = stats
-    ? Math.round(stats.totalOrders.value / Math.max(lineChartLabels.length, 1))
+    ? Math.round(stats.totalInvoices.value / Math.max(lineChartLabels.length, 1))
     : 0;
   const ordersData = lineChartLabels.map(
     (_, index) => averageDailyOrders + (index % 3)
@@ -688,7 +688,7 @@ const ExecutiveDashboard: React.FC = () => {
               Revenue MTD
             </span>
             <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
-              {stats?.totalOrders.value.toLocaleString() || '0'} Orders
+              {stats?.totalInvoices.value.toLocaleString() || '0'} Invoices
             </span>
           </div>
         </div>

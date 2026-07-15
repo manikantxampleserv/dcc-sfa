@@ -3209,6 +3209,9 @@ async function processDefaultOutletInvoice(
               select: {
                 id: true,
                 base_price: true,
+                product_tax_master: {
+                  select: { tax_rate: true },
+                },
                 product_unit_of_measurement: {
                   select: { conversion_rate: true },
                 },
@@ -3258,25 +3261,47 @@ async function processDefaultOutletInvoice(
       const conv =
         Number(item.product?.product_unit_of_measurement?.conversion_rate) || 1;
       const price = Number(item.product?.base_price) || 0;
+      const taxRate = Number(item.product?.product_tax_master?.tax_rate) || 0;
       const shortCases = Number(item.default_outlet_posting_qty) || 0;
       const shortPcs = Number(item.default_outlet_posting_base_qty) || 0;
       const unitPricePerPc = conv > 0 ? price / conv : 0;
       const lineTotal = shortCases * price + shortPcs * unitPricePerPc;
+      const taxAmount = (lineTotal * taxRate) / 100;
+      const itemTotal = lineTotal + taxAmount;
+      const taxCode = item.product?.product_tax_master?.code || null;
+      const productName = item.product?.name || null;
+      const unit = item.product?.product_unit_of_measurement?.name || null;
+
       return {
         product_id: item.product_id,
         quantity: shortCases,
         base_quantity: shortPcs,
         unit_price: price,
         subtotal: lineTotal,
-        tax_amount: 0,
+        tax_amount: taxAmount,
         discount_amount: 0,
-        total_amount: lineTotal,
-        notes: `Variance shortage - ${shortCases} Cases ${shortPcs} PCs`,
+        total_amount: itemTotal,
+        tax_code: taxCode,
+        tax_rate: taxRate,
+        conversion_factor: conv,
+        product_name: productName,
+        unit: unit,
+        notes: item.batch_number
+          ? `Variance shortage - ${shortCases} Cases ${shortPcs} PCs (Batches: ${item.batch_number})`
+          : `Variance shortage - ${shortCases} Cases ${shortPcs} PCs`,
         batch_lot_id: item.batch_lot_id || null,
       };
     });
 
     const invoiceSubtotal = invoiceItems.reduce(
+      (s: number, i: any) => s + i.subtotal,
+      0
+    );
+    const invoiceTaxTotal = invoiceItems.reduce(
+      (s: number, i: any) => s + i.tax_amount,
+      0
+    );
+    const invoiceTotalAmount = invoiceItems.reduce(
       (s: number, i: any) => s + i.total_amount,
       0
     );
@@ -3296,10 +3321,10 @@ async function processDefaultOutletInvoice(
           payment_method: 'cash',
           subtotal: invoiceSubtotal,
           discount_amount: 0,
-          tax_amount: 0,
+          tax_amount: invoiceTaxTotal,
           shipping_amount: 0,
-          total_amount: invoiceSubtotal,
-          amount_paid: invoiceSubtotal,
+          total_amount: invoiceTotalAmount,
+          amount_paid: invoiceTotalAmount,
           balance_due: 0,
           notes: `RECON-${reconciliationIdForInvoice}-DEFAULT-OUTLET | Auto-generated for shortage posting on approval`,
           is_active: 'Y',
@@ -3320,6 +3345,11 @@ async function processDefaultOutletInvoice(
             tax_amount: item.tax_amount,
             discount_amount: item.discount_amount,
             total_amount: item.total_amount,
+            tax_code: item.tax_code,
+            tax_rate: item.tax_rate,
+            conversion_factor: item.conversion_factor,
+            product_name: item.product_name,
+            unit: item.unit,
             notes: item.notes,
           },
         });
@@ -3359,6 +3389,41 @@ export const createRequest = async (data: {
 }) => {
   try {
     console.log(' Creating request:', data.request_type);
+
+    if (data.request_data) {
+      try {
+        const parsed = JSON.parse(data.request_data);
+        const rawItems = parsed.items || parsed.van_inventory_items || [];
+        const mergedItems = rawItems.map((item: any) => {
+          const bData = item.batches || item.product_batches;
+          if (Array.isArray(bData)) {
+            const map = new Map<string, any>();
+            for (const b of bData) {
+              if (!b.batch_number) continue;
+              if (map.has(b.batch_number)) {
+                const existing = map.get(b.batch_number);
+                existing.quantity = (
+                  parseInt(existing.quantity || '0', 10) +
+                  parseInt(b.quantity || '0', 10)
+                ).toString();
+              } else {
+                map.set(b.batch_number, { ...b });
+              }
+            }
+            if (item.batches) item.batches = Array.from(map.values());
+            if (item.product_batches)
+              item.product_batches = Array.from(map.values());
+          }
+          return item;
+        });
+        if (parsed.van_inventory_items)
+          parsed.van_inventory_items = mergedItems;
+        if (parsed.items) parsed.items = mergedItems;
+        data.request_data = JSON.stringify(parsed);
+      } catch (e) {
+        console.error('Failed to parse and consolidate request_data', e);
+      }
+    }
 
     const requester = await prisma.users.findUnique({
       where: { id: data.requester_id },

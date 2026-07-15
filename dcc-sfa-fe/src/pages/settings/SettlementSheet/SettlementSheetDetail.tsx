@@ -84,6 +84,9 @@ export default function SettlementSheetDetail() {
           (Number(existing.varianceBaseQty) || 0) +
           (Number(item.varianceBaseQty) || 0);
 
+        existing.taxAmount =
+          (Number(existing.taxAmount) || 0) + (Number(item.taxAmount) || 0);
+
         if (
           !existing.resolutionAction ||
           existing.resolutionAction === 'CLEAN' ||
@@ -113,6 +116,7 @@ export default function SettlementSheetDetail() {
 
   const grandTotal = useMemo(() => {
     let totalSaleValue = 0;
+    let totalTaxAmount = 0;
     let totalDefaultOutletValue = 0;
 
     aggregatedItems.forEach(item => {
@@ -124,6 +128,7 @@ export default function SettlementSheetDetail() {
         (item.saleQuantity || 0) * price +
         (item.saleBaseQty || 0) * basePricePerPc;
       totalSaleValue += saleVal;
+      totalTaxAmount += Number(item.taxAmount) || 0;
 
       const variance = Number(item.variance) || 0;
       const varianceBase = Number(item.varianceBaseQty) || 0;
@@ -137,7 +142,7 @@ export default function SettlementSheetDetail() {
           Math.abs(variance) * price + Math.abs(varianceBase) * basePricePerPc;
       }
     });
-    return { totalSaleValue, totalDefaultOutletValue };
+    return { totalSaleValue, totalTaxAmount, totalDefaultOutletValue };
   }, [aggregatedItems]);
 
   const columns: TableColumn<ReconciliationItem>[] = [
@@ -153,47 +158,85 @@ export default function SettlementSheetDetail() {
       id: 'loadQuantity',
       label: 'Load Qty',
       sortable: true,
-      render: (_, row) => (
-        <span className="block text-center">
-          {row.loadQuantity || 0} Cases {row.loadBaseQty || 0} PCs
-        </span>
-      ),
+      render: (_, row) => {
+        const conv = Number(row.conversionRate) || 1;
+        const normalizeQty = (c: number, p: number) => {
+          if (conv <= 1) return { c: c || 0, p: p || 0 };
+          const total = (c || 0) * conv + (p || 0);
+          const sign = total < 0 ? -1 : 1;
+          const abs = Math.abs(total);
+          return { c: Math.floor(abs / conv) * sign, p: (abs % conv) * sign };
+        };
+
+        const load = normalizeQty(
+          Number(row.loadQuantity),
+          Number(row.loadBaseQty)
+        );
+        const isRGB =
+          row.subCategoryName?.toUpperCase().includes('RGB') ||
+          row.subCategoryName?.toUpperCase().includes('RETURNABLE GLASS');
+        return (
+          <span className="block text-center">
+            {load.c} Cases {isRGB && `${load.p} PCs`}
+          </span>
+        );
+      },
     },
     {
       id: 'saleQuantity',
       label: 'Sale Qty',
       sortable: true,
-      render: (_, row) => (
-        <span className="block text-center">
-          {row.saleQuantity || 0} Cases {row.saleBaseQty || 0} PCs
-        </span>
-      ),
-    },
-    {
-      id: 'saleValue',
-      label: 'Sale Value',
-      render: (_, row) => (
-        <span className="block text-center font-medium">
-          {(
-            (row.saleQuantity || 0) * (row.basePrice || 0) +
-            (row.saleBaseQty || 0) *
-              ((row.basePrice || 0) / (row.conversionRate || 1))
-          ).toLocaleString(undefined, {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-          })}
-        </span>
-      ),
+      render: (_, row) => {
+        const conv = Number(row.conversionRate) || 1;
+        const normalizeQty = (c: number, p: number) => {
+          if (conv <= 1) return { c: c || 0, p: p || 0 };
+          const total = (c || 0) * conv + (p || 0);
+          const sign = total < 0 ? -1 : 1;
+          const abs = Math.abs(total);
+          return { c: Math.floor(abs / conv) * sign, p: (abs % conv) * sign };
+        };
+
+        const sale = normalizeQty(
+          Number(row.saleQuantity),
+          Number(row.saleBaseQty)
+        );
+        const isRGB =
+          row.subCategoryName?.toUpperCase().includes('RGB') ||
+          row.subCategoryName?.toUpperCase().includes('RETURNABLE GLASS');
+        return (
+          <span className="block text-center">
+            {sale.c} Cases {isRGB && `${sale.p} PCs`}
+          </span>
+        );
+      },
     },
     {
       id: 'expectedRop',
       label: 'Expected ROP',
       sortable: true,
-      render: (_, row) => (
-        <span className="block text-center">
-          {row.expectedRop} Cases {row.expectedBaseQty} PCs
-        </span>
-      ),
+      render: (_, row) => {
+        const conv = Number(row.conversionRate) || 1;
+        const normalizeQty = (c: number, p: number) => {
+          if (conv <= 1) return { c: c || 0, p: p || 0 };
+          const total = (c || 0) * conv + (p || 0);
+          const sign = total < 0 ? -1 : 1;
+          const abs = Math.abs(total);
+          return { c: Math.floor(abs / conv) * sign, p: (abs % conv) * sign };
+        };
+
+        const expected = normalizeQty(
+          Number(row.expectedRop),
+          Number(row.expectedBaseQty)
+        );
+        const isRGB =
+          row.subCategoryName?.toUpperCase().includes('RGB') ||
+          row.subCategoryName?.toUpperCase().includes('RETURNABLE GLASS');
+        return (
+          <span className="block text-center">
+            {expected.c} Cases {isRGB && `${expected.p} PCs`}
+          </span>
+        );
+      },
     },
     {
       id: 'actualRop',
@@ -208,10 +251,27 @@ export default function SettlementSheetDetail() {
           row.actualBaseQty !== null &&
           row.actualBaseQty !== undefined;
 
+        const conv = Number(row.conversionRate) || 1;
+        const normalizeQty = (c: number, p: number) => {
+          if (conv <= 1) return { c: c || 0, p: p || 0 };
+          const total = (c || 0) * conv + (p || 0);
+          const sign = total < 0 ? -1 : 1;
+          const abs = Math.abs(total);
+          return { c: Math.floor(abs / conv) * sign, p: (abs % conv) * sign };
+        };
+        const actual = normalizeQty(
+          Number(row.actualRop),
+          Number(row.actualBaseQty)
+        );
+
+        const isRGB =
+          row.subCategoryName?.toUpperCase().includes('RGB') ||
+          row.subCategoryName?.toUpperCase().includes('RETURNABLE GLASS');
+
         return (
           <span className="block text-center">
             {hasActualCases || hasActualPCs
-              ? `${row.actualRop || 0} Cases ${row.actualBaseQty || 0} PCs`
+              ? `${actual.c} Cases ${isRGB ? `${actual.p} PCs` : ''}`
               : '-'}
           </span>
         );
@@ -231,8 +291,19 @@ export default function SettlementSheetDetail() {
             </span>
           );
 
-        const isShort = Number(val) < 0 || Number(baseVal) < 0;
-        const isExcess = Number(val) > 0 || Number(baseVal) > 0;
+        const conv = Number(row.conversionRate) || 1;
+        const normalizeQty = (c: number, p: number) => {
+          if (conv <= 1) return { c: c || 0, p: p || 0 };
+          const total = (c || 0) * conv + (p || 0);
+          const sign = total < 0 ? -1 : 1;
+          const abs = Math.abs(total);
+          return { c: Math.floor(abs / conv) * sign, p: (abs % conv) * sign };
+        };
+
+        const variance = normalizeQty(Number(val), Number(baseVal));
+
+        const isShort = variance.c < 0 || variance.p < 0;
+        const isExcess = variance.c > 0 || variance.p > 0;
         const color = isShort
           ? 'text-red-600'
           : isExcess
@@ -240,13 +311,17 @@ export default function SettlementSheetDetail() {
             : 'text-gray-900';
 
         const sign = isShort ? '-' : isExcess ? '+' : '';
-        const cases = Math.abs(Number(val));
-        const pcs = Math.abs(Number(baseVal));
+        const cases = Math.abs(variance.c);
+        const pcs = Math.abs(variance.p);
+
+        const isRGB =
+          row.subCategoryName?.toUpperCase().includes('RGB') ||
+          row.subCategoryName?.toUpperCase().includes('RETURNABLE GLASS');
 
         if (cases === 0 && pcs === 0) {
           return (
             <span className="block text-center font-medium text-gray-900">
-              0 Cases 0 PCs
+              0 Cases {isRGB && '0 PCs'}
             </span>
           );
         }
@@ -254,7 +329,7 @@ export default function SettlementSheetDetail() {
         return (
           <span className={`block text-center font-medium ${color}`}>
             {sign}
-            {cases} Cases {pcs} PCs
+            {cases} Cases {isRGB && `${pcs} PCs`}
           </span>
         );
       },
@@ -264,6 +339,34 @@ export default function SettlementSheetDetail() {
       label: 'Unit Price (TZS)',
       render: val => (
         <span className="block text-center">{(val || 0).toLocaleString()}</span>
+      ),
+    },
+    {
+      id: 'saleValue',
+      label: 'Sale Value',
+      render: (_, row) => (
+        <span className="block text-center font-medium">
+          {(
+            (row.saleQuantity || 0) * (row.basePrice || 0) +
+            (row.saleBaseQty || 0) *
+              ((row.basePrice || 0) / (row.conversionRate || 1))
+          ).toLocaleString(undefined, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })}
+        </span>
+      ),
+    },
+    {
+      id: 'taxAmount',
+      label: 'Tax Amount',
+      render: val => (
+        <span className="block text-center">
+          {(val || 0).toLocaleString(undefined, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })}
+        </span>
       ),
     },
     {
@@ -461,6 +564,18 @@ export default function SettlementSheetDetail() {
                 </span>
                 <span className="font-semibold text-gray-900">
                   {grandTotal.totalSaleValue.toLocaleString()} TZS
+                </span>
+              </div>
+              <div className="flex justify-between items-center py-2 border-b border-gray-200">
+                <span className="text-gray-600">
+                  Total Tax Amount (From recorded sales):
+                </span>
+                <span className="font-semibold text-gray-900">
+                  {grandTotal.totalTaxAmount.toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}{' '}
+                  TZS
                 </span>
               </div>
               <div className="flex justify-between items-center py-2 border-b border-gray-200">

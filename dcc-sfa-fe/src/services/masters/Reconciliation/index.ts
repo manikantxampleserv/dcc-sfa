@@ -22,6 +22,7 @@ export interface ReconciliationRecord {
 
 /** One row in the detail view — represents one loaded product */
 export interface ReconciliationItem {
+  taxAmount?: number | string;
   id: number;
   reconciliation_id: number;
   salesman_id: number;
@@ -52,6 +53,7 @@ export interface ReconciliationItem {
   conversionRate: number;
   subUnit: string;
   categoryName: string;
+  subCategoryName?: string;
   basePrice: number;
   stockKey: string;
   status: string;

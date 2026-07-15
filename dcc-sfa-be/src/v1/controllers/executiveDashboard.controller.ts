@@ -46,23 +46,23 @@ export const executiveDashboardController = {
         },
       });
 
-      const totalOrders = await prisma.orders.count({
+      const totalInvoices = await prisma.invoices.count({
         where: { is_active: 'Y' },
       });
 
-      const ordersThisMonth = await prisma.orders.count({
-        where: { is_active: 'Y', order_date: { gte: startOfMonth } },
+      const invoicesThisMonthCount = await prisma.invoices.count({
+        where: { is_active: 'Y', invoice_date: { gte: startOfMonth } },
       });
 
-      const ordersLastMonth = await prisma.orders.count({
+      const invoicesLastMonthCount = await prisma.invoices.count({
         where: {
           is_active: 'Y',
-          order_date: { gte: startOfLastMonth, lte: endOfLastMonth },
+          invoice_date: { gte: startOfLastMonth, lte: endOfLastMonth },
         },
       });
-      const ordersGrowthPercentage =
-        ordersLastMonth > 0
-          ? ((ordersThisMonth - ordersLastMonth) / ordersLastMonth) * 100
+      const invoicesGrowthPercentage =
+        invoicesLastMonthCount > 0
+          ? ((invoicesThisMonthCount - invoicesLastMonthCount) / invoicesLastMonthCount) * 100
           : 0;
 
       const invoicesThisMonth = await prisma.invoices.findMany({
@@ -133,10 +133,10 @@ export const executiveDashboardController = {
         success: true,
         message: 'Dashboard statistics retrieved successfully',
         data: {
-          totalOrders: {
-            value: totalOrders,
-            thisMonth: ordersThisMonth,
-            growthPercentage: ordersGrowthPercentage.toFixed(1),
+          totalInvoices: {
+            value: totalInvoices,
+            thisMonth: invoicesThisMonthCount,
+            growthPercentage: invoicesGrowthPercentage.toFixed(1),
           },
           salesRevenue: {
             value: salesRevenue,

@@ -19,6 +19,7 @@ export interface InvoiceItem {
   tax_amount?: number;
   total_amount?: number;
   notes?: string;
+  batch_number?: string;
   product?: {
     id: number;
     name: string;

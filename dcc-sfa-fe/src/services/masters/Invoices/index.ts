@@ -17,6 +17,7 @@ interface InvoiceItem {
   total_amount?: number;
   notes?: string;
   tracking_type?: string | null;
+  batch_number?: string;
   product?: {
     id: number;
     name: string;

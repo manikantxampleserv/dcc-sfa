@@ -1,7 +1,7 @@
 import api from '../../configs/axio.config';
 
 export interface DashboardStatistics {
-  totalOrders: {
+  totalInvoices: {
     value: number;
     thisMonth: number;
     growthPercentage: string;

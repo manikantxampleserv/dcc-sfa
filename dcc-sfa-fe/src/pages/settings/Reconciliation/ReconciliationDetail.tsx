@@ -72,9 +72,7 @@ export default function ReconciliationDetail() {
         };
       }
 
-      const isPending =
-        (localActualStr === '' || localActualStr == null) &&
-        (localActualBaseStr === '' || localActualBaseStr == null);
+      const isPending = localActualStr === '' || localActualStr == null;
 
       if (isPending) {
         return {
@@ -110,10 +108,16 @@ export default function ReconciliationDetail() {
       const vPcs = absV % conv;
       const sign = variancePieces > 0 ? '+' : variancePieces < 0 ? '-' : '';
 
+      const isRGB =
+        row.subCategoryName?.toUpperCase().includes('RGB') ||
+        row.subCategoryName?.toUpperCase().includes('RETURNABLE GLASS');
+
       return {
         actualRop: localActualStr ?? '',
         actualBaseQty: localActualBaseStr ?? '',
-        varianceDisplay: `${sign}${vCases} Cases ${vPcs} PCs`,
+        varianceDisplay: isRGB
+          ? `${sign}${vCases} Cases ${vPcs} PCs`
+          : `${sign}${vCases} Cases`,
         status,
         resolutionAction,
       };
@@ -133,18 +137,22 @@ export default function ReconciliationDetail() {
         editedRecords[row.id] !== undefined
           ? editedRecords[row.id]
           : row.actualRop;
-      const localActualBase =
-        editedBaseRecords[row.id] !== undefined
-          ? editedBaseRecords[row.id]
-          : row.actualBaseQty;
 
-      const isPending =
-        (localActual === '' || localActual == null) &&
-        (localActualBase === '' || localActualBase == null);
+      const isPending = localActual === '' || localActual == null;
 
       if (!isBlocked && isPending) {
-        updates[row.id] = row.expectedRop.toString();
-        baseUpdates[row.id] = row.expectedBaseQty.toString();
+        const conv = Number(row.conversionRate) || 1;
+        const normalizeQty = (c: number, p: number) => {
+          if (conv <= 1) return { c: c || 0, p: p || 0 };
+          const total = (c || 0) * conv + (p || 0);
+          const sign = total < 0 ? -1 : 1;
+          const abs = Math.abs(total);
+          return { c: Math.floor(abs / conv) * sign, p: (abs % conv) * sign };
+        };
+        const expected = normalizeQty(Number(row.expectedRop), Number(row.expectedBaseQty));
+
+        updates[row.id] = expected.c.toString();
+        baseUpdates[row.id] = expected.p.toString();
       }
     });
 
@@ -229,11 +237,27 @@ export default function ReconciliationDetail() {
         id: 'expectedRop',
         label: 'Expected',
         sortable: true,
-        render: (_, row) => (
-          <span className="font-semibold text-gray-800">
-            {row.expectedRop} Cases {row.expectedBaseQty} PCs
-          </span>
-        ),
+        render: (_, row) => {
+          const isRGB =
+            row.subCategoryName?.toUpperCase().includes('RGB') ||
+            row.subCategoryName?.toUpperCase().includes('RETURNABLE GLASS');
+            
+          const conv = Number(row.conversionRate) || 1;
+          const normalizeQty = (c: number, p: number) => {
+            if (conv <= 1) return { c: c || 0, p: p || 0 };
+            const total = (c || 0) * conv + (p || 0);
+            const sign = total < 0 ? -1 : 1;
+            const abs = Math.abs(total);
+            return { c: Math.floor(abs / conv) * sign, p: (abs % conv) * sign };
+          };
+          const expected = normalizeQty(Number(row.expectedRop), Number(row.expectedBaseQty));
+
+          return (
+            <span className="font-semibold text-gray-800">
+              {expected.c} Cases {isRGB && `${expected.p} PCs`}
+            </span>
+          );
+        },
       },
       {
         id: 'actualRop',
@@ -241,6 +265,9 @@ export default function ReconciliationDetail() {
         render: (_, row) => {
           const { details } = row;
           const isBlocked = row.status === 'Blocked - Force-Push Required';
+          const isRGB =
+            row.subCategoryName?.toUpperCase().includes('RGB') ||
+            row.subCategoryName?.toUpperCase().includes('RETURNABLE GLASS');
           return (
             <div className="flex gap-2 items-center">
               <TextField
@@ -257,20 +284,26 @@ export default function ReconciliationDetail() {
                 className={isBlocked ? 'bg-red-50/20' : 'bg-yellow-50/30'}
               />
               <span className="text-xs text-gray-500">Cases</span>
-              <TextField
-                type="number"
-                size="small"
-                placeholder={isBlocked ? 'BLOCKED' : 'PCs'}
-                value={details.actualBaseQty}
-                disabled={isBlocked || !isUpdate || isApproved}
-                onChange={e => handleActualBaseChange(row.id, e.target.value)}
-                inputProps={{
-                  min: 0,
-                  style: { textAlign: 'right', width: '60px' },
-                }}
-                className={isBlocked ? 'bg-red-50/20' : 'bg-yellow-50/30'}
-              />
-              <span className="text-xs text-gray-500">PCs</span>
+              {isRGB && (
+                <>
+                  <TextField
+                    type="number"
+                    size="small"
+                    placeholder={isBlocked ? 'BLOCKED' : 'PCs'}
+                    value={details.actualBaseQty}
+                    disabled={isBlocked || !isUpdate || isApproved}
+                    onChange={e =>
+                      handleActualBaseChange(row.id, e.target.value)
+                    }
+                    inputProps={{
+                      min: 0,
+                      style: { textAlign: 'right', width: '60px' },
+                    }}
+                    className={isBlocked ? 'bg-red-50/20' : 'bg-yellow-50/30'}
+                  />
+                  <span className="text-xs text-gray-500">PCs</span>
+                </>
+              )}
             </div>
           );
         },

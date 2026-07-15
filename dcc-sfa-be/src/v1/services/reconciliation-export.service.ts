@@ -173,6 +173,7 @@ export const exportReconciliationExcelService = async (
     'Variance',
     `Unit Price (${currencyCode})`,
     `Sale Value (${currencyCode})`,
+    `Tax Amount (${currencyCode})`,
     'Action',
   ];
   const headerRow = sheet.getRow(currentRow);
@@ -200,6 +201,7 @@ export const exportReconciliationExcelService = async (
   let grandTotalActual = 0;
   let grandTotalVariance = 0;
   let grandTotalSaleValue = 0;
+  let grandTotalTaxAmount = 0;
 
   let grandTotalDefaultOutletValue = 0;
 
@@ -218,6 +220,7 @@ export const exportReconciliationExcelService = async (
       let catActual = 0;
       let catVariance = 0;
       let catSaleValue = 0;
+      let catTaxAmount = 0;
 
       catItems.forEach((item: any, idx: number) => {
         const row = sheet.getRow(currentRow);
@@ -228,12 +231,38 @@ export const exportReconciliationExcelService = async (
         const price = Number(item.basePrice) || 0;
         const basePricePerPc = price / conv;
 
+        const normalizeQty = (c: number, p: number) => {
+          if (conv <= 1) return { c: c || 0, p: p || 0 };
+          const total = (c || 0) * conv + (p || 0);
+          const sign = total < 0 ? -1 : 1;
+          const abs = Math.abs(total);
+          return { c: Math.floor(abs / conv) * sign, p: (abs % conv) * sign };
+        };
+
+        const isRGB =
+          item.subCategoryName?.toUpperCase().includes('RGB') ||
+          item.subCategoryName?.toUpperCase().includes('RETURNABLE GLASS');
+
+        const load = normalizeQty(
+          Number(item.loadQuantity),
+          Number(item.loadBaseQty)
+        );
         row.getCell(4).value =
-          `${Number(item.loadQuantity) || 0} Cases ${Number(item.loadBaseQty) || 0} PCs`;
+          `${load.c} Cases ${isRGB ? `${load.p} PCs` : ''}`.trim();
+
+        const sale = normalizeQty(
+          Number(item.saleQuantity),
+          Number(item.saleBaseQty)
+        );
         row.getCell(5).value =
-          `${Number(item.saleQuantity) || 0} Cases ${Number(item.saleBaseQty) || 0} PCs`;
+          `${sale.c} Cases ${isRGB ? `${sale.p} PCs` : ''}`.trim();
+
+        const expected = normalizeQty(
+          Number(item.expectedRop),
+          Number(item.expectedBaseQty)
+        );
         row.getCell(6).value =
-          `${Number(item.expectedRop) || 0} Cases ${Number(item.expectedBaseQty) || 0} PCs`;
+          `${expected.c} Cases ${isRGB ? `${expected.p} PCs` : ''}`.trim();
 
         const hasActualCases =
           item.actualRop !== '' &&
@@ -245,26 +274,29 @@ export const exportReconciliationExcelService = async (
           item.actualBaseQty !== undefined;
         const actualVal = hasActualCases ? Number(item.actualRop) : 0;
         const actualBaseVal = hasActualPCs ? Number(item.actualBaseQty) : 0;
+        const actual = normalizeQty(actualVal, actualBaseVal);
+
         row.getCell(7).value =
           hasActualCases || hasActualPCs
-            ? `${actualVal} Cases ${actualBaseVal} PCs`
+            ? `${actual.c} Cases ${isRGB ? `${actual.p} PCs` : ''}`.trim()
             : '-';
 
         const varianceVal = Number(item.variance) || 0;
         const varianceBaseVal = Number(item.varianceBaseQty) || 0;
+        const variance = normalizeQty(varianceVal, varianceBaseVal);
 
         const sign =
-          varianceVal < 0 || varianceBaseVal < 0
+          variance.c < 0 || variance.p < 0
             ? '-'
-            : varianceVal > 0 || varianceBaseVal > 0
+            : variance.c > 0 || variance.p > 0
               ? '+'
               : '';
-        const absCases = Math.abs(varianceVal);
-        const absPcs = Math.abs(varianceBaseVal);
+        const absCases = Math.abs(variance.c);
+        const absPcs = Math.abs(variance.p);
         row.getCell(8).value =
-          varianceVal === 0 && varianceBaseVal === 0
-            ? '0 Cases 0 PCs'
-            : `${sign}${absCases} Cases ${absPcs} PCs`;
+          variance.c === 0 && variance.p === 0
+            ? `0 Cases ${isRGB ? '0 PCs' : ''}`.trim()
+            : `${sign}${absCases} Cases ${isRGB ? `${absPcs} PCs` : ''}`.trim();
 
         row.getCell(9).value = price;
 
@@ -273,8 +305,11 @@ export const exportReconciliationExcelService = async (
           (Number(item.saleBaseQty) || 0) * basePricePerPc;
         row.getCell(10).value = saleVal;
 
+        const taxAmount = Number(item.taxAmount) || 0;
+        row.getCell(11).value = taxAmount;
+
         const action = item.resolutionAction || '-';
-        row.getCell(11).value = action;
+        row.getCell(12).value = action;
 
         catLoad +=
           (Number(item.loadQuantity) || 0) +
@@ -288,6 +323,7 @@ export const exportReconciliationExcelService = async (
         catActual += actualVal + actualBaseVal / conv;
         catVariance += varianceVal + varianceBaseVal / conv;
         catSaleValue += saleVal;
+        catTaxAmount += taxAmount;
 
         if (
           action.includes('Default Outlet') &&
@@ -298,17 +334,17 @@ export const exportReconciliationExcelService = async (
             Math.abs(varianceBaseVal) * basePricePerPc;
         }
 
-        for (let i = 1; i <= 11; i++) {
+        for (let i = 1; i <= 12; i++) {
           const cell = row.getCell(i);
           applyBorder(cell);
-          if (i >= 4 && i <= 10) {
+          if (i >= 4 && i <= 11) {
             cell.alignment = { horizontal: 'right' };
             cell.numFmt = '#,##0.00';
-            if (i === 9 || i === 10) {
+            if (i === 9 || i === 10 || i === 11) {
               cell.numFmt = '#,##0';
             }
           }
-          if (i === 11) {
+          if (i === 12) {
             cell.alignment = { horizontal: 'center' };
             if (action.includes('Unload Adjustment')) {
               applyFill(cell, 'FFFFD966');
@@ -342,6 +378,7 @@ export const exportReconciliationExcelService = async (
         actual: catActual,
         variance: catVariance,
         saleValue: catSaleValue,
+        taxAmount: catTaxAmount,
       };
 
       grandTotalLoad += catLoad;
@@ -350,6 +387,7 @@ export const exportReconciliationExcelService = async (
       grandTotalActual += catActual;
       grandTotalVariance += catVariance;
       grandTotalSaleValue += catSaleValue;
+      grandTotalTaxAmount += catTaxAmount;
     }
   );
 
@@ -370,6 +408,7 @@ export const exportReconciliationExcelService = async (
     'Actual ROP',
     'Variance',
     'Sale Value',
+    'Tax Amount',
   ];
   const subHeaderRow = sheet.getRow(currentRow);
 
@@ -401,6 +440,9 @@ export const exportReconciliationExcelService = async (
   const subValCell = sheet.getCell(`J${currentRow}`);
   subValCell.value = 'Sale Value';
 
+  const subTaxCell = sheet.getCell(`K${currentRow}`);
+  subTaxCell.value = 'Tax Amount';
+
   [
     subCatCell,
     subSkuCell,
@@ -411,6 +453,7 @@ export const exportReconciliationExcelService = async (
     subVarCell,
     subPriceCell,
     subValCell,
+    subTaxCell,
   ].forEach(cell => {
     applyFont(cell, { bold: true, color: { argb: 'FFFFFFFF' } });
     applyFill(cell, 'FF7030A0');
@@ -433,6 +476,7 @@ export const exportReconciliationExcelService = async (
 
     row.getCell(9).value = '';
     row.getCell(10).value = totals.saleValue;
+    row.getCell(11).value = totals.taxAmount;
 
     for (let i = 1; i <= 11; i++) {
       const cell = row.getCell(i);
@@ -457,6 +501,7 @@ export const exportReconciliationExcelService = async (
   gtRow.getCell(8).value = grandTotalVariance;
   gtRow.getCell(9).value = '';
   gtRow.getCell(10).value = grandTotalSaleValue;
+  gtRow.getCell(11).value = grandTotalTaxAmount;
 
   for (let i = 1; i <= 11; i++) {
     const cell = gtRow.getCell(i);
@@ -489,6 +534,21 @@ export const exportReconciliationExcelService = async (
   applyFill(tsvCell, 'FFEAEAEA');
   applyFill(sheet.getCell(`K${currentRow}`), 'FFEAEAEA');
   applyBorder(tsvCell);
+  applyBorder(sheet.getCell(`K${currentRow}`));
+  currentRow++;
+
+  sheet.mergeCells(`A${currentRow}:I${currentRow}`);
+  sheet.getCell(`A${currentRow}`).value =
+    'Total Tax Amount (From recorded sales):';
+  sheet.getCell(`A${currentRow}`).alignment = { horizontal: 'right' };
+  sheet.mergeCells(`J${currentRow}:K${currentRow}`);
+  const taxCell = sheet.getCell(`J${currentRow}`);
+  taxCell.value = grandTotalTaxAmount;
+  taxCell.numFmt = '#,##0';
+  applyFont(taxCell, { bold: true });
+  applyFill(taxCell, 'FFEAEAEA');
+  applyFill(sheet.getCell(`K${currentRow}`), 'FFEAEAEA');
+  applyBorder(taxCell);
   applyBorder(sheet.getCell(`K${currentRow}`));
   currentRow++;
 
@@ -541,7 +601,9 @@ export const exportReconciliationExcelService = async (
 
   const boldCells = [1, 2, 3, 4, 5, 7];
   boldCells.forEach(col => applyFont(hRow.getCell(col), { bold: true }));
-  [1, 2, 3, 4, 5, 6, 7, 9, 10, 11].forEach(col => applyBorder(hRow.getCell(col)));
+  [1, 2, 3, 4, 5, 6, 7, 9, 10, 11].forEach(col =>
+    applyBorder(hRow.getCell(col))
+  );
   currentRow++;
 
   // Rows 1 to 7 for Cash, 1 to 10 for Bank

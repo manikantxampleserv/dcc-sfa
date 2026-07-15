@@ -1,5 +1,8 @@
 import prisma from '../../configs/prisma.client';
-import { createRequest, resolveRequesterDepotId } from '../controllers/requests.controller';
+import {
+  createRequest,
+  resolveRequesterDepotId,
+} from '../controllers/requests.controller';
 
 async function updateInventoryStock(
   tx: any,
@@ -169,7 +172,25 @@ export const sapService = {
   async createOrUpdateVanInventorySAP(payload: any, userId: number = 1) {
     const { van_inventory_items, inventoryItems, ...inventoryData } = payload;
 
-    const items = van_inventory_items || inventoryItems || payload.items || [];
+    const rawItems = van_inventory_items || inventoryItems || payload.items || [];
+    const items = rawItems.map((item: any) => {
+      const bData = item.batches || item.product_batches;
+      if (Array.isArray(bData)) {
+        const map = new Map<string, any>();
+        for (const b of bData) {
+          if (!b.batch_number) continue;
+          if (map.has(b.batch_number)) {
+            const existing = map.get(b.batch_number);
+            existing.quantity = (parseInt(existing.quantity || '0', 10) + parseInt(b.quantity || '0', 10)).toString();
+          } else {
+            map.set(b.batch_number, { ...b });
+          }
+        }
+        if (item.batches) item.batches = Array.from(map.values());
+        if (item.product_batches) item.product_batches = Array.from(map.values());
+      }
+      return item;
+    });
     let inventoryId = inventoryData.id;
     let loadingType = inventoryData.loading_type || 'L';
     if (!['L', 'U'].includes(loadingType.toUpperCase())) {

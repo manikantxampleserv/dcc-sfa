@@ -1,11 +1,12 @@
 import axiosInstance from 'configs/axio.config';
 import type { ApiResponse } from '../../../types/api.types';
+import type { Invoice } from '../../../hooks/useInvoices';
 
 /**
  * Customer entity interface
  */
 interface Customer {
-  depot: { name: string };
+  depot?: { name: string; code: string } | null;
   customer_district: any;
   customer_region: any;
   customer_city: any;
@@ -97,6 +98,19 @@ interface Customer {
     code: string;
   }>;
   is_default_outlet?: 'Y' | 'N';
+}
+
+/**
+ * Detailed Customer Response interface
+ */
+interface CustomerDetailData {
+  customer: Customer;
+  documents?: any[];
+  assets?: any[];
+  transactions?: any[];
+  feedbacks?: any[];
+  complaints?: any[];
+  invoices?: Invoice[];
 }
 
 /**
@@ -212,11 +226,11 @@ export const fetchCustomers = async (
 /**
  * Fetch customer by ID
  * @param id - Customer ID
- * @returns Promise<ApiResponse<Customer>>
+ * @returns Promise<ApiResponse<CustomerDetailData>>
  */
 export const fetchCustomerById = async (
   id: number
-): Promise<ApiResponse<Customer>> => {
+): Promise<ApiResponse<CustomerDetailData>> => {
   try {
     const response = await axiosInstance.get(`/customers/${id}`);
     return response.data;
@@ -347,5 +361,6 @@ export type {
   PaginationMeta,
   CustomerStats,
   Customer,
+  CustomerDetailData,
   CustomerRelations,
 };

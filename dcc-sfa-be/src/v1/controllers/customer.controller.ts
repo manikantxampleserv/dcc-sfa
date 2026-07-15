@@ -1566,7 +1566,9 @@ export const customerController = {
         ...(customer_category_id && {
           customer_category_id: Number(customer_category_id),
         }),
-        ...(customer_channel_id && { customer_channel_id: Number(customer_channel_id) }),
+        ...(customer_channel_id && {
+          customer_channel_id: Number(customer_channel_id),
+        }),
       };
 
       if (isScopeRestricted) {
@@ -2053,6 +2055,12 @@ export const customerController = {
           customer_documents_customers: {
             orderBy: { createdate: 'desc' },
           },
+          invoices_customers: {
+            orderBy: { invoice_date: 'desc' },
+            include: {
+              invoice_items: true,
+            },
+          },
           coolers_customers: {
             where: { is_active: 'Y', status: 'Installed' },
             include: {
@@ -2179,6 +2187,7 @@ export const customerController = {
           customer: serializedCustomer,
           documents: customer.customer_documents_customers || [],
           assets: mappedAssets,
+          invoices: customer.invoices_customers || [],
         },
       });
     } catch (error: any) {

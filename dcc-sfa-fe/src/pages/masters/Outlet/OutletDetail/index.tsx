@@ -7,8 +7,6 @@ import {
   LocationOn,
   Schedule,
   Star,
-  Verified,
-  Warning,
 } from '@mui/icons-material';
 import {
   Alert,
@@ -27,18 +25,20 @@ import {
   CreditCard,
   DollarSign,
   ExternalLink,
-  FileText,
   MapPin,
   Package,
   PhoneCall,
+  Receipt,
 } from 'lucide-react';
 import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { type Customer } from 'services/masters/Customers';
 import Barcode from 'shared/Barcode';
 import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
 import { formatDate } from 'utils/dateUtils';
 import { getBusinessTypeIcon } from '../utils';
+import CustomerInvoices from './CustomerInvoices';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -67,13 +67,11 @@ const OutletDetail: React.FC = () => {
 
   const { data: customerData, isLoading, error } = useCustomer(Number(id));
 
-  const responseData = customerData?.data as any;
-  const customer = responseData?.customer || responseData || {};
+  const responseData = customerData?.data;
+  const customer = responseData?.customer || ({} as Customer);
   const documents = responseData?.documents || [];
   const assets = responseData?.assets || [];
-  const transactions = responseData?.transactions || [];
-  const feedbacks = responseData?.feedbacks || [];
-  const complaints = responseData?.complaints || [];
+  const invoices = responseData?.invoices || [];
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
@@ -285,80 +283,6 @@ const OutletDetail: React.FC = () => {
     );
   }
 
-  const documentColumns: TableColumn<any>[] = [
-    {
-      id: 'document_type',
-      label: 'Document Type',
-      render: (_value, row) => (
-        <Box className="flex items-center gap-2">
-          <Avatar className="!h-8 !w-8 !bg-blue-100 !text-blue-600">
-            <FileText className="h-4 w-4" />
-          </Avatar>
-          <Typography variant="body2" className="!font-medium">
-            {row.document_type}
-          </Typography>
-        </Box>
-      ),
-    },
-    {
-      id: 'document_number',
-      label: 'Document Number',
-      render: document_number => (
-        <Typography variant="body2">
-          {document_number || <span className="text-gray-400">N/A</span>}
-        </Typography>
-      ),
-    },
-    {
-      id: 'issue_date',
-      label: 'Issue Date',
-      render: issue_date => (
-        <Typography variant="body2">
-          {issue_date ? formatDate(issue_date) : '-'}
-        </Typography>
-      ),
-    },
-    {
-      id: 'expiry_date',
-      label: 'Expiry Date',
-      render: expiry_date => (
-        <Typography variant="body2">
-          {expiry_date ? formatDate(expiry_date) : '-'}
-        </Typography>
-      ),
-    },
-    {
-      id: 'is_verified',
-      label: 'Verification Status',
-      render: is_verified => (
-        <Chip
-          icon={
-            is_verified ? (
-              <Verified fontSize="small" />
-            ) : (
-              <Warning fontSize="small" />
-            )
-          }
-          label={is_verified ? 'Verified' : 'Pending'}
-          size="small"
-          color={is_verified ? 'success' : 'warning'}
-        />
-      ),
-    },
-    {
-      id: 'is_active',
-      label: 'Status',
-      render: is_active => (
-        <Chip
-          icon={is_active === 'Y' ? <CheckCircle /> : <Cancel />}
-          label={is_active === 'Y' ? 'Active' : 'Inactive'}
-          size="small"
-          color={is_active === 'Y' ? 'success' : 'error'}
-        />
-      ),
-    },
-  ];
-
   const assetColumns: TableColumn<any>[] = [
     {
       id: 'code',
@@ -488,199 +412,41 @@ const OutletDetail: React.FC = () => {
     }))
   );
 
-  const transactionColumns: TableColumn<any>[] = [
+  const documentColumns: TableColumn<any>[] = [
     {
-      id: 'transaction_date',
-      label: 'Date',
-      render: transaction_date => (
-        <Typography variant="body2">
-          {transaction_date ? formatDate(transaction_date) : '-'}
-        </Typography>
+      id: 'document_type',
+      label: 'Document Type',
+      sortable: true,
+      render: val => <span className="font-medium text-gray-700">{val}</span>,
+    },
+    { id: 'document_number', label: 'Document Number', sortable: true },
+    {
+      id: 'issue_date',
+      label: 'Issue Date',
+      sortable: true,
+      render: val => (val ? formatDate(val as string) : '-'),
+    },
+    {
+      id: 'expiry_date',
+      label: 'Expiry Date',
+      sortable: true,
+      render: val => (val ? formatDate(val as string) : '-'),
+    },
+    {
+      id: 'is_verified',
+      label: 'Verified',
+      sortable: true,
+      render: val => (
+        <span className={val ? 'text-green-600' : 'text-gray-500'}>
+          {val ? 'Yes' : 'No'}
+        </span>
       ),
     },
     {
-      id: 'transaction_type',
-      label: 'Type',
-      render: transaction_type => (
-        <Chip
-          label={transaction_type || 'N/A'}
-          size="small"
-          className="!capitalize"
-        />
-      ),
-    },
-    {
-      id: 'amount',
-      label: 'Amount',
-      render: amount => (
-        <Typography variant="body2" className="!font-medium">
-          {amount ? formatCurrency(amount) : '-'}
-        </Typography>
-      ),
-    },
-    {
-      id: 'status',
-      label: 'Status',
-      render: status => (
-        <Chip
-          label={status || 'Pending'}
-          size="small"
-          className="!capitalize"
-          color={
-            status === 'completed' || status === 'paid'
-              ? 'success'
-              : status === 'pending'
-                ? 'warning'
-                : 'default'
-          }
-        />
-      ),
-    },
-    {
-      id: 'description',
-      label: 'Description',
-      render: description => (
-        <Typography variant="body2" className="!max-w-xs !truncate">
-          {description || <span className="text-gray-400">No description</span>}
-        </Typography>
-      ),
-    },
-  ];
-
-  const feedbackColumns: TableColumn<any>[] = [
-    {
-      id: 'feedback_date',
-      label: 'Date',
-      render: feedback_date => (
-        <Typography variant="body2">
-          {feedback_date ? formatDate(feedback_date) : '-'}
-        </Typography>
-      ),
-    },
-    {
-      id: 'rating',
-      label: 'Rating',
-      render: rating => (
-        <Box className="flex items-center gap-1">
-          {[1, 2, 3, 4, 5].map(star => (
-            <Typography
-              key={star}
-              variant="body2"
-              className={
-                star <= (rating || 0) ? '!text-yellow-500' : '!text-gray-300'
-              }
-            >
-              ★
-            </Typography>
-          ))}
-          {rating && (
-            <Typography variant="caption" className="!ml-1 !text-gray-500">
-              ({rating})
-            </Typography>
-          )}
-        </Box>
-      ),
-    },
-    {
-      id: 'feedback_type',
-      label: 'Type',
-      render: feedback_type => (
-        <Chip
-          label={feedback_type || 'General'}
-          size="small"
-          className="!capitalize"
-        />
-      ),
-    },
-    {
-      id: 'comment',
-      label: 'Comment',
-      render: comment => (
-        <Typography variant="body2" className="!max-w-xs !truncate">
-          {comment || <span className="text-gray-400">No comment</span>}
-        </Typography>
-      ),
-    },
-    {
-      id: 'status',
-      label: 'Status',
-      render: status => (
-        <Chip
-          label={status || 'Active'}
-          size="small"
-          className="!capitalize"
-          color={status === 'resolved' ? 'success' : 'default'}
-        />
-      ),
-    },
-  ];
-
-  const complaintColumns: TableColumn<any>[] = [
-    {
-      id: 'complaint_date',
-      label: 'Date',
-      render: complaint_date => (
-        <Typography variant="body2">
-          {complaint_date ? formatDate(complaint_date) : '-'}
-        </Typography>
-      ),
-    },
-    {
-      id: 'complaint_type',
-      label: 'Type',
-      render: complaint_type => (
-        <Chip
-          label={complaint_type || 'General'}
-          size="small"
-          className="!capitalize"
-          color="error"
-        />
-      ),
-    },
-    {
-      id: 'priority',
-      label: 'Priority',
-      render: priority => (
-        <Chip
-          label={priority || 'Medium'}
-          size="small"
-          className="!capitalize"
-          color={
-            priority === 'high' || priority === 'urgent'
-              ? 'error'
-              : priority === 'medium'
-                ? 'warning'
-                : 'default'
-          }
-        />
-      ),
-    },
-    {
-      id: 'description',
-      label: 'Description',
-      render: description => (
-        <Typography variant="body2" className="!max-w-xs !truncate">
-          {description || <span className="text-gray-400">No description</span>}
-        </Typography>
-      ),
-    },
-    {
-      id: 'status',
-      label: 'Status',
-      render: status => (
-        <Chip
-          label={status || 'Open'}
-          size="small"
-          className="!capitalize"
-          color={
-            status === 'resolved' || status === 'closed'
-              ? 'success'
-              : status === 'in_progress'
-                ? 'warning'
-                : 'error'
-          }
-        />
-      ),
+      id: 'createdate',
+      label: 'Uploaded On',
+      sortable: true,
+      render: val => (val ? formatDate(val as string) : '-'),
     },
   ];
 
@@ -1021,13 +787,24 @@ const OutletDetail: React.FC = () => {
           <Tabs
             value={tabValue}
             onChange={handleTabChange}
-            className="!min-h-14"
+            className="!min-h-10"
           >
+            <Tab
+              icon={<Receipt className="h-5 w-5" />}
+              label={`INVOICES (${invoices.length})`}
+              iconPosition="start"
+              className="!min-h-12 !py-0"
+              sx={{
+                '& .MuiButtonBase-root': {
+                  padding: 1,
+                },
+              }}
+            />
             <Tab
               icon={<Inventory />}
               label={`Assets (${assets.length})`}
               iconPosition="start"
-              className="!min-h-14 !py-0"
+              className="!min-h-12 !py-0"
               sx={{
                 '& .MuiButtonBase-root': {
                   padding: 1,
@@ -1038,7 +815,7 @@ const OutletDetail: React.FC = () => {
               icon={<History />}
               label={`Asset History (${allAssetHistory.length})`}
               iconPosition="start"
-              className="!min-h-14 !py-0"
+              className="!min-h-12 !py-0"
               sx={{
                 '& .MuiButtonBase-root': {
                   padding: 1,
@@ -1049,7 +826,7 @@ const OutletDetail: React.FC = () => {
               icon={<Description />}
               label={`Attachments (${documents.length})`}
               iconPosition="start"
-              className="!min-h-14 !py-0"
+              className="!min-h-12 !py-0"
               sx={{
                 '& .MuiButtonBase-root': {
                   padding: 1,
@@ -1060,6 +837,10 @@ const OutletDetail: React.FC = () => {
         </Box>
 
         <TabPanel value={tabValue} index={0}>
+          <CustomerInvoices invoices={invoices} />
+        </TabPanel>
+
+        <TabPanel value={tabValue} index={1}>
           <Table
             data={assets}
             columns={assetColumns}
@@ -1070,7 +851,7 @@ const OutletDetail: React.FC = () => {
           />
         </TabPanel>
 
-        <TabPanel value={tabValue} index={1}>
+        <TabPanel value={tabValue} index={2}>
           <Table
             data={allAssetHistory}
             columns={historyColumns}
@@ -1081,40 +862,7 @@ const OutletDetail: React.FC = () => {
           />
         </TabPanel>
 
-        <TabPanel value={tabValue} index={2}>
-          <Table
-            data={transactions}
-            columns={transactionColumns}
-            getRowId={transaction => transaction.id}
-            initialOrderBy="transaction_date"
-            emptyMessage="No transactions found for this outlet"
-            pagination={false}
-          />
-        </TabPanel>
-
         <TabPanel value={tabValue} index={3}>
-          <Table
-            data={feedbacks}
-            columns={feedbackColumns}
-            getRowId={feedback => feedback.id}
-            initialOrderBy="feedback_date"
-            emptyMessage="No feedbacks found for this outlet"
-            pagination={false}
-          />
-        </TabPanel>
-
-        <TabPanel value={tabValue} index={4}>
-          <Table
-            data={complaints}
-            columns={complaintColumns}
-            getRowId={complaint => complaint.id}
-            initialOrderBy="complaint_date"
-            emptyMessage="No complaints found for this outlet"
-            pagination={false}
-          />
-        </TabPanel>
-
-        <TabPanel value={tabValue} index={5}>
           <Table
             data={documents}
             columns={documentColumns}
