@@ -358,51 +358,51 @@ function serializeVisit(visit: any) {
     images: {
       self: visit.visit_attachments
         ? visit.visit_attachments
-            .filter((att: any) => att.file_type === 'self_image')
-            .map((att: any) => att.file_url)
+          .filter((att: any) => att.file_type === 'self_image')
+          .map((att: any) => att.file_url)
         : visit.self_image
           ? visit.self_image.split(',').filter(Boolean)
           : [],
       customer: visit.visit_attachments
         ? visit.visit_attachments
-            .filter((att: any) => att.file_type === 'customer_image')
-            .map((att: any) => att.file_url)
+          .filter((att: any) => att.file_type === 'customer_image')
+          .map((att: any) => att.file_url)
         : visit.customer_image
           ? visit.customer_image.split(',').filter(Boolean)
           : [],
       cooler: visit.visit_attachments
         ? visit.visit_attachments
-            .filter((att: any) => att.file_type === 'cooler_image')
-            .map((att: any) => att.file_url)
+          .filter((att: any) => att.file_type === 'cooler_image')
+          .map((att: any) => att.file_url)
         : visit.cooler_image
           ? visit.cooler_image.split(',').filter(Boolean)
           : [],
     },
     customer: visit.visit_customers
       ? {
-          id: visit.visit_customers.id,
-          name: visit.visit_customers.name,
-          code: visit.visit_customers.code,
-          type: visit.visit_customers.type,
-          contact_person: visit.visit_customers.contact_person,
-          phone_number: visit.visit_customers.phone_number,
-          email: visit.visit_customers.email,
-          address: visit.visit_customers.address,
-          city: visit.visit_customers.city,
-          state: visit.visit_customers.state,
-          zipcode: visit.visit_customers.zipcode,
-          outstanding_amount: visit.visit_customers.outstanding_amount,
-          credit_limit: visit.visit_customers.credit_limit,
-          is_active: visit.visit_customers.is_active,
-        }
+        id: visit.visit_customers.id,
+        name: visit.visit_customers.name,
+        code: visit.visit_customers.code,
+        type: visit.visit_customers.type,
+        contact_person: visit.visit_customers.contact_person,
+        phone_number: visit.visit_customers.phone_number,
+        email: visit.visit_customers.email,
+        address: visit.visit_customers.address,
+        city: visit.visit_customers.city,
+        state: visit.visit_customers.state,
+        zipcode: visit.visit_customers.zipcode,
+        outstanding_amount: visit.visit_customers.outstanding_amount,
+        credit_limit: visit.visit_customers.credit_limit,
+        is_active: visit.visit_customers.is_active,
+      }
       : null,
 
     salesperson: visit.visits_salesperson
       ? {
-          id: visit.visits_salesperson.id,
-          name: visit.visits_salesperson.name,
-          email: visit.visits_salesperson.email,
-        }
+        id: visit.visits_salesperson.id,
+        name: visit.visits_salesperson.name,
+        email: visit.visits_salesperson.email,
+      }
       : null,
 
     route: visit.visit_customers?.customer_routes || visit.visit_routes,
@@ -458,15 +458,15 @@ function serializeVisit(visit: any) {
         next_inspection_due: inspection.next_inspection_due,
         cooler: inspection.coolers
           ? {
-              id: inspection.coolers.id,
-              code: inspection.coolers.code,
-              brand: inspection.coolers.brand,
-              model: inspection.coolers.model,
-              serial_number: inspection.coolers.serial_number,
-              customer_id: inspection.coolers.customer_id,
-              capacity: inspection.coolers.capacity,
-              status: inspection.coolers.status,
-            }
+            id: inspection.coolers.id,
+            code: inspection.coolers.code,
+            brand: inspection.coolers.brand,
+            model: inspection.coolers.model,
+            serial_number: inspection.coolers.serial_number,
+            customer_id: inspection.coolers.customer_id,
+            capacity: inspection.coolers.capacity,
+            status: inspection.coolers.status,
+          }
           : null,
       })) || [],
 
@@ -890,20 +890,20 @@ export const visitsController = {
             ...(visit.duration !== undefined && { duration: visit.duration }),
             ...(visit.start_latitude &&
               String(visit.start_latitude).trim() !== '' && {
-                start_latitude: parseFloat(visit.start_latitude),
-              }),
+              start_latitude: parseFloat(visit.start_latitude),
+            }),
             ...(visit.start_longitude &&
               String(visit.start_longitude).trim() !== '' && {
-                start_longitude: parseFloat(visit.start_longitude),
-              }),
+              start_longitude: parseFloat(visit.start_longitude),
+            }),
             ...(visit.end_latitude &&
               String(visit.end_latitude).trim() !== '' && {
-                end_latitude: parseFloat(visit.end_latitude),
-              }),
+              end_latitude: parseFloat(visit.end_latitude),
+            }),
             ...(visit.end_longitude &&
               String(visit.end_longitude).trim() !== '' && {
-                end_longitude: parseFloat(visit.end_longitude),
-              }),
+              end_longitude: parseFloat(visit.end_longitude),
+            }),
             ...(visit.check_in_time && {
               check_in_time: new Date(visit.check_in_time),
             }),
@@ -915,8 +915,8 @@ export const visitsController = {
             }),
             ...(visit.amount_collected &&
               String(visit.amount_collected).trim() !== '' && {
-                amount_collected: parseFloat(visit.amount_collected),
-              }),
+              amount_collected: parseFloat(visit.amount_collected),
+            }),
             ...(visit.visit_notes && { visit_notes: visit.visit_notes }),
             ...(visit.customer_feedback && {
               customer_feedback: visit.customer_feedback,
@@ -1193,10 +1193,10 @@ export const visitsController = {
 
                         console.log(
                           `Processing ${trackingType} - Product: ${product.name}, ` +
-                            `Unit: ${itemUnit}, ` +
-                            `Ordered Cases: ${orderedQty}, ` +
-                            `Ordered Pcs: ${orderedPieces}, ` +
-                            `ConversionFactor: ${conversionFactor}`
+                          `Unit: ${itemUnit}, ` +
+                          `Ordered Cases: ${orderedQty}, ` +
+                          `Ordered Pcs: ${orderedPieces}, ` +
+                          `ConversionFactor: ${conversionFactor}`
                         );
 
                         if (trackingType === 'BATCH') {
@@ -1248,6 +1248,8 @@ export const visitsController = {
                               {
                                 batch_lot_id: batchLot.id,
                                 pieces: orderedPieces,
+                                //   uomQty: isUnitPcs ? Math.floor(orderedPieces / conversionFactor) : orderedQty,
+                                // baseQty: isUnitPcs ? orderedPieces % conversionFactor : (orderedPieces - orderedQty * conversionFactor),
                                 uomQty: Math.floor(orderedPieces / conversionFactor),
                                 baseQty: orderedPieces % conversionFactor,
                               },
@@ -1261,6 +1263,16 @@ export const visitsController = {
                               let bBaseQty: number;
                               let bPieces: number;
 
+                              //     if (isUnitPcs) {
+                              //   const totalPcs = parseInt(b.quantity, 10) || 0;
+                              //   bPieces = totalPcs;
+                              //   bUomQty = Math.floor(totalPcs / conversionFactor);
+                              //   bBaseQty = totalPcs % conversionFactor;
+                              // } else {
+                              //   bUomQty = parseInt(b.quantity, 10) || 0;
+                              //   bBaseQty = parseInt(b.base_quantity, 10) || 0;
+                              //   bPieces = bUomQty * conversionFactor + bBaseQty;
+                              // }
                               const inputUomQty = parseInt(b.quantity, 10) || 0;
                               const inputBaseQty = parseInt(b.base_quantity, 10) || 0;
                               bPieces = isUnitPcs ? inputUomQty : (inputUomQty * conversionFactor + inputBaseQty);
@@ -1359,16 +1371,16 @@ export const visitsController = {
                                 : `${orderedQty} cases`;
                               throw new Error(
                                 `Insufficient van quantity for batch "${batchLot.batch_number}". ` +
-                                  `Available: ${availableMsg}, Requested: ${requestedMsg}`
+                                `Available: ${availableMsg}, Requested: ${requestedMsg}`
                               );
                             }
 
                             console.log(
                               `BATCH VAN [${itemUnit}]: ` +
-                                `${totalVanQty}cs + ` +
-                                `${totalVanBaseQty}pc → ` +
-                                `${vanDeduction.newQuantity}cs + ` +
-                                `${vanDeduction.newBaseQuantity}pc`
+                              `${totalVanQty}cs + ` +
+                              `${totalVanBaseQty}pc → ` +
+                              `${vanDeduction.newQuantity}cs + ` +
+                              `${vanDeduction.newBaseQuantity}pc`
                             );
 
                             // if (
@@ -1423,7 +1435,7 @@ export const visitsController = {
                                   : `${orderedQty} cases`;
                                 throw new Error(
                                   `Insufficient inventory stock for batch "${batchLot.batch_number}". ` +
-                                    `Available: ${availableMsg}, Requested: ${requestedMsg}`
+                                  `Available: ${availableMsg}, Requested: ${requestedMsg}`
                                 );
                               }
 
@@ -1431,7 +1443,7 @@ export const visitsController = {
                               if (isUnitPcs) {
                                 const availableTotalPieces =
                                   (inventoryStock.available_stock || 0) *
-                                    conversionFactor +
+                                  conversionFactor +
                                   (inventoryStock.base_quantity || 0);
                                 const newAvailablePieces = Math.max(
                                   0,
@@ -1444,7 +1456,7 @@ export const visitsController = {
                                 newAvailableQty = Math.max(
                                   0,
                                   (inventoryStock.available_stock || 0) -
-                                    orderedQty
+                                  orderedQty
                                 );
                               }
 
@@ -1481,8 +1493,8 @@ export const visitsController = {
 
                               console.log(
                                 `BATCH STOCK [${itemUnit}]: ` +
-                                  `${inventoryStock.current_stock}cs + ${inventoryStock.base_quantity || 0}pc → ` +
-                                  `${stockDeduction.newQuantity}cs + ${stockDeduction.newBaseQuantity}pc`
+                                `${inventoryStock.current_stock}cs + ${inventoryStock.base_quantity || 0}pc → ` +
+                                `${stockDeduction.newQuantity}cs + ${stockDeduction.newBaseQuantity}pc`
                               );
                             } else {
                               throw new Error(
@@ -1541,10 +1553,10 @@ export const visitsController = {
                               tax_amount: Number(item.tax_amount) || 0,
                               total_amount: isUnitPcs
                                 ? totalPiecesDeducted *
-                                  (Number(item.unit_price) || 0)
+                                (Number(item.unit_price) || 0)
                                 : Math.floor(totalPiecesDeducted / conversionFactor) * (Number(item.unit_price) || 0) +
-                                  (totalPiecesDeducted % conversionFactor) *
-                                  ((Number(item.unit_price) || 0) / conversionFactor),
+                                (totalPiecesDeducted % conversionFactor) *
+                                ((Number(item.unit_price) || 0) / conversionFactor),
                               notes: hasBatchNumber
                                 ? `Batch: ${(item as any).batch_number}`
                                 : `Batches: ${batchDeductions.map(b => b.batch_lot_id).join(', ')}`,
@@ -1783,73 +1795,73 @@ export const visitsController = {
                           });
                         } else {
                           const vanInventories = await tx.van_inventory.findMany({
-                             where: {
-                               user_id: { in: groupUsers },
-                               status: 'A',
-                               is_active: 'Y',
-                               van_inventory_items_inventory: {
-                                 some: {
-                                   product_id: product.id,
-                                   batch_lot_id: null,
-                                   serial_id: null,
-                                 },
-                               },
-                             },
-                             orderBy: { document_date: 'desc' },
-                           });
+                            where: {
+                              user_id: { in: groupUsers },
+                              status: 'A',
+                              is_active: 'Y',
+                              van_inventory_items_inventory: {
+                                some: {
+                                  product_id: product.id,
+                                  batch_lot_id: null,
+                                  serial_id: null,
+                                },
+                              },
+                            },
+                            orderBy: { document_date: 'desc' },
+                          });
 
-                           const vanInventoryIds = vanInventories.map((v: any) => v.id);
-                           const vanInventory = vanInventories[0] || null;
+                          const vanInventoryIds = vanInventories.map((v: any) => v.id);
+                          const vanInventory = vanInventories[0] || null;
 
-                           const vanItems =
-                             await tx.van_inventory_items.findMany({
-                               where: {
-                                 product_id: product.id,
-                                 batch_lot_id: null,
-                                 serial_id: null,
-                                 parent_id: { in: vanInventoryIds },
-                               },
-                             });
+                          const vanItems =
+                            await tx.van_inventory_items.findMany({
+                              where: {
+                                product_id: product.id,
+                                batch_lot_id: null,
+                                serial_id: null,
+                                parent_id: { in: vanInventoryIds },
+                              },
+                            });
 
-                           if (vanItems.length === 0) {
-                             throw new Error(
-                               `Product "${product.name}" not found in van inventory`
-                             );
-                           }
+                          if (vanItems.length === 0) {
+                            throw new Error(
+                              `Product "${product.name}" not found in van inventory`
+                            );
+                          }
 
-                           let totalVanQty = 0;
-                           let totalVanBaseQty = 0;
-                           for (const item of vanItems) {
-                             totalVanQty += item.quantity || 0;
-                             totalVanBaseQty += item.base_quantity || 0;
-                           }
+                          let totalVanQty = 0;
+                          let totalVanBaseQty = 0;
+                          for (const item of vanItems) {
+                            totalVanQty += item.quantity || 0;
+                            totalVanBaseQty += item.base_quantity || 0;
+                          }
 
-                           const vanDeduction = calculateStockDeduction(
-                             totalVanQty,
-                             totalVanBaseQty,
-                             orderedPieces,
-                             conversionFactor,
-                             itemUnit,
-                             orderedQty
-                           );
+                          const vanDeduction = calculateStockDeduction(
+                            totalVanQty,
+                            totalVanBaseQty,
+                            orderedPieces,
+                            conversionFactor,
+                            itemUnit,
+                            orderedQty
+                          );
 
-                           if (vanDeduction.newQuantity < 0) {
-                             const availableMsg = isUnitPcs
-                               ? `${vanDeduction.totalAvailablePieces} pcs`
-                               : `${totalVanQty} cases`;
-                             const requestedMsg = isUnitPcs
-                               ? `${orderedPieces} pcs`
-                               : `${orderedQty} cases`;
-                             throw new Error(
-                               `Insufficient van quantity for "${product.name}". ` +
-                                 `Available: ${availableMsg}, Requested: ${requestedMsg}`
-                             );
-                           }
+                          if (vanDeduction.newQuantity < 0) {
+                            const availableMsg = isUnitPcs
+                              ? `${vanDeduction.totalAvailablePieces} pcs`
+                              : `${totalVanQty} cases`;
+                            const requestedMsg = isUnitPcs
+                              ? `${orderedPieces} pcs`
+                              : `${orderedQty} cases`;
+                            throw new Error(
+                              `Insufficient van quantity for "${product.name}". ` +
+                              `Available: ${availableMsg}, Requested: ${requestedMsg}`
+                            );
+                          }
 
-                           console.log(
-                             `NONE VAN [${itemUnit}]: ${totalVanQty}cs + ${totalVanBaseQty}pc → ` +
-                               `${vanDeduction.newQuantity}cs + ${vanDeduction.newBaseQuantity}pc`
-                           );
+                          console.log(
+                            `NONE VAN [${itemUnit}]: ${totalVanQty}cs + ${totalVanBaseQty}pc → ` +
+                            `${vanDeduction.newQuantity}cs + ${vanDeduction.newBaseQuantity}pc`
+                          );
 
                           // if (
                           //   vanDeduction.newQuantity > 0 ||
@@ -1900,7 +1912,7 @@ export const visitsController = {
                                 : `${orderedQty} cases`;
                               throw new Error(
                                 `Insufficient inventory stock for "${product.name}". ` +
-                                  `Available: ${availableMsg}, Requested: ${requestedMsg}`
+                                `Available: ${availableMsg}, Requested: ${requestedMsg}`
                               );
                             }
 
@@ -1908,7 +1920,7 @@ export const visitsController = {
                             if (isUnitPcs) {
                               const availableTotalPieces =
                                 (inventoryStock.available_stock || 0) *
-                                  conversionFactor +
+                                conversionFactor +
                                 (inventoryStock.base_quantity || 0);
                               const newAvailablePieces = Math.max(
                                 0,
@@ -1921,7 +1933,7 @@ export const visitsController = {
                               newAvailableQty = Math.max(
                                 0,
                                 (inventoryStock.available_stock || 0) -
-                                  orderedQty
+                                orderedQty
                               );
                             }
 
@@ -1956,8 +1968,8 @@ export const visitsController = {
 
                             console.log(
                               `NONE STOCK [${itemUnit}]: ${inventoryStock.current_stock}cs + ` +
-                                `${inventoryStock.base_quantity || 0}pc → ` +
-                                `${stockDeduction.newQuantity}cs + ${stockDeduction.newBaseQuantity}pc`
+                              `${inventoryStock.base_quantity || 0}pc → ` +
+                              `${stockDeduction.newQuantity}cs + ${stockDeduction.newBaseQuantity}pc`
                             );
                           } else {
                             throw new Error(
@@ -2009,8 +2021,8 @@ export const visitsController = {
                               total_amount: isUnitPcs
                                 ? orderedPieces * (Number(item.unit_price) || 0)
                                 : Math.floor(orderedPieces / conversionFactor) * (Number(item.unit_price) || 0) +
-                                  (orderedPieces % conversionFactor) *
-                                  ((Number(item.unit_price) || 0) / conversionFactor),
+                                (orderedPieces % conversionFactor) *
+                                ((Number(item.unit_price) || 0) / conversionFactor),
                               notes: item.notes || null,
                               ...(item.tax_code && { tax_code: item.tax_code }),
                               ...(item.tax_rate !== undefined && {
@@ -2187,7 +2199,7 @@ export const visitsController = {
                       data: {
                         current_status:
                           (installation.status || 'installed').toLowerCase() ===
-                          'installed'
+                            'installed'
                             ? 'Installed'
                             : installation.status || 'installed',
                         updatedate: new Date(),
@@ -2197,8 +2209,11 @@ export const visitsController = {
                     });
 
                     console.log(
-                      `Cooler ${updatedCooler.id} status updated to ${
-                        installation.status || 'installed'
+                      //   `Cooler ${updatedCooler.id} status updated to ${
+                      //   installation.status || 'installed'
+                      // ooler ${updatedCooler.id} status updated to ${installation.status || 'installed'
+                      // using asset serial ${assetSerialNumber}`
+                      `Cooler ${updatedCooler.id} status updated to ${installation.status || 'installed'
                       } using asset serial ${assetSerialNumber}`
                     );
                   }
@@ -2391,52 +2406,52 @@ export const visitsController = {
                 const relatedInvoices =
                   invoiceIds.length > 0
                     ? await tx.invoices.findMany({
-                        where: { id: { in: invoiceIds } },
-                        include: {
-                          invoice_items: {
-                            include: { invoice_items_products: true },
-                          },
+                      where: { id: { in: invoiceIds } },
+                      include: {
+                        invoice_items: {
+                          include: { invoice_items_products: true },
                         },
-                      })
+                      },
+                    })
                     : [];
 
                 const relatedPayments =
                   paymentIds.length > 0
                     ? await tx.payments.findMany({
-                        where: { id: { in: paymentIds } },
-                      })
+                      where: { id: { in: paymentIds } },
+                    })
                     : [];
 
                 const relatedInspections =
                   inspectionIds.length > 0
                     ? await tx.cooler_inspections.findMany({
-                        where: { id: { in: inspectionIds } },
-                        include: { coolers: true },
-                      })
+                      where: { id: { in: inspectionIds } },
+                      include: { coolers: true },
+                    })
                     : [];
 
                 const relatedCoolerInstallations =
                   coolerInstallationIds.length > 0
                     ? await tx.coolers.findMany({
-                        where: {
-                          id: {
-                            in: coolerInstallationIds,
-                          },
+                      where: {
+                        id: {
+                          in: coolerInstallationIds,
                         },
-                      })
+                      },
+                    })
                     : [];
                 const relatedSurveyResponses =
                   surveyResponseIds.length > 0
                     ? await tx.survey_responses.findMany({
-                        where: { id: { in: surveyResponseIds } },
-                      })
+                      where: { id: { in: surveyResponseIds } },
+                    })
                     : [];
 
                 const surveyAnswersData =
                   surveyResponseIds.length > 0
                     ? await tx.survey_answers.findMany({
-                        where: { parent_id: { in: surveyResponseIds } },
-                      })
+                      where: { parent_id: { in: surveyResponseIds } },
+                    })
                     : [];
 
                 const surveyResponsesWithAnswers = relatedSurveyResponses.map(
@@ -2790,10 +2805,10 @@ export const visitsController = {
       const visitPayments =
         customerIds.length > 0
           ? await prisma.payments.findMany({
-              where: {
-                customer_id: { in: customerIds },
-              },
-            })
+            where: {
+              customer_id: { in: customerIds },
+            },
+          })
           : [];
 
       console.log(` Fetched ${visitPayments.length} payments`);
@@ -2801,11 +2816,11 @@ export const visitsController = {
       const visitOrders =
         customerIds.length > 0
           ? await prisma.orders.findMany({
-              where: {
-                parent_id: { in: customerIds },
-                is_active: 'Y',
-              },
-            })
+            where: {
+              parent_id: { in: customerIds },
+              is_active: 'Y',
+            },
+          })
           : [];
 
       console.log(` Fetched ${visitOrders.length} orders`);
@@ -2813,11 +2828,11 @@ export const visitsController = {
       const visitInvoices =
         customerIds.length > 0
           ? await prisma.invoices.findMany({
-              where: {
-                customer_id: { in: customerIds },
-                is_active: 'Y',
-              },
-            })
+            where: {
+              customer_id: { in: customerIds },
+              is_active: 'Y',
+            },
+          })
           : [];
 
       console.log(` Fetched ${visitInvoices.length} invoices`);
@@ -2881,25 +2896,25 @@ export const visitsController = {
       const customerCoolers =
         customerIds.length > 0
           ? await prisma.coolers.findMany({
-              where: {
-                customer_id: { in: customerIds },
-                is_active: 'Y',
-              },
-              select: {
-                id: true,
-                code: true,
-                brand: true,
-                model: true,
-                serial_number: true,
-                status: true,
-                capacity: true,
-                install_date: true,
-                last_service_date: true,
-                next_service_due: true,
-                temperature: true,
-                customer_id: true,
-              },
-            })
+            where: {
+              customer_id: { in: customerIds },
+              is_active: 'Y',
+            },
+            select: {
+              id: true,
+              code: true,
+              brand: true,
+              model: true,
+              serial_number: true,
+              status: true,
+              capacity: true,
+              install_date: true,
+              last_service_date: true,
+              next_service_due: true,
+              temperature: true,
+              customer_id: true,
+            },
+          })
           : [];
 
       const coolersByCustomer = new Map();
@@ -3239,17 +3254,17 @@ export const visitsController = {
           invoices_created: invoices.length,
           customer: visit.visit_customers
             ? {
-                ...visit.visit_customers,
-                coolers: coolers,
-                total_coolers: coolers.length,
-              }
+              ...visit.visit_customers,
+              coolers: coolers,
+              total_coolers: coolers.length,
+            }
             : null,
           salesperson: visit.visits_salesperson
             ? {
-                id: visit.visits_salesperson.id,
-                name: visit.visits_salesperson.name,
-                email: visit.visits_salesperson.email,
-              }
+              id: visit.visits_salesperson.id,
+              name: visit.visits_salesperson.name,
+              email: visit.visits_salesperson.email,
+            }
             : null,
           route:
             visit.visit_customers?.customer_routes ||
@@ -3646,9 +3661,9 @@ export const visitsController = {
           sort_order: sortOrderValue,
           date_range: startDate
             ? {
-                start: startDate,
-                end: endDate || 'Current + 7 days',
-              }
+              start: startDate,
+              end: endDate || 'Current + 7 days',
+            }
             : 'All time',
         }
       );

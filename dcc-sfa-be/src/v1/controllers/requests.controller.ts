@@ -4018,30 +4018,30 @@ export const createRequest = async (data: {
         });
 
         if (!template) {
-          throw new Error('Email template "notify_approver" not found');
+          console.warn('Email template "notify_approver" not found. Skipping email.');
+        } else {
+          const variables = {
+            approver_name: firstApprover.approval_work_flow_approver.name,
+            requester_name: requester.name,
+            company_name: process.env.COMPANY_NAME || 'SFA System',
+            ...orderData,
+          };
+
+          console.log('Email variables:', Object.keys(variables));
+
+          const subject = replaceVariables(template.subject, variables);
+          const body = replaceVariables(template.body, variables);
+
+          console.log(' Subject:', subject);
+
+          await sendEmail({
+            to: firstApprover.approval_work_flow_approver.email,
+            subject: subject,
+            html: body,
+            createdby: data.createdby,
+            log_inst: data.log_inst,
+          });
         }
-
-        const variables = {
-          approver_name: firstApprover.approval_work_flow_approver.name,
-          requester_name: requester.name,
-          company_name: process.env.COMPANY_NAME || 'SFA System',
-          ...orderData,
-        };
-
-        console.log('Email variables:', Object.keys(variables));
-
-        const subject = replaceVariables(template.subject, variables);
-        const body = replaceVariables(template.body, variables);
-
-        console.log(' Subject:', subject);
-
-        await sendEmail({
-          to: firstApprover.approval_work_flow_approver.email,
-          subject: subject,
-          html: body,
-          createdby: data.createdby,
-          log_inst: data.log_inst,
-        });
 
         console.log(
           `Email sent to ${firstApprover.approval_work_flow_approver.email}`

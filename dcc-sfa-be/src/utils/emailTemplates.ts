@@ -116,8 +116,8 @@ export const generateEmailContent = async (
     });
 
     if (!template) {
-      console.error(`Template not found for key: ${key}`);
-      throw new Error(`Email template with key "${key}" not found.`);
+      console.warn(`Template not found for key: ${key}. Skipping email.`);
+      return { subject: '__SKIP_EMAIL__', body: '__SKIP_EMAIL__' };
     }
 
     const normalizedVars = autoMapVariables(template, variables);
