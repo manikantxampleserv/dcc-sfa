@@ -474,10 +474,10 @@ export const sapService = {
                 sap_lineid: sapLineid,
                 ...(isUpdate && inventoryId
                   ? {
-                      NOT: {
-                        parent_id: Number(inventoryId),
-                      },
-                    }
+                    NOT: {
+                      parent_id: Number(inventoryId),
+                    },
+                  }
                   : {}),
               },
             });
@@ -619,7 +619,7 @@ export const sapService = {
                         },
                       });
                       console.log(
-                        ` Updated batch_lots: ${batchLot.batch_number}`
+                        ` Updated batch_lots satyam: ${batchLot.batch_number}`
                       );
                     } else {
                       batchLot = await tx.batch_lots.create({
@@ -633,10 +633,10 @@ export const sapService = {
                           expiry_date: batchInput.expiry_date
                             ? new Date(batchInput.expiry_date)
                             : new Date(
-                                new Date().setFullYear(
-                                  new Date().getFullYear() + 2
-                                )
-                              ),
+                              new Date().setFullYear(
+                                new Date().getFullYear() + 2
+                              )
+                            ),
                           quantity: batchQty,
                           remaining_quantity: batchQty,
                           supplier_name: batchInput.supplier_name || null,
@@ -651,7 +651,7 @@ export const sapService = {
                         },
                       });
                       console.log(
-                        ` Created batch_lots: ${batchLot.batch_number}`
+                        ` Created batch_lots shivang: ${batchLot.batch_number}`
                       );
                     }
 
@@ -699,10 +699,10 @@ export const sapService = {
                           expiry_date: batchInput.expiry_date
                             ? new Date(batchInput.expiry_date)
                             : new Date(
-                                new Date().setFullYear(
-                                  new Date().getFullYear() + 2
-                                )
-                              ),
+                              new Date().setFullYear(
+                                new Date().getFullYear() + 2
+                              )
+                            ),
                           quantity: 0,
                           remaining_quantity: 0,
                           supplier_name: batchInput.supplier_name || null,
@@ -1049,6 +1049,7 @@ export const sapService = {
                       batch_number: batchInput.batch_number,
                       productsId: product.id,
                       is_active: 'Y',
+                      createdby: Number(inventory.user_id),
                     },
                   });
 
@@ -1874,10 +1875,10 @@ export const sapService = {
                         expiry_date: batchInput.expiry_date
                           ? new Date(batchInput.expiry_date)
                           : new Date(
-                              new Date().setFullYear(
-                                new Date().getFullYear() + 2
-                              )
-                            ),
+                            new Date().setFullYear(
+                              new Date().getFullYear() + 2
+                            )
+                          ),
                         quantity: batchQty,
                         remaining_quantity: batchQty,
                         supplier_name: batchInput.supplier_name || null,

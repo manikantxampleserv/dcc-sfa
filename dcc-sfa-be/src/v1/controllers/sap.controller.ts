@@ -7,6 +7,8 @@ export const sapController = {
     try {
       console.log("req.body =", req.body);
       console.log("req.user!.id =", req.user!.id);
+
+
       const result = await sapService.createOrUpdateVanInventorySAP(
         req.body,
         req.user!.id
