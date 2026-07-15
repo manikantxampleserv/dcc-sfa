@@ -562,6 +562,7 @@ async function processApprovedVanInventoryStock(inventoryId, userId, requestData
                                 batch_number: batchInput.batch_number,
                                 productsId: product.id,
                                 is_active: 'Y',
+                                createdby: inventoryUserId,
                             },
                         });
                         if (batchLot) {
@@ -943,6 +944,7 @@ async function processApprovedVanInventoryStock(inventoryId, userId, requestData
                                     batch_number: batchInput.batch_number,
                                     productsId: product.id,
                                     is_active: 'Y',
+                                    createdby: inventoryUserId,
                                 },
                             });
                         }
@@ -3070,13 +3072,9 @@ exports.vanInventoryController = {
                                     batchLot = await tx.batch_lots.findFirst({
                                         where: {
                                             batch_number: batchInput.batch_number,
+                                            productsId: product.id,
                                             is_active: 'Y',
-                                            ...(loadingType === 'L'
-                                                ? {
-                                                    productsId: product.id,
-                                                    createdby: Number(inventoryData.user_id),
-                                                }
-                                                : {}),
+                                            createdby: Number(inventoryData.user_id),
                                         },
                                     });
                                     if (!batchLot) {
@@ -3419,7 +3417,9 @@ exports.vanInventoryController = {
                                     const batchLot = await tx.batch_lots.findFirst({
                                         where: {
                                             batch_number: batchInput.batch_number,
+                                            productsId: product.id,
                                             is_active: 'Y',
+                                            createdby: Number(inventoryData.user_id),
                                         },
                                     });
                                     if (!batchLot)

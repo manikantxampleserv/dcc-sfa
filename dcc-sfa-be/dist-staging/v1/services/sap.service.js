@@ -495,7 +495,7 @@ exports.sapService = {
                                                 updatedate: new Date(),
                                             },
                                         });
-                                        console.log(` Updated batch_lots: ${batchLot.batch_number}`);
+                                        console.log(` Updated batch_lots satyam: ${batchLot.batch_number}`);
                                     }
                                     else {
                                         batchLot = await tx.batch_lots.create({
@@ -521,7 +521,7 @@ exports.sapService = {
                                                 productsId: product.id,
                                             },
                                         });
-                                        console.log(` Created batch_lots: ${batchLot.batch_number}`);
+                                        console.log(` Created batch_lots shivang: ${batchLot.batch_number}`);
                                     }
                                     productBatch = await tx.product_batches.findFirst({
                                         where: {
@@ -827,6 +827,7 @@ exports.sapService = {
                                         batch_number: batchInput.batch_number,
                                         productsId: product.id,
                                         is_active: 'Y',
+                                        createdby: Number(inventory.user_id),
                                     },
                                 });
                                 if (!batchLot)

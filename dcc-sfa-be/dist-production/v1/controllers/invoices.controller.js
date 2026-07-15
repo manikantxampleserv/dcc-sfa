@@ -73,27 +73,44 @@ const serializeInvoice = (invoice) => ({
             order_number: invoice.orders.order_number,
         }
         : undefined,
-    invoice_items: invoice.invoice_items?.map((item) => ({
-        id: item.id,
-        product_id: item.product_id,
-        quantity: Number(item.quantity),
-        unit_price: Number(item.unit_price),
-        discount_amount: Number(item.discount_amount),
-        tax_amount: Number(item.tax_amount),
-        notes: item.notes,
-        uom: item.uom,
-        conversion_factor: Number(item.conversion_factor) || 1,
-        base_quantity: Number(item.base_quantity) || 0,
-        tracking_type: item.invoice_items_products?.tracking_type || null,
-        product: item.invoice_items_products
-            ? {
-                id: item.invoice_items_products.id,
-                name: item.invoice_items_products.name,
-                code: item.invoice_items_products.code,
-                tracking_type: item.invoice_items_products.tracking_type || null,
+    invoice_items: invoice.invoice_items?.map((item) => {
+        let cleanNotes = item.notes;
+        let batchNumber = item.batch_number || null;
+        if (cleanNotes && cleanNotes.includes('Batches:')) {
+            const match = cleanNotes.match(/\(Batches:\s*([^)]+)\)/);
+            if (match) {
+                batchNumber = match[1].trim();
+                cleanNotes = cleanNotes.replace(match[0], '').trim();
             }
-            : undefined,
-    })),
+            else {
+                const parts = cleanNotes.split('Batches:');
+                batchNumber = parts[1].trim();
+                cleanNotes = parts[0].trim();
+            }
+        }
+        return {
+            id: item.id,
+            product_id: item.product_id,
+            quantity: Number(item.quantity),
+            unit_price: Number(item.unit_price),
+            discount_amount: Number(item.discount_amount),
+            tax_amount: Number(item.tax_amount),
+            notes: cleanNotes || null,
+            batch_number: batchNumber,
+            uom: item.uom,
+            conversion_factor: Number(item.conversion_factor) || 1,
+            base_quantity: Number(item.base_quantity) || 0,
+            tracking_type: item.invoice_items_products?.tracking_type || null,
+            product: item.invoice_items_products
+                ? {
+                    id: item.invoice_items_products.id,
+                    name: item.invoice_items_products.name,
+                    code: item.invoice_items_products.code,
+                    tracking_type: item.invoice_items_products.tracking_type || null,
+                }
+                : undefined,
+        };
+    }),
 });
 exports.invoicesController = {
     async createInvoice(req, res) {
@@ -195,17 +212,16 @@ exports.invoicesController = {
                     const referenceLabel = `invoice ${newInvoice.invoice_number}`;
                     for (const item of data.invoiceItems) {
                         const product = productMap.get(Number(item.product_id));
-                        const conversionRate = Number(product?.product_unit_of_measurement?.conversion_rate) || 1;
+                        const conversionRate = Number(product?.product_unit_of_measurement?.conversion_rate) ||
+                            1;
                         const { orderedQty, orderedPieces, uom: itemUnit, } = (0, inventory_utils_1.getOrderedQuantities)({
                             ...item,
                             conversion_factor: conversionRate,
                         });
                         const isUnitPcs = itemUnit === 'UNIT';
-                        const baseQuantity = orderedPieces;
-                        // Calculate quantity for pricing calculation
                         const pricingQuantity = isUnitPcs
                             ? orderedPieces
-                            : orderedQty + (Number(item.base_quantity || 0) / conversionRate);
+                            : orderedQty + Number(item.base_quantity || 0) / conversionRate;
                         const unitPrice = Number(item.unit_price) || 0;
                         const discountAmount = Number(item.discount_amount) || 0;
                         const itemSubtotal = pricingQuantity * unitPrice;
@@ -230,14 +246,12 @@ exports.invoicesController = {
                                     let bBaseQty;
                                     let bPieces;
                                     if (isUnitPcs) {
-                                        // In PCS mode, b.quantity is already in pieces (individual units)
                                         const totalPcs = parseInt(b.quantity, 10) || 0;
                                         bPieces = totalPcs;
-                                        bUomQty = Math.floor(totalPcs / conversionRate); // how many full cases
-                                        bBaseQty = totalPcs % conversionRate; // leftover PCs
+                                        bUomQty = Math.floor(totalPcs / conversionRate);
+                                        bBaseQty = totalPcs % conversionRate;
                                     }
                                     else {
-                                        // In CASE mode, b.quantity is in cases, b.base_quantity is in PCs
                                         bUomQty = parseInt(b.quantity, 10) || 0;
                                         bBaseQty = parseInt(b.base_quantity, 10) || 0;
                                         bPieces = bUomQty * conversionRate + bBaseQty;
@@ -475,10 +489,12 @@ exports.invoicesController = {
                                         reference_id: referenceId,
                                         from_location_id: validatedFromLocationId,
                                         to_location_id: null,
-                                        quantity: isUnitPcs ? Math.floor(orderedPieces / conversionRate) : (orderedQty || 0),
+                                        quantity: isUnitPcs
+                                            ? Math.floor(orderedPieces / conversionRate)
+                                            : orderedQty || 0,
                                         base_quantity: isUnitPcs
-                                            ? (orderedPieces % conversionRate)
-                                            : (orderedPieces - (orderedQty || 0) * conversionRate),
+                                            ? orderedPieces % conversionRate
+                                            : orderedPieces - (orderedQty || 0) * conversionRate,
                                         movement_date: new Date(),
                                         remarks: `Sold via ${referenceLabel}`,
                                         is_active: 'Y',
@@ -502,13 +518,17 @@ exports.invoicesController = {
                                 unit: product?.product_unit_of_measurement?.name ||
                                     product?.product_unit_of_measurement?.symbol ||
                                     'pcs',
-                                quantity: isUnitPcs ? Math.floor(orderedPieces / conversionRate) : (orderedQty || 0),
+                                quantity: isUnitPcs
+                                    ? Math.floor(orderedPieces / conversionRate)
+                                    : orderedQty || 0,
                                 unit_price: unitPrice,
                                 discount_amount: discountAmount,
                                 tax_amount: taxAmount,
                                 total_amount: totalAmount,
                                 conversion_factor: conversionRate,
-                                base_quantity: isUnitPcs ? (orderedPieces % conversionRate) : (orderedPieces - (orderedQty || 0) * conversionRate),
+                                base_quantity: isUnitPcs
+                                    ? orderedPieces % conversionRate
+                                    : orderedPieces - (orderedQty || 0) * conversionRate,
                                 notes: item.notes
                                     ? `${item.notes}${trackingNotes ? ` (${trackingNotes})` : ''}`
                                     : trackingNotes || null,
@@ -838,7 +858,8 @@ exports.invoicesController = {
                         const productMap = new Map(products.map(p => [p.id, p]));
                         for (const item of data.invoiceItems) {
                             const product = productMap.get(Number(item.product_id));
-                            const conversionRate = Number(product?.product_unit_of_measurement?.conversion_rate) || 1;
+                            const conversionRate = Number(product?.product_unit_of_measurement?.conversion_rate) ||
+                                1;
                             const { orderedQty, orderedPieces, uom: itemUnit, } = (0, inventory_utils_1.getOrderedQuantities)({
                                 ...item,
                                 conversion_factor: conversionRate,
@@ -848,7 +869,7 @@ exports.invoicesController = {
                             // Calculate quantity for pricing calculation
                             const pricingQuantity = isUnitPcs
                                 ? orderedPieces
-                                : orderedQty + (Number(item.base_quantity || 0) / conversionRate);
+                                : orderedQty + Number(item.base_quantity || 0) / conversionRate;
                             const unitPrice = Number(item.unit_price) || 0;
                             const discountAmount = Number(item.discount_amount) || 0;
                             const itemSubtotal = pricingQuantity * unitPrice;
@@ -883,13 +904,17 @@ exports.invoicesController = {
                                     unit: product?.product_unit_of_measurement?.name ||
                                         product?.product_unit_of_measurement?.symbol ||
                                         'pcs',
-                                    quantity: isUnitPcs ? Math.floor(orderedPieces / conversionRate) : (orderedQty || 0),
+                                    quantity: isUnitPcs
+                                        ? Math.floor(orderedPieces / conversionRate)
+                                        : orderedQty || 0,
                                     unit_price: unitPrice,
                                     discount_amount: discountAmount,
                                     tax_amount: taxAmount,
                                     total_amount: totalAmount,
                                     conversion_factor: conversionRate,
-                                    base_quantity: isUnitPcs ? (orderedPieces % conversionRate) : (orderedPieces - (orderedQty || 0) * conversionRate),
+                                    base_quantity: isUnitPcs
+                                        ? orderedPieces % conversionRate
+                                        : orderedPieces - (orderedQty || 0) * conversionRate,
                                     notes: item.notes
                                         ? `${item.notes}${trackingNotes ? ` (${trackingNotes})` : ''}`
                                         : trackingNotes || null,

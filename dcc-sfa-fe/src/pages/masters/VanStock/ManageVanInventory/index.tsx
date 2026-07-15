@@ -389,6 +389,32 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
           return false;
         }
 
+        const missingBatches = values.van_inventory_items.some(
+          item =>
+            item.tracking_type?.toLowerCase() === 'batch' &&
+            (!item.product_batches || item.product_batches.length === 0)
+        );
+
+        if (missingBatches) {
+          toast.error(
+            'Please select at least one batch for batch-tracked products before submitting.'
+          );
+          return false;
+        }
+
+        const missingSerials = values.van_inventory_items.some(
+          item =>
+            item.tracking_type?.toLowerCase() === 'serial' &&
+            (!item.product_serials || item.product_serials.length === 0)
+        );
+
+        if (missingSerials) {
+          toast.error(
+            'Please select at least one serial number for serial-tracked products before submitting.'
+          );
+          return false;
+        }
+
         const batchQuantityMismatch = values.van_inventory_items.some(
           item =>
             item.tracking_type?.toLowerCase() === 'batch' &&

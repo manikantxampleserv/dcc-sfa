@@ -18,6 +18,10 @@ const exportReconciliationPdfService = async (reconciliationData) => {
                 size: 'A4',
                 layout: 'landscape',
             });
+            doc.translate(61, 0);
+            doc.on('pageAdded', () => {
+                doc.translate(61, 0);
+            });
             const buffers = [];
             doc.on('data', buffers.push.bind(buffers));
             doc.on('end', () => {
@@ -78,18 +82,20 @@ const exportReconciliationPdfService = async (reconciliationData) => {
             doc
                 .fontSize(16)
                 .fillColor('#1F4E78')
-                .text('SettlementSheet — Daily Salesman Settlement', {
+                .text('SettlementSheet - Daily Salesman Settlement', -61, doc.y, {
                 align: 'center',
                 underline: true,
+                width: 841.89,
             });
             doc
                 .fontSize(10)
                 .fillColor('#7F7F7F')
-                .text('Dynamic template: printable per day, per salesman.', {
+                .text('Dynamic template: printable per day, per salesman.', -61, doc.y, {
                 align: 'center',
                 oblique: true,
+                width: 841.89,
             });
-            doc.moveDown();
+            doc.moveDown(2.5);
             doc.fillColor('black');
             doc
                 .font('Helvetica-Bold')
@@ -116,6 +122,11 @@ const exportReconciliationPdfService = async (reconciliationData) => {
                 .text(meta.depot?.name || '-');
             doc
                 .font('Helvetica-Bold')
+                .text(`Reporting Officer: `, 400, 85, { continued: true })
+                .font('Helvetica')
+                .text('-');
+            doc
+                .font('Helvetica-Bold')
                 .text(`Generated On: `, 400, 100, { continued: true })
                 .font('Helvetica')
                 .text(new Date().toLocaleDateString('en-GB'));
@@ -127,7 +138,7 @@ const exportReconciliationPdfService = async (reconciliationData) => {
                     maximumFractionDigits: 2,
                 });
             };
-            const drawRow = (yPos, texts, widths, isHeader = false) => {
+            const drawRow = (yPos, texts, widths, isHeader = false, alignments, bgColors, textColors) => {
                 let x = 30;
                 doc.lineWidth(0.5).strokeColor('#ccc');
                 doc
@@ -136,16 +147,22 @@ const exportReconciliationPdfService = async (reconciliationData) => {
                     .stroke();
                 for (let i = 0; i < texts.length; i++) {
                     doc
-                        .fontSize(8)
-                        .font(isHeader ? 'Helvetica-Bold' : 'Helvetica')
-                        .fillColor(isHeader ? 'white' : 'black');
+                        .fontSize(isHeader ? 8 : 7.5)
+                        .font(isHeader || texts[i] === 'CLEAN' ? 'Helvetica-Bold' : 'Helvetica');
                     if (isHeader) {
                         doc.rect(x, yPos, widths[i], 20).fill('#4472C4');
                         doc.fillColor('white');
                     }
+                    else if (bgColors && bgColors[i]) {
+                        doc.rect(x, yPos, widths[i], 20).fill(bgColors[i]);
+                        doc.fillColor(textColors?.[i] || 'black');
+                    }
+                    else {
+                        doc.fillColor(textColors?.[i] || 'black');
+                    }
                     doc.text(texts[i], x + 2, yPos + 6, {
                         width: widths[i] - 4,
-                        align: 'center',
+                        align: alignments && alignments[i] ? alignments[i] : 'center',
                     });
                     doc
                         .moveTo(x, yPos)
@@ -164,7 +181,8 @@ const exportReconciliationPdfService = async (reconciliationData) => {
                 return yPos + 20;
             };
             const columns = [
-                'SKU Code',
+                'S.N',
+                'Code',
                 'SKU Name',
                 'Load Qty',
                 'Sales Qty',
@@ -173,10 +191,25 @@ const exportReconciliationPdfService = async (reconciliationData) => {
                 'Variance',
                 'Unit Price',
                 'Sale Value',
+                'Tax Amount',
                 'Action',
             ];
-            const colWidths = [50, 130, 60, 60, 60, 60, 65, 60, 75, 125];
-            y = drawRow(y, columns, colWidths, true);
+            const colWidths = [20, 30, 130, 55, 55, 55, 55, 50, 50, 50, 50, 60];
+            const colAlignments = [
+                'center',
+                'left',
+                'left',
+                'center',
+                'center',
+                'center',
+                'center',
+                'center',
+                'right',
+                'right',
+                'right',
+                'center',
+            ];
+            y = drawRow(y, columns, colWidths, true, colAlignments);
             const groupedItems = items.reduce((acc, item) => {
                 const cat = item.categoryName || 'Uncategorized';
                 if (!acc[cat])
@@ -184,19 +217,21 @@ const exportReconciliationPdfService = async (reconciliationData) => {
                 acc[cat].push(item);
                 return acc;
             }, {});
+            const categoryTotalsData = [];
             let grandTotalLoad = 0;
             let grandTotalSales = 0;
             let grandTotalExpected = 0;
             let grandTotalActual = 0;
             let grandTotalVariance = 0;
             let grandTotalSaleValue = 0;
+            let grandTotalTaxAmount = 0;
             let grandTotalDefaultOutletValue = 0;
             let currentCategory = '';
             const checkPageBreak = (force = false) => {
                 if (y > 480 || force) {
                     doc.addPage();
                     y = 30;
-                    y = drawRow(y, columns, colWidths, true);
+                    y = drawRow(y, columns, colWidths, true, colAlignments);
                     if (currentCategory) {
                         doc
                             .rect(30, y, colWidths.reduce((a, b) => a + b, 0), 20)
@@ -220,12 +255,21 @@ const exportReconciliationPdfService = async (reconciliationData) => {
                     .font('Helvetica-Bold')
                     .text(category, 35, y + 6);
                 y += 20;
-                let catLoad = 0, catSales = 0, catExpected = 0, catActual = 0, catVariance = 0, catSaleValue = 0;
+                let catLoad = 0, catSales = 0, catExpected = 0, catActual = 0, catVariance = 0, catSaleValue = 0, catTaxAmount = 0;
+                let catSno = 1;
                 catItems.forEach(item => {
                     checkPageBreak();
                     const conv = Number(item.conversionRate) || 1;
                     const price = Number(item.basePrice) || 0;
                     const basePricePerPc = price / conv;
+                    const normalizeQty = (c, p) => {
+                        if (conv <= 1)
+                            return { c: c || 0, p: p || 0 };
+                        const total = (c || 0) * conv + (p || 0);
+                        const sign = total < 0 ? -1 : 1;
+                        const abs = Math.abs(total);
+                        return { c: Math.floor(abs / conv) * sign, p: (abs % conv) * sign };
+                    };
                     const hasActualCases = item.actualRop !== '' &&
                         item.actualRop !== null &&
                         item.actualRop !== undefined;
@@ -236,32 +280,53 @@ const exportReconciliationPdfService = async (reconciliationData) => {
                     const actualBaseVal = hasActualPCs ? Number(item.actualBaseQty) : 0;
                     const varianceVal = Number(item.variance) || 0;
                     const varianceBaseVal = Number(item.varianceBaseQty) || 0;
-                    const saleVal = (Number(item.saleQuantity) || 0) * price +
-                        (Number(item.saleBaseQty) || 0) * basePricePerPc;
-                    const sign = varianceVal < 0 || varianceBaseVal < 0
+                    const variance = normalizeQty(varianceVal, varianceBaseVal);
+                    const sign = variance.c < 0 || variance.p < 0
                         ? '-'
-                        : varianceVal > 0 || varianceBaseVal > 0
+                        : variance.c > 0 || variance.p > 0
                             ? '+'
                             : '';
-                    const absCases = Math.abs(varianceVal);
-                    const absPcs = Math.abs(varianceBaseVal);
-                    const varianceStr = varianceVal === 0 && varianceBaseVal === 0
-                        ? '0 Cs 0 PCs'
-                        : `${sign}${absCases} Cs ${absPcs} PCs`;
+                    const absCases = Math.abs(variance.c);
+                    const absPcs = Math.abs(variance.p);
+                    const isRGB = item.subCategoryName?.toUpperCase().includes('RGB') ||
+                        item.subCategoryName?.toUpperCase().includes('RETURNABLE GLASS');
+                    const varianceStr = variance.c === 0 && variance.p === 0
+                        ? `0 Cs ${isRGB ? '0 Btls' : ''}`.trim()
+                        : `${sign}${absCases} Cs ${isRGB ? `${absPcs} Btls` : ''}`.trim();
+                    const load = normalizeQty(Number(item.loadQuantity), Number(item.loadBaseQty));
+                    const sale = normalizeQty(Number(item.saleQuantity), Number(item.saleBaseQty));
+                    const expected = normalizeQty(Number(item.expectedRop), Number(item.expectedBaseQty));
+                    const actual = normalizeQty(actualVal, actualBaseVal);
+                    const saleVal = (Number(item.saleQuantity) || 0) * price +
+                        (Number(item.saleBaseQty) || 0) * basePricePerPc;
+                    const rawAction = String(item.resolutionAction || '-');
+                    let actionText = rawAction;
+                    if (rawAction === 'Posted to Default Outlet')
+                        actionText = 'Posted to D/O';
+                    const actionBg = actionText === 'CLEAN'
+                        ? '#C6E0B4'
+                        : actionText === 'Posted to D/O'
+                            ? '#F8CBAD'
+                            : undefined;
+                    const actionColor = actionText === 'CLEAN' ? '#006100' : 'black';
+                    const rowBgColors = Array(11).fill(undefined).concat(actionBg);
+                    const rowTextColors = Array(11).fill(undefined).concat(actionColor);
                     y = drawRow(y, [
+                        String(catSno++),
                         String(item.skuCode),
                         String(item.skuName),
-                        `${item.loadQuantity || 0} Cs ${item.loadBaseQty || 0} PCs`,
-                        `${item.saleQuantity || 0} Cs ${item.saleBaseQty || 0} PCs`,
-                        `${item.expectedRop || 0} Cs ${item.expectedBaseQty || 0} PCs`,
+                        `${load.c} Cs ${isRGB ? `${load.p} Btls` : ''}`.trim(),
+                        `${sale.c} Cs ${isRGB ? `${sale.p} Btls` : ''}`.trim(),
+                        `${expected.c} Cs ${isRGB ? `${expected.p} Btls` : ''}`.trim(),
                         hasActualCases || hasActualPCs
-                            ? `${actualVal} Cs ${actualBaseVal} PCs`
+                            ? `${actual.c} Cs ${isRGB ? `${actual.p} Btls` : ''}`.trim()
                             : '-',
                         varianceStr,
                         formatNum(price),
                         formatNum(saleVal),
-                        String(item.resolutionAction || '-'),
-                    ], colWidths);
+                        formatNum(Number(item.taxAmount) || 0),
+                        actionText,
+                    ], colWidths, false, colAlignments, rowBgColors, rowTextColors);
                     catLoad +=
                         (Number(item.loadQuantity) || 0) +
                             (Number(item.loadBaseQty) || 0) / conv;
@@ -274,6 +339,7 @@ const exportReconciliationPdfService = async (reconciliationData) => {
                     catActual += actualVal + actualBaseVal / conv;
                     catVariance += varianceVal + varianceBaseVal / conv;
                     catSaleValue += saleVal;
+                    catTaxAmount += Number(item.taxAmount) || 0;
                     if (item.resolutionAction &&
                         item.resolutionAction.includes('Default Outlet') &&
                         (varianceVal < 0 || varianceBaseVal < 0)) {
@@ -288,14 +354,123 @@ const exportReconciliationPdfService = async (reconciliationData) => {
                 grandTotalActual += catActual;
                 grandTotalVariance += catVariance;
                 grandTotalSaleValue += catSaleValue;
+                grandTotalTaxAmount += catTaxAmount;
+                categoryTotalsData.push({
+                    category,
+                    catLoad,
+                    catSales,
+                    catExpected,
+                    catActual,
+                    catVariance,
+                    catSaleValue,
+                    catTaxAmount,
+                });
                 currentCategory = '';
             }
-            if (y > 400) {
+            if (y > 480) {
                 doc.addPage();
                 y = 30;
             }
             y += 20;
-            doc.rect(30, y, 745, 20).fill('#548235');
+            // --- SUBTOTALS BY CATEGORY ---
+            doc.rect(30, y, 660, 20).fill('#203764');
+            doc
+                .fillColor('white')
+                .font('Helvetica-Bold')
+                .fontSize(10)
+                .text('SUBTOTALS BY CATEGORY', 35, y + 6);
+            y += 20;
+            const subColumns = [
+                'Category',
+                'Total Load Qty',
+                'Total Sales Qty',
+                'Expected ROP',
+                'Actual ROP',
+                'Variance',
+                'Sale Value',
+                'Tax Amount',
+            ];
+            const subColWidths = [180, 60, 65, 60, 55, 50, 100, 90];
+            const subColAlignments = [
+                'left',
+                'center',
+                'center',
+                'center',
+                'center',
+                'center',
+                'right',
+                'right',
+            ];
+            y = drawRow(y, subColumns, subColWidths, true, subColAlignments);
+            categoryTotalsData.forEach(catTotal => {
+                if (y > 480) {
+                    doc.addPage();
+                    y = 30;
+                    y = drawRow(y, subColumns, subColWidths, true, subColAlignments);
+                }
+                y = drawRow(y, [
+                    String(catTotal.category),
+                    formatNum(catTotal.catLoad),
+                    formatNum(catTotal.catSales),
+                    formatNum(catTotal.catExpected),
+                    formatNum(catTotal.catActual),
+                    formatNum(catTotal.catVariance),
+                    formatNum(catTotal.catSaleValue),
+                    formatNum(catTotal.catTaxAmount),
+                ], subColWidths, false, subColAlignments);
+            });
+            // GRAND TOTAL ROW
+            doc.rect(30, y, subColWidths[0], 20).fill('#FFC000');
+            doc
+                .fillColor('black')
+                .font('Helvetica-Bold')
+                .fontSize(8)
+                .text('GRAND TOTAL', 35, y + 6);
+            let curX = 30 + subColWidths[0];
+            const grandTotalsArray = [
+                grandTotalLoad,
+                grandTotalSales,
+                grandTotalExpected,
+                grandTotalActual,
+                grandTotalVariance,
+                grandTotalSaleValue,
+                grandTotalTaxAmount,
+            ];
+            doc.lineWidth(0.5).strokeColor('#ccc');
+            for (let i = 0; i < grandTotalsArray.length; i++) {
+                doc.rect(curX, y, subColWidths[i + 1], 20).fill('#FFC000');
+                doc
+                    .fillColor(i === 4 && grandTotalsArray[i] < 0 ? 'red' : 'black')
+                    .text(formatNum(grandTotalsArray[i]), curX + 2, y + 6, {
+                    width: subColWidths[i + 1] - 4,
+                    align: subColAlignments[i + 1],
+                });
+                doc
+                    .moveTo(curX, y)
+                    .lineTo(curX, y + 20)
+                    .stroke();
+                curX += subColWidths[i + 1];
+            }
+            doc
+                .moveTo(curX, y)
+                .lineTo(curX, y + 20)
+                .stroke();
+            doc.moveTo(30, y).lineTo(curX, y).stroke();
+            doc
+                .moveTo(30, y + 20)
+                .lineTo(curX, y + 20)
+                .stroke();
+            doc
+                .moveTo(30, y)
+                .lineTo(30, y + 20)
+                .stroke();
+            y += 20;
+            if (y > 520) {
+                doc.addPage();
+                y = 30;
+            }
+            y += 20;
+            doc.rect(30, y, 660, 20).fill('#548235');
             doc
                 .fillColor('white')
                 .font('Helvetica-Bold')
@@ -304,36 +479,36 @@ const exportReconciliationPdfService = async (reconciliationData) => {
             y += 25;
             doc.fillColor('black').font('Helvetica').fontSize(10);
             doc.text('Total Sales Value (Mobile-recorded sales to outlets):', 30, y);
-            doc.text(`${formatNum(grandTotalSaleValue)} ${meta.currency || 'TZS'}`, 30, y, { width: 735, align: 'right' });
+            doc.text(`${formatNum(grandTotalSaleValue)} ${meta.currency || 'TZS'}`, 30, y, { width: 650, align: 'right' });
             y += 20;
             doc
                 .fillColor('red')
-                .text('Default Outlet Posting Value (Shortage):', 30, y);
-            doc.text(`${formatNum(grandTotalDefaultOutletValue)} ${meta.currency || 'TZS'}`, 30, y, { width: 735, align: 'right' });
+                .text('Default Outlet Posting Value (Shortage — Salesman accountable):', 30, y);
+            doc.text(`${formatNum(grandTotalDefaultOutletValue)} ${meta.currency || 'TZS'}`, 30, y, { width: 650, align: 'right' });
             y += 20;
             doc
                 .fillColor('red')
                 .font('Helvetica-Bold')
-                .text('TOTAL CASH SALESMAN MUST DEPOSIT:', 30, y);
+                .text('TOTAL CASH SALESMAN MUST DEPOSIT AT DEPOT (TZS):', 30, y);
             const totalStr = `${formatNum(grandTotalSaleValue + grandTotalDefaultOutletValue)} ${meta.currency || 'TZS'}`;
             const textWidth = doc.widthOfString(totalStr);
             const rectWidth = Math.max(150, textWidth + 20);
-            doc.rect(775 - rectWidth, y - 5, rectWidth, 20).fill('#FFC000');
+            doc.rect(690 - rectWidth, y - 5, rectWidth, 20).fill('#FFC000');
             doc
                 .fillColor('red')
-                .text(totalStr, 30, y, { width: 735, align: 'right' });
-            if (y > 350) {
+                .text(totalStr, 30, y, { width: 650, align: 'right' });
+            if (y > 480) {
                 doc.addPage();
                 y = 30;
             }
             else {
-                y += 40;
+                y += 20;
             }
             // --- STATIC SUMMARY TABLE ---
             const rowHeight = 16;
-            const b1X = 30, b1C1 = 30, b1C2 = 110, b1C3 = 100;
-            const b2X = 280, b2C1 = 30, b2C2 = 110, b2C3 = 100;
-            const b3X = 530, b3C1 = 150, b3C2 = 95;
+            const b1X = 30, b1C1 = 30, b1C2 = 110, b1C3 = 70;
+            const b2X = 250, b2C1 = 30, b2C2 = 110, b2C3 = 70;
+            const b3X = 470, b3C1 = 140, b3C2 = 80;
             const drawCell = (x, yPos, width, text, isBold = false, align = 'left', drawBorder = true, fontSize = 8) => {
                 if (drawBorder) {
                     doc.lineWidth(0.5).strokeColor('#A6A6A6');
@@ -369,6 +544,19 @@ const exportReconciliationPdfService = async (reconciliationData) => {
                 'Difference',
             ];
             for (let i = 1; i <= 11; i++) {
+                if (y > 540) {
+                    doc.addPage();
+                    y = 30;
+                    drawCell(b1X, y, b1C1, 'S.No', true, 'center');
+                    drawCell(b1X + b1C1, y, b1C2, 'Cash', true, 'left');
+                    drawCell(b1X + b1C1 + b1C2, y, b1C3, 'Amount', true, 'left');
+                    drawCell(b2X, y, b2C1, 'S.No', true, 'center');
+                    drawCell(b2X + b2C1, y, b2C2, 'Bank Name', true, 'left');
+                    drawCell(b2X + b2C1 + b2C2, y, b2C3, 'Amount', true, 'left');
+                    drawCell(b3X, y, b3C1, 'Invoice Total:', false, 'left');
+                    drawCell(b3X + b3C1, y, b3C2, '', false, 'left');
+                    y += rowHeight;
+                }
                 // Left block
                 if (i <= 7) {
                     drawCell(b1X, y, b1C1, String(i), false, 'center');
@@ -410,14 +598,14 @@ const exportReconciliationPdfService = async (reconciliationData) => {
                 }
                 y += rowHeight;
             }
-            if (y > 400) {
+            if (y > 480) {
                 doc.addPage();
                 y = 30;
             }
             else {
                 y += 40;
             }
-            doc.rect(30, y, 745, 20).fill('#203764');
+            doc.rect(30, y, 660, 20).fill('#203764');
             doc
                 .fillColor('white')
                 .font('Helvetica-Bold')

@@ -96,6 +96,10 @@ const createTransporter = async (log_inst) => {
 };
 const sendEmail = async (emailData) => {
     const { to, subject, html, cc, bcc, attachments, createdby, log_inst } = emailData;
+    if (subject === '__SKIP_EMAIL__' || html === '__SKIP_EMAIL__') {
+        console.log('Skipping email send as template was not found.');
+        return false;
+    }
     try {
         const config = await getSMTPConfig(log_inst);
         const transporter = await createTransporter(log_inst);

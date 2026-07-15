@@ -41,20 +41,20 @@ exports.executiveDashboardController = {
                     ...zoneFilter,
                 },
             });
-            const totalOrders = await prisma_client_1.default.orders.count({
+            const totalInvoices = await prisma_client_1.default.invoices.count({
                 where: { is_active: 'Y' },
             });
-            const ordersThisMonth = await prisma_client_1.default.orders.count({
-                where: { is_active: 'Y', order_date: { gte: startOfMonth } },
+            const invoicesThisMonthCount = await prisma_client_1.default.invoices.count({
+                where: { is_active: 'Y', invoice_date: { gte: startOfMonth } },
             });
-            const ordersLastMonth = await prisma_client_1.default.orders.count({
+            const invoicesLastMonthCount = await prisma_client_1.default.invoices.count({
                 where: {
                     is_active: 'Y',
-                    order_date: { gte: startOfLastMonth, lte: endOfLastMonth },
+                    invoice_date: { gte: startOfLastMonth, lte: endOfLastMonth },
                 },
             });
-            const ordersGrowthPercentage = ordersLastMonth > 0
-                ? ((ordersThisMonth - ordersLastMonth) / ordersLastMonth) * 100
+            const invoicesGrowthPercentage = invoicesLastMonthCount > 0
+                ? ((invoicesThisMonthCount - invoicesLastMonthCount) / invoicesLastMonthCount) * 100
                 : 0;
             const invoicesThisMonth = await prisma_client_1.default.invoices.findMany({
                 where: {
@@ -105,10 +105,10 @@ exports.executiveDashboardController = {
                 success: true,
                 message: 'Dashboard statistics retrieved successfully',
                 data: {
-                    totalOrders: {
-                        value: totalOrders,
-                        thisMonth: ordersThisMonth,
-                        growthPercentage: ordersGrowthPercentage.toFixed(1),
+                    totalInvoices: {
+                        value: totalInvoices,
+                        thisMonth: invoicesThisMonthCount,
+                        growthPercentage: invoicesGrowthPercentage.toFixed(1),
                     },
                     salesRevenue: {
                         value: salesRevenue,

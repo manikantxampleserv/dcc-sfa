@@ -775,6 +775,8 @@ exports.visitsController = {
                                                         {
                                                             batch_lot_id: batchLot.id,
                                                             pieces: orderedPieces,
+                                                            //   uomQty: isUnitPcs ? Math.floor(orderedPieces / conversionFactor) : orderedQty,
+                                                            // baseQty: isUnitPcs ? orderedPieces % conversionFactor : (orderedPieces - orderedQty * conversionFactor),
                                                             uomQty: Math.floor(orderedPieces / conversionFactor),
                                                             baseQty: orderedPieces % conversionFactor,
                                                         },
@@ -787,6 +789,16 @@ exports.visitsController = {
                                                         let bUomQty;
                                                         let bBaseQty;
                                                         let bPieces;
+                                                        //     if (isUnitPcs) {
+                                                        //   const totalPcs = parseInt(b.quantity, 10) || 0;
+                                                        //   bPieces = totalPcs;
+                                                        //   bUomQty = Math.floor(totalPcs / conversionFactor);
+                                                        //   bBaseQty = totalPcs % conversionFactor;
+                                                        // } else {
+                                                        //   bUomQty = parseInt(b.quantity, 10) || 0;
+                                                        //   bBaseQty = parseInt(b.base_quantity, 10) || 0;
+                                                        //   bPieces = bUomQty * conversionFactor + bBaseQty;
+                                                        // }
                                                         const inputUomQty = parseInt(b.quantity, 10) || 0;
                                                         const inputBaseQty = parseInt(b.base_quantity, 10) || 0;
                                                         bPieces = isUnitPcs ? inputUomQty : (inputUomQty * conversionFactor + inputBaseQty);
@@ -1446,7 +1458,12 @@ exports.visitsController = {
                                             updatedby: req.user?.id || visit.createdby || 1,
                                         },
                                     });
-                                    console.log(`Cooler ${updatedCooler.id} status updated to ${installation.status || 'installed'} using asset serial ${assetSerialNumber}`);
+                                    console.log(
+                                    //   `Cooler ${updatedCooler.id} status updated to ${
+                                    //   installation.status || 'installed'
+                                    // ooler ${updatedCooler.id} status updated to ${installation.status || 'installed'
+                                    // using asset serial ${assetSerialNumber}`
+                                    `Cooler ${updatedCooler.id} status updated to ${installation.status || 'installed'} using asset serial ${assetSerialNumber}`);
                                 }
                             }
                             if (cooler_inspections && cooler_inspections.length > 0) {

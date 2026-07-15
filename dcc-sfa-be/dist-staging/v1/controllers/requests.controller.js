@@ -444,6 +444,43 @@ async function processDefaultOutletInvoice(reconciliationIdForInvoice, userIdFor
 const createRequest = async (data) => {
     try {
         console.log(' Creating request:', data.request_type);
+        if (data.request_data) {
+            try {
+                const parsed = JSON.parse(data.request_data);
+                const rawItems = parsed.items || parsed.van_inventory_items || [];
+                const mergedItems = rawItems.map((item) => {
+                    const bData = item.batches || item.product_batches;
+                    if (Array.isArray(bData)) {
+                        const map = new Map();
+                        for (const b of bData) {
+                            if (!b.batch_number)
+                                continue;
+                            if (map.has(b.batch_number)) {
+                                const existing = map.get(b.batch_number);
+                                existing.quantity = (parseInt(existing.quantity || '0', 10) +
+                                    parseInt(b.quantity || '0', 10)).toString();
+                            }
+                            else {
+                                map.set(b.batch_number, { ...b });
+                            }
+                        }
+                        if (item.batches)
+                            item.batches = Array.from(map.values());
+                        if (item.product_batches)
+                            item.product_batches = Array.from(map.values());
+                    }
+                    return item;
+                });
+                if (parsed.van_inventory_items)
+                    parsed.van_inventory_items = mergedItems;
+                if (parsed.items)
+                    parsed.items = mergedItems;
+                data.request_data = JSON.stringify(parsed);
+            }
+            catch (e) {
+                console.error('Failed to parse and consolidate request_data', e);
+            }
+        }
         const requester = await prisma_client_1.default.users.findUnique({
             where: { id: data.requester_id },
             select: {
@@ -918,25 +955,27 @@ const createRequest = async (data) => {
                     where: { key: 'notify_approver' },
                 });
                 if (!template) {
-                    throw new Error('Email template "notify_approver" not found');
+                    console.warn('Email template "notify_approver" not found. Skipping email.');
                 }
-                const variables = {
-                    approver_name: firstApprover.approval_work_flow_approver.name,
-                    requester_name: requester.name,
-                    company_name: process.env.COMPANY_NAME || 'SFA System',
-                    ...orderData,
-                };
-                console.log('Email variables:', Object.keys(variables));
-                const subject = replaceVariables(template.subject, variables);
-                const body = replaceVariables(template.body, variables);
-                console.log(' Subject:', subject);
-                await (0, mailer_1.sendEmail)({
-                    to: firstApprover.approval_work_flow_approver.email,
-                    subject: subject,
-                    html: body,
-                    createdby: data.createdby,
-                    log_inst: data.log_inst,
-                });
+                else {
+                    const variables = {
+                        approver_name: firstApprover.approval_work_flow_approver.name,
+                        requester_name: requester.name,
+                        company_name: process.env.COMPANY_NAME || 'SFA System',
+                        ...orderData,
+                    };
+                    console.log('Email variables:', Object.keys(variables));
+                    const subject = replaceVariables(template.subject, variables);
+                    const body = replaceVariables(template.body, variables);
+                    console.log(' Subject:', subject);
+                    await (0, mailer_1.sendEmail)({
+                        to: firstApprover.approval_work_flow_approver.email,
+                        subject: subject,
+                        html: body,
+                        createdby: data.createdby,
+                        log_inst: data.log_inst,
+                    });
+                }
                 console.log(`Email sent to ${firstApprover.approval_work_flow_approver.email}`);
             }
             catch (emailError) {

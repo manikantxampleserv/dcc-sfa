@@ -275,6 +275,9 @@ exports.reconciliationController = {
                                     product_categories_products: {
                                         select: { category_name: true },
                                     },
+                                    product_sub_categories_products: {
+                                        select: { sub_category_name: true },
+                                    },
                                     product_unit_of_measurement: {
                                         select: { conversion_rate: true, sub_unit: true },
                                     },
@@ -306,6 +309,8 @@ exports.reconciliationController = {
                 skuName: item.product?.name || 'UNKNOWN',
                 categoryName: item.product?.product_categories_products?.category_name ||
                     'Uncategorized',
+                subCategoryName: item.product?.product_sub_categories_products?.sub_category_name ||
+                    '',
                 conversionRate: Number(item.product?.product_unit_of_measurement?.conversion_rate) || 1,
                 subUnit: item.product?.product_unit_of_measurement?.sub_unit || 'PCs',
                 basePrice: item.product?.base_price !== null
@@ -316,8 +321,14 @@ exports.reconciliationController = {
                 saleQuantity: item.sale_qty !== null ? Number(item.sale_qty) : 0,
                 saleBaseQty: item.sale_base_qty !== null ? Number(item.sale_base_qty) : 0,
                 batchNumber: item.batch_number || '-',
-                expectedRop: Number(item.expected_qty) || 0,
-                expectedBaseQty: Number(item.expected_base_qty) || 0,
+                expectedRop: Math.floor(Math.max(0, (item.load_qty !== null ? Number(item.load_qty) : 0) * (Number(item.product?.product_unit_of_measurement?.conversion_rate) || 1) +
+                    (item.load_base_qty !== null ? Number(item.load_base_qty) : 0) -
+                    ((item.sale_qty !== null ? Number(item.sale_qty) : 0) * (Number(item.product?.product_unit_of_measurement?.conversion_rate) || 1) +
+                        (item.sale_base_qty !== null ? Number(item.sale_base_qty) : 0))) / (Number(item.product?.product_unit_of_measurement?.conversion_rate) || 1)),
+                expectedBaseQty: Math.max(0, (item.load_qty !== null ? Number(item.load_qty) : 0) * (Number(item.product?.product_unit_of_measurement?.conversion_rate) || 1) +
+                    (item.load_base_qty !== null ? Number(item.load_base_qty) : 0) -
+                    ((item.sale_qty !== null ? Number(item.sale_qty) : 0) * (Number(item.product?.product_unit_of_measurement?.conversion_rate) || 1) +
+                        (item.sale_base_qty !== null ? Number(item.sale_base_qty) : 0))) % (Number(item.product?.product_unit_of_measurement?.conversion_rate) || 1),
                 actualRop: item.actual_qty !== null ? Number(item.actual_qty).toString() : '',
                 actualBaseQty: item.actual_base_qty !== null
                     ? Number(item.actual_base_qty).toString()
@@ -331,6 +342,7 @@ exports.reconciliationController = {
                 defaultOutletPostingBaseQty: Number(item.default_outlet_posting_base_qty) || 0,
                 unloadAdjustmentQty: Number(item.unload_adjustment_qty) || 0,
                 unloadAdjustmentBaseQty: Number(item.unload_adjustment_base_qty) || 0,
+                taxAmount: item.tax_amount !== null ? Number(item.tax_amount) : 0,
                 stockKey: item.stock_key || '',
                 status: item.resolution_action === 'Awaiting Force-Push'
                     ? 'Blocked - Force-Push Required'
@@ -389,7 +401,7 @@ exports.reconciliationController = {
                 const updatedItems = [];
                 const reconciliationIds = new Set();
                 for (const itemPayload of items) {
-                    const { id, actual_qty, actual_base_qty } = itemPayload;
+                    const { id, actual_qty, actual_base_qty, tax_amount } = itemPayload;
                     const parsedActual = actual_qty !== null &&
                         actual_qty !== '' &&
                         actual_qty !== undefined
@@ -400,6 +412,11 @@ exports.reconciliationController = {
                         actual_base_qty !== undefined
                         ? Number(actual_base_qty)
                         : null;
+                    const parsedTaxAmount = tax_amount !== null &&
+                        tax_amount !== '' &&
+                        tax_amount !== undefined
+                        ? Number(tax_amount)
+                        : undefined;
                     const record = await tx.reconciliation_items.findUnique({
                         where: { id },
                         include: {
@@ -417,13 +434,17 @@ exports.reconciliationController = {
                     let variance = null;
                     let variance_base_qty = null;
                     let resAction = 'Awaiting Verification';
-                    const expectedQty = Number(record.expected_qty) || 0;
-                    const expectedBaseQty = Number(record.expected_base_qty) || 0;
                     const conv = Number(record.product?.product_unit_of_measurement?.conversion_rate) || 1;
+                    const loadQty = record.load_qty !== null ? Number(record.load_qty) : 0;
+                    const loadBaseQty = record.load_base_qty !== null ? Number(record.load_base_qty) : 0;
+                    const saleQty = record.sale_qty !== null ? Number(record.sale_qty) : 0;
+                    const saleBaseQty = record.sale_base_qty !== null ? Number(record.sale_base_qty) : 0;
+                    const expectedTotalPieces = Math.max(0, (loadQty * conv + loadBaseQty) - (saleQty * conv + saleBaseQty));
+                    const expectedQty = Math.floor(expectedTotalPieces / conv);
+                    const expectedBaseQty = expectedTotalPieces % conv;
                     if (parsedActual !== null || parsedActualBase !== null) {
                         const actual = parsedActual || 0;
                         const actualBase = parsedActualBase || 0;
-                        const expectedTotalPieces = expectedQty * conv + expectedBaseQty;
                         const actualTotalPieces = actual * conv + actualBase;
                         const variancePieces = actualTotalPieces - expectedTotalPieces;
                         if (variancePieces === 0) {
@@ -463,6 +484,7 @@ exports.reconciliationController = {
                             actual_base_qty: parsedActualBase,
                             variance,
                             variance_base_qty,
+                            tax_amount: parsedTaxAmount,
                             resolution_action: resAction,
                             default_outlet_posting_qty: defaultOutletPostingQty,
                             default_outlet_posting_base_qty: defaultOutletPostingBaseQty,
