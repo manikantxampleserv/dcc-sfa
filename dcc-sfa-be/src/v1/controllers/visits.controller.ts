@@ -1340,6 +1340,7 @@ export const visitsController = {
                               await tx.inventory_stock.findFirst({
                                 where: {
                                   product_id: product.id,
+                                  is_unloadAll: 'N',
                                   OR: [
                                     {
                                       salesperson_id: {

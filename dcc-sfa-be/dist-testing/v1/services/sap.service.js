@@ -2268,9 +2268,25 @@ exports.sapService = {
             throw new Error(`Salesman with SAP code ${inventoryData.salesman_sap_code} not found`);
         }
         inventoryData.user_id = spUser.id;
+        let targetDepotId = null;
+        if (inventoryData.depot_sap_code) {
+            const depot = await prisma_client_1.default.depots.findFirst({
+                where: { sap_code: inventoryData.depot_sap_code },
+            });
+            targetDepotId = depot?.id || null;
+        }
+        else {
+            const depot = await prisma_client_1.default.depots.findFirst({
+                where: { name: { contains: 'MOSHI' } },
+            });
+            targetDepotId = depot?.id || null;
+        }
         let workflowExists = false;
         const requesterZoneId = spUser.zone_id;
-        const requesterDepotId = spUser.depot_id;
+        let requesterDepotId = await (0, requests_controller_1.resolveRequesterDepotId)(prisma_client_1.default, spUser.id, 'VAN_INVENTORY', JSON.stringify({ ...payload, location_id: targetDepotId }));
+        if (!requesterDepotId) {
+            requesterDepotId = spUser.depot_id;
+        }
         if (requesterZoneId && requesterDepotId) {
             const zoneDepotWorkflow = await prisma_client_1.default.approval_work_flow.findMany({
                 where: {
