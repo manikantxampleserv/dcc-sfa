@@ -562,7 +562,7 @@ async function processApprovedVanInventoryStock(inventoryId, userId, requestData
                                 batch_number: batchInput.batch_number,
                                 productsId: product.id,
                                 is_active: 'Y',
-                                createdby: inventoryUserId,
+                                // createdby: inventoryUserId,
                             },
                         });
                         if (batchLot) {

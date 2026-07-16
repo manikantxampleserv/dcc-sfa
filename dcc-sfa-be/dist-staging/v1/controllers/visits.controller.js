@@ -846,54 +846,7 @@ exports.visitsController = {
                                                     });
                                                     const vanInventoryIds = vanInventories.map((v) => v.id);
                                                     const vanInventory = vanInventories[0] || null;
-                                                    const vanItems = await tx.van_inventory_items.findMany({
-                                                        where: {
-                                                            product_id: product.id,
-                                                            batch_lot_id: batchOrder.batch_lot_id,
-                                                            parent_id: { in: vanInventoryIds },
-                                                        },
-                                                    });
-                                                    if (vanItems.length === 0) {
-                                                        throw new Error(`Batch ${batchOrder.batch_lot_id} not found in van for product "${product.name}"`);
-                                                    }
-                                                    let totalVanQty = 0;
-                                                    let totalVanBaseQty = 0;
-                                                    for (const item of vanItems) {
-                                                        totalVanQty += item.quantity || 0;
-                                                        totalVanBaseQty += item.base_quantity || 0;
-                                                    }
-                                                    const vanDeduction = (0, inventory_utils_1.calculateStockDeduction)(totalVanQty, totalVanBaseQty, piecesToDeduct, conversionFactor, itemUnit, orderedQty);
-                                                    if (vanDeduction.newQuantity < 0) {
-                                                        const availableMsg = isUnitPcs
-                                                            ? `${vanDeduction.totalAvailablePieces} pcs`
-                                                            : `${totalVanQty} cases`;
-                                                        const requestedMsg = isUnitPcs
-                                                            ? `${piecesToDeduct} pcs`
-                                                            : `${orderedQty} cases`;
-                                                        throw new Error(`Insufficient van quantity for batch "${batchLot.batch_number}". ` +
-                                                            `Available: ${availableMsg}, Requested: ${requestedMsg}`);
-                                                    }
-                                                    console.log(`BATCH VAN [${itemUnit}]: ` +
-                                                        `${totalVanQty}cs + ` +
-                                                        `${totalVanBaseQty}pc → ` +
-                                                        `${vanDeduction.newQuantity}cs + ` +
-                                                        `${vanDeduction.newBaseQuantity}pc`);
-                                                    // if (
-                                                    //   vanDeduction.newQuantity > 0 ||
-                                                    //   vanDeduction.newBaseQuantity > 0
-                                                    // ) {
-                                                    //   await tx.van_inventory_items.update({
-                                                    //     where: { id: vanItem.id },
-                                                    //     data: {
-                                                    //       quantity: vanDeduction.newQuantity,
-                                                    //       base_quantity: vanDeduction.newBaseQuantity,
-                                                    //     },
-                                                    //   });
-                                                    // } else {
-                                                    //   await tx.van_inventory_items.delete({
-                                                    //     where: { id: vanItem.id },
-                                                    //   });
-                                                    // }
+                                                    // Buggy vanItems check for BATCH tracking type removed (we rely on inventory_stock instead)\r
                                                     const inventoryStock = await tx.inventory_stock.findFirst({
                                                         where: {
                                                             product_id: product.id,
@@ -1173,52 +1126,7 @@ exports.visitsController = {
                                                 });
                                                 const vanInventoryIds = vanInventories.map((v) => v.id);
                                                 const vanInventory = vanInventories[0] || null;
-                                                const vanItems = await tx.van_inventory_items.findMany({
-                                                    where: {
-                                                        product_id: product.id,
-                                                        batch_lot_id: null,
-                                                        serial_id: null,
-                                                        parent_id: { in: vanInventoryIds },
-                                                    },
-                                                });
-                                                if (vanItems.length === 0) {
-                                                    throw new Error(`Product "${product.name}" not found in van inventory`);
-                                                }
-                                                let totalVanQty = 0;
-                                                let totalVanBaseQty = 0;
-                                                for (const item of vanItems) {
-                                                    totalVanQty += item.quantity || 0;
-                                                    totalVanBaseQty += item.base_quantity || 0;
-                                                }
-                                                const vanDeduction = (0, inventory_utils_1.calculateStockDeduction)(totalVanQty, totalVanBaseQty, orderedPieces, conversionFactor, itemUnit, orderedQty);
-                                                if (vanDeduction.newQuantity < 0) {
-                                                    const availableMsg = isUnitPcs
-                                                        ? `${vanDeduction.totalAvailablePieces} pcs`
-                                                        : `${totalVanQty} cases`;
-                                                    const requestedMsg = isUnitPcs
-                                                        ? `${orderedPieces} pcs`
-                                                        : `${orderedQty} cases`;
-                                                    throw new Error(`Insufficient van quantity for "${product.name}". ` +
-                                                        `Available: ${availableMsg}, Requested: ${requestedMsg}`);
-                                                }
-                                                console.log(`NONE VAN [${itemUnit}]: ${totalVanQty}cs + ${totalVanBaseQty}pc → ` +
-                                                    `${vanDeduction.newQuantity}cs + ${vanDeduction.newBaseQuantity}pc`);
-                                                // if (
-                                                //   vanDeduction.newQuantity > 0 ||
-                                                //   vanDeduction.newBaseQuantity > 0
-                                                // ) {
-                                                //   await tx.van_inventory_items.update({
-                                                //     where: { id: vanItem.id },
-                                                //     data: {
-                                                //       quantity: vanDeduction.newQuantity,
-                                                //       base_quantity: vanDeduction.newBaseQuantity,
-                                                //     },
-                                                //   });
-                                                // } else {
-                                                //   await tx.van_inventory_items.delete({
-                                                //     where: { id: vanItem.id },
-                                                //   });
-                                                // }
+                                                // Buggy vanItems check for NONE tracking type removed (we rely on inventory_stock instead)\r
                                                 const inventoryStock = await tx.inventory_stock.findFirst({
                                                     where: {
                                                         product_id: product.id,
