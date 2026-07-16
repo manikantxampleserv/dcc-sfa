@@ -562,7 +562,7 @@ async function processApprovedVanInventoryStock(inventoryId, userId, requestData
                                 batch_number: batchInput.batch_number,
                                 productsId: product.id,
                                 is_active: 'Y',
-                                createdby: inventoryUserId,
+                                // createdby: inventoryUserId,
                             },
                         });
                         if (batchLot) {
@@ -597,7 +597,7 @@ async function processApprovedVanInventoryStock(inventoryId, userId, requestData
                                     storage_location: batchInput.storage_location || null,
                                     is_active: 'Y',
                                     createdate: new Date(),
-                                    createdby: inventoryUserId,
+                                    // createdby: inventoryUserId,
                                     log_inst: 1,
                                     productsId: product.id,
                                 },
@@ -944,7 +944,7 @@ async function processApprovedVanInventoryStock(inventoryId, userId, requestData
                                     batch_number: batchInput.batch_number,
                                     productsId: product.id,
                                     is_active: 'Y',
-                                    // createdby: inventoryUserId,
+                                    // // createdby: inventoryUserId,
                                 },
                             });
                         }

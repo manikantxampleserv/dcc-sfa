@@ -597,7 +597,7 @@ async function processApprovedVanInventoryStock(inventoryId, userId, requestData
                                     storage_location: batchInput.storage_location || null,
                                     is_active: 'Y',
                                     createdate: new Date(),
-                                    createdby: inventoryUserId,
+                                    // createdby: inventoryUserId,
                                     log_inst: 1,
                                     productsId: product.id,
                                 },
@@ -944,7 +944,7 @@ async function processApprovedVanInventoryStock(inventoryId, userId, requestData
                                     batch_number: batchInput.batch_number,
                                     productsId: product.id,
                                     is_active: 'Y',
-                                    createdby: inventoryUserId,
+                                    // // createdby: inventoryUserId,
                                 },
                             });
                         }
@@ -953,28 +953,7 @@ async function processApprovedVanInventoryStock(inventoryId, userId, requestData
                             continue;
                         }
                         console.log('  Found batch_lot:', batchLot.id, batchLot.batch_number);
-                        const vanItems = await tx.van_inventory_items.findMany({
-                            where: {
-                                product_id: product.id,
-                                batch_lot_id: batchLot.id,
-                                van_inventory_items_inventory: {
-                                    user_id: inventoryUserId,
-                                    is_active: 'Y',
-                                    loading_type: 'L',
-                                },
-                            },
-                        });
-                        if (vanItems.length === 0) {
-                            console.log('   Skipping: van_inventory_item not found for this batch');
-                            continue;
-                        }
-                        const totalVanQty = vanItems.reduce((sum, vi) => sum + (vi.quantity || 0), 0);
-                        const totalVanBaseQty = vanItems.reduce((sum, vi) => sum + (vi.base_quantity || 0), 0);
-                        console.log('  Found van_inventory_items with total quantity:', totalVanQty, 'and base quantity:', totalVanBaseQty);
-                        if (totalVanQty < batchQty && batchQty > 0) {
-                            console.log('   Skipping: van_item total quantity (', totalVanQty, ') < batchQty (', batchQty, ')');
-                            continue;
-                        }
+                        // Buggy vanItems check removed (it ignores transferred stock and adjustments)
                         const inventoryStock = await tx.inventory_stock.findFirst({
                             where: {
                                 product_id: product.id,
@@ -3419,7 +3398,7 @@ exports.vanInventoryController = {
                                             batch_number: batchInput.batch_number,
                                             productsId: product.id,
                                             is_active: 'Y',
-                                            createdby: Number(inventoryData.user_id),
+                                            // createdby: Number(inventoryData.user_id),
                                         },
                                     });
                                     if (!batchLot)
@@ -6181,10 +6160,14 @@ exports.vanInventoryController = {
                         });
                         const toCreate = [];
                         for (const p of productMap.values()) {
-                            const loadQty = loadQtyMap.get(`${p.product_id}-${p.batch_number || ''}`)?.qty || 0;
-                            const loadBaseQty = loadQtyMap.get(`${p.product_id}-${p.batch_number || ''}`)?.baseQty || 0;
-                            const saleQty = saleQtyMap.get(`${p.product_id}-${p.batch_number || ''}`)?.qty || 0;
-                            const saleBaseQty = saleQtyMap.get(`${p.product_id}-${p.batch_number || ''}`)?.baseQty || 0;
+                            const loadQty = loadQtyMap.get(`${p.product_id}-${p.batch_number || ''}`)
+                                ?.qty || 0;
+                            const loadBaseQty = loadQtyMap.get(`${p.product_id}-${p.batch_number || ''}`)
+                                ?.baseQty || 0;
+                            const saleQty = saleQtyMap.get(`${p.product_id}-${p.batch_number || ''}`)
+                                ?.qty || 0;
+                            const saleBaseQty = saleQtyMap.get(`${p.product_id}-${p.batch_number || ''}`)
+                                ?.baseQty || 0;
                             const convRate = p.convRate > 0 ? p.convRate : 1;
                             const totalLoadBase = loadQty * convRate + loadBaseQty;
                             const totalSaleBase = saleQty * convRate + saleBaseQty;

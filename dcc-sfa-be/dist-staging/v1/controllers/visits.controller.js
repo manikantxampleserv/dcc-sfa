@@ -742,26 +742,23 @@ exports.visitsController = {
                                                 `Ordered Pcs: ${orderedPieces}, ` +
                                                 `ConversionFactor: ${conversionFactor}`);
                                             if (trackingType === 'BATCH') {
-                                                const hasBatchNumber = !!item.batch_number;
+                                                const hasBatchNumber = !!item.batch_lot_id;
                                                 const hasProductBatches = item.product_batches &&
                                                     Array.isArray(item.product_batches);
                                                 let batchDeductions = [];
                                                 if (hasBatchNumber) {
-                                                    const batchNumber = item.batch_number;
+                                                    const batchNumber = item.batch_lot_id;
                                                     const stockRecord = await tx.inventory_stock.findFirst({
                                                         where: {
                                                             product_id: product.id,
-                                                            OR: [
+                                                            AND: [
                                                                 {
                                                                     salesperson_id: {
                                                                         in: targetSalespersonIds,
                                                                     },
                                                                 },
-                                                                { createdby: visit.sales_person_id },
+                                                                { batch_id: batchNumber },
                                                             ],
-                                                            inventory_stock_batch: {
-                                                                batch_number: batchNumber,
-                                                            },
                                                         },
                                                         include: {
                                                             inventory_stock_batch: true,
@@ -801,7 +798,9 @@ exports.visitsController = {
                                                         // }
                                                         const inputUomQty = parseInt(b.quantity, 10) || 0;
                                                         const inputBaseQty = parseInt(b.base_quantity, 10) || 0;
-                                                        bPieces = isUnitPcs ? inputUomQty : (inputUomQty * conversionFactor + inputBaseQty);
+                                                        bPieces = isUnitPcs
+                                                            ? inputUomQty
+                                                            : inputUomQty * conversionFactor + inputBaseQty;
                                                         bUomQty = Math.floor(bPieces / conversionFactor);
                                                         bBaseQty = bPieces % conversionFactor;
                                                         return {
@@ -831,7 +830,7 @@ exports.visitsController = {
                                                         where: {
                                                             OR: [
                                                                 { user_id: { in: groupUsers } },
-                                                                { createdby: visit.sales_person_id }
+                                                                { createdby: visit.sales_person_id },
                                                             ],
                                                             status: 'A',
                                                             is_active: 'Y',
@@ -946,9 +945,11 @@ exports.visitsController = {
                                                         total_amount: isUnitPcs
                                                             ? totalPiecesDeducted *
                                                                 (Number(item.unit_price) || 0)
-                                                            : Math.floor(totalPiecesDeducted / conversionFactor) * (Number(item.unit_price) || 0) +
+                                                            : Math.floor(totalPiecesDeducted / conversionFactor) *
+                                                                (Number(item.unit_price) || 0) +
                                                                 (totalPiecesDeducted % conversionFactor) *
-                                                                    ((Number(item.unit_price) || 0) / conversionFactor),
+                                                                    ((Number(item.unit_price) || 0) /
+                                                                        conversionFactor),
                                                         notes: hasBatchNumber
                                                             ? `Batch: ${item.batch_number}`
                                                             : `Batches: ${batchDeductions.map(b => b.batch_lot_id).join(', ')}`,
@@ -1015,8 +1016,12 @@ exports.visitsController = {
                                                         where: {
                                                             product_id: product.id,
                                                             OR: [
-                                                                { salesperson_id: { in: targetSalespersonIds } },
-                                                                { createdby: visit.sales_person_id }
+                                                                {
+                                                                    salesperson_id: {
+                                                                        in: targetSalespersonIds,
+                                                                    },
+                                                                },
+                                                                { createdby: visit.sales_person_id },
                                                             ],
                                                             serial_number_id: serial.id,
                                                         },
@@ -1027,8 +1032,12 @@ exports.visitsController = {
                                                                 where: {
                                                                     product_id: product.id,
                                                                     OR: [
-                                                                        { salesperson_id: { in: targetSalespersonIds } },
-                                                                        { createdby: visit.sales_person_id }
+                                                                        {
+                                                                            salesperson_id: {
+                                                                                in: targetSalespersonIds,
+                                                                            },
+                                                                        },
+                                                                        { createdby: visit.sales_person_id },
                                                                     ],
                                                                     serial_number_id: null,
                                                                     batch_id: null,
@@ -1215,9 +1224,11 @@ exports.visitsController = {
                                                         tax_amount: Number(item.tax_amount) || 0,
                                                         total_amount: isUnitPcs
                                                             ? orderedPieces * (Number(item.unit_price) || 0)
-                                                            : Math.floor(orderedPieces / conversionFactor) * (Number(item.unit_price) || 0) +
+                                                            : Math.floor(orderedPieces / conversionFactor) *
+                                                                (Number(item.unit_price) || 0) +
                                                                 (orderedPieces % conversionFactor) *
-                                                                    ((Number(item.unit_price) || 0) / conversionFactor),
+                                                                    ((Number(item.unit_price) || 0) /
+                                                                        conversionFactor),
                                                         notes: item.notes || null,
                                                         ...(item.tax_code && { tax_code: item.tax_code }),
                                                         ...(item.tax_rate !== undefined && {
