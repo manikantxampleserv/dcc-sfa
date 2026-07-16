@@ -13,13 +13,9 @@ export const exportReconciliationPdfService = async (
       const doc = new PDFDocument({
         margin: 30,
         size: 'A4',
-        layout: 'landscape',
       });
 
-      doc.translate(61, 0);
-      doc.on('pageAdded', () => {
-        doc.translate(61, 0);
-      });
+      doc.on('pageAdded', () => {});
       const buffers: Buffer[] = [];
       doc.on('data', buffers.push.bind(buffers));
       doc.on('end', () => {
@@ -101,35 +97,29 @@ export const exportReconciliationPdfService = async (
       doc
         .fontSize(16)
         .fillColor('#1F4E78')
-        .text('SettlementSheet - Daily Salesman Settlement', -61, doc.y, {
+        .text('SettlementSheet - Daily Salesman Settlement', {
           align: 'center',
           underline: true,
-          width: 841.89,
         });
       doc
         .fontSize(10)
         .fillColor('#7F7F7F')
-        .text(
-          'Dynamic template: printable per day, per salesman.',
-          -61,
-          doc.y,
-          {
-            align: 'center',
-            oblique: true,
-            width: 841.89,
-          }
-        );
+        .text('Dynamic template: printable per day, per salesman.', {
+          align: 'center',
+          oblique: true,
+        });
       doc.moveDown(2.5);
 
       doc.fillColor('black');
+      const startY = doc.y;
       doc
         .font('Helvetica-Bold')
-        .text(`Salesman Name: `, 30, doc.y, { continued: true })
+        .text(`Salesman Name: `, 30, startY, { continued: true })
         .font('Helvetica')
         .text(meta.salesman?.name || '-');
       doc
         .font('Helvetica-Bold')
-        .text(`SAP Code: `, 30, doc.y + 5, { continued: true })
+        .text(`SAP Code: `, 30, startY + 15, { continued: true })
         .font('Helvetica')
         .text(meta.salesman?.sap_code || '-');
       const curDate = meta.reconciliation_date
@@ -137,27 +127,28 @@ export const exportReconciliationPdfService = async (
         : '-';
       doc
         .font('Helvetica-Bold')
-        .text(`Settlement Date: `, 30, doc.y + 5, { continued: true })
+        .text(`Settlement Date: `, 30, startY + 30, { continued: true })
         .font('Helvetica')
         .text(curDate);
 
       doc
         .font('Helvetica-Bold')
-        .text(`Depot: `, 400, 70, { continued: true })
+        .text(`Depot: `, 350, startY, { continued: true })
         .font('Helvetica')
         .text(meta.depot?.name || '-');
+      const reportingOfficer = meta.salesman?.users?.name || '-';
       doc
         .font('Helvetica-Bold')
-        .text(`Reporting Officer: `, 400, 85, { continued: true })
+        .text(`Reporting Officer: `, 350, startY + 15, { continued: true })
         .font('Helvetica')
-        .text('-');
+        .text(reportingOfficer);
       doc
         .font('Helvetica-Bold')
-        .text(`Generated On: `, 400, 100, { continued: true })
+        .text(`Generated On: `, 350, startY + 30, { continued: true })
         .font('Helvetica')
         .text(new Date().toLocaleDateString('en-GB'));
-      doc.moveDown(2);
 
+      doc.y = startY + 50;
       let y = doc.y;
 
       const formatNum = (num: number | string) => {
@@ -185,41 +176,41 @@ export const exportReconciliationPdfService = async (
 
         for (let i = 0; i < texts.length; i++) {
           doc
-            .fontSize(isHeader ? 8 : 7.5)
+            .fontSize(isHeader ? 6.5 : 6)
             .font(
               isHeader || texts[i] === 'CLEAN' ? 'Helvetica-Bold' : 'Helvetica'
             );
 
           if (isHeader) {
-            doc.rect(x, yPos, widths[i], 20).fill('#4472C4');
+            doc.rect(x, yPos, widths[i], 13).fill('#4472C4');
             doc.fillColor('white');
           } else if (bgColors && bgColors[i]) {
-            doc.rect(x, yPos, widths[i], 20).fill(bgColors[i]!);
+            doc.rect(x, yPos, widths[i], 13).fill(bgColors[i]!);
             doc.fillColor(textColors?.[i] || 'black');
           } else {
             doc.fillColor(textColors?.[i] || 'black');
           }
 
-          doc.text(texts[i], x + 2, yPos + 6, {
+          doc.text(texts[i], x + 2, yPos + 3, {
             width: widths[i] - 4,
             align: alignments && alignments[i] ? alignments[i] : 'center',
           });
 
           doc
             .moveTo(x, yPos)
-            .lineTo(x, yPos + 20)
+            .lineTo(x, yPos + 13)
             .stroke();
           x += widths[i];
         }
         doc
           .moveTo(x, yPos)
-          .lineTo(x, yPos + 20)
+          .lineTo(x, yPos + 13)
           .stroke();
         doc
-          .moveTo(30, yPos + 20)
-          .lineTo(x, yPos + 20)
+          .moveTo(30, yPos + 13)
+          .lineTo(x, yPos + 13)
           .stroke();
-        return yPos + 20;
+        return yPos + 13;
       };
 
       const columns = [
@@ -236,7 +227,7 @@ export const exportReconciliationPdfService = async (
         'Tax Amount',
         'Action',
       ];
-      const colWidths = [20, 30, 130, 55, 55, 55, 55, 50, 50, 50, 50, 60];
+      const colWidths = [16, 24, 105, 45, 45, 45, 45, 40, 40, 40, 45, 44];
       const colAlignments: ('left' | 'center' | 'right')[] = [
         'center',
         'left',
@@ -275,7 +266,7 @@ export const exportReconciliationPdfService = async (
       let currentCategory = '';
 
       const checkPageBreak = (force = false) => {
-        if (y > 480 || force) {
+        if (y > 750 || force) {
           doc.addPage();
           y = 30;
           y = drawRow(y, columns, colWidths, true, colAlignments);
@@ -285,14 +276,14 @@ export const exportReconciliationPdfService = async (
                 30,
                 y,
                 colWidths.reduce((a, b) => a + b, 0),
-                20
+                14
               )
               .fill('#7030A0');
             doc
               .fillColor('white')
               .font('Helvetica-Bold')
-              .text(`${currentCategory} (Continued)`, 35, y + 6);
-            y += 20;
+              .text(`${currentCategory} (Continued)`, 35, y + 4);
+            y += 14;
           }
         }
       };
@@ -306,14 +297,14 @@ export const exportReconciliationPdfService = async (
             30,
             y,
             colWidths.reduce((a, b) => a + b, 0),
-            20
+            14
           )
           .fill('#7030A0');
         doc
           .fillColor('white')
           .font('Helvetica-Bold')
-          .text(category, 35, y + 6);
-        y += 20;
+          .text(category, 35, y + 4);
+        y += 14;
 
         let catLoad = 0,
           catSales = 0,
@@ -478,20 +469,20 @@ export const exportReconciliationPdfService = async (
         currentCategory = '';
       }
 
-      if (y > 480) {
+      if (y > 750) {
         doc.addPage();
         y = 30;
       }
       y += 20;
 
       // --- SUBTOTALS BY CATEGORY ---
-      doc.rect(30, y, 660, 20).fill('#203764');
+      doc.rect(30, y, 534, 13).fill('#203764');
       doc
         .fillColor('white')
         .font('Helvetica-Bold')
-        .fontSize(10)
-        .text('SUBTOTALS BY CATEGORY', 35, y + 6);
-      y += 20;
+        .fontSize(8)
+        .text('SUBTOTALS BY CATEGORY', 35, y + 3);
+      y += 13;
 
       const subColumns = [
         'Category',
@@ -503,7 +494,7 @@ export const exportReconciliationPdfService = async (
         'Sale Value',
         'Tax Amount',
       ];
-      const subColWidths = [180, 60, 65, 60, 55, 50, 100, 90];
+      const subColWidths = [140, 55, 55, 50, 45, 40, 75, 74];
       const subColAlignments: ('left' | 'center' | 'right')[] = [
         'left',
         'center',
@@ -518,7 +509,7 @@ export const exportReconciliationPdfService = async (
       y = drawRow(y, subColumns, subColWidths, true, subColAlignments);
 
       categoryTotalsData.forEach(catTotal => {
-        if (y > 480) {
+        if (y > 750) {
           doc.addPage();
           y = 30;
           y = drawRow(y, subColumns, subColWidths, true, subColAlignments);
@@ -542,12 +533,12 @@ export const exportReconciliationPdfService = async (
       });
 
       // GRAND TOTAL ROW
-      doc.rect(30, y, subColWidths[0], 20).fill('#FFC000');
+      doc.rect(30, y, subColWidths[0], 13).fill('#FFC000');
       doc
         .fillColor('black')
         .font('Helvetica-Bold')
-        .fontSize(8)
-        .text('GRAND TOTAL', 35, y + 6);
+        .fontSize(6.5)
+        .text('GRAND TOTAL', 35, y + 3);
 
       let curX = 30 + subColWidths[0];
       const grandTotalsArray = [
@@ -562,90 +553,102 @@ export const exportReconciliationPdfService = async (
 
       doc.lineWidth(0.5).strokeColor('#ccc');
       for (let i = 0; i < grandTotalsArray.length; i++) {
-        doc.rect(curX, y, subColWidths[i + 1], 20).fill('#FFC000');
+        doc.rect(curX, y, subColWidths[i + 1], 13).fill('#FFC000');
         doc
           .fillColor(i === 4 && grandTotalsArray[i] < 0 ? 'red' : 'black')
-          .text(formatNum(grandTotalsArray[i]), curX + 2, y + 6, {
+          .text(formatNum(grandTotalsArray[i]), curX + 2, y + 3, {
             width: subColWidths[i + 1] - 4,
             align: subColAlignments[i + 1],
           });
 
         doc
           .moveTo(curX, y)
-          .lineTo(curX, y + 20)
+          .lineTo(curX, y + 13)
           .stroke();
         curX += subColWidths[i + 1];
       }
       doc
         .moveTo(curX, y)
-        .lineTo(curX, y + 20)
+        .lineTo(curX, y + 13)
         .stroke();
       doc.moveTo(30, y).lineTo(curX, y).stroke();
       doc
-        .moveTo(30, y + 20)
-        .lineTo(curX, y + 20)
+        .moveTo(30, y + 13)
+        .lineTo(curX, y + 13)
         .stroke();
       doc
         .moveTo(30, y)
-        .lineTo(30, y + 20)
+        .lineTo(30, y + 13)
         .stroke();
 
-      y += 20;
+      y += 13;
 
-      if (y > 520) {
+      if (y > 750) {
         doc.addPage();
         y = 30;
       }
       y += 20;
 
-      doc.rect(30, y, 660, 20).fill('#548235');
+      doc.rect(30, y, 534, 20).fill('#548235');
       doc
         .fillColor('white')
         .font('Helvetica-Bold')
-        .fontSize(12)
-        .text('CASH SETTLEMENT', 35, y + 5);
-      y += 25;
-
-      doc.fillColor('black').font('Helvetica').fontSize(10);
-      doc.text('Total Sales Value (Mobile-recorded sales to outlets):', 30, y);
-      doc.text(
-        `${formatNum(grandTotalSaleValue)} ${meta.currency || 'TZS'}`,
-        30,
-        y,
-        { width: 650, align: 'right' }
-      );
+        .fontSize(10)
+        .text('CASH SETTLEMENT', 35, y + 6);
       y += 20;
 
+      doc.lineWidth(0.5).strokeColor('#A6A6A6');
+      doc.fillColor('black').font('Helvetica').fontSize(9);
+
+      const salesValueStr = `${formatNum(grandTotalSaleValue)}`;
+      doc.rect(386, y, 178, 20).fillAndStroke('#E7E6E6', '#A6A6A6');
+      doc
+        .fillColor('black')
+        .text(
+          'Total Sales Value (Mobile-recorded sales to outlets):',
+          30,
+          y + 6,
+          { width: 352, align: 'right' }
+        );
+      doc
+        .fillColor('black')
+        .text(salesValueStr, 386, y + 6, { width: 174, align: 'right' });
+      y += 20;
+
+      doc.rect(386, y, 178, 20).fillAndStroke('#E7E6E6', '#A6A6A6');
       doc
         .fillColor('red')
         .text(
           'Default Outlet Posting Value (Shortage — Salesman accountable):',
           30,
-          y
+          y + 6,
+          { width: 352, align: 'right' }
         );
-      doc.text(
-        `${formatNum(grandTotalDefaultOutletValue)} ${meta.currency || 'TZS'}`,
-        30,
-        y,
-        { width: 650, align: 'right' }
-      );
+      doc
+        .fillColor('red')
+        .text(`${formatNum(grandTotalDefaultOutletValue)}`, 386, y + 6, {
+          width: 174,
+          align: 'right',
+        });
       y += 20;
 
+      doc.rect(386, y, 178, 20).fillAndStroke('#FFC000', '#A6A6A6');
       doc
         .fillColor('red')
         .font('Helvetica-Bold')
-        .text('TOTAL CASH SALESMAN MUST DEPOSIT AT DEPOT (TZS):', 30, y);
+        .text('TOTAL CASH SALESMAN MUST DEPOSIT AT DEPOT (TZS):', 30, y + 6, {
+          width: 352,
+          align: 'right',
+        });
 
-      const totalStr = `${formatNum(grandTotalSaleValue + grandTotalDefaultOutletValue)} ${meta.currency || 'TZS'}`;
-      const textWidth = doc.widthOfString(totalStr);
-      const rectWidth = Math.max(150, textWidth + 20);
-      doc.rect(690 - rectWidth, y - 5, rectWidth, 20).fill('#FFC000');
-
+      const totalStr = `${formatNum(grandTotalSaleValue + grandTotalDefaultOutletValue)}`;
       doc
         .fillColor('red')
-        .text(totalStr, 30, y, { width: 650, align: 'right' });
+        .text(totalStr, 386, y + 6, { width: 174, align: 'right' });
 
-      if (y > 480) {
+      y += 20;
+
+      if (y > 750) {
         doc.addPage();
         y = 30;
       } else {
@@ -655,16 +658,16 @@ export const exportReconciliationPdfService = async (
       // --- STATIC SUMMARY TABLE ---
       const rowHeight = 16;
       const b1X = 30,
-        b1C1 = 30,
-        b1C2 = 110,
-        b1C3 = 70;
-      const b2X = 250,
-        b2C1 = 30,
-        b2C2 = 110,
-        b2C3 = 70;
-      const b3X = 470,
-        b3C1 = 140,
-        b3C2 = 80;
+        b1C1 = 25,
+        b1C2 = 90,
+        b1C3 = 55;
+      const b2X = 208,
+        b2C1 = 25,
+        b2C2 = 90,
+        b2C3 = 55;
+      const b3X = 386,
+        b3C1 = 114,
+        b3C2 = 64;
 
       const drawCell = (
         x: number,
@@ -684,10 +687,13 @@ export const exportReconciliationPdfService = async (
           .fillColor('black')
           .font(isBold ? 'Helvetica-Bold' : 'Helvetica')
           .fontSize(fontSize);
-        doc.text(text, x + 2, yPos + 4, { width: width - 4, align });
+        doc.text(text, x + 2, yPos + 4, {
+          width: width - 4,
+          align,
+          lineBreak: false,
+        });
       };
 
-      // Header Row
       drawCell(b1X, y, b1C1, 'S.No', true, 'center');
       drawCell(b1X + b1C1, y, b1C2, 'Cash', true, 'left');
       drawCell(b1X + b1C1 + b1C2, y, b1C3, 'Amount', true, 'left');
@@ -716,7 +722,7 @@ export const exportReconciliationPdfService = async (
       ];
 
       for (let i = 1; i <= 11; i++) {
-        if (y > 540) {
+        if (y > 750) {
           doc.addPage();
           y = 30;
           drawCell(b1X, y, b1C1, 'S.No', true, 'center');
@@ -730,7 +736,6 @@ export const exportReconciliationPdfService = async (
           y += rowHeight;
         }
 
-        // Left block
         if (i <= 7) {
           drawCell(b1X, y, b1C1, String(i), false, 'center');
           drawCell(b1X + b1C1, y, b1C2, '', false, 'left');
@@ -747,7 +752,7 @@ export const exportReconciliationPdfService = async (
             true,
             'left',
             true,
-            7.5
+            6
           );
           drawCell(b1X + b1C1 + b1C2, y, b1C3, '', false, 'left');
         } else if (i === 10) {
@@ -759,7 +764,7 @@ export const exportReconciliationPdfService = async (
             true,
             'left',
             true,
-            7.5
+            6
           );
           drawCell(b1X + b1C1 + b1C2, y, b1C3, '', false, 'left');
         } else if (i === 11) {
@@ -767,7 +772,6 @@ export const exportReconciliationPdfService = async (
           drawCell(b1X + b1C1 + b1C2, y, b1C3, '', false, 'left');
         }
 
-        // Middle block
         if (i <= 10) {
           drawCell(b2X, y, b2C1, String(i), false, 'center');
           drawCell(b2X + b2C1, y, b2C2, '', false, 'left');
@@ -777,7 +781,6 @@ export const exportReconciliationPdfService = async (
           drawCell(b2X + b2C1 + b2C2, y, b2C3, '', false, 'left');
         }
 
-        // Right block
         const label = rightLabels[i - 1];
         if (label !== undefined && label !== '') {
           const isBold =
@@ -789,14 +792,14 @@ export const exportReconciliationPdfService = async (
         y += rowHeight;
       }
 
-      if (y > 480) {
+      if (y > 750) {
         doc.addPage();
         y = 30;
       } else {
         y += 40;
       }
 
-      doc.rect(30, y, 660, 20).fill('#203764');
+      doc.rect(30, y, 534, 20).fill('#203764');
       doc
         .fillColor('white')
         .font('Helvetica-Bold')
@@ -805,31 +808,27 @@ export const exportReconciliationPdfService = async (
       y += 40;
 
       doc.fillColor('black').font('Helvetica').fontSize(10);
-      doc.text('Salesman:', 30, y);
+      doc.text('Salesman:', 60, y);
       doc
-        .moveTo(90, y + 10)
-        .lineTo(250, y + 10)
+        .moveTo(120, y + 10)
+        .lineTo(300, y + 10)
         .stroke();
 
-      doc.text('Depot In-Charge:', 400, y);
+      doc.text('Depot In-Charge Signature:', 350, y);
       doc
         .moveTo(490, y + 10)
-        .lineTo(650, y + 10)
+        .lineTo(564, y + 10)
         .stroke();
+
       y += 40;
 
-      doc.text('Date:', 30, y);
+      doc.text('Date:', 60, y);
       doc
-        .moveTo(90, y + 10)
-        .lineTo(250, y + 10)
+        .moveTo(120, y + 10)
+        .lineTo(300, y + 10)
         .stroke();
 
-      doc.text('Cash Received:', 400, y);
-      doc
-        .moveTo(490, y + 10)
-        .lineTo(650, y + 10)
-        .stroke();
-      doc.text(meta.currency || 'TZS', 660, y);
+      doc.text('Cash Received in (Tzs):', 350, y);
 
       doc.end();
     } catch (error) {

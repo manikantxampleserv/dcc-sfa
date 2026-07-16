@@ -134,15 +134,7 @@ exports.reconciliationController = {
                 page,
                 limit,
                 include: {
-                    salesman: {
-                        select: {
-                            id: true,
-                            name: true,
-                            employee_id: true,
-                            email: true,
-                            sap_code: true,
-                        },
-                    },
+                    salesman: { select: { id: true, name: true, employee_id: true, email: true, sap_code: true, users: { select: { name: true } } } },
                     depot: { select: { id: true, name: true, code: true } },
                     reconciliation_items: {
                         where: { is_active: 'Y' },
@@ -253,15 +245,7 @@ exports.reconciliationController = {
             const reconciliation = await prisma_client_1.default.reconciliation.findFirst({
                 where: whereClause,
                 include: {
-                    salesman: {
-                        select: {
-                            id: true,
-                            name: true,
-                            employee_id: true,
-                            email: true,
-                            sap_code: true,
-                        },
-                    },
+                    salesman: { select: { id: true, name: true, employee_id: true, email: true, sap_code: true, users: { select: { name: true } } } },
                     depot: { select: { id: true, name: true, code: true } },
                     reconciliation_items: {
                         where: { is_active: 'Y' },
