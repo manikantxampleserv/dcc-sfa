@@ -143,14 +143,23 @@ export const reconciliationController = {
         page,
         limit,
         include: {
-          salesman: { select: { id: true, name: true, employee_id: true, email: true, sap_code: true, users: { select: { name: true } } } },
+          salesman: {
+            select: {
+              id: true,
+              name: true,
+              employee_id: true,
+              email: true,
+              sap_code: true,
+              users: { select: { name: true } },
+            },
+          },
           depot: { select: { id: true, name: true, code: true } },
           reconciliation_items: {
             where: { is_active: 'Y' },
             select: { id: true, resolution_action: true, actual_qty: true },
           },
         },
-        orderBy: { id: 'asc' },
+        orderBy: { id: 'desc' },
       });
 
       const serializedData = data.map((rec: any) => {
@@ -265,7 +274,16 @@ export const reconciliationController = {
       const reconciliation = await prisma.reconciliation.findFirst({
         where: whereClause,
         include: {
-          salesman: { select: { id: true, name: true, employee_id: true, email: true, sap_code: true, users: { select: { name: true } } } },
+          salesman: {
+            select: {
+              id: true,
+              name: true,
+              employee_id: true,
+              email: true,
+              sap_code: true,
+              users: { select: { name: true } },
+            },
+          },
           depot: { select: { id: true, name: true, code: true } },
           reconciliation_items: {
             where: { is_active: 'Y' },
@@ -336,22 +354,8 @@ export const reconciliationController = {
           saleBaseQty:
             item.sale_base_qty !== null ? Number(item.sale_base_qty) : 0,
           batchNumber: item.batch_number || '-',
-          expectedRop: Math.floor(
-            Math.max(
-              0,
-              (item.load_qty !== null ? Number(item.load_qty) : 0) * (Number(item.product?.product_unit_of_measurement?.conversion_rate) || 1) +
-                (item.load_base_qty !== null ? Number(item.load_base_qty) : 0) -
-                ((item.sale_qty !== null ? Number(item.sale_qty) : 0) * (Number(item.product?.product_unit_of_measurement?.conversion_rate) || 1) +
-                  (item.sale_base_qty !== null ? Number(item.sale_base_qty) : 0))
-            ) / (Number(item.product?.product_unit_of_measurement?.conversion_rate) || 1)
-          ),
-          expectedBaseQty: Math.max(
-            0,
-            (item.load_qty !== null ? Number(item.load_qty) : 0) * (Number(item.product?.product_unit_of_measurement?.conversion_rate) || 1) +
-              (item.load_base_qty !== null ? Number(item.load_base_qty) : 0) -
-              ((item.sale_qty !== null ? Number(item.sale_qty) : 0) * (Number(item.product?.product_unit_of_measurement?.conversion_rate) || 1) +
-                (item.sale_base_qty !== null ? Number(item.sale_base_qty) : 0))
-          ) % (Number(item.product?.product_unit_of_measurement?.conversion_rate) || 1),
+          expectedRop: item.expected_qty !== null ? Number(item.expected_qty) : 0,
+          expectedBaseQty: item.expected_base_qty !== null ? Number(item.expected_base_qty) : 0,
           actualRop:
             item.actual_qty !== null ? Number(item.actual_qty).toString() : '',
           actualBaseQty:
@@ -482,16 +486,19 @@ export const reconciliationController = {
               Number(
                 record.product?.product_unit_of_measurement?.conversion_rate
               ) || 1;
-              
-            const loadQty = record.load_qty !== null ? Number(record.load_qty) : 0;
-            const loadBaseQty = record.load_base_qty !== null ? Number(record.load_base_qty) : 0;
-            const saleQty = record.sale_qty !== null ? Number(record.sale_qty) : 0;
-            const saleBaseQty = record.sale_base_qty !== null ? Number(record.sale_base_qty) : 0;
-            
-            const expectedTotalPieces = Math.max(0, (loadQty * conv + loadBaseQty) - (saleQty * conv + saleBaseQty));
-            
-            const expectedQty = Math.floor(expectedTotalPieces / conv);
-            const expectedBaseQty = expectedTotalPieces % conv;
+
+            const loadQty =
+              record.load_qty !== null ? Number(record.load_qty) : 0;
+            const loadBaseQty =
+              record.load_base_qty !== null ? Number(record.load_base_qty) : 0;
+            const saleQty =
+              record.sale_qty !== null ? Number(record.sale_qty) : 0;
+            const saleBaseQty =
+              record.sale_base_qty !== null ? Number(record.sale_base_qty) : 0;
+
+            const expectedQty = record.expected_qty !== null ? Number(record.expected_qty) : 0;
+            const expectedBaseQty = record.expected_base_qty !== null ? Number(record.expected_base_qty) : 0;
+            const expectedTotalPieces = expectedQty * conv + expectedBaseQty;
 
             if (parsedActual !== null || parsedActualBase !== null) {
               const actual = parsedActual || 0;

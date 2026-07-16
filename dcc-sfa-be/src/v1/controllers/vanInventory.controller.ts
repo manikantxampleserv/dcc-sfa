@@ -7291,6 +7291,7 @@ export const vanInventoryController = {
                 is_active: 'Y',
                 AND: [
                   {
+                    // Include null records (legacy) so they are captured and zeroed out
                     OR: [{ is_unloadAll: 'N' }, { is_unloadAll: null }],
                   },
                   {
@@ -7477,6 +7478,12 @@ export const vanInventoryController = {
 
             const toCreate: any[] = [];
             for (const p of productMap.values()) {
+              // expected_qty is the real current stock on hand (from inventory_stock).
+              // Using load - sale here inflates the value when multiple loads occur in a day.
+              const expectedQty = p.total_qty;
+              const expectedBaseQty = p.total_base_qty;
+
+              // Keep load_qty and sale_qty for audit/reference only
               const loadQty =
                 loadQtyMap.get(`${p.product_id}-${p.batch_number || ''}`)
                   ?.qty || 0;
@@ -7492,15 +7499,6 @@ export const vanInventoryController = {
                   ?.baseQty || 0;
 
               const convRate = p.convRate > 0 ? p.convRate : 1;
-              const totalLoadBase = loadQty * convRate + loadBaseQty;
-              const totalSaleBase = saleQty * convRate + saleBaseQty;
-              const expectedTotalBase = Math.max(
-                0,
-                totalLoadBase - totalSaleBase
-              );
-              const expectedQty = Math.floor(expectedTotalBase / convRate);
-              const expectedBaseQty = expectedTotalBase % convRate;
-
               const unitPricePerPc = p.convRate > 0 ? p.price / p.convRate : 0;
               const saleVal = saleQty * p.price + saleBaseQty * unitPricePerPc;
               const taxAmount = (saleVal * p.taxRate) / 100;
@@ -7543,6 +7541,12 @@ export const vanInventoryController = {
               },
               data: {
                 is_unloadAll: 'Y',
+                // Zero stock immediately so stale records never inflate future reconciliation totals.
+                // Multiple inventory_stock rows for the same product+batch get summed in productMap,
+                // so any non-zero 'Y' row would be incorrectly added to the next session's expected qty.
+                current_stock: 0,
+                available_stock: 0,
+                base_quantity: 0,
               },
             });
 

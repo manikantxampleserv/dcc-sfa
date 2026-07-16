@@ -95,22 +95,34 @@ const SearchInput: React.FC<SearchInputProps> = ({
 }) => {
   const [internalValue, setInternalValue] = useState(value || '');
 
+  const onChangeRef = React.useRef(onChange);
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  }, [onChange]);
+
+  const isFirstRender = React.useRef(true);
+
   /**
    * Debounced effect that calls onChange after the specified delay
    */
   useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+
     if (debounceMs === 0) {
       // No debouncing, call onChange immediately
-      onChange?.(internalValue);
+      onChangeRef.current?.(internalValue);
       return;
     }
 
     const timeoutId = setTimeout(() => {
-      onChange?.(internalValue);
+      onChangeRef.current?.(internalValue);
     }, debounceMs);
 
     return () => clearTimeout(timeoutId);
-  }, [internalValue, debounceMs, onChange]);
+  }, [internalValue, debounceMs]);
 
   /**
    * Sync internal value with external value prop
