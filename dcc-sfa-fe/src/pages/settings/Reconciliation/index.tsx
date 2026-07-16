@@ -15,6 +15,7 @@ import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
+import { formatDate, formatDateTime } from 'utils/dateUtils';
 
 export default function Reconciliation() {
   const navigate = useNavigate();
@@ -79,14 +80,7 @@ export default function Reconciliation() {
       id: 'reconciliation_date',
       label: 'Load Date',
       sortable: true,
-      render: val =>
-        val
-          ? new Date(val as string).toLocaleDateString('en-GB', {
-              day: '2-digit',
-              month: 'short',
-              year: 'numeric',
-            })
-          : '-',
+      render: val => (val ? formatDate(val) : '-'),
     },
     {
       id: 'totalItems',
@@ -118,6 +112,12 @@ export default function Reconciliation() {
       ),
     },
     {
+      id: 'createdate',
+      label: 'Created Date',
+      sortable: true,
+      render: val => (val ? formatDateTime(val) : '-'),
+    },
+    {
       id: 'overallStatus',
       label: 'Status',
       sortable: true,
@@ -135,6 +135,7 @@ export default function Reconciliation() {
         );
       },
     },
+
     {
       id: 'id',
       label: 'Actions',

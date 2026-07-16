@@ -479,40 +479,26 @@ async function updateInventoryStock(
   });
 
   if (loadingType === 'L') {
-    if (existingStock) {
-      await tx.inventory_stock.update({
-        where: { id: existingStock.id },
-        data: {
-          is_unloadAll: 'N',
-          current_stock: (existingStock.current_stock ?? 0) + quantity,
-          available_stock: (existingStock.available_stock ?? 0) + quantity,
-          base_quantity: (existingStock.base_quantity ?? 0) + baseQuantity,
-          updatedate: new Date(),
-          updatedby: userId,
-        },
-      });
-    } else {
-      await tx.inventory_stock.create({
-        data: {
-          product_id: productId,
-          location_id: validLocationId,
-          salesperson_id: salespersonId,
-          current_stock: quantity,
-          reserved_stock: 0,
-          available_stock: quantity,
-          minimum_stock: 0,
-          maximum_stock: 0,
-          batch_id: batchId || null,
-          serial_number_id: serialId || null,
-          base_quantity: baseQuantity,
-          is_active: 'Y',
-          is_unloadAll: 'N',
-          createdate: new Date(),
-          createdby: userId || 1,
-          log_inst: 1,
-        },
-      });
-    }
+    await tx.inventory_stock.create({
+      data: {
+        product_id: productId,
+        location_id: validLocationId,
+        salesperson_id: salespersonId,
+        current_stock: quantity,
+        reserved_stock: 0,
+        available_stock: quantity,
+        minimum_stock: 0,
+        maximum_stock: 0,
+        batch_id: batchId || null,
+        serial_number_id: serialId || null,
+        base_quantity: baseQuantity,
+        is_active: 'Y',
+        is_unloadAll: 'N',
+        createdate: new Date(),
+        createdby: userId || 1,
+        log_inst: 1,
+      },
+    });
   } else if (loadingType === 'U') {
     if (existingStock) {
       const newCurrentStock = Math.max(

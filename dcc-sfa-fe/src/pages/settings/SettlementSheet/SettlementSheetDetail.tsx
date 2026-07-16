@@ -99,7 +99,15 @@ export default function SettlementSheetDetail() {
         skuMap.set(key, { ...item });
       }
     });
-    return Array.from(skuMap.values());
+    
+    const aggregatedArray = Array.from(skuMap.values());
+    aggregatedArray.sort((a, b) => {
+      const skuA = String(a.skuCode || '');
+      const skuB = String(b.skuCode || '');
+      return skuA.localeCompare(skuB, undefined, { numeric: true, sensitivity: 'base' });
+    });
+    
+    return aggregatedArray;
   }, [items]);
 
   const groupedItems = useMemo(() => {
@@ -118,6 +126,7 @@ export default function SettlementSheetDetail() {
     let totalSaleValue = 0;
     let totalTaxAmount = 0;
     let totalDefaultOutletValue = 0;
+    let totalDefaultOutletTax = 0;
 
     aggregatedItems.forEach(item => {
       const conv = item.conversionRate || 1;
@@ -128,7 +137,11 @@ export default function SettlementSheetDetail() {
         (item.saleQuantity || 0) * price +
         (item.saleBaseQty || 0) * basePricePerPc;
       totalSaleValue += saleVal;
-      totalTaxAmount += Number(item.taxAmount) || 0;
+      
+      const itemTax = Number(item.taxAmount) || 0;
+      totalTaxAmount += itemTax;
+      
+      const taxRate = saleVal > 0 ? itemTax / saleVal : 0.18;
 
       const variance = Number(item.variance) || 0;
       const varianceBase = Number(item.varianceBaseQty) || 0;
@@ -138,11 +151,12 @@ export default function SettlementSheetDetail() {
         action.includes('Default Outlet') &&
         (variance < 0 || varianceBase < 0)
       ) {
-        totalDefaultOutletValue +=
-          Math.abs(variance) * price + Math.abs(varianceBase) * basePricePerPc;
+        const shortageValue = Math.abs(variance) * price + Math.abs(varianceBase) * basePricePerPc;
+        totalDefaultOutletValue += shortageValue;
+        totalDefaultOutletTax += shortageValue * taxRate;
       }
     });
-    return { totalSaleValue, totalTaxAmount, totalDefaultOutletValue };
+    return { totalSaleValue, totalTaxAmount, totalDefaultOutletValue, totalDefaultOutletTax };
   }, [aggregatedItems]);
 
   const columns: TableColumn<ReconciliationItem>[] = [
@@ -587,6 +601,19 @@ export default function SettlementSheetDetail() {
                   {grandTotal.totalDefaultOutletValue.toLocaleString()} TZS
                 </span>
               </div>
+              <div className="flex justify-between items-center py-2 border-b border-gray-200">
+                <span className="text-gray-600">
+                  Default Outlet Posting Tax Amount (Shortage — Salesman
+                  accountable):
+                </span>
+                <span className="font-semibold text-red-600">
+                  {grandTotal.totalDefaultOutletTax.toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}{' '}
+                  TZS
+                </span>
+              </div>
               <div className="flex justify-between items-center rounded-lg print:bg-transparent print:border print:border-black">
                 <span className="font-bold text-gray-900">
                   TOTAL CASH SALESMAN MUST DEPOSIT:
@@ -594,8 +621,13 @@ export default function SettlementSheetDetail() {
                 <span className="text-xl font-bold text-blue-700 print:text-black">
                   {(
                     grandTotal.totalSaleValue +
-                    grandTotal.totalDefaultOutletValue
-                  ).toLocaleString()}{' '}
+                    grandTotal.totalTaxAmount +
+                    grandTotal.totalDefaultOutletValue +
+                    grandTotal.totalDefaultOutletTax
+                  ).toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}{' '}
                   TZS
                 </span>
               </div>

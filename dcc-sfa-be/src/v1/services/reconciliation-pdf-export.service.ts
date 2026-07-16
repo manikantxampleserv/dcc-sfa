@@ -80,6 +80,9 @@ export const exportReconciliationPdfService = async (
               (Number(item.varianceBaseQty) || 0)
           );
 
+          existing.taxAmount =
+            (Number(existing.taxAmount) || 0) + (Number(item.taxAmount) || 0);
+
           if (
             !existing.resolutionAction ||
             existing.resolutionAction === 'CLEAN' ||
@@ -93,6 +96,15 @@ export const exportReconciliationPdfService = async (
         }
         return acc;
       }, []);
+
+      items.sort((a: any, b: any) => {
+        const skuA = String(a.skuCode || '');
+        const skuB = String(b.skuCode || '');
+        return skuA.localeCompare(skuB, undefined, {
+          numeric: true,
+          sensitivity: 'base',
+        });
+      });
 
       doc
         .fontSize(16)
@@ -262,6 +274,7 @@ export const exportReconciliationPdfService = async (
       let grandTotalSaleValue = 0;
       let grandTotalTaxAmount = 0;
       let grandTotalDefaultOutletValue = 0;
+      let grandTotalDefaultOutletTax = 0;
 
       let currentCategory = '';
 
@@ -441,9 +454,14 @@ export const exportReconciliationPdfService = async (
             item.resolutionAction.includes('Default Outlet') &&
             (varianceVal < 0 || varianceBaseVal < 0)
           ) {
-            grandTotalDefaultOutletValue +=
+            const shortageValue =
               Math.abs(varianceVal) * price +
               Math.abs(varianceBaseVal) * basePricePerPc;
+            grandTotalDefaultOutletValue += shortageValue;
+
+            const itemTax = Number(item.taxAmount) || 0;
+            const taxRate = saleVal > 0 ? itemTax / saleVal : 0.18;
+            grandTotalDefaultOutletTax += shortageValue * taxRate;
           }
         });
 
@@ -473,7 +491,7 @@ export const exportReconciliationPdfService = async (
         doc.addPage();
         y = 30;
       }
-      y += 20;
+      y += 5;
 
       // --- SUBTOTALS BY CATEGORY ---
       doc.rect(30, y, 534, 13).fill('#203764');
@@ -538,7 +556,7 @@ export const exportReconciliationPdfService = async (
         .fillColor('black')
         .font('Helvetica-Bold')
         .fontSize(6.5)
-        .text('GRAND TOTAL', 35, y + 3);
+        .text('GRAND TOTAL', 35, y + 3.5);
 
       let curX = 30 + subColWidths[0];
       const grandTotalsArray = [
@@ -587,66 +605,83 @@ export const exportReconciliationPdfService = async (
         doc.addPage();
         y = 30;
       }
-      y += 20;
+      y += 5;
 
-      doc.rect(30, y, 534, 20).fill('#548235');
+      doc.rect(30, y, 534, 13).fill('#548235');
       doc
         .fillColor('white')
         .font('Helvetica-Bold')
-        .fontSize(10)
-        .text('CASH SETTLEMENT', 35, y + 6);
-      y += 20;
+        .fontSize(8)
+        .text('CASH SETTLEMENT', 35, y + 3);
+      y += 13.5;
 
       doc.lineWidth(0.5).strokeColor('#A6A6A6');
-      doc.fillColor('black').font('Helvetica').fontSize(9);
+      doc.fillColor('black').font('Helvetica').fontSize(8);
 
       const salesValueStr = `${formatNum(grandTotalSaleValue)}`;
-      doc.rect(386, y, 178, 20).fillAndStroke('#E7E6E6', '#A6A6A6');
+      doc.rect(386, y, 178, 13).fillAndStroke('#E7E6E6', '#A6A6A6');
       doc
         .fillColor('black')
         .text(
           'Total Sales Value (Mobile-recorded sales to outlets):',
           30,
-          y + 6,
+          y + 3.5,
           { width: 352, align: 'right' }
         );
       doc
         .fillColor('black')
-        .text(salesValueStr, 386, y + 6, { width: 174, align: 'right' });
-      y += 20;
+        .text(salesValueStr, 386, y + 3.5, { width: 174, align: 'right' });
+      y += 13.5;
 
-      doc.rect(386, y, 178, 20).fillAndStroke('#E7E6E6', '#A6A6A6');
+      doc.rect(386, y, 178, 13).fillAndStroke('#E7E6E6', '#A6A6A6');
       doc
         .fillColor('red')
         .text(
           'Default Outlet Posting Value (Shortage — Salesman accountable):',
           30,
-          y + 6,
+          y + 3.5,
           { width: 352, align: 'right' }
         );
       doc
         .fillColor('red')
-        .text(`${formatNum(grandTotalDefaultOutletValue)}`, 386, y + 6, {
+        .text(`${formatNum(grandTotalDefaultOutletValue)}`, 386, y + 3.5, {
           width: 174,
           align: 'right',
         });
-      y += 20;
+      y += 13.5;
 
-      doc.rect(386, y, 178, 20).fillAndStroke('#FFC000', '#A6A6A6');
+      doc.rect(386, y, 178, 13).fillAndStroke('#E7E6E6', '#A6A6A6');
+      doc
+        .fillColor('red')
+        .text(
+          'Default Outlet Posting Tax Amount (Shortage — Salesman accountable):',
+          30,
+          y + 3.5,
+          { width: 352, align: 'right' }
+        );
+      doc
+        .fillColor('red')
+        .text(`${formatNum(grandTotalDefaultOutletTax)}`, 386, y + 3.5, {
+          width: 174,
+          align: 'right',
+        });
+      y += 13.5;
+
+      doc.rect(386, y, 178, 13).fillAndStroke('#FFC000', '#A6A6A6');
       doc
         .fillColor('red')
         .font('Helvetica-Bold')
-        .text('TOTAL CASH SALESMAN MUST DEPOSIT AT DEPOT (TZS):', 30, y + 6, {
+        .text('TOTAL CASH SALESMAN MUST DEPOSIT AT DEPOT (TZS):', 30, y + 3.5, {
           width: 352,
           align: 'right',
         });
 
-      const totalStr = `${formatNum(grandTotalSaleValue + grandTotalDefaultOutletValue)}`;
+      const totalStr = `${formatNum(grandTotalSaleValue + grandTotalTaxAmount + grandTotalDefaultOutletValue + grandTotalDefaultOutletTax)}`;
       doc
         .fillColor('red')
-        .text(totalStr, 386, y + 6, { width: 174, align: 'right' });
+        .text(totalStr, 386, y + 3.5, { width: 174, align: 'right' });
 
-      y += 20;
+      y += 5;
 
       if (y > 750) {
         doc.addPage();
@@ -796,7 +831,7 @@ export const exportReconciliationPdfService = async (
         doc.addPage();
         y = 30;
       } else {
-        y += 40;
+        y += 10;
       }
 
       doc.rect(30, y, 534, 20).fill('#203764');
@@ -808,13 +843,16 @@ export const exportReconciliationPdfService = async (
       y += 40;
 
       doc.fillColor('black').font('Helvetica').fontSize(10);
-      doc.text('Salesman:', 60, y);
+
+      doc.text('Salesman:', 30, y, { width: 85 });
       doc
         .moveTo(120, y + 10)
         .lineTo(300, y + 10)
         .stroke();
 
-      doc.text('Depot In-Charge Signature:', 350, y);
+      doc.text('Depot In-Charge Signature:', 310, y, {
+        width: 175,
+      });
       doc
         .moveTo(490, y + 10)
         .lineTo(564, y + 10)
@@ -822,13 +860,15 @@ export const exportReconciliationPdfService = async (
 
       y += 40;
 
-      doc.text('Date:', 60, y);
+      doc.text('Date:', 30, y, { width: 85 });
       doc
         .moveTo(120, y + 10)
         .lineTo(300, y + 10)
         .stroke();
 
-      doc.text('Cash Received in (Tzs):', 350, y);
+      doc.text('Cash Received in (Tzs):', 310, y, {
+        width: 175,
+      });
 
       doc.end();
     } catch (error) {
