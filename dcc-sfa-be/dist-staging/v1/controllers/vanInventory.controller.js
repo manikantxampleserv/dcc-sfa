@@ -315,6 +315,7 @@ async function updateInventoryStock(tx, productId, locationId, quantity, loading
     const whereClause = {
         product_id: productId,
         location_id: validLocationId,
+        is_unloadAll: 'N',
     };
     if (batchId !== null)
         whereClause.batch_id = batchId;
@@ -324,26 +325,41 @@ async function updateInventoryStock(tx, productId, locationId, quantity, loading
         where: whereClause,
     });
     if (loadingType === 'L') {
-        await tx.inventory_stock.create({
-            data: {
-                product_id: productId,
-                location_id: validLocationId,
-                salesperson_id: salespersonId,
-                current_stock: quantity,
-                reserved_stock: 0,
-                available_stock: quantity,
-                minimum_stock: 0,
-                maximum_stock: 0,
-                batch_id: batchId || null,
-                serial_number_id: serialId || null,
-                base_quantity: baseQuantity,
-                is_active: 'Y',
-                is_unloadAll: 'N',
-                createdate: new Date(),
-                createdby: userId || 1,
-                log_inst: 1,
-            },
-        });
+        if (existingStock) {
+            await tx.inventory_stock.update({
+                where: { id: existingStock.id },
+                data: {
+                    is_unloadAll: 'N',
+                    current_stock: (existingStock.current_stock ?? 0) + quantity,
+                    available_stock: (existingStock.available_stock ?? 0) + quantity,
+                    base_quantity: (existingStock.base_quantity ?? 0) + baseQuantity,
+                    updatedate: new Date(),
+                    updatedby: userId,
+                },
+            });
+        }
+        else {
+            await tx.inventory_stock.create({
+                data: {
+                    product_id: productId,
+                    location_id: validLocationId,
+                    salesperson_id: salespersonId,
+                    current_stock: quantity,
+                    reserved_stock: 0,
+                    available_stock: quantity,
+                    minimum_stock: 0,
+                    maximum_stock: 0,
+                    batch_id: batchId || null,
+                    serial_number_id: serialId || null,
+                    base_quantity: baseQuantity,
+                    is_active: 'Y',
+                    is_unloadAll: 'N',
+                    createdate: new Date(),
+                    createdby: userId || 1,
+                    log_inst: 1,
+                },
+            });
+        }
     }
     else if (loadingType === 'U') {
         if (existingStock) {
@@ -6000,6 +6016,7 @@ exports.vanInventoryController = {
                                 is_active: 'Y',
                                 AND: [
                                     {
+                                        // Include null records (legacy) so they are captured and zeroed out
                                         OR: [{ is_unloadAll: 'N' }, { is_unloadAll: null }],
                                     },
                                     {
@@ -6145,6 +6162,11 @@ exports.vanInventoryController = {
                         });
                         const toCreate = [];
                         for (const p of productMap.values()) {
+                            // expected_qty is the real current stock on hand (from inventory_stock).
+                            // Using load - sale here inflates the value when multiple loads occur in a day.
+                            const expectedQty = p.total_qty;
+                            const expectedBaseQty = p.total_base_qty;
+                            // Keep load_qty and sale_qty for audit/reference only
                             const loadQty = loadQtyMap.get(`${p.product_id}-${p.batch_number || ''}`)
                                 ?.qty || 0;
                             const loadBaseQty = loadQtyMap.get(`${p.product_id}-${p.batch_number || ''}`)
@@ -6154,11 +6176,6 @@ exports.vanInventoryController = {
                             const saleBaseQty = saleQtyMap.get(`${p.product_id}-${p.batch_number || ''}`)
                                 ?.baseQty || 0;
                             const convRate = p.convRate > 0 ? p.convRate : 1;
-                            const totalLoadBase = loadQty * convRate + loadBaseQty;
-                            const totalSaleBase = saleQty * convRate + saleBaseQty;
-                            const expectedTotalBase = Math.max(0, totalLoadBase - totalSaleBase);
-                            const expectedQty = Math.floor(expectedTotalBase / convRate);
-                            const expectedBaseQty = expectedTotalBase % convRate;
                             const unitPricePerPc = p.convRate > 0 ? p.price / p.convRate : 0;
                             const saleVal = saleQty * p.price + saleBaseQty * unitPricePerPc;
                             const taxAmount = (saleVal * p.taxRate) / 100;
@@ -6198,6 +6215,12 @@ exports.vanInventoryController = {
                             },
                             data: {
                                 is_unloadAll: 'Y',
+                                // Zero stock immediately so stale records never inflate future reconciliation totals.
+                                // Multiple inventory_stock rows for the same product+batch get summed in productMap,
+                                // so any non-zero 'Y' row would be incorrectly added to the next session's expected qty.
+                                current_stock: 0,
+                                available_stock: 0,
+                                base_quantity: 0,
                             },
                         });
                         return recon.id;

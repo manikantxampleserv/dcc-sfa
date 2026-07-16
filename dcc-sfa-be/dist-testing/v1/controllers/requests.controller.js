@@ -1610,6 +1610,43 @@ exports.requestsController = {
                                 updatedby: userId,
                             },
                         });
+                        // Zero out inventory_stock rows that were sealed during reconciliation (is_unloadAll='Y').
+                        // We do this here (on settlement approval) so stock values remain visible until fully signed off.
+                        try {
+                            const reconForStock = await tx.reconciliation.findUnique({
+                                where: { id: request.reference_id },
+                                select: { salesman_id: true },
+                            });
+                            if (reconForStock?.salesman_id) {
+                                const vanLocations = await tx.van_inventory.findMany({
+                                    where: { user_id: reconForStock.salesman_id, is_active: 'Y' },
+                                    select: { location_id: true },
+                                    distinct: ['location_id'],
+                                });
+                                const locationIds = vanLocations
+                                    .map((v) => v.location_id)
+                                    .filter(Boolean);
+                                if (locationIds.length > 0) {
+                                    await tx.inventory_stock.updateMany({
+                                        where: {
+                                            salesperson_id: reconForStock.salesman_id,
+                                            location_id: { in: locationIds },
+                                            is_active: 'Y',
+                                            is_unloadAll: 'Y',
+                                        },
+                                        data: {
+                                            current_stock: 0,
+                                            available_stock: 0,
+                                            base_quantity: 0,
+                                        },
+                                    });
+                                    console.log(`[RECONCILIATION_APPROVAL] Zeroed inventory_stock for salesman ${reconForStock.salesman_id} after settlement approval.`);
+                                }
+                            }
+                        }
+                        catch (stockZeroErr) {
+                            console.error('[RECONCILIATION_APPROVAL] Error zeroing inventory_stock after approval:', stockZeroErr);
+                        }
                         if (request.request_data) {
                             try {
                                 const reqData = JSON.parse(request.request_data);
