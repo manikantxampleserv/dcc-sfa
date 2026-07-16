@@ -2288,7 +2288,7 @@
 
 
 import prisma from '../../configs/prisma.client';
-import { createRequest } from '../controllers/requests.controller';
+import { createRequest, resolveRequesterDepotId } from '../controllers/requests.controller';
 
 async function updateInventoryStock(
   tx: any,
@@ -2480,9 +2480,30 @@ export const sapService = {
     }
     inventoryData.user_id = spUser.id;
 
+    let targetDepotId: number | null = null;
+    if (inventoryData.depot_sap_code) {
+      const depot = await prisma.depots.findFirst({
+        where: { sap_code: inventoryData.depot_sap_code },
+      });
+      targetDepotId = depot?.id || null;
+    } else {
+      const depot = await prisma.depots.findFirst({
+        where: { name: { contains: 'MOSHI' } },
+      });
+      targetDepotId = depot?.id || null;
+    }
+
     let workflowExists = false;
     const requesterZoneId = spUser.zone_id;
-    const requesterDepotId = spUser.depot_id;
+    let requesterDepotId = await resolveRequesterDepotId(
+      prisma,
+      spUser.id,
+      'VAN_INVENTORY',
+      JSON.stringify({ ...payload, location_id: targetDepotId })
+    );
+    if (!requesterDepotId) {
+      requesterDepotId = spUser.depot_id;
+    }
 
     if (requesterZoneId && requesterDepotId) {
       const zoneDepotWorkflow = await prisma.approval_work_flow.findMany({
