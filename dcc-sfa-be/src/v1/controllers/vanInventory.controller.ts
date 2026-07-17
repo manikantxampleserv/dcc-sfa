@@ -7340,6 +7340,24 @@ export const vanInventoryController = {
             const todayEnd = new Date(today);
             todayEnd.setHours(23, 59, 59, 999);
 
+            // Find the last approved unload to avoid duplicate records if multiple unloads happen in a day
+            const lastUnload = await tx.van_inventory.findFirst({
+              where: {
+                user_id: userIdNum,
+                loading_type: 'U',
+                approval_status: 'A',
+                is_cancelled: 'N',
+                id: { not: inventory?.id }
+              },
+              orderBy: { createdate: 'desc' }
+            });
+
+            let sessionStart = todayStart;
+            if (lastUnload && lastUnload.createdate && lastUnload.createdate > todayStart) {
+              sessionStart = lastUnload.createdate;
+            }
+            const sessionEnd = inventory?.createdate || todayEnd;
+
             const productMap = new Map<
               string,
               {
@@ -7358,27 +7376,15 @@ export const vanInventoryController = {
               if (stock.product_id === null) continue;
               const qty = Number(stock.current_stock) || 0;
               const baseQty = Number(stock.base_quantity) || 0;
-              if (qty <= 0 && baseQty <= 0) continue;
 
-              const batchNum =
-                stock.inventory_stock_batch?.batch_number ?? null;
-              const productCode =
-                stock.inventory_stock_products?.code ||
-                String(stock.product_id);
-              const key = `${stock.product_id}-${batchNum}`;
+              if (qty === 0 && baseQty === 0) continue;
 
-              const price =
-                Number(stock.inventory_stock_products?.base_price) || 0;
-              const taxRate =
-                Number(
-                  (stock.inventory_stock_products as any)?.product_tax_master
-                    ?.tax_rate
-                ) || 0;
-              const convRate =
-                Number(
-                  (stock.inventory_stock_products as any)
-                    ?.product_unit_of_measurement?.conversion_rate
-                ) || 1;
+              const productId = stock.product_id;
+              const batchNumber = stock.inventory_stock_batch?.batch_number || null;
+              const key = `${productId}-${batchNumber || ''}`;
+
+              const product = stock.inventory_stock_products;
+              if (!product) continue;
 
               const existing = productMap.get(key);
               if (existing) {
@@ -7386,14 +7392,14 @@ export const vanInventoryController = {
                 existing.total_base_qty += baseQty;
               } else {
                 productMap.set(key, {
-                  product_id: stock.product_id,
-                  product_code: productCode,
+                  product_id: productId,
+                  product_code: product.code || '',
                   total_qty: qty,
                   total_base_qty: baseQty,
-                  batch_number: batchNum,
-                  price,
-                  taxRate,
-                  convRate,
+                  batch_number: batchNumber,
+                  price: Number(product.base_price) || 0,
+                  taxRate: Number((product as any)?.product_tax_master?.tax_rate) || 0,
+                  convRate: Number((product as any)?.product_unit_of_measurement?.conversion_rate) || 1,
                 });
               }
               totalItemsRequested++;
@@ -7407,7 +7413,7 @@ export const vanInventoryController = {
                   user_id: userIdNum,
                   loading_type: 'L',
                   status: 'A',
-                  createdate: { gte: todayStart, lt: todayEnd },
+                  createdate: { gt: sessionStart, lte: sessionEnd },
                 },
               },
               include: {
@@ -7439,7 +7445,7 @@ export const vanInventoryController = {
                   { from_location_id: locationId },
                 ],
                 movement_type: 'SALE',
-                movement_date: { gte: todayStart, lte: todayEnd },
+                movement_date: { gt: sessionStart, lte: sessionEnd },
                 is_active: 'Y',
                 product_id: {
                   in: Array.from(productMap.values()).map(p => p.product_id),
