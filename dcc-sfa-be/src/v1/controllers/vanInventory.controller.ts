@@ -7264,9 +7264,6 @@ export const vanInventoryController = {
     );
   },
 
-
-
-
   async unloadVanInventory(req: Request, res: Response) {
     try {
       const loggedInUserId = (req as any).user?.id;
