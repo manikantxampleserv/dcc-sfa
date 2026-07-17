@@ -2530,7 +2530,7 @@ exports.sapService = {
                     }
                     const trackingType = product.tracking_type?.toUpperCase() || 'NONE';
                     const itemIsCancelled = item.is_cancelled === 'T' || item.is_cancelled === 'Y';
-                    const batchData = item.batches || item.product_batches;
+                    let batchData = item.batches || item.product_batches;
                     const serialData = item.serials || item.product_serials;
                     if (trackingType === 'BATCH') {
                         if (!batchData ||
@@ -2538,11 +2538,29 @@ exports.sapService = {
                             batchData.length === 0) {
                             throw new Error(`Batches are required for batch-tracked product ${product.name}`);
                         }
-                        for (const batchInput of batchData) {
-                            if (!batchInput.batch_number) {
+                        // Aggregate duplicate batches
+                        const aggregatedBatches = {};
+                        for (const b of batchData) {
+                            const bNum = b.batch_number;
+                            if (!bNum) {
                                 throw new Error(`Batch number is required for each batch for product "${product.name}"`);
                             }
+                            if (!aggregatedBatches[bNum]) {
+                                aggregatedBatches[bNum] = { ...b };
+                                // Ensure quantities are parsed as integers to avoid string concatenation
+                                aggregatedBatches[bNum].quantity = parseInt(b.quantity, 10) || 0;
+                                if (b.base_quantity) {
+                                    aggregatedBatches[bNum].base_quantity = parseInt(b.base_quantity, 10) || 0;
+                                }
+                            }
+                            else {
+                                aggregatedBatches[bNum].quantity += parseInt(b.quantity, 10) || 0;
+                                if (b.base_quantity) {
+                                    aggregatedBatches[bNum].base_quantity += parseInt(b.base_quantity, 10) || 0;
+                                }
+                            }
                         }
+                        batchData = Object.values(aggregatedBatches);
                         const totalBatchQty = (batchData || []).reduce((acc, b) => acc + (parseInt(b.quantity, 10) || 0), 0);
                         if (typeof item.quantity === 'undefined' ||
                             item.quantity === null) {

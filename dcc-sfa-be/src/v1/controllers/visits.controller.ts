@@ -1773,7 +1773,15 @@ export const visitsController = {
                             await tx.inventory_stock.findFirst({
                               where: {
                                 product_id: product.id,
-                                salesperson_id: { in: targetSalespersonIds },
+                                is_unloadAll: 'N', // <-- ADD THIS
+                                OR: [
+                                  {
+                                    salesperson_id: {
+                                      in: targetSalespersonIds,
+                                    },
+                                  },
+                                  { createdby: visit.sales_person_id },
+                                ], // <-- ADD THIS TO MATCH BATCH LOGIC
                                 batch_id: null,
                                 serial_number_id: null,
                                 ...(vanInventory?.location_id && {

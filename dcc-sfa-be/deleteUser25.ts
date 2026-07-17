@@ -6,20 +6,32 @@ async function deleteAllUserData(userId: number) {
   try {
     // 1. Manually handle deep nested children that would block their parents from being deleted
     console.log('Deleting deep children...');
-    
-    const userInvoices = await prisma.invoices.findMany({ where: { salesperson_id: userId } });
+
+    const userInvoices = await prisma.invoices.findMany({
+      where: { salesperson_id: userId },
+    });
     if (userInvoices.length > 0) {
-      await prisma.invoice_items.deleteMany({ where: { parent_id: { in: userInvoices.map(i => i.id) } } });
+      await prisma.invoice_items.deleteMany({
+        where: { parent_id: { in: userInvoices.map(i => i.id) } },
+      });
     }
 
-    const userRecons = await prisma.reconciliation.findMany({ where: { salesman_id: userId } });
+    const userRecons = await prisma.reconciliation.findMany({
+      where: { salesman_id: userId },
+    });
     if (userRecons.length > 0) {
-      await prisma.reconciliation_items.deleteMany({ where: { reconciliation_id: { in: userRecons.map(r => r.id) } } });
+      await prisma.reconciliation_items.deleteMany({
+        where: { reconciliation_id: { in: userRecons.map(r => r.id) } },
+      });
     }
 
-    const userVanInvs = await prisma.van_inventory.findMany({ where: { user_id: userId } });
+    const userVanInvs = await prisma.van_inventory.findMany({
+      where: { user_id: userId },
+    });
     if (userVanInvs.length > 0) {
-      await prisma.stock_movements.deleteMany({ where: { van_inventory_id: { in: userVanInvs.map(v => v.id) } } });
+      await prisma.stock_movements.deleteMany({
+        where: { van_inventory_id: { in: userVanInvs.map(v => v.id) } },
+      });
     }
 
     // 2. Dynamically find all tables referencing `users`
@@ -43,17 +55,25 @@ async function deleteAllUserData(userId: number) {
       if (table_name === 'users') continue; // Skip self-references (e.g. reporting_to) to avoid deleting other users
 
       try {
-        const result: number = await prisma.$executeRawUnsafe(`DELETE FROM ${table_name} WHERE ${column_name} = ${userId}`);
+        const result: number = await prisma.$executeRawUnsafe(
+          `DELETE FROM ${table_name} WHERE ${column_name} = ${userId}`
+        );
         if (result > 0) {
-          console.log(`[Deleted] ${result} records from ${table_name} (via ${column_name})`);
+          console.log(
+            `[Deleted] ${result} records from ${table_name} (via ${column_name})`
+          );
         }
       } catch (e: any) {
-        console.error(`[Warning] Could not delete from ${table_name}.${column_name}: ${e.message}`);
+        console.error(
+          `[Warning] Could not delete from ${table_name}.${column_name}: ${e.message}`
+        );
       }
     }
 
     // Notice we do NOT delete the user!
-    console.log(`\nSuccessfully deleted all associated data for User ID: ${userId}, but kept the user record.`);
+    console.log(
+      `\nSuccessfully deleted all associated data for User ID: ${userId}, but kept the user record.`
+    );
   } catch (error: any) {
     console.error(`\nFailed to clean up data for user ${userId}.`);
     console.error(error.message);
@@ -63,4 +83,4 @@ async function deleteAllUserData(userId: number) {
 }
 
 // Pass the user ID you want to clean up
-deleteAllUserData(25);
+deleteAllUserData(16);
