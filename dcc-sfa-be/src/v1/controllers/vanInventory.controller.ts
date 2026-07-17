@@ -7340,23 +7340,21 @@ export const vanInventoryController = {
             const todayEnd = new Date(today);
             todayEnd.setHours(23, 59, 59, 999);
 
-            // Find the last approved unload to avoid duplicate records if multiple unloads happen in a day
-            const lastUnload = await tx.van_inventory.findFirst({
+            // Find the last reconciliation to avoid duplicate records if multiple unloads happen in a day
+            const lastReconciliation = await tx.reconciliation.findFirst({
               where: {
-                user_id: userIdNum,
-                loading_type: 'U',
-                approval_status: 'A',
-                is_cancelled: 'N',
-                id: { not: inventory?.id }
+                salesman_id: userIdNum,
+                // Only look for previous reconciliations
+                createdate: { lt: todayEnd }
               },
               orderBy: { createdate: 'desc' }
             });
 
             let sessionStart = todayStart;
-            if (lastUnload && lastUnload.createdate && lastUnload.createdate > todayStart) {
-              sessionStart = lastUnload.createdate;
+            if (lastReconciliation && lastReconciliation.createdate && lastReconciliation.createdate > todayStart) {
+              sessionStart = lastReconciliation.createdate;
             }
-            const sessionEnd = inventory?.createdate || todayEnd;
+            const sessionEnd = todayEnd;
 
             const productMap = new Map<
               string,
@@ -7376,15 +7374,27 @@ export const vanInventoryController = {
               if (stock.product_id === null) continue;
               const qty = Number(stock.current_stock) || 0;
               const baseQty = Number(stock.base_quantity) || 0;
+              if (qty <= 0 && baseQty <= 0) continue;
 
-              if (qty === 0 && baseQty === 0) continue;
+              const batchNum =
+                stock.inventory_stock_batch?.batch_number ?? null;
+              const productCode =
+                stock.inventory_stock_products?.code ||
+                String(stock.product_id);
+              const key = `${stock.product_id}-${batchNum}`;
 
-              const productId = stock.product_id;
-              const batchNumber = stock.inventory_stock_batch?.batch_number || null;
-              const key = `${productId}-${batchNumber || ''}`;
-
-              const product = stock.inventory_stock_products;
-              if (!product) continue;
+              const price =
+                Number(stock.inventory_stock_products?.base_price) || 0;
+              const taxRate =
+                Number(
+                  (stock.inventory_stock_products as any)?.product_tax_master
+                    ?.tax_rate
+                ) || 0;
+              const convRate =
+                Number(
+                  (stock.inventory_stock_products as any)
+                    ?.product_unit_of_measurement?.conversion_rate
+                ) || 1;
 
               const existing = productMap.get(key);
               if (existing) {
@@ -7392,14 +7402,14 @@ export const vanInventoryController = {
                 existing.total_base_qty += baseQty;
               } else {
                 productMap.set(key, {
-                  product_id: productId,
-                  product_code: product.code || '',
+                  product_id: stock.product_id,
+                  product_code: productCode,
                   total_qty: qty,
                   total_base_qty: baseQty,
-                  batch_number: batchNumber,
-                  price: Number(product.base_price) || 0,
-                  taxRate: Number((product as any)?.product_tax_master?.tax_rate) || 0,
-                  convRate: Number((product as any)?.product_unit_of_measurement?.conversion_rate) || 1,
+                  batch_number: batchNum,
+                  price,
+                  taxRate,
+                  convRate,
                 });
               }
               totalItemsRequested++;
@@ -7413,7 +7423,7 @@ export const vanInventoryController = {
                   user_id: userIdNum,
                   loading_type: 'L',
                   status: 'A',
-                  createdate: { gt: sessionStart, lte: sessionEnd },
+                  createdate: { gte: todayStart, lt: todayEnd },
                 },
               },
               include: {
@@ -7445,7 +7455,7 @@ export const vanInventoryController = {
                   { from_location_id: locationId },
                 ],
                 movement_type: 'SALE',
-                movement_date: { gt: sessionStart, lte: sessionEnd },
+                movement_date: { gte: todayStart, lte: todayEnd },
                 is_active: 'Y',
                 product_id: {
                   in: Array.from(productMap.values()).map(p => p.product_id),
