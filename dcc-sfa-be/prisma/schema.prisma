@@ -3296,33 +3296,33 @@ model reconciliation {
 }
 
 model reconciliation_items {
-  id                         Int       @id @default(autoincrement())
-  reconciliation_id          Int
-  product_id                 Int?
-  batch_number               String?   @db.NVarChar(100)
-  expected_qty               Decimal?  @db.Decimal(18, 4)
-  expected_base_qty          Int?      @default(0)
-  actual_qty                 Decimal?  @db.Decimal(18, 4)
-  actual_base_qty            Int?      @default(0)
-  load_qty                   Decimal?  @db.Decimal(18, 4)
-  load_base_qty              Int?      @default(0)
-  sale_qty                   Decimal?  @db.Decimal(18, 4)
-  sale_base_qty              Int?      @default(0)
-  variance                   Decimal?  @db.Decimal(18, 4)
-  variance_base_qty          Int?      @default(0)
-  tax_amount                 Decimal?  @db.Decimal(18, 2)
-  resolution_action          String?   @db.NVarChar(255)
-  default_outlet_posting_qty Decimal?  @db.Decimal(18, 4)
-  default_outlet_posting_base_qty Int? @default(0)
-  unload_adjustment_qty      Decimal?  @db.Decimal(18, 4)
-  unload_adjustment_base_qty Int?      @default(0)
-  stock_key                  String?   @db.NVarChar(255)
-  is_active                  String    @default("Y") @db.Char(1)
-  createdate                 DateTime? @default(now()) @db.DateTime
-  createdby                  Int?
-  updatedate                 DateTime? @db.DateTime
-  updatedby                  Int?
-  log_inst                   Int?
+  id                              Int       @id @default(autoincrement())
+  reconciliation_id               Int
+  product_id                      Int?
+  batch_number                    String?   @db.NVarChar(100)
+  expected_qty                    Decimal?  @db.Decimal(18, 4)
+  expected_base_qty               Int?      @default(0)
+  actual_qty                      Decimal?  @db.Decimal(18, 4)
+  actual_base_qty                 Int?      @default(0)
+  load_qty                        Decimal?  @db.Decimal(18, 4)
+  load_base_qty                   Int?      @default(0)
+  sale_qty                        Decimal?  @db.Decimal(18, 4)
+  sale_base_qty                   Int?      @default(0)
+  variance                        Decimal?  @db.Decimal(18, 4)
+  variance_base_qty               Int?      @default(0)
+  tax_amount                      Decimal?  @db.Decimal(18, 2)
+  resolution_action               String?   @db.NVarChar(255)
+  default_outlet_posting_qty      Decimal?  @db.Decimal(18, 4)
+  default_outlet_posting_base_qty Int?      @default(0)
+  unload_adjustment_qty           Decimal?  @db.Decimal(18, 4)
+  unload_adjustment_base_qty      Int?      @default(0)
+  stock_key                       String?   @db.NVarChar(255)
+  is_active                       String    @default("Y") @db.Char(1)
+  createdate                      DateTime? @default(now()) @db.DateTime
+  createdby                       Int?
+  updatedate                      DateTime? @db.DateTime
+  updatedby                       Int?
+  log_inst                        Int?
 
   reconciliation reconciliation @relation(fields: [reconciliation_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   product        products?      @relation(fields: [product_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
@@ -3336,6 +3336,20 @@ model error_logs {
   method      String
   body        String?   @db.Text
   query       String?   @db.Text
+  user_id     Int?
+  ip_address  String?   @db.NVarChar(50)
+  device_info String?   @db.NVarChar(255)
+  createdate  DateTime? @default(now()) @db.DateTime
+}
+
+model request_logs {
+  id          Int       @id @default(autoincrement())
+  service     String?   @db.NVarChar(100)
+  endpoint    String    @db.NVarChar(255)
+  method      String    @db.NVarChar(10)
+  payload     String?   @db.NVarChar(Max)
+  response    String?   @db.NVarChar(Max)
+  status_code Int?
   user_id     Int?
   ip_address  String?   @db.NVarChar(50)
   device_info String?   @db.NVarChar(255)

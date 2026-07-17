@@ -5,8 +5,10 @@ import {
   requirePermission,
 } from '../../middlewares/auth.middleware';
 import { auditUpdate } from '../../middlewares/audit.middleware';
-
+import { createRequestLogger } from '../../middlewares/requestLogger.middleware';
 const router = express.Router();
+
+router.use(createRequestLogger('sap'));
 
 router.post(
   '/sap/van-inventory',

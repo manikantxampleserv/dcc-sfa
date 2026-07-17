@@ -44,7 +44,7 @@ export class AttendanceCronService {
             Math.round(
               ((autoPunchOutTime.getTime() - punchInTime.getTime()) /
                 (1000 * 60 * 60)) *
-                100
+              100
             ) / 100;
 
           const oldData = {
@@ -145,6 +145,32 @@ export class AttendanceCronService {
       }
     });
   }
+
+
+  static startRequestLogsCleanup() {
+    cron.schedule('0 0 * * *', async () => {
+      logger.info(`Running request_logs cleanup... Time: ${new Date().toISOString()}`);
+      try {
+        const oneDayAgo = new Date();
+        oneDayAgo.setDate(oneDayAgo.getDate() - 1);
+
+        const result = await prisma.request_logs.deleteMany({
+          where: {
+            createdate: {
+              lt: oneDayAgo,
+            },
+          },
+        });
+
+        logger.info(
+          `Request logs cleanup completed. Deleted ${result.count} records.`
+        );
+      } catch (error) {
+        logger.error(`Request logs cleanup error: ${error}`);
+      }
+    });
+  }
+
 
   static stopAllCronJobs() {
     cron.getTasks().forEach(task => task.stop());
