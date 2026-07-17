@@ -15,6 +15,7 @@ import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
+import { formatDateTime } from 'utils/dateUtils';
 
 export default function SettlementSheet() {
   const navigate = useNavigate();
@@ -38,6 +39,7 @@ export default function SettlementSheet() {
       date: selectedDate || undefined,
       status: statusFilter !== 'all' ? statusFilter : undefined,
       rec_status: 'A',
+      latest_only: false,
     },
     {
       enabled: isRead,
@@ -95,6 +97,7 @@ export default function SettlementSheet() {
         <span className="font-semibold text-gray-700">{val as number}</span>
       ),
     },
+
     {
       id: 'pendingItems',
       label: 'Pending',
@@ -117,7 +120,12 @@ export default function SettlementSheet() {
         </span>
       ),
     },
-
+    {
+      id: 'createdate',
+      label: 'Created Date',
+      sortable: true,
+      render: val => (val ? formatDateTime(val) : '-'),
+    },
     {
       id: 'id',
       label: 'Actions',

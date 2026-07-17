@@ -69,6 +69,7 @@ export interface GetReconciliationParams {
   date?: string;
   status?: string;
   rec_status?: string;
+  latest_only?: boolean;
 }
 
 export interface SaveReconciliationPayload {

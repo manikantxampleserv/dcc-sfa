@@ -7428,7 +7428,7 @@ export const vanInventoryController = {
                   user_id: userIdNum,
                   loading_type: 'L',
                   status: 'A',
-                  createdate: { gte: todayStart, lt: todayEnd },
+                  createdate: { gte: sessionStart, lt: todayEnd },
                 },
               },
               include: {
@@ -7460,7 +7460,7 @@ export const vanInventoryController = {
                   { from_location_id: locationId },
                 ],
                 movement_type: 'SALE',
-                movement_date: { gte: todayStart, lte: todayEnd },
+                movement_date: { gte: sessionStart, lte: todayEnd },
                 is_active: 'Y',
                 product_id: {
                   in: Array.from(productMap.values()).map(p => p.product_id),
