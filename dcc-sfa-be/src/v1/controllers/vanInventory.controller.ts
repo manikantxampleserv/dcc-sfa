@@ -7264,6 +7264,367 @@ export const vanInventoryController = {
     );
   },
 
+  // async unloadVanInventory(req: Request, res: Response) {
+  //   try {
+  //     const loggedInUserId = (req as any).user?.id;
+  //     const targetUserId = req.body.user_id || loggedInUserId;
+
+  //     if (!targetUserId) {
+  //       return res.status(401).json({
+  //         success: false,
+  //         message: 'User not authenticated or token invalid',
+  //       });
+  //     }
+
+  //     const userIdNum = parseInt(targetUserId.toString(), 10);
+
+  //     const vanLocations = await prisma.van_inventory.findMany({
+  //       where: { user_id: userIdNum, is_active: 'Y' },
+  //       select: { location_id: true, vehicle_id: true },
+  //       distinct: ['location_id'],
+  //     });
+
+  //     if (vanLocations.length === 0) {
+  //       return res.status(400).json({
+  //         success: false,
+  //         message: 'No active van inventory found for authenticated user',
+  //       });
+  //     }
+
+  //     let totalItemsRequested = 0;
+  //     const reconciliationIds: number[] = [];
+  //     const errors: string[] = [];
+
+  //     for (const vanLoc of vanLocations) {
+  //       const locationId = vanLoc.location_id;
+  //       if (!locationId) continue;
+
+  //       try {
+  //         const reconciliationId = await prisma.$transaction(async tx => {
+  //           const stockToUnload = await tx.inventory_stock.findMany({
+  //             where: {
+  //               location_id: locationId,
+  //               salesperson_id: userIdNum,
+  //               is_active: 'Y',
+  //               AND: [
+  //                 {
+  //                   // Include null records (legacy) so they are captured and zeroed out
+  //                   OR: [{ is_unloadAll: 'N' }, { is_unloadAll: null }],
+  //                 },
+  //                 {
+  //                   OR: [
+  //                     { current_stock: { gt: 0 } },
+  //                     { base_quantity: { gt: 0 } },
+  //                   ],
+  //                 },
+  //               ],
+  //             },
+  //             include: {
+  //               inventory_stock_products: {
+  //                 include: {
+  //                   product_tax_master: { select: { tax_rate: true } },
+  //                   product_unit_of_measurement: {
+  //                     select: { conversion_rate: true },
+  //                   },
+  //                 },
+  //               },
+  //               inventory_stock_batch: true,
+  //             },
+  //           });
+
+  //           if (stockToUnload.length === 0) return null;
+
+  //           const user = await tx.users.findUnique({
+  //             where: { id: userIdNum },
+  //             select: {
+  //               id: true,
+  //               name: true,
+  //               employee_id: true,
+  //               depot_id: true,
+  //               sap_code: true,
+  //             },
+  //           });
+  //           if (!user) return null;
+
+  //           const now = new Date();
+  //           const today = new Date(
+  //             Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())
+  //           );
+
+  //           const todayStart = new Date(today);
+  //           todayStart.setHours(0, 0, 0, 0);
+
+  //           const todayEnd = new Date(today);
+  //           todayEnd.setHours(23, 59, 59, 999);
+
+  //           // Find the last reconciliation to avoid duplicate records if multiple unloads happen in a day
+  //           const lastReconciliation = await tx.reconciliation.findFirst({
+  //             where: {
+  //               salesman_id: userIdNum,
+  //               // Only look for previous reconciliations
+  //               createdate: { lt: todayEnd },
+  //             },
+  //             orderBy: { createdate: 'desc' },
+  //           });
+
+  //           let sessionStart = todayStart;
+  //           if (
+  //             lastReconciliation &&
+  //             lastReconciliation.createdate &&
+  //             lastReconciliation.createdate > todayStart
+  //           ) {
+  //             sessionStart = lastReconciliation.createdate;
+  //           }
+  //           const sessionEnd = todayEnd;
+
+  //           const productMap = new Map<
+  //             string,
+  //             {
+  //               product_id: number;
+  //               product_code: string;
+  //               total_qty: number;
+  //               total_base_qty: number;
+  //               batch_number: string | null;
+  //               price: number;
+  //               taxRate: number;
+  //               convRate: number;
+  //             }
+  //           >();
+
+  //           for (const stock of stockToUnload) {
+  //             if (stock.product_id === null) continue;
+  //             const qty = Number(stock.current_stock) || 0;
+  //             const baseQty = Number(stock.base_quantity) || 0;
+  //             if (qty <= 0 && baseQty <= 0) continue;
+
+  //             const batchNum =
+  //               stock.inventory_stock_batch?.batch_number ?? null;
+  //             const productCode =
+  //               stock.inventory_stock_products?.code ||
+  //               String(stock.product_id);
+  //             const key = `${stock.product_id}-${batchNum}`;
+
+  //             const price =
+  //               Number(stock.inventory_stock_products?.base_price) || 0;
+  //             const taxRate =
+  //               Number(
+  //                 (stock.inventory_stock_products as any)?.product_tax_master
+  //                   ?.tax_rate
+  //               ) || 0;
+  //             const convRate =
+  //               Number(
+  //                 (stock.inventory_stock_products as any)
+  //                   ?.product_unit_of_measurement?.conversion_rate
+  //               ) || 1;
+
+  //             const existing = productMap.get(key);
+  //             if (existing) {
+  //               existing.total_qty += qty;
+  //               existing.total_base_qty += baseQty;
+  //             } else {
+  //               productMap.set(key, {
+  //                 product_id: stock.product_id,
+  //                 product_code: productCode,
+  //                 total_qty: qty,
+  //                 total_base_qty: baseQty,
+  //                 batch_number: batchNum,
+  //                 price,
+  //                 taxRate,
+  //                 convRate,
+  //               });
+  //             }
+  //             totalItemsRequested++;
+  //           }
+
+  //           if (productMap.size === 0) return null;
+
+  //           const loadQtyRecords = await tx.van_inventory_items.findMany({
+  //             where: {
+  //               van_inventory_items_inventory: {
+  //                 user_id: userIdNum,
+  //                 loading_type: 'L',
+  //                 status: 'A',
+  //                 createdate: { gte: todayStart, lt: todayEnd },
+  //               },
+  //             },
+  //             include: {
+  //               van_inventory_items_batch_lot: {
+  //                 select: { batch_number: true },
+  //               },
+  //             },
+  //           });
+
+  //           const loadQtyMap = new Map<
+  //             string,
+  //             { qty: number; baseQty: number }
+  //           >();
+  //           for (const record of loadQtyRecords) {
+  //             const batchNum =
+  //               record.van_inventory_items_batch_lot?.batch_number || '';
+  //             const key = `${record.product_id}-${batchNum}`;
+  //             const current = loadQtyMap.get(key) || { qty: 0, baseQty: 0 };
+  //             loadQtyMap.set(key, {
+  //               qty: current.qty + (record.quantity || 0),
+  //               baseQty: current.baseQty + (record.base_quantity || 0),
+  //             });
+  //           }
+
+  //           const saleQtyRecords = await tx.stock_movements.findMany({
+  //             where: {
+  //               OR: [
+  //                 { createdby: userIdNum },
+  //                 { from_location_id: locationId },
+  //               ],
+  //               movement_type: 'SALE',
+  //               movement_date: { gte: todayStart, lte: todayEnd },
+  //               is_active: 'Y',
+  //               product_id: {
+  //                 in: Array.from(productMap.values()).map(p => p.product_id),
+  //               },
+  //             },
+  //             include: {
+  //               batch_lots: { select: { batch_number: true } },
+  //             },
+  //           });
+
+  //           const saleQtyMap = new Map<
+  //             string,
+  //             { qty: number; baseQty: number }
+  //           >();
+  //           for (const record of saleQtyRecords) {
+  //             const batchNum = record.batch_lots?.batch_number || '';
+  //             const key = `${record.product_id}-${batchNum}`;
+  //             const current = saleQtyMap.get(key) || { qty: 0, baseQty: 0 };
+  //             saleQtyMap.set(key, {
+  //               qty: current.qty + (record.quantity || 0),
+  //               baseQty: current.baseQty + ((record as any).base_quantity || 0),
+  //             });
+  //           }
+
+  //           const recon = await tx.reconciliation.create({
+  //             data: {
+  //               salesman_id: userIdNum,
+  //               depot_id: user.depot_id ?? locationId,
+  //               status: 'P',
+  //               reconciliation_date: today,
+  //               is_active: 'Y',
+  //               createdate: new Date(),
+  //               createdby: userIdNum,
+  //             },
+  //           });
+
+  //           const toCreate: any[] = [];
+  //           for (const p of productMap.values()) {
+  //             // expected_qty is the real current stock on hand (from inventory_stock).
+  //             // Using load - sale here inflates the value when multiple loads occur in a day.
+  //             const expectedQty = p.total_qty;
+  //             const expectedBaseQty = p.total_base_qty;
+
+  //             // Keep load_qty and sale_qty for audit/reference only
+  //             const loadQty =
+  //               loadQtyMap.get(`${p.product_id}-${p.batch_number || ''}`)
+  //                 ?.qty || 0;
+  //             const loadBaseQty =
+  //               loadQtyMap.get(`${p.product_id}-${p.batch_number || ''}`)
+  //                 ?.baseQty || 0;
+
+  //             const saleQty =
+  //               saleQtyMap.get(`${p.product_id}-${p.batch_number || ''}`)
+  //                 ?.qty || 0;
+  //             const saleBaseQty =
+  //               saleQtyMap.get(`${p.product_id}-${p.batch_number || ''}`)
+  //                 ?.baseQty || 0;
+
+  //             const convRate = p.convRate > 0 ? p.convRate : 1;
+  //             const unitPricePerPc = p.convRate > 0 ? p.price / p.convRate : 0;
+  //             const saleVal = saleQty * p.price + saleBaseQty * unitPricePerPc;
+  //             const taxAmount = (saleVal * p.taxRate) / 100;
+
+  //             toCreate.push({
+  //               reconciliation_id: recon.id,
+  //               product_id: p.product_id,
+  //               batch_number: p.batch_number,
+  //               expected_qty: expectedQty,
+  //               expected_base_qty: expectedBaseQty,
+  //               actual_qty: null,
+  //               actual_base_qty: 0,
+  //               load_qty: loadQty,
+  //               load_base_qty: loadBaseQty,
+  //               sale_qty: saleQty,
+  //               sale_base_qty: saleBaseQty,
+  //               variance: null,
+  //               variance_base_qty: 0,
+  //               tax_amount: taxAmount,
+  //               resolution_action: 'Awaiting Verification',
+  //               default_outlet_posting_qty: 0,
+  //               unload_adjustment_qty: 0,
+  //               stock_key: `${user.sap_code ?? user.id} | ${p.product_code} | ${p.batch_number}`,
+  //               is_active: 'Y',
+  //               createdate: new Date(),
+  //               createdby: userIdNum,
+  //             });
+  //           }
+
+  //           if (toCreate.length > 0) {
+  //             await tx.reconciliation_items.createMany({ data: toCreate });
+  //           }
+
+  //           await tx.inventory_stock.updateMany({
+  //             where: {
+  //               location_id: locationId,
+  //               salesperson_id: userIdNum,
+  //               is_active: 'Y',
+  //               OR: [{ is_unloadAll: 'N' }, { is_unloadAll: null }],
+  //             },
+  //             data: {
+  //               is_unloadAll: 'Y',
+  //               // Zero stock immediately so stale records never inflate future reconciliation totals.
+  //               // Multiple inventory_stock rows for the same product+batch get summed in productMap,
+  //               // so any non-zero 'Y' row would be incorrectly added to the next session's expected qty.
+  //               current_stock: 0,
+  //               available_stock: 0,
+  //               base_quantity: 0,
+  //             },
+  //           });
+
+  //           return recon.id;
+  //         });
+
+  //         if (reconciliationId) reconciliationIds.push(reconciliationId);
+  //       } catch (vanLocError: any) {
+  //         console.error(
+  //           `Failed to process location ${locationId}:`,
+  //           vanLocError
+  //         );
+  //         errors.push(`Location ${locationId}: ${vanLocError.message}`);
+  //       }
+  //     }
+
+  //     return res.json({
+  //       success: true,
+  //       message:
+  //         'Stock staged for reconciliation. Save the reconciliation to submit for unload approval.',
+  //       data: {
+  //         user_id: userIdNum,
+  //         reconciliation_ids: reconciliationIds,
+  //         total_items_requested: totalItemsRequested,
+  //         request_date: new Date(),
+  //         errors: errors.length ? errors : undefined,
+  //       },
+  //     });
+  //   } catch (error: any) {
+  //     console.error('Unload Van Inventory Error:', error);
+  //     return res.status(500).json({
+  //       success: false,
+  //       message: 'Failed to stage unload reconciliation',
+  //       error: error.message,
+  //     });
+  //   }
+  // },
+
+
+
+  // shivang
   async unloadVanInventory(req: Request, res: Response) {
     try {
       const loggedInUserId = (req as any).user?.id;
@@ -7291,6 +7652,7 @@ export const vanInventoryController = {
         });
       }
 
+
       let totalItemsRequested = 0;
       const reconciliationIds: number[] = [];
       const errors: string[] = [];
@@ -7301,22 +7663,26 @@ export const vanInventoryController = {
 
         try {
           const reconciliationId = await prisma.$transaction(async tx => {
+            const now = new Date();
+            const today = new Date(
+              Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())
+            );
+            const todayStart = new Date(
+              Date.UTC(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0)
+            );
+            const todayEnd = new Date(
+              Date.UTC(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999)
+            );
+
+
             const stockToUnload = await tx.inventory_stock.findMany({
               where: {
                 location_id: locationId,
                 salesperson_id: userIdNum,
                 is_active: 'Y',
-                AND: [
-                  {
-                    // Include null records (legacy) so they are captured and zeroed out
-                    OR: [{ is_unloadAll: 'N' }, { is_unloadAll: null }],
-                  },
-                  {
-                    OR: [
-                      { current_stock: { gt: 0 } },
-                      { base_quantity: { gt: 0 } },
-                    ],
-                  },
+                OR: [
+                  { current_stock: { gt: 0 } },
+                  { base_quantity: { gt: 0 } },
                 ],
               },
               include: {
@@ -7332,7 +7698,29 @@ export const vanInventoryController = {
               },
             });
 
-            if (stockToUnload.length === 0) return null;
+            const existingPendingRecon = await tx.reconciliation.findFirst({
+              where: {
+                salesman_id: userIdNum,
+                is_active: 'Y',
+                status: 'P',
+                reconciliation_date: {
+                  gte: todayStart,
+                  lte: todayEnd,
+                },
+              },
+              orderBy: { createdate: 'desc' },
+            });
+
+            if (stockToUnload.length === 0) {
+              if (existingPendingRecon) {
+                console.log(
+                  `[unloadVanInventory] No new stock; returning existing pending recon #${existingPendingRecon.id
+                  } for user ${userIdNum}.`
+                );
+                return existingPendingRecon.id;
+              }
+              return null;
+            }
 
             const user = await tx.users.findUnique({
               where: { id: userIdNum },
@@ -7345,37 +7733,6 @@ export const vanInventoryController = {
               },
             });
             if (!user) return null;
-
-            const now = new Date();
-            const today = new Date(
-              Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())
-            );
-
-            const todayStart = new Date(today);
-            todayStart.setHours(0, 0, 0, 0);
-
-            const todayEnd = new Date(today);
-            todayEnd.setHours(23, 59, 59, 999);
-
-            // Find the last reconciliation to avoid duplicate records if multiple unloads happen in a day
-            const lastReconciliation = await tx.reconciliation.findFirst({
-              where: {
-                salesman_id: userIdNum,
-                // Only look for previous reconciliations
-                createdate: { lt: todayEnd },
-              },
-              orderBy: { createdate: 'desc' },
-            });
-
-            let sessionStart = todayStart;
-            if (
-              lastReconciliation &&
-              lastReconciliation.createdate &&
-              lastReconciliation.createdate > todayStart
-            ) {
-              sessionStart = lastReconciliation.createdate;
-            }
-            const sessionEnd = todayEnd;
 
             const productMap = new Map<
               string,
@@ -7436,7 +7793,10 @@ export const vanInventoryController = {
               totalItemsRequested++;
             }
 
-            if (productMap.size === 0) return null;
+            if (productMap.size === 0) {
+              if (existingPendingRecon) return existingPendingRecon.id;
+              return null;
+            }
 
             const loadQtyRecords = await tx.van_inventory_items.findMany({
               where: {
@@ -7501,26 +7861,49 @@ export const vanInventoryController = {
               });
             }
 
-            const recon = await tx.reconciliation.create({
-              data: {
-                salesman_id: userIdNum,
-                depot_id: user.depot_id ?? locationId,
-                status: 'P',
-                reconciliation_date: today,
-                is_active: 'Y',
-                createdate: new Date(),
-                createdby: userIdNum,
-              },
+            let reconId: number;
+            if (existingPendingRecon) {
+              await tx.reconciliation.update({
+                where: { id: existingPendingRecon.id },
+                data: { updatedate: new Date(), updatedby: userIdNum },
+              });
+              reconId = existingPendingRecon.id;
+              console.log(
+                `[unloadVanInventory] Found existing pending recon #${reconId} for user ${userIdNum}.`
+              );
+            } else {
+              const newRecon = await tx.reconciliation.create({
+                data: {
+                  salesman_id: userIdNum,
+                  depot_id: user.depot_id ?? locationId,
+                  status: 'P',
+                  reconciliation_date: today,
+                  is_active: 'Y',
+                  createdate: new Date(),
+                  createdby: userIdNum,
+                },
+              });
+              reconId = newRecon.id;
+            }
+
+            const existingItems = await tx.reconciliation_items.findMany({
+              where: { reconciliation_id: reconId },
             });
+
+            const existingItemsMap = new Map<string, typeof existingItems[0]>();
+            for (const item of existingItems) {
+              const key = `${item.product_id}-${item.batch_number || ''}`;
+              existingItemsMap.set(key, item);
+            }
 
             const toCreate: any[] = [];
             for (const p of productMap.values()) {
-              // expected_qty is the real current stock on hand (from inventory_stock).
-              // Using load - sale here inflates the value when multiple loads occur in a day.
-              const expectedQty = p.total_qty;
-              const expectedBaseQty = p.total_base_qty;
+              const key = `${p.product_id}-${p.batch_number || ''}`;
+              const existingItem = existingItemsMap.get(key);
 
-              // Keep load_qty and sale_qty for audit/reference only
+              const newExpectedQty = (existingItem ? Number(existingItem.expected_qty) || 0 : 0) + p.total_qty;
+              const newExpectedBaseQty = (existingItem ? Number(existingItem.expected_base_qty) || 0 : 0) + p.total_base_qty;
+
               const loadQty =
                 loadQtyMap.get(`${p.product_id}-${p.batch_number || ''}`)
                   ?.qty || 0;
@@ -7540,29 +7923,46 @@ export const vanInventoryController = {
               const saleVal = saleQty * p.price + saleBaseQty * unitPricePerPc;
               const taxAmount = (saleVal * p.taxRate) / 100;
 
-              toCreate.push({
-                reconciliation_id: recon.id,
-                product_id: p.product_id,
-                batch_number: p.batch_number,
-                expected_qty: expectedQty,
-                expected_base_qty: expectedBaseQty,
-                actual_qty: null,
-                actual_base_qty: 0,
-                load_qty: loadQty,
-                load_base_qty: loadBaseQty,
-                sale_qty: saleQty,
-                sale_base_qty: saleBaseQty,
-                variance: null,
-                variance_base_qty: 0,
-                tax_amount: taxAmount,
-                resolution_action: 'Awaiting Verification',
-                default_outlet_posting_qty: 0,
-                unload_adjustment_qty: 0,
-                stock_key: `${user.sap_code ?? user.id} | ${p.product_code} | ${p.batch_number}`,
-                is_active: 'Y',
-                createdate: new Date(),
-                createdby: userIdNum,
-              });
+              if (existingItem) {
+                await tx.reconciliation_items.update({
+                  where: { id: existingItem.id },
+                  data: {
+                    expected_qty: newExpectedQty,
+                    expected_base_qty: newExpectedBaseQty,
+                    load_qty: loadQty,
+                    load_base_qty: loadBaseQty,
+                    sale_qty: saleQty,
+                    sale_base_qty: saleBaseQty,
+                    tax_amount: taxAmount,
+                    updatedate: new Date(),
+                    updatedby: userIdNum,
+                  },
+                });
+              } else {
+                toCreate.push({
+                  reconciliation_id: reconId,
+                  product_id: p.product_id,
+                  batch_number: p.batch_number,
+                  expected_qty: newExpectedQty,
+                  expected_base_qty: newExpectedBaseQty,
+                  actual_qty: null,
+                  actual_base_qty: 0,
+                  load_qty: loadQty,
+                  load_base_qty: loadBaseQty,
+                  sale_qty: saleQty,
+                  sale_base_qty: saleBaseQty,
+                  variance: null,
+                  variance_base_qty: 0,
+                  tax_amount: taxAmount,
+                  resolution_action: 'Awaiting Verification',
+                  default_outlet_posting_qty: 0,
+                  unload_adjustment_qty: 0,
+                  stock_key: `${user.sap_code ?? user.id} | ${p.product_code} | ${p.batch_number}`,
+                  is_active: 'Y',
+                  createdate: new Date(),
+                  createdby: userIdNum,
+                });
+              }
             }
 
             if (toCreate.length > 0) {
@@ -7574,20 +7974,16 @@ export const vanInventoryController = {
                 location_id: locationId,
                 salesperson_id: userIdNum,
                 is_active: 'Y',
-                OR: [{ is_unloadAll: 'N' }, { is_unloadAll: null }],
               },
               data: {
                 is_unloadAll: 'Y',
-                // Zero stock immediately so stale records never inflate future reconciliation totals.
-                // Multiple inventory_stock rows for the same product+batch get summed in productMap,
-                // so any non-zero 'Y' row would be incorrectly added to the next session's expected qty.
                 current_stock: 0,
                 available_stock: 0,
                 base_quantity: 0,
               },
             });
 
-            return recon.id;
+            return reconId;
           });
 
           if (reconciliationId) reconciliationIds.push(reconciliationId);
@@ -7621,6 +8017,7 @@ export const vanInventoryController = {
       });
     }
   },
+
   async getProducts(req: Request, res: Response) {
     try {
       const { salesperson_id, customer_id, depot_id, route_id } = req.query;
