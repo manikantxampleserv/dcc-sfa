@@ -7291,7 +7291,6 @@ export const vanInventoryController = {
         });
       }
 
-
       let totalItemsRequested = 0;
       const reconciliationIds: number[] = [];
       const errors: string[] = [];
@@ -7302,27 +7301,12 @@ export const vanInventoryController = {
 
         try {
           const reconciliationId = await prisma.$transaction(async tx => {
-            const now = new Date();
-            const today = new Date(
-              Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())
-            );
-            const todayStart = new Date(
-              Date.UTC(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0)
-            );
-            const todayEnd = new Date(
-              Date.UTC(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999)
-            );
-
-
             const stockToUnload = await tx.inventory_stock.findMany({
               where: {
                 location_id: locationId,
                 salesperson_id: userIdNum,
                 is_active: 'Y',
-                OR: [
-                  { current_stock: { gt: 0 } },
-                  { base_quantity: { gt: 0 } },
-                ],
+                OR: [{ is_unloadAll: 'N' }, { is_unloadAll: null }],
               },
               include: {
                 inventory_stock_products: {
@@ -7337,29 +7321,7 @@ export const vanInventoryController = {
               },
             });
 
-            const existingPendingRecon = await tx.reconciliation.findFirst({
-              where: {
-                salesman_id: userIdNum,
-                is_active: 'Y',
-                status: 'P',
-                reconciliation_date: {
-                  gte: todayStart,
-                  lte: todayEnd,
-                },
-              },
-              orderBy: { createdate: 'desc' },
-            });
-
-            if (stockToUnload.length === 0) {
-              if (existingPendingRecon) {
-                console.log(
-                  `[unloadVanInventory] No new stock; returning existing pending recon #${existingPendingRecon.id
-                  } for user ${userIdNum}.`
-                );
-                return existingPendingRecon.id;
-              }
-              return null;
-            }
+            if (stockToUnload.length === 0) return null;
 
             const user = await tx.users.findUnique({
               where: { id: userIdNum },
@@ -7372,6 +7334,36 @@ export const vanInventoryController = {
               },
             });
             if (!user) return null;
+
+            const now = new Date();
+            const today = new Date(
+              Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())
+            );
+
+            const todayStart = new Date(today);
+            todayStart.setHours(0, 0, 0, 0);
+
+            const todayEnd = new Date(today);
+            todayEnd.setHours(23, 59, 59, 999);
+
+            const lastReconciliation = await tx.reconciliation.findFirst({
+              where: {
+                salesman_id: userIdNum,
+                createdate: { lt: todayEnd },
+              },
+              orderBy: { createdate: 'desc' },
+            });
+
+            let sessionStart = todayStart;
+            if (
+              lastReconciliation &&
+              lastReconciliation.createdate &&
+              lastReconciliation.createdate > todayStart
+            ) {
+              sessionStart = lastReconciliation.createdate;
+            }
+
+            const sessionEnd = todayEnd;
 
             const productMap = new Map<
               string,
@@ -7391,7 +7383,6 @@ export const vanInventoryController = {
               if (stock.product_id === null) continue;
               const qty = Number(stock.current_stock) || 0;
               const baseQty = Number(stock.base_quantity) || 0;
-              if (qty <= 0 && baseQty <= 0) continue;
 
               const batchNum =
                 stock.inventory_stock_batch?.batch_number ?? null;
@@ -7432,10 +7423,7 @@ export const vanInventoryController = {
               totalItemsRequested++;
             }
 
-            if (productMap.size === 0) {
-              if (existingPendingRecon) return existingPendingRecon.id;
-              return null;
-            }
+            if (productMap.size === 0) return null;
 
             const loadQtyRecords = await tx.van_inventory_items.findMany({
               where: {
@@ -7443,7 +7431,7 @@ export const vanInventoryController = {
                   user_id: userIdNum,
                   loading_type: 'L',
                   status: 'A',
-                  createdate: { gte: todayStart, lt: todayEnd },
+                  createdate: { gte: sessionStart, lt: todayEnd },
                 },
               },
               include: {
@@ -7475,7 +7463,7 @@ export const vanInventoryController = {
                   { from_location_id: locationId },
                 ],
                 movement_type: 'SALE',
-                movement_date: { gte: todayStart, lte: todayEnd },
+                movement_date: { gte: sessionStart, lte: todayEnd },
                 is_active: 'Y',
                 product_id: {
                   in: Array.from(productMap.values()).map(p => p.product_id),
@@ -7500,49 +7488,26 @@ export const vanInventoryController = {
               });
             }
 
-            let reconId: number;
-            if (existingPendingRecon) {
-              await tx.reconciliation.update({
-                where: { id: existingPendingRecon.id },
-                data: { updatedate: new Date(), updatedby: userIdNum },
-              });
-              reconId = existingPendingRecon.id;
-              console.log(
-                `[unloadVanInventory] Found existing pending recon #${reconId} for user ${userIdNum}.`
-              );
-            } else {
-              const newRecon = await tx.reconciliation.create({
-                data: {
-                  salesman_id: userIdNum,
-                  depot_id: user.depot_id ?? locationId,
-                  status: 'P',
-                  reconciliation_date: today,
-                  is_active: 'Y',
-                  createdate: new Date(),
-                  createdby: userIdNum,
-                },
-              });
-              reconId = newRecon.id;
-            }
-
-            const existingItems = await tx.reconciliation_items.findMany({
-              where: { reconciliation_id: reconId },
+            const recon = await tx.reconciliation.create({
+              data: {
+                salesman_id: userIdNum,
+                depot_id: user.depot_id ?? locationId,
+                status: 'P',
+                reconciliation_date: today,
+                is_active: 'Y',
+                createdate: new Date(),
+                createdby: userIdNum,
+              },
             });
-
-            const existingItemsMap = new Map<string, typeof existingItems[0]>();
-            for (const item of existingItems) {
-              const key = `${item.product_id}-${item.batch_number || ''}`;
-              existingItemsMap.set(key, item);
-            }
 
             const toCreate: any[] = [];
             for (const p of productMap.values()) {
-              const key = `${p.product_id}-${p.batch_number || ''}`;
-              const existingItem = existingItemsMap.get(key);
+              // expected_qty is the real current stock on hand (from inventory_stock).
+              // Using load - sale here inflates the value when multiple loads occur in a day.
+              const expectedQty = p.total_qty;
+              const expectedBaseQty = p.total_base_qty;
 
-              const newExpectedQty = (existingItem ? Number(existingItem.expected_qty) || 0 : 0) + p.total_qty;
-              const newExpectedBaseQty = (existingItem ? Number(existingItem.expected_base_qty) || 0 : 0) + p.total_base_qty;
-
+              // Keep load_qty and sale_qty for audit/reference only
               const loadQty =
                 loadQtyMap.get(`${p.product_id}-${p.batch_number || ''}`)
                   ?.qty || 0;
@@ -7562,46 +7527,29 @@ export const vanInventoryController = {
               const saleVal = saleQty * p.price + saleBaseQty * unitPricePerPc;
               const taxAmount = (saleVal * p.taxRate) / 100;
 
-              if (existingItem) {
-                await tx.reconciliation_items.update({
-                  where: { id: existingItem.id },
-                  data: {
-                    expected_qty: newExpectedQty,
-                    expected_base_qty: newExpectedBaseQty,
-                    load_qty: loadQty,
-                    load_base_qty: loadBaseQty,
-                    sale_qty: saleQty,
-                    sale_base_qty: saleBaseQty,
-                    tax_amount: taxAmount,
-                    updatedate: new Date(),
-                    updatedby: userIdNum,
-                  },
-                });
-              } else {
-                toCreate.push({
-                  reconciliation_id: reconId,
-                  product_id: p.product_id,
-                  batch_number: p.batch_number,
-                  expected_qty: newExpectedQty,
-                  expected_base_qty: newExpectedBaseQty,
-                  actual_qty: null,
-                  actual_base_qty: 0,
-                  load_qty: loadQty,
-                  load_base_qty: loadBaseQty,
-                  sale_qty: saleQty,
-                  sale_base_qty: saleBaseQty,
-                  variance: null,
-                  variance_base_qty: 0,
-                  tax_amount: taxAmount,
-                  resolution_action: 'Awaiting Verification',
-                  default_outlet_posting_qty: 0,
-                  unload_adjustment_qty: 0,
-                  stock_key: `${user.sap_code ?? user.id} | ${p.product_code} | ${p.batch_number}`,
-                  is_active: 'Y',
-                  createdate: new Date(),
-                  createdby: userIdNum,
-                });
-              }
+              toCreate.push({
+                reconciliation_id: recon.id,
+                product_id: p.product_id,
+                batch_number: p.batch_number,
+                expected_qty: expectedQty,
+                expected_base_qty: expectedBaseQty,
+                actual_qty: null,
+                actual_base_qty: 0,
+                load_qty: loadQty,
+                load_base_qty: loadBaseQty,
+                sale_qty: saleQty,
+                sale_base_qty: saleBaseQty,
+                variance: null,
+                variance_base_qty: 0,
+                tax_amount: taxAmount,
+                resolution_action: 'Awaiting Verification',
+                default_outlet_posting_qty: 0,
+                unload_adjustment_qty: 0,
+                stock_key: `${user.sap_code ?? user.id} | ${p.product_code} | ${p.batch_number}`,
+                is_active: 'Y',
+                createdate: new Date(),
+                createdby: userIdNum,
+              });
             }
 
             if (toCreate.length > 0) {
@@ -7613,16 +7561,20 @@ export const vanInventoryController = {
                 location_id: locationId,
                 salesperson_id: userIdNum,
                 is_active: 'Y',
+                OR: [{ is_unloadAll: 'N' }, { is_unloadAll: null }],
               },
               data: {
                 is_unloadAll: 'Y',
+                // Zero stock immediately so stale records never inflate future reconciliation totals.
+                // Multiple inventory_stock rows for the same product+batch get summed in productMap,
+                // so any non-zero 'Y' row would be incorrectly added to the next session's expected qty.
                 current_stock: 0,
                 available_stock: 0,
                 base_quantity: 0,
               },
             });
 
-            return reconId;
+            return recon.id;
           });
 
           if (reconciliationId) reconciliationIds.push(reconciliationId);
