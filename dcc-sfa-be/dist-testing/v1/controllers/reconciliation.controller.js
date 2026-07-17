@@ -95,11 +95,36 @@ exports.reconciliationController = {
                     },
                 };
             }
-            const matchingReconcIds = await prisma_client_1.default.reconciliation.findMany({
+            const latestOnly = req.query.latest_only === 'true';
+            const allMatching = await prisma_client_1.default.reconciliation.findMany({
                 where: reconcFilters,
-                select: { id: true },
+                select: { id: true, salesman_id: true, reconciliation_date: true },
+                orderBy: { id: 'asc' },
             });
-            const ids = matchingReconcIds.map((r) => r.id);
+            let finalIds = [];
+            if (latestOnly) {
+                const latestIdMap = new Map();
+                const nonGroupableIds = [];
+                for (const rec of allMatching) {
+                    if (!rec.salesman_id || !rec.reconciliation_date) {
+                        nonGroupableIds.push(rec.id);
+                        continue;
+                    }
+                    const dateStr = new Date(rec.reconciliation_date)
+                        .toISOString()
+                        .split('T')[0];
+                    const key = `${rec.salesman_id}_${dateStr}`;
+                    latestIdMap.set(key, rec.id);
+                }
+                finalIds = [...Array.from(latestIdMap.values()), ...nonGroupableIds];
+            }
+            else {
+                finalIds = allMatching.map((r) => r.id);
+            }
+            if (reconcFilters.id !== -1) {
+                reconcFilters.id = { in: finalIds };
+            }
+            const ids = finalIds;
             const itemStatsFilter = {
                 reconciliation_id: { in: ids },
                 is_active: 'Y',
@@ -324,7 +349,9 @@ exports.reconciliationController = {
                 saleBaseQty: item.sale_base_qty !== null ? Number(item.sale_base_qty) : 0,
                 batchNumber: item.batch_number || '-',
                 expectedRop: item.expected_qty !== null ? Number(item.expected_qty) : 0,
-                expectedBaseQty: item.expected_base_qty !== null ? Number(item.expected_base_qty) : 0,
+                expectedBaseQty: item.expected_base_qty !== null
+                    ? Number(item.expected_base_qty)
+                    : 0,
                 actualRop: item.actual_qty !== null ? Number(item.actual_qty).toString() : '',
                 actualBaseQty: item.actual_base_qty !== null
                     ? Number(item.actual_base_qty).toString()
@@ -436,7 +463,9 @@ exports.reconciliationController = {
                     const saleQty = record.sale_qty !== null ? Number(record.sale_qty) : 0;
                     const saleBaseQty = record.sale_base_qty !== null ? Number(record.sale_base_qty) : 0;
                     const expectedQty = record.expected_qty !== null ? Number(record.expected_qty) : 0;
-                    const expectedBaseQty = record.expected_base_qty !== null ? Number(record.expected_base_qty) : 0;
+                    const expectedBaseQty = record.expected_base_qty !== null
+                        ? Number(record.expected_base_qty)
+                        : 0;
                     const expectedTotalPieces = expectedQty * conv + expectedBaseQty;
                     if (parsedActual !== null || parsedActualBase !== null) {
                         const actual = parsedActual || 0;

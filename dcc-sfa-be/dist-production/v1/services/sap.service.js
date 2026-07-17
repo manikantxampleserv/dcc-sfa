@@ -2167,6 +2167,7 @@ async function updateInventoryStock(tx, productId, locationId, quantity, loading
                 data: {
                     current_stock: newCurrent,
                     available_stock: newAvailable,
+                    is_unloadAll: 'N',
                     updatedate: new Date(),
                     updatedby: userId,
                 },
@@ -2548,15 +2549,19 @@ exports.sapService = {
                             if (!aggregatedBatches[bNum]) {
                                 aggregatedBatches[bNum] = { ...b };
                                 // Ensure quantities are parsed as integers to avoid string concatenation
-                                aggregatedBatches[bNum].quantity = parseInt(b.quantity, 10) || 0;
+                                aggregatedBatches[bNum].quantity =
+                                    parseInt(b.quantity, 10) || 0;
                                 if (b.base_quantity) {
-                                    aggregatedBatches[bNum].base_quantity = parseInt(b.base_quantity, 10) || 0;
+                                    aggregatedBatches[bNum].base_quantity =
+                                        parseInt(b.base_quantity, 10) || 0;
                                 }
                             }
                             else {
-                                aggregatedBatches[bNum].quantity += parseInt(b.quantity, 10) || 0;
+                                aggregatedBatches[bNum].quantity +=
+                                    parseInt(b.quantity, 10) || 0;
                                 if (b.base_quantity) {
-                                    aggregatedBatches[bNum].base_quantity += parseInt(b.base_quantity, 10) || 0;
+                                    aggregatedBatches[bNum].base_quantity +=
+                                        parseInt(b.base_quantity, 10) || 0;
                                 }
                             }
                         }

@@ -14,6 +14,10 @@ const permissions_config_1 = require("../../configs/permissions.config");
 const serializeVanInventory = (item) => {
     const productGroups = new Map();
     item.van_inventory_items_inventory?.forEach((it) => {
+        if (it.source_system !== 'sfa' &&
+            item.loading_type !== 'U' &&
+            (it.sap_docnum === null || it.sap_docnum === undefined))
+            return;
         const productId = it.product_id;
         if (!productGroups.has(productId)) {
             productGroups.set(productId, []);
@@ -678,6 +682,7 @@ async function processApprovedVanInventoryStock(inventoryId, userId, requestData
                                     product_name: product.name,
                                     unit: product.product_unit_of_measurement?.name || 'pcs',
                                     quantity: batchQty,
+                                    source_system: 'sfa',
                                     base_quantity: batchBaseQty,
                                     unit_price: Number(item.unit_price || 0),
                                     discount_amount: Number(item.discount_amount || 0),
@@ -815,6 +820,7 @@ async function processApprovedVanInventoryStock(inventoryId, userId, requestData
                                     product_name: product.name,
                                     unit: product.product_unit_of_measurement?.name || 'pcs',
                                     quantity: 1,
+                                    source_system: 'sfa',
                                     unit_price: Number(item.unit_price || 0),
                                     discount_amount: Number(item.discount_amount || 0),
                                     tax_amount: Number(item.tax_amount || 0),
@@ -866,6 +872,7 @@ async function processApprovedVanInventoryStock(inventoryId, userId, requestData
                                 product_name: product.name,
                                 unit: product.product_unit_of_measurement?.name || 'pcs',
                                 quantity: qty,
+                                source_system: 'sfa',
                                 base_quantity: baseQty,
                                 unit_price: Number(item.unit_price || 0),
                                 discount_amount: Number(item.discount_amount || 0),
@@ -3091,6 +3098,7 @@ exports.vanInventoryController = {
                                         product_name: product.name,
                                         unit: product.product_unit_of_measurement?.name || 'pcs',
                                         quantity: batchQty,
+                                        source_system: 'sfa',
                                         unit_price: Number(item.unit_price || 0),
                                         discount_amount: Number(item.discount_amount || 0),
                                         tax_amount: Number(item.tax_amount || 0),
@@ -3125,6 +3133,7 @@ exports.vanInventoryController = {
                                         product_name: product.name,
                                         unit: product.product_unit_of_measurement?.name || 'pcs',
                                         quantity: 1,
+                                        source_system: 'sfa',
                                         unit_price: Number(item.unit_price || 0),
                                         discount_amount: Number(item.discount_amount || 0),
                                         tax_amount: Number(item.tax_amount || 0),
@@ -3144,6 +3153,7 @@ exports.vanInventoryController = {
                                     product_name: product.name,
                                     unit: product.product_unit_of_measurement?.name || 'pcs',
                                     quantity: qty,
+                                    source_system: 'sfa',
                                     unit_price: Number(item.unit_price || 0),
                                     discount_amount: Number(item.discount_amount || 0),
                                     tax_amount: Number(item.tax_amount || 0),
@@ -4200,6 +4210,7 @@ exports.vanInventoryController = {
                     parent_id: Number(vanInventoryId),
                     product_id: Number(data.product_id),
                     product_name: product.name,
+                    source_system: 'sfa',
                     unit: product.product_unit_of_measurement?.name ||
                         product.product_unit_of_measurement?.symbol ||
                         'pcs',
@@ -4366,6 +4377,7 @@ exports.vanInventoryController = {
                                     parent_id: Number(vanInventoryId),
                                     product_id: Number(item.product_id),
                                     product_name: product.name,
+                                    source_system: 'sfa',
                                     unit: product.product_unit_of_measurement?.name ||
                                         product.product_unit_of_measurement?.symbol ||
                                         'pcs',
@@ -5943,10 +5955,8 @@ exports.vanInventoryController = {
                 const product = productMap.get(item.product_id);
                 let batchLotId = null;
                 if (item.batch_number) {
-                    // First, try to match the batch lot loaded in this salesperson's van
                     batchLotId =
                         salespersonLoadedBatchMap.get(`${item.product_id}_${item.batch_number}`) ?? null;
-                    // Fallback to the global query if not found
                     if (!batchLotId) {
                         batchLotId =
                             batchLotsMap.get(`${item.product_id}_${item.batch_number}`) ??
@@ -5959,6 +5969,7 @@ exports.vanInventoryController = {
                     batch_lot_id: batchLotId,
                     serial_id: null,
                     quantity: qty,
+                    source_system: 'sfa',
                     base_quantity: baseQty,
                     product_name: product?.name ?? null,
                     unit: null,
@@ -6014,18 +6025,7 @@ exports.vanInventoryController = {
                                 location_id: locationId,
                                 salesperson_id: userIdNum,
                                 is_active: 'Y',
-                                AND: [
-                                    {
-                                        // Include null records (legacy) so they are captured and zeroed out
-                                        OR: [{ is_unloadAll: 'N' }, { is_unloadAll: null }],
-                                    },
-                                    {
-                                        OR: [
-                                            { current_stock: { gt: 0 } },
-                                            { base_quantity: { gt: 0 } },
-                                        ],
-                                    },
-                                ],
+                                OR: [{ is_unloadAll: 'N' }, { is_unloadAll: null }],
                             },
                             include: {
                                 inventory_stock_products: {
@@ -6059,14 +6059,26 @@ exports.vanInventoryController = {
                         todayStart.setHours(0, 0, 0, 0);
                         const todayEnd = new Date(today);
                         todayEnd.setHours(23, 59, 59, 999);
+                        const lastReconciliation = await tx.reconciliation.findFirst({
+                            where: {
+                                salesman_id: userIdNum,
+                                createdate: { lt: todayEnd },
+                            },
+                            orderBy: { createdate: 'desc' },
+                        });
+                        let sessionStart = todayStart;
+                        if (lastReconciliation &&
+                            lastReconciliation.createdate &&
+                            lastReconciliation.createdate > todayStart) {
+                            sessionStart = lastReconciliation.createdate;
+                        }
+                        const sessionEnd = todayEnd;
                         const productMap = new Map();
                         for (const stock of stockToUnload) {
                             if (stock.product_id === null)
                                 continue;
                             const qty = Number(stock.current_stock) || 0;
                             const baseQty = Number(stock.base_quantity) || 0;
-                            if (qty <= 0 && baseQty <= 0)
-                                continue;
                             const batchNum = stock.inventory_stock_batch?.batch_number ?? null;
                             const productCode = stock.inventory_stock_products?.code ||
                                 String(stock.product_id);
@@ -6103,7 +6115,7 @@ exports.vanInventoryController = {
                                     user_id: userIdNum,
                                     loading_type: 'L',
                                     status: 'A',
-                                    createdate: { gte: todayStart, lt: todayEnd },
+                                    createdate: { gte: sessionStart, lt: todayEnd },
                                 },
                             },
                             include: {
@@ -6129,7 +6141,7 @@ exports.vanInventoryController = {
                                     { from_location_id: locationId },
                                 ],
                                 movement_type: 'SALE',
-                                movement_date: { gte: todayStart, lte: todayEnd },
+                                movement_date: { gte: sessionStart, lte: todayEnd },
                                 is_active: 'Y',
                                 product_id: {
                                     in: Array.from(productMap.values()).map(p => p.product_id),
