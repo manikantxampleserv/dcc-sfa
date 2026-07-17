@@ -7342,11 +7342,9 @@ export const vanInventoryController = {
             const todayEnd = new Date(today);
             todayEnd.setHours(23, 59, 59, 999);
 
-            // Find the last reconciliation to avoid duplicate records if multiple unloads happen in a day
             const lastReconciliation = await tx.reconciliation.findFirst({
               where: {
                 salesman_id: userIdNum,
-                // Only look for previous reconciliations
                 createdate: { lt: todayEnd },
               },
               orderBy: { createdate: 'desc' },
@@ -7360,6 +7358,8 @@ export const vanInventoryController = {
             ) {
               sessionStart = lastReconciliation.createdate;
             }
+
+            const sessionEnd = todayEnd;
 
             const productMap = new Map<
               string,
