@@ -177,7 +177,7 @@ const serializeVanInventory = (item: any): VanInventorySerialized => {
           remaining_quantity: batchLot.remaining_quantity,
         };
 
-        if (!batches.find(b => b.batch_lot_id === batchLot.id)) {
+        if (!batches.find(b => b.batch_number === batchLot.batch_number)) {
           batches.push(batchInfo);
         }
       } else if (
@@ -195,9 +195,18 @@ const serializeVanInventory = (item: any): VanInventorySerialized => {
 
     if (trackingType === 'batch') {
       batches.forEach(batch => {
-        const batchItems = items.filter(
-          it => it.batch_lot_id === batch.batch_lot_id
-        );
+        const batchItems = items.filter(it => {
+          let itBatchNumber = null;
+          if (it.van_inventory_items_batch_lot) {
+            itBatchNumber = it.van_inventory_items_batch_lot.batch_number;
+          } else if (it.batch_lot_id && it.van_inventory_items_products?.product_product_batches) {
+            const pb = it.van_inventory_items_products.product_product_batches.find((p: any) => p.batch_lot_id === it.batch_lot_id);
+            if (pb?.batch_lot_product_batches) {
+              itBatchNumber = pb.batch_lot_product_batches.batch_number;
+            }
+          }
+          return itBatchNumber === batch.batch_number;
+        });
         const batchQuantity = batchItems.reduce(
           (sum, it) => sum + (it.quantity || 0),
           0
