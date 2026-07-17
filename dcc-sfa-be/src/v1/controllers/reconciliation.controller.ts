@@ -94,11 +94,30 @@ export const reconciliationController = {
         };
       }
 
-      const matchingReconcIds = await prisma.reconciliation.findMany({
+      const allMatching = await prisma.reconciliation.findMany({
         where: reconcFilters,
-        select: { id: true },
+        select: { id: true, salesman_id: true, reconciliation_date: true },
+        orderBy: { id: 'asc' },
       });
-      const ids = matchingReconcIds.map((r: { id: number }) => r.id);
+
+      const latestIdMap = new Map<string, number>();
+      const nonGroupableIds: number[] = [];
+      for (const rec of allMatching) {
+        if (!rec.salesman_id || !rec.reconciliation_date) {
+          nonGroupableIds.push(rec.id);
+          continue;
+        }
+        const dateStr = new Date(rec.reconciliation_date).toISOString().split('T')[0];
+        const key = `${rec.salesman_id}_${dateStr}`;
+        latestIdMap.set(key, rec.id);
+      }
+      const latestIds = [...Array.from(latestIdMap.values()), ...nonGroupableIds];
+
+      if (reconcFilters.id !== -1) {
+        reconcFilters.id = { in: latestIds };
+      }
+
+      const ids = latestIds;
 
       const itemStatsFilter: any = {
         reconciliation_id: { in: ids },

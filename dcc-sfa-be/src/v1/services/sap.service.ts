@@ -2285,10 +2285,11 @@
 //   },
 // };
 
-
-
 import prisma from '../../configs/prisma.client';
-import { createRequest, resolveRequesterDepotId } from '../controllers/requests.controller';
+import {
+  createRequest,
+  resolveRequesterDepotId,
+} from '../controllers/requests.controller';
 
 async function updateInventoryStock(
   tx: any,
@@ -2350,6 +2351,7 @@ async function updateInventoryStock(
         data: {
           current_stock: newCurrent,
           available_stock: newAvailable,
+          is_unloadAll: 'N',
           updatedate: new Date(),
           updatedby: userId,
         },
@@ -2776,10 +2778,10 @@ export const sapService = {
                 sap_lineid: sapLineid,
                 ...(isUpdate && inventoryId
                   ? {
-                    NOT: {
-                      parent_id: Number(inventoryId),
-                    },
-                  }
+                      NOT: {
+                        parent_id: Number(inventoryId),
+                      },
+                    }
                   : {}),
               },
             });
@@ -2838,14 +2840,18 @@ export const sapService = {
                 if (!aggregatedBatches[bNum]) {
                   aggregatedBatches[bNum] = { ...b };
                   // Ensure quantities are parsed as integers to avoid string concatenation
-                  aggregatedBatches[bNum].quantity = parseInt(b.quantity, 10) || 0;
+                  aggregatedBatches[bNum].quantity =
+                    parseInt(b.quantity, 10) || 0;
                   if (b.base_quantity) {
-                    aggregatedBatches[bNum].base_quantity = parseInt(b.base_quantity, 10) || 0;
+                    aggregatedBatches[bNum].base_quantity =
+                      parseInt(b.base_quantity, 10) || 0;
                   }
                 } else {
-                  aggregatedBatches[bNum].quantity += parseInt(b.quantity, 10) || 0;
+                  aggregatedBatches[bNum].quantity +=
+                    parseInt(b.quantity, 10) || 0;
                   if (b.base_quantity) {
-                    aggregatedBatches[bNum].base_quantity += parseInt(b.base_quantity, 10) || 0;
+                    aggregatedBatches[bNum].base_quantity +=
+                      parseInt(b.base_quantity, 10) || 0;
                   }
                 }
               }
@@ -2952,10 +2958,10 @@ export const sapService = {
                           expiry_date: batchInput.expiry_date
                             ? new Date(batchInput.expiry_date)
                             : new Date(
-                              new Date().setFullYear(
-                                new Date().getFullYear() + 2
-                              )
-                            ),
+                                new Date().setFullYear(
+                                  new Date().getFullYear() + 2
+                                )
+                              ),
                           quantity: batchQty,
                           remaining_quantity: batchQty,
                           supplier_name: batchInput.supplier_name || null,
@@ -3018,10 +3024,10 @@ export const sapService = {
                           expiry_date: batchInput.expiry_date
                             ? new Date(batchInput.expiry_date)
                             : new Date(
-                              new Date().setFullYear(
-                                new Date().getFullYear() + 2
-                              )
-                            ),
+                                new Date().setFullYear(
+                                  new Date().getFullYear() + 2
+                                )
+                              ),
                           quantity: 0,
                           remaining_quantity: 0,
                           supplier_name: batchInput.supplier_name || null,
@@ -4191,10 +4197,10 @@ export const sapService = {
                         expiry_date: batchInput.expiry_date
                           ? new Date(batchInput.expiry_date)
                           : new Date(
-                            new Date().setFullYear(
-                              new Date().getFullYear() + 2
-                            )
-                          ),
+                              new Date().setFullYear(
+                                new Date().getFullYear() + 2
+                              )
+                            ),
                         quantity: batchQty,
                         remaining_quantity: batchQty,
                         supplier_name: batchInput.supplier_name || null,

@@ -1,0 +1,25 @@
+import { ImportExportService } from '../base/import-export.service';
+import { ColumnDefinition } from '../../../types/import-export.types';
+export declare class DepotsImportExportService extends ImportExportService<any> {
+    protected modelName: "depots";
+    protected displayName: string;
+    protected uniqueFields: string[];
+    protected searchFields: string[];
+    protected masterTableConfigs: {
+        masterTable: any;
+        masterKey: string;
+        masterDisplayFields: string[];
+        sheetName: string;
+        description: string;
+    }[];
+    private validationCache;
+    protected columns: ColumnDefinition[];
+    protected getSampleData(): Promise<any[]>;
+    protected getColumnDescription(key: string): string;
+    protected transformDataForExport(data: any[]): Promise<any[]>;
+    protected checkDuplicate(data: any, tx?: any): Promise<string | null>;
+    protected validateForeignKeys(data: any, tx?: any): Promise<string | null>;
+    protected prepareDataForImport(data: any, userId: number, tx?: any): Promise<any>;
+    protected updateExisting(data: any, userId: number, tx?: any): Promise<any>;
+}
+//# sourceMappingURL=depots-import-export.service.d.ts.map

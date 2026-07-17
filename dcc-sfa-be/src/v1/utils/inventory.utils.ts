@@ -71,6 +71,7 @@ export async function updateInventoryStock(
         data: {
           current_stock: (existingStock.current_stock ?? 0) + quantity,
           available_stock: (existingStock.available_stock ?? 0) + quantity,
+          is_unloadAll: 'N',
           updatedate: new Date(),
           updatedby: userId,
         },

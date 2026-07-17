@@ -1,0 +1,1 @@
+{"version":3,"file":"sap.controller.d.ts","sourceRoot":"","sources":["../../../src/v1/controllers/sap.controller.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,OAAO,EAAE,QAAQ,EAAE,MAAM,SAAS,CAAC;AAI5C,eAAO,MAAM,aAAa;0BACI,OAAO,OAAO,QAAQ;qBAwB3B,OAAO,OAAO,QAAQ;yBAqBlB,OAAO,OAAO,QAAQ;wBAoBvB,OAAO,OAAO,QAAQ;uBA8BvB,OAAO,OAAO,QAAQ;wCA0CL,GAAG,OAAO,GAAG;4CAqDT,GAAG,OAAO,GAAG;CAwD5D,CAAC"}
