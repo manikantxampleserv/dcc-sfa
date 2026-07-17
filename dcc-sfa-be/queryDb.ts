@@ -1,13 +1,20 @@
 import prisma from './src/configs/prisma.client';
-async function run() {
-  const stockMovements = await prisma.stock_movements.findMany({
-    where: {
-      movement_type: 'SALE',
-      product_id: 42 // Returnable Glass Bottles
-    },
-    select: { id: true, quantity: true, base_quantity: true }
-  });
-  console.log(JSON.stringify(stockMovements, null, 2));
-  await prisma.$disconnect();
+
+async function main() {
+  const query = process.argv[2];
+  if (!query) {
+    console.error('Please provide a query string');
+    process.exit(1);
+  }
+
+  try {
+    const result = await prisma.$queryRawUnsafe(query);
+    console.log(JSON.stringify(result, null, 2));
+  } catch (e) {
+    console.error(e);
+  } finally {
+    await prisma.$disconnect();
+  }
 }
-run();
+
+main();
