@@ -7360,7 +7360,6 @@ export const vanInventoryController = {
             ) {
               sessionStart = lastReconciliation.createdate;
             }
-            const sessionEnd = todayEnd;
 
             const productMap = new Map<
               string,
