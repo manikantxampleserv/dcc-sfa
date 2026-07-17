@@ -7302,18 +7302,7 @@ export const vanInventoryController = {
                 location_id: locationId,
                 salesperson_id: userIdNum,
                 is_active: 'Y',
-                AND: [
-                  {
-                    // Include null records (legacy) so they are captured and zeroed out
-                    OR: [{ is_unloadAll: 'N' }, { is_unloadAll: null }],
-                  },
-                  {
-                    OR: [
-                      { current_stock: { gt: 0 } },
-                      { base_quantity: { gt: 0 } },
-                    ],
-                  },
-                ],
+                OR: [{ is_unloadAll: 'N' }, { is_unloadAll: null }],
               },
               include: {
                 inventory_stock_products: {
@@ -7391,7 +7380,6 @@ export const vanInventoryController = {
               if (stock.product_id === null) continue;
               const qty = Number(stock.current_stock) || 0;
               const baseQty = Number(stock.base_quantity) || 0;
-              if (qty <= 0 && baseQty <= 0) continue;
 
               const batchNum =
                 stock.inventory_stock_batch?.batch_number ?? null;

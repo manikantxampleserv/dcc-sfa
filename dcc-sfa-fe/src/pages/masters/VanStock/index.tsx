@@ -9,7 +9,7 @@ import {
 import { Alert, Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
 import { TrendingUp, Truck } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
-import { ActionButton, DeleteButton, EditButton } from 'shared/ActionButton';
+import { ActionButton, DeleteButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
 import { PopConfirm } from 'shared/DeleteConfirmation';
 import SearchInput from 'shared/SearchInput';
@@ -87,10 +87,10 @@ const VanInventories: React.FC = () => {
     setDrawerOpen(true);
   }, []);
 
-  const handleEditVanInventory = useCallback((vanInventory: VanInventory) => {
-    setSelectedVanInventory(vanInventory);
-    setDrawerOpen(true);
-  }, []);
+  // const handleEditVanInventory = useCallback((vanInventory: VanInventory) => {
+  //   setSelectedVanInventory(vanInventory);
+  //   setDrawerOpen(true);
+  // }, []);
 
   const handleManageItems = useCallback((vanInventory: VanInventory) => {
     setSelectedVanInventory(vanInventory);
@@ -166,31 +166,31 @@ const VanInventories: React.FC = () => {
     }
   };
 
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'D':
-        return 'Draft';
-      case 'A':
-        return 'Confirmed';
-      case 'C':
-        return 'Canceled';
-      default:
-        return status;
-    }
-  };
+  // const getStatusLabel = (status: string) => {
+  //   switch (status) {
+  //     case 'D':
+  //       return 'Draft';
+  //     case 'A':
+  //       return 'Confirmed';
+  //     case 'C':
+  //       return 'Canceled';
+  //     default:
+  //       return status;
+  //   }
+  // };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'D':
-        return 'warning';
-      case 'A':
-        return 'success';
-      case 'C':
-        return 'error';
-      default:
-        return 'default';
-    }
-  };
+  // const getStatusColor = (status: string) => {
+  //   switch (status) {
+  //     case 'D':
+  //       return 'warning';
+  //     case 'A':
+  //       return 'success';
+  //     case 'C':
+  //       return 'error';
+  //     default:
+  //       return 'default';
+  //   }
+  // };
 
   const getApprovalLabel = (status: string | null | undefined) => {
     if (status === null || status === undefined || status === '') {
@@ -267,19 +267,19 @@ const VanInventories: React.FC = () => {
         />
       ),
     },
-    {
-      id: 'status',
-      label: 'Status',
-      render: (_value, row) => (
-        <Chip
-          label={getStatusLabel(row.status || 'D')}
-          size="small"
-          className="w-24"
-          variant="outlined"
-          color={getStatusColor(row.status || 'D') as any}
-        />
-      ),
-    },
+    // {
+    //   id: 'status',
+    //   label: 'Status',
+    //   render: (_value, row) => (
+    //     <Chip
+    //       label={getStatusLabel(row.status || 'D')}
+    //       size="small"
+    //       className="w-24"
+    //       variant="outlined"
+    //       color={getStatusColor(row.status || 'D') as any}
+    //     />
+    //   ),
+    // },
 
     {
       id: 'items',
@@ -351,14 +351,14 @@ const VanInventories: React.FC = () => {
                     />
                   </>
                 )}
-                {isUpdate &&
+                {/* {isUpdate &&
                   (row.approval_status === 'P' ||
                     row.approval_status?.toUpperCase() === 'PENDING') && (
                     <EditButton
                       onClick={() => handleEditVanInventory(row)}
                       tooltip={`Edit Van Inventory #${row.id}`}
                     />
-                  )}
+                  )} */}
                 {isDelete && (
                   <DeleteButton
                     onClick={() => handleDeleteVanInventory(row.id)}

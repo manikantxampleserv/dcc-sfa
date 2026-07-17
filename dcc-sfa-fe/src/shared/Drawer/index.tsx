@@ -87,7 +87,7 @@ const getDrawerWidth = (
     case 'medium':
       return 45;
     case 'large':
-      return 60;
+      return 65;
     case 'larger':
       return 75;
     case 'extra-large':
