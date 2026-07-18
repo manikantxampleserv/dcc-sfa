@@ -112,7 +112,7 @@ export const salespersonStockController = {
           {
             OR: [
               { salesperson_id: { in: targetSalespersonIds } },
-              { createdby: salespersonIdNum },
+              // { createdby: salespersonIdNum },
             ],
           },
           {
@@ -520,7 +520,7 @@ async function handleAllSalespersons(
         {
           OR: [
             { salesperson_id: { in: targetSalespersonIds } },
-            { createdby: sp.id },
+            // { createdby: sp.id },
           ],
         },
         {

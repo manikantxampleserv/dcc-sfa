@@ -14,7 +14,7 @@ const validate = (req, res, next) => {
         });
         return res.status(422).json({
             success: false,
-            message: 'Please fill all required fields',
+            message: extractedErrors[0]?.message || 'Please fill all required fields',
             errors: extractedErrors,
         });
     }

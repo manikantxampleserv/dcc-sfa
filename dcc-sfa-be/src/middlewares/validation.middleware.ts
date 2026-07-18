@@ -23,7 +23,7 @@ export const validate = (req: Request, res: Response, next: NextFunction) => {
 
     return res.status(422).json({
       success: false,
-      message: 'Please fill all required fields',
+      message: extractedErrors[0]?.message || 'Please fill all required fields',
       errors: extractedErrors,
     });
   }

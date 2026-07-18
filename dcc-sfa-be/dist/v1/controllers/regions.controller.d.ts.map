@@ -1,1 +1,0 @@
-{"version":3,"file":"regions.controller.d.ts","sourceRoot":"","sources":["../../../src/v1/controllers/regions.controller.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,OAAO,EAAE,QAAQ,EAAE,MAAM,SAAS,CAAC;AAkE5C,eAAO,MAAM,iBAAiB;uBACH,GAAG,OAAO,GAAG;uBA2Cb,GAAG,OAAO,GAAG;wBA4EZ,OAAO,OAAO,QAAQ;uBA8BvB,GAAG,OAAO,GAAG;uBAsDb,OAAO,OAAO,QAAQ;CA0ChD,CAAC"}

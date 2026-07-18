@@ -83,4 +83,4 @@ async function deleteAllUserData(userId: number) {
 }
 
 // Pass the user ID you want to clean up
-deleteAllUserData(16);
+deleteAllUserData(25);

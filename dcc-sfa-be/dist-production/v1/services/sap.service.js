@@ -2251,7 +2251,7 @@ const getSourceSystemLabel = (sourceSystem) => {
     return SOURCE_SYSTEM_LABELS[key] || sourceSystem;
 };
 exports.sapService = {
-    async createOrUpdateVanInventorySAP(payload, userId = 1) {
+    async createOrUpdateVanInventorySAP(payload, userId) {
         const { van_inventory_items, inventoryItems, ...inventoryData } = payload;
         const items = van_inventory_items || inventoryItems || payload.items || [];
         let inventoryId = inventoryData.id;

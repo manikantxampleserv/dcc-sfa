@@ -14,10 +14,10 @@ const permissions_config_1 = require("../../configs/permissions.config");
 const serializeVanInventory = (item) => {
     const productGroups = new Map();
     item.van_inventory_items_inventory?.forEach((it) => {
-        if (it.source_system !== 'sfa' &&
-            item.loading_type !== 'U' &&
-            (it.sap_docnum === null || it.sap_docnum === undefined))
+        if (item.loading_type === 'L' &&
+            (it.is_cancelled === 'Y' || it.is_cancelled === 'T')) {
             return;
+        }
         const productId = it.product_id;
         if (!productGroups.has(productId)) {
             productGroups.set(productId, []);
@@ -1429,6 +1429,10 @@ exports.vanInventoryController = {
                 tax_amount: Number(it.tax_amount || 0),
                 total_amount: Number(it.total_amount || 0),
                 notes: it.notes || null,
+                sap_docnum: it.sap_docnum || null,
+                sap_docentry: it.sap_docentry || null,
+                source_system: it.source_system || null,
+                source_system_label: (0, sourceSystem_1.getSourceSystemLabel)(it.source_system),
                 batch_lot_id: it.batch_lot_id || null,
                 batch: it.van_inventory_items_batch_lot
                     ? {
@@ -6115,6 +6119,7 @@ exports.vanInventoryController = {
                                     user_id: userIdNum,
                                     loading_type: 'L',
                                     status: 'A',
+                                    is_cancelled: 'N',
                                     createdate: { gte: sessionStart, lt: todayEnd },
                                 },
                             },

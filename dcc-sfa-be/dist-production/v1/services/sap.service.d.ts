@@ -1,5 +1,5 @@
 export declare const sapService: {
-    createOrUpdateVanInventorySAP(payload: any, userId?: number): Promise<{
+    createOrUpdateVanInventorySAP(payload: any, userId: number): Promise<{
         finalInventory: {
             id: number | undefined;
             user_id: number | undefined;

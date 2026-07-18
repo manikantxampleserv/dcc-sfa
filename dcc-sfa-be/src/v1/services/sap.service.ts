@@ -2457,7 +2457,7 @@ const getSourceSystemLabel = (
 };
 
 export const sapService = {
-  async createOrUpdateVanInventorySAP(payload: any, userId: number = 1) {
+  async createOrUpdateVanInventorySAP(payload: any, userId: number) {
     const { van_inventory_items, inventoryItems, ...inventoryData } = payload;
 
     const items = van_inventory_items || inventoryItems || payload.items || [];
