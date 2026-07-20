@@ -3638,7 +3638,6 @@ export const vanInventoryController = {
               },
             });
 
-            // Delete existing items and sub users when updating
             await tx.van_inventory_items.deleteMany({
               where: { parent_id: Number(inventoryId) },
             });

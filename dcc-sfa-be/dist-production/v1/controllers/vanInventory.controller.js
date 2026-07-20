@@ -567,7 +567,7 @@ async function processApprovedVanInventoryStock(inventoryId, userId, requestData
                                 batch_number: batchInput.batch_number,
                                 productsId: product.id,
                                 is_active: 'Y',
-                                // createdby: inventoryUserId,
+                                salesman_id: inventoryUserId,
                             },
                         });
                         if (batchLot) {
@@ -602,7 +602,8 @@ async function processApprovedVanInventoryStock(inventoryId, userId, requestData
                                     storage_location: batchInput.storage_location || null,
                                     is_active: 'Y',
                                     createdate: new Date(),
-                                    // createdby: inventoryUserId,
+                                    createdby: inventoryUserId,
+                                    salesman_id: inventoryUserId,
                                     log_inst: 1,
                                     productsId: product.id,
                                 },
@@ -952,7 +953,7 @@ async function processApprovedVanInventoryStock(inventoryId, userId, requestData
                                     batch_number: batchInput.batch_number,
                                     productsId: product.id,
                                     is_active: 'Y',
-                                    // // createdby: inventoryUserId,
+                                    salesman_id: inventoryUserId,
                                 },
                             });
                         }
@@ -2974,7 +2975,6 @@ exports.vanInventoryController = {
                             log_inst: { increment: 1 },
                         },
                     });
-                    // Delete existing items and sub users when updating
                     await tx.van_inventory_items.deleteMany({
                         where: { parent_id: Number(inventoryId) },
                     });
@@ -3065,7 +3065,7 @@ exports.vanInventoryController = {
                                             batch_number: batchInput.batch_number,
                                             productsId: product.id,
                                             is_active: 'Y',
-                                            createdby: Number(inventoryData.user_id),
+                                            salesman_id: Number(inventoryData.user_id),
                                         },
                                     });
                                     if (!batchLot) {
@@ -3088,6 +3088,7 @@ exports.vanInventoryController = {
                                                 is_active: 'Y',
                                                 createdate: new Date(),
                                                 createdby: Number(inventoryData.user_id),
+                                                salesman_id: Number(inventoryData.user_id),
                                                 productsId: product.id,
                                             },
                                         });
@@ -3210,7 +3211,7 @@ exports.vanInventoryController = {
                                             batch_number: batchInput.batch_number,
                                             productsId: product.id,
                                             is_active: 'Y',
-                                            createdby: Number(inventoryData.user_id),
+                                            salesman_id: Number(inventoryData.user_id),
                                         },
                                     });
                                     if (batchLot) {
@@ -3244,6 +3245,7 @@ exports.vanInventoryController = {
                                                 is_active: 'Y',
                                                 createdate: new Date(),
                                                 createdby: Number(inventoryData.user_id),
+                                                salesman_id: Number(inventoryData.user_id),
                                                 log_inst: 1,
                                                 productsId: product.id,
                                             },
@@ -3413,7 +3415,7 @@ exports.vanInventoryController = {
                                             batch_number: batchInput.batch_number,
                                             productsId: product.id,
                                             is_active: 'Y',
-                                            // createdby: Number(inventoryData.user_id),
+                                            salesman_id: Number(inventoryData.user_id),
                                         },
                                     });
                                     if (!batchLot)
@@ -5911,6 +5913,7 @@ exports.vanInventoryController = {
                     where: {
                         batch_number: { in: batchNumbers },
                         productsId: { in: productIds },
+                        salesman_id: userIdNum,
                     },
                     select: { id: true, batch_number: true, productsId: true },
                 });

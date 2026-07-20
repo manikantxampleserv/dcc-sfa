@@ -175,7 +175,7 @@ async function processVanInventoryItems(tx, inventory, items, userId, loadingTyp
                                 batch_number: batchInput.batch_number,
                                 productsId: product.id,
                                 is_active: 'Y',
-                                createdby: Number(inventoryData.user_id),
+                                salesman_id: Number(inventoryData.user_id),
                             },
                         });
                         if (batchLot) {
@@ -209,6 +209,7 @@ async function processVanInventoryItems(tx, inventory, items, userId, loadingTyp
                                     is_active: 'Y',
                                     createdate: new Date(),
                                     createdby: userId,
+                                    salesman_id: Number(inventoryData.user_id),
                                     log_inst: 1,
                                     productsId: product.id,
                                 },
@@ -490,7 +491,7 @@ async function processVanInventoryItems(tx, inventory, items, userId, loadingTyp
                                 batch_number: batchInput.batch_number,
                                 productsId: product.id,
                                 is_active: 'Y',
-                                createdby: Number(inventoryData.user_id),
+                                salesman_id: Number(inventoryData.user_id),
                             },
                         });
                         if (!batchLot)

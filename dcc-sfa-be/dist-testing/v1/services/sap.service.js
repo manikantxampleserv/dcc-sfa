@@ -2251,7 +2251,7 @@ const getSourceSystemLabel = (sourceSystem) => {
     return SOURCE_SYSTEM_LABELS[key] || sourceSystem;
 };
 exports.sapService = {
-    async createOrUpdateVanInventorySAP(payload, userId = 1) {
+    async createOrUpdateVanInventorySAP(payload, userId) {
         const { van_inventory_items, inventoryItems, ...inventoryData } = payload;
         const items = van_inventory_items || inventoryItems || payload.items || [];
         let inventoryId = inventoryData.id;
@@ -2613,7 +2613,7 @@ exports.sapService = {
                                         batch_number: batchInput.batch_number,
                                         productsId: product.id,
                                         is_active: 'Y',
-                                        createdby: Number(inventoryData.user_id),
+                                        salesman_id: Number(inventoryData.user_id),
                                     },
                                 });
                                 if (shouldPerformLoadingUnloading && !itemIsCancelled) {
@@ -2648,6 +2648,7 @@ exports.sapService = {
                                                 is_active: 'Y',
                                                 createdate: new Date(),
                                                 createdby: Number(inventoryData.user_id),
+                                                salesman_id: Number(inventoryData.user_id),
                                                 log_inst: 1,
                                                 productsId: product.id,
                                             },
@@ -2958,6 +2959,7 @@ exports.sapService = {
                                         batch_number: batchInput.batch_number,
                                         productsId: product.id,
                                         is_active: 'Y',
+                                        salesman_id: Number(inventoryData.user_id),
                                     },
                                 });
                                 if (!batchLot)
@@ -3613,7 +3615,7 @@ exports.sapService = {
                                     batch_number: batchInput.batch_number,
                                     productsId: product.id,
                                     is_active: 'Y',
-                                    createdby: Number(inventory.user_id),
+                                    salesman_id: Number(inventory.user_id),
                                 },
                             });
                             if (shouldPerformLoadingUnloading && !itemIsCancelled) {
@@ -3648,6 +3650,7 @@ exports.sapService = {
                                             is_active: 'Y',
                                             createdate: new Date(),
                                             createdby: Number(inventory.user_id),
+                                            salesman_id: Number(inventory.user_id),
                                             log_inst: 1,
                                             productsId: product.id,
                                         },
@@ -3793,6 +3796,7 @@ exports.sapService = {
                                     batch_number: batchInput.batch_number,
                                     productsId: product.id,
                                     is_active: 'Y',
+                                    salesman_id: Number(inventory.user_id),
                                 },
                             });
                             if (!batchLot)

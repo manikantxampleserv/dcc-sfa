@@ -135,6 +135,26 @@ class AttendanceCronService {
             }
         });
     }
+    static startRequestLogsCleanup() {
+        node_cron_1.default.schedule('0 0 * * *', async () => {
+            logger_1.default.info(`Running request_logs cleanup... Time: ${new Date().toISOString()}`);
+            try {
+                const oneDayAgo = new Date();
+                oneDayAgo.setDate(oneDayAgo.getDate() - 1);
+                const result = await prisma_client_1.default.request_logs.deleteMany({
+                    where: {
+                        createdate: {
+                            lt: oneDayAgo,
+                        },
+                    },
+                });
+                logger_1.default.info(`Request logs cleanup completed. Deleted ${result.count} records.`);
+            }
+            catch (error) {
+                logger_1.default.error(`Request logs cleanup error: ${error}`);
+            }
+        });
+    }
     static stopAllCronJobs() {
         node_cron_1.default.getTasks().forEach(task => task.stop());
     }

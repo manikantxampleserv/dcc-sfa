@@ -44,6 +44,7 @@ const startServer = async () => {
         app.listen(port, async () => {
             attendance_cron_service_1.AttendanceCronService.startAutoPunchOut();
             attendance_cron_service_1.AttendanceCronService.startMidnightStatusReset();
+            attendance_cron_service_1.AttendanceCronService.startRequestLogsCleanup();
             logger_1.default.info(`Server running at http://localhost:${port}`);
         });
     }
