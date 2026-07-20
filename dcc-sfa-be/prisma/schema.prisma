@@ -93,6 +93,7 @@ model users {
   inventory_stock_users                                             inventory_stock[]
   van_inventory_sub_users                                           van_inventory_sub_users[]
   reconciliations_as_salesman                                       reconciliation[]             @relation("ReconciliationSalesman")
+  batch_lots_salesman                                               batch_lots[]                 @relation("salesman_batch_lots")
 }
 
 model user_depots {
@@ -543,6 +544,8 @@ model batch_lots {
   manufacturing_date            DateTime
   expiry_date                   DateTime
   base_quantity                 Int?
+  salesman_id                   Int?
+  salesman                      users?                 @relation("salesman_batch_lots", fields: [salesman_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   quantity                      Int
   remaining_quantity            Int
   supplier_name                 String?                @db.NVarChar(255)
@@ -564,6 +567,7 @@ model batch_lots {
   stock_transfer_lines          stock_transfer_lines[]
   van_inventory_items_batch_lot van_inventory_items[]
 
+  @@unique([batch_number, productsId, salesman_id])
   @@index([batch_number])
   @@index([expiry_date])
 }

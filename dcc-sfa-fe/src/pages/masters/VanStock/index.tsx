@@ -9,7 +9,7 @@ import {
 import { Alert, Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
 import { TrendingUp, Truck } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
-import { ActionButton, DeleteButton } from 'shared/ActionButton';
+import { ActionButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
 import { PopConfirm } from 'shared/DeleteConfirmation';
 import SearchInput from 'shared/SearchInput';
@@ -19,7 +19,6 @@ import Table, { type TableColumn } from 'shared/Table';
 import { useExportToExcel } from '../../../hooks/useImportExport';
 import { usePermission } from '../../../hooks/usePermission';
 import {
-  useDeleteVanInventory,
   useVanInventory,
   type VanInventory,
 } from '../../../hooks/useVanInventory';
@@ -72,7 +71,6 @@ const VanInventories: React.FC = () => {
   const totalCount = vanInventoryResponse?.meta?.total || 0;
   const currentPage = (vanInventoryResponse?.meta?.page || 1) - 1;
 
-  const deleteVanInventoryMutation = useDeleteVanInventory();
   const exportToExcelMutation = useExportToExcel();
 
   const totalVanInventory = vanInventoryResponse?.stats?.total_records ?? 0;
@@ -96,17 +94,6 @@ const VanInventories: React.FC = () => {
     setSelectedVanInventory(vanInventory);
     setDetailDrawerOpen(true);
   }, []);
-
-  const handleDeleteVanInventory = useCallback(
-    async (id: number) => {
-      try {
-        await deleteVanInventoryMutation.mutateAsync(id);
-      } catch (error) {
-        console.error('Error deleting van inventory:', error);
-      }
-    },
-    [deleteVanInventoryMutation]
-  );
 
   const handleSearchChange = useCallback((value: string) => {
     setSearch(value);
@@ -350,22 +337,6 @@ const VanInventories: React.FC = () => {
                       color="info"
                     />
                   </>
-                )}
-                {/* {isUpdate &&
-                  (row.approval_status === 'P' ||
-                    row.approval_status?.toUpperCase() === 'PENDING') && (
-                    <EditButton
-                      onClick={() => handleEditVanInventory(row)}
-                      tooltip={`Edit Van Inventory #${row.id}`}
-                    />
-                  )} */}
-                {isDelete && (
-                  <DeleteButton
-                    onClick={() => handleDeleteVanInventory(row.id)}
-                    tooltip={`Delete Van Inventory #${row.id}`}
-                    itemName={`Van Inventory #${row.id}`}
-                    confirmDelete={true}
-                  />
                 )}
               </div>
             ),

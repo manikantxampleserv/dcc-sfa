@@ -2928,7 +2928,7 @@ export const sapService = {
                       batch_number: batchInput.batch_number,
                       productsId: product.id,
                       is_active: 'Y',
-                      createdby: Number(inventoryData.user_id),
+                      salesman_id: Number(inventoryData.user_id),
                     },
                   });
 
@@ -2971,6 +2971,7 @@ export const sapService = {
                           is_active: 'Y',
                           createdate: new Date(),
                           createdby: Number(inventoryData.user_id),
+                          salesman_id: Number(inventoryData.user_id),
                           log_inst: 1,
                           productsId: product.id,
                         },
@@ -3374,6 +3375,7 @@ export const sapService = {
                       batch_number: batchInput.batch_number,
                       productsId: product.id,
                       is_active: 'Y',
+                      salesman_id: Number(inventoryData.user_id),
                     },
                   });
 
@@ -4167,7 +4169,7 @@ export const sapService = {
                     batch_number: batchInput.batch_number,
                     productsId: product.id,
                     is_active: 'Y',
-                    createdby: Number(inventory.user_id),
+                    salesman_id: Number(inventory.user_id),
                   },
                 });
 
@@ -4210,6 +4212,7 @@ export const sapService = {
                         is_active: 'Y',
                         createdate: new Date(),
                         createdby: Number(inventory.user_id),
+                        salesman_id: Number(inventory.user_id),
                         log_inst: 1,
                         productsId: product.id,
                       },
@@ -4394,6 +4397,7 @@ export const sapService = {
                     batch_number: batchInput.batch_number,
                     productsId: product.id,
                     is_active: 'Y',
+                    salesman_id: Number(inventory.user_id),
                   },
                 });
 

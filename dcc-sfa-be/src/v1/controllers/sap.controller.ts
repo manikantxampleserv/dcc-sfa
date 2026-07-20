@@ -9,10 +9,18 @@ export const sapController = {
         sap_code: req.body.salesman_sap_code,
       },
     });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: `Salesman with SAP code ${req.body.salesman_sap_code} not found`,
+      });
+    }
+
     try {
       const result = await sapService.createOrUpdateVanInventorySAP(
         req.body,
-        user!.id
+        user.id
       );
 
       return res.status(201).json({
@@ -21,6 +29,7 @@ export const sapController = {
         data: result,
       });
     } catch (error: any) {
+      console.error(error.stack);
       return res.status(400).json({
         success: false,
         message: error.message,

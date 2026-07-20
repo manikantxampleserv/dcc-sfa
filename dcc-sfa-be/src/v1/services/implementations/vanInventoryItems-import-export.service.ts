@@ -109,48 +109,225 @@ export class VanInventoryItemsImportExportService extends ImportExportService<an
   ];
 
   protected async getSampleData(): Promise<any[]> {
+    const mockItems = [
+      {
+        code: 'FG001',
+        qty: 70,
+        batch: 'CK3-33679',
+        mfg: '2026-07-16',
+        exp: '2027-07-15',
+      },
+      {
+        code: 'FG012',
+        qty: 26,
+        batch: 'CK3-33586',
+        mfg: '2026-07-17',
+        exp: '2027-07-16',
+      },
+      {
+        code: 'FG024',
+        qty: 14,
+        batch: 'CK3-33521',
+        mfg: '2026-07-01',
+        exp: '2027-06-30',
+      },
+      {
+        code: 'FG002',
+        qty: 11,
+        batch: 'CK3-33539',
+        mfg: '2026-07-04',
+        exp: '2027-07-03',
+      },
+      {
+        code: 'FG003',
+        qty: 13,
+        batch: 'CK3-33537',
+        mfg: '2026-07-04',
+        exp: '2027-07-03',
+      },
+      {
+        code: 'PH001',
+        qty: 5,
+        batch: 'CK3-33494',
+        mfg: '2026-06-24',
+        exp: '2026-12-22',
+      },
+      {
+        code: 'KD001',
+        qty: 4,
+        batch: 'CK3-33486',
+        mfg: '2026-06-23',
+        exp: '2027-06-22',
+      },
+      {
+        code: 'FG004',
+        qty: 2,
+        batch: 'CK3-33513',
+        mfg: '2026-06-27',
+        exp: '2027-06-26',
+      },
+      {
+        code: 'FG005',
+        qty: 2,
+        batch: 'CK3-33553',
+        mfg: '2026-07-10',
+        exp: '2027-07-09',
+      },
+      {
+        code: 'FG006',
+        qty: 3,
+        batch: 'CK3-33549',
+        mfg: '2026-07-09',
+        exp: '2027-07-08',
+      },
+      {
+        code: 'FG008',
+        qty: 2,
+        batch: 'CK3-33444',
+        mfg: '2026-06-11',
+        exp: '2027-06-10',
+      },
+      {
+        code: 'FG009',
+        qty: 6,
+        batch: 'CK3-33579',
+        mfg: '2026-07-16',
+        exp: '2027-07-15',
+      },
+      {
+        code: 'FG010',
+        qty: 2,
+        batch: 'CK3-33338',
+        mfg: '2026-05-30',
+        exp: '2027-05-29',
+      },
+      {
+        code: 'FG011',
+        qty: 2,
+        batch: 'CK3-32758',
+        mfg: '2025-12-19',
+        exp: '2026-12-18',
+      },
+      {
+        code: 'FG007',
+        qty: 80,
+        batch: 'CK6-009',
+        mfg: '2026-07-15',
+        exp: '2027-07-14',
+      },
+      {
+        code: 'FG013',
+        qty: 70,
+        batch: 'CK4-878',
+        mfg: '2026-07-16',
+        exp: '2027-07-15',
+      },
+      {
+        code: 'FG014',
+        qty: 30,
+        batch: 'CK5-33572',
+        mfg: '2026-07-14',
+        exp: '2026-11-02',
+      },
+      {
+        code: 'PT007',
+        qty: 25,
+        batch: 'CK6-33590',
+        mfg: '2026-07-18',
+        exp: '2026-11-06',
+      },
+      {
+        code: 'PT006',
+        qty: 8,
+        batch: 'CK6-33576',
+        mfg: '2026-07-16',
+        exp: '2026-11-03',
+      },
+      {
+        code: 'PT005',
+        qty: 7,
+        batch: 'CK5-33567',
+        mfg: '2026-07-13',
+        exp: '2026-11-01',
+      },
+      {
+        code: 'PO015',
+        qty: 12,
+        batch: 'CK6-33561',
+        mfg: '2026-07-11',
+        exp: '2026-10-30',
+      },
+      {
+        code: 'PO013',
+        qty: 4,
+        batch: 'CK5-33577',
+        mfg: '2026-07-17',
+        exp: '2026-11-05',
+      },
+      {
+        code: 'PO012',
+        qty: 3,
+        batch: 'CK5-33565',
+        mfg: '2026-07-12',
+        exp: '2026-10-31',
+      },
+      {
+        code: 'PO010',
+        qty: 5,
+        batch: 'CK6-33550',
+        mfg: '2026-07-09',
+        exp: '2026-10-28',
+      },
+      {
+        code: 'PO009',
+        qty: 4,
+        batch: 'CK6-33583',
+        mfg: '2026-07-17',
+        exp: '2026-11-05',
+      },
+      {
+        code: 'PO008',
+        qty: 5,
+        batch: 'CK5-33444',
+        mfg: '2026-06-16',
+        exp: '2026-10-05',
+      },
+      {
+        code: 'PH009',
+        qty: 10,
+        batch: 'CK5-33497',
+        mfg: '2026-06-25',
+        exp: '2026-09-16',
+      },
+      {
+        code: 'PH008',
+        qty: 30,
+        batch: 'CK5-33542',
+        mfg: '2026-07-06',
+        exp: '2026-09-27',
+      },
+    ];
+
+    const sapCodes = mockItems.map(item => item.code);
     const products = await prisma.products.findMany({
-      take: 5,
-      select: { id: true, name: true, tracking_type: true },
+      where: { sap_code: { in: sapCodes } },
+      select: { id: true, sap_code: true },
     });
 
-    if (products.length === 0) return [];
+    const productMap = new Map(products.map(p => [p.sap_code, p.id]));
 
     const sampleData = [];
-
-    for (let pIndex = 0; pIndex < products.length; pIndex++) {
-      const product = products[pIndex];
-      const trackingType = product.tracking_type?.toUpperCase();
-
-      for (let bIndex = 1; bIndex <= 10; bIndex++) {
-        if (trackingType === 'BATCH') {
-          sampleData.push({
-            product_id: product.id,
-            quantity: 10,
-            batch_number: `B${String(pIndex + 1).padStart(2, '0')}-${String(bIndex).padStart(3, '0')}`,
-            manufacturing_date: '2025-01-01',
-            expiry_date: '2028-12-31',
-            serial_numbers: '',
-          });
-        } else if (trackingType === 'SERIAL') {
-          sampleData.push({
-            product_id: product.id,
-            quantity: 2,
-            batch_number: '',
-            manufacturing_date: '',
-            expiry_date: '',
-            serial_numbers: `SN-${pIndex + 1}-${bIndex}A, SN-${pIndex + 1}-${bIndex}B`,
-          });
-        } else {
-          sampleData.push({
-            product_id: product.id,
-            quantity: 15,
-            batch_number: '',
-            manufacturing_date: '',
-            expiry_date: '',
-            serial_numbers: '',
-          });
-        }
+    for (const item of mockItems) {
+      const productId = productMap.get(item.code);
+      if (productId) {
+        sampleData.push({
+          product_id: productId,
+          quantity: item.qty,
+          batch_number: item.batch,
+          manufacturing_date: item.mfg,
+          expiry_date: item.exp,
+          serial_numbers: '',
+        });
       }
     }
 

@@ -226,7 +226,7 @@ export async function processVanInventoryItems(
                 batch_number: batchInput.batch_number,
                 productsId: product.id,
                 is_active: 'Y',
-                createdby: Number(inventoryData.user_id),
+                salesman_id: Number(inventoryData.user_id),
               },
             });
 
@@ -262,6 +262,7 @@ export async function processVanInventoryItems(
                   is_active: 'Y',
                   createdate: new Date(),
                   createdby: userId,
+                  salesman_id: Number(inventoryData.user_id),
                   log_inst: 1,
                   productsId: product.id,
                 },
@@ -613,7 +614,7 @@ export async function processVanInventoryItems(
                 batch_number: batchInput.batch_number,
                 productsId: product.id,
                 is_active: 'Y',
-                createdby: Number(inventoryData.user_id),
+                salesman_id: Number(inventoryData.user_id),
               },
             });
 
