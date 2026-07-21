@@ -371,6 +371,8 @@ export class VanInventoryImportExportService extends ImportExportService<any> {
             unit_price: item.unit_price || 0,
             batch_number: item.batch_lots?.batch_number || '',
             serial_numbers: item.serial_numbers?.serial_number || '',
+            is_cancelled: "Y"
+
           });
         }
       }

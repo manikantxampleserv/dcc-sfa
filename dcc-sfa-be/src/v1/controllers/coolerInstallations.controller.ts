@@ -30,6 +30,8 @@ interface CoolerInstallationSerialized {
   approval_status?: string | null;
   updatedate?: string | null;
   updatedby?: number | null;
+  asset_barcode?: string | null;
+  asset_nfc_tag?: string | null;
   customer?: {
     id: number;
     name: string;
@@ -58,6 +60,8 @@ interface CoolerInstallationSerialized {
     serial_number?: string | null;
     current_status?: string | null;
     current_location?: string | null;
+    barcode?: string | null;
+    nfc_tag?: string | null;
     asset_type?: {
       id: number;
       name: string;
@@ -117,6 +121,8 @@ const serializeCoolerInstallation = (
     updatedby: cooler.updatedby,
     approval_status: cooler.approval_status,
     current_approver: currentApprover || null,
+    asset_barcode: asset_master?.barcode || null,
+    asset_nfc_tag: asset_master?.nfc_tag || null,
 
     customer: customer
       ? { id: customer.id, name: customer.name, code: customer.code }
@@ -137,6 +143,8 @@ const serializeCoolerInstallation = (
           serial_number: asset_master.serial_number,
           current_status: asset_master.current_status,
           current_location: asset_master.current_location,
+          barcode: asset_master.barcode || null,
+          nfc_tag: asset_master.nfc_tag || null,
           asset_type: asset_type
             ? { id: asset_type.id, name: asset_type.name }
             : null,
@@ -280,6 +288,8 @@ export const coolerInstallationsController = {
               serial_number: true,
               current_status: true,
               current_location: true,
+              barcode: true,
+              nfc_tag: true,
               asset_master_asset_types: true,
               asset_master_asset_sub_types: true,
               asset_master_brands: true,
@@ -472,6 +482,8 @@ export const coolerInstallationsController = {
               serial_number: true,
               current_status: true,
               current_location: true,
+              barcode: true,
+              nfc_tag: true,
               asset_master_asset_types: true,
               asset_master_asset_sub_types: true,
               asset_master_brands: true,
@@ -642,6 +654,8 @@ export const coolerInstallationsController = {
               serial_number: true,
               current_status: true,
               current_location: true,
+              barcode: true,
+              nfc_tag: true,
               asset_master_asset_types: true,
               asset_master_asset_sub_types: true,
               asset_master_brands: true,
@@ -801,6 +815,8 @@ export const coolerInstallationsController = {
               serial_number: true,
               current_status: true,
               current_location: true,
+              barcode: true,
+              nfc_tag: true,
               asset_master_asset_types: true,
               asset_master_asset_sub_types: true,
               asset_master_brands: true,
@@ -973,9 +989,12 @@ export const coolerInstallationsController = {
           cooler_asset_master: {
             select: {
               id: true,
+              name: true,
               serial_number: true,
               current_status: true,
               current_location: true,
+              barcode: true,
+              nfc_tag: true,
               asset_master_asset_types: true,
               asset_master_asset_sub_types: true,
               asset_master_brands: true,
