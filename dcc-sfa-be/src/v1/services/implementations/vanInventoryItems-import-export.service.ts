@@ -118,14 +118,14 @@ export class VanInventoryItemsImportExportService extends ImportExportService<an
         exp: '2027-07-15',
       },
       {
-        code: 'FG012',
+        code: 'FG001',
         qty: 26,
         batch: 'CK3-33586',
         mfg: '2026-07-17',
         exp: '2027-07-16',
       },
       {
-        code: 'FG024',
+        code: 'FG001',
         qty: 14,
         batch: 'CK3-33521',
         mfg: '2026-07-01',
@@ -167,14 +167,14 @@ export class VanInventoryItemsImportExportService extends ImportExportService<an
         exp: '2027-06-26',
       },
       {
-        code: 'FG005',
+        code: 'FG004',
         qty: 2,
         batch: 'CK3-33553',
         mfg: '2026-07-10',
         exp: '2027-07-09',
       },
       {
-        code: 'FG006',
+        code: 'FG004',
         qty: 3,
         batch: 'CK3-33549',
         mfg: '2026-07-09',

@@ -1186,7 +1186,9 @@ const InventoryDetail = () => {
               )
               .map(product => {
                 const stockStatus = getStockStatus(
-                  Number(product.total_remaining_quantity) || Number(product.total_remaining_base_quantity) || 0
+                  Number(product.total_remaining_quantity) ||
+                    Number(product.total_remaining_base_quantity) ||
+                    0
                 );
                 return (
                   <div
@@ -1249,14 +1251,16 @@ const InventoryDetail = () => {
                           </span>
                         </div>
                       ) : (
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-gray-600">
-                            Serial Numbers
-                          </span>
-                          <span className="font-medium">
-                            {product.serials?.length || 0}
-                          </span>
-                        </div>
+                        product.tracking_type?.toLowerCase() === 'serial' && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-gray-600">
+                              Serial Numbers
+                            </span>
+                            <span className="font-medium">
+                              {product.serials?.length || 0}
+                            </span>
+                          </div>
+                        )
                       )}
                     </div>
                     {product.total_quantity > 0 &&
@@ -1663,7 +1667,9 @@ const InventoryDetail = () => {
                     Current Stock Availability
                   </span>
                   <span className="font-black text-emerald-600 font-mono">
-                    {(salespersonData?.total_remaining_quantity || salespersonData?.total_remaining_base_quantity || 0) > 0
+                    {(salespersonData?.total_remaining_quantity ||
+                      salespersonData?.total_remaining_base_quantity ||
+                      0) > 0
                       ? 'In Stock'
                       : 'Out of Stock'}
                   </span>
