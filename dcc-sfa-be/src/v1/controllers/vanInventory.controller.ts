@@ -476,6 +476,7 @@ async function updateInventoryStock(
   const whereClause: any = {
     product_id: productId,
     location_id: validLocationId,
+    salesperson_id: salespersonId,
     is_unloadAll: 'N',
   };
 
