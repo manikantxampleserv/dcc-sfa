@@ -204,9 +204,7 @@ const serializeVanInventory = (item: any): VanInventorySerialized => {
         const batchItems = items.filter(
           it => it.batch_lot_id === batch.batch_lot_id
         );
-        // const batchItemsUnique = items.filter(
-        //   it => it.batch_number === batch.batch_number
-        // );
+
         const batchQuantity = batchItems.reduce(
           (sum, it) => sum + (it.quantity || 0),
           0

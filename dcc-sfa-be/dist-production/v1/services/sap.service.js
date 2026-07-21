@@ -2708,6 +2708,7 @@ exports.sapService = {
                                                 is_active: 'Y',
                                                 createdate: new Date(),
                                                 createdby: Number(inventoryData.user_id),
+                                                salesman_id: Number(inventoryData.user_id),
                                                 log_inst: 1,
                                                 productsId: product.id,
                                             },

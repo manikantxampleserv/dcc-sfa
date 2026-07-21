@@ -103,9 +103,6 @@ const serializeVanInventory = (item) => {
         if (trackingType === 'batch') {
             batches.forEach(batch => {
                 const batchItems = items.filter(it => it.batch_lot_id === batch.batch_lot_id);
-                // const batchItemsUnique = items.filter(
-                //   it => it.batch_number === batch.batch_number
-                // );
                 const batchQuantity = batchItems.reduce((sum, it) => sum + (it.quantity || 0), 0);
                 const batchBaseQuantity = batchItems.reduce((sum, it) => sum + (it.base_quantity || 0), 0);
                 const batchAmount = batchItems.reduce((sum, it) => sum + parseFloat(it.total_amount || 0), 0);
