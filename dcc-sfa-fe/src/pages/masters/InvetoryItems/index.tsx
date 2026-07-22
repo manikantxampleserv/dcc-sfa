@@ -203,14 +203,6 @@ const InventoryItems: React.FC = () => {
                 />
               </div>
             </div>
-            <div className="ml-auto flex items-center gap-2">
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-green-100 rounded-full">
-                <Package className="w-4 h-4 text-green-600" />
-                <span className="text-sm font-medium text-green-700">
-                  {summary.total_items} Items
-                </span>
-              </div>
-            </div>
           </div>
         </div>
       )}
