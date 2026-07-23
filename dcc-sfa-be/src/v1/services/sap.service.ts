@@ -525,10 +525,10 @@ export const sapService = {
                 sap_lineid: sapLineid,
                 ...(isUpdate && inventoryId
                   ? {
-                      NOT: {
-                        parent_id: Number(inventoryId),
-                      },
-                    }
+                    NOT: {
+                      parent_id: Number(inventoryId),
+                    },
+                  }
                   : {}),
               },
             });
@@ -617,11 +617,11 @@ export const sapService = {
                 );
               }
               const declaredQty = parseInt(item.quantity, 10);
-              if (Number.isNaN(declaredQty) || declaredQty !== totalBatchQty) {
-                throw new Error(
-                  `Quantity mismatch for batch-tracked product "${product.name}": declared quantity ${item.quantity} does not match sum of batches ${totalBatchQty}`
-                );
-              }
+              // if (Number.isNaN(declaredQty) || declaredQty !== totalBatchQty) {
+              //   throw new Error(
+              //     `Quantity mismatch for batch-tracked product "${product.name}": declared quantity ${item.quantity} does not match sum of batches ${totalBatchQty}`
+              //   );
+              // }
             } else if (trackingType === 'SERIAL') {
               if (
                 !serialData ||
@@ -669,9 +669,9 @@ export const sapService = {
                     parseInt(batchInput.base_quantity, 10) || 0;
                   //new changes
 
-                  if (batchQty <= 0) {
-                    throw new Error('Batch quantity must be greater than 0');
-                  }
+                  // if (batchQty <= 0) {
+                  //   throw new Error('Batch quantity must be greater than 0');
+                  // }
                   let batchLot: any = null;
                   let productBatch: any = null;
 
@@ -716,10 +716,10 @@ export const sapService = {
                           expiry_date: batchInput.expiry_date
                             ? new Date(batchInput.expiry_date)
                             : new Date(
-                                new Date().setFullYear(
-                                  new Date().getFullYear() + 2
-                                )
-                              ),
+                              new Date().setFullYear(
+                                new Date().getFullYear() + 2
+                              )
+                            ),
 
                           quantity: batchQty,
                           remaining_quantity: batchQty,
@@ -789,15 +789,15 @@ export const sapService = {
                           expiry_date: batchInput.expiry_date
                             ? new Date(batchInput.expiry_date)
                             : new Date(
-                                new Date().setFullYear(
-                                  new Date().getFullYear() + 2
-                                )
-                              ),
+                              new Date().setFullYear(
+                                new Date().getFullYear() + 2
+                              )
+                            ),
 
                           quantity: 0,
                           remaining_quantity: 0,
                           //new changes
-                          base_quantity: batchBaseQty,
+                          base_quantity: 0,
                           //new changes
                           supplier_name: batchInput.supplier_name || null,
                           purchase_price: batchInput.purchase_price || null,
@@ -1170,14 +1170,14 @@ export const sapService = {
                   );
                 }
                 const declaredQtyUnload = parseInt(item.quantity, 10);
-                if (
-                  Number.isNaN(declaredQtyUnload) ||
-                  declaredQtyUnload !== totalBatchQtyUnload
-                ) {
-                  throw new Error(
-                    `Quantity mismatch for batch-tracked product "${product.name}": declared quantity ${item.quantity} does not match sum of batches ${totalBatchQtyUnload}`
-                  );
-                }
+                // if (
+                //   Number.isNaN(declaredQtyUnload) ||
+                //   declaredQtyUnload !== totalBatchQtyUnload
+                // ) {
+                //   throw new Error(
+                //     `Quantity mismatch for batch-tracked product "${product.name}": declared quantity ${item.quantity} does not match sum of batches ${totalBatchQtyUnload}`
+                //   );
+                // }
 
                 for (const batchInput of batchData) {
                   const batchQty = parseInt(batchInput.quantity, 10) || 0;
@@ -2081,10 +2081,10 @@ export const sapService = {
                         expiry_date: batchInput.expiry_date
                           ? new Date(batchInput.expiry_date)
                           : new Date(
-                              new Date().setFullYear(
-                                new Date().getFullYear() + 2
-                              )
-                            ),
+                            new Date().setFullYear(
+                              new Date().getFullYear() + 2
+                            )
+                          ),
 
                         quantity: batchQty,
                         remaining_quantity: batchQty,
