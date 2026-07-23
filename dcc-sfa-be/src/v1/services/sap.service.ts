@@ -663,6 +663,11 @@ export const sapService = {
               if (trackingType === 'BATCH') {
                 for (const batchInput of batchData) {
                   const batchQty = parseInt(batchInput.quantity, 10) || 0;
+                  //new changes
+
+                  const batchBaseQty =
+                    parseInt(batchInput.base_quantity, 10) || 0;
+                  //new changes
 
                   if (batchQty <= 0) {
                     throw new Error('Batch quantity must be greater than 0');
@@ -687,6 +692,12 @@ export const sapService = {
                           quantity: batchLot.quantity + batchQty,
                           remaining_quantity:
                             batchLot.remaining_quantity + batchQty,
+                          //new changes
+
+                          base_quantity:
+                            (batchLot.base_quantity || 0) + batchBaseQty,
+                          //new changes
+
                           updatedate: new Date(),
                         },
                       });
@@ -712,6 +723,11 @@ export const sapService = {
 
                           quantity: batchQty,
                           remaining_quantity: batchQty,
+
+                          //new changes
+                          base_quantity: batchBaseQty,
+                          //new changes
+
                           supplier_name: batchInput.supplier_name || null,
                           purchase_price: batchInput.purchase_price || null,
                           quality_grade: batchInput.quality_grade || 'A',
@@ -780,6 +796,9 @@ export const sapService = {
 
                           quantity: 0,
                           remaining_quantity: 0,
+                          //new changes
+                          base_quantity: batchBaseQty,
+                          //new changes
                           supplier_name: batchInput.supplier_name || null,
                           purchase_price: batchInput.purchase_price || null,
                           quality_grade: batchInput.quality_grade || 'A',
@@ -794,11 +813,6 @@ export const sapService = {
                       });
                     }
                   }
-
-                  //new change
-                  const batchBaseQty =
-                    parseInt(batchInput.base_quantity, 10) || 0;
-                  //new change
 
                   await tx.van_inventory_items.create({
                     data: {
