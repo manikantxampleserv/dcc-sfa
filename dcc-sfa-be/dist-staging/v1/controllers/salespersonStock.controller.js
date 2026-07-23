@@ -121,6 +121,7 @@ exports.salespersonStockController = {
                             id: true,
                             name: true,
                             code: true,
+                            base_price: true,
                             tracking_type: true,
                             product_unit_of_measurement: {
                                 select: { id: true, name: true, conversion_rate: true },
@@ -211,8 +212,9 @@ exports.salespersonStockController = {
                         product_name: product?.name || null,
                         product_code: product?.code || null,
                         tracking_type: product?.tracking_type || 'none',
-                        unit_price: null,
+                        unit_price: product?.base_price ? Number(product.base_price) : null,
                         product_unit_of_measurement: product?.product_unit_of_measurement || null,
+                        unit_of_measurment: product?.product_unit_of_measurement || null,
                         tax_details: product?.product_tax_master
                             ? {
                                 id: product.product_tax_master.id,
@@ -222,6 +224,7 @@ exports.salespersonStockController = {
                                 description: product.product_tax_master.description,
                             }
                             : null,
+                        quantity: 0,
                         total_quantity: 0,
                         total_remaining_quantity: 0,
                         total_base_quantity: 0,
@@ -234,6 +237,7 @@ exports.salespersonStockController = {
                 const productData = productsMap.get(productId);
                 const qty = Number(stock.current_stock) || 0;
                 const baseQty = Number(stock.base_quantity) || 0;
+                productData.quantity += qty;
                 productData.total_quantity += qty;
                 productData.total_remaining_quantity += qty;
                 productData.total_base_quantity += baseQty;

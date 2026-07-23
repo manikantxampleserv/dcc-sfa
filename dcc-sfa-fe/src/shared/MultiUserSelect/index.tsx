@@ -220,8 +220,8 @@ const MultiUserSelect: React.FC<MultiUserSelectProps> = ({
           </Avatar>
           <Box>
             <p className="!text-gray-900 !text-sm">{option.name || ''}</p>
-            {option.email && (
-              <p className="!text-gray-500 !text-xs">{option.email}</p>
+            {option.code && (
+              <p className="!text-gray-500 !text-xs">{option.code}</p>
             )}
           </Box>
         </Box>
