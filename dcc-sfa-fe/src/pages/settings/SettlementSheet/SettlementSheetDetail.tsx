@@ -99,14 +99,17 @@ export default function SettlementSheetDetail() {
         skuMap.set(key, { ...item });
       }
     });
-    
+
     const aggregatedArray = Array.from(skuMap.values());
     aggregatedArray.sort((a, b) => {
       const skuA = String(a.skuCode || '');
       const skuB = String(b.skuCode || '');
-      return skuA.localeCompare(skuB, undefined, { numeric: true, sensitivity: 'base' });
+      return skuA.localeCompare(skuB, undefined, {
+        numeric: true,
+        sensitivity: 'base',
+      });
     });
-    
+
     return aggregatedArray;
   }, [items]);
 
@@ -137,10 +140,10 @@ export default function SettlementSheetDetail() {
         (item.saleQuantity || 0) * price +
         (item.saleBaseQty || 0) * basePricePerPc;
       totalSaleValue += saleVal;
-      
+
       const itemTax = Number(item.taxAmount) || 0;
       totalTaxAmount += itemTax;
-      
+
       const taxRate = saleVal > 0 ? itemTax / saleVal : 0.18;
 
       const variance = Number(item.variance) || 0;
@@ -151,12 +154,18 @@ export default function SettlementSheetDetail() {
         action.includes('Default Outlet') &&
         (variance < 0 || varianceBase < 0)
       ) {
-        const shortageValue = Math.abs(variance) * price + Math.abs(varianceBase) * basePricePerPc;
+        const shortageValue =
+          Math.abs(variance) * price + Math.abs(varianceBase) * basePricePerPc;
         totalDefaultOutletValue += shortageValue;
         totalDefaultOutletTax += shortageValue * taxRate;
       }
     });
-    return { totalSaleValue, totalTaxAmount, totalDefaultOutletValue, totalDefaultOutletTax };
+    return {
+      totalSaleValue,
+      totalTaxAmount,
+      totalDefaultOutletValue,
+      totalDefaultOutletTax,
+    };
   }, [aggregatedItems]);
 
   const columns: TableColumn<ReconciliationItem>[] = [
@@ -286,7 +295,7 @@ export default function SettlementSheetDetail() {
           <span className="block text-center">
             {hasActualCases || hasActualPCs
               ? `${actual.c} Cases ${isRGB ? `${actual.p} PCs` : ''}`
-              : '-'}
+              : `0 Cases ${isRGB ? '0 PCs' : ''}`}
           </span>
         );
       },
@@ -298,10 +307,15 @@ export default function SettlementSheetDetail() {
       render: (_, row) => {
         const val = row.variance;
         const baseVal = row.varianceBaseQty;
+
+        const isRGB =
+          row.subCategoryName?.toUpperCase().includes('RGB') ||
+          row.subCategoryName?.toUpperCase().includes('RETURNABLE GLASS');
+
         if (val === null || val === undefined)
           return (
             <span className="block text-center font-medium text-gray-900">
-              -
+              0 Cases {isRGB && '0 PCs'}
             </span>
           );
 
@@ -327,10 +341,6 @@ export default function SettlementSheetDetail() {
         const sign = isShort ? '-' : isExcess ? '+' : '';
         const cases = Math.abs(variance.c);
         const pcs = Math.abs(variance.p);
-
-        const isRGB =
-          row.subCategoryName?.toUpperCase().includes('RGB') ||
-          row.subCategoryName?.toUpperCase().includes('RETURNABLE GLASS');
 
         if (cases === 0 && pcs === 0) {
           return (
@@ -387,6 +397,14 @@ export default function SettlementSheetDetail() {
       id: 'resolutionAction',
       label: 'Action',
       render: val => {
+        let displayVal = val;
+        if (
+          displayVal === 'Awaiting Verification' ||
+          displayVal === 'Pending'
+        ) {
+          displayVal = 'CLEAN';
+        }
+
         let color:
           | 'default'
           | 'primary'
@@ -395,13 +413,13 @@ export default function SettlementSheetDetail() {
           | 'info'
           | 'success'
           | 'warning' = 'default';
-        if (val === 'CLEAN') color = 'success';
-        else if (val?.includes('Default Outlet')) color = 'error';
-        else if (val?.includes('Adjustment')) color = 'warning';
+        if (displayVal === 'CLEAN') color = 'success';
+        else if (displayVal?.includes('Default Outlet')) color = 'error';
+        else if (displayVal?.includes('Adjust')) color = 'info';
         return (
           <div className="text-center block">
             <Chip
-              label={val || '-'}
+              label={displayVal || '-'}
               color={color}
               size="small"
               variant="outlined"

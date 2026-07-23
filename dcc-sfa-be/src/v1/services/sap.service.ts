@@ -17,7 +17,6 @@ async function updateInventoryStock(
   //new change
   baseQuantity: number = 0
   //new change
-
 ): Promise<void> {
   let validLocationId = locationId;
   let salespersonId: number | null = vanUserId || null;
@@ -45,6 +44,7 @@ async function updateInventoryStock(
   const whereClause: any = {
     product_id: productId,
     location_id: validLocationId,
+    salesperson_id: salespersonId,
   };
 
   if (batchId !== null) whereClause.batch_id = batchId;
@@ -112,7 +112,10 @@ async function updateInventoryStock(
       const newAvailableStock = Math.max(0, prevAvailable - quantity);
 
       //new change
-      const newBaseQuantity = Math.max(0, (existingStock.base_quantity ?? 0) - baseQuantity);
+      const newBaseQuantity = Math.max(
+        0,
+        (existingStock.base_quantity ?? 0) - baseQuantity
+      );
       //new change
 
       console.log(
@@ -522,12 +525,10 @@ export const sapService = {
                 sap_lineid: sapLineid,
                 ...(isUpdate && inventoryId
                   ? {
-
-                    NOT: {
-                      parent_id: Number(inventoryId),
-                    },
-                  }
-
+                      NOT: {
+                        parent_id: Number(inventoryId),
+                      },
+                    }
                   : {}),
               },
             });
@@ -704,10 +705,10 @@ export const sapService = {
                           expiry_date: batchInput.expiry_date
                             ? new Date(batchInput.expiry_date)
                             : new Date(
-                              new Date().setFullYear(
-                                new Date().getFullYear() + 2
-                              )
-                            ),
+                                new Date().setFullYear(
+                                  new Date().getFullYear() + 2
+                                )
+                              ),
 
                           quantity: batchQty,
                           remaining_quantity: batchQty,
@@ -772,11 +773,10 @@ export const sapService = {
                           expiry_date: batchInput.expiry_date
                             ? new Date(batchInput.expiry_date)
                             : new Date(
-
-                              new Date().setFullYear(
-                                new Date().getFullYear() + 2
-                              )
-                            ),
+                                new Date().setFullYear(
+                                  new Date().getFullYear() + 2
+                                )
+                              ),
 
                           quantity: 0,
                           remaining_quantity: 0,
@@ -796,7 +796,8 @@ export const sapService = {
                   }
 
                   //new change
-                  const batchBaseQty = parseInt(batchInput.base_quantity, 10) || 0;
+                  const batchBaseQty =
+                    parseInt(batchInput.base_quantity, 10) || 0;
                   //new change
 
                   await tx.van_inventory_items.create({
@@ -824,7 +825,6 @@ export const sapService = {
                       //new change
                       base_quantity: batchBaseQty,
                       //new change
-
                     },
                   });
                   console.log(` Created van_inventory_items`);
@@ -844,7 +844,6 @@ export const sapService = {
                       //new change
                       batchBaseQty
                       //new change
-
                     );
 
                     await createStockMovement(tx, {
@@ -1084,7 +1083,6 @@ export const sapService = {
                     //new change
                     baseQty
                     //new change
-
                   );
                   console.log(`    Updated inventory_stock`);
 
@@ -1206,7 +1204,8 @@ export const sapService = {
                     item.is_cancelled === 'T' || item.is_cancelled === 'Y';
 
                   //new change
-                  const batchBaseQty = parseInt(batchInput.base_quantity, 10) || 0;
+                  const batchBaseQty =
+                    parseInt(batchInput.base_quantity, 10) || 0;
                   //new change
 
                   if (shouldPerformLoadingUnloading && !itemIsCancelled) {
@@ -2068,11 +2067,10 @@ export const sapService = {
                         expiry_date: batchInput.expiry_date
                           ? new Date(batchInput.expiry_date)
                           : new Date(
-
-                            new Date().setFullYear(
-                              new Date().getFullYear() + 2
-                            )
-                          ),
+                              new Date().setFullYear(
+                                new Date().getFullYear() + 2
+                              )
+                            ),
 
                         quantity: batchQty,
                         remaining_quantity: batchQty,

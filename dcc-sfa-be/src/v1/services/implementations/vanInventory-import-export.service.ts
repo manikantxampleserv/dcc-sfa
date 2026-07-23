@@ -1,7 +1,7 @@
-import { ColumnDefinition } from '../../../types/import-export.types';
-import { ImportExportService } from '../base/import-export.service';
 import prisma from '../../../configs/prisma.client';
+import { ColumnDefinition } from '../../../types/import-export.types';
 import { processVanInventoryItems } from '../../utils/inventory.utils';
+import { ImportExportService } from '../base/import-export.service';
 export class VanInventoryImportExportService extends ImportExportService<any> {
   protected modelName = 'van_inventory' as const;
   protected displayName = 'Van Inventory';
@@ -153,6 +153,21 @@ export class VanInventoryImportExportService extends ImportExportService<any> {
       },
       description: 'Quantity of the product (required)',
     },
+    {
+      key: 'base_quantity',
+      header: 'Base Quantity',
+      width: 15,
+      required: false,
+      type: 'number',
+      validation: value => {
+        if (!value) return true;
+        const numValue = Number(value);
+        if (isNaN(numValue) || numValue < 0)
+          return 'Base Quantity must be a positive number';
+        return true;
+      },
+      description: 'Base Quantity (Pieces) of the product (optional)',
+    },
 
     {
       key: 'batch_number',
@@ -205,134 +220,71 @@ export class VanInventoryImportExportService extends ImportExportService<any> {
       select: { id: true, name: true },
       orderBy: { id: 'asc' },
     });
-    const userIds = users.map(u => u.id);
     const productIds = products.map(p => p.id);
     const vehicleIds = vehicles.map(v => v.id);
     const depotIds = depots.map(d => d.id);
-    const userId1 = userIds[0] || 1;
-    const userId2 = userIds[1] || 1;
-    const userId3 = userIds[2] || 1;
+    const salesmanUser = await prisma.users.findFirst({
+      where: {
+        user_role: {
+          OR: [
+            { name: { contains: 'Salesman' } },
+            { name: { contains: 'Salesperson' } },
+            { role_key: { contains: 'salesman' } },
+            { role_key: { contains: 'salesperson' } },
+          ],
+        },
+      },
+      select: { id: true, name: true },
+    });
+    const userId1 = salesmanUser?.id || users[0]?.id || 1;
 
-    const p1 = productIds[0] || 1;
-    const p2 = productIds[1] || p1;
-    const p3 = productIds[2] || p1;
-    const p4 = productIds[3] || p1;
-    const p5 = productIds[4] || p2;
-    const p6 = productIds[5] || p3;
-    const p7 = productIds[6] || p1;
-    const p8 = productIds[7] || p2;
-    const p9 = productIds[8] || p3;
+    const product1 = await prisma.products.findFirst({
+      where: { sap_code: 'FG001' },
+    });
+    const product2 = await prisma.products.findFirst({
+      where: { sap_code: 'KD003' },
+    });
+    const moshiDepot = await prisma.depots.findFirst({
+      where: { sap_code: 'MOS' },
+    });
 
+    const p1 = product1?.id || productIds[0] || 1;
+    const p2 = product2?.id || productIds[1] || p1;
     const vehicleId1 = vehicleIds[0] || 1;
-    const vehicleId2 = vehicleIds[1] || 1;
-    const vehicleId3 = vehicleIds[2] || 1;
-    const depotId1 = depotIds[0] || 1;
-    const depotId2 = depotIds[1] || depotId1;
-    const depotId3 = depotIds[2] || depotId1;
+    const depotId1 = moshiDepot?.id || depotIds[0] || 1;
 
     return [
       {
         user_id: userId1,
         loading_type: 'L',
-        document_date: '2024-01-20',
+        document_date: '2026-07-23',
         vehicle_id: vehicleId1,
         location_id: depotId1,
         product_id: p1,
-        quantity: 50,
-        batch_number: 'B001',
+        quantity: 10,
+        base_quantity: 2,
+        batch_number: 'B2026-001',
       },
       {
         user_id: userId1,
         loading_type: 'L',
-        document_date: '2024-01-20',
+        document_date: '2026-07-23',
         vehicle_id: vehicleId1,
         location_id: depotId1,
         product_id: p1,
-        quantity: 30,
-        batch_number: 'B002',
+        quantity: 5,
+        base_quantity: 3,
+        batch_number: 'B2026-002',
       },
       {
         user_id: userId1,
         loading_type: 'L',
-        document_date: '2024-01-20',
+        document_date: '2026-07-23',
         vehicle_id: vehicleId1,
         location_id: depotId1,
         product_id: p2,
-        quantity: 2,
-        batch_number: 'B003',
-        serial_numbers: 'SN001, SN002',
-      },
-      {
-        user_id: userId1,
-        loading_type: 'L',
-        document_date: '2024-01-20',
-        vehicle_id: vehicleId1,
-        location_id: depotId1,
-        product_id: p2,
-        quantity: 1,
-        batch_number: 'B003',
-        serial_numbers: 'SN003',
-      },
-      {
-        user_id: userId1,
-        loading_type: 'L',
-        document_date: '2024-01-20',
-        vehicle_id: vehicleId1,
-        location_id: depotId1,
-        product_id: p3,
-        quantity: 100,
-        batch_number: 'B004',
-      },
-      {
-        user_id: userId2,
-        loading_type: 'L',
-        document_date: '2024-01-21',
-        vehicle_id: vehicleId2,
-        location_id: depotId2,
-        product_id: p4,
         quantity: 20,
-        batch_number: 'B005',
-      },
-      {
-        user_id: userId2,
-        loading_type: 'L',
-        document_date: '2024-01-21',
-        vehicle_id: vehicleId2,
-        location_id: depotId2,
-        product_id: p5,
-        quantity: 1,
-        batch_number: 'B006',
-        serial_numbers: 'SN004',
-      },
-      {
-        user_id: userId2,
-        loading_type: 'L',
-        document_date: '2024-01-21',
-        vehicle_id: vehicleId2,
-        location_id: depotId2,
-        product_id: p6,
-        quantity: 50,
-        batch_number: 'B007',
-      },
-      {
-        user_id: userId3,
-        loading_type: 'L',
-        document_date: '2024-01-22',
-        vehicle_id: vehicleId3,
-        location_id: depotId3,
-        product_id: p7,
-        quantity: 200,
-        batch_number: 'B008',
-      },
-      {
-        user_id: userId3,
-        loading_type: 'L',
-        document_date: '2024-01-22',
-        vehicle_id: vehicleId3,
-        location_id: depotId3,
-        product_id: p8,
-        quantity: 500,
-        batch_number: 'B009',
+        base_quantity: 8,
       },
     ];
   }
@@ -371,8 +323,7 @@ export class VanInventoryImportExportService extends ImportExportService<any> {
             unit_price: item.unit_price || 0,
             batch_number: item.batch_lots?.batch_number || '',
             serial_numbers: item.serial_numbers?.serial_number || '',
-            is_cancelled: "Y"
-
+            is_cancelled: 'Y',
           });
         }
       }
@@ -388,7 +339,6 @@ export class VanInventoryImportExportService extends ImportExportService<any> {
   ): Promise<string | null> {
     const userModel = tx ? tx.users : prisma.users;
     const vehicleModel = tx ? tx.vehicles : prisma.vehicles;
-    const locationModel = tx ? tx.depots : prisma.depots;
     const productModel = tx ? tx.products : prisma.products;
     const batchModel = tx ? tx.batch_lots : prisma.batch_lots;
     const serialModel = tx ? tx.serial_numbers : prisma.serial_numbers;
@@ -484,6 +434,7 @@ export class VanInventoryImportExportService extends ImportExportService<any> {
       createdby: userId,
       createdate: new Date(),
       log_inst: 1,
+      approval_status: 'A',
       items: items,
     };
   }

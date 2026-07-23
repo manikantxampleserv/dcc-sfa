@@ -239,7 +239,7 @@ export const exportReconciliationPdfService = async (
         'Tax Amount',
         'Action',
       ];
-      const colWidths = [16, 24, 105, 45, 45, 45, 45, 40, 40, 40, 45, 44];
+      const colWidths = [16, 24, 110, 45, 45, 45, 45, 40, 40, 40, 40, 44];
       const colAlignments: ('left' | 'center' | 'right')[] = [
         'center',
         'left',
@@ -354,8 +354,24 @@ export const exportReconciliationPdfService = async (
           const actualVal = hasActualCases ? Number(item.actualRop) : 0;
           const actualBaseVal = hasActualPCs ? Number(item.actualBaseQty) : 0;
 
-          const varianceVal = Number(item.variance) || 0;
-          const varianceBaseVal = Number(item.varianceBaseQty) || 0;
+          const expectedVal = Number(item.expectedRop) || 0;
+          const expectedBaseVal = Number(item.expectedBaseQty) || 0;
+
+          let varianceVal = 0;
+          let varianceBaseVal = 0;
+
+          if (hasActualCases || hasActualPCs) {
+            const expectedTotalPieces = expectedVal * conv + expectedBaseVal;
+            const actualTotalPieces = actualVal * conv + actualBaseVal;
+            const variancePieces = actualTotalPieces - expectedTotalPieces;
+
+            if (variancePieces !== 0) {
+              const absV = Math.abs(variancePieces);
+              varianceVal = Math.floor(absV / conv) * Math.sign(variancePieces);
+              varianceBaseVal = (absV % conv) * Math.sign(variancePieces);
+            }
+          }
+
           const variance = normalizeQty(varianceVal, varianceBaseVal);
 
           const sign =
@@ -395,15 +411,25 @@ export const exportReconciliationPdfService = async (
 
           const rawAction = String(item.resolutionAction || '-');
           let actionText = rawAction;
-          if (rawAction === 'Posted to Default Outlet')
+          if (rawAction === 'Posted to Default Outlet') {
             actionText = 'Posted to D/O';
+          } else if (rawAction === 'Adjust Unload Upward') {
+            actionText = 'Adj. Unload';
+          } else if (
+            rawAction === 'Awaiting Verification' ||
+            rawAction === 'Pending'
+          ) {
+            actionText = 'CLEAN';
+          }
 
           const actionBg =
             actionText === 'CLEAN'
               ? '#C6E0B4'
               : actionText === 'Posted to D/O'
                 ? '#F8CBAD'
-                : undefined;
+                : actionText === 'Adj. Unload'
+                  ? '#f0f9ff'
+                  : undefined;
 
           const actionColor = actionText === 'CLEAN' ? '#006100' : 'black';
 
@@ -421,7 +447,7 @@ export const exportReconciliationPdfService = async (
               `${expected.c} Cs ${isRGB ? `${expected.p} Btls` : ''}`.trim(),
               hasActualCases || hasActualPCs
                 ? `${actual.c} Cs ${isRGB ? `${actual.p} Btls` : ''}`.trim()
-                : '-',
+                : `0 Cs ${isRGB ? '0 Btls' : ''}`.trim(),
               varianceStr,
               formatNum(price),
               formatNum(saleVal),

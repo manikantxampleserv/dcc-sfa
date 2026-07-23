@@ -55,6 +55,7 @@ export async function updateInventoryStock(
   const whereClause: any = {
     product_id: productId,
     location_id: validLocationId,
+    salesperson_id: salespersonId,
   };
 
   if (batchId !== null) whereClause.batch_id = batchId;

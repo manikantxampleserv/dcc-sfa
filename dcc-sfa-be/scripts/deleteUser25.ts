@@ -1,4 +1,4 @@
-import prisma from './src/configs/prisma.client';
+import prisma from '../src/configs/prisma.client';
 
 async function deleteAllUserData(userId: number) {
   console.log(`Starting dynamic cleanup for User ID: ${userId}...`);
@@ -32,6 +32,37 @@ async function deleteAllUserData(userId: number) {
       await prisma.stock_movements.deleteMany({
         where: { van_inventory_id: { in: userVanInvs.map(v => v.id) } },
       });
+    }
+
+    const userBatchLots = await prisma.batch_lots.findMany({
+      where: {
+        OR: [{ salesman_id: userId }, { createdby: userId }],
+      },
+    });
+    if (userBatchLots.length > 0) {
+      const batchLotIds = userBatchLots.map(b => b.id);
+
+      await prisma.product_batches.deleteMany({
+        where: { batch_lot_id: { in: batchLotIds } },
+      });
+      await prisma.inventory_stock.deleteMany({
+        where: { batch_id: { in: batchLotIds } },
+      });
+      await prisma.stock_movements.deleteMany({
+        where: { batch_id: { in: batchLotIds } },
+      });
+      await prisma.van_inventory_items
+        .updateMany({
+          where: { batch_lot_id: { in: batchLotIds } },
+          data: { batch_lot_id: null },
+        })
+        .catch(() => {});
+      await prisma.serial_numbers
+        .updateMany({
+          where: { batch_id: { in: batchLotIds } },
+          data: { batch_id: null },
+        })
+        .catch(() => {});
     }
 
     // 2. Dynamically find all tables referencing `users`
