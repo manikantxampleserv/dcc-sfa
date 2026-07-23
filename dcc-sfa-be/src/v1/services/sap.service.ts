@@ -13,7 +13,11 @@ async function updateInventoryStock(
   batchId?: number | null,
   serialId?: number | null,
   userId?: number,
-  vanUserId?: number | null
+  vanUserId?: number | null,
+  //new change
+  baseQuantity: number = 0
+  //new change
+
 ): Promise<void> {
   let validLocationId = locationId;
   let salespersonId: number | null = vanUserId || null;
@@ -64,6 +68,10 @@ async function updateInventoryStock(
         data: {
           current_stock: newCurrent,
           available_stock: newAvailable,
+          //new change
+          base_quantity: (existingStock.base_quantity ?? 0) + baseQuantity,
+          //new change
+
           is_unloadAll: 'N',
           updatedate: new Date(),
           updatedby: userId,
@@ -85,6 +93,10 @@ async function updateInventoryStock(
           maximum_stock: 0,
           batch_id: batchId || null,
           serial_number_id: serialId || null,
+          //new change
+          base_quantity: baseQuantity,
+          //new change
+
           is_active: 'Y',
           createdate: new Date(),
           createdby: userId || 1,
@@ -98,6 +110,11 @@ async function updateInventoryStock(
       const prevAvailable = existingStock.available_stock ?? 0;
       const newCurrentStock = Math.max(0, prevCurrent - quantity);
       const newAvailableStock = Math.max(0, prevAvailable - quantity);
+
+      //new change
+      const newBaseQuantity = Math.max(0, (existingStock.base_quantity ?? 0) - baseQuantity);
+      //new change
+
       console.log(
         `updateInventoryStock UNLOAD: product=${productId} location=${validLocationId} batch=${batchId} serial=${serialId} -${quantity} current ${prevCurrent}→${newCurrentStock} available ${prevAvailable}→${newAvailableStock}`
       );
@@ -106,6 +123,10 @@ async function updateInventoryStock(
         data: {
           current_stock: newCurrentStock,
           available_stock: newAvailableStock,
+          //new change
+          base_quantity: newBaseQuantity,
+          //new change
+
           updatedate: new Date(),
           updatedby: userId,
         },
@@ -129,6 +150,11 @@ async function createStockMovement(
     from_location_id?: number | null;
     to_location_id?: number | null;
     quantity: number;
+
+    //new change
+    base_quantity?: number;
+    //new change
+
     remarks?: string;
     van_inventory_id?: number;
     createdby: number;
@@ -145,6 +171,11 @@ async function createStockMovement(
       from_location_id: data.from_location_id ?? null,
       to_location_id: data.to_location_id ?? null,
       quantity: data.quantity,
+
+      //new change
+      base_quantity: data.base_quantity ?? 0,
+      //new change
+
       movement_date: new Date(),
       remarks: data.remarks || null,
       is_active: 'Y',
@@ -491,10 +522,12 @@ export const sapService = {
                 sap_lineid: sapLineid,
                 ...(isUpdate && inventoryId
                   ? {
-                      NOT: {
-                        parent_id: Number(inventoryId),
-                      },
-                    }
+
+                    NOT: {
+                      parent_id: Number(inventoryId),
+                    },
+                  }
+
                   : {}),
               },
             });
@@ -671,10 +704,11 @@ export const sapService = {
                           expiry_date: batchInput.expiry_date
                             ? new Date(batchInput.expiry_date)
                             : new Date(
-                                new Date().setFullYear(
-                                  new Date().getFullYear() + 2
-                                )
-                              ),
+                              new Date().setFullYear(
+                                new Date().getFullYear() + 2
+                              )
+                            ),
+
                           quantity: batchQty,
                           remaining_quantity: batchQty,
                           supplier_name: batchInput.supplier_name || null,
@@ -738,10 +772,12 @@ export const sapService = {
                           expiry_date: batchInput.expiry_date
                             ? new Date(batchInput.expiry_date)
                             : new Date(
-                                new Date().setFullYear(
-                                  new Date().getFullYear() + 2
-                                )
-                              ),
+
+                              new Date().setFullYear(
+                                new Date().getFullYear() + 2
+                              )
+                            ),
+
                           quantity: 0,
                           remaining_quantity: 0,
                           supplier_name: batchInput.supplier_name || null,
@@ -758,6 +794,10 @@ export const sapService = {
                       });
                     }
                   }
+
+                  //new change
+                  const batchBaseQty = parseInt(batchInput.base_quantity, 10) || 0;
+                  //new change
 
                   await tx.van_inventory_items.create({
                     data: {
@@ -781,6 +821,10 @@ export const sapService = {
                       total_amount: batchQty * Number(item.unit_price || 0),
                       notes: item.notes || null,
                       batch_lot_id: batchLot.id,
+                      //new change
+                      base_quantity: batchBaseQty,
+                      //new change
+
                     },
                   });
                   console.log(` Created van_inventory_items`);
@@ -795,7 +839,12 @@ export const sapService = {
                       batchLot.id,
                       null,
                       userId,
-                      inventoryData.user_id
+                      inventoryData.user_id,
+
+                      //new change
+                      batchBaseQty
+                      //new change
+
                     );
 
                     await createStockMovement(tx, {
@@ -808,6 +857,11 @@ export const sapService = {
                       from_location_id: null,
                       to_location_id: null,
                       quantity: batchQty,
+
+                      //new change
+                      base_quantity: batchBaseQty,
+                      //new change
+
                       remarks: `Loaded to van - Batch ${batchLot.batch_number}`,
                       van_inventory_id: inventory.id,
                       createdby: userId,
@@ -904,6 +958,11 @@ export const sapService = {
                       product_name: product.name,
                       unit: product.product_unit_of_measurement?.name || 'pcs',
                       quantity: 1,
+
+                      //new change
+                      base_quantity: 1,
+                      //new change
+
                       sap_docnum: sapDocNum,
                       sap_docentry: sapDocEntry,
                       source_system: sourceSystem,
@@ -932,10 +991,14 @@ export const sapService = {
                       null,
                       existingSerial.id,
                       userId,
-                      inventoryData.user_id
+
+                      //new change
+                      inventoryData.user_id,
+                      1
+                      //new change
                     );
                     console.log(
-                      ` INCREASED inventory_stock for serial ${serialNumber}`
+                      `INCREASED inventory_stock for serial ${serialNumber}`
                     );
 
                     await createStockMovement(tx, {
@@ -948,6 +1011,10 @@ export const sapService = {
                       from_location_id: null,
                       to_location_id: null,
                       quantity: 1,
+                      //new change
+                      base_quantity: 1,
+                      //new change
+
                       remarks: `Loaded serial ${serialNumber} to van`,
                       van_inventory_id: inventory.id,
                       createdby: userId,
@@ -963,6 +1030,10 @@ export const sapService = {
                     'Quantity must be greater than 0 for NONE-tracked product'
                   );
                 }
+                //new change
+                const baseQty = parseInt(item.base_quantity, 10) || 0;
+                //new change
+
                 await tx.van_inventory_items.create({
                   data: {
                     parent_id: inventory.id,
@@ -973,6 +1044,11 @@ export const sapService = {
                     product_name: product.name,
                     unit: product.product_unit_of_measurement?.name || 'pcs',
                     quantity: qty,
+
+                    //new change
+                    base_quantity: baseQty,
+                    //new change
+
                     unit_price: Number(item.unit_price || 0),
                     discount_amount: Number(item.discount_amount || 0),
                     sap_docnum: sapDocNum,
@@ -1003,7 +1079,12 @@ export const sapService = {
                     null,
                     null,
                     userId,
-                    inventoryData.user_id
+                    inventoryData.user_id,
+
+                    //new change
+                    baseQty
+                    //new change
+
                   );
                   console.log(`    Updated inventory_stock`);
 
@@ -1017,6 +1098,11 @@ export const sapService = {
                     from_location_id: null,
                     to_location_id: null,
                     quantity: qty,
+
+                    //new change
+                    base_quantity: baseQty,
+                    //new change
+
                     remarks: `Loaded ${qty} units to van`,
                     van_inventory_id: inventory.id,
                     createdby: userId,
@@ -1119,6 +1205,10 @@ export const sapService = {
                   const itemIsCancelled =
                     item.is_cancelled === 'T' || item.is_cancelled === 'Y';
 
+                  //new change
+                  const batchBaseQty = parseInt(batchInput.base_quantity, 10) || 0;
+                  //new change
+
                   if (shouldPerformLoadingUnloading && !itemIsCancelled) {
                     const inventoryStock = await tx.inventory_stock.findFirst({
                       where: {
@@ -1136,6 +1226,14 @@ export const sapService = {
                         0,
                         prevAvailable - batchQty
                       );
+
+                      //new change
+                      const newBaseQty = Math.max(
+                        0,
+                        (inventoryStock.base_quantity ?? 0) - batchBaseQty
+                      );
+                      //new change
+
                       console.log(
                         `updateInventoryStock UNLOAD: product=${product.id} location=${inventoryData.location_id || 1} batch=${batchLot.id} -${batchQty} current ${prevCurrent}→${newCurrent} available ${prevAvailable}→${newAvailable}`
                       );
@@ -1144,6 +1242,11 @@ export const sapService = {
                         data: {
                           current_stock: newCurrent,
                           available_stock: newAvailable,
+
+                          //new change
+                          base_quantity: newBaseQty,
+                          //new change
+
                           updatedate: new Date(),
                           updatedby: userId,
                         },
@@ -1160,6 +1263,11 @@ export const sapService = {
                       product_name: product.name,
                       unit: product.product_unit_of_measurement?.name || 'pcs',
                       quantity: batchQty,
+
+                      //new change
+                      base_quantity: batchBaseQty,
+                      //new change
+
                       unit_price: Number(item.unit_price || 0),
                       sap_docnum: sapDocNum,
                       sap_docentry: sapDocEntry,
@@ -1186,6 +1294,10 @@ export const sapService = {
                       from_location_id: null,
                       to_location_id: null,
                       quantity: batchQty,
+                      //new change
+                      base_quantity: batchBaseQty,
+                      //new change
+
                       remarks: `Unloaded from van - Batch ${batchLot.batch_number}`,
                       van_inventory_id: inventory.id,
                       createdby: userId,
@@ -1313,6 +1425,14 @@ export const sapService = {
                             0,
                             (inventoryStock.available_stock || 0) - 1
                           ),
+
+                          //new change
+                          base_quantity: Math.max(
+                            0,
+                            (inventoryStock.base_quantity || 0) - 1
+                          ),
+                          //new change
+
                           updatedate: new Date(),
                           updatedby: userId,
                         },
@@ -1332,6 +1452,11 @@ export const sapService = {
                       from_location_id: null,
                       to_location_id: null,
                       quantity: 1,
+
+                      //new change
+                      base_quantity: 1,
+                      //new change
+
                       remarks: `Sold serial ${serialNumber}`,
                       van_inventory_id: inventory.id,
                       createdby: userId,
@@ -1347,6 +1472,11 @@ export const sapService = {
                       product_name: product.name,
                       unit: product.product_unit_of_measurement?.name || 'pcs',
                       quantity: 1,
+
+                      //new change
+                      base_quantity: 1,
+                      //new change
+
                       sap_docnum: sapDocNum,
                       sap_docentry: sapDocEntry,
                       source_system: sourceSystem,
@@ -1383,6 +1513,10 @@ export const sapService = {
                 const itemIsCancelled =
                   item.is_cancelled === 'T' || item.is_cancelled === 'Y';
 
+                //new change
+                const baseQty = parseInt(item.base_quantity, 10) || 0;
+                //new change
+
                 if (shouldPerformLoadingUnloading && !itemIsCancelled) {
                   const inventoryStock = await tx.inventory_stock.findFirst({
                     where: {
@@ -1398,6 +1532,14 @@ export const sapService = {
                     const prevAvailable = inventoryStock.available_stock ?? 0;
                     const newCurrent = Math.max(0, prevCurrent - qty);
                     const newAvailable = Math.max(0, prevAvailable - qty);
+
+                    //new change
+                    const newBaseQty = Math.max(
+                      0,
+                      (inventoryStock.base_quantity ?? 0) - baseQty
+                    );
+                    //new change
+
                     console.log(
                       `updateInventoryStock UNLOAD: product=${product.id} location=${inventoryData.location_id || 1} -${qty} current ${prevCurrent}→${newCurrent} available ${prevAvailable}→${newAvailable}`
                     );
@@ -1406,6 +1548,10 @@ export const sapService = {
                       data: {
                         current_stock: newCurrent,
                         available_stock: newAvailable,
+                        //new change
+                        base_quantity: newBaseQty,
+                        //new change
+
                         updatedate: new Date(),
                         updatedby: userId,
                       },
@@ -1422,6 +1568,10 @@ export const sapService = {
                     from_location_id: null,
                     to_location_id: null,
                     quantity: qty,
+                    //new change
+                    base_quantity: baseQty,
+                    //new change
+
                     remarks: `Sold ${qty} units from van`,
                     van_inventory_id: inventory.id,
                     createdby: userId,
@@ -1437,6 +1587,11 @@ export const sapService = {
                     product_name: product.name,
                     unit: product.product_unit_of_measurement?.name || 'pcs',
                     quantity: qty,
+
+                    //new change
+                    base_quantity: baseQty,
+                    //new change
+
                     sap_docnum: sapDocNum,
                     sap_docentry: sapDocEntry,
                     source_system: sourceSystem,
@@ -1913,10 +2068,12 @@ export const sapService = {
                         expiry_date: batchInput.expiry_date
                           ? new Date(batchInput.expiry_date)
                           : new Date(
-                              new Date().setFullYear(
-                                new Date().getFullYear() + 2
-                              )
-                            ),
+
+                            new Date().setFullYear(
+                              new Date().getFullYear() + 2
+                            )
+                          ),
+
                         quantity: batchQty,
                         remaining_quantity: batchQty,
                         supplier_name: batchInput.supplier_name || null,
