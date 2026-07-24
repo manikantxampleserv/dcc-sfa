@@ -60,6 +60,7 @@ export declare const sapService: {
                 batch_lot_id: number | null;
                 serial_id: number | null;
                 quantity: number;
+                base_quantity: number | null;
                 unit_price: import("@prisma/client-runtime-utils").Decimal;
                 discount_amount: import("@prisma/client-runtime-utils").Decimal | null;
                 tax_amount: import("@prisma/client-runtime-utils").Decimal | null;

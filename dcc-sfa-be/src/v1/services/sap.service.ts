@@ -525,10 +525,10 @@ export const sapService = {
                 sap_lineid: sapLineid,
                 ...(isUpdate && inventoryId
                   ? {
-                    NOT: {
-                      parent_id: Number(inventoryId),
-                    },
-                  }
+                      NOT: {
+                        parent_id: Number(inventoryId),
+                      },
+                    }
                   : {}),
               },
             });
@@ -716,10 +716,10 @@ export const sapService = {
                           expiry_date: batchInput.expiry_date
                             ? new Date(batchInput.expiry_date)
                             : new Date(
-                              new Date().setFullYear(
-                                new Date().getFullYear() + 2
-                              )
-                            ),
+                                new Date().setFullYear(
+                                  new Date().getFullYear() + 2
+                                )
+                              ),
 
                           quantity: batchQty,
                           remaining_quantity: batchQty,
@@ -789,10 +789,10 @@ export const sapService = {
                           expiry_date: batchInput.expiry_date
                             ? new Date(batchInput.expiry_date)
                             : new Date(
-                              new Date().setFullYear(
-                                new Date().getFullYear() + 2
-                              )
-                            ),
+                                new Date().setFullYear(
+                                  new Date().getFullYear() + 2
+                                )
+                              ),
 
                           quantity: 0,
                           remaining_quantity: 0,
@@ -1784,6 +1784,7 @@ export const sapService = {
                 batch_lot_id: item.batch_lot_id,
                 serial_id: item.serial_id,
                 quantity: item.quantity,
+                base_quantity: item.base_quantity,
                 unit_price: item.unit_price,
                 discount_amount: item.discount_amount,
                 tax_amount: item.tax_amount,
@@ -1821,6 +1822,7 @@ export const sapService = {
             product_name: item.product_name,
             tracking_type: item.van_inventory_items_products?.tracking_type,
             quantity: 0,
+            base_quantity: 0,
             notes: item.notes || item.remarks || '',
             unit_price: item.unit_price,
             discount_amount: item.discount_amount || 0,
@@ -1837,6 +1839,7 @@ export const sapService = {
 
         const group = groupedItemsMap.get(key);
         group.quantity += Number(item.quantity || 0);
+        group.base_quantity += Number(item.base_quantity || 0);
         group.total_amount += Number(item.total_amount || 0);
 
         if (item.van_inventory_items_batch_lot) {
@@ -1846,6 +1849,7 @@ export const sapService = {
           );
           if (existingBatch) {
             existingBatch.quantity += Number(item.quantity || 0);
+            existingBatch.base_quantity += Number(item.base_quantity || 0);
             existingBatch.remaining_quantity += Number(item.quantity || 0);
             existingBatch.total_quantity += Number(item.quantity || 0);
           } else {
@@ -1856,6 +1860,7 @@ export const sapService = {
                 item.van_inventory_items_batch_lot.manufacturing_date,
               expiry_date: item.van_inventory_items_batch_lot.expiry_date,
               quantity: Number(item.quantity || 0),
+              base_quantity: Number(item.base_quantity || 0),
               remaining_quantity: Number(item.quantity || 0),
               total_quantity: Number(item.quantity || 0),
             });
@@ -2044,6 +2049,8 @@ export const sapService = {
 
               for (const batchInput of batchData) {
                 const batchQty = parseInt(batchInput.quantity, 10) || 0;
+                const batchBaseQty =
+                  parseInt(batchInput.base_quantity, 10) || 0;
                 if (batchQty <= 0) continue;
 
                 let batchLot = await tx.batch_lots.findFirst({
@@ -2081,10 +2088,10 @@ export const sapService = {
                         expiry_date: batchInput.expiry_date
                           ? new Date(batchInput.expiry_date)
                           : new Date(
-                            new Date().setFullYear(
-                              new Date().getFullYear() + 2
-                            )
-                          ),
+                              new Date().setFullYear(
+                                new Date().getFullYear() + 2
+                              )
+                            ),
 
                         quantity: batchQty,
                         remaining_quantity: batchQty,
@@ -2142,7 +2149,8 @@ export const sapService = {
                     batchLot.id,
                     null,
                     userId,
-                    inventory.user_id
+                    inventory.user_id,
+                    batchBaseQty
                   );
 
                   await createStockMovement(tx, {
@@ -2153,6 +2161,7 @@ export const sapService = {
                     reference_type: 'VAN_INVENTORY',
                     reference_id: inventoryId,
                     quantity: batchQty,
+                    base_quantity: batchBaseQty,
                     remarks: item.remarks || 'Approved stock load',
                     van_inventory_id: inventoryId,
                     createdby: userId,
@@ -2231,6 +2240,7 @@ export const sapService = {
               }
             } else if (trackingType === 'NONE') {
               const itemQty = parseInt(item.quantity, 10) || 0;
+              const itemBaseQty = parseInt(item.base_quantity, 10) || 0;
               if (itemQty <= 0) continue;
 
               if (shouldPerformLoadingUnloading && !itemIsCancelled) {
@@ -2243,7 +2253,8 @@ export const sapService = {
                   null,
                   null,
                   userId,
-                  inventory.user_id
+                  inventory.user_id,
+                  itemBaseQty
                 );
 
                 await createStockMovement(tx, {
@@ -2254,6 +2265,7 @@ export const sapService = {
                   reference_type: 'VAN_INVENTORY',
                   reference_id: inventoryId,
                   quantity: itemQty,
+                  base_quantity: itemBaseQty,
                   remarks: item.remarks || 'Approved stock load',
                   van_inventory_id: inventoryId,
                   createdby: userId,
@@ -2273,6 +2285,8 @@ export const sapService = {
 
               for (const batchInput of batchData) {
                 const batchQty = parseInt(batchInput.quantity, 10) || 0;
+                const batchBaseQty =
+                  parseInt(batchInput.base_quantity, 10) || 0;
                 if (batchQty <= 0) continue;
 
                 const batchLot = await tx.batch_lots.findFirst({
@@ -2326,7 +2340,8 @@ export const sapService = {
                     batchLot.id,
                     null,
                     userId,
-                    inventory.user_id
+                    inventory.user_id,
+                    batchBaseQty
                   );
 
                   await createStockMovement(tx, {
@@ -2337,6 +2352,7 @@ export const sapService = {
                     reference_type: 'VAN_INVENTORY',
                     reference_id: inventoryId,
                     quantity: batchQty,
+                    base_quantity: batchBaseQty,
                     remarks: item.remarks || 'Approved stock unload',
                     van_inventory_id: inventoryId,
                     createdby: userId,
@@ -2429,6 +2445,7 @@ export const sapService = {
               }
             } else if (trackingType === 'NONE') {
               const itemQty = parseInt(item.quantity, 10) || 0;
+              const itemBaseQty = parseInt(item.base_quantity, 10) || 0;
               if (itemQty <= 0) continue;
 
               if (shouldPerformLoadingUnloading && !itemIsCancelled) {
@@ -2441,7 +2458,8 @@ export const sapService = {
                   null,
                   null,
                   userId,
-                  inventory.user_id
+                  inventory.user_id,
+                  itemBaseQty
                 );
 
                 await createStockMovement(tx, {
@@ -2452,6 +2470,7 @@ export const sapService = {
                   reference_type: 'VAN_INVENTORY',
                   reference_id: inventoryId,
                   quantity: itemQty,
+                  base_quantity: itemBaseQty,
                   remarks: item.remarks || 'Approved stock unload',
                   van_inventory_id: inventoryId,
                   createdby: userId,

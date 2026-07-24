@@ -956,6 +956,9 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({
                                           className="!font-bold !text-primary-600"
                                         >
                                           Qty: {item.quantity}
+                                          {item.base_quantity
+                                            ? ` | PCs: ${item.base_quantity}`
+                                            : ''}
                                         </Typography>
                                       </div>
                                     </AccordionSummary>
@@ -1025,6 +1028,9 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({
                                                   </span>
                                                   <span className="!font-medium !text-gray-800">
                                                     Qty: {batch.quantity}
+                                                    {batch.base_quantity
+                                                      ? ` | PCs: ${batch.base_quantity}`
+                                                      : ''}
                                                   </span>
                                                 </div>
                                               )
@@ -1055,6 +1061,9 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({
                                                   </span>
                                                   <span className="!font-medium !text-gray-800">
                                                     Qty: {batch.quantity}
+                                                    {batch.base_quantity
+                                                      ? ` | PCs: ${batch.base_quantity}`
+                                                      : ''}
                                                   </span>
                                                 </div>
                                               )

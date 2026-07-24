@@ -447,34 +447,37 @@ const createRequest = async (data) => {
         if (data.request_data) {
             try {
                 const parsed = JSON.parse(data.request_data);
-                const rawItems = parsed.items || parsed.van_inventory_items || [];
-                const mergedItems = rawItems.map((item) => {
-                    const bData = item.batches || item.product_batches;
-                    if (Array.isArray(bData)) {
-                        const map = new Map();
-                        for (const b of bData) {
-                            if (!b.batch_number)
-                                continue;
-                            if (map.has(b.batch_number)) {
-                                const existing = map.get(b.batch_number);
-                                existing.quantity = (parseInt(existing.quantity || '0', 10) +
-                                    parseInt(b.quantity || '0', 10)).toString();
+                const consolidateBatches = (itemsArr) => {
+                    if (!Array.isArray(itemsArr))
+                        return itemsArr;
+                    return itemsArr.map((item) => {
+                        const bData = item.batches || item.product_batches;
+                        if (Array.isArray(bData)) {
+                            const map = new Map();
+                            for (const b of bData) {
+                                if (!b.batch_number)
+                                    continue;
+                                if (map.has(b.batch_number)) {
+                                    const existing = map.get(b.batch_number);
+                                    existing.quantity = (parseInt(existing.quantity || '0', 10) +
+                                        parseInt(b.quantity || '0', 10)).toString();
+                                }
+                                else {
+                                    map.set(b.batch_number, { ...b });
+                                }
                             }
-                            else {
-                                map.set(b.batch_number, { ...b });
-                            }
+                            if (item.batches)
+                                item.batches = Array.from(map.values());
+                            if (item.product_batches)
+                                item.product_batches = Array.from(map.values());
                         }
-                        if (item.batches)
-                            item.batches = Array.from(map.values());
-                        if (item.product_batches)
-                            item.product_batches = Array.from(map.values());
-                    }
-                    return item;
-                });
-                if (parsed.van_inventory_items)
-                    parsed.van_inventory_items = mergedItems;
+                        return item;
+                    });
+                };
                 if (parsed.items)
-                    parsed.items = mergedItems;
+                    parsed.items = consolidateBatches(parsed.items);
+                if (parsed.van_inventory_items)
+                    parsed.van_inventory_items = consolidateBatches(parsed.van_inventory_items);
                 data.request_data = JSON.stringify(parsed);
             }
             catch (e) {
