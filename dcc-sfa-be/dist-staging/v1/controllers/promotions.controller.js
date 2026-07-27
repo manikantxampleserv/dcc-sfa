@@ -1,7 +1,4 @@
 "use strict";
-// import { Request, Response } from 'express';
-// import { paginate } from '../../utils/paginate';
-// import prisma from '../../configs/prisma.client';
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
