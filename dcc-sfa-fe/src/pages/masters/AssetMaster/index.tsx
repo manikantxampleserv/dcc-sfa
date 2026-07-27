@@ -168,7 +168,7 @@ const AssetMasterManagement: React.FC = () => {
       ),
     },
     {
-      id: 'asset_master_asset_types',
+      id: 'asset_master_asset_sub_types.name',
       label: 'Type / Sub Type',
       render: (_value, row) => (
         <Box className="flex items-center gap-2">
