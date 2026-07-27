@@ -223,7 +223,6 @@ exports.userController = {
             }
             const filters = {
                 is_active: isActive,
-                id: { not: 27 },
                 ...(search && {
                     OR: [
                         {

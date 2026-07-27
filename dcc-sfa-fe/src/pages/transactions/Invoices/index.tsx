@@ -173,12 +173,24 @@ const InvoicesManagement: React.FC = () => {
     },
     {
       id: 'invoice_date',
-      label: 'Date',
+      label: 'Invoice Date',
       render: (_value, row) => (
         <Box>
           <Box className="flex items-center text-sm text-gray-900">
             <Calendar className="w-4 h-4 text-gray-400 mr-1" />
             {row.invoice_date ? formatDateTime(row.invoice_date) : 'N/A'}
+          </Box>
+        </Box>
+      ),
+    },
+    {
+      id: 'createdate',
+      label: 'Created On',
+      render: (_value, row) => (
+        <Box>
+          <Box className="flex items-center text-sm text-gray-900">
+            <Calendar className="w-4 h-4 text-gray-400 mr-1" />
+            {row.createdate ? formatDateTime(row.createdate) : 'N/A'}
           </Box>
         </Box>
       ),
