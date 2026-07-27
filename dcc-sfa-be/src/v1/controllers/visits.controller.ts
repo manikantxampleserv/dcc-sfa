@@ -1081,7 +1081,7 @@ export const visitsController = {
                         ? new Date(invoiceData.due_date)
                         : undefined,
                       status: invoiceData.status || 'draft',
-                      salesperson_id: invoiceData.salesperson_id || null,
+                      salesperson_id: invoiceData.salesperson_id || visit.sales_person_id || null,
                       payment_method: invoiceData.payment_method || 'credit',
                       subtotal: invoiceData.subtotal || 0,
                       discount_amount:
