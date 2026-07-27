@@ -114,7 +114,6 @@ const ImportInvoice: React.FC<ImportInvoiceProps> = ({
       open={drawerOpen}
       setOpen={handleCancel}
       title="Import Invoices"
-      size="large"
     >
       <Box className="!p-5">
         <form onSubmit={formik.handleSubmit} className="!space-y-6">
@@ -325,7 +324,7 @@ const ImportInvoice: React.FC<ImportInvoiceProps> = ({
                 disabled={!uploadedFile || importDataMutation.isPending}
                 loading={importDataMutation.isPending}
               >
-                {importDataMutation.isPending ? 'Importing...' : 'Import Data'}
+                {importDataMutation.isPending ? 'Importing...' : 'Import'}
               </Button>
             )}
 

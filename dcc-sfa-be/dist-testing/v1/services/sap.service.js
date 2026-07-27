@@ -319,15 +319,17 @@ exports.sapService = {
                     throw new Error(`Cannot edit van inventory with approval_status '${effectiveApprovalStatus}'. Only pending (P) inventories or unloading operations are allowed.`);
                 }
             }
-            if (inventoryData.vehicle_sap_code) {
-                const vehicleExists = await tx.vehicles.findFirst({
-                    where: { sap_code: inventoryData.vehicle_sap_code },
-                });
-                if (!vehicleExists) {
-                    throw new Error(`Vehicle with SAP code ${inventoryData.vehicle_sap_code} not found`);
-                }
-                inventoryData.vehicle_id = vehicleExists.id;
-            }
+            // if (inventoryData.vehicle_sap_code) {
+            //   const vehicleExists = await tx.vehicles.findFirst({
+            //     where: { sap_code: inventoryData.vehicle_sap_code },
+            //   });
+            //   if (!vehicleExists) {
+            //     throw new Error(
+            //       `Vehicle with SAP code ${inventoryData.vehicle_sap_code} not found`
+            //     );
+            //   }
+            //   inventoryData.vehicle_id = vehicleExists.id;
+            // }
             const payload = {
                 user_id: Number(inventoryData.user_id),
                 is_cancelled: inventoryData.is_cancelled || 'N',
