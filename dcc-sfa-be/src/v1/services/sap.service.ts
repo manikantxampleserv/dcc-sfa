@@ -425,17 +425,17 @@ export const sapService = {
           }
         }
 
-        if (inventoryData.vehicle_sap_code) {
-          const vehicleExists = await tx.vehicles.findFirst({
-            where: { sap_code: inventoryData.vehicle_sap_code },
-          });
-          if (!vehicleExists) {
-            throw new Error(
-              `Vehicle with SAP code ${inventoryData.vehicle_sap_code} not found`
-            );
-          }
-          inventoryData.vehicle_id = vehicleExists.id;
-        }
+        // if (inventoryData.vehicle_sap_code) {
+        //   const vehicleExists = await tx.vehicles.findFirst({
+        //     where: { sap_code: inventoryData.vehicle_sap_code },
+        //   });
+        //   if (!vehicleExists) {
+        //     throw new Error(
+        //       `Vehicle with SAP code ${inventoryData.vehicle_sap_code} not found`
+        //     );
+        //   }
+        //   inventoryData.vehicle_id = vehicleExists.id;
+        // }
 
         const payload = {
           user_id: Number(inventoryData.user_id),
@@ -525,10 +525,10 @@ export const sapService = {
                 sap_lineid: sapLineid,
                 ...(isUpdate && inventoryId
                   ? {
-                      NOT: {
-                        parent_id: Number(inventoryId),
-                      },
-                    }
+                    NOT: {
+                      parent_id: Number(inventoryId),
+                    },
+                  }
                   : {}),
               },
             });
@@ -716,10 +716,10 @@ export const sapService = {
                           expiry_date: batchInput.expiry_date
                             ? new Date(batchInput.expiry_date)
                             : new Date(
-                                new Date().setFullYear(
-                                  new Date().getFullYear() + 2
-                                )
-                              ),
+                              new Date().setFullYear(
+                                new Date().getFullYear() + 2
+                              )
+                            ),
 
                           quantity: batchQty,
                           remaining_quantity: batchQty,
@@ -789,10 +789,10 @@ export const sapService = {
                           expiry_date: batchInput.expiry_date
                             ? new Date(batchInput.expiry_date)
                             : new Date(
-                                new Date().setFullYear(
-                                  new Date().getFullYear() + 2
-                                )
-                              ),
+                              new Date().setFullYear(
+                                new Date().getFullYear() + 2
+                              )
+                            ),
 
                           quantity: 0,
                           remaining_quantity: 0,
@@ -2088,10 +2088,10 @@ export const sapService = {
                         expiry_date: batchInput.expiry_date
                           ? new Date(batchInput.expiry_date)
                           : new Date(
-                              new Date().setFullYear(
-                                new Date().getFullYear() + 2
-                              )
-                            ),
+                            new Date().setFullYear(
+                              new Date().getFullYear() + 2
+                            )
+                          ),
 
                         quantity: batchQty,
                         remaining_quantity: batchQty,
