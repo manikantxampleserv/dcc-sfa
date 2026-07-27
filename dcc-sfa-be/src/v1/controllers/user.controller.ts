@@ -30,61 +30,61 @@ const serializeUser = (
   ...(includeUpdatedAt && { updated_at: user.updatedate }),
   role: user.user_role
     ? {
-        id: user.user_role.id,
-        name: user.user_role.name,
-        description: user.user_role.description,
-      }
+      id: user.user_role.id,
+      name: user.user_role.name,
+      description: user.user_role.description,
+    }
     : null,
   company: user.companies
     ? {
-        id: user.companies.id,
-        name: user.companies.name,
-        code: user.companies.code,
-      }
+      id: user.companies.id,
+      name: user.companies.name,
+      code: user.companies.code,
+    }
     : null,
   depots: user.users_depots_users
     ? user.users_depots_users.map((ud: any) => ({
-        id: ud.user_depots_depot_id.id,
-        name: ud.user_depots_depot_id.name,
-        code: ud.user_depots_depot_id.code,
-      }))
+      id: ud.user_depots_depot_id.id,
+      name: ud.user_depots_depot_id.name,
+      code: ud.user_depots_depot_id.code,
+    }))
     : [],
 
   reporting_manager: user.users
     ? {
-        id: user.users.id,
-        name: user.users.name,
-        email: user.users.email,
-      }
+      id: user.users.id,
+      name: user.users.name,
+      email: user.users.email,
+    }
     : null,
   permissions: user.user_role?.roles_permission
     ? user.user_role.roles_permission
-        .filter(
-          (rp: any) => rp.is_active === 'Y' && rp.permission?.is_active === 'Y'
-        )
-        .map((rp: any) => rp.permission!.name)
+      .filter(
+        (rp: any) => rp.is_active === 'Y' && rp.permission?.is_active === 'Y'
+      )
+      .map((rp: any) => rp.permission!.name)
     : [],
   currency: user.companies?.companies_currencies
     ? {
-        id: user.companies.companies_currencies.id,
-        code: user.companies.companies_currencies.code,
-        name: user.companies.companies_currencies.name,
-        symbol: user.companies.companies_currencies.symbol,
-      }
+      id: user.companies.companies_currencies.id,
+      code: user.companies.companies_currencies.code,
+      name: user.companies.companies_currencies.name,
+      symbol: user.companies.companies_currencies.symbol,
+    }
     : null,
   routes: user.route_salespersons
     ? user.route_salespersons.map((rs: any) => ({
-        id: rs.route.id,
-        name: rs.route.name,
-        code: rs.route.code,
-        description: rs.route.description,
-        start_location: rs.route.start_location,
-        end_location: rs.route.end_location,
-        estimated_distance: rs.route.estimated_distance,
-        estimated_time: rs.route.estimated_time,
-        role: rs.role,
-        assigned_at: rs.assigned_at,
-      }))
+      id: rs.route.id,
+      name: rs.route.name,
+      code: rs.route.code,
+      description: rs.route.description,
+      start_location: rs.route.start_location,
+      end_location: rs.route.end_location,
+      estimated_distance: rs.route.estimated_distance,
+      estimated_time: rs.route.estimated_time,
+      role: rs.role,
+      assigned_at: rs.assigned_at,
+    }))
     : [],
 });
 
@@ -269,7 +269,6 @@ export const userController = {
 
       const filters: any = {
         is_active: isActive as string,
-        id: { not: 27 },
         ...(search && {
           OR: [
             {
