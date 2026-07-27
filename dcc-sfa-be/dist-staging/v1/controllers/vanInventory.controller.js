@@ -578,6 +578,9 @@ async function processApprovedVanInventoryStock(inventoryId, userId, requestData
                                 data: {
                                     quantity: batchLot.quantity + batchQty,
                                     remaining_quantity: batchLot.remaining_quantity + batchQty,
+                                    //new changes
+                                    base_quantity: (batchLot.base_quantity || 0) + batchBaseQty,
+                                    //new changes
                                     updatedate: new Date(),
                                 },
                             });
@@ -597,6 +600,9 @@ async function processApprovedVanInventoryStock(inventoryId, userId, requestData
                                         : new Date(new Date().setFullYear(new Date().getFullYear() + 2)),
                                     quantity: batchQty,
                                     remaining_quantity: batchQty,
+                                    //new changes
+                                    base_quantity: batchBaseQty,
+                                    //new changes
                                     supplier_name: batchInput.supplier_name || null,
                                     purchase_price: batchInput.purchase_price || null,
                                     quality_grade: batchInput.quality_grade || 'A',
@@ -822,6 +828,7 @@ async function processApprovedVanInventoryStock(inventoryId, userId, requestData
                                     product_name: product.name,
                                     unit: product.product_unit_of_measurement?.name || 'pcs',
                                     quantity: 1,
+                                    base_quantity: 1,
                                     source_system: 'sfa',
                                     unit_price: Number(item.unit_price || 0),
                                     discount_amount: Number(item.discount_amount || 0),
@@ -834,7 +841,7 @@ async function processApprovedVanInventoryStock(inventoryId, userId, requestData
                             console.log('  New van item created');
                         }
                         console.log('   Updating inventory stock for serial...');
-                        await updateInventoryStock(tx, product.id, inventoryLocationId, 1, 'L', null, existingSerial.id, userId, inventoryUserId);
+                        await updateInventoryStock(tx, product.id, inventoryLocationId, 1, 'L', null, existingSerial.id, userId, inventoryUserId, 1);
                         console.log('  Inventory stock updated');
                         console.log('   Creating stock movement for serial...');
                         await createStockMovement(tx, {
@@ -847,6 +854,9 @@ async function processApprovedVanInventoryStock(inventoryId, userId, requestData
                             from_location_id: null,
                             to_location_id: null,
                             quantity: 1,
+                            //new change
+                            base_quantity: 1,
+                            //new change
                             remarks: `Loaded serial ${serialNumber} to van`,
                             van_inventory_id: inventory.id,
                             createdby: userId,
@@ -1080,6 +1090,9 @@ async function processApprovedVanInventoryStock(inventoryId, userId, requestData
                                 data: {
                                     current_stock: Math.max(0, (inventoryStock.current_stock || 0) - 1),
                                     available_stock: Math.max(0, (inventoryStock.available_stock || 0) - 1),
+                                    //new change
+                                    base_quantity: Math.max(0, (inventoryStock.base_quantity || 0) - 1),
+                                    //new change
                                     updatedate: new Date(),
                                     updatedby: userId,
                                 },
@@ -1100,6 +1113,9 @@ async function processApprovedVanInventoryStock(inventoryId, userId, requestData
                             from_location_id: null,
                             to_location_id: null,
                             quantity: 1,
+                            //new change
+                            base_quantity: 1,
+                            //new change
                             remarks: `Unloaded serial ${serialNumber} from van`,
                             van_inventory_id: inventory.id,
                             createdby: userId,
@@ -3104,6 +3120,9 @@ exports.vanInventoryController = {
                                         product_name: product.name,
                                         unit: product.product_unit_of_measurement?.name || 'pcs',
                                         quantity: batchQty,
+                                        //new change
+                                        base_quantity: parseInt(batchInput.base_quantity, 10) || 0,
+                                        //new change
                                         source_system: 'sfa',
                                         unit_price: Number(item.unit_price || 0),
                                         discount_amount: Number(item.discount_amount || 0),
@@ -3139,6 +3158,9 @@ exports.vanInventoryController = {
                                         product_name: product.name,
                                         unit: product.product_unit_of_measurement?.name || 'pcs',
                                         quantity: 1,
+                                        //new change
+                                        base_quantity: 1,
+                                        //new change
                                         source_system: 'sfa',
                                         unit_price: Number(item.unit_price || 0),
                                         discount_amount: Number(item.discount_amount || 0),
@@ -3159,6 +3181,9 @@ exports.vanInventoryController = {
                                     product_name: product.name,
                                     unit: product.product_unit_of_measurement?.name || 'pcs',
                                     quantity: qty,
+                                    //new change
+                                    base_quantity: parseInt(item.base_quantity, 10) || 0,
+                                    //new change
                                     source_system: 'sfa',
                                     unit_price: Number(item.unit_price || 0),
                                     discount_amount: Number(item.discount_amount || 0),
@@ -3204,6 +3229,9 @@ exports.vanInventoryController = {
                                 }
                                 for (const batchInput of batchData) {
                                     const batchQty = parseInt(batchInput.quantity, 10) || 0;
+                                    //new changes
+                                    const batchBaseQty = parseInt(batchInput.base_quantity, 10) || 0;
+                                    //new changes
                                     if (batchQty <= 0) {
                                         throw new Error('Batch quantity must be greater than 0');
                                     }
@@ -3221,6 +3249,9 @@ exports.vanInventoryController = {
                                             data: {
                                                 quantity: batchLot.quantity + batchQty,
                                                 remaining_quantity: batchLot.remaining_quantity + batchQty,
+                                                //new changes
+                                                base_quantity: (batchLot.base_quantity || 0) + batchBaseQty,
+                                                //new changes
                                                 updatedate: new Date(),
                                             },
                                         });
@@ -3239,6 +3270,9 @@ exports.vanInventoryController = {
                                                     : new Date(new Date().setFullYear(new Date().getFullYear() + 2)),
                                                 quantity: batchQty,
                                                 remaining_quantity: batchQty,
+                                                //new changes
+                                                base_quantity: batchBaseQty,
+                                                //new changes
                                                 supplier_name: batchInput.supplier_name || null,
                                                 purchase_price: batchInput.purchase_price || null,
                                                 quality_grade: batchInput.quality_grade || 'A',
@@ -3284,7 +3318,11 @@ exports.vanInventoryController = {
                                         });
                                         console.log(` Created product_batches`);
                                     }
-                                    await updateInventoryStock(tx, product.id, inventoryData.location_id || null, batchQty, 'L', batchLot.id, null, userId, inventoryData.user_id);
+                                    await updateInventoryStock(tx, product.id, inventoryData.location_id || null, batchQty, 'L', batchLot.id, null, userId, inventoryData.user_id, 
+                                    //new change
+                                    parseInt(batchInput.base_quantity, 10) || 0
+                                    //new change
+                                    );
                                     await updateSubUsersInventoryStock(tx, inventoryData, product.id, batchQty, 'L', batchLot.id, null, userId, {
                                         movement_type: 'VAN_LOAD',
                                         van_inventory_id: inventory.id,
@@ -3300,6 +3338,9 @@ exports.vanInventoryController = {
                                         from_location_id: null,
                                         to_location_id: null,
                                         quantity: batchQty,
+                                        //new change
+                                        base_quantity: parseInt(batchInput.base_quantity, 10) || 0,
+                                        //new change
                                         remarks: `Loaded to van - Batch ${batchLot.batch_number}`,
                                         van_inventory_id: inventory.id,
                                         createdby: userId,
@@ -3359,7 +3400,11 @@ exports.vanInventoryController = {
                                         });
                                         console.log(` Created new serial ${serialNumber}`);
                                     }
-                                    await updateInventoryStock(tx, product.id, inventoryData.location_id || null, 1, 'L', null, existingSerial.id, userId, inventoryData.user_id);
+                                    await updateInventoryStock(tx, product.id, inventoryData.location_id || null, 1, 'L', null, existingSerial.id, userId, inventoryData.user_id, 
+                                    //new change
+                                    1
+                                    //new change
+                                    );
                                     await updateSubUsersInventoryStock(tx, inventoryData, product.id, 1, 'L', null, existingSerial.id, userId, {
                                         movement_type: 'VAN_LOAD',
                                         van_inventory_id: inventory.id,
@@ -3375,6 +3420,9 @@ exports.vanInventoryController = {
                                         from_location_id: null,
                                         to_location_id: null,
                                         quantity: 1,
+                                        //new change
+                                        base_quantity: 1,
+                                        //new change
                                         remarks: `Loaded serial ${serialNumber} to van`,
                                         van_inventory_id: inventory.id,
                                         createdby: userId,
@@ -3383,7 +3431,11 @@ exports.vanInventoryController = {
                                 }
                             }
                             else {
-                                await updateInventoryStock(tx, product.id, inventoryData.location_id || null, qty, 'L', null, null, userId, inventoryData.user_id);
+                                await updateInventoryStock(tx, product.id, inventoryData.location_id || null, qty, 'L', null, null, userId, inventoryData.user_id, 
+                                //new change
+                                parseInt(item.base_quantity, 10) || 0
+                                //new change
+                                );
                                 await updateSubUsersInventoryStock(tx, inventoryData, product.id, qty, 'L', null, null, userId, {
                                     movement_type: 'VAN_LOAD',
                                     van_inventory_id: inventory.id,
@@ -3399,6 +3451,9 @@ exports.vanInventoryController = {
                                     from_location_id: null,
                                     to_location_id: null,
                                     quantity: qty,
+                                    //new change
+                                    base_quantity: parseInt(item.base_quantity, 10) || 0,
+                                    //new change
                                     remarks: `Loaded ${qty} units to van`,
                                     van_inventory_id: inventory.id,
                                     createdby: userId,
@@ -3481,6 +3536,9 @@ exports.vanInventoryController = {
                                             data: {
                                                 current_stock: (inventoryStock.current_stock || 0) - batchQty,
                                                 available_stock: (inventoryStock.available_stock || 0) - batchQty,
+                                                //new change
+                                                base_quantity: Math.max(0, (inventoryStock.base_quantity || 0) - (parseInt(batchInput.base_quantity, 10) || 0)),
+                                                //new change
                                                 updatedate: new Date(),
                                                 updatedby: userId,
                                             },
@@ -3501,6 +3559,9 @@ exports.vanInventoryController = {
                                         from_location_id: null,
                                         to_location_id: null,
                                         quantity: batchQty,
+                                        //new change
+                                        base_quantity: parseInt(batchInput.base_quantity, 10) || 0,
+                                        //new change
                                         remarks: `Unloaded from van - Batch ${batchLot.batch_number}`,
                                         van_inventory_id: inventory.id,
                                         createdby: userId,
@@ -3562,6 +3623,9 @@ exports.vanInventoryController = {
                                             data: {
                                                 current_stock: Math.max(0, (inventoryStock.current_stock || 0) - 1),
                                                 available_stock: Math.max(0, (inventoryStock.available_stock || 0) - 1),
+                                                //new change
+                                                base_quantity: Math.max(0, (inventoryStock.base_quantity || 0) - 1),
+                                                //new change
                                                 updatedate: new Date(),
                                                 updatedby: userId,
                                             },
@@ -3583,6 +3647,9 @@ exports.vanInventoryController = {
                                         from_location_id: null,
                                         to_location_id: null,
                                         quantity: 1,
+                                        //new change
+                                        base_quantity: 1,
+                                        //new change
                                         remarks: `Sold serial ${serialNumber}`,
                                         van_inventory_id: inventory.id,
                                         createdby: userId,
@@ -3637,6 +3704,9 @@ exports.vanInventoryController = {
                                         data: {
                                             current_stock: (inventoryStock.current_stock || 0) - qty,
                                             available_stock: (inventoryStock.available_stock || 0) - qty,
+                                            //new change
+                                            base_quantity: Math.max(0, (inventoryStock.base_quantity || 0) - (parseInt(item.base_quantity, 10) || 0)),
+                                            //new change
                                             updatedate: new Date(),
                                             updatedby: userId,
                                         },
@@ -3657,6 +3727,9 @@ exports.vanInventoryController = {
                                     from_location_id: null,
                                     to_location_id: null,
                                     quantity: qty,
+                                    //new change
+                                    base_quantity: parseInt(item.base_quantity, 10) || 0,
+                                    //new change
                                     remarks: `Sold ${qty} units from van`,
                                     van_inventory_id: inventory.id,
                                     createdby: userId,
@@ -4070,7 +4143,9 @@ exports.vanInventoryController = {
             if (inventoryData.document_date !== undefined) {
                 payload.document_date =
                     inventoryData.document_date &&
+                        //new change
                         inventoryData.document_date.trim() !== ''
+                        //new change
                         ? new Date(inventoryData.document_date)
                         : new Date();
             }
@@ -4222,6 +4297,9 @@ exports.vanInventoryController = {
                         product.product_unit_of_measurement?.symbol ||
                         'pcs',
                     quantity: Number(data.quantity),
+                    //new change
+                    base_quantity: data.base_quantity !== undefined && data.base_quantity !== null ? Number(data.base_quantity) : null,
+                    //new change
                     unit_price: Number(data.unit_price),
                     discount_amount: Number(data.discount_amount) || 0,
                     tax_amount: Number(data.tax_amount) || 0,
@@ -4389,6 +4467,9 @@ exports.vanInventoryController = {
                                         product.product_unit_of_measurement?.symbol ||
                                         'pcs',
                                     quantity: Number(item.quantity),
+                                    //new change
+                                    base_quantity: item.base_quantity !== undefined && item.base_quantity !== null ? Number(item.base_quantity) : null,
+                                    //new change
                                     unit_price: Number(item.unit_price),
                                     discount_amount: Number(item.discount_amount) || 0,
                                     tax_amount: Number(item.tax_amount) || 0,
