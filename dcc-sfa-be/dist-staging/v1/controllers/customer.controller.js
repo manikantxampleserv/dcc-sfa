@@ -1528,7 +1528,7 @@ exports.customerController = {
                 },
             });
             let defaultOutlets = [];
-            if (defaultOutletIds.length > 0) {
+            if (defaultOutletIds.length > 0 && salesperson_id) {
                 const defaultOutletWhere = {
                     id: { in: defaultOutletIds },
                     ...(search && { OR: filters.OR }),

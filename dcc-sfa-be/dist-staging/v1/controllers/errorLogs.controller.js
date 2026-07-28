@@ -22,7 +22,11 @@ exports.errorLogsController = {
             const { page = 1, limit = 10, path, method, start_date, end_date, } = req.query;
             const where = {};
             if (path) {
-                where.path = { contains: path };
+                const searchTerm = path.trim();
+                where.OR = [
+                    { path: { contains: searchTerm } },
+                    { message: { contains: searchTerm } },
+                ];
             }
             if (method) {
                 where.method = method;

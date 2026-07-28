@@ -345,6 +345,7 @@ const InventoryDetail = () => {
   const { data: invoicesResponse, isLoading: isLoadingInvoices } = useInvoices(
     {
       limit: 1000000,
+      salesperson_id: inventoryId,
       time_filter:
         timeFilter !== 'all' && timeFilter !== 'custom'
           ? timeFilter
@@ -370,6 +371,7 @@ const InventoryDetail = () => {
     useStockMovements(
       {
         limit: 1000000,
+        created_by: inventoryId,
         time_filter:
           timeFilter !== 'all' && timeFilter !== 'custom'
             ? timeFilter

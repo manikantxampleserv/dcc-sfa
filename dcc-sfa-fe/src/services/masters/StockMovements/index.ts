@@ -97,6 +97,7 @@ interface GetStockMovementsParams {
   to_location_id?: number;
   van_inventory_id?: number;
   time_filter?: string;
+  created_by?: number;
 }
 
 interface PaginationMeta {

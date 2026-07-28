@@ -35,7 +35,9 @@ export interface MenuItem {
 }
 
 const isLocalOrStaging =
-  import.meta.env.MODE === 'development' || import.meta.env.MODE === 'staging';
+  import.meta.env.MODE === 'development' ||
+  import.meta.env.MODE === 'staging' ||
+  import.meta.env.MODE === 'demo';
 
 const menuItems: MenuItem[] = [
   {

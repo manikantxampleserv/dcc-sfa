@@ -34,6 +34,11 @@ export const getApiTokens = async (req: Request, res: Response) => {
         { token: { contains: search as string } },
         { device_id: { contains: search as string } },
         { ip_address: { contains: search as string } },
+        {
+          users_api_tokens_user_idTousers: {
+            name: { contains: search as string },
+          },
+        },
       ];
     }
 

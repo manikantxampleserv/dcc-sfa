@@ -33,7 +33,7 @@ const Sidebar: React.FC = () => {
   const filteredMenuItems = useMemo(() => {
     if (!searchQuery.trim()) return permissionFilteredItems;
 
-    const query = searchQuery.toLowerCase();
+    const query = searchQuery.trim().toLowerCase();
     return permissionFilteredItems
       .map(item => {
         const filteredChildren = item.children

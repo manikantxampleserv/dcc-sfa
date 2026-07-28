@@ -153,8 +153,15 @@ export const stockMovementsController = {
 
   async getAllStockMovements(req: any, res: any) {
     try {
-      const { page, limit, search, status, movement_type, time_filter } =
-        req.query;
+      const {
+        page,
+        limit,
+        search,
+        status,
+        movement_type,
+        time_filter,
+        created_by,
+      } = req.query;
       const pageNum = parseInt(page as string, 10) || 1;
       const limitNum = parseInt(limit as string, 10) || 10;
       const searchLower = search ? (search as string).toLowerCase() : '';
@@ -176,6 +183,9 @@ export const stockMovementsController = {
         }),
         ...(movement_type && {
           movement_type: movement_type,
+        }),
+        ...(created_by && {
+          createdby: Number(created_by),
         }),
         ...(movementDateFilter && { movement_date: movementDateFilter }),
       };

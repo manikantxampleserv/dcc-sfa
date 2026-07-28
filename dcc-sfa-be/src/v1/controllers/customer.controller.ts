@@ -1748,7 +1748,7 @@ export const customerController = {
       });
 
       let defaultOutlets: any[] = [];
-      if (defaultOutletIds.length > 0) {
+      if (defaultOutletIds.length > 0 && salesperson_id) {
         const defaultOutletWhere: any = {
           id: { in: defaultOutletIds },
           ...(search && { OR: filters.OR }),

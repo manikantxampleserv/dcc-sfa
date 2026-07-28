@@ -8,6 +8,7 @@ import {
   IconButton,
   Tooltip,
   Typography,
+  MenuItem,
 } from '@mui/material';
 import { useErrorLogs } from 'hooks/useErrorLogs';
 import { usePermission } from 'hooks/usePermission';
@@ -17,6 +18,7 @@ import type { ErrorLogData } from 'services/errorLogs';
 import { ViewButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
 import SearchInput from 'shared/SearchInput';
+import Select from 'shared/Select';
 import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
 import { formatDateTime } from 'utils/dateUtils';
@@ -26,6 +28,7 @@ const ErrorLogs: React.FC = () => {
   const [page, setPage] = useState(1);
   const [pageSize] = useState(10);
   const [path, setPath] = useState('');
+  const [method, setMethod] = useState('ALL');
   const [selectedError, setSelectedError] = useState<ErrorLogData | null>(null);
 
   const { isRead } = usePermission('error-logs');
@@ -35,6 +38,7 @@ const ErrorLogs: React.FC = () => {
       page,
       limit: pageSize,
       path: path === '' ? undefined : path,
+      method: method === 'ALL' ? undefined : method,
     },
     { enabled: isRead }
   );
@@ -222,13 +226,25 @@ const ErrorLogs: React.FC = () => {
           <div className="flex justify-between gap-3 items-center flex-wrap">
             <div className="flex flex-wrap items-center gap-3">
               <SearchInput
-                placeholder="Search by endpoint path..."
+                placeholder="Search by endpoint path or message..."
                 value={path}
                 onChange={setPath}
                 debounceMs={400}
                 showClear={true}
                 className="!w-80"
               />
+              <Select
+                value={method}
+                setValue={setMethod}
+                placeholder="HTTP Method"
+                className="!w-50"
+              >
+                <MenuItem value="ALL">All Methods</MenuItem>
+                <MenuItem value="GET">GET</MenuItem>
+                <MenuItem value="POST">POST</MenuItem>
+                <MenuItem value="PUT">PUT</MenuItem>
+                <MenuItem value="DELETE">DELETE</MenuItem>
+              </Select>
             </div>
           </div>
         }
