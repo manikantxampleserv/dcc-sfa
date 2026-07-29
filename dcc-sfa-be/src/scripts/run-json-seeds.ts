@@ -1,0 +1,118 @@
+import prisma from '../configs/prisma.client';
+import * as fs from 'fs';
+import * as path from 'path';
+
+async function main() {
+  // Disable all foreign key constraints before starting
+  try {
+    await prisma.$executeRawUnsafe(`EXEC sp_msforeachtable "ALTER TABLE ? NOCHECK CONSTRAINT all"`);
+    console.log('Successfully disabled all foreign key constraints');
+  } catch (e) {
+    console.error('Error disabling foreign key constraints:', e);
+  }
+
+  const dataDir = path.join(__dirname, '../utils/seeders/data');
+  const files = fs.readdirSync(dataDir).filter(f => f.endsWith('.json'));
+
+  // Define an order to respect basic foreign keys. 
+  // Very rough order: master data first, transactional later.
+  const orderedModels = [
+    'companies', 'depots', 'zones', 'roles', 'permissions', 'users',
+    'route_type', 'routes', 'vehicles',
+    'customer_type', 'customer_category', 'customer_channel', 'customers',
+    'product_categories', 'product_sub_categories', 'brands', 'product_volumes',
+    'product_flavours', 'unit_of_measurement', 'tax_master', 'products',
+    'asset_types', 'asset_master', 'coolers', 'cooler_inspections',
+    'batch_lots', 'visits'
+  ];
+
+  // Make sure we process everything in the directory
+  const sortedFiles = files.sort((a, b) => {
+    const aName = a.replace('.json', '');
+    const bName = b.replace('.json', '');
+    let aIdx = orderedModels.indexOf(aName);
+    let bIdx = orderedModels.indexOf(bName);
+    if (aIdx === -1) aIdx = 999;
+    if (bIdx === -1) bIdx = 999;
+    return aIdx - bIdx;
+  });
+
+  for (const file of sortedFiles) {
+    const model = file.replace('.json', '');
+    const filePath = path.join(dataDir, file);
+    const data = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+
+    if (data.length === 0) continue;
+
+    console.log(`Seeding ${model}... (${data.length} records)`);
+    
+    // Convert Dates and handle nulls
+    const formattedData = data.map((item: any) => {
+      const formatted = { ...item };
+      for (const [key, value] of Object.entries(formatted)) {
+        // If it looks like a date string
+        if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(value)) {
+          formatted[key] = new Date(value);
+        }
+      }
+      return formatted;
+    });
+
+    try {
+      // First, try to clear the table to prevent duplicate key errors (optional, but good for idempotency)
+      // We will skip truncating here to avoid FK drop issues unless needed.
+      // Instead, we use raw SQL to insert so we can control IDENTITY_INSERT.
+      
+      const hasIdentity: any[] = await prisma.$queryRawUnsafe(`SELECT 1 as has_ident FROM sys.identity_columns WHERE OBJECT_NAME(object_id) = '${model}'`);
+      const isIdentity = hasIdentity.length > 0;
+
+      let sqlBatch = '';
+      if (isIdentity) {
+        sqlBatch += `SET IDENTITY_INSERT ${model} ON;\n`;
+      }
+
+      const columns = Object.keys(formattedData[0]);
+      
+      for (const row of formattedData) {
+        const values = columns.map(col => {
+          const val = row[col];
+          if (val === null || val === undefined) return 'NULL';
+          if (val instanceof Date) return `'${val.toISOString().slice(0, 19).replace('T', ' ')}'`;
+          if (typeof val === 'string') return `'${val.replace(/'/g, "''")}'`;
+          if (typeof val === 'boolean') return val ? 1 : 0;
+          return val;
+        });
+
+        sqlBatch += `INSERT INTO ${model} (${columns.join(', ')}) VALUES (${values.join(', ')});\n`;
+      }
+
+      if (isIdentity) {
+        sqlBatch += `SET IDENTITY_INSERT ${model} OFF;\n`;
+      }
+
+      try {
+        await prisma.$executeRawUnsafe(sqlBatch);
+        console.log(`Successfully seeded ${model}`);
+      } catch (insertErr: any) {
+        if (!insertErr.message.includes('Violation of PRIMARY KEY constraint')) {
+           throw insertErr;
+        } else {
+           console.log(`Skipped ${model} (Already exists / PK Violation)`);
+        }
+      }
+      console.log(`Successfully seeded ${model}`);
+    } catch (e: any) {
+      console.error(`Error seeding ${model}:`, e.message);
+    }
+  }
+
+  // Re-enable all foreign key constraints
+  try {
+    await prisma.$executeRawUnsafe(`EXEC sp_msforeachtable "ALTER TABLE ? WITH CHECK CHECK CONSTRAINT all"`);
+    console.log('Successfully re-enabled all foreign key constraints');
+  } catch (e) {
+    console.error('Error re-enabling foreign key constraints:', e);
+  }
+}
+
+main().finally(() => prisma.$disconnect());

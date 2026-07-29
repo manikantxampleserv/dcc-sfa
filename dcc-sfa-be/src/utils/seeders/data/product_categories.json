@@ -1,0 +1,46 @@
+[
+  {
+    "id": 4,
+    "category_name": "Returnable Glass and Crates",
+    "description": null,
+    "is_active": "Y",
+    "createdate": "2026-07-15T15:06:56.983Z",
+    "createdby": 1,
+    "updatedate": null,
+    "updatedby": null,
+    "log_inst": null
+  },
+  {
+    "id": 10,
+    "category_name": "Carbonated Soda Drink (CSD)",
+    "description": "",
+    "is_active": "Y",
+    "createdate": "2026-01-23T09:43:51.367Z",
+    "createdby": 25,
+    "updatedate": "2026-01-23T09:48:48.297Z",
+    "updatedby": 25,
+    "log_inst": 1
+  },
+  {
+    "id": 11,
+    "category_name": "KILIMANJARO NATURAL MINERAL WATER",
+    "description": "",
+    "is_active": "Y",
+    "createdate": "2026-01-23T09:44:10.780Z",
+    "createdby": 25,
+    "updatedate": "2026-06-03T08:53:54.027Z",
+    "updatedby": 25,
+    "log_inst": 1
+  },
+  {
+    "id": 13,
+    "category_name": "MINUTE MAID JUICE",
+    "description": "",
+    "is_active": "Y",
+    "createdate": "2026-01-23T09:44:25.627Z",
+    "createdby": 25,
+    "updatedate": "2026-01-23T09:49:32.830Z",
+    "updatedby": 25,
+    "log_inst": 1
+  }
+]

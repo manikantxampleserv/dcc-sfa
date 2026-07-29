@@ -1,0 +1,16 @@
+[
+  {
+    "id": 21,
+    "code": "TZS",
+    "name": "Tanzanian Shilling",
+    "symbol": "TZs",
+    "exchange_rate_to_base": null,
+    "is_base": "Y",
+    "is_active": "Y",
+    "createdate": "2026-01-07T06:09:29.997Z",
+    "createdby": 1,
+    "updatedate": "2026-03-26T09:16:09.810Z",
+    "updatedby": 25,
+    "log_inst": 1
+  }
+]

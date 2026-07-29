@@ -1,0 +1,86 @@
+[
+  {
+    "id": 5,
+    "sub_category_name": "RETURNABLE GLASS BOTTLES (RGB)",
+    "product_category_id": 4,
+    "description": null,
+    "is_active": "Y",
+    "createdate": "2026-07-15T15:07:29.633Z",
+    "createdby": 1,
+    "updatedate": null,
+    "updatedby": null,
+    "log_inst": null
+  },
+  {
+    "id": 8,
+    "sub_category_name": "Plastic",
+    "product_category_id": 4,
+    "description": null,
+    "is_active": "Y",
+    "createdate": "2026-07-15T15:07:29.520Z",
+    "createdby": 1,
+    "updatedate": null,
+    "updatedby": null,
+    "log_inst": null
+  },
+  {
+    "id": 23,
+    "sub_category_name": "RETURNABLE GLASS BOTTLES (RGB)",
+    "product_category_id": 10,
+    "description": null,
+    "is_active": "Y",
+    "createdate": "2026-01-23T09:51:38.533Z",
+    "createdby": 25,
+    "updatedate": null,
+    "updatedby": null,
+    "log_inst": 1
+  },
+  {
+    "id": 24,
+    "sub_category_name": "PET CSD",
+    "product_category_id": 10,
+    "description": "",
+    "is_active": "Y",
+    "createdate": "2026-01-23T09:53:00.080Z",
+    "createdby": 25,
+    "updatedate": "2026-03-16T09:23:01.137Z",
+    "updatedby": 25,
+    "log_inst": 1
+  },
+  {
+    "id": 25,
+    "sub_category_name": "PET KDW",
+    "product_category_id": 11,
+    "description": "",
+    "is_active": "Y",
+    "createdate": "2026-01-23T09:53:25.687Z",
+    "createdby": 25,
+    "updatedate": "2026-03-16T09:22:50.177Z",
+    "updatedby": 25,
+    "log_inst": 1
+  },
+  {
+    "id": 26,
+    "sub_category_name": "PET JUICE",
+    "product_category_id": 13,
+    "description": "",
+    "is_active": "Y",
+    "createdate": "2026-01-23T09:53:41.460Z",
+    "createdby": 25,
+    "updatedate": "2026-03-16T09:22:42.170Z",
+    "updatedby": 25,
+    "log_inst": 1
+  },
+  {
+    "id": 27,
+    "sub_category_name": "BULK KDW",
+    "product_category_id": 11,
+    "description": "",
+    "is_active": "Y",
+    "createdate": "2026-01-23T09:54:01.100Z",
+    "createdby": 25,
+    "updatedate": "2026-05-12T08:54:10.043Z",
+    "updatedby": 25,
+    "log_inst": 1
+  }
+]

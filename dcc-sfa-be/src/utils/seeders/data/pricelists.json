@@ -1,0 +1,34 @@
+[
+  {
+    "id": 1,
+    "name": "Base Price List",
+    "description": "",
+    "is_active": "Y",
+    "createdate": "2026-05-12T13:31:05.403Z",
+    "createdby": 25,
+    "updatedate": "2026-06-12T11:34:11.757Z",
+    "updatedby": 25,
+    "log_inst": 6,
+    "is_default": "Y",
+    "priority": "1",
+    "base_pricelist_id": 1,
+    "factor": "1",
+    "depot_id": 17
+  },
+  {
+    "id": 13,
+    "name": "Dar Es Salaam Price List",
+    "description": "",
+    "is_active": "Y",
+    "createdate": "2026-05-29T09:36:19.673Z",
+    "createdby": 25,
+    "updatedate": "2026-06-02T06:34:38.280Z",
+    "updatedby": 25,
+    "log_inst": 2,
+    "is_default": "N",
+    "priority": "1",
+    "base_pricelist_id": 13,
+    "factor": "1",
+    "depot_id": 32
+  }
+]

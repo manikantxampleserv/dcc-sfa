@@ -1,0 +1,74 @@
+[
+  {
+    "id": 20,
+    "category_name": "NORMAL",
+    "category_code": "NORMAL",
+    "is_active": "Y",
+    "createdate": "2026-01-23T12:23:50.280Z",
+    "createdby": 25,
+    "level": 1,
+    "updatedate": "2026-06-03T12:46:05.967Z",
+    "updatedby": 25,
+    "log_inst": 1
+  },
+  {
+    "id": 21,
+    "category_name": "DUAL",
+    "category_code": "DUAL",
+    "is_active": "Y",
+    "createdate": "2026-01-23T12:24:22.817Z",
+    "createdby": 25,
+    "level": 2,
+    "updatedate": "2026-06-03T12:44:19.630Z",
+    "updatedby": 25,
+    "log_inst": 1
+  },
+  {
+    "id": 22,
+    "category_name": "VIP-SILVER",
+    "category_code": "VIP-SILVER",
+    "is_active": "Y",
+    "createdate": "2026-01-23T12:27:48.373Z",
+    "createdby": 25,
+    "level": 3,
+    "updatedate": "2026-06-03T12:45:54.723Z",
+    "updatedby": 25,
+    "log_inst": 1
+  },
+  {
+    "id": 23,
+    "category_name": "VIP-GOLD",
+    "category_code": "VIP-GOLD",
+    "is_active": "Y",
+    "createdate": "2026-01-23T12:29:04.277Z",
+    "createdby": 25,
+    "level": 4,
+    "updatedate": "2026-06-03T12:45:27.493Z",
+    "updatedby": 25,
+    "log_inst": 1
+  },
+  {
+    "id": 24,
+    "category_name": "VIP-PLATINUM",
+    "category_code": "VIP-PLATINUM",
+    "is_active": "Y",
+    "createdate": "2026-01-23T12:35:54.747Z",
+    "createdby": 25,
+    "level": 5,
+    "updatedate": "2026-06-03T12:45:09.707Z",
+    "updatedby": 25,
+    "log_inst": 1
+  },
+  {
+    "id": 25,
+    "category_name": "VIP-SUPER PLATINUM",
+    "category_code": "VIP-SUPER PLATINUM",
+    "is_active": "Y",
+    "createdate": "2026-01-23T12:36:29.627Z",
+    "createdby": 25,
+    "level": 6,
+    "updatedate": "2026-06-03T12:42:26.333Z",
+    "updatedby": 25,
+    "log_inst": 1
+  }
+]
