@@ -2919,10 +2919,10 @@ const serializeRequest = (request: any): RequestSerialized => ({
   log_inst: request.log_inst,
   requester: request.sfa_d_requests_requester
     ? {
-        id: request.sfa_d_requests_requester.id,
-        name: request.sfa_d_requests_requester.name,
-        email: request.sfa_d_requests_requester.email,
-      }
+      id: request.sfa_d_requests_requester.id,
+      name: request.sfa_d_requests_requester.name,
+      email: request.sfa_d_requests_requester.email,
+    }
     : null,
   approvals:
     request.sfa_d_requests_approvals_request?.map((approval: any) => ({
@@ -2934,14 +2934,14 @@ const serializeRequest = (request: any): RequestSerialized => ({
       action_at: approval.action_at,
       approver: approval.sfa_d_requests_approvals_approver
         ? {
-            id: approval.sfa_d_requests_approvals_approver.id,
-            name: approval.sfa_d_requests_approvals_approver.name,
-            email: approval.sfa_d_requests_approvals_approver.email,
-            profile_image:
-              approval.sfa_d_requests_approvals_approver.profile_image || null,
-            employee_id:
-              approval.sfa_d_requests_approvals_approver.employee_id || null,
-          }
+          id: approval.sfa_d_requests_approvals_approver.id,
+          name: approval.sfa_d_requests_approvals_approver.name,
+          email: approval.sfa_d_requests_approvals_approver.email,
+          profile_image:
+            approval.sfa_d_requests_approvals_approver.profile_image || null,
+          employee_id:
+            approval.sfa_d_requests_approvals_approver.employee_id || null,
+        }
         : null,
       reference_details: request.reference_details || null,
     })) || [],
@@ -4617,6 +4617,94 @@ export const requestsController = {
                   updatedby: userId,
                 },
               });
+              //new logic
+
+              try {
+                const reconRecord = await tx.reconciliation.findUnique({
+                  where: { id: request.reference_id },
+                  select: { salesman_id: true },
+                });
+
+                if (reconRecord?.salesman_id) {
+                  const reconItems = await tx.reconciliation_items.findMany({
+                    where: {
+                      reconciliation_id: request.reference_id,
+                      is_active: 'Y',
+                    },
+                    select: {
+                      product_id: true,
+                      batch_number: true,
+                      expected_qty: true,
+                      expected_base_qty: true,
+                    },
+                  });
+
+                  const vanLocations = await tx.van_inventory.findMany({
+                    where: {
+                      user_id: reconRecord.salesman_id,
+                      is_active: 'Y',
+                    },
+                    select: { location_id: true },
+                    distinct: ['location_id'],
+                  });
+                  const locationIds = vanLocations
+                    .map((v: any) => v.location_id)
+                    .filter(Boolean) as number[];
+
+                  for (const item of reconItems) {
+                    if (!item.product_id) continue;
+
+                    const restoredQty = Number(item.expected_qty) || 0;
+                    const restoredBaseQty = Number(item.expected_base_qty) || 0;
+
+                    let batchId: number | null = null;
+                    if (item.batch_number) {
+                      const batchRecord = await tx.batch_lots.findFirst({
+                        where: { batch_number: item.batch_number },
+                        select: { id: true },
+                      });
+                      batchId = batchRecord?.id ?? null;
+                    }
+
+                    const stockFilter: any = {
+                      product_id: item.product_id,
+                      salesperson_id: reconRecord.salesman_id,
+                      is_active: 'Y',
+                      is_unloadAll: 'Y',
+                    };
+                    if (locationIds.length > 0) {
+                      stockFilter.location_id = { in: locationIds };
+                    }
+                    if (batchId !== null) {
+                      stockFilter.batch_id = batchId;
+                    } else {
+                      stockFilter.batch_id = null;
+                    }
+
+                    await tx.inventory_stock.updateMany({
+                      where: stockFilter,
+                      data: {
+                        current_stock: restoredQty,
+                        available_stock: restoredQty,
+                        base_quantity: restoredBaseQty,
+                        is_unloadAll: 'N',
+                        updatedate: new Date(),
+                        updatedby: userId,
+                      },
+                    });
+                  }
+
+                  console.log(
+                    ` Restored inventory_stock for salesman ${reconRecord.salesman_id} after reconciliation rejection (reconciliation_id=${request.reference_id}).`
+                  );
+                }
+              } catch (restoreErr) {
+                console.error(
+                  ' Error restoring inventory_stock on reconciliation rejection:',
+                  restoreErr
+                );
+              }
+              // new logic
 
               if (request.request_data) {
                 try {
@@ -5113,7 +5201,7 @@ export const requestsController = {
 
                 if (
                   assetMovement.movement_type?.toLowerCase() ===
-                    'maintenance' ||
+                  'maintenance' ||
                   assetMovement.movement_type?.toLowerCase() === 'repair'
                 ) {
                   try {
