@@ -798,6 +798,7 @@ export const invoicesController = {
         currency_id,
         is_active = 'Y',
         time_filter,
+        salesperson_id,
       } = req.query;
 
       const page_num = parseInt(page as string, 10);
@@ -853,6 +854,16 @@ export const invoicesController = {
               }
             : undefined),
       };
+
+      if (salesperson_id) {
+        if (!filters.AND) filters.AND = [];
+        filters.AND.push({
+          OR: [
+            { salesperson_id: Number(salesperson_id) },
+            { createdby: Number(salesperson_id) },
+          ],
+        });
+      }
 
       if (isScopeRestricted) {
         if (depotIds.length > 0) {

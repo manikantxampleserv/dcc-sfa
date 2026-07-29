@@ -27,7 +27,11 @@ export const errorLogsController = {
       const where: any = {};
 
       if (path) {
-        where.path = { contains: path as string };
+        const searchTerm = (path as string).trim();
+        where.OR = [
+          { path: { contains: searchTerm } },
+          { message: { contains: searchTerm } },
+        ];
       }
 
       if (method) {

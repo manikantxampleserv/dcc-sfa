@@ -1,0 +1,42 @@
+[
+  {
+    "id": 1,
+    "name": "Normal",
+    "is_active": "Y",
+    "createdate": "2026-07-15T15:08:07.770Z",
+    "createdby": 1,
+    "updatedate": null,
+    "updatedby": null,
+    "log_inst": null
+  },
+  {
+    "id": 16,
+    "name": "Regular",
+    "is_active": "Y",
+    "createdate": "2026-01-23T11:17:40.857Z",
+    "createdby": 25,
+    "updatedate": null,
+    "updatedby": null,
+    "log_inst": 1
+  },
+  {
+    "id": 17,
+    "name": "Modern Trade",
+    "is_active": "Y",
+    "createdate": "2026-03-26T13:24:16.340Z",
+    "createdby": 25,
+    "updatedate": null,
+    "updatedby": null,
+    "log_inst": 1
+  },
+  {
+    "id": 18,
+    "name": "Safari",
+    "is_active": "Y",
+    "createdate": "2026-03-26T13:24:47.437Z",
+    "createdby": 25,
+    "updatedate": null,
+    "updatedby": null,
+    "log_inst": 1
+  }
+]

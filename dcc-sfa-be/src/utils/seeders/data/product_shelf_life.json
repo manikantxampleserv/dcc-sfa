@@ -1,0 +1,46 @@
+[
+  {
+    "id": 4,
+    "name": "Not Applicable",
+    "code": "SHELF-NOTAP-001",
+    "is_active": "Y",
+    "createdate": "2026-07-15T15:08:07.756Z",
+    "createdby": 1,
+    "updatedate": null,
+    "updatedby": null,
+    "log_inst": null
+  },
+  {
+    "id": 8,
+    "name": "I year",
+    "code": "365",
+    "is_active": "Y",
+    "createdate": "2026-01-23T11:37:26.680Z",
+    "createdby": 25,
+    "updatedate": null,
+    "updatedby": null,
+    "log_inst": 1
+  },
+  {
+    "id": 9,
+    "name": "6 Months",
+    "code": "180",
+    "is_active": "Y",
+    "createdate": "2026-01-23T11:37:35.895Z",
+    "createdby": 25,
+    "updatedate": null,
+    "updatedby": null,
+    "log_inst": 1
+  },
+  {
+    "id": 10,
+    "name": "3 Months",
+    "code": "90",
+    "is_active": "Y",
+    "createdate": "2026-01-23T11:37:48.435Z",
+    "createdby": 25,
+    "updatedate": null,
+    "updatedby": null,
+    "log_inst": 1
+  }
+]

@@ -27,6 +27,11 @@ const getApiTokens = async (req, res) => {
                 { token: { contains: search } },
                 { device_id: { contains: search } },
                 { ip_address: { contains: search } },
+                {
+                    users_api_tokens_user_idTousers: {
+                        name: { contains: search },
+                    },
+                },
             ];
         }
         if (isActive !== '') {

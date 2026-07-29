@@ -590,7 +590,7 @@ exports.invoicesController = {
     },
     async getInvoices(req, res) {
         try {
-            const { page = '1', limit = '10', search = '', customer_id, status, payment_method, invoice_date_from, invoice_date_to, currency_id, is_active = 'Y', time_filter, } = req.query;
+            const { page = '1', limit = '10', search = '', customer_id, status, payment_method, invoice_date_from, invoice_date_to, currency_id, is_active = 'Y', time_filter, salesperson_id, } = req.query;
             const page_num = parseInt(page, 10);
             const limit_num = parseInt(limit, 10);
             const searchLower = search.toLowerCase();
@@ -638,6 +638,16 @@ exports.invoicesController = {
                         }
                         : undefined),
             };
+            if (salesperson_id) {
+                if (!filters.AND)
+                    filters.AND = [];
+                filters.AND.push({
+                    OR: [
+                        { salesperson_id: Number(salesperson_id) },
+                        { createdby: Number(salesperson_id) },
+                    ],
+                });
+            }
             if (isScopeRestricted) {
                 if (depotIds.length > 0) {
                     filters.invoices_salesperson = {

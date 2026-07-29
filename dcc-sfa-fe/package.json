@@ -10,10 +10,12 @@
     "build:staging": "vite build --mode staging --outDir dist-staging && node scripts/copy-webconfig.js",
     "build:testing": "vite build --mode testing --outDir dist-testing && node scripts/copy-webconfig.js",
     "build:production": "vite build --mode production --outDir dist-production && node scripts/copy-webconfig.js",
+    "build:demo": "vite build --mode demo --outDir dist-demo && node scripts/copy-webconfig.js",
     "preview": "vite preview",
     "preview:staging": "vite preview --outDir dist-staging",
     "preview:testing": "vite preview --outDir dist-testing",
     "preview:production": "vite preview --outDir dist-production",
+    "preview:demo": "vite preview --outDir dist-demo",
     "lint": "eslint .",
     "generate:permissions": "node scripts/generate-permissions.js"
   },

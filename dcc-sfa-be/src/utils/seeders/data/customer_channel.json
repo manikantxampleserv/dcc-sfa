@@ -1,0 +1,57 @@
+[
+  {
+    "id": 33,
+    "channel_name": "BPNE",
+    "channel_code": "BPN001",
+    "is_active": "Y",
+    "createdate": "2026-01-23T12:52:51.767Z",
+    "createdby": 25,
+    "updatedate": null,
+    "updatedby": null,
+    "log_inst": 1
+  },
+  {
+    "id": 34,
+    "channel_name": "DUKA AND KIOSK",
+    "channel_code": "DUK002",
+    "is_active": "Y",
+    "createdate": "2026-01-23T12:53:04.873Z",
+    "createdby": 25,
+    "updatedate": null,
+    "updatedby": null,
+    "log_inst": 1
+  },
+  {
+    "id": 35,
+    "channel_name": "EATERY",
+    "channel_code": "EAT003",
+    "is_active": "Y",
+    "createdate": "2026-01-23T12:53:14.697Z",
+    "createdby": 25,
+    "updatedate": null,
+    "updatedby": null,
+    "log_inst": 1
+  },
+  {
+    "id": 36,
+    "channel_name": "HBR",
+    "channel_code": "HBR004",
+    "is_active": "Y",
+    "createdate": "2026-01-23T12:53:24.310Z",
+    "createdby": 25,
+    "updatedate": null,
+    "updatedby": null,
+    "log_inst": 1
+  },
+  {
+    "id": 37,
+    "channel_name": "NON EATERY",
+    "channel_code": "NON005",
+    "is_active": "Y",
+    "createdate": "2026-01-23T12:53:33.900Z",
+    "createdby": 25,
+    "updatedate": null,
+    "updatedby": null,
+    "log_inst": 1
+  }
+]

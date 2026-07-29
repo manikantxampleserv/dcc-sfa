@@ -461,7 +461,7 @@ const PromotionDetail: React.FC = () => {
                   label={`Levels & Benefits (${promotion.levels?.length || 0})`}
                   iconPosition="start"
                 />
-                <Tab icon={<Activity />} label="Actions" iconPosition="start" />
+                {/* <Tab icon={<Activity />} label="Actions" iconPosition="start" /> */}
               </Tabs>
             </Box>
 

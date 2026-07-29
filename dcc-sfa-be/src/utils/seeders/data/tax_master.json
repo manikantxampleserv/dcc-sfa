@@ -1,0 +1,15 @@
+[
+  {
+    "id": 13,
+    "name": "VATREGULAR",
+    "code": "VAT01",
+    "tax_rate": "18",
+    "description": null,
+    "is_active": "Y",
+    "createdate": "2026-01-23T10:02:00.800Z",
+    "createdby": 25,
+    "updatedate": null,
+    "updatedby": null,
+    "log_inst": 1
+  }
+]
