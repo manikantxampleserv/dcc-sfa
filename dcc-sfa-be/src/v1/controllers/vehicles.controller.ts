@@ -87,13 +87,18 @@ export const vehiclesController = {
         });
       }
 
-      let sapCode = data.sap_code && data.sap_code.trim() !== '' ? data.sap_code.trim() : null;
+      let sapCode =
+        data.sap_code && data.sap_code.trim() !== ''
+          ? data.sap_code.trim()
+          : null;
       if (sapCode) {
         const existingSapCode = await prisma.vehicles.findFirst({
           where: { sap_code: sapCode },
         });
         if (existingSapCode) {
-          return res.status(409).json({ message: 'Vehicle with this sap_code already exists' });
+          return res
+            .status(409)
+            .json({ message: 'Vehicle with this sap_code already exists' });
         }
       }
 
@@ -131,21 +136,6 @@ export const vehiclesController = {
       const limit_num = parseInt(limit as string, 10);
       const searchLower = (search as string).toLowerCase();
 
-      const user = (req as any).user;
-      let isScopeRestricted = false;
-      let depotIds: number[] = [];
-
-      if (user && !isAdminRole(user.role)) {
-        isScopeRestricted = true;
-        const userDepots = await prisma.user_depots.findMany({
-          where: { user_id: user.id },
-          select: { depot_id: true },
-        });
-        depotIds = userDepots
-          .map((ud: any) => ud.depot_id)
-          .filter((id: any) => id !== null) as number[];
-      }
-
       const filters: any = {
         is_active: isActive as string,
         ...(search && {
@@ -159,21 +149,6 @@ export const vehiclesController = {
         ...(type && { type: type as string }),
         ...(status && { status: status as string }),
       };
-
-      if (isScopeRestricted) {
-        if (depotIds.length > 0) {
-          filters.users = {
-            ...filters.users,
-            users_depots_users: {
-              some: {
-                depot_id: { in: depotIds },
-              },
-            },
-          };
-        } else {
-          filters.id = -1;
-        }
-      }
 
       const totalVehicles = await prisma.vehicles.count();
       const activeVehicles = await prisma.vehicles.count({
@@ -235,37 +210,7 @@ export const vehiclesController = {
     try {
       const { id } = req.params;
 
-      const user = (req as any).user;
-      let isScopeRestricted = false;
-      let depotIds: number[] = [];
-
-      if (user && !isAdminRole(user.role)) {
-        isScopeRestricted = true;
-        const userDepots = await prisma.user_depots.findMany({
-          where: { user_id: user.id },
-          select: { depot_id: true },
-        });
-        depotIds = userDepots
-          .map((ud: any) => ud.depot_id)
-          .filter((id: any) => id !== null) as number[];
-      }
-
       const whereClause: any = { id: Number(id) };
-
-      if (isScopeRestricted) {
-        if (depotIds.length > 0) {
-          whereClause.users = {
-            ...whereClause.users,
-            users_depots_users: {
-              some: {
-                depot_id: { in: depotIds },
-              },
-            },
-          };
-        } else {
-          whereClause.id = -1;
-        }
-      }
 
       const vehicle = await prisma.vehicles.findFirst({
         where: whereClause,
@@ -298,16 +243,21 @@ export const vehiclesController = {
 
       const data = { ...req.body, updatedate: new Date() };
 
-      let sapCode = req.body.sap_code && req.body.sap_code.trim() !== '' ? req.body.sap_code.trim() : null;
+      let sapCode =
+        req.body.sap_code && req.body.sap_code.trim() !== ''
+          ? req.body.sap_code.trim()
+          : null;
       if (sapCode && sapCode !== existingVehicle.sap_code) {
         const existingSapCode = await prisma.vehicles.findFirst({
           where: {
             sap_code: sapCode,
-            id: { not: Number(id) }
-          }
+            id: { not: Number(id) },
+          },
         });
         if (existingSapCode) {
-           return res.status(409).json({ message: 'Vehicle with this sap_code already exists' });
+          return res
+            .status(409)
+            .json({ message: 'Vehicle with this sap_code already exists' });
         }
       }
       data.sap_code = sapCode;
