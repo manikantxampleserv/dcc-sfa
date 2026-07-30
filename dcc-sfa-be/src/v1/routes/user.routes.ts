@@ -76,6 +76,15 @@ router.delete(
   userController.deleteUser
 );
 
+router.put(
+  '/users/:id/log-inst',
+  authenticateToken,
+  auditUpdate('users'),
+  requirePermission([{ module: 'user', action: 'update' }]),
+  userController.updateUserLogInst
+);
+
+
 router.get(
   '/users-dropdown',
   authenticateToken,
@@ -83,3 +92,4 @@ router.get(
 );
 
 export default router;
+

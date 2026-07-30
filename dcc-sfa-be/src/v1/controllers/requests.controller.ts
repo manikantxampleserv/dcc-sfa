@@ -3306,71 +3306,77 @@ async function processDefaultOutletInvoice(
       0
     );
 
-    await prisma.$transaction(async (txInner: any) => {
-      const invoiceNumber = `DO-RECON-${reconciliationIdForInvoice}-${Date.now()}`;
+    await prisma.$transaction(
+      async (txInner: any) => {
+        const invoiceNumber = `DO-RECON-${reconciliationIdForInvoice}-${Date.now()}`;
 
-      const newInvoice = await txInner.invoices.create({
-        data: {
-          invoice_number: invoiceNumber,
-          customer_id: defaultOutletId,
-          salesperson_id: salespersonId,
-          currency_id: null,
-          invoice_date: new Date(),
-          due_date: null,
-          status: 'paid',
-          payment_method: 'cash',
-          subtotal: invoiceSubtotal,
-          discount_amount: 0,
-          tax_amount: invoiceTaxTotal,
-          shipping_amount: 0,
-          total_amount: invoiceTotalAmount,
-          amount_paid: invoiceTotalAmount,
-          balance_due: 0,
-          notes: `RECON-${reconciliationIdForInvoice}-DEFAULT-OUTLET | Auto-generated for shortage posting on approval`,
-          is_active: 'Y',
-          createdby: userIdForInvoice,
-          log_inst: 1,
-          createdate: new Date(),
-        },
-      });
-
-      for (const item of invoiceItems) {
-        await txInner.invoice_items.create({
+        const newInvoice = await txInner.invoices.create({
           data: {
-            parent_id: newInvoice.id,
-            product_id: item.product_id,
-            quantity: item.quantity,
-            base_quantity: item.base_quantity,
-            unit_price: item.unit_price,
-            tax_amount: item.tax_amount,
-            discount_amount: item.discount_amount,
-            total_amount: item.total_amount,
-            tax_code: item.tax_code,
-            tax_rate: item.tax_rate,
-            conversion_factor: item.conversion_factor,
-            product_name: item.product_name,
-            unit: item.unit,
-            notes: item.notes,
+            invoice_number: invoiceNumber,
+            customer_id: defaultOutletId,
+            salesperson_id: salespersonId,
+            currency_id: null,
+            invoice_date: new Date(),
+            due_date: null,
+            status: 'paid',
+            payment_method: 'cash',
+            subtotal: invoiceSubtotal,
+            discount_amount: 0,
+            tax_amount: invoiceTaxTotal,
+            shipping_amount: 0,
+            total_amount: invoiceTotalAmount,
+            amount_paid: invoiceTotalAmount,
+            balance_due: 0,
+            notes: `RECON-${reconciliationIdForInvoice}-DEFAULT-OUTLET | Auto-generated for shortage posting on approval`,
+            is_active: 'Y',
+            createdby: userIdForInvoice,
+            log_inst: 1,
+            createdate: new Date(),
           },
         });
+
+        for (const item of invoiceItems) {
+          await txInner.invoice_items.create({
+            data: {
+              parent_id: newInvoice.id,
+              product_id: item.product_id,
+              quantity: item.quantity,
+              base_quantity: item.base_quantity,
+              unit_price: item.unit_price,
+              tax_amount: item.tax_amount,
+              discount_amount: item.discount_amount,
+              total_amount: item.total_amount,
+              tax_code: item.tax_code,
+              tax_rate: item.tax_rate,
+              conversion_factor: item.conversion_factor,
+              product_name: item.product_name,
+              unit: item.unit,
+              notes: item.notes,
+            },
+          });
+        }
+
+        await txInner.reconciliation_items.updateMany({
+          where: {
+            reconciliation_id: reconciliationIdForInvoice,
+            resolution_action: 'Post to Default Outlet',
+          },
+          data: {
+            resolution_action: 'Posted to Default Outlet',
+            updatedate: new Date(),
+            updatedby: userIdForInvoice,
+          },
+        });
+
+        console.log(
+          `[DefaultOutletInvoice] Created invoice ${invoiceNumber} for reconciliation ${reconciliationIdForInvoice} — ${invoiceItems.length} item(s), total ${invoiceSubtotal}`
+        );
+      },
+      {
+        maxWait: 60000,
+        timeout: 120000,
       }
-
-      await txInner.reconciliation_items.updateMany({
-        where: {
-          reconciliation_id: reconciliationIdForInvoice,
-          resolution_action: 'Post to Default Outlet',
-        },
-        data: {
-          resolution_action: 'Posted to Default Outlet',
-          updatedate: new Date(),
-          updatedby: userIdForInvoice,
-        },
-      });
-
-      console.log(
-        `[DefaultOutletInvoice] Created invoice ${invoiceNumber} for reconciliation ${reconciliationIdForInvoice} — ${invoiceItems.length} item(s), total ${invoiceSubtotal}`
-      );
-    });
+    );
   } catch (err) {
     console.error(
       '[DefaultOutletInvoice] Error creating default outlet invoice after reconciliation approval:',
@@ -4050,11 +4056,11 @@ export const createRequest = async (data: {
             createdby: data.createdby,
             log_inst: data.log_inst,
           });
-        }
 
-        console.log(
-          `Email sent to ${firstApprover.approval_work_flow_approver.email}`
-        );
+          console.log(
+            `Email sent to ${firstApprover.approval_work_flow_approver.email}`
+          );
+        }
       } catch (emailError) {
         console.error(' Email error:', emailError);
       }
@@ -4210,8 +4216,8 @@ export const requestsController = {
           return finalRequest;
         },
         {
-          maxWait: 10000,
-          timeout: 20000,
+          maxWait: 60000,
+          timeout: 120000,
         }
       );
 
@@ -5397,8 +5403,8 @@ export const requestsController = {
         },
 
         {
-          maxWait: 10000,
-          timeout: 20000,
+          maxWait: 600000,
+          timeout: 120000,
         }
       );
       if (result.status === 'fully_approved' && 'request' in result) {
