@@ -435,6 +435,9 @@ async function processDefaultOutletInvoice(reconciliationIdForInvoice, userIdFor
                 },
             });
             console.log(`[DefaultOutletInvoice] Created invoice ${invoiceNumber} for reconciliation ${reconciliationIdForInvoice} — ${invoiceItems.length} item(s), total ${invoiceSubtotal}`);
+        }, {
+            maxWait: 60000,
+            timeout: 120000,
         });
     }
     catch (err) {
@@ -978,8 +981,8 @@ const createRequest = async (data) => {
                         createdby: data.createdby,
                         log_inst: data.log_inst,
                     });
+                    console.log(`Email sent to ${firstApprover.approval_work_flow_approver.email}`);
                 }
-                console.log(`Email sent to ${firstApprover.approval_work_flow_approver.email}`);
             }
             catch (emailError) {
                 console.error(' Email error:', emailError);
@@ -1105,8 +1108,8 @@ exports.requestsController = {
                 });
                 return finalRequest;
             }, {
-                maxWait: 10000,
-                timeout: 20000,
+                maxWait: 60000,
+                timeout: 120000,
             });
             if (result) {
                 try {
@@ -1442,6 +1445,90 @@ exports.requestsController = {
                                 updatedby: userId,
                             },
                         });
+                        //new logic
+                        try {
+                            const reconRecord = await tx.reconciliation.findUnique({
+                                where: { id: request.reference_id },
+                                select: { salesman_id: true, depot_id: true },
+                            });
+                            if (reconRecord?.salesman_id) {
+                                const reconItems = await tx.reconciliation_items.findMany({
+                                    where: {
+                                        reconciliation_id: request.reference_id,
+                                        is_active: 'Y',
+                                    },
+                                    select: {
+                                        product_id: true,
+                                        batch_number: true,
+                                        expected_qty: true,
+                                        expected_base_qty: true,
+                                    },
+                                });
+                                const vanLocations = await tx.van_inventory.findMany({
+                                    where: {
+                                        user_id: reconRecord.salesman_id,
+                                        is_active: 'Y',
+                                    },
+                                    select: { location_id: true },
+                                    distinct: ['location_id'],
+                                });
+                                const locationIds = vanLocations
+                                    .map((v) => v.location_id)
+                                    .filter(Boolean);
+                                if (reconRecord.depot_id && !locationIds.includes(reconRecord.depot_id)) {
+                                    locationIds.push(reconRecord.depot_id);
+                                }
+                                for (const item of reconItems) {
+                                    if (!item.product_id)
+                                        continue;
+                                    const restoredQty = Number(item.expected_qty) || 0;
+                                    const restoredBaseQty = Number(item.expected_base_qty) || 0;
+                                    let batchId = null;
+                                    const cleanBatch = item.batch_number ? item.batch_number.trim() : '';
+                                    if (cleanBatch && cleanBatch !== '-' && cleanBatch.toLowerCase() !== 'null' && cleanBatch.toLowerCase() !== 'none') {
+                                        const batchRecord = await tx.batch_lots.findFirst({
+                                            where: {
+                                                batch_number: cleanBatch,
+                                                productsId: item.product_id,
+                                            },
+                                            select: { id: true },
+                                        });
+                                        batchId = batchRecord?.id ?? null;
+                                    }
+                                    const stockFilter = {
+                                        product_id: item.product_id,
+                                        salesperson_id: reconRecord.salesman_id,
+                                        is_active: 'Y',
+                                        is_unloadAll: 'Y',
+                                    };
+                                    if (locationIds.length > 0) {
+                                        stockFilter.location_id = { in: locationIds };
+                                    }
+                                    if (batchId !== null) {
+                                        stockFilter.batch_id = batchId;
+                                    }
+                                    else {
+                                        stockFilter.batch_id = null;
+                                    }
+                                    await tx.inventory_stock.updateMany({
+                                        where: stockFilter,
+                                        data: {
+                                            current_stock: restoredQty,
+                                            available_stock: restoredQty,
+                                            base_quantity: restoredBaseQty,
+                                            is_unloadAll: 'N',
+                                            updatedate: new Date(),
+                                            updatedby: userId,
+                                        },
+                                    });
+                                }
+                                console.log(` Restored inventory_stock for salesman ${reconRecord.salesman_id} after reconciliation rejection (reconciliation_id=${request.reference_id}).`);
+                            }
+                        }
+                        catch (restoreErr) {
+                            console.error(' Error restoring inventory_stock on reconciliation rejection:', restoreErr);
+                        }
+                        // new logic
                         if (request.request_data) {
                             try {
                                 const reqData = JSON.parse(request.request_data);
@@ -1600,7 +1687,7 @@ exports.requestsController = {
                         try {
                             const reconForStock = await tx.reconciliation.findUnique({
                                 where: { id: request.reference_id },
-                                select: { salesman_id: true },
+                                select: { salesman_id: true, depot_id: true },
                             });
                             if (reconForStock?.salesman_id) {
                                 const vanLocations = await tx.van_inventory.findMany({
@@ -1614,6 +1701,9 @@ exports.requestsController = {
                                 const locationIds = vanLocations
                                     .map((v) => v.location_id)
                                     .filter(Boolean);
+                                if (reconForStock.depot_id && !locationIds.includes(reconForStock.depot_id)) {
+                                    locationIds.push(reconForStock.depot_id);
+                                }
                                 if (locationIds.length > 0) {
                                     await tx.inventory_stock.updateMany({
                                         where: {
@@ -1993,8 +2083,8 @@ exports.requestsController = {
                 }
                 return { status: 'next_level', request, nextApprover };
             }, {
-                maxWait: 10000,
-                timeout: 20000,
+                maxWait: 600000,
+                timeout: 120000,
             });
             if (result.status === 'fully_approved' && 'request' in result) {
                 if (result.request.request_type === 'VAN_INVENTORY' &&

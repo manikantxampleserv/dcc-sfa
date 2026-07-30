@@ -59,7 +59,7 @@ export const salespersonStockController = {
       }
 
       const spWhere: any = { id: salespersonIdNum };
-      if (isScopeRestricted) {
+      if (isScopeRestricted && user.id !== salespersonIdNum) {
         if (depotIds.length > 0) {
           spWhere.users_depots_users = {
             some: {
@@ -110,10 +110,7 @@ export const salespersonStockController = {
       const stockWhere: any = {
         AND: [
           {
-            OR: [
-              { salesperson_id: { in: targetSalespersonIds } },
-              // { createdby: salespersonIdNum },
-            ],
+            OR: [{ salesperson_id: { in: targetSalespersonIds } }],
           },
           {
             OR: [{ is_unloadAll: 'N' }, { is_unloadAll: null }],
@@ -434,6 +431,159 @@ export const salespersonStockController = {
       return res.status(500).json({
         success: false,
         message: 'Failed to retrieve salesperson inventory',
+        error: error.message,
+      });
+    }
+  },
+
+  async getSalespersonSummary(req: Request, res: Response) {
+    try {
+      const { salesperson_id } = req.params;
+      const { time_filter, start_date, end_date } = req.query;
+
+      const salespersonIdNum = parseInt(salesperson_id as string, 10);
+      if (isNaN(salespersonIdNum)) {
+        return res
+          .status(400)
+          .json({ success: false, message: 'Invalid salesperson_id' });
+      }
+
+      const targetSalespersonIds = await getContainerOwnerAndSelf(
+        prisma,
+        salespersonIdNum
+      );
+
+      // Build date filter
+      let dateFilterForVan: any = undefined;
+      let dateFilterForInvoice: any = undefined;
+
+      if (time_filter === 'today') {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        dateFilterForVan = { gte: today };
+        dateFilterForInvoice = { gte: today };
+      } else if (time_filter === 'this_week') {
+        const today = new Date();
+        const first = today.getDate() - today.getDay();
+        const firstDay = new Date(today.setDate(first));
+        firstDay.setHours(0, 0, 0, 0);
+        dateFilterForVan = { gte: firstDay };
+        dateFilterForInvoice = { gte: firstDay };
+      } else if (time_filter === 'this_month') {
+        const today = new Date();
+        const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+        dateFilterForVan = { gte: firstDay };
+        dateFilterForInvoice = { gte: firstDay };
+      } else if (time_filter === 'custom' && start_date && end_date) {
+        dateFilterForVan = {
+          gte: new Date(start_date as string),
+          lte: new Date(`${end_date}T23:59:59.999Z`),
+        };
+        dateFilterForInvoice = {
+          gte: new Date(start_date as string),
+          lte: new Date(`${end_date}T23:59:59.999Z`),
+        };
+      }
+
+      const vanWhere: any = {
+        user_id: { in: targetSalespersonIds },
+        approval_status: 'A',
+        is_cancelled: 'N',
+      };
+      if (dateFilterForVan) {
+        // usually document_date or createdate, we can check document_date primarily, fallback createdate
+        // to simplify, check document_date
+        vanWhere.document_date = dateFilterForVan;
+      }
+
+      const vanInventories = await prisma.van_inventory.findMany({
+        where: vanWhere,
+        include: { van_inventory_items_inventory: true },
+      });
+
+      const invoiceWhere: any = {
+        OR: [
+          { salesperson_id: { in: targetSalespersonIds } },
+          { createdby: { in: targetSalespersonIds } },
+        ],
+      };
+      if (dateFilterForInvoice) {
+        invoiceWhere.invoice_date = dateFilterForInvoice;
+      }
+
+      const invoices = await prisma.invoices.findMany({
+        where: invoiceWhere,
+        include: { invoice_items: true },
+      });
+
+      let loadCount = 0;
+      let totalQtyLoaded = 0;
+      let totalBaseQtyLoaded = 0;
+
+      let unloadCount = 0;
+      let totalQtyUnloaded = 0;
+      let totalBaseQtyUnloaded = 0;
+
+      for (const v of vanInventories) {
+        if (v.loading_type === 'L') {
+          loadCount++;
+          if (v.van_inventory_items_inventory) {
+            for (const item of v.van_inventory_items_inventory) {
+              totalQtyLoaded += Number(item.quantity) || 0;
+              totalBaseQtyLoaded += Number(item.base_quantity) || 0;
+            }
+          }
+        } else if (v.loading_type === 'U') {
+          unloadCount++;
+          if (v.van_inventory_items_inventory) {
+            for (const item of v.van_inventory_items_inventory) {
+              totalQtyUnloaded += Number(item.quantity) || 0;
+              totalBaseQtyUnloaded += Number(item.base_quantity) || 0;
+            }
+          }
+        }
+      }
+
+      let totalRevenue = 0;
+      let totalQtySold = 0;
+      let totalBaseQtySold = 0;
+      const uniqueCustomers = new Set();
+
+      for (const inv of invoices) {
+        totalRevenue += Number(inv.total_amount) || 0;
+        if (inv.customer_id) uniqueCustomers.add(inv.customer_id);
+
+        if (inv.invoice_items) {
+          for (const item of inv.invoice_items) {
+            totalQtySold += Number(item.quantity) || 0;
+            totalBaseQtySold += Number(item.base_quantity) || 0;
+          }
+        }
+      }
+
+      return res.json({
+        success: true,
+        data: {
+          loadCount,
+          totalQtyLoaded,
+          totalBaseQtyLoaded,
+          unloadCount,
+          totalQtyUnloaded,
+          totalBaseQtyUnloaded,
+          totalRevenue,
+          totalQtySold,
+          totalBaseQtySold,
+          totalInvoicesCount: invoices.length,
+          uniqueCustomersCount: uniqueCustomers.size,
+          averageInvoiceValue:
+            invoices.length > 0 ? totalRevenue / invoices.length : 0,
+        },
+      });
+    } catch (error: any) {
+      console.error('getSalespersonSummary error:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to retrieve salesperson summary',
         error: error.message,
       });
     }

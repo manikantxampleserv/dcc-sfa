@@ -791,7 +791,6 @@ export const visitsController = {
           const {
             visit,
             invoices,
-            orders,
             payments,
             cooler_inspections,
             cooler_installations,
@@ -1081,7 +1080,10 @@ export const visitsController = {
                         ? new Date(invoiceData.due_date)
                         : undefined,
                       status: invoiceData.status || 'draft',
-                      salesperson_id: invoiceData.salesperson_id || visit.sales_person_id || null,
+                      salesperson_id:
+                        invoiceData.salesperson_id ||
+                        visit.sales_person_id ||
+                        null,
                       payment_method: invoiceData.payment_method || 'credit',
                       subtotal: invoiceData.subtotal || 0,
                       discount_amount:
@@ -1245,8 +1247,6 @@ export const visitsController = {
                               {
                                 batch_lot_id: batchLot.id,
                                 pieces: orderedPieces,
-                                //   uomQty: isUnitPcs ? Math.floor(orderedPieces / conversionFactor) : orderedQty,
-                                // baseQty: isUnitPcs ? orderedPieces % conversionFactor : (orderedPieces - orderedQty * conversionFactor),
                                 uomQty: Math.floor(
                                   orderedPieces / conversionFactor
                                 ),
@@ -1261,17 +1261,6 @@ export const visitsController = {
                               let bUomQty: number;
                               let bBaseQty: number;
                               let bPieces: number;
-
-                              //     if (isUnitPcs) {
-                              //   const totalPcs = parseInt(b.quantity, 10) || 0;
-                              //   bPieces = totalPcs;
-                              //   bUomQty = Math.floor(totalPcs / conversionFactor);
-                              //   bBaseQty = totalPcs % conversionFactor;
-                              // } else {
-                              //   bUomQty = parseInt(b.quantity, 10) || 0;
-                              //   bBaseQty = parseInt(b.base_quantity, 10) || 0;
-                              //   bPieces = bUomQty * conversionFactor + bBaseQty;
-                              // }
                               const inputUomQty = parseInt(b.quantity, 10) || 0;
                               const inputBaseQty =
                                 parseInt(b.base_quantity, 10) || 0;

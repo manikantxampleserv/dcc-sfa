@@ -6,7 +6,6 @@
   "scripts": {
     "dev": "vite",
     "type-check": "tsc -b",
-    "build": "npm run type-check && vite build && node scripts/copy-webconfig.js",
     "build:staging": "vite build --mode staging --outDir dist-staging && node scripts/copy-webconfig.js",
     "build:testing": "vite build --mode testing --outDir dist-testing && node scripts/copy-webconfig.js",
     "build:production": "vite build --mode production --outDir dist-production && node scripts/copy-webconfig.js",

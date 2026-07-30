@@ -7,5 +7,6 @@ export declare const userController: {
     getUserProfile(req: any, res: any): Promise<void>;
     updateUserProfile(req: any, res: any): Promise<void>;
     getUsersDropdown(req: any, res: any): Promise<void>;
+    updateUserLogInst(req: any, res: any): Promise<void>;
 };
 //# sourceMappingURL=user.controller.d.ts.map

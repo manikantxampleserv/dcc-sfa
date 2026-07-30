@@ -15,5 +15,6 @@ import { Request, Response } from 'express';
  */
 export declare const salespersonStockController: {
     getSalespersonInventory(req: Request, res: Response): Promise<Response<any, Record<string, any>>>;
+    getSalespersonSummary(req: Request, res: Response): Promise<Response<any, Record<string, any>>>;
 };
 //# sourceMappingURL=salespersonStock.controller.d.ts.map

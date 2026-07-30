@@ -417,7 +417,7 @@ exports.visitsController = {
             for (let index = 0; index < dataArray.length; index++) {
                 const data = dataArray[index];
                 try {
-                    const { visit, invoices, orders, payments, cooler_inspections, cooler_installations, survey, } = data;
+                    const { visit, invoices, payments, cooler_inspections, cooler_installations, survey, } = data;
                     if (!visit) {
                         results.failed.push({
                             visitIndex: index,
@@ -655,7 +655,9 @@ exports.visitsController = {
                                             ? new Date(invoiceData.due_date)
                                             : undefined,
                                         status: invoiceData.status || 'draft',
-                                        salesperson_id: invoiceData.salesperson_id || visit.sales_person_id || null,
+                                        salesperson_id: invoiceData.salesperson_id ||
+                                            visit.sales_person_id ||
+                                            null,
                                         payment_method: invoiceData.payment_method || 'credit',
                                         subtotal: invoiceData.subtotal || 0,
                                         discount_amount: invoiceData.discount_amount ??
@@ -772,8 +774,6 @@ exports.visitsController = {
                                                         {
                                                             batch_lot_id: batchLot.id,
                                                             pieces: orderedPieces,
-                                                            //   uomQty: isUnitPcs ? Math.floor(orderedPieces / conversionFactor) : orderedQty,
-                                                            // baseQty: isUnitPcs ? orderedPieces % conversionFactor : (orderedPieces - orderedQty * conversionFactor),
                                                             uomQty: Math.floor(orderedPieces / conversionFactor),
                                                             baseQty: orderedPieces % conversionFactor,
                                                         },
@@ -786,16 +786,6 @@ exports.visitsController = {
                                                         let bUomQty;
                                                         let bBaseQty;
                                                         let bPieces;
-                                                        //     if (isUnitPcs) {
-                                                        //   const totalPcs = parseInt(b.quantity, 10) || 0;
-                                                        //   bPieces = totalPcs;
-                                                        //   bUomQty = Math.floor(totalPcs / conversionFactor);
-                                                        //   bBaseQty = totalPcs % conversionFactor;
-                                                        // } else {
-                                                        //   bUomQty = parseInt(b.quantity, 10) || 0;
-                                                        //   bBaseQty = parseInt(b.base_quantity, 10) || 0;
-                                                        //   bPieces = bUomQty * conversionFactor + bBaseQty;
-                                                        // }
                                                         const inputUomQty = parseInt(b.quantity, 10) || 0;
                                                         const inputBaseQty = parseInt(b.base_quantity, 10) || 0;
                                                         bPieces = isUnitPcs

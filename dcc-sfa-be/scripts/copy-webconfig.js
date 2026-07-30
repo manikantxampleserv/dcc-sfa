@@ -3,7 +3,13 @@ const path = require('path');
 
 const projectRoot = path.resolve(__dirname, '..');
 const sourcePath = path.join(projectRoot, 'web.config');
-const targets = ['dist', 'dist-staging', 'dist-production', 'dist-testing'];
+const targets = [
+  'dist',
+  'dist-staging',
+  'dist-production',
+  'dist-testing',
+  'dist-demo',
+];
 
 if (fs.existsSync(sourcePath)) {
   for (const target of targets) {

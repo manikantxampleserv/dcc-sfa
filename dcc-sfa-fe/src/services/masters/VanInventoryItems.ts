@@ -234,6 +234,55 @@ export const fetchSalespersonInventory = async (
   return response.data;
 };
 
+export interface SalespersonSummaryData {
+  loadCount: number;
+  totalQtyLoaded: number;
+  totalBaseQtyLoaded: number;
+  unloadCount: number;
+  totalQtyUnloaded: number;
+  totalBaseQtyUnloaded: number;
+  totalRevenue: number;
+  totalQtySold: number;
+  totalBaseQtySold: number;
+  totalInvoicesCount: number;
+  uniqueCustomersCount: number;
+  averageInvoiceValue: number;
+  currentHandStock?: {
+    totalRemainingQty: number;
+    totalRemainingBaseQty: number;
+    totalProducts: number;
+  };
+}
+
+export interface SalespersonSummaryResponse {
+  success: boolean;
+  data: SalespersonSummaryData;
+}
+
+export const fetchSalespersonSummary = async (
+  salespersonId: number,
+  params?: {
+    time_filter?: string;
+    start_date?: string;
+    end_date?: string;
+  }
+): Promise<SalespersonSummaryResponse> => {
+  const queryParams = new URLSearchParams();
+
+  if (params?.time_filter)
+    queryParams.append('time_filter', params.time_filter);
+  if (params?.start_date)
+    queryParams.append('start_date', params.start_date);
+  if (params?.end_date)
+    queryParams.append('end_date', params.end_date);
+
+  const qs = queryParams.toString();
+  const url = `/inventory-item-salesperson-summary/${salespersonId}${qs ? `?${qs}` : ''}`;
+
+  const response = await api.get(url);
+  return response.data;
+};
+
 import type { ApiResponse } from 'types/api.types';
 
 export interface VanInventoryItem {

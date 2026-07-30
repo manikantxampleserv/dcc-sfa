@@ -27,6 +27,7 @@ const serializeUser = (user, includeCreatedAt = false, includeUpdatedAt = false)
     last_login: user.last_login,
     platform: user.platform || null,
     is_active: user.is_active,
+    log_inst: user.log_inst ?? null,
     ...(includeCreatedAt && { created_at: user.createdate }),
     ...(includeUpdatedAt && { updated_at: user.updatedate }),
     role: user.user_role
@@ -1026,6 +1027,55 @@ exports.userController = {
         }
         catch (error) {
             console.error('Error fetching users dropdown:', error);
+            res.error(error.message);
+        }
+    },
+    async updateUserLogInst(req, res) {
+        try {
+            const { user_id, userId, id: bodyId, log_inst, log } = req.body;
+            const rawId = req.params.id || user_id || userId || bodyId;
+            const id = Number(rawId);
+            if (!rawId || isNaN(id)) {
+                res.error('User ID is required in params (or body)', 400);
+                return;
+            }
+            const logInstVal = log_inst ?? log;
+            if (logInstVal === undefined ||
+                logInstVal === null ||
+                isNaN(Number(logInstVal))) {
+                res.error('log_inst is required in request body and must be a number', 400);
+                return;
+            }
+            const currentUserId = req.user?.id;
+            const existingUser = await prisma_client_1.default.users.findUnique({
+                where: { id },
+            });
+            if (!existingUser) {
+                res.error('User not found', 404);
+                return;
+            }
+            const newLogInst = Number(logInstVal);
+            const updatedUser = await prisma_client_1.default.users.update({
+                where: { id },
+                data: {
+                    log_inst: newLogInst,
+                    ...(currentUserId && { updatedby: currentUserId }),
+                    updatedate: new Date(),
+                },
+                select: {
+                    id: true,
+                    email: true,
+                    name: true,
+                    employee_id: true,
+                    log_inst: true,
+                    updatedate: true,
+                    updatedby: true,
+                },
+            });
+            res.success('User log_inst updated successfully', updatedUser, 200);
+        }
+        catch (error) {
+            console.error('Error updating user log_inst:', error);
             res.error(error.message);
         }
     },

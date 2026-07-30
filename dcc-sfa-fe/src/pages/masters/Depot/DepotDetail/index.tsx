@@ -4,7 +4,6 @@ import classNames from 'classnames';
 import { useDepot } from 'hooks/useDepots';
 import {
   AlertTriangle,
-  ArrowLeft,
   Building2,
   Mail,
   MapPin,
@@ -13,13 +12,10 @@ import {
   Users,
 } from 'lucide-react';
 import React from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import Button from 'shared/Button';
+import { useParams } from 'react-router-dom';
 import { formatDate } from 'utils/dateUtils';
-
 const DepotDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
 
   const {
     data: depotResponse,
@@ -28,10 +24,6 @@ const DepotDetail: React.FC = () => {
     isFetching,
   } = useDepot(Number(id));
   const depot = depotResponse?.data;
-
-  const handleBack = () => {
-    navigate('/masters/depots');
-  };
 
   if (isLoading || isFetching) {
     return (
@@ -234,14 +226,6 @@ const DepotDetail: React.FC = () => {
             problem persists.
           </Typography>
         </div>
-        <Button
-          variant="outlined"
-          startIcon={<ArrowLeft />}
-          onClick={handleBack}
-          className="mt-4"
-        >
-          Back to Depots
-        </Button>
       </div>
     );
   }
@@ -820,16 +804,6 @@ const DepotDetail: React.FC = () => {
             </InfoCard>
           )}
         </div>
-      </div>
-
-      <div className="!mt-4">
-        <Button
-          variant="outlined"
-          startIcon={<ArrowLeft />}
-          onClick={handleBack}
-        >
-          Back to Depots
-        </Button>
       </div>
     </>
   );

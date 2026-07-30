@@ -12,6 +12,12 @@ router.get(
 );
 
 router.get(
+  '/inventory-item-salesperson-summary/:salesperson_id',
+  authenticateToken,
+  salespersonStockController.getSalespersonSummary
+);
+
+router.get(
   '/salesperson-item-inventory/:salesperson_id',
   authenticateToken,
   vanInventoryController.getinventoryItemSalesperson

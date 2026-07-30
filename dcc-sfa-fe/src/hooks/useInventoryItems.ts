@@ -9,9 +9,11 @@ import { useQuery, type UseQueryOptions } from '@tanstack/react-query';
 import {
   fetchAllSalespersonsInventory,
   fetchSalespersonInventory,
+  fetchSalespersonSummary,
   type AllSalespersonsResponse,
   type GetSalespersonInventoryParams,
   type SingleSalespersonResponse,
+  type SalespersonSummaryResponse,
 } from '../services/masters/VanInventoryItems';
 
 export type GetInventoryItemsParams = GetSalespersonInventoryParams & {
@@ -26,6 +28,9 @@ export const inventoryItemsQueryKeys = {
   list: (params?: any) => [...inventoryItemsQueryKeys.lists(), params] as const,
   details: () => [...inventoryItemsQueryKeys.all, 'detail'] as const,
   detail: (id: number) => [...inventoryItemsQueryKeys.details(), id] as const,
+  summaries: () => [...inventoryItemsQueryKeys.all, 'summary'] as const,
+  summary: (id: number, params?: any) =>
+    [...inventoryItemsQueryKeys.summaries(), id, params] as const,
 };
 
 /**
@@ -82,6 +87,32 @@ export const useInventoryItemById = (
     queryKey: inventoryItemsQueryKeys.detail(salespersonId),
     queryFn: async (): Promise<SingleSalespersonResponse> => {
       return await fetchSalespersonInventory(salespersonId);
+    },
+    enabled: !!salespersonId,
+    staleTime: 5 * 60 * 1000,
+    ...options,
+  });
+};
+
+/**
+ * Hook to fetch single salesperson summary by ID
+ */
+export const useSalespersonSummary = (
+  salespersonId: number,
+  params?: {
+    time_filter?: string;
+    start_date?: string;
+    end_date?: string;
+  },
+  options?: Omit<
+    UseQueryOptions<SalespersonSummaryResponse>,
+    'queryKey' | 'queryFn'
+  >
+) => {
+  return useQuery({
+    queryKey: inventoryItemsQueryKeys.summary(salespersonId, params),
+    queryFn: async (): Promise<SalespersonSummaryResponse> => {
+      return await fetchSalespersonSummary(salespersonId, params);
     },
     enabled: !!salespersonId,
     staleTime: 5 * 60 * 1000,

@@ -20,9 +20,11 @@ import {
   type ChipProps,
 } from '@mui/material';
 import { useCurrency } from 'hooks/useCurrency';
-import { useInventoryItemById } from 'hooks/useInventoryItems';
+import {
+  useInventoryItemById,
+  useSalespersonSummary,
+} from 'hooks/useInventoryItems';
 import { useInvoices, type Invoice } from 'hooks/useInvoices';
-import { useStockMovements } from 'hooks/useStockMovements';
 import {
   useVanInventory,
   type VanInventory,
@@ -367,40 +369,6 @@ const InventoryDetail = () => {
     }
   };
 
-  const { data: stockMovementsResponse, isLoading: isLoadingStockMovements } =
-    useStockMovements(
-      {
-        limit: 1000000,
-        created_by: inventoryId,
-        time_filter:
-          timeFilter !== 'all' && timeFilter !== 'custom'
-            ? timeFilter
-            : undefined,
-      },
-      {
-        enabled: inventoryId !== undefined,
-      }
-    );
-
-  const stockMovements = useMemo(() => {
-    let data = stockMovementsResponse?.data || [];
-    if (
-      timeFilter === 'custom' &&
-      customDateRange.start &&
-      customDateRange.end
-    ) {
-      data = data.filter(sm => {
-        const dt = new Date(sm.createdate || '');
-        if (isNaN(dt.getTime())) return true;
-        return (
-          dt >= new Date(customDateRange.start) &&
-          dt <= new Date(`${customDateRange.end}T23:59:59.999Z`)
-        );
-      });
-    }
-    return data;
-  }, [stockMovementsResponse, timeFilter, customDateRange]);
-
   const vanInventories = useMemo(() => {
     let data = vanInventoryResponse?.data || [];
     if (
@@ -468,59 +436,42 @@ const InventoryDetail = () => {
     salespersonData,
   ]);
 
-  const salespersonStockMovements = useMemo(() => {
-    const salespersonVanInventoryIds = new Set(vanInventories.map(v => v.id));
-    return stockMovements.filter(
-      sm =>
-        sm.van_inventory_id &&
-        salespersonVanInventoryIds.has(sm.van_inventory_id)
+  const apiTimeFilter =
+    timeFilter !== 'all' && timeFilter !== 'custom' ? timeFilter : undefined;
+  const apiStartDate =
+    timeFilter === 'custom' && customDateRange.start
+      ? customDateRange.start
+      : undefined;
+  const apiEndDate =
+    timeFilter === 'custom' && customDateRange.end
+      ? customDateRange.end
+      : undefined;
+
+  const { data: summaryResponse, isLoading: isLoadingSummary } =
+    useSalespersonSummary(
+      inventoryId as number,
+      {
+        time_filter: apiTimeFilter,
+        start_date: apiStartDate,
+        end_date: apiEndDate,
+      },
+      {
+        enabled: inventoryId !== undefined,
+      }
     );
-  }, [stockMovements, vanInventories]);
 
-  const loadTransactions = useMemo(() => {
-    return vanInventories.filter(v => v.loading_type === 'L');
-  }, [vanInventories]);
+  const summaryData = summaryResponse?.data;
 
-  const loadCount = loadTransactions.length;
+  const loadCount = summaryData?.loadCount || 0;
+  const unloadCount = summaryData?.unloadCount || 0;
+  const totalQtyLoaded = summaryData?.totalQtyLoaded || 0;
+  const totalBaseQtyLoaded = summaryData?.totalBaseQtyLoaded || 0;
+  const totalQtyUnloaded = summaryData?.totalQtyUnloaded || 0;
+  const totalBaseQtyUnloaded = summaryData?.totalBaseQtyUnloaded || 0;
 
-  const unloadTransactions = useMemo(() => {
-    return vanInventories.filter(v => v.loading_type === 'U');
-  }, [vanInventories]);
-
-  const unloadCount = unloadTransactions.length;
-
-  const totalQtyLoaded = useMemo(() => {
-    return salespersonStockMovements
-      .filter(sm => sm.movement_type === 'VAN_LOAD')
-      .reduce((sum, sm) => sum + (Number(sm.quantity) || 0), 0);
-  }, [salespersonStockMovements]);
-
-  const totalQtyUnloaded = useMemo(() => {
-    return salespersonStockMovements
-      .filter(sm => sm.movement_type === 'VAN_UNLOAD')
-      .reduce((sum, sm) => sum + (Number(sm.quantity) || 0), 0);
-  }, [salespersonStockMovements]);
-
-  const totalInvoicesCount = salespersonInvoices.length;
-
-  const totalRevenue = useMemo(() => {
-    return salespersonInvoices.reduce(
-      (acc, inv) => acc + (Number(inv.total_amount) || 0),
-      0
-    );
-  }, [salespersonInvoices]);
-
-  const totalQtySold = useMemo(() => {
-    return salespersonInvoices.reduce((acc, inv) => {
-      return (
-        acc +
-        (inv.invoice_items || []).reduce(
-          (sum, item) => sum + (Number(item.quantity) || 0),
-          0
-        )
-      );
-    }, 0);
-  }, [salespersonInvoices]);
+  const totalInvoicesCount = summaryData?.totalInvoicesCount || 0;
+  const totalRevenue = summaryData?.totalRevenue || 0;
+  const totalQtySold = summaryData?.totalQtySold || 0;
 
   const handleTabChange = useCallback(
     (_: React.SyntheticEvent, newValue: number) => setTabValue(newValue),
@@ -1003,7 +954,7 @@ const InventoryDetail = () => {
     </div>
   );
 
-  if (isLoading || isLoadingInvoices || isLoadingStockMovements) {
+  if (isLoading || isLoadingInvoices || isLoadingSummary) {
     return (
       <div className="flex flex-col">
         {renderHeader()}
@@ -1367,7 +1318,7 @@ const InventoryDetail = () => {
                     variant="h5"
                     className="text-gray-900 font-black mt-0.5"
                   >
-                    {formatCompactNumber(totalQtyLoaded)}
+                    {formatQuantityAndBase(totalQtyLoaded, totalBaseQtyLoaded)}
                   </Typography>
                 </div>
               </div>
@@ -1395,10 +1346,13 @@ const InventoryDetail = () => {
                     Unloaded Inventory
                   </Typography>
                   <Typography
-                    variant="h6"
+                    variant="h5" // Increased from h6 to h5 to match LOAD card
                     className="text-gray-900 font-black mt-0.5"
                   >
-                    {formatCompactNumber(totalQtyUnloaded)}
+                    {formatQuantityAndBase(
+                      totalQtyUnloaded,
+                      totalBaseQtyUnloaded
+                    )}
                   </Typography>
                 </div>
               </div>

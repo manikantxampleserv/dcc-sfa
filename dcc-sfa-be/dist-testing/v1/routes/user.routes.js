@@ -21,6 +21,7 @@ router.get('/users/:id', auth_middleware_1.authenticateToken, (0, auth_middlewar
 router.put('/users/:id', auth_middleware_1.authenticateToken, multer_1.upload.single('profile_image'), (0, audit_middleware_1.auditUpdate)('users'), (0, auth_middleware_1.requirePermission)([{ module: 'user', action: 'update' }]), user_validation_1.updateUserValidation, user_controller_1.userController.updateUser);
 // Delete user - using dynamic module/action
 router.delete('/users/:id', auth_middleware_1.authenticateToken, (0, audit_middleware_1.auditDelete)('users'), (0, auth_middleware_1.requirePermission)([{ module: 'user', action: 'delete' }]), user_controller_1.userController.deleteUser);
+router.put('/users/:id/log-inst', auth_middleware_1.authenticateToken, (0, audit_middleware_1.auditUpdate)('users'), (0, auth_middleware_1.requirePermission)([{ module: 'user', action: 'update' }]), user_controller_1.userController.updateUserLogInst);
 router.get('/users-dropdown', auth_middleware_1.authenticateToken, user_controller_1.userController.getUsersDropdown);
 exports.default = router;
 //# sourceMappingURL=user.routes.js.map
