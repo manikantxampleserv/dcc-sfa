@@ -4628,7 +4628,7 @@ export const requestsController = {
               try {
                 const reconRecord = await tx.reconciliation.findUnique({
                   where: { id: request.reference_id },
-                  select: { salesman_id: true },
+                  select: { salesman_id: true, depot_id: true },
                 });
 
                 if (reconRecord?.salesman_id) {
@@ -4657,6 +4657,10 @@ export const requestsController = {
                     .map((v: any) => v.location_id)
                     .filter(Boolean) as number[];
 
+                  if (reconRecord.depot_id && !locationIds.includes(reconRecord.depot_id)) {
+                    locationIds.push(reconRecord.depot_id);
+                  }
+
                   for (const item of reconItems) {
                     if (!item.product_id) continue;
 
@@ -4664,9 +4668,13 @@ export const requestsController = {
                     const restoredBaseQty = Number(item.expected_base_qty) || 0;
 
                     let batchId: number | null = null;
-                    if (item.batch_number) {
+                    const cleanBatch = item.batch_number ? item.batch_number.trim() : '';
+                    if (cleanBatch && cleanBatch !== '-' && cleanBatch.toLowerCase() !== 'null' && cleanBatch.toLowerCase() !== 'none') {
                       const batchRecord = await tx.batch_lots.findFirst({
-                        where: { batch_number: item.batch_number },
+                        where: {
+                          batch_number: cleanBatch,
+                          productsId: item.product_id,
+                        },
                         select: { id: true },
                       });
                       batchId = batchRecord?.id ?? null;
@@ -4914,7 +4922,7 @@ export const requestsController = {
               try {
                 const reconForStock = await tx.reconciliation.findUnique({
                   where: { id: request.reference_id },
-                  select: { salesman_id: true },
+                  select: { salesman_id: true, depot_id: true },
                 });
                 if (reconForStock?.salesman_id) {
                   const vanLocations = await tx.van_inventory.findMany({
@@ -4927,7 +4935,11 @@ export const requestsController = {
                   });
                   const locationIds = vanLocations
                     .map((v: any) => v.location_id)
-                    .filter(Boolean);
+                    .filter(Boolean) as number[];
+
+                  if (reconForStock.depot_id && !locationIds.includes(reconForStock.depot_id)) {
+                    locationIds.push(reconForStock.depot_id);
+                  }
 
                   if (locationIds.length > 0) {
                     await tx.inventory_stock.updateMany({
