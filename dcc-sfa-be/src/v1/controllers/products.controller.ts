@@ -64,6 +64,16 @@ interface ProductSerialized {
   }[];
   product_brand: { id: number; name: string; code: string; logo: string };
   product_unit: { id: number; name: string };
+  product_unit_of_measurement?: {
+    id: number;
+    name: string;
+    description?: string | null;
+    category?: string | null;
+    symbol?: string | null;
+    is_active: string;
+    conversion_rate?: number | null;
+    sub_unit?: string | null;
+  } | null;
   product_category: { id: number; category_name: string };
   product_sub_category: { id: number; sub_category_name: string };
   product_subunit?: { id: number; name: string; code: string } | null;
@@ -137,6 +147,10 @@ const normalizeToArray = (value: any) => {
   if (!value) return [];
   return Array.isArray(value) ? value : [value];
 };
+
+const arrayToNormalize = (value: any) => {
+
+}
 
 const serializeProduct = (product: any): ProductSerialized => ({
   id: product.id,
@@ -225,6 +239,21 @@ const serializeProduct = (product: any): ProductSerialized => ({
     name: product.product_unit_of_measurement?.name,
   },
 
+  product_unit_of_measurement: product.product_unit_of_measurement
+    ? {
+      id: product.product_unit_of_measurement.id,
+      name: product.product_unit_of_measurement.name,
+      description: product.product_unit_of_measurement.description,
+      category: product.product_unit_of_measurement.category,
+      symbol: product.product_unit_of_measurement.symbol,
+      is_active: product.product_unit_of_measurement.is_active,
+      conversion_rate: product.product_unit_of_measurement.conversion_rate
+        ? Number(product.product_unit_of_measurement.conversion_rate)
+        : null,
+      sub_unit: product.product_unit_of_measurement.sub_unit,
+    }
+    : null,
+
   product_category: {
     id: product.product_categories_products?.id,
     category_name: product.product_categories_products?.category_name,
@@ -238,82 +267,82 @@ const serializeProduct = (product: any): ProductSerialized => ({
 
   product_subunit: product.products_subunits
     ? {
-        id: product.products_subunits.id,
-        name: product.products_subunits.name,
-        code: product.products_subunits.code,
-      }
+      id: product.products_subunits.id,
+      name: product.products_subunits.name,
+      code: product.products_subunits.code,
+    }
     : null,
 
   route_type: product.products_route_type
     ? {
-        id: product.products_route_type.id,
-        name: product.products_route_type.name,
-      }
+      id: product.products_route_type.id,
+      name: product.products_route_type.name,
+    }
     : null,
 
   outlet_group: product.products_outlet_group
     ? {
-        id: product.products_outlet_group.id,
-        name: product.products_outlet_group.name,
-        code: product.products_outlet_group.code,
-      }
+      id: product.products_outlet_group.id,
+      name: product.products_outlet_group.name,
+      code: product.products_outlet_group.code,
+    }
     : null,
 
   tax_master: product.product_tax_master
     ? {
-        id: product.product_tax_master.id,
-        name: product.product_tax_master.name,
-        code: product.product_tax_master.code,
-        tax_rate: Number(product.product_tax_master.tax_rate),
-      }
+      id: product.product_tax_master.id,
+      name: product.product_tax_master.name,
+      code: product.product_tax_master.code,
+      tax_rate: Number(product.product_tax_master.tax_rate),
+    }
     : null,
 
   product_type: product.product_types_products
     ? {
-        id: product.product_types_products.id,
-        name: product.product_types_products.name,
-        code: product.product_types_products.code,
-      }
+      id: product.product_types_products.id,
+      name: product.product_types_products.name,
+      code: product.product_types_products.code,
+    }
     : null,
 
   product_target_group: product.product_target_groups_products
     ? {
-        id: product.product_target_groups_products.id,
-        name: product.product_target_groups_products.name,
-        code: product.product_target_groups_products.code,
-      }
+      id: product.product_target_groups_products.id,
+      name: product.product_target_groups_products.name,
+      code: product.product_target_groups_products.code,
+    }
     : null,
 
   product_web_order: product.product_web_orders_products
     ? {
-        id: product.product_web_orders_products.id,
-        name: product.product_web_orders_products.name,
-        code: product.product_web_orders_products.code,
-      }
+      id: product.product_web_orders_products.id,
+      name: product.product_web_orders_products.name,
+      code: product.product_web_orders_products.code,
+    }
     : null,
 
   volume: product.product_volumes_products
     ? {
-        id: product.product_volumes_products.id,
-        name: product.product_volumes_products.name,
-        code: product.product_volumes_products.code,
-      }
+      id: product.product_volumes_products.id,
+      name: product.product_volumes_products.name,
+      code: product.product_volumes_products.code,
+    }
     : null,
 
   flavour: product.product_flavours_products
     ? {
-        id: product.product_flavours_products.id,
-        name: product.product_flavours_products.name,
-        code: product.product_flavours_products.code,
-      }
+      id: product.product_flavours_products.id,
+      name: product.product_flavours_products.name,
+      code: product.product_flavours_products.code,
+    }
     : null,
 
   shelf_life: product.product_shelf_life_products
     ? {
-        id: product.product_shelf_life_products.id,
-        name: product.product_shelf_life_products.name,
-        code: product.product_shelf_life_products.code,
-      }
+      id: product.product_shelf_life_products.id,
+      name: product.product_shelf_life_products.name,
+      code: product.product_shelf_life_products.code,
+    }
     : null,
 });
 

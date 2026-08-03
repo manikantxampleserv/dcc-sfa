@@ -4026,33 +4026,22 @@ export const createRequest = async (data: {
           });
         }
 
-        const template = await prisma.sfa_d_templates.findUnique({
-          where: { key: 'notify_approver' },
-        });
-
-        if (!template) {
-          console.warn(
-            'Email template "notify_approver" not found. Skipping email.'
-          );
-        } else {
-          const variables = {
+        const emailTemplate = await generateEmailContent(
+          'notify_approver',
+          {
             approver_name: firstApprover.approval_work_flow_approver.name,
             requester_name: requester.name,
+            request_type: data.request_type,
+            request_detail: orderData,
             company_name: process.env.COMPANY_NAME || 'SFA System',
-            ...orderData,
-          };
+          }
+        );
 
-          console.log('Email variables:', Object.keys(variables));
-
-          const subject = replaceVariables(template.subject, variables);
-          const body = replaceVariables(template.body, variables);
-
-          console.log(' Subject:', subject);
-
+        if (emailTemplate && emailTemplate.subject !== '__SKIP_EMAIL__') {
           await sendEmail({
             to: firstApprover.approval_work_flow_approver.email,
-            subject: subject,
-            html: body,
+            subject: emailTemplate.subject,
+            html: emailTemplate.body,
             createdby: data.createdby,
             log_inst: data.log_inst,
           });
