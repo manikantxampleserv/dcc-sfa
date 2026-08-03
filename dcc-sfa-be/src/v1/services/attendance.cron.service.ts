@@ -147,27 +147,61 @@ export class AttendanceCronService {
   }
 
 
-  static startRequestLogsCleanup() {
-    cron.schedule('0 0 * * *', async () => {
-      logger.info(`Running request_logs cleanup... Time: ${new Date().toISOString()}`);
-      try {
-        const oneDayAgo = new Date();
-        oneDayAgo.setDate(oneDayAgo.getDate() - 1);
+  static async performRequestLogsCleanup() {
+    logger.info(`Running request_logs cleanup... Time: ${new Date().toISOString()}`);
+    try {
+      const oneDayAgo = new Date();
+      oneDayAgo.setDate(oneDayAgo.getDate() - 1);
 
-        const result = await prisma.request_logs.deleteMany({
-          where: {
-            createdate: {
-              lt: oneDayAgo,
-            },
+      const result = await prisma.request_logs.deleteMany({
+        where: {
+          createdate: {
+            lt: oneDayAgo,
           },
-        });
+        },
+      });
 
-        logger.info(
-          `Request logs cleanup completed. Deleted ${result.count} records.`
-        );
-      } catch (error) {
-        logger.error(`Request logs cleanup error: ${error}`);
-      }
+      logger.info(
+        `Request logs cleanup completed. Deleted ${result.count} records.`
+      );
+    } catch (error) {
+      logger.error(`Request logs cleanup error: ${error}`);
+    }
+  }
+
+  static async performErrorLogsCleanup() {
+    logger.info(`Running error_logs cleanup... Time: ${new Date().toISOString()}`);
+    try {
+      const oneDayAgo = new Date();
+      oneDayAgo.setDate(oneDayAgo.getDate() - 1);
+
+      const result = await prisma.error_logs.deleteMany({
+        where: {
+          createdate: {
+            lt: oneDayAgo,
+          },
+        },
+      });
+
+      logger.info(
+        `Error logs cleanup completed. Deleted ${result.count} records.`
+      );
+    } catch (error) {
+      logger.error(`Error logs cleanup error: ${error}`);
+    }
+  }
+
+  static startRequestLogsCleanup() {
+    AttendanceCronService.performRequestLogsCleanup().catch(error => {
+      logger.error(`Initial request_logs cleanup error: ${error}`);
+    });
+    AttendanceCronService.performErrorLogsCleanup().catch(error => {
+      logger.error(`Initial error_logs cleanup error: ${error}`);
+    });
+
+    cron.schedule('0 * * * *', async () => {
+      await AttendanceCronService.performRequestLogsCleanup();
+      await AttendanceCronService.performErrorLogsCleanup();
     });
   }
 
