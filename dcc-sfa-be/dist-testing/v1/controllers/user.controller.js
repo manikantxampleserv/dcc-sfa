@@ -965,7 +965,6 @@ exports.userController = {
             }
             const where = {
                 is_active: 'Y',
-                // Exclude specific users from dropdowns
                 id: { not: 27 },
             };
             if (isScopeRestricted) {
@@ -1012,6 +1011,12 @@ exports.userController = {
                     name: true,
                     email: true,
                     employee_id: true,
+                    sap_code: true,
+                    user_role: {
+                        select: {
+                            name: true,
+                        },
+                    },
                 },
                 orderBy: {
                     name: 'asc',
@@ -1022,6 +1027,8 @@ exports.userController = {
                 id: u.id,
                 name: u.name,
                 code: u.employee_id,
+                sap_code: u.sap_code,
+                role: u.user_role?.name,
                 email: u.email,
             })), 200);
         }

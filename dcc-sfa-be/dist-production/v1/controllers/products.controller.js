@@ -56,6 +56,8 @@ const normalizeToArray = (value) => {
         return [];
     return Array.isArray(value) ? value : [value];
 };
+const arrayToNormalize = (value) => {
+};
 const serializeProduct = (product) => ({
     id: product.id,
     name: product.name,
@@ -130,6 +132,20 @@ const serializeProduct = (product) => ({
         id: product.product_unit_of_measurement?.id,
         name: product.product_unit_of_measurement?.name,
     },
+    product_unit_of_measurement: product.product_unit_of_measurement
+        ? {
+            id: product.product_unit_of_measurement.id,
+            name: product.product_unit_of_measurement.name,
+            description: product.product_unit_of_measurement.description,
+            category: product.product_unit_of_measurement.category,
+            symbol: product.product_unit_of_measurement.symbol,
+            is_active: product.product_unit_of_measurement.is_active,
+            conversion_rate: product.product_unit_of_measurement.conversion_rate
+                ? Number(product.product_unit_of_measurement.conversion_rate)
+                : null,
+            sub_unit: product.product_unit_of_measurement.sub_unit,
+        }
+        : null,
     product_category: {
         id: product.product_categories_products?.id,
         category_name: product.product_categories_products?.category_name,

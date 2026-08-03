@@ -3825,7 +3825,7 @@ exports.vanInventoryController = {
     },
     async getAllVanInventory(req, res) {
         try {
-            const { page, limit, search, status, loading_type, user_id, approval_status, time_filter, } = req.query;
+            const { page, limit, search, status, loading_type, user_id, approval_status, time_filter, start_date, end_date, } = req.query;
             const pageNum = parseInt(page, 10) || 1;
             const limitNum = parseInt(limit, 10) || 10;
             const searchLower = search ? search.toLowerCase() : '';
@@ -3833,7 +3833,7 @@ exports.vanInventoryController = {
             const loadingType = loading_type
                 ? loading_type.toUpperCase()
                 : '';
-            const documentDateFilter = (0, dateFilters_1.getTimeFilter)(time_filter);
+            const documentDateFilter = (0, dateFilters_1.getTimeFilter)(time_filter, start_date, end_date);
             const user = req.user;
             let depotIds = [];
             let isScopeRestricted = false;
@@ -4920,7 +4920,7 @@ exports.vanInventoryController = {
             };
             let dateFilter = {};
             if (time_filter && time_filter !== 'all') {
-                const tf = (0, dateFilters_1.getTimeFilter)(time_filter);
+                const tf = (0, dateFilters_1.getTimeFilter)(time_filter, req.query.start_date, req.query.end_date);
                 if (tf) {
                     dateFilter = { document_date: tf };
                 }

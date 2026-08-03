@@ -1,11 +1,10 @@
 import { Add, Download, Upload, Visibility } from '@mui/icons-material';
-import { Alert, Avatar, Box, MenuItem, Typography } from '@mui/material';
+import { Alert, Avatar, Box, Typography } from '@mui/material';
 import { useCurrency } from 'hooks/useCurrency';
 import { useExportToExcel } from 'hooks/useImportExport';
 import { useDeleteInvoice, useInvoices, type Invoice } from 'hooks/useInvoices';
 import { usePermission } from 'hooks/usePermission';
 import {
-  AlertTriangle,
   Calendar,
   CheckCircle as CheckCircleIcon,
   DollarSign,
@@ -14,11 +13,12 @@ import {
 import React, { useCallback, useState } from 'react';
 import { ActionButton, DeleteButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
+import DateRangeFilter from 'shared/DateRangeFilter';
 import { PopConfirm } from 'shared/DeleteConfirmation';
 import SearchInput from 'shared/SearchInput';
-import Select from 'shared/Select';
 import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
+import UserSelect from 'shared/UserSelect';
 import { formatDateTime } from 'utils/dateUtils';
 import ImportInvoice from './ImportInvoice';
 import InvoiceDetail from './InvoiceDetail';
@@ -29,7 +29,7 @@ import ManageInvoice from './ManageInvoice';
 const InvoicesManagement: React.FC = () => {
   const { formatCurrency } = useCurrency();
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [salespersonFilter, setSalespersonFilter] = useState('');
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [detailDrawerOpen, setDetailDrawerOpen] = useState(false);
@@ -39,6 +39,11 @@ const InvoicesManagement: React.FC = () => {
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
+  const [timeFilter, setTimeFilter] = useState('all');
+  const [customDateRange, setCustomDateRange] = useState({
+    start: '',
+    end: '',
+  });
   const { isCreate, isUpdate, isDelete, isRead } = usePermission('invoice');
 
   const {
@@ -50,7 +55,19 @@ const InvoicesManagement: React.FC = () => {
       search,
       page,
       limit,
-      status: statusFilter === 'all' ? undefined : statusFilter,
+      salesperson_id: salespersonFilter ? Number(salespersonFilter) : undefined,
+      time_filter:
+        timeFilter !== 'all' && timeFilter !== 'custom'
+          ? timeFilter
+          : undefined,
+      start_date:
+        timeFilter === 'custom' && customDateRange.start
+          ? customDateRange.start
+          : undefined,
+      end_date:
+        timeFilter === 'custom' && customDateRange.end
+          ? customDateRange.end
+          : undefined,
     },
     {
       enabled: isRead,
@@ -64,16 +81,11 @@ const InvoicesManagement: React.FC = () => {
   const deleteInvoiceMutation = useDeleteInvoice();
   const exportToExcelMutation = useExportToExcel();
 
-  const totalInvoices = invoices.length;
-  const totalAmount = invoices.reduce(
-    (sum, i) => sum + (i.total_amount || 0),
-    0
-  );
-  const totalPaid = invoices.reduce((sum, i) => sum + (i.amount_paid || 0), 0);
-  const totalBalance = invoices.reduce(
-    (sum, i) => sum + (i.balance_due || 0),
-    0
-  );
+  const stats = (invoicesResponse as any)?.stats || {};
+  const totalInvoices = stats.total_invoices || 0;
+  const totalAmount = stats.total_amount || 0;
+  const createdThisMonth = stats.created_this_month || 0;
+  const todayCreated = stats.today_created || 0;
 
   const handleCreateInvoice = useCallback(() => {
     setSelectedInvoice(null);
@@ -109,7 +121,21 @@ const InvoicesManagement: React.FC = () => {
     try {
       const filters = {
         search,
-        status: statusFilter === 'all' ? undefined : statusFilter,
+        salesperson_id: salespersonFilter
+          ? Number(salespersonFilter)
+          : undefined,
+        time_filter:
+          timeFilter !== 'all' && timeFilter !== 'custom'
+            ? timeFilter
+            : undefined,
+        start_date:
+          timeFilter === 'custom' && customDateRange.start
+            ? customDateRange.start
+            : undefined,
+        end_date:
+          timeFilter === 'custom' && customDateRange.end
+            ? customDateRange.end
+            : undefined,
       };
 
       await exportToExcelMutation.mutateAsync({
@@ -119,7 +145,13 @@ const InvoicesManagement: React.FC = () => {
     } catch (error) {
       console.error('Error exporting invoices:', error);
     }
-  }, [exportToExcelMutation, search, statusFilter]);
+  }, [
+    exportToExcelMutation,
+    search,
+    salespersonFilter,
+    timeFilter,
+    customDateRange,
+  ]);
 
   const invoiceColumns: TableColumn<Invoice>[] = [
     {
@@ -172,26 +204,51 @@ const InvoicesManagement: React.FC = () => {
       ),
     },
     {
+      id: 'salesperson',
+      label: 'Salesperson',
+      render: (_value, row) =>
+        row.salesperson ? (
+          <Box className="!flex !items-center !gap-2">
+            <Avatar
+              src={'mkx'}
+              alt={row.salesperson.name.trim() || 'N/A'}
+              className="!rounded !bg-primary-100 !text-primary-600 !w-10 !h-10"
+            />
+            <Box>
+              <Typography
+                variant="body2"
+                className="!text-gray-900 !font-medium"
+              >
+                {row.salesperson.name}
+              </Typography>
+              <Box className="!flex !gap-1 !items-center !text-gray-500 !text-xs !mt-0.5">
+                {row.salesperson.sap_code ? (
+                  <span>{row.salesperson.sap_code}</span>
+                ) : null}
+              </Box>
+            </Box>
+          </Box>
+        ) : (
+          <Typography variant="body2" className="!text-gray-500">
+            N/A
+          </Typography>
+        ),
+    },
+    {
       id: 'invoice_date',
-      label: 'Invoice Date',
+      label: 'Date',
       render: (_value, row) => (
         <Box>
           <Box className="flex items-center text-sm text-gray-900">
             <Calendar className="w-4 h-4 text-gray-400 mr-1" />
             {row.invoice_date ? formatDateTime(row.invoice_date) : 'N/A'}
           </Box>
-        </Box>
-      ),
-    },
-    {
-      id: 'createdate',
-      label: 'Created On',
-      render: (_value, row) => (
-        <Box>
-          <Box className="flex items-center text-sm text-gray-900">
-            <Calendar className="w-4 h-4 text-gray-400 mr-1" />
-            {row.createdate ? formatDateTime(row.createdate) : 'N/A'}
-          </Box>
+          <Typography
+            variant="caption"
+            className="!text-gray-500 !text-xs !block !mt-0.5"
+          >
+            Created: {row.createdate ? formatDateTime(row.createdate) : 'N/A'}
+          </Typography>
         </Box>
       ),
     },
@@ -257,7 +314,7 @@ const InvoicesManagement: React.FC = () => {
 
   return (
     <>
-      <Box className="!mb-3 !flex !justify-between !items-center">
+      <Box className="!mb-3 !flex !justify-between !items-start sm:!items-center">
         <Box>
           <p className="!font-bold text-xl !text-gray-900">
             Invoices Management
@@ -267,6 +324,12 @@ const InvoicesManagement: React.FC = () => {
             balances
           </p>
         </Box>
+        <DateRangeFilter
+          timeFilter={timeFilter}
+          setTimeFilter={setTimeFilter}
+          customDateRange={customDateRange}
+          setCustomDateRange={setCustomDateRange}
+        />
       </Box>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
         <StatsCard
@@ -276,25 +339,26 @@ const InvoicesManagement: React.FC = () => {
           color="blue"
           isLoading={isFetching}
         />
+
+        <StatsCard
+          title="Created This Month"
+          value={createdThisMonth}
+          icon={<Receipt className="w-6 h-6" />}
+          color="purple"
+          isLoading={isFetching}
+        />
+        <StatsCard
+          title="Created Today"
+          value={todayCreated}
+          icon={<CheckCircleIcon className="w-6 h-6" />}
+          color="orange"
+          isLoading={isFetching}
+        />
         <StatsCard
           title="Total Amount"
           value={formatCurrency(totalAmount)}
           icon={<DollarSign className="w-6 h-6" />}
           color="green"
-          isLoading={isFetching}
-        />
-        <StatsCard
-          title="Amount Paid"
-          value={formatCurrency(totalPaid)}
-          icon={<CheckCircleIcon className="w-6 h-6" />}
-          color="blue"
-          isLoading={isFetching}
-        />
-        <StatsCard
-          title="Outstanding Balance"
-          value={formatCurrency(totalBalance)}
-          icon={<AlertTriangle className="w-6 h-6" />}
-          color="red"
           isLoading={isFetching}
         />
       </div>
@@ -309,7 +373,7 @@ const InvoicesManagement: React.FC = () => {
         actions={
           isRead || isCreate ? (
             <div className="flex justify-between w-full gap-3 items-center flex-wrap">
-              <div className="flex flex-wrap justify-between items-center gap-3">
+              <div className="flex flex-wrap justify-between items-center gap-2">
                 {isRead && (
                   <>
                     <SearchInput
@@ -320,19 +384,20 @@ const InvoicesManagement: React.FC = () => {
                       showClear={true}
                       className="!w-80"
                     />
-                    <Select
-                      value={statusFilter}
-                      onChange={e => setStatusFilter(e.target.value)}
-                      className="!w-40"
-                      disableClearable
-                    >
-                      <MenuItem value="all">All Status</MenuItem>
-                      <MenuItem value="draft">Draft</MenuItem>
-                      <MenuItem value="sent">Sent</MenuItem>
-                      <MenuItem value="paid">Paid</MenuItem>
-                      <MenuItem value="overdue">Overdue</MenuItem>
-                      <MenuItem value="cancelled">Cancelled</MenuItem>
-                    </Select>
+                    <Box className="!w-64">
+                      <UserSelect
+                        label=""
+                        placeholder="Select Salesperson"
+                        value={salespersonFilter}
+                        setValue={val => {
+                          setSalespersonFilter(val);
+                          setPage(1);
+                        }}
+                        fullWidth
+                        size="small"
+                        roleName="Salesman"
+                      />
+                    </Box>
                   </>
                 )}
               </div>

@@ -135,24 +135,52 @@ class AttendanceCronService {
             }
         });
     }
-    static startRequestLogsCleanup() {
-        node_cron_1.default.schedule('0 0 * * *', async () => {
-            logger_1.default.info(`Running request_logs cleanup... Time: ${new Date().toISOString()}`);
-            try {
-                const oneDayAgo = new Date();
-                oneDayAgo.setDate(oneDayAgo.getDate() - 1);
-                const result = await prisma_client_1.default.request_logs.deleteMany({
-                    where: {
-                        createdate: {
-                            lt: oneDayAgo,
-                        },
+    static async performRequestLogsCleanup() {
+        logger_1.default.info(`Running request_logs cleanup... Time: ${new Date().toISOString()}`);
+        try {
+            const oneDayAgo = new Date();
+            oneDayAgo.setDate(oneDayAgo.getDate() - 1);
+            const result = await prisma_client_1.default.request_logs.deleteMany({
+                where: {
+                    createdate: {
+                        lt: oneDayAgo,
                     },
-                });
-                logger_1.default.info(`Request logs cleanup completed. Deleted ${result.count} records.`);
-            }
-            catch (error) {
-                logger_1.default.error(`Request logs cleanup error: ${error}`);
-            }
+                },
+            });
+            logger_1.default.info(`Request logs cleanup completed. Deleted ${result.count} records.`);
+        }
+        catch (error) {
+            logger_1.default.error(`Request logs cleanup error: ${error}`);
+        }
+    }
+    static async performErrorLogsCleanup() {
+        logger_1.default.info(`Running error_logs cleanup... Time: ${new Date().toISOString()}`);
+        try {
+            const oneDayAgo = new Date();
+            oneDayAgo.setDate(oneDayAgo.getDate() - 1);
+            const result = await prisma_client_1.default.error_logs.deleteMany({
+                where: {
+                    createdate: {
+                        lt: oneDayAgo,
+                    },
+                },
+            });
+            logger_1.default.info(`Error logs cleanup completed. Deleted ${result.count} records.`);
+        }
+        catch (error) {
+            logger_1.default.error(`Error logs cleanup error: ${error}`);
+        }
+    }
+    static startRequestLogsCleanup() {
+        AttendanceCronService.performRequestLogsCleanup().catch(error => {
+            logger_1.default.error(`Initial request_logs cleanup error: ${error}`);
+        });
+        AttendanceCronService.performErrorLogsCleanup().catch(error => {
+            logger_1.default.error(`Initial error_logs cleanup error: ${error}`);
+        });
+        node_cron_1.default.schedule('0 * * * *', async () => {
+            await AttendanceCronService.performRequestLogsCleanup();
+            await AttendanceCronService.performErrorLogsCleanup();
         });
     }
     static stopAllCronJobs() {

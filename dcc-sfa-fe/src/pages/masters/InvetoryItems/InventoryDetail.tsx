@@ -2,20 +2,18 @@ import {
   Block,
   CheckCircle,
   Download,
+  Inventory,
   Upload,
   Visibility,
-  Inventory,
 } from '@mui/icons-material';
 import {
   Avatar,
   Box,
   Chip,
-  FormControl,
-  MenuItem as MuiMenuItem,
-  Select as MuiSelect,
   Skeleton,
   Tab,
   Tabs,
+  Tooltip,
   Typography,
   type ChipProps,
 } from '@mui/material';
@@ -26,9 +24,9 @@ import {
 } from 'hooks/useInventoryItems';
 import { useInvoices, type Invoice } from 'hooks/useInvoices';
 import {
+  useUnloadVanInventory,
   useVanInventory,
   type VanInventory,
-  useUnloadVanInventory,
 } from 'hooks/useVanInventory';
 import {
   AlertTriangle,
@@ -56,8 +54,8 @@ import type {
 } from 'services/masters/VanInventoryItems';
 import { ActionButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
+import DateRangeFilter from 'shared/DateRangeFilter';
 import { PopConfirm } from 'shared/DeleteConfirmation';
-import Input from 'shared/Input';
 import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
 import { getCurrencyCode, getCurrencySymbol } from 'utils/currencyUtils';
@@ -542,6 +540,21 @@ const InventoryDetail = () => {
   >(
     () => [
       {
+        id: 'product.product_name',
+        label: 'Product',
+        sortable: true,
+        render: (_value, row) => (
+          <div className="flex flex-col">
+            <span className="font-medium text-gray-900">
+              {row.product?.product_name || 'N/A'}
+            </span>
+            <span className="text-xs text-gray-500">
+              {row.product?.product_code || ''}
+            </span>
+          </div>
+        ),
+      },
+      {
         id: 'batch_number',
         label: 'Batch Number',
         sortable: true,
@@ -820,18 +833,7 @@ const InventoryDetail = () => {
           </Box>
         ),
       },
-      {
-        id: 'invoice_date',
-        label: 'Date',
-        render: (_value, row) => (
-          <Box>
-            <Box className="flex items-center text-sm text-gray-900">
-              <Calendar className="w-4 h-4 text-gray-400 mr-1" />
-              {row.invoice_date ? formatDateTime(row.invoice_date) : 'N/A'}
-            </Box>
-          </Box>
-        ),
-      },
+
       {
         id: 'total_amount',
         label: 'Amounts',
@@ -845,6 +847,24 @@ const InventoryDetail = () => {
               className="!text-gray-500 !text-xs !block !mt-0.5"
             >
               Tax: {formatCurrency(row.tax_amount || 0)}
+            </Typography>
+          </Box>
+        ),
+      },
+      {
+        id: 'invoice_date',
+        label: 'Date',
+        render: (_value, row) => (
+          <Box>
+            <Box className="flex items-center text-sm text-gray-900">
+              <Calendar className="w-4 h-4 text-gray-400 mr-1" />
+              {row.invoice_date ? formatDateTime(row.invoice_date) : 'N/A'}
+            </Box>
+            <Typography
+              variant="caption"
+              className="!text-gray-500 !text-xs !block !mt-0.5"
+            >
+              Created: {row.createdate ? formatDateTime(row.createdate) : 'N/A'}
             </Typography>
           </Box>
         ),
@@ -885,54 +905,12 @@ const InventoryDetail = () => {
         </div>
       </div>
       <div className="flex flex-wrap justify-end gap-4">
-        <FormControl size="small" className="w-48 bg-white">
-          <MuiSelect
-            value={timeFilter}
-            onChange={e => setTimeFilter(e.target.value)}
-            displayEmpty
-          >
-            <MuiMenuItem value="all">All Time</MuiMenuItem>
-            <MuiMenuItem value="today">Today</MuiMenuItem>
-            <MuiMenuItem value="yesterday">Yesterday</MuiMenuItem>
-            <MuiMenuItem value="this_week">This Week</MuiMenuItem>
-            <MuiMenuItem value="this_month">This Month</MuiMenuItem>
-            <MuiMenuItem value="prev_month">Previous Month</MuiMenuItem>
-            <MuiMenuItem value="this_year">This Year</MuiMenuItem>
-            <MuiMenuItem value="prev_year">Previous Year</MuiMenuItem>
-            <MuiMenuItem value="custom">Custom Range</MuiMenuItem>
-          </MuiSelect>
-        </FormControl>
-        {timeFilter === 'custom' && (
-          <div className="flex items-center gap-2">
-            <Input
-              type="date"
-              value={customDateRange.start}
-              onChange={e =>
-                setCustomDateRange(prev => ({
-                  ...prev,
-                  start: e.target.value,
-                }))
-              }
-              size="small"
-              className="!w-44 bg-white"
-              placeholder="Start Date"
-            />
-            <span className="text-gray-500">to</span>
-            <Input
-              type="date"
-              value={customDateRange.end}
-              onChange={e =>
-                setCustomDateRange(prev => ({
-                  ...prev,
-                  end: e.target.value,
-                }))
-              }
-              size="small"
-              className="!w-44 bg-white"
-              placeholder="End Date"
-            />
-          </div>
-        )}
+        <DateRangeFilter
+          timeFilter={timeFilter}
+          setTimeFilter={setTimeFilter}
+          customDateRange={customDateRange}
+          setCustomDateRange={setCustomDateRange}
+        />
 
         <PopConfirm
           title="Unload Inventory"
@@ -1130,7 +1108,7 @@ const InventoryDetail = () => {
 
       <TabPanel value={tabValue} index={0}>
         {Array.isArray(products) && products.length > 0 ? (
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
             {products
               ?.sort(
                 (a, b) =>
@@ -1143,89 +1121,156 @@ const InventoryDetail = () => {
                     Number(product.total_remaining_base_quantity) ||
                     0
                 );
-                return (
-                  <div
-                    key={product.product_id}
-                    className="bg-white shadow-sm rounded-lg border border-gray-100"
-                  >
-                    <div className="flex items-start justify-between mb-4 pb-0 p-3">
-                      <div className="flex items-center gap-3">
-                        <Avatar
-                          className="!bg-blue-100 !rounded-md !text-blue-600"
-                          src=""
-                        >
-                          {product.product_name?.charAt(0) || 'P'}
-                        </Avatar>
-                        <div className="flex flex-col">
-                          <h3 className="font-semibold text-gray-900 text-sm">
-                            {product.product_name || 'Unknown Product'}
-                          </h3>
-                          <p className="text-xs text-gray-500 truncate text-ellipsis">
-                            {product.product_code || 'N/A'}
-                          </p>
-                        </div>
+                const tooltipContent =
+                  product.tracking_type?.toLowerCase() === 'batch' ? (
+                    <div className="flex flex-col min-w-80">
+                      <div className="font-semibold text-xs border-b border-gray-200 p-1.5 text-gray-900 bg-gray-50 flex justify-between items-center rounded-t-[4px]">
+                        <span>Batch Details</span>
+                        <span className="text-gray-500 font-medium truncate max-w-[180px]">
+                          {product.product_name}
+                        </span>
                       </div>
-                      <Chip
-                        label={stockStatus.label}
-                        size="small"
-                        color={stockStatus.color as ChipProps['color']}
-                        variant="outlined"
-                      />
+                      <div className="flex flex-col gap-1.5 p-1.5">
+                        {product.batches?.map(b => (
+                          <div
+                            key={b.batch_number}
+                            className="flex justify-between items-center gap-4 text-xs"
+                          >
+                            <span className="font-medium text-gray-800">
+                              {b.batch_number}
+                            </span>
+                            <span className="font-mono bg-gray-100 border border-gray-200 px-1.5 py-0.5 rounded text-xs text-gray-700">
+                              {formatQuantityAndBase(
+                                Number(b.remaining_quantity),
+                                Number(b.base_quantity)
+                              )}
+                            </span>
+                          </div>
+                        ))}
+                        {(!product.batches || product.batches.length === 0) && (
+                          <span className="text-xs text-gray-400">
+                            No batches
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    <div className="space-y-1 pb-3 px-4">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600">
-                          Total Quantity
-                        </span>
-                        <span className="font-medium">
-                          {formatQuantityAndBase(
-                            product.total_remaining_quantity < 0
-                              ? 0
-                              : product.total_remaining_quantity,
-                            Number(product.total_remaining_base_quantity) < 0
-                              ? 0
-                              : product.total_remaining_base_quantity
-                          )}
-                        </span>
+                  ) : (
+                    ''
+                  );
+
+                return (
+                  <Tooltip
+                    key={product.product_id}
+                    title={tooltipContent}
+                    arrow
+                    placement="top"
+                    enterDelay={1000}
+                    slotProps={{
+                      tooltip: {
+                        sx: {
+                          backgroundColor: '#ffffff',
+                          color: '#111827',
+                          boxShadow:
+                            '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)',
+                          border: '1px solid #e5e7eb',
+                          padding: 0,
+                          maxWidth: 350,
+                        },
+                      },
+                      arrow: {
+                        sx: {
+                          color: '#ffffff',
+                          '&::before': {
+                            border: '1px solid #e5e7eb',
+                          },
+                        },
+                      },
+                    }}
+                  >
+                    <div className="bg-white shadow-sm rounded-lg border border-gray-100 transition-shadow hover:shadow-md cursor-default">
+                      <div className="flex items-start justify-between mb-4 pb-0 p-3">
+                        <div className="flex items-center gap-3">
+                          <Avatar
+                            className="!bg-blue-100 !rounded-md !text-blue-600"
+                            src=""
+                          >
+                            {product.product_name?.charAt(0) || 'P'}
+                          </Avatar>
+                          <div className="flex flex-col">
+                            <h3 className="font-semibold text-gray-900 text-sm">
+                              {product.product_name || 'Unknown Product'}
+                            </h3>
+                            <p className="text-xs text-gray-500 truncate text-ellipsis">
+                              {product.product_code || 'N/A'}
+                            </p>
+                          </div>
+                        </div>
+                        <Chip
+                          label={stockStatus.label}
+                          size="small"
+                          color={stockStatus.color as ChipProps['color']}
+                          variant="outlined"
+                        />
                       </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600">
-                          Tracking Type
-                        </span>
-                        <span className="font-medium uppercase">
-                          {product.tracking_type}
-                        </span>
-                      </div>
-                      {product.tracking_type?.toLowerCase() === 'batch' ? (
+                      <div className="space-y-1 pb-3 px-4">
                         <div className="flex items-center justify-between">
-                          <span className="text-sm text-gray-600">Batches</span>
+                          <span className="text-sm text-gray-600">
+                            Total Quantity
+                          </span>
                           <span className="font-medium">
-                            {product.batches?.length || 0}
+                            {formatQuantityAndBase(
+                              product.total_remaining_quantity < 0
+                                ? 0
+                                : product.total_remaining_quantity,
+                              Number(product.total_remaining_base_quantity) < 0
+                                ? 0
+                                : product.total_remaining_base_quantity
+                            )}
                           </span>
                         </div>
-                      ) : (
-                        product.tracking_type?.toLowerCase() === 'serial' && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-gray-600">
+                            Tracking Type
+                          </span>
+                          <span className="font-medium uppercase">
+                            {product.tracking_type}
+                          </span>
+                        </div>
+                        {product.tracking_type?.toLowerCase() === 'batch' ? (
                           <div className="flex items-center justify-between">
                             <span className="text-sm text-gray-600">
-                              Serial Numbers
+                              Batches
                             </span>
                             <span className="font-medium">
-                              {product.serials?.length || 0}
+                              {product.batches?.length || 0}
                             </span>
                           </div>
-                        )
-                      )}
-                    </div>
-                    {product.total_quantity > 0 &&
-                      product.total_quantity <= 10 && (
-                        <div className="border-t border-gray-100 p-3">
-                          <div className="flex items-center gap-2 text-orange-600 text-sm">
-                            <AlertTriangle className="w-4 h-4" />
-                            <span className="font-medium">Low Stock Alert</span>
+                        ) : (
+                          product.tracking_type?.toLowerCase() === 'serial' && (
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm text-gray-600">
+                                Serial Numbers
+                              </span>
+                              <span className="font-medium">
+                                {product.serials?.length || 0}
+                              </span>
+                            </div>
+                          )
+                        )}
+                      </div>
+                      {product.total_quantity > 0 &&
+                        product.total_quantity <= 10 && (
+                          <div className="border-t border-gray-100 p-3">
+                            <div className="flex items-center gap-2 text-orange-600 text-sm">
+                              <AlertTriangle className="w-4 h-4" />
+                              <span className="font-medium">
+                                Low Stock Alert
+                              </span>
+                            </div>
                           </div>
-                        </div>
-                      )}
-                  </div>
+                        )}
+                    </div>
+                  </Tooltip>
                 );
               })}
           </div>

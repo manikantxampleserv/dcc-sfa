@@ -26,7 +26,6 @@ import {
   MdWarehouse,
 } from 'react-icons/md';
 
-
 export interface MenuItem {
   id: string;
   label: string;
@@ -59,7 +58,7 @@ const menuItems: MenuItem[] = [
       },
       {
         id: 'sales-control-tower',
-        label: 'Sales Control Tower',
+        label: 'Sales Control',
         icon: MdTrendingUp,
         href: '/dashboard/sales-control-tower',
       },

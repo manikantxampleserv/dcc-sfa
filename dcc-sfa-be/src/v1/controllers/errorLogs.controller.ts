@@ -20,8 +20,10 @@ export const errorLogsController = {
         limit = 10,
         path,
         method,
+        device,
         start_date,
         end_date,
+        user_id,
       } = req.query;
 
       const where: any = {};
@@ -36,6 +38,18 @@ export const errorLogsController = {
 
       if (method) {
         where.method = method as string;
+      }
+
+      if (device) {
+        if (device === 'Web') {
+          where.device_info = { contains: 'Mozilla' }; // Simple check for web browsers
+        } else if (device === 'Mobile') {
+          where.device_info = { contains: 'Dart' }; // Flutter app uses Dart user agent
+        }
+      }
+
+      if (user_id) {
+        where.user_id = parseInt(user_id as string);
       }
 
       if (start_date || end_date) {

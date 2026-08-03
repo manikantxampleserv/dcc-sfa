@@ -7,6 +7,8 @@ export interface ErrorLogFilters {
   method?: string;
   start_date?: string;
   end_date?: string;
+  device?: string;
+  user_id?: number;
 }
 
 export interface ErrorLogData {

@@ -55,7 +55,13 @@ interface Invoice {
   updatedby?: number | null;
   log_inst?: number | null;
   currency_id?: number | null;
-  // Related data
+  salesperson?: {
+    id: number;
+    name: string;
+    email?: string | null;
+    sap_code?: string | null;
+    role?: string | null;
+  } | null;
   currency?: {
     id: number;
     code: string;
@@ -139,6 +145,8 @@ interface GetInvoicesParams {
   is_active?: string;
   time_filter?: string;
   salesperson_id?: number;
+  start_date?: string;
+  end_date?: string;
 }
 
 interface PaginationMeta {

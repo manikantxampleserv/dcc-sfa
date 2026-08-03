@@ -50,6 +50,8 @@ const serializeInvoice = (invoice) => ({
                 invoice.invoices_salesperson.full_name ||
                 '',
             email: invoice.invoices_salesperson.email || null,
+            sap_code: invoice.invoices_salesperson.sap_code || null,
+            role: invoice.invoices_salesperson.user_role?.name || null,
         }
         : undefined,
     customer: invoice.invoices_customers
@@ -590,11 +592,11 @@ exports.invoicesController = {
     },
     async getInvoices(req, res) {
         try {
-            const { page = '1', limit = '10', search = '', customer_id, status, payment_method, invoice_date_from, invoice_date_to, currency_id, is_active = 'Y', time_filter, salesperson_id, } = req.query;
+            const { page = '1', limit = '10', search = '', customer_id, status, payment_method, invoice_date_from, invoice_date_to, currency_id, is_active = 'Y', time_filter, salesperson_id, start_date, end_date, } = req.query;
             const page_num = parseInt(page, 10);
             const limit_num = parseInt(limit, 10);
             const searchLower = search.toLowerCase();
-            const timeBasedDateFilter = (0, dateFilters_1.getTimeFilter)(time_filter);
+            const timeBasedDateFilter = (0, dateFilters_1.getTimeFilter)(time_filter, start_date, end_date);
             const user = req.user;
             let isScopeRestricted = false;
             let depotIds = [];
@@ -676,11 +678,32 @@ exports.invoicesController = {
                 where: filters,
                 _sum: { balance_due: true },
             });
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+            const todayCreated = await prisma_client_1.default.invoices.count({
+                where: {
+                    ...filters,
+                    createdate: {
+                        gte: today,
+                    },
+                },
+            });
+            const thisMonthCreated = await prisma_client_1.default.invoices.count({
+                where: {
+                    ...filters,
+                    createdate: {
+                        gte: firstDayOfMonth,
+                    },
+                },
+            });
             const stats = {
                 total_invoices: totalInvoices,
                 total_amount: Number(totalAmount._sum.total_amount || 0),
                 amount_paid: Number(amountPaid._sum.amount_paid || 0),
                 balance_due: Number(balanceDue._sum.balance_due || 0),
+                created_this_month: thisMonthCreated,
+                today_created: todayCreated,
             };
             const { data, pagination } = await (0, paginate_1.paginate)({
                 model: prisma_client_1.default.invoices,
@@ -697,7 +720,11 @@ exports.invoicesController = {
                             email: true,
                         },
                     },
-                    invoices_salesperson: true,
+                    invoices_salesperson: {
+                        include: {
+                            user_role: true,
+                        },
+                    },
                     currencies: true,
                     orders: true,
                     invoice_items: {

@@ -1,4 +1,4 @@
-import { Avatar, Chip, Skeleton, Typography, Collapse } from '@mui/material';
+import { Avatar, Chip, Collapse, Skeleton, Typography } from '@mui/material';
 import classNames from 'classnames';
 import { useVanInventoryById, type VanInventory } from 'hooks/useVanInventory';
 import {
@@ -6,7 +6,6 @@ import {
   CheckCircle,
   FileText,
   Info,
-  MapPin,
   Package,
   Truck,
   User,
@@ -172,37 +171,6 @@ const VanInventoryDetail: React.FC<VanInventoryDetailProps> = ({
     onClose();
   };
 
-  const getStatusColor = (status: string) => {
-    const colors = {
-      D: 'bg-yellow-100 text-yellow-800',
-      A: 'bg-green-100 text-green-800',
-      C: 'bg-red-100 text-red-800',
-    };
-    return colors[status as keyof typeof colors] || 'bg-gray-100 text-gray-800';
-  };
-
-  const getStatusLabel = (status: string) => {
-    const labels = {
-      D: 'Draft',
-      A: 'Confirmed',
-      C: 'Canceled',
-    };
-    return labels[status as keyof typeof labels] || status;
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'D':
-        return <FileText className="w-4 h-4" />;
-      case 'A':
-        return <CheckCircle className="w-4 h-4" />;
-      case 'C':
-        return <XCircle className="w-4 h-4" />;
-      default:
-        return <FileText className="w-4 h-4" />;
-    }
-  };
-
   const getLoadingTypeLabel = (type: string) => {
     switch (type) {
       case 'L':
@@ -218,6 +186,48 @@ const VanInventoryDetail: React.FC<VanInventoryDetailProps> = ({
     return type === 'L'
       ? 'bg-blue-100 text-blue-800'
       : 'bg-purple-100 text-purple-800';
+  };
+
+  const getApprovalLabel = (status: string | null | undefined) => {
+    if (!status) return 'Approved';
+    switch (status) {
+      case 'A':
+        return 'Approved';
+      case 'P':
+        return 'Pending';
+      case 'R':
+        return 'Rejected';
+      default:
+        return status;
+    }
+  };
+
+  const getApprovalColor = (status: string | null | undefined) => {
+    if (!status) return 'bg-green-100 text-green-800';
+    switch (status) {
+      case 'A':
+        return 'bg-green-100 text-green-800';
+      case 'P':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'R':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getApprovalIcon = (status: string | null | undefined) => {
+    if (!status) return <CheckCircle className="w-4 h-4" />;
+    switch (status) {
+      case 'A':
+        return <CheckCircle className="w-4 h-4" />;
+      case 'P':
+        return <FileText className="w-4 h-4" />;
+      case 'R':
+        return <XCircle className="w-4 h-4" />;
+      default:
+        return <CheckCircle className="w-4 h-4" />;
+    }
   };
 
   const handleBack = () => {
@@ -460,6 +470,24 @@ const VanInventoryDetail: React.FC<VanInventoryDetailProps> = ({
     },
   ];
 
+  const totalQuantity =
+    vanInventoryData.items?.reduce(
+      (sum: number, item: any) => sum + (Number(item.quantity) || 0),
+      0
+    ) || 0;
+
+  const totalBaseQuantity =
+    vanInventoryData.items?.reduce(
+      (sum: number, item: any) => sum + (Number(item.base_quantity) || 0),
+      0
+    ) || 0;
+
+  const totalBatches =
+    vanInventoryData.items?.reduce(
+      (sum: number, item: any) => sum + (item.product_batches?.length || 0),
+      0
+    ) || 0;
+
   return (
     <CustomDrawer
       open={open}
@@ -506,9 +534,9 @@ const VanInventoryDetail: React.FC<VanInventoryDetailProps> = ({
 
           <div className="!flex !justify-center !gap-2 !mb-4">
             <Chip
-              icon={getStatusIcon(vanInventoryData.status || 'D')}
-              label={getStatusLabel(vanInventoryData.status || 'D')}
-              className={`${getStatusColor(vanInventoryData.status || 'D')} font-semibold`}
+              icon={getApprovalIcon(vanInventoryData.approval_status)}
+              label={getApprovalLabel(vanInventoryData.approval_status)}
+              className={`${getApprovalColor(vanInventoryData.approval_status)} font-semibold`}
               size="small"
             />
             <Chip
@@ -518,22 +546,7 @@ const VanInventoryDetail: React.FC<VanInventoryDetailProps> = ({
             />
           </div>
 
-          <div className="!space-y-1 !text-left !mt-4">
-            <div className="!p-2 !bg-gray-50 !rounded-md">
-              <Typography
-                variant="caption"
-                className="!text-gray-500 !text-xs !uppercase !tracking-wide !mb-0.5"
-              >
-                Total Items
-              </Typography>
-              <Typography
-                variant="body2"
-                className="!font-semibold !text-gray-900"
-              >
-                {vanInventoryData.items?.length || 0} items
-              </Typography>
-            </div>
-
+          <div className="grid grid-cols-2">
             <div className="!p-2 !bg-gray-50 !rounded-md">
               <Typography
                 variant="caption"
@@ -674,7 +687,7 @@ const VanInventoryDetail: React.FC<VanInventoryDetailProps> = ({
                   {vanInventoryData.sale_type || 'Normal'}
                 </Typography>
               </div>
-              <div className="!flex !justify-between">
+              {/* <div className="!flex !justify-between">
                 <Typography variant="body2" className="!text-gray-600">
                   Status:
                 </Typography>
@@ -684,7 +697,7 @@ const VanInventoryDetail: React.FC<VanInventoryDetailProps> = ({
                 >
                   {getStatusLabel(vanInventoryData.status || 'D')}
                 </Typography>
-              </div>
+              </div> */}
               <div className="!flex !justify-between">
                 <Typography variant="body2" className="!text-gray-600">
                   Document Date:
@@ -696,7 +709,7 @@ const VanInventoryDetail: React.FC<VanInventoryDetailProps> = ({
                   {formatDate(vanInventoryData.document_date) || 'N/A'}
                 </Typography>
               </div>
-              <div className="!flex !justify-between">
+              {/* <div className="!flex !justify-between">
                 <Typography variant="body2" className="!text-gray-600">
                   Active Status:
                 </Typography>
@@ -710,33 +723,55 @@ const VanInventoryDetail: React.FC<VanInventoryDetailProps> = ({
                 >
                   {vanInventoryData.is_active === 'Y' ? 'Active' : 'Inactive'}
                 </Typography>
-              </div>
+              </div> */}
             </div>
           </InfoCard>
 
-          {/* Location Information */}
-          <InfoCard title="Location Information" icon={MapPin}>
+          {/* Product Information */}
+          <InfoCard title="Product Information" icon={Package}>
             <div className="!space-y-3">
               <div className="!flex !justify-between">
                 <Typography variant="body2" className="!text-gray-600">
-                  Location Type:
-                </Typography>
-                <Typography
-                  variant="body2"
-                  className="!font-semibold !text-gray-900 !capitalize"
-                >
-                  {vanInventoryData.location_type || 'Van'}
-                </Typography>
-              </div>
-              <div className="!flex !justify-between">
-                <Typography variant="body2" className="!text-gray-600">
-                  Location ID:
+                  Total Products:
                 </Typography>
                 <Typography
                   variant="body2"
                   className="!font-semibold !text-gray-900"
                 >
-                  {vanInventoryData.location_id || 'N/A'}
+                  {vanInventoryData.items?.length || 0}
+                </Typography>
+              </div>
+              <div className="!flex !justify-between">
+                <Typography variant="body2" className="!text-gray-600">
+                  Total Batches:
+                </Typography>
+                <Typography
+                  variant="body2"
+                  className="!font-semibold !text-gray-900"
+                >
+                  {totalBatches}
+                </Typography>
+              </div>
+              <div className="!flex !justify-between">
+                <Typography variant="body2" className="!text-gray-600">
+                  Total Quantity:
+                </Typography>
+                <Typography
+                  variant="body2"
+                  className="!font-semibold !text-gray-900 !text-right"
+                >
+                  {totalQuantity > 0 || totalBaseQuantity > 0 ? (
+                    <div className="flex flex-col">
+                      {totalQuantity > 0 && <span>{totalQuantity} Cases</span>}
+                      {totalBaseQuantity > 0 && (
+                        <span className="text-xs text-gray-500">
+                          {totalBaseQuantity} PCs
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    '0'
+                  )}
                 </Typography>
               </div>
             </div>

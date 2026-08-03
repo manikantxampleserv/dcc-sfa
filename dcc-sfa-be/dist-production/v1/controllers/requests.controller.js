@@ -957,27 +957,18 @@ const createRequest = async (data) => {
                         log_inst: data.log_inst,
                     });
                 }
-                const template = await prisma_client_1.default.sfa_d_templates.findUnique({
-                    where: { key: 'notify_approver' },
+                const emailTemplate = await (0, emailTemplates_1.generateEmailContent)('notify_approver', {
+                    approver_name: firstApprover.approval_work_flow_approver.name,
+                    requester_name: requester.name,
+                    request_type: data.request_type,
+                    request_detail: orderData,
+                    company_name: process.env.COMPANY_NAME || 'SFA System',
                 });
-                if (!template) {
-                    console.warn('Email template "notify_approver" not found. Skipping email.');
-                }
-                else {
-                    const variables = {
-                        approver_name: firstApprover.approval_work_flow_approver.name,
-                        requester_name: requester.name,
-                        company_name: process.env.COMPANY_NAME || 'SFA System',
-                        ...orderData,
-                    };
-                    console.log('Email variables:', Object.keys(variables));
-                    const subject = replaceVariables(template.subject, variables);
-                    const body = replaceVariables(template.body, variables);
-                    console.log(' Subject:', subject);
+                if (emailTemplate && emailTemplate.subject !== '__SKIP_EMAIL__') {
                     await (0, mailer_1.sendEmail)({
                         to: firstApprover.approval_work_flow_approver.email,
-                        subject: subject,
-                        html: body,
+                        subject: emailTemplate.subject,
+                        html: emailTemplate.body,
                         createdby: data.createdby,
                         log_inst: data.log_inst,
                     });

@@ -60,6 +60,8 @@ interface InvoiceSerialized {
     id: number;
     name: string;
     email?: string;
+    sap_code?: string | null;
+    role?: string | null;
   };
   currency?: {
     id: number;
@@ -125,6 +127,8 @@ const serializeInvoice = (invoice: any): InvoiceSerialized => ({
           invoice.invoices_salesperson.full_name ||
           '',
         email: invoice.invoices_salesperson.email || null,
+        sap_code: invoice.invoices_salesperson.sap_code || null,
+        role: invoice.invoices_salesperson.user_role?.name || null,
       }
     : undefined,
   customer: invoice.invoices_customers
@@ -799,6 +803,8 @@ export const invoicesController = {
         is_active = 'Y',
         time_filter,
         salesperson_id,
+        start_date,
+        end_date,
       } = req.query;
 
       const page_num = parseInt(page as string, 10);
@@ -806,7 +812,9 @@ export const invoicesController = {
       const searchLower = (search as string).toLowerCase();
 
       const timeBasedDateFilter = getTimeFilter(
-        time_filter as string | undefined
+        time_filter as string | undefined,
+        start_date as string | undefined,
+        end_date as string | undefined
       );
 
       const user = (req as any).user;
@@ -896,11 +904,39 @@ export const invoicesController = {
         _sum: { balance_due: true },
       });
 
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const firstDayOfMonth = new Date(
+        today.getFullYear(),
+        today.getMonth(),
+        1
+      );
+
+      const todayCreated = await prisma.invoices.count({
+        where: {
+          ...filters,
+          createdate: {
+            gte: today,
+          },
+        },
+      });
+
+      const thisMonthCreated = await prisma.invoices.count({
+        where: {
+          ...filters,
+          createdate: {
+            gte: firstDayOfMonth,
+          },
+        },
+      });
+
       const stats = {
         total_invoices: totalInvoices,
         total_amount: Number(totalAmount._sum.total_amount || 0),
         amount_paid: Number(amountPaid._sum.amount_paid || 0),
         balance_due: Number(balanceDue._sum.balance_due || 0),
+        created_this_month: thisMonthCreated,
+        today_created: todayCreated,
       };
 
       const { data, pagination } = await paginate({
@@ -918,7 +954,11 @@ export const invoicesController = {
               email: true,
             },
           },
-          invoices_salesperson: true,
+          invoices_salesperson: {
+            include: {
+              user_role: true,
+            },
+          },
 
           currencies: true,
           orders: true,

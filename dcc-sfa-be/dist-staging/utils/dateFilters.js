@@ -1,7 +1,13 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getTimeFilter = getTimeFilter;
-function getTimeFilter(timeFilter) {
+function getTimeFilter(timeFilter, start_date, end_date) {
+    if (timeFilter === 'custom' && start_date && end_date) {
+        return {
+            gte: new Date(start_date),
+            lte: new Date(`${end_date}T23:59:59.999Z`),
+        };
+    }
     if (!timeFilter || timeFilter === 'all')
         return undefined;
     const now = new Date();

@@ -15,14 +15,12 @@ import {
 import { Doughnut, Line } from 'react-chartjs-2';
 import { Fullscreen, FullscreenExit, Refresh } from '@mui/icons-material';
 import { IconButton, Tooltip as MuiTooltip } from '@mui/material';
-import { useExcelData } from './useExcelData';
-import type { SalesRow } from './mockData';
-
-import { aggregate, filterRows, FMT, FMTn, pct, PAL } from './utils';
-import type { AggMap, FilterState } from './utils';
+import { useSalesControlTower } from '../../../hooks/useSalesControlTower';
+import type { SalesRow } from './utils';
+import { FMT, FMTn, pct, PAL } from './utils';
+import type { AggMap, FilterState, AggResult } from './utils';
 import EntityModal from './EntityModal';
 import { DashboardSkeleton } from './DashboardSkeleton';
-
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -35,8 +33,6 @@ ChartJS.register(
   Legend,
   Filler
 );
-
-// ─── Design tokens ─────────────────────────────────────────
 const C = {
   red: '#e31837',
   redL: '#fdeaed',
@@ -61,7 +57,6 @@ const C = {
   muted: '#6b7280',
   m2: '#9ca3af',
 };
-
 type DateMode = 'all' | '7d' | '15d' | 'today';
 type CmpMode = 'apr' | 'spm';
 type Role = 'MD' | 'HSM';
@@ -74,7 +69,6 @@ type DrillDim =
   | 'Salesman'
   | 'Brand'
   | 'Pack';
-
 const DIMENSIONS: DrillDim[] = [
   'Depot',
   'Coordinator',
@@ -102,7 +96,6 @@ const DIM_FIELD: Record<DrillDim, keyof SalesRow> = {
   Brand: 'Brand',
   Pack: 'Pack',
 };
-
 const FILTER_KEYS: Record<DrillDim, keyof FilterState> = {
   Depot: 'depot',
   Coordinator: 'coord',
@@ -112,24 +105,15 @@ const FILTER_KEYS: Record<DrillDim, keyof FilterState> = {
   Brand: 'brand',
   Pack: 'pack',
 };
-
 const DEMO_TARGETS: Record<string, number> = { UC: 420000, TV: 3_500_000_000 };
-
-// ── Unique sorted values helper ─────────────────────────────
 function uniq(arr: string[]) {
   return [...new Set(arr.filter(Boolean))].sort();
 }
-
-// ── Agg map top N ──────────────────────────────────────────
 function topN(map: AggMap, key: 'UC' | 'PC' | 'TV', n: number) {
   return Object.entries(map)
     .sort((a, b) => (b[1][key] || 0) - (a[1][key] || 0))
     .slice(0, n);
 }
-
-// ═══════════════════════════════════════════════════════════
-//  KPI CARD
-// ═══════════════════════════════════════════════════════════
 interface KpiCardProps {
   label: string;
   icon: string;
@@ -156,7 +140,6 @@ const KpiCard: React.FC<KpiCardProps> = ({
 }) => {
   const ref = useRef<HTMLCanvasElement>(null);
   const chartRef = useRef<ChartJS | null>(null);
-
   useEffect(() => {
     if (!ref.current) return;
     if (chartRef.current) {
@@ -192,7 +175,6 @@ const KpiCard: React.FC<KpiCardProps> = ({
       chartRef.current = null;
     };
   }, [sparkData, color]);
-
   const up = growth !== undefined && growth >= 0;
   return (
     <div
@@ -323,10 +305,6 @@ const KpiCard: React.FC<KpiCardProps> = ({
     </div>
   );
 };
-
-// ═══════════════════════════════════════════════════════════
-//  RANK LIST
-// ═══════════════════════════════════════════════════════════
 const RankList: React.FC<{
   entries: [string, number][];
   max: number;
@@ -423,10 +401,6 @@ const RankList: React.FC<{
     })}
   </div>
 );
-
-// ═══════════════════════════════════════════════════════════
-//  TREEMAP
-// ═══════════════════════════════════════════════════════════
 interface TmNode {
   name: string;
   value: number;
@@ -454,8 +428,6 @@ const Treemap: React.FC<{
         No data
       </div>
     );
-
-  // Simple slice-and-dice layout
   const sorted = [...nodes].sort((a, b) => b.value - a.value);
   const boxes: { node: TmNode; x: number; y: number; w: number; h: number }[] =
     [];
@@ -465,7 +437,6 @@ const Treemap: React.FC<{
     H = 100;
   let remaining = total;
   let remaining_nodes = [...sorted];
-
   while (remaining_nodes.length > 0) {
     const n = remaining_nodes.shift()!;
     const frac = n.value / remaining;
@@ -482,7 +453,6 @@ const Treemap: React.FC<{
     }
     remaining -= n.value;
   }
-
   return (
     <div
       style={{
@@ -554,10 +524,6 @@ const Treemap: React.FC<{
     </div>
   );
 };
-
-// ═══════════════════════════════════════════════════════════
-//  DATA TABLE
-// ═══════════════════════════════════════════════════════════
 interface TableProps {
   cols: { key: string; label: string; numeric?: boolean }[];
   rows: Record<string, string | number>[];
@@ -569,7 +535,6 @@ const DataTable: React.FC<TableProps> = ({ cols, rows, onRowClick }) => {
   const [page, setPage] = useState(0);
   const [search, setSearch] = useState('');
   const PAGE = 15;
-
   const filtered = useMemo(() => {
     const s = search.toLowerCase();
     return rows.filter(r =>
@@ -580,7 +545,6 @@ const DataTable: React.FC<TableProps> = ({ cols, rows, onRowClick }) => {
       )
     );
   }, [rows, search, cols]);
-
   const sorted = useMemo(() => {
     return [...filtered].sort((a, b) => {
       const av = a[sortCol],
@@ -591,10 +555,8 @@ const DataTable: React.FC<TableProps> = ({ cols, rows, onRowClick }) => {
       return dir * String(bv ?? '').localeCompare(String(av ?? ''));
     });
   }, [filtered, sortCol, sortDir]);
-
   const pageRows = sorted.slice(page * PAGE, page * PAGE + PAGE);
   const totalPages = Math.ceil(sorted.length / PAGE);
-
   const handleSort = (key: string) => {
     if (sortCol === key) setSortDir(d => (d === 'desc' ? 'asc' : 'desc'));
     else {
@@ -603,7 +565,6 @@ const DataTable: React.FC<TableProps> = ({ cols, rows, onRowClick }) => {
     }
     setPage(0);
   };
-
   return (
     <div>
       <div
@@ -770,10 +731,6 @@ const DataTable: React.FC<TableProps> = ({ cols, rows, onRowClick }) => {
     </div>
   );
 };
-
-// ═══════════════════════════════════════════════════════════
-//  SECTION HEADER
-// ═══════════════════════════════════════════════════════════
 const SH: React.FC<{ label: string }> = ({ label }) => (
   <div
     style={{
@@ -799,10 +756,6 @@ const SH: React.FC<{ label: string }> = ({ label }) => (
     <div style={{ flex: 1, height: 1, background: C.border }} />
   </div>
 );
-
-// ═══════════════════════════════════════════════════════════
-//  CARD WRAPPER
-// ═══════════════════════════════════════════════════════════
 const Card: React.FC<{
   children: React.ReactNode;
   style?: React.CSSProperties;
@@ -831,35 +784,11 @@ const Card: React.FC<{
     {children}
   </div>
 );
-
-// ═══════════════════════════════════════════════════════════
-//  MAIN PAGE
-// ═══════════════════════════════════════════════════════════
+/**
+ * Main dashboard component for the Sales Control.
+ * Handles data fetching, filtering, and layout of all KPI cards and charts.
+ */
 const SalesControlTower: React.FC = () => {
-  const {
-    loading,
-    error,
-    mayRows: RAW_MAY,
-    aprRows: RAW_APR,
-    refetch,
-  } = useExcelData();
-
-  const [isFullscreen, setIsFullscreen] = useState(false);
-
-  useEffect(() => {
-    if (isFullscreen) {
-      document.body.classList.add('ai-fullscreen-active');
-    } else {
-      document.body.classList.remove('ai-fullscreen-active');
-    }
-    return () => {
-      document.body.classList.remove('ai-fullscreen-active');
-    };
-  }, [isFullscreen]);
-
-  const [role, setRole] = useState<Role>('MD');
-  const [dateMode, setDateMode] = useState<DateMode>('all');
-  const [cmpMode, setCmpMode] = useState<CmpMode>('apr');
   const [filters, setFilters] = useState<FilterState>({
     depot: '',
     coord: '',
@@ -871,6 +800,58 @@ const SalesControlTower: React.FC = () => {
     ch: '',
     dateMode: 'all',
   });
+  const {
+    data: apiData,
+    isLoading: loading,
+    error,
+    refetch,
+    isFetching,
+  } = useSalesControlTower(filters);
+  const RAW_MAY: any[] = apiData?.data?.mayAgg?.rows || [];
+  const RAW_APR: any[] = apiData?.data?.aprAgg?.rows || [];
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  useEffect(() => {
+    if (isFullscreen) {
+      document.body.classList.add('ai-fullscreen-active');
+    } else {
+      document.body.classList.remove('ai-fullscreen-active');
+    }
+    return () => {
+      document.body.classList.remove('ai-fullscreen-active');
+    };
+  }, [isFullscreen]);
+  const [role, setRole] = useState<Role>('MD');
+  const [dateMode, setDateMode] = useState<DateMode>('all');
+  useEffect(() => {
+    const now = new Date();
+    let startDate = '';
+    let endDate = '';
+    const getLocalISODate = (d: Date) => {
+      const offset = d.getTimezoneOffset() * 60000;
+      return new Date(d.getTime() - offset).toISOString().split('T')[0];
+    };
+    if (dateMode === 'all') {
+      const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+      const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      startDate = getLocalISODate(firstDay);
+      endDate = getLocalISODate(lastDay);
+    } else if (dateMode === '7d') {
+      const start = new Date(now);
+      start.setDate(now.getDate() - 7);
+      startDate = getLocalISODate(start);
+      endDate = getLocalISODate(now);
+    } else if (dateMode === '15d') {
+      const start = new Date(now);
+      start.setDate(now.getDate() - 15);
+      startDate = getLocalISODate(start);
+      endDate = getLocalISODate(now);
+    } else if (dateMode === 'today') {
+      startDate = getLocalISODate(now);
+      endDate = getLocalISODate(now);
+    }
+    setFilters(f => ({ ...f, startDate, endDate }));
+  }, [dateMode]);
+  const [cmpMode, setCmpMode] = useState<CmpMode>('apr');
   const [kpiSel, setKpiSel] = useState<KpiKey | null>(null);
   const [tmStack, setTmStack] = useState<string[]>([]);
   const [modalEntity, setModalEntity] = useState<{
@@ -885,108 +866,99 @@ const SalesControlTower: React.FC = () => {
   const [trendMetric, setTrendMetric] = useState<'UC' | 'TV' | 'PC'>('UC');
   const [chMetric, setChMetric] = useState<'TV' | 'UC'>('TV');
   const [execActive, setExecActive] = useState<number | null>(null);
-
-  // ── Filter selects dimensions ─────────────────────────────
-  const depots = useMemo(() => uniq(RAW_MAY.map(r => r.Depot)), [RAW_MAY]);
+  const mayAgg = useMemo<AggResult>(() => {
+    const fallback: AggResult = {
+      byDepot: {},
+      byCoord: {},
+      bySup: {},
+      byRoute: {},
+      bySal: {},
+      byBrand: {},
+      byPack: {},
+      byCh: {},
+      bySKU: {},
+      byDate: {},
+      totalUC: 0,
+      totalPC: 0,
+      totalTV: 0,
+      newOutlets: 0,
+      avgStrike: 0,
+      rows: [],
+    };
+    return { ...fallback, ...(apiData?.data?.mayAgg || {}) };
+  }, [apiData]);
+  const filterData = apiData?.data?.filters || {};
+  const depots = useMemo(
+    () => (filterData.depots || []).map((f: any) => f.name).filter(Boolean),
+    [filterData]
+  );
   const coords = useMemo(
-    () =>
-      uniq(
-        RAW_MAY.filter(r => !filters.depot || r.Depot === filters.depot).map(
-          r => r.Coordinator
-        )
-      ),
-    [RAW_MAY, filters.depot]
-  );
+    () => (filterData.depots || []).map((f: any) => f.name).filter(Boolean),
+    [filterData]
+  ); 
   const sups = useMemo(
-    () =>
-      uniq(
-        RAW_MAY.filter(
-          r =>
-            (!filters.depot || r.Depot === filters.depot) &&
-            (!filters.coord || r.Coordinator === filters.coord)
-        ).map(r => r.Supervisor)
-      ),
-    [RAW_MAY, filters.depot, filters.coord]
-  );
+    () => (filterData.depots || []).map((f: any) => f.name).filter(Boolean),
+    [filterData]
+  ); 
   const routes = useMemo(
-    () =>
-      uniq(
-        RAW_MAY.filter(r => !filters.sup || r.Supervisor === filters.sup).map(
-          r => r.Route
-        )
-      ),
-    [RAW_MAY, filters.sup]
+    () => (filterData.routes || []).map((f: any) => f.name).filter(Boolean),
+    [filterData]
   );
   const salesmen = useMemo(
     () =>
-      uniq(
-        RAW_MAY.filter(r => !filters.route || r.Route === filters.route).map(
-          r => r.Salesman
-        )
-      ),
-    [RAW_MAY, filters.route]
+      (filterData.salespersons || []).map((f: any) => f.name).filter(Boolean),
+    [filterData]
   );
-  const brands = useMemo(() => uniq(RAW_MAY.map(r => r.Brand)), [RAW_MAY]);
+  const brands = useMemo(
+    () => (filterData.brands || []).map((f: any) => f.name).filter(Boolean),
+    [filterData]
+  );
   const packs = useMemo(
-    () =>
-      uniq(
-        RAW_MAY.filter(r => !filters.brand || r.Brand === filters.brand).map(
-          r => r.Pack
-        )
-      ),
-    [RAW_MAY, filters.brand]
+    () => (filterData.packs || []).map((f: any) => f.name).filter(Boolean),
+    [filterData]
   );
   const channels = useMemo(
-    () => uniq(RAW_MAY.map(r => r.CustomerChannel)),
-    [RAW_MAY]
+    () => (filterData.channels || []).map((f: any) => f.name).filter(Boolean),
+    [filterData]
   );
-
-  // ── Compute filtered data ──────────────────────────────────
-  const fState: FilterState = { ...filters, dateMode };
-  const mayRows = useMemo(
-    () => filterRows(RAW_MAY, fState),
-    [RAW_MAY, filters, dateMode]
-  );
-  const aprRows = useMemo(
-    () => filterRows(RAW_APR, { ...filters, dateMode: 'all' }),
-    [RAW_APR, filters]
-  );
-
-  const mayAgg = useMemo(() => aggregate(mayRows), [mayRows]);
-  const aprAgg = useMemo(() => aggregate(aprRows), [aprRows]);
-
-  // ── KPI Derived ────────────────────────────────────────────
+  const mayRows = RAW_MAY;
+  const aprRows = RAW_APR;
+  const aprAgg = useMemo<AggResult>(() => {
+    const fallback: AggResult = {
+      byDepot: {},
+      byCoord: {},
+      bySup: {},
+      byRoute: {},
+      bySal: {},
+      byBrand: {},
+      byPack: {},
+      byCh: {},
+      bySKU: {},
+      byDate: {},
+      totalUC: 0,
+      totalPC: 0,
+      totalTV: 0,
+      newOutlets: 0,
+      avgStrike: 0,
+      rows: [],
+    };
+    return { ...fallback, ...(apiData?.data?.aprAgg || {}) };
+  }, [apiData]);
   const growth = pct(mayAgg.totalUC, aprAgg.totalUC);
   const targetPct = DEMO_TARGETS.UC
     ? (mayAgg.totalUC / DEMO_TARGETS.UC) * 100
     : 0;
-
-  // ── Sparkline data (daily UC totals) ──────────────────────
   const sparkDates = useMemo(() => {
-    const dates = uniq(mayRows.map(r => r.Date)).sort();
-    return dates.map(d =>
-      mayRows.filter(r => r.Date === d).reduce((s, r) => s + r.UC, 0)
-    );
-  }, [mayRows]);
-
-  // ── Trend chart ───────────────────────────────────────────
+    const dates = uniq(Object.keys(mayAgg.byDate)).sort();
+    return dates.map(d => mayAgg.byDate[d]?.UC || 0);
+  }, [mayAgg]);
   const trendData = useMemo(() => {
-    const dates = uniq(mayRows.map(r => r.Date))
-      .sort()
-      .slice(-20);
-    const curData = dates.map(d =>
-      mayRows.filter(r => r.Date === d).reduce((s, r) => s + r[trendMetric], 0)
-    );
-    const aprDates = uniq(aprRows.map(r => r.Date))
-      .sort()
-      .slice(-20);
-    const cmpData = aprDates.map(d =>
-      aprRows.filter(r => r.Date === d).reduce((s, r) => s + r[trendMetric], 0)
-    );
+    const dates = uniq(Object.keys(mayAgg.byDate)).sort().slice(-20);
+    const curData = dates.map(d => mayAgg.byDate[d]?.[trendMetric] || 0);
+    const aprDates = uniq(Object.keys(aprAgg.byDate)).sort().slice(-20);
+    const cmpData = aprDates.map(d => aprAgg.byDate[d]?.[trendMetric] || 0);
     return { labels: dates.map(d => d.slice(5)), curData, cmpData };
-  }, [mayRows, aprRows, trendMetric]);
-
-  // ── Ranking ───────────────────────────────────────────────
+  }, [mayAgg, aprAgg, trendMetric]);
   const rankMap: Record<DrillDim, keyof typeof mayAgg> = {
     Depot: 'byDepot',
     Coordinator: 'byCoord',
@@ -1001,12 +973,9 @@ const SalesControlTower: React.FC = () => {
     return topN(map, 'UC', 10).map(([k, v]) => [k, v.UC] as [string, number]);
   }, [mayAgg, rkDim]);
   const rankMax = rankEntries[0]?.[1] ?? 1;
-
-  // ── Treemap (Brand → Pack → SKU) ────────────────────────
   const tmNodes = useMemo(() => {
     let map;
     let filtered;
-
     if (tmStack.length === 0) {
       map = mayAgg.byBrand;
       filtered = map;
@@ -1027,7 +996,6 @@ const SalesControlTower: React.FC = () => {
         )
       );
     }
-
     return Object.entries(filtered)
       .sort((a, b) => (b[1] as any).UC - (a[1] as any).UC)
       .map(([name, v], i) => ({
@@ -1036,8 +1004,6 @@ const SalesControlTower: React.FC = () => {
         color: PAL[i % PAL.length],
       }));
   }, [mayAgg, tmStack, mayRows]);
-
-  // ── Channel donut ─────────────────────────────────────────
   const chEntries = useMemo(
     () => topN(mayAgg.byCh, chMetric === 'TV' ? 'TV' : 'UC', 8),
     [mayAgg, chMetric]
@@ -1046,12 +1012,8 @@ const SalesControlTower: React.FC = () => {
     (s, [, v]) => s + (chMetric === 'TV' ? (v as any).TV : (v as any).UC),
     0
   );
-
-  // ── Pack bars ─────────────────────────────────────────────
   const packEntries = useMemo(() => topN(mayAgg.byPack, 'UC', 10), [mayAgg]);
   const packMax = packEntries[0]?.[1]?.UC ?? 1;
-
-  // ── Exception intelligence ────────────────────────────────
   const excCards = useMemo(() => {
     const zeroRoutes = Object.entries(mayAgg.byRoute).filter(
       ([, v]) => v.UC === 0
@@ -1102,25 +1064,17 @@ const SalesControlTower: React.FC = () => {
       },
     ];
   }, [mayAgg]);
-
-  // ── Time Intelligence ──────────────────────────────────────
   const timeCards = useMemo(() => {
     const dates = uniq(mayRows.map(r => r.Date)).sort();
-
-    // Compute daily UC
     const dl = dates.map(d => ({
       date: d,
       UC: mayRows.filter(r => r.Date === d).reduce((s, r) => s + r.UC, 0),
     }));
-
     if (!dl.length) return [];
-
     const peak = dl.reduce((p, c) => (c.UC > p.UC ? c : p), dl[0]);
     const low = dl.reduce((p, c) => (c.UC < p.UC ? c : p), dl[0]);
-
     const dowMap: Record<string, number> = {};
     const wkMap: Record<string, number> = {};
-
     const isoWeek = (d: Date) => {
       const dt = new Date(d);
       dt.setHours(0, 0, 0, 0);
@@ -1132,7 +1086,6 @@ const SalesControlTower: React.FC = () => {
           7
       );
     };
-
     dl.forEach(x => {
       const dw = new Date(x.date).toLocaleDateString('en-US', {
         weekday: 'long',
@@ -1141,7 +1094,6 @@ const SalesControlTower: React.FC = () => {
       const w = String(isoWeek(new Date(x.date)));
       wkMap[w] = (wkMap[w] || 0) + x.UC;
     });
-
     const peakDow = Object.entries(dowMap).sort((a, b) => b[1] - a[1])[0] || [
       '—',
       0,
@@ -1151,11 +1103,9 @@ const SalesControlTower: React.FC = () => {
       0,
     ];
     const grw = dl.map((x, i) => (i === 0 ? 0 : pct(x.UC, dl[i - 1].UC)));
-
     const fgIdx = grw.reduce((mi, v, i) => (v > grw[mi] ? i : mi), 1);
     const fdIdx = grw.reduce((mi, v, i) => (v < grw[mi] ? i : mi), 1);
     const avgUC = dl.reduce((s, x) => s + x.UC, 0) / dl.length;
-
     return [
       {
         label: 'Peak Sales Day',
@@ -1199,8 +1149,6 @@ const SalesControlTower: React.FC = () => {
       },
     ];
   }, [mayRows]);
-
-  // ── Executive Summary observations ────────────────────────
   const observations = useMemo(() => {
     const brands = Object.entries(mayAgg.byBrand).map(([name, v]) => ({
       name,
@@ -1234,7 +1182,6 @@ const SalesControlTower: React.FC = () => {
     const chs = Object.entries(mayAgg.byCh)
       .map(([name, v]) => ({ name, ...v }))
       .sort((a, b) => b.UC - a.UC);
-
     const topG = brands.reduce(
       (p, c) => (c.gr > p.gr ? c : p),
       brands[0] || { gr: 0, name: '—' }
@@ -1249,7 +1196,6 @@ const SalesControlTower: React.FC = () => {
     );
     const total = mayAgg.totalUC || 1;
     const grAll = growth;
-
     const uniqueMayOutlets = new Set(mayRows.map(r => r.OutletCode));
     const uniqueAprOutlets = new Set(aprRows.map(r => r.OutletCode));
     const numNewOutlets = [...uniqueMayOutlets].filter(
@@ -1258,7 +1204,6 @@ const SalesControlTower: React.FC = () => {
     const numLostOutlets = [...uniqueAprOutlets].filter(
       c => !uniqueMayOutlets.has(c)
     ).length;
-
     return [
       {
         icon: '🚀',
@@ -1318,8 +1263,6 @@ const SalesControlTower: React.FC = () => {
       },
     ];
   }, [mayAgg, aprAgg, mayRows, aprRows, growth]);
-
-  // ── Executive Insights (Fullscreen mode) ────────────────────
   const insights = useMemo(() => {
     const brands = Object.entries(mayAgg.byBrand).map(([name, v]) => ({
       name,
@@ -1352,7 +1295,6 @@ const SalesControlTower: React.FC = () => {
       brands[0] || { gr: 0, name: '—' }
     );
     const total = mayAgg.totalUC || 1;
-
     const uniqueMayOutlets = new Set(mayRows.map(r => r.OutletCode));
     const uniqueAprOutlets = new Set(aprRows.map(r => r.OutletCode));
     const numNewOutlets = [...uniqueMayOutlets].filter(
@@ -1361,7 +1303,6 @@ const SalesControlTower: React.FC = () => {
     const numLostOutlets = [...uniqueAprOutlets].filter(
       c => !uniqueMayOutlets.has(c)
     ).length;
-
     return [
       {
         icon: '📉',
@@ -1395,8 +1336,6 @@ const SalesControlTower: React.FC = () => {
       },
     ];
   }, [mayAgg, aprAgg, mayRows, aprRows]);
-
-  // ── Drill-down table ──────────────────────────────────────
   const drillRows = useMemo(() => {
     let filtered = mayRows;
     for (const { dim, val } of drillStack) {
@@ -1425,7 +1364,6 @@ const SalesControlTower: React.FC = () => {
       ),
     }));
   }, [mayRows, aprAgg, drillDim, drillStack]);
-
   const handleDrillClick = (row: Record<string, string | number>) => {
     const nextDim = DIM_NEXT[drillDim];
     if (!nextDim) return;
@@ -1433,8 +1371,6 @@ const SalesControlTower: React.FC = () => {
     setDrillDim(nextDim);
     setModalEntity({ dim: drillDim, name: String(row[drillDim]) });
   };
-
-  // ── Filter helpers ────────────────────────────────────────
   const setFilter = (k: keyof FilterState, v: string) =>
     setFilters(f => ({ ...f, [k]: v }));
   const clearFilters = () => {
@@ -1452,7 +1388,6 @@ const SalesControlTower: React.FC = () => {
     setDateMode('all');
     setExecActive(null);
   };
-
   const handleExecObs = (i: number, obs: (typeof observations)[0]) => {
     if (execActive === i) {
       setExecActive(null);
@@ -1465,13 +1400,10 @@ const SalesControlTower: React.FC = () => {
       setFilters(f => ({ ...f, [fk]: obs.val }));
     }
   };
-
   const handleRankClick = (val: string) => {
     const fk = FILTER_KEYS[rkDim];
     setFilters(f => ({ ...f, [fk]: f[fk] === val ? '' : val }));
   };
-
-  // ── Route performance table ────────────────────────────────
   const routeRows = useMemo(() => {
     return Object.entries(mayAgg.byRoute).map(([route, v]) => {
       const row = mayRows.find(r => r.Route === route);
@@ -1496,12 +1428,7 @@ const SalesControlTower: React.FC = () => {
       };
     });
   }, [mayAgg, aprAgg, mayRows]);
-
-  // ═════════════════════════════════════════════════════════
-  //  LOADING / ERROR GUARD
-  // ═════════════════════════════════════════════════════════
   if (loading) return <DashboardSkeleton isFullscreen={isFullscreen} />;
-
   if (error)
     return (
       <div
@@ -1518,7 +1445,7 @@ const SalesControlTower: React.FC = () => {
       >
         <div style={{ fontSize: 32 }}>⚠️</div>
         <div style={{ fontSize: 15, fontWeight: 700, color: C.red }}>
-          Failed to load Excel data
+          Failed to load dashboard data
         </div>
         <div
           style={{
@@ -1528,17 +1455,13 @@ const SalesControlTower: React.FC = () => {
             textAlign: 'center',
           }}
         >
-          {error}
+          {error?.message || String(error)}
         </div>
         <div style={{ fontSize: 11, color: C.m2 }}>
-          Make sure SalesControlTower_Dataset.xlsx is in the public/ folder.
+          Ensure the backend API is running and accessible.
         </div>
       </div>
     );
-
-  // ═════════════════════════════════════════════════════════
-  //  RENDER
-  // ═════════════════════════════════════════════════════════
   return (
     <div
       className={
@@ -1588,7 +1511,7 @@ const SalesControlTower: React.FC = () => {
               ✦
             </div>
             <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: -0.3 }}>
-              Sales Control Tower{' '}
+              Sales Control{' '}
               <span style={{ color: C.muted, fontWeight: 400 }}>
                 / Executive Intelligence
               </span>
@@ -1700,7 +1623,19 @@ const SalesControlTower: React.FC = () => {
               borderRadius: 20,
             }}
           >
-            Period: <strong>May 2026</strong>
+            Period:{' '}
+            <strong>
+              {dateMode === 'all'
+                ? new Date().toLocaleString('default', {
+                    month: 'short',
+                    year: 'numeric',
+                  })
+                : dateMode === '7d'
+                  ? 'Last 7 Days'
+                  : dateMode === '15d'
+                    ? 'Last 15 Days'
+                    : 'Today'}
+            </strong>
           </div>
           <div
             style={{
@@ -1716,11 +1651,14 @@ const SalesControlTower: React.FC = () => {
           </div>
           <MuiTooltip title="Refresh Data" arrow placement="top">
             <IconButton
-              onClick={refetch}
+              onClick={() => refetch()}
               className="!text-gray-600 hover:!text-gray-900 hover:!bg-gray-100 !p-1 !rounded-md !outline-none"
               size="small"
+              disabled={isFetching}
             >
-              <Refresh className="!w-5 !h-5" />
+              <Refresh
+                className={`!w-5 !h-5 ${isFetching ? 'animate-spin' : ''}`}
+              />
             </IconButton>
           </MuiTooltip>
           <MuiTooltip
@@ -1742,7 +1680,6 @@ const SalesControlTower: React.FC = () => {
           </MuiTooltip>
         </div>
       </div>
-
       {/* ── Filter Bar ───────────────────────────────────── */}
       <div
         style={{
@@ -1772,7 +1709,10 @@ const SalesControlTower: React.FC = () => {
         </span>
         {(
           [
-            ['all', 'All May'],
+            [
+              'all',
+              `All ${new Date().toLocaleString('default', { month: 'short' })}`,
+            ],
             ['7d', 'Last 7d'],
             ['15d', 'Last 15d'],
             ['today', 'Today'],
@@ -1806,25 +1746,49 @@ const SalesControlTower: React.FC = () => {
             margin: '0 2px',
           }}
         />
-        <select
-          value={cmpMode}
-          onChange={e => setCmpMode(e.target.value as CmpMode)}
-          style={{
-            background: C.s3,
-            border: `1px solid ${C.bord2}`,
-            color: C.text,
-            padding: '4px 22px 4px 7px',
-            borderRadius: 6,
-            fontSize: 11,
-            fontFamily: 'inherit',
-            cursor: 'pointer',
-            outline: 'none',
-            WebkitAppearance: 'none',
-          }}
-        >
-          <option value="apr">vs Apr 2026</option>
-          <option value="spm">vs Same Period</option>
-        </select>
+        {(() => {
+          let prev = 'Previous Period';
+          let sply = 'Same Period';
+          if (dateMode === 'all') {
+            const pd = new Date();
+            pd.setMonth(pd.getMonth() - 1);
+            prev = pd.toLocaleString('default', {
+              month: 'short',
+              year: 'numeric',
+            });
+            sply = 'Same Period';
+          } else if (dateMode === '7d') {
+            prev = 'Prev 7 Days';
+            sply = 'Same 7d';
+          } else if (dateMode === '15d') {
+            prev = 'Prev 15 Days';
+            sply = 'Same 15d';
+          } else if (dateMode === 'today') {
+            prev = 'Yesterday';
+            sply = 'Same Day';
+          }
+          return (
+            <select
+              value={cmpMode}
+              onChange={e => setCmpMode(e.target.value as CmpMode)}
+              style={{
+                background: C.s3,
+                border: `1px solid ${C.bord2}`,
+                color: C.text,
+                padding: '4px 22px 4px 7px',
+                borderRadius: 6,
+                fontSize: 11,
+                fontFamily: 'inherit',
+                cursor: 'pointer',
+                outline: 'none',
+                WebkitAppearance: 'none',
+              }}
+            >
+              <option value="apr">vs {prev}</option>
+              <option value="spm">vs {sply}</option>
+            </select>
+          );
+        })()}
         <div
           style={{
             width: 1,
@@ -1889,7 +1853,6 @@ const SalesControlTower: React.FC = () => {
           ✕ Clear
         </button>
       </div>
-
       {/* ── Dashboard Body ────────────────────────────────── */}
       <div style={{ padding: '14px 20px' }}>
         {/* Executive Summary Banner */}
@@ -2018,7 +1981,6 @@ const SalesControlTower: React.FC = () => {
             ))}
           </div>
         </div>
-
         {/* KPI Cards */}
         <div
           style={{
@@ -2095,7 +2057,6 @@ const SalesControlTower: React.FC = () => {
             sparkData={sparkDates.map(v => v * 0.02)}
           />
         </div>
-
         {/* Row 1: Trend | Ranking | Treemap */}
         <SH label="Performance Overview" />
         <div
@@ -2150,7 +2111,17 @@ const SalesControlTower: React.FC = () => {
                   labels: trendData.labels,
                   datasets: [
                     {
-                      label: `May 2026`,
+                      label:
+                        dateMode === 'all'
+                          ? new Date().toLocaleString('default', {
+                              month: 'short',
+                              year: 'numeric',
+                            })
+                          : dateMode === '7d'
+                            ? 'Last 7 Days'
+                            : dateMode === '15d'
+                              ? 'Last 15 Days'
+                              : 'Today',
                       data: trendData.curData,
                       borderColor: C.red,
                       backgroundColor: `${C.red}1a`,
@@ -2195,7 +2166,6 @@ const SalesControlTower: React.FC = () => {
               />
             </div>
           </Card>
-
           {/* Top Performers */}
           <Card>
             <div
@@ -2243,7 +2213,6 @@ const SalesControlTower: React.FC = () => {
               onRowClick={handleRankClick}
             />
           </Card>
-
           {/* Treemap */}
           <Card>
             <div
@@ -2308,7 +2277,6 @@ const SalesControlTower: React.FC = () => {
             />
           </Card>
         </div>
-
         {/* Row 2: Channel | Pack | Exceptions */}
         <div
           style={{
@@ -2451,7 +2419,6 @@ const SalesControlTower: React.FC = () => {
               </div>
             </div>
           </Card>
-
           {/* Pack Performance */}
           <Card>
             <div style={{ marginBottom: 12 }}>
@@ -2528,7 +2495,6 @@ const SalesControlTower: React.FC = () => {
               })}
             </div>
           </Card>
-
           {/* Exception Panel */}
           <Card>
             <div style={{ marginBottom: 12 }}>
@@ -2621,7 +2587,6 @@ const SalesControlTower: React.FC = () => {
             </div>
           </Card>
         </div>
-
         {/* Exception Intelligence */}
         <SH label="Exception Intelligence" />
         <div
@@ -2709,7 +2674,6 @@ const SalesControlTower: React.FC = () => {
             );
           })}
         </div>
-
         {/* Time Intelligence */}
         <SH label="Time Intelligence" />
         <Card style={{ marginBottom: 10 }}>
@@ -2752,7 +2716,6 @@ const SalesControlTower: React.FC = () => {
             ))}
           </div>
         </Card>
-
         {/* Executive Insights */}
         <SH label="Executive Insights" />
         <Card style={{ marginBottom: 10 }}>
@@ -2816,7 +2779,6 @@ const SalesControlTower: React.FC = () => {
             ))}
           </div>
         </Card>
-
         {/* Route Performance Table */}
         <SH label="Route Performance" />
         <Card style={{ marginBottom: 10 }}>
@@ -2841,7 +2803,6 @@ const SalesControlTower: React.FC = () => {
             rows={routeRows}
           />
         </Card>
-
         {/* Interactive Drill-Down Explorer */}
         <SH label="Interactive Drill-Down Explorer" />
         <Card>
@@ -2957,7 +2918,6 @@ const SalesControlTower: React.FC = () => {
           />
         </Card>
       </div>
-
       <EntityModal
         entity={modalEntity}
         onClose={() => setModalEntity(null)}
@@ -2967,5 +2927,4 @@ const SalesControlTower: React.FC = () => {
     </div>
   );
 };
-
 export default SalesControlTower;

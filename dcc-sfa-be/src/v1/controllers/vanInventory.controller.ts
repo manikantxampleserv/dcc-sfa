@@ -4768,6 +4768,8 @@ export const vanInventoryController = {
         user_id,
         approval_status,
         time_filter,
+        start_date,
+        end_date,
       } = req.query;
       const pageNum = parseInt(page as string, 10) || 1;
       const limitNum = parseInt(limit as string, 10) || 10;
@@ -4778,7 +4780,9 @@ export const vanInventoryController = {
         : '';
 
       const documentDateFilter = getTimeFilter(
-        time_filter as string | undefined
+        time_filter as string | undefined,
+        start_date as string | undefined,
+        end_date as string | undefined
       );
 
       const user = req.user;
@@ -6042,7 +6046,11 @@ export const vanInventoryController = {
 
       let dateFilter = {};
       if (time_filter && time_filter !== 'all') {
-        const tf = getTimeFilter(time_filter as string);
+        const tf = getTimeFilter(
+          time_filter as string,
+          req.query.start_date as string | undefined,
+          req.query.end_date as string | undefined
+        );
         if (tf) {
           dateFilter = { document_date: tf };
         }

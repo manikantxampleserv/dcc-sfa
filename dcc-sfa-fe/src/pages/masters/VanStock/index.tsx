@@ -24,13 +24,13 @@ import {
 } from '../../../hooks/useVanInventory';
 import UserSelect from '../../../shared/UserSelect';
 import { formatDate, formatDateTime } from '../../../utils/dateUtils';
+import DateRangeFilter from '../../../shared/DateRangeFilter';
 import ImportVanInventory from './ImportVanInventory';
 import ManageVanInventory from './ManageVanInventory';
 import VanInventoryDetail from './VanInventoryDetail';
 
 const VanInventories: React.FC = () => {
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
   const [userFilter, setUserFilter] = useState<number | undefined>(undefined);
   const [selectedVanInventory, setSelectedVanInventory] =
@@ -40,6 +40,11 @@ const VanInventories: React.FC = () => {
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
+  const [timeFilter, setTimeFilter] = useState('all');
+  const [customDateRange, setCustomDateRange] = useState({
+    start: '',
+    end: '',
+  });
 
   const { isCreate, isUpdate, isDelete, isRead } = usePermission('van-stock');
 
@@ -52,15 +57,21 @@ const VanInventories: React.FC = () => {
       search,
       page,
       limit,
-      status:
-        statusFilter === 'all'
-          ? undefined
-          : statusFilter === 'active'
-            ? 'active'
-            : 'inactive',
       loading_type:
         typeFilter === 'all' ? undefined : typeFilter === 'load' ? 'L' : 'U',
       user_id: userFilter,
+      time_filter:
+        timeFilter !== 'all' && timeFilter !== 'custom'
+          ? timeFilter
+          : undefined,
+      start_date:
+        timeFilter === 'custom' && customDateRange.start
+          ? customDateRange.start
+          : undefined,
+      end_date:
+        timeFilter === 'custom' && customDateRange.end
+          ? customDateRange.end
+          : undefined,
     },
     {
       enabled: isRead,
@@ -85,11 +96,6 @@ const VanInventories: React.FC = () => {
     setDrawerOpen(true);
   }, []);
 
-  // const handleEditVanInventory = useCallback((vanInventory: VanInventory) => {
-  //   setSelectedVanInventory(vanInventory);
-  //   setDrawerOpen(true);
-  // }, []);
-
   const handleManageItems = useCallback((vanInventory: VanInventory) => {
     setSelectedVanInventory(vanInventory);
     setDetailDrawerOpen(true);
@@ -105,11 +111,6 @@ const VanInventories: React.FC = () => {
     setPage(1);
   }, []);
 
-  const handleStatusFilterChange = useCallback((value: string) => {
-    setStatusFilter(value);
-    setPage(1);
-  }, []);
-
   const handleTypeFilterChange = useCallback((value: string) => {
     setTypeFilter(value);
     setPage(1);
@@ -121,26 +122,31 @@ const VanInventories: React.FC = () => {
     try {
       const filters = {
         search,
-        status:
-          statusFilter === 'all'
-            ? undefined
-            : statusFilter === 'active'
-              ? 'active'
-              : 'inactive',
         user_id: userFilter,
+        loading_type:
+          typeFilter === 'all' ? undefined : typeFilter === 'load' ? 'L' : 'U',
+        time_filter:
+          timeFilter !== 'all' && timeFilter !== 'custom'
+            ? timeFilter
+            : undefined,
+        start_date:
+          timeFilter === 'custom' && customDateRange.start
+            ? customDateRange.start
+            : undefined,
+        end_date:
+          timeFilter === 'custom' && customDateRange.end
+            ? customDateRange.end
+            : undefined,
       };
 
       await exportToExcelMutation.mutateAsync({
         tableName: 'van_inventory',
-        filters: {
-          ...filters,
-          user_id: userFilter,
-        },
+        filters,
       });
     } catch (error) {
       console.error('Error exporting van inventory:', error);
     }
-  }, [exportToExcelMutation, search, statusFilter]);
+  }, [exportToExcelMutation, search]);
 
   const getLoadingTypeLabel = (type: string) => {
     switch (type) {
@@ -152,32 +158,6 @@ const VanInventories: React.FC = () => {
         return type;
     }
   };
-
-  // const getStatusLabel = (status: string) => {
-  //   switch (status) {
-  //     case 'D':
-  //       return 'Draft';
-  //     case 'A':
-  //       return 'Confirmed';
-  //     case 'C':
-  //       return 'Canceled';
-  //     default:
-  //       return status;
-  //   }
-  // };
-
-  // const getStatusColor = (status: string) => {
-  //   switch (status) {
-  //     case 'D':
-  //       return 'warning';
-  //     case 'A':
-  //       return 'success';
-  //     case 'C':
-  //       return 'error';
-  //     default:
-  //       return 'default';
-  //   }
-  // };
 
   const getApprovalLabel = (status: string | null | undefined) => {
     if (status === null || status === undefined || status === '') {
@@ -254,19 +234,6 @@ const VanInventories: React.FC = () => {
         />
       ),
     },
-    // {
-    //   id: 'status',
-    //   label: 'Status',
-    //   render: (_value, row) => (
-    //     <Chip
-    //       label={getStatusLabel(row.status || 'D')}
-    //       size="small"
-    //       className="w-24"
-    //       variant="outlined"
-    //       color={getStatusColor(row.status || 'D') as any}
-    //     />
-    //   ),
-    // },
 
     {
       id: 'items',
@@ -347,7 +314,7 @@ const VanInventories: React.FC = () => {
 
   return (
     <>
-      <Box className="!mb-3 !flex !justify-between !items-center">
+      <Box className="!mb-3 !flex !justify-between !items-start sm:!items-center">
         <Box>
           <p className="!font-bold text-xl !text-gray-900">
             Van Stock Load/Unload
@@ -357,6 +324,12 @@ const VanInventories: React.FC = () => {
             sales personnel
           </p>
         </Box>
+        <DateRangeFilter
+          timeFilter={timeFilter}
+          setTimeFilter={setTimeFilter}
+          customDateRange={customDateRange}
+          setCustomDateRange={setCustomDateRange}
+        />
       </Box>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
@@ -412,16 +385,7 @@ const VanInventories: React.FC = () => {
                     showClear={true}
                     className="!w-72"
                   />
-                  <Select
-                    value={statusFilter}
-                    onChange={e => handleStatusFilterChange(e.target.value)}
-                    disableClearable
-                  >
-                    <MenuItem value="all">All Status</MenuItem>
-                    <MenuItem value="pending">Pending</MenuItem>
-                    <MenuItem value="approved">Approved</MenuItem>
-                    <MenuItem value="rejected">Rejected</MenuItem>
-                  </Select>
+
                   <Select
                     value={typeFilter}
                     onChange={e => handleTypeFilterChange(e.target.value)}

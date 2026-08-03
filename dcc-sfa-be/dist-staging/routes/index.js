@@ -101,6 +101,7 @@ const taxMaster_routes_1 = __importDefault(require("../v1/routes/taxMaster.route
 const templates_routes_1 = __importDefault(require("../v1/routes/templates.routes"));
 const unitOfMeasurement_routes_1 = __importDefault(require("../v1/routes/unitOfMeasurement.routes"));
 const user_routes_1 = __importDefault(require("../v1/routes/user.routes"));
+const salesControlTower_routes_1 = __importDefault(require("../v1/routes/salesControlTower.routes"));
 const vanInventory_routes_1 = __importDefault(require("../v1/routes/vanInventory.routes"));
 const reconciliation_routes_1 = __importDefault(require("../v1/routes/reconciliation.routes"));
 const vehicles_routes_1 = __importDefault(require("../v1/routes/vehicles.routes"));
@@ -115,6 +116,7 @@ routes.use('/v1', barcode_routes_1.default);
 routes.use('/v1', ai_routes_1.default);
 routes.use('/v1', auth_routes_1.default);
 routes.use('/v1', user_routes_1.default);
+routes.use('/v1/sales-control-tower', salesControlTower_routes_1.default);
 routes.use('/v1', roles_routes_1.default);
 routes.use('/v1', rolePermissions_routes_1.default);
 routes.use('/v1', permissions_routes_1.default);

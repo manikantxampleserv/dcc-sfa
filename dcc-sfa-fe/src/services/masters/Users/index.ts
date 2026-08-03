@@ -270,6 +270,8 @@ export interface UserDropdown {
   name: string;
   email: string;
   code?: string;
+  sap_code?: string;
+  role?: string;
 }
 
 export interface GetUsersDropdownParams {

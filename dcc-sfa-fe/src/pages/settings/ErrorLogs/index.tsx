@@ -21,6 +21,7 @@ import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
+import UserSelect from 'shared/UserSelect';
 import { formatDateTime } from 'utils/dateUtils';
 import { formatDeviceInfo } from 'utils/deviceUtils';
 
@@ -29,6 +30,8 @@ const ErrorLogs: React.FC = () => {
   const [pageSize] = useState(10);
   const [path, setPath] = useState('');
   const [method, setMethod] = useState('ALL');
+  const [device, setDevice] = useState('ALL');
+  const [userFilter, setUserFilter] = useState('');
   const [selectedError, setSelectedError] = useState<ErrorLogData | null>(null);
 
   const { isRead } = usePermission('error-logs');
@@ -39,6 +42,8 @@ const ErrorLogs: React.FC = () => {
       limit: pageSize,
       path: path === '' ? undefined : path,
       method: method === 'ALL' ? undefined : method,
+      device: device === 'ALL' ? undefined : device,
+      user_id: userFilter ? Number(userFilter) : undefined,
     },
     { enabled: isRead }
   );
@@ -245,6 +250,29 @@ const ErrorLogs: React.FC = () => {
                 <MenuItem value="PUT">PUT</MenuItem>
                 <MenuItem value="DELETE">DELETE</MenuItem>
               </Select>
+              <Select
+                value={device}
+                setValue={setDevice}
+                placeholder="Device Type"
+                className="!w-50"
+              >
+                <MenuItem value="ALL">All Devices</MenuItem>
+                <MenuItem value="Web">Web</MenuItem>
+                <MenuItem value="Mobile">Mobile</MenuItem>
+              </Select>
+              <Box className="!w-64">
+                <UserSelect
+                  label=""
+                  placeholder="Select User"
+                  value={userFilter}
+                  setValue={val => {
+                    setUserFilter(val);
+                    setPage(1);
+                  }}
+                  fullWidth
+                  size="small"
+                />
+              </Box>
             </div>
           </div>
         }

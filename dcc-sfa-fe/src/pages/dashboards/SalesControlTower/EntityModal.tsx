@@ -2,12 +2,9 @@ import { Close } from '@mui/icons-material';
 import { Dialog, IconButton } from '@mui/material';
 import { useMemo, useState } from 'react';
 import { Bar } from 'react-chartjs-2';
-import type { SalesRow } from './mockData';
-
-// Helper to format numbers like 1,000
+import type { SalesRow } from './utils';
 const FMT = (n: number) => Math.round(n).toLocaleString();
 const pct = (a: number, b: number) => (b === 0 ? 0 : ((a - b) / b) * 100);
-
 const C = {
   red: '#e31837',
   redL: 'rgba(227,24,55,0.08)',
@@ -17,14 +14,12 @@ const C = {
   border: '#e5e7eb',
   bg: '#f9fafb',
 };
-
 interface EntityModalProps {
   entity: { dim: string; name: string } | null;
   onClose: () => void;
   mayRows: SalesRow[];
   aprRows: SalesRow[];
 }
-
 export default function EntityModal({
   entity,
   onClose,
@@ -34,8 +29,6 @@ export default function EntityModal({
   const [tab, setTab] = useState<
     'Trend' | 'Products' | 'Customers' | 'Routes' | 'Invoices'
   >('Trend');
-
-  // Aggregate metrics for this entity
   const mayData = useMemo(
     () =>
       entity ? mayRows.filter(r => (r as any)[entity.dim] === entity.name) : [],
@@ -46,43 +39,33 @@ export default function EntityModal({
       entity ? aprRows.filter(r => (r as any)[entity.dim] === entity.name) : [],
     [aprRows, entity]
   );
-
   const totalMayUC = mayData.reduce((s, r) => s + r.UC, 0);
   const totalAprUC = aprData.reduce((s, r) => s + r.UC, 0);
-
   const totalMayPC = mayData.reduce((s, r) => s + r.PC, 0);
-
   const totalMayTV = mayData.reduce((s, r) => s + r.TV, 0);
   const totalAprTV = aprData.reduce((s, r) => s + r.TV, 0);
-
   const growthUC = pct(totalMayUC, totalAprUC);
   const growthTV = pct(totalMayTV, totalAprTV);
-
-  // Total dashboard volume context (for "% of total volume" metric)
   const dashboardTotalUC = mayRows.reduce((s, r) => s + r.UC, 0);
   const pctOfTotal = dashboardTotalUC
     ? (totalMayUC / dashboardTotalUC) * 100
     : 0;
-
   const discQty = totalMayUC - totalMayPC;
-
-  // Trend Chart data
   const trendData = useMemo(() => {
     const map: Record<string, number> = {};
     mayData.forEach(r => {
-      const d = r.Date; // e.g. 2026-05-01
+      const d = r.Date; 
       if (!map[d]) map[d] = 0;
       map[d] += r.UC;
     });
     const sortedDates = Object.keys(map).sort();
-
     return {
-      labels: sortedDates.map(d => d.slice(5).replace('-', '/')), // "05/01" format
+      labels: sortedDates.map(d => d.slice(5).replace('-', '/')), 
       datasets: [
         {
           label: 'Daily UC',
           data: sortedDates.map(d => map[d]),
-          backgroundColor: '#f87171', // a bit lighter red matching the screenshot
+          backgroundColor: '#f87171', 
           borderRadius: 4,
           barPercentage: 0.8,
           maxBarThickness: 40,
@@ -90,9 +73,7 @@ export default function EntityModal({
       ],
     };
   }, [mayData]);
-
   if (!entity) return null;
-
   return (
     <Dialog
       open={!!entity}
@@ -120,7 +101,7 @@ export default function EntityModal({
         <h2 style={{ fontSize: 18, fontWeight: 800, margin: 0, color: C.text }}>
           {entity.dim}: {entity.name}
         </h2>
-        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <button
             style={{
               display: 'flex',
@@ -147,7 +128,6 @@ export default function EntityModal({
           </IconButton>
         </div>
       </div>
-
       <div
         style={{
           display: 'grid',
@@ -190,7 +170,6 @@ export default function EntityModal({
             {pctOfTotal.toFixed(1)}% of total volume
           </div>
         </div>
-
         {/* Physical Cases */}
         <div style={{ background: C.bg, borderRadius: 8, padding: 16 }}>
           <div
@@ -211,7 +190,6 @@ export default function EntityModal({
             Disc. Qty: {FMT(discQty)}
           </div>
         </div>
-
         {/* Sales Value */}
         <div style={{ background: C.bg, borderRadius: 8, padding: 16 }}>
           <div
@@ -244,7 +222,6 @@ export default function EntityModal({
           </div>
         </div>
       </div>
-
       <div
         style={{
           borderBottom: `1px solid ${C.border}`,
@@ -286,7 +263,6 @@ export default function EntityModal({
             ))}
         </div>
       </div>
-
       <div className="p-4">
         {tab === 'Trend' && (
           <div style={{ height: 280 }}>
@@ -311,21 +287,248 @@ export default function EntityModal({
             />
           </div>
         )}
-        {tab !== 'Trend' && (
-          <div
-            style={{
-              height: 280,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: C.muted,
-              fontSize: 14,
-            }}
-          >
-            Detailed {tab.toLowerCase()} data for this SKU is populated
-            dynamically when connected to a backend endpoint.
-          </div>
-        )}
+        {tab !== 'Trend' &&
+          (() => {
+            let aggDim: string = 'Brand';
+            if (tab === 'Products') aggDim = 'Brand';
+            else if (tab === 'Customers') aggDim = 'OutletCode';
+            else if (tab === 'Routes') aggDim = 'Route';
+            else if (tab === 'Invoices') {
+              return (
+                <div style={{ maxHeight: 280, overflowY: 'auto' }}>
+                  <table
+                    style={{
+                      width: '100%',
+                      borderCollapse: 'collapse',
+                      fontSize: 12,
+                    }}
+                  >
+                    <thead>
+                      <tr style={{ background: C.bg }}>
+                        <th
+                          style={{
+                            padding: 8,
+                            textAlign: 'left',
+                            color: C.muted,
+                          }}
+                        >
+                          Date
+                        </th>
+                        <th
+                          style={{
+                            padding: 8,
+                            textAlign: 'left',
+                            color: C.muted,
+                          }}
+                        >
+                          Invoice ID
+                        </th>
+                        <th
+                          style={{
+                            padding: 8,
+                            textAlign: 'left',
+                            color: C.muted,
+                          }}
+                        >
+                          Route
+                        </th>
+                        <th
+                          style={{
+                            padding: 8,
+                            textAlign: 'right',
+                            color: C.muted,
+                          }}
+                        >
+                          UC
+                        </th>
+                        <th
+                          style={{
+                            padding: 8,
+                            textAlign: 'right',
+                            color: C.muted,
+                          }}
+                        >
+                          Value (TZS)
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {mayData.map(r => (
+                        <tr
+                          key={r.Date + (r as any).id + Math.random()}
+                          style={{ borderBottom: `1px solid ${C.border}` }}
+                        >
+                          <td style={{ padding: 8 }}>{r.Date}</td>
+                          <td style={{ padding: 8 }}>{(r as any).id || '-'}</td>
+                          <td style={{ padding: 8 }}>{r.Route}</td>
+                          <td
+                            style={{
+                              padding: 8,
+                              textAlign: 'right',
+                              fontWeight: 600,
+                            }}
+                          >
+                            {FMT(r.UC)}
+                          </td>
+                          <td
+                            style={{
+                              padding: 8,
+                              textAlign: 'right',
+                              fontWeight: 600,
+                            }}
+                          >
+                            {FMT(r.TV)}
+                          </td>
+                        </tr>
+                      ))}
+                      {mayData.length === 0 && (
+                        <tr>
+                          <td
+                            colSpan={5}
+                            style={{
+                              padding: 16,
+                              textAlign: 'center',
+                              color: C.muted,
+                            }}
+                          >
+                            No invoices found
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              );
+            }
+            const map: Record<
+              string,
+              { uc: number; aprUc: number; tv: number }
+            > = {};
+            mayData.forEach(r => {
+              const val = String((r as any)[aggDim] || 'Unassigned');
+              if (!map[val]) map[val] = { uc: 0, aprUc: 0, tv: 0 };
+              map[val].uc += r.UC;
+              map[val].tv += r.TV;
+            });
+            aprData.forEach(r => {
+              const val = String((r as any)[aggDim] || 'Unassigned');
+              if (map[val]) {
+                map[val].aprUc += r.UC;
+              }
+            });
+            const entries = Object.entries(map).sort(
+              (a, b) => b[1].uc - a[1].uc
+            );
+            return (
+              <div style={{ maxHeight: 280, overflowY: 'auto' }}>
+                <table
+                  style={{
+                    width: '100%',
+                    borderCollapse: 'collapse',
+                    fontSize: 12,
+                  }}
+                >
+                  <thead>
+                    <tr style={{ background: C.bg }}>
+                      <th
+                        style={{
+                          padding: 8,
+                          textAlign: 'left',
+                          color: C.muted,
+                          textTransform: 'uppercase',
+                        }}
+                      >
+                        {tab.replace('Top ', '')}
+                      </th>
+                      <th
+                        style={{
+                          padding: 8,
+                          textAlign: 'right',
+                          color: C.muted,
+                        }}
+                      >
+                        UNIT CASES
+                      </th>
+                      <th
+                        style={{
+                          padding: 8,
+                          textAlign: 'right',
+                          color: C.muted,
+                        }}
+                      >
+                        VALUE (TZS)
+                      </th>
+                      <th
+                        style={{
+                          padding: 8,
+                          textAlign: 'right',
+                          color: C.muted,
+                        }}
+                      >
+                        GROWTH %
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {entries.map(([name, v]) => {
+                      const g = pct(v.uc, v.aprUc);
+                      return (
+                        <tr
+                          key={name}
+                          style={{ borderBottom: `1px solid ${C.border}` }}
+                        >
+                          <td style={{ padding: 8, fontWeight: 500 }}>
+                            {name}
+                          </td>
+                          <td
+                            style={{
+                              padding: 8,
+                              textAlign: 'right',
+                              fontWeight: 600,
+                            }}
+                          >
+                            {FMT(v.uc)}
+                          </td>
+                          <td
+                            style={{
+                              padding: 8,
+                              textAlign: 'right',
+                              fontWeight: 600,
+                            }}
+                          >
+                            {FMT(v.tv)}
+                          </td>
+                          <td
+                            style={{
+                              padding: 8,
+                              textAlign: 'right',
+                              color: g >= 0 ? C.green : C.red,
+                            }}
+                          >
+                            {g >= 0 ? '▲' : '▼'} {Math.abs(g).toFixed(1)}%
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    {entries.length === 0 && (
+                      <tr>
+                        <td
+                          colSpan={4}
+                          style={{
+                            padding: 16,
+                            textAlign: 'center',
+                            color: C.muted,
+                          }}
+                        >
+                          No data available
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            );
+          })()}
       </div>
     </Dialog>
   );

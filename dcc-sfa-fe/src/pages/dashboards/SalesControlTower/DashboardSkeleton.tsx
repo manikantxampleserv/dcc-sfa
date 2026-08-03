@@ -1,13 +1,11 @@
 import React from 'react';
 import { Skeleton } from '@mui/material';
-
 const C = {
   bg: '#f1f5f9',
   surface: '#ffffff',
   border: '#e2e7f0',
   red: '#e31837',
 };
-
 const Card: React.FC<{
   children: React.ReactNode;
   style?: React.CSSProperties;
@@ -25,7 +23,10 @@ const Card: React.FC<{
     {children}
   </div>
 );
-
+/**
+ * A loading skeleton that matches the exact layout of the Sales Control dashboard.
+ * Displayed while the initial data is being fetched.
+ */
 export const DashboardSkeleton: React.FC<{ isFullscreen?: boolean }> = ({
   isFullscreen,
 }) => {
@@ -103,7 +104,6 @@ export const DashboardSkeleton: React.FC<{ isFullscreen?: boolean }> = ({
           />
         </div>
       </div>
-
       {/* ── Filter Bar ───────────────────────────────────── */}
       <div
         style={{
@@ -139,7 +139,6 @@ export const DashboardSkeleton: React.FC<{ isFullscreen?: boolean }> = ({
           ))}
         </div>
       </div>
-
       {/* ── Dashboard Content ────────────────────────────── */}
       <div style={{ padding: 20, maxWidth: 1600, margin: '0 auto' }}>
         {/* Executive Summary Cards */}
@@ -153,7 +152,6 @@ export const DashboardSkeleton: React.FC<{ isFullscreen?: boolean }> = ({
             />
           ))}
         </div>
-
         {/* Section Header */}
         <div
           style={{
@@ -167,7 +165,6 @@ export const DashboardSkeleton: React.FC<{ isFullscreen?: boolean }> = ({
           <Skeleton variant="text" width="10%" height={20} />
           <Skeleton variant="rounded" width="45%" height={1} />
         </div>
-
         <div
           style={{
             display: 'grid',
@@ -198,7 +195,6 @@ export const DashboardSkeleton: React.FC<{ isFullscreen?: boolean }> = ({
             </div>
             <Skeleton variant="rounded" height={220} />
           </Card>
-
           {/* Top Performers */}
           <Card style={{ minHeight: 320 }}>
             <div
@@ -225,7 +221,6 @@ export const DashboardSkeleton: React.FC<{ isFullscreen?: boolean }> = ({
               ))}
             </div>
           </Card>
-
           {/* Brand Analysis */}
           <Card style={{ minHeight: 320 }}>
             <div style={{ marginBottom: 20 }}>
@@ -241,7 +236,6 @@ export const DashboardSkeleton: React.FC<{ isFullscreen?: boolean }> = ({
             <Skeleton variant="rounded" height={200} />
           </Card>
         </div>
-
         <div
           style={{
             display: 'grid',

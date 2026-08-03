@@ -23,7 +23,10 @@ export const errorLogger = (
             stack: failedItem.stack || null,
             path: req.originalUrl || req.path,
             method: req.method,
-            body: JSON.stringify(failedItem),
+            body: JSON.stringify({
+              requestPayload: req.body,
+              failedItemContext: failedItem,
+            }),
             query:
               req.query && Object.keys(req.query).length
                 ? JSON.stringify(req.query)

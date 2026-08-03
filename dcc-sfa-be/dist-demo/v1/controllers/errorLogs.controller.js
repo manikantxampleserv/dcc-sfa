@@ -19,7 +19,7 @@ exports.errorLogsController = {
      */
     async getErrorLogs(req, res) {
         try {
-            const { page = 1, limit = 10, path, method, start_date, end_date, } = req.query;
+            const { page = 1, limit = 10, path, method, device, start_date, end_date, user_id, } = req.query;
             const where = {};
             if (path) {
                 const searchTerm = path.trim();
@@ -30,6 +30,17 @@ exports.errorLogsController = {
             }
             if (method) {
                 where.method = method;
+            }
+            if (device) {
+                if (device === 'Web') {
+                    where.device_info = { contains: 'Mozilla' }; // Simple check for web browsers
+                }
+                else if (device === 'Mobile') {
+                    where.device_info = { contains: 'Dart' }; // Flutter app uses Dart user agent
+                }
+            }
+            if (user_id) {
+                where.user_id = parseInt(user_id);
             }
             if (start_date || end_date) {
                 where.createdate = {};

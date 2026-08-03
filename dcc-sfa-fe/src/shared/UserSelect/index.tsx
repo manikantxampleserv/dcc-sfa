@@ -18,6 +18,8 @@ interface User {
   name: string;
   email: string;
   code: string;
+  sap_code?: string;
+  role?: string;
 }
 
 /**
@@ -170,6 +172,8 @@ const UserSelect: React.FC<UserSelectProps> = ({
       name: user.name,
       email: user.email,
       code: user.code || '',
+      sap_code: user.sap_code,
+      role: user.role,
       profile_image: user.profile_image || '',
     }));
   }, [dropdownResponse?.data]);
@@ -303,7 +307,6 @@ const UserSelect: React.FC<UserSelectProps> = ({
       }
 
       if (newValue) {
-        // Update input value to show the full selected name
         setInputValue(newValue.name);
         setSearchValue('');
         setDebouncedSearch('');
@@ -370,9 +373,11 @@ const UserSelect: React.FC<UserSelectProps> = ({
           />
           <Box>
             <p className="!text-gray-900 !text-sm">{option.name || ''}</p>
-            {option.code && (
-              <p className="!text-gray-500 !text-xs">{option.code}</p>
-            )}
+            <Box className="!flex !gap-1 !items-center !text-gray-500 !text-xs">
+              {option.sap_code || option.code ? (
+                <span>{option.sap_code || option.code}</span>
+              ) : null}
+            </Box>
           </Box>
         </Box>
       )}

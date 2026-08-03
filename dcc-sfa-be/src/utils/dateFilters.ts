@@ -1,4 +1,15 @@
-export function getTimeFilter(timeFilter: string | undefined): any | undefined {
+export function getTimeFilter(
+  timeFilter: string | undefined,
+  start_date?: string | undefined,
+  end_date?: string | undefined
+): any | undefined {
+  if (timeFilter === 'custom' && start_date && end_date) {
+    return {
+      gte: new Date(start_date),
+      lte: new Date(`${end_date}T23:59:59.999Z`),
+    };
+  }
+
   if (!timeFilter || timeFilter === 'all') return undefined;
 
   const now = new Date();
