@@ -6,6 +6,7 @@ import BreadCrumbs from 'shared/BreadCrumbs';
 import { CurrencyProvider } from '../context/CurrencyContext';
 import { TourProvider } from '../context/TourContext';
 import JoyrideTour from 'shared/JoyrideTour';
+import classNames from 'classnames';
 
 const Layout: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -51,6 +52,8 @@ const Layout: React.FC = () => {
     );
   };
 
+  const path = '/dashboard/sales-control-tower';
+
   return (
     <CurrencyProvider>
       <TourProvider>
@@ -63,7 +66,13 @@ const Layout: React.FC = () => {
               navItem={getNavItem()}
               navLink={location.pathname}
             />
-            <main ref={mainRef} className="flex-1 overflow-auto p-5">
+            <main
+              ref={mainRef}
+              className={classNames('flex-1 overflow-auto', {
+                'p-0': location.pathname === path,
+                'p-5': location.pathname !== path,
+              })}
+            >
               <Outlet key={outletKey} />
             </main>
           </div>

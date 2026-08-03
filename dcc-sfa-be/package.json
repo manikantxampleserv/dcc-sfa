@@ -23,7 +23,8 @@
     "lint": "echo \"No linting configured for backend yet\"",
     "check:env": "node -e \"console.log('DATABASE_URL:', process.env.DATABASE_URL ? 'SET' : 'NOT SET'); console.log('NODE_ENV:', process.env.NODE_ENV); console.log('Working Directory:', process.cwd());\"",
     "create:admin": "ts-node src/scripts/create-admin.ts",
-    "sync:units-subunits": "ts-node src/scripts/sync-units-subunits.ts"
+    "sync:units-subunits": "ts-node src/scripts/sync-units-subunits.ts",
+    "seed:templates": "ts-node src/scripts/seed-templates.ts"
   },
   "devDependencies": {
     "@types/backblaze-b2": "^1.5.6",

@@ -7,6 +7,8 @@ import Login from 'pages/auth/Login';
 import PrivacyPolicy from 'pages/auth/PrivacyPolicy';
 import ExecutiveDashboard from 'pages/dashboards/ExecutiveDashboard';
 import GradingDashboard from 'pages/dashboards/GradingDashboard';
+import SalesControlTower from 'pages/dashboards/SalesControlTower';
+
 import ApiTokensPage from 'pages/masters/ApiTokens';
 import AssetBrandsManagement from 'pages/masters/AssetBrands';
 import AssetMaintenanceManagement from 'pages/masters/AssetMaintenance';
@@ -211,6 +213,10 @@ const router = createBrowserRouter(
               <GradingDashboard />
             </PermissionGuard>
           ),
+        },
+        {
+          path: '/dashboard/sales-control-tower',
+          element: <SalesControlTower />,
         },
 
         {

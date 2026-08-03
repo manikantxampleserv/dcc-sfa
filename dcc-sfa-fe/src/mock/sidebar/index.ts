@@ -26,6 +26,7 @@ import {
   MdWarehouse,
 } from 'react-icons/md';
 
+
 export interface MenuItem {
   id: string;
   label: string;
@@ -55,6 +56,12 @@ const menuItems: MenuItem[] = [
         label: 'Grading Dashboard',
         icon: MdBarChart,
         href: '/dashboard/grading-dashboard',
+      },
+      {
+        id: 'sales-control-tower',
+        label: 'Sales Control Tower',
+        icon: MdTrendingUp,
+        href: '/dashboard/sales-control-tower',
       },
     ],
   },
