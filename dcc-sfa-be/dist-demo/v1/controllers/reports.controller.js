@@ -584,38 +584,24 @@ exports.reportsController = {
                 ? Math.min((totalActualSales / totalTargetAmount) * 100, 100)
                 : 0;
             const categoryPerformance = new Map();
-            salesTargets.forEach(target => {
-                const categoryId = target.product_category_id;
+            performanceData.forEach(data => {
+                const categoryId = data.category_id;
                 const current = categoryPerformance.get(categoryId) || {
                     target: 0,
                     actual: 0,
                     targetQty: 0,
                     actualQty: 0,
+                    name: data.category_name,
                 };
                 categoryPerformance.set(categoryId, {
-                    target: current.target + Number(target.target_amount || 0),
-                    actual: current.actual,
-                    targetQty: current.targetQty + Number(target.target_quantity || 0),
-                    actualQty: current.actualQty,
-                    name: target.sales_targets_product_categories?.category_name ||
-                        current.name,
+                    target: current.target + data.target_amount,
+                    actual: current.actual + data.actual_sales,
+                    targetQty: current.targetQty + data.target_quantity,
+                    actualQty: current.actualQty + data.actual_quantity,
+                    name: current.name,
                 });
             });
-            actualSales.forEach(item => {
-                const categoryId = item.invoice_items_products?.category_id;
-                if (categoryPerformance.has(categoryId)) {
-                    const current = categoryPerformance.get(categoryId);
-                    categoryPerformance.set(categoryId, {
-                        target: current.target,
-                        actual: current.actual + Number(item.total_amount || 0),
-                        targetQty: current.targetQty,
-                        actualQty: current.actualQty + Number(item.quantity || 0),
-                        name: current.name,
-                    });
-                }
-            });
             const categoryPerformanceArray = Array.from(categoryPerformance.entries()).map(([categoryId, data]) => {
-                const target = salesTargets.find(t => t.product_category_id === categoryId);
                 let achievement = 0;
                 if (data.target > 0) {
                     achievement = Math.min((data.actual / data.target) * 100, 100);
@@ -625,9 +611,7 @@ exports.reportsController = {
                 }
                 return {
                     category_id: categoryId,
-                    category_name: data.name ||
-                        target?.sales_targets_product_categories?.category_name ||
-                        'N/A',
+                    category_name: data.name || 'N/A',
                     target_quantity: data.targetQty,
                     actual_quantity: data.actualQty,
                     target_amount: data.target,
@@ -836,31 +820,23 @@ exports.reportsController = {
                 }
             }
             const categoryPerformance = new Map();
-            salesTargets.forEach(target => {
-                const categoryId = target.product_category_id;
+            performanceData.forEach(data => {
+                const categoryId = data.category_id;
                 const current = categoryPerformance.get(categoryId) || {
                     target: 0,
                     actual: 0,
                     targetQty: 0,
                     actualQty: 0,
-                    name: target.sales_targets_product_categories?.category_name || 'N/A',
+                    name: data.category_name,
                 };
                 categoryPerformance.set(categoryId, {
                     ...current,
-                    target: current.target + Number(target.target_amount || 0),
-                    targetQty: current.targetQty + Number(target.target_quantity || 0),
+                    target: current.target + data.target_amount,
+                    actual: current.actual + data.actual_sales,
+                    targetQty: current.targetQty + data.target_quantity,
+                    actualQty: current.actualQty + data.actual_quantity,
+                    name: current.name,
                 });
-            });
-            actualSales.forEach(item => {
-                const categoryId = item.invoice_items_products?.category_id;
-                if (categoryPerformance.has(categoryId)) {
-                    const current = categoryPerformance.get(categoryId);
-                    categoryPerformance.set(categoryId, {
-                        ...current,
-                        actual: current.actual + Number(item.total_amount || 0),
-                        actualQty: current.actualQty + Number(item.quantity || 0),
-                    });
-                }
             });
             const categoryPerformanceArray = Array.from(categoryPerformance.entries()).map(([categoryId, data]) => {
                 let achievement = 0;
