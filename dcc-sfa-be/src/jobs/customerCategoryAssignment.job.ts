@@ -91,9 +91,9 @@ export const scheduleCustomerCategoryAssignment = async () => {
 
         const validCategories = categoryLevels
           .filter(
-            cat => cat.customer_category_condition_customer_category.length > 0
+            (cat: any) => cat.customer_category_condition_customer_category.length > 0
           )
-          .map(cat => ({
+          .map((cat: any) => ({
             id: cat.id,
             categoryName: cat.category_name,
             level: cat.level || 1,
@@ -102,7 +102,7 @@ export const scheduleCustomerCategoryAssignment = async () => {
                 ?.threshold_value || 0
             ),
           }))
-          .sort((a, b) => a.thresholdValue - b.thresholdValue);
+          .sort((a: any, b: any) => a.thresholdValue - b.thresholdValue);
 
         if (validCategories.length === 0) {
           logger.warn(
@@ -141,7 +141,9 @@ export const scheduleCustomerCategoryAssignment = async () => {
         const orderSalesData = await prisma.orders.groupBy({
           by: ['parent_id'],
           where: {
-            parent_id: { in: customers.map((c: any) => c.id) },
+            orders_customers: {
+              is_active: 'Y',
+            },
             status: { in: ['approved', 'pending', 'confirmed'] },
             is_active: 'Y',
           },
@@ -185,7 +187,7 @@ export const scheduleCustomerCategoryAssignment = async () => {
             const currentCategoryId = customer.customer_category_id;
 
             if (!currentCategoryId && newCategoryId) {
-              await prisma.$transaction(async tx => {
+              await prisma.$transaction(async (tx: any) => {
                 await tx.customers.update({
                   where: { id: customer.id },
                   data: {
@@ -354,7 +356,7 @@ export async function assignLowestCategoryToUncategorizedCustomers() {
 
     for (const customer of uncategorizedCustomers) {
       try {
-        await prisma.$transaction(async tx => {
+        await prisma.$transaction(async (tx: any) => {
           await tx.customers.update({
             where: { id: customer.id },
             data: {
