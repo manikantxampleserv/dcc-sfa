@@ -434,9 +434,8 @@ exports.salesTargetsController = {
             const allSales = await prisma_client_1.default.invoice_items.findMany({
                 where: {
                     invoices: {
-                        orders: {
-                            salesperson_id: salesmanId,
-                        },
+                        is_active: 'Y',
+                        OR: [{ salesperson_id: salesmanId }],
                     },
                 },
                 include: {

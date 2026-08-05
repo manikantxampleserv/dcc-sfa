@@ -485,24 +485,24 @@ exports.reportsController = {
                     employee_id: sp.employee_id || 'N/A',
                 });
             });
-            const actualSales = await prisma_client_1.default.order_items.findMany({
+            const actualSales = await prisma_client_1.default.invoice_items.findMany({
                 where: {
-                    orders: {
+                    invoices: {
                         is_active: 'Y',
                         salesperson_id: { in: filteredSalespersonIds },
                         ...(Object.keys(dateFilter).length > 0 && {
-                            order_date: dateFilter,
+                            invoice_date: dateFilter,
                         }),
                     },
                 },
                 include: {
-                    orders: {
+                    invoices: {
                         select: {
                             salesperson_id: true,
-                            order_date: true,
+                            invoice_date: true,
                         },
                     },
-                    products: {
+                    invoice_items_products: {
                         select: {
                             category_id: true,
                             product_categories_products: {
@@ -515,8 +515,8 @@ exports.reportsController = {
             const salesMap = new Map();
             const actualSalespersonIds = new Set();
             actualSales.forEach(item => {
-                const salespersonId = item.orders.salesperson_id;
-                const categoryId = item.products.category_id;
+                const salespersonId = item.invoices?.salesperson_id;
+                const categoryId = item.invoice_items_products?.category_id;
                 const key = `${salespersonId}_${categoryId}`;
                 if (salespersonId) {
                     actualSalespersonIds.add(salespersonId);
@@ -589,33 +589,48 @@ exports.reportsController = {
                 const current = categoryPerformance.get(categoryId) || {
                     target: 0,
                     actual: 0,
+                    targetQty: 0,
+                    actualQty: 0,
                 };
                 categoryPerformance.set(categoryId, {
                     target: current.target + Number(target.target_amount || 0),
                     actual: current.actual,
+                    targetQty: current.targetQty + Number(target.target_quantity || 0),
+                    actualQty: current.actualQty,
                 });
             });
             actualSales.forEach(item => {
-                const categoryId = item.products.category_id;
+                const categoryId = item.invoice_items_products?.category_id;
                 const current = categoryPerformance.get(categoryId) || {
                     target: 0,
                     actual: 0,
+                    targetQty: 0,
+                    actualQty: 0,
                 };
                 categoryPerformance.set(categoryId, {
                     target: current.target,
                     actual: current.actual + Number(item.total_amount || 0),
+                    targetQty: current.targetQty,
+                    actualQty: current.actualQty + Number(item.quantity || 0),
                 });
             });
             const categoryPerformanceArray = Array.from(categoryPerformance.entries()).map(([categoryId, data]) => {
                 const target = salesTargets.find(t => t.product_category_id === categoryId);
+                let achievement = 0;
+                if (data.target > 0) {
+                    achievement = (data.actual / data.target) * 100;
+                }
+                else if (data.targetQty > 0) {
+                    achievement = (data.actualQty / data.targetQty) * 100;
+                }
                 return {
                     category_id: categoryId,
                     category_name: target?.sales_targets_product_categories?.category_name || 'N/A',
+                    target_quantity: data.targetQty,
+                    actual_quantity: data.actualQty,
                     target_amount: data.target,
                     actual_sales: data.actual,
-                    achievement_percentage: data.target > 0
-                        ? Math.round((data.actual / data.target) * 10000) / 100
-                        : 0,
+                    achievement_percentage: Math.round(achievement * 100) / 100,
                     gap: data.actual - data.target,
                 };
             });
@@ -724,24 +739,24 @@ exports.reportsController = {
                 salespersonIds.clear();
                 salespersonIds.add(requestedSalespersonId);
             }
-            const actualSales = await prisma_client_1.default.order_items.findMany({
+            const actualSales = await prisma_client_1.default.invoice_items.findMany({
                 where: {
-                    orders: {
+                    invoices: {
                         is_active: 'Y',
                         salesperson_id: { in: Array.from(salespersonIds) },
                         ...(Object.keys(dateFilter).length > 0 && {
-                            order_date: dateFilter,
+                            invoice_date: dateFilter,
                         }),
                     },
                 },
                 include: {
-                    orders: {
+                    invoices: {
                         select: {
                             salesperson_id: true,
-                            order_date: true,
+                            invoice_date: true,
                         },
                     },
-                    products: {
+                    invoice_items_products: {
                         select: {
                             category_id: true,
                             product_categories_products: {
@@ -754,8 +769,8 @@ exports.reportsController = {
             const salesMap = new Map();
             const actualSalespersonIds = new Set();
             actualSales.forEach(item => {
-                const salespersonId = item.orders.salesperson_id;
-                const categoryId = item.products.category_id;
+                const salespersonId = item.invoices?.salesperson_id;
+                const categoryId = item.invoice_items_products?.category_id;
                 const key = `${salespersonId}_${categoryId}`;
                 if (salespersonId) {
                     actualSalespersonIds.add(salespersonId);
@@ -821,33 +836,46 @@ exports.reportsController = {
                 const current = categoryPerformance.get(categoryId) || {
                     target: 0,
                     actual: 0,
+                    targetQty: 0,
+                    actualQty: 0,
                     name: target.sales_targets_product_categories?.category_name || 'N/A',
                 };
                 categoryPerformance.set(categoryId, {
                     ...current,
                     target: current.target + Number(target.target_amount || 0),
+                    targetQty: current.targetQty + Number(target.target_quantity || 0),
                 });
             });
             actualSales.forEach(item => {
-                const categoryId = item.products.category_id;
+                const categoryId = item.invoice_items_products?.category_id;
                 const current = categoryPerformance.get(categoryId) || {
                     target: 0,
                     actual: 0,
+                    targetQty: 0,
+                    actualQty: 0,
                     name: 'N/A',
                 };
                 categoryPerformance.set(categoryId, {
                     ...current,
                     actual: current.actual + Number(item.total_amount || 0),
+                    actualQty: current.actualQty + Number(item.quantity || 0),
                 });
             });
             const categoryPerformanceArray = Array.from(categoryPerformance.entries()).map(([categoryId, data]) => {
+                let achievement = 0;
+                if (data.target > 0) {
+                    achievement = (data.actual / data.target) * 100;
+                }
+                else if (data.targetQty > 0) {
+                    achievement = (data.actualQty / data.targetQty) * 100;
+                }
                 return {
                     category_name: data.name,
+                    target_quantity: data.targetQty,
+                    actual_quantity: data.actualQty,
                     target_amount: data.target,
                     actual_sales: data.actual,
-                    achievement_percentage: data.target > 0
-                        ? Math.round((data.actual / data.target) * 10000) / 100
-                        : 0,
+                    achievement_percentage: Math.round(achievement * 100) / 100,
                     gap: data.actual - data.target,
                 };
             });
