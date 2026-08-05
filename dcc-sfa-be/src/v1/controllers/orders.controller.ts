@@ -1426,7 +1426,7 @@ export const ordersController = {
           if (promotion.promotion_customer_exclusion_promotions.length > 0) {
             const isExcluded =
               promotion.promotion_customer_exclusion_promotions.some(
-                exc => exc.is_excluded === 'Y'
+                (exc: any) => exc.is_excluded === 'Y'
               );
             if (isExcluded) {
               return res.status(400).json({
@@ -1448,7 +1448,7 @@ export const ordersController = {
             if (
               promotion.promotion_salesperson_promotions.length > 0 &&
               promotion.promotion_salesperson_promotions.some(
-                s => s.salesperson_id === orderData.salesperson_id
+                (s: any) => s.salesperson_id === orderData.salesperson_id
               )
             ) {
               isEligible = true;
@@ -1459,7 +1459,7 @@ export const ordersController = {
               customer.route_id &&
               promotion.promotion_routes_promotions.length > 0 &&
               promotion.promotion_routes_promotions.some(
-                r => r.route_id === customer.route_id
+                (r: any) => r.route_id === customer.route_id
               )
             ) {
               isEligible = true;
@@ -1472,7 +1472,7 @@ export const ordersController = {
             ) {
               const categoryIds =
                 promotion.promotion_customer_category_promotions.map(
-                  c => c.customer_category_id
+                  (c: any) => c.customer_category_id
                 );
               const categories = await prisma.customer_category.findMany({
                 where: {
@@ -1513,12 +1513,12 @@ export const ordersController = {
           });
 
           const productCategoryMap = new Map(
-            products.map(p => [p.id, p.category_id])
+            products.map((p: any) => [p.id, p.category_id])
           );
 
           for (const item of items) {
             const productMatch = condition.promotion_condition_products.find(
-              cp =>
+              (cp: any) =>
                 cp.product_id === item.product_id ||
                 cp.category_id === productCategoryMap.get(item.product_id)
             );
@@ -1544,7 +1544,7 @@ export const ordersController = {
           }
 
           const applicableLevel = promotion.promotion_level_promotions.find(
-            lvl => new Prisma.Decimal(lvl.threshold_value).lte(totalValue)
+            (lvl: any) => new Prisma.Decimal(lvl.threshold_value).lte(totalValue)
           );
 
           if (!applicableLevel) {
@@ -1611,7 +1611,7 @@ export const ordersController = {
         .plus(shipping_amount);
 
       const result = await prisma.$transaction(
-        async tx => {
+        async (tx: any) => {
           let order;
           let isUpdate = false;
 
@@ -1860,6 +1860,17 @@ export const ordersController = {
               console.log(
                 'No approval workflow found - order processed without approval'
               );
+              await prisma.orders.update({
+                where: { id: result.id },
+                data: {
+                  approval_status: 'A',
+                  approved_by: userId,
+                  approved_at: new Date(),
+                },
+              });
+              result.approval_status = 'A';
+              result.approved_by = userId;
+              result.approved_at = new Date();
             }
           }
         } catch (error: any) {
@@ -2574,7 +2585,7 @@ export const ordersController = {
         return res.status(404).json({ message: 'Order not found' });
 
       const result = await prisma.$transaction(
-        async tx => {
+        async (tx: any) => {
           const orderPayload = {
             order_number: orderData.order_number,
             parent_id: orderData.parent_id,
@@ -2798,7 +2809,7 @@ export const ordersController = {
                       workflow.workflow_steps.length > 1
                     ) {
                       const managerStep = workflow.workflow_steps.find(
-                        s => s.step_name === 'Manager Approval'
+                        (s: any) => s.step_name === 'Manager Approval'
                       );
                       if (managerStep && managerStep.assigned_role) {
                         const managers = await prisma.users.findMany({
@@ -2812,7 +2823,7 @@ export const ordersController = {
                           },
                           select: { id: true },
                         });
-                        managers.forEach(m => {
+                        managers.forEach((m: any) => {
                           if (!approvers.includes(m.id)) {
                             approvers.push(m.id);
                           }
@@ -2904,7 +2915,7 @@ export const ordersController = {
       if (!existingOrder)
         return res.status(404).json({ message: 'Order not found' });
 
-      await prisma.$transaction(async tx => {
+      await prisma.$transaction(async (tx: any) => {
         await tx.stock_movements.deleteMany({
           where: {
             reference_type: 'ORDER',
