@@ -3537,7 +3537,8 @@ exports.vanInventoryController = {
                                                 current_stock: (inventoryStock.current_stock || 0) - batchQty,
                                                 available_stock: (inventoryStock.available_stock || 0) - batchQty,
                                                 //new change
-                                                base_quantity: Math.max(0, (inventoryStock.base_quantity || 0) - (parseInt(batchInput.base_quantity, 10) || 0)),
+                                                base_quantity: Math.max(0, (inventoryStock.base_quantity || 0) -
+                                                    (parseInt(batchInput.base_quantity, 10) || 0)),
                                                 //new change
                                                 updatedate: new Date(),
                                                 updatedby: userId,
@@ -3705,7 +3706,8 @@ exports.vanInventoryController = {
                                             current_stock: (inventoryStock.current_stock || 0) - qty,
                                             available_stock: (inventoryStock.available_stock || 0) - qty,
                                             //new change
-                                            base_quantity: Math.max(0, (inventoryStock.base_quantity || 0) - (parseInt(item.base_quantity, 10) || 0)),
+                                            base_quantity: Math.max(0, (inventoryStock.base_quantity || 0) -
+                                                (parseInt(item.base_quantity, 10) || 0)),
                                             //new change
                                             updatedate: new Date(),
                                             updatedby: userId,
@@ -4145,8 +4147,8 @@ exports.vanInventoryController = {
                     inventoryData.document_date &&
                         //new change
                         inventoryData.document_date.trim() !== ''
-                        //new change
-                        ? new Date(inventoryData.document_date)
+                        ? //new change
+                            new Date(inventoryData.document_date)
                         : new Date();
             }
             if (inventoryData.vehicle_id !== undefined) {
@@ -4298,7 +4300,9 @@ exports.vanInventoryController = {
                         'pcs',
                     quantity: Number(data.quantity),
                     //new change
-                    base_quantity: data.base_quantity !== undefined && data.base_quantity !== null ? Number(data.base_quantity) : null,
+                    base_quantity: data.base_quantity !== undefined && data.base_quantity !== null
+                        ? Number(data.base_quantity)
+                        : null,
                     //new change
                     unit_price: Number(data.unit_price),
                     discount_amount: Number(data.discount_amount) || 0,
@@ -4468,7 +4472,10 @@ exports.vanInventoryController = {
                                         'pcs',
                                     quantity: Number(item.quantity),
                                     //new change
-                                    base_quantity: item.base_quantity !== undefined && item.base_quantity !== null ? Number(item.base_quantity) : null,
+                                    base_quantity: item.base_quantity !== undefined &&
+                                        item.base_quantity !== null
+                                        ? Number(item.base_quantity)
+                                        : null,
                                     //new change
                                     unit_price: Number(item.unit_price),
                                     discount_amount: Number(item.discount_amount) || 0,
@@ -6299,7 +6306,7 @@ exports.vanInventoryController = {
                                 resolution_action: 'Awaiting Verification',
                                 default_outlet_posting_qty: 0,
                                 unload_adjustment_qty: 0,
-                                stock_key: `${user.sap_code ?? user.id} | ${p.product_code} | ${p.batch_number}`,
+                                stock_key: `${user.sap_code ?? user.id} | ${p.product_code}${p.batch_number ? ` | ${p.batch_number}` : ''}`,
                                 is_active: 'Y',
                                 createdate: new Date(),
                                 createdby: userIdNum,

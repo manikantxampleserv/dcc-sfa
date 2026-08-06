@@ -24,8 +24,8 @@ const exportReconciliationPdfService = async (reconciliationData) => {
                 resolve(Buffer.concat(buffers));
             });
             const { meta, data: rawItems } = reconciliationData;
-            const uomCase = meta?.uomCase || 'Cs';
-            const uomPcs = meta?.uomPcs || 'Btls';
+            const uomCase = meta?.uomCase || process.env.DEFAULT_UOM_CASE || 'Cases';
+            const uomPcs = meta?.uomPcs || process.env.DEFAULT_UOM_PCS || 'PCs';
             const items = (rawItems || []).reduce((acc, item) => {
                 const key = `${item.categoryName}_${item.skuCode}`;
                 const existing = acc.find(i => `${i.categoryName}_${i.skuCode}` === key);

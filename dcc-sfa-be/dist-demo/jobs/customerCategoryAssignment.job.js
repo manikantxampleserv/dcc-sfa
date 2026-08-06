@@ -83,8 +83,8 @@ const scheduleCustomerCategoryAssignment = async () => {
                 },
             });
             const validCategories = categoryLevels
-                .filter(cat => cat.customer_category_condition_customer_category.length > 0)
-                .map(cat => ({
+                .filter((cat) => cat.customer_category_condition_customer_category.length > 0)
+                .map((cat) => ({
                 id: cat.id,
                 categoryName: cat.category_name,
                 level: cat.level || 1,
@@ -117,7 +117,9 @@ const scheduleCustomerCategoryAssignment = async () => {
             const orderSalesData = await prisma_client_1.default.orders.groupBy({
                 by: ['parent_id'],
                 where: {
-                    parent_id: { in: customers.map((c) => c.id) },
+                    orders_customers: {
+                        is_active: 'Y',
+                    },
                     status: { in: ['approved', 'pending', 'confirmed'] },
                     is_active: 'Y',
                 },
