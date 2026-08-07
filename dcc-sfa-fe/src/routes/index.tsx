@@ -73,6 +73,7 @@ import UnitOfMeasurementManagement from 'pages/masters/UnitOfMeasurement';
 import UpdatedPromotionsManagement from 'pages/masters/UpdatedPromotions';
 import UpdatedPromotionDetail from 'pages/masters/UpdatedPromotions/UpdatedPromotionDetail';
 import Users from 'pages/masters/Users';
+import SalesmanControl from 'pages/SalesmanControl';
 import UserDetail from 'pages/masters/Users/UserDetail';
 import VanStockManagement from 'pages/masters/VanStock';
 import VehiclesManagement from 'pages/masters/Vehicles';
@@ -180,6 +181,16 @@ const router = createBrowserRouter(
     {
       path: '/privacy-policy',
       element: <PrivacyPolicy />,
+    },
+    {
+      path: '/salesman-control',
+      element: (
+        <ProtectedRoute>
+          <PermissionGuard module="user" action="read">
+            <SalesmanControl />
+          </PermissionGuard>
+        </ProtectedRoute>
+      ),
     },
     {
       path: '/',

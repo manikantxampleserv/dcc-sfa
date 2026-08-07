@@ -31,6 +31,7 @@ interface User {
   profile_image?: string | null;
   last_login?: string | null;
   is_active: string;
+  log_inst?: number | null;
   created_at?: string;
   updated_at?: string;
   role?: {
@@ -291,6 +292,18 @@ export const fetchUsersDropdown = async (
   }
 };
 
+export const updateUserLogInst = async (
+  id: number,
+  log_inst: number
+): Promise<ApiResponse<any>> => {
+  try {
+    const response = await axiosInstance.put(`/users/${id}/log-inst`, { log_inst });
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
 export default {
   fetchUsers,
   fetchUserById,
@@ -299,6 +312,7 @@ export default {
   deleteUser,
   getUserProfile,
   updateUserProfile,
+  updateUserLogInst,
 };
 
 export type {
