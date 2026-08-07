@@ -58,6 +58,8 @@ export const fetchErrorLogs = async (
   if (filters?.method) params.method = filters.method;
   if (filters?.start_date) params.start_date = filters.start_date;
   if (filters?.end_date) params.end_date = filters.end_date;
+  if (filters?.device) params.device = filters.device;
+  if (filters?.user_id) params.user_id = filters.user_id;
   const response = await axiosInstance.get('/error-logs', { params });
   return response.data;
 };

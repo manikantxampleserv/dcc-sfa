@@ -3824,7 +3824,8 @@ export const vanInventoryController = {
                       quantity: batchQty,
                       //new change
 
-                      base_quantity: parseInt(batchInput.base_quantity, 10) || 0,
+                      base_quantity:
+                        parseInt(batchInput.base_quantity, 10) || 0,
                       //new change
 
                       source_system: 'sfa',
@@ -3957,7 +3958,8 @@ export const vanInventoryController = {
                   for (const batchInput of batchData) {
                     const batchQty = parseInt(batchInput.quantity, 10) || 0;
                     //new changes
-                    const batchBaseQty = parseInt(batchInput.base_quantity, 10) || 0;
+                    const batchBaseQty =
+                      parseInt(batchInput.base_quantity, 10) || 0;
                     //new changes
 
                     if (batchQty <= 0) {
@@ -3981,7 +3983,8 @@ export const vanInventoryController = {
                           remaining_quantity:
                             batchLot.remaining_quantity + batchQty,
                           //new changes
-                          base_quantity: (batchLot.base_quantity || 0) + batchBaseQty,
+                          base_quantity:
+                            (batchLot.base_quantity || 0) + batchBaseQty,
                           //new changes
 
                           updatedate: new Date(),
@@ -4074,7 +4077,6 @@ export const vanInventoryController = {
                       //new change
                       parseInt(batchInput.base_quantity, 10) || 0
                       //new change
-
                     );
 
                     await updateSubUsersInventoryStock(
@@ -4104,7 +4106,8 @@ export const vanInventoryController = {
                       to_location_id: null,
                       quantity: batchQty,
                       //new change
-                      base_quantity: parseInt(batchInput.base_quantity, 10) || 0,
+                      base_quantity:
+                        parseInt(batchInput.base_quantity, 10) || 0,
                       //new change
 
                       remarks: `Loaded to van - Batch ${batchLot.batch_number}`,
@@ -4194,7 +4197,6 @@ export const vanInventoryController = {
                       //new change
                       1
                       //new change
-
                     );
 
                     await updateSubUsersInventoryStock(
@@ -4249,7 +4251,6 @@ export const vanInventoryController = {
                     //new change
                     parseInt(item.base_quantity, 10) || 0
                     //new change
-
                   );
 
                   await updateSubUsersInventoryStock(
@@ -4382,7 +4383,8 @@ export const vanInventoryController = {
                           //new change
                           base_quantity: Math.max(
                             0,
-                            (inventoryStock.base_quantity || 0) - (parseInt(batchInput.base_quantity, 10) || 0)
+                            (inventoryStock.base_quantity || 0) -
+                            (parseInt(batchInput.base_quantity, 10) || 0)
                           ),
                           //new change
 
@@ -4419,7 +4421,8 @@ export const vanInventoryController = {
                       to_location_id: null,
                       quantity: batchQty,
                       //new change
-                      base_quantity: parseInt(batchInput.base_quantity, 10) || 0,
+                      base_quantity:
+                        parseInt(batchInput.base_quantity, 10) || 0,
                       //new change
 
                       remarks: `Unloaded from van - Batch ${batchLot.batch_number}`,
@@ -4511,7 +4514,6 @@ export const vanInventoryController = {
                             (inventoryStock.base_quantity || 0) - 1
                           ),
                           //new change
-
 
                           updatedate: new Date(),
                           updatedby: userId,
@@ -4614,7 +4616,8 @@ export const vanInventoryController = {
                         //new change
                         base_quantity: Math.max(
                           0,
-                          (inventoryStock.base_quantity || 0) - (parseInt(item.base_quantity, 10) || 0)
+                          (inventoryStock.base_quantity || 0) -
+                          (parseInt(item.base_quantity, 10) || 0)
                         ),
                         //new change
 
@@ -5124,12 +5127,11 @@ export const vanInventoryController = {
       if (inventoryData.document_date !== undefined) {
         payload.document_date =
           inventoryData.document_date &&
-
             //new change
             inventoryData.document_date.trim() !== ''
-            //new change
+            ? //new change
 
-            ? new Date(inventoryData.document_date)
+            new Date(inventoryData.document_date)
             : new Date();
       }
       if (inventoryData.vehicle_id !== undefined) {
@@ -5303,7 +5305,10 @@ export const vanInventoryController = {
             'pcs',
           quantity: Number(data.quantity),
           //new change
-          base_quantity: data.base_quantity !== undefined && data.base_quantity !== null ? Number(data.base_quantity) : null,
+          base_quantity:
+            data.base_quantity !== undefined && data.base_quantity !== null
+              ? Number(data.base_quantity)
+              : null,
           //new change
 
           unit_price: Number(data.unit_price),
@@ -5496,7 +5501,11 @@ export const vanInventoryController = {
                     'pcs',
                   quantity: Number(item.quantity),
                   //new change
-                  base_quantity: item.base_quantity !== undefined && item.base_quantity !== null ? Number(item.base_quantity) : null,
+                  base_quantity:
+                    item.base_quantity !== undefined &&
+                      item.base_quantity !== null
+                      ? Number(item.base_quantity)
+                      : null,
                   //new change
 
                   unit_price: Number(item.unit_price),
@@ -7490,15 +7499,11 @@ export const vanInventoryController = {
             });
 
             let sessionStart = todayStart;
-            if (
-              lastReconciliation &&
-              lastReconciliation.createdate &&
-              lastReconciliation.createdate > todayStart
-            ) {
+            if (lastReconciliation && lastReconciliation.createdate) {
               sessionStart = lastReconciliation.createdate;
+            } else {
+              sessionStart = new Date(0);
             }
-
-            const sessionEnd = todayEnd;
 
             const productMap = new Map<
               string,
@@ -7638,12 +7643,9 @@ export const vanInventoryController = {
 
             const toCreate: any[] = [];
             for (const p of productMap.values()) {
-              // expected_qty is the real current stock on hand (from inventory_stock).
-              // Using load - sale here inflates the value when multiple loads occur in a day.
               const expectedQty = p.total_qty;
               const expectedBaseQty = p.total_base_qty;
 
-              // Keep load_qty and sale_qty for audit/reference only
               const loadQty =
                 loadQtyMap.get(`${p.product_id}-${p.batch_number || ''}`)
                   ?.qty || 0;
@@ -7658,7 +7660,6 @@ export const vanInventoryController = {
                 saleQtyMap.get(`${p.product_id}-${p.batch_number || ''}`)
                   ?.baseQty || 0;
 
-              const convRate = p.convRate > 0 ? p.convRate : 1;
               const unitPricePerPc = p.convRate > 0 ? p.price / p.convRate : 0;
               const saleVal = saleQty * p.price + saleBaseQty * unitPricePerPc;
               const taxAmount = (saleVal * p.taxRate) / 100;
@@ -7681,7 +7682,7 @@ export const vanInventoryController = {
                 resolution_action: 'Awaiting Verification',
                 default_outlet_posting_qty: 0,
                 unload_adjustment_qty: 0,
-                stock_key: `${user.sap_code ?? user.id} | ${p.product_code} | ${p.batch_number}`,
+                stock_key: `${user.sap_code ?? user.id} | ${p.product_code}${p.batch_number ? ` | ${p.batch_number}` : ''}`,
                 is_active: 'Y',
                 createdate: new Date(),
                 createdby: userIdNum,
