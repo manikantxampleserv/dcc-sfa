@@ -473,14 +473,17 @@ exports.reportsController = {
             }
             const salespersons = await prisma_client_1.default.users.findMany({
                 where: salespersonsWhere,
-                select: { id: true, name: true, email: true },
+                select: { id: true, name: true, email: true, employee_id: true },
             });
             // Filter out salespersonIds that are not in the depot scope
             const validSalespersonIds = new Set(salespersons.map(sp => sp.id));
             const filteredSalespersonIds = Array.from(salespersonIds).filter(id => validSalespersonIds.has(id));
             const salespersonMap = new Map();
             salespersons.forEach(sp => {
-                salespersonMap.set(sp.id, sp.name || 'N/A');
+                salespersonMap.set(sp.id, {
+                    name: sp.name || 'N/A',
+                    employee_id: sp.employee_id || 'N/A',
+                });
             });
             const actualSales = await prisma_client_1.default.order_items.findMany({
                 where: {
@@ -524,37 +527,55 @@ exports.reportsController = {
                     amount: current.amount + Number(item.total_amount || 0),
                 });
             });
-            const salespersonIdsToFetch = Array.from(actualSalespersonIds).filter(id => !salespersonMap.has(id) || salespersonMap.get(id) === 'N/A');
+            const salespersonIdsToFetch = Array.from(actualSalespersonIds).filter(id => !salespersonMap.has(id) || salespersonMap.get(id)?.name === 'N/A');
             if (salespersonIdsToFetch.length > 0) {
                 const missingSalespersons = await prisma_client_1.default.users.findMany({
                     where: {
                         id: { in: salespersonIdsToFetch },
                     },
-                    select: { id: true, name: true, email: true },
+                    select: { id: true, name: true, email: true, employee_id: true },
                 });
                 missingSalespersons.forEach(sp => {
-                    salespersonMap.set(sp.id, sp.name || 'N/A');
+                    salespersonMap.set(sp.id, {
+                        name: sp.name || 'N/A',
+                        employee_id: sp.employee_id || 'N/A',
+                    });
                 });
             }
             const performanceData = [];
-            for (const [key, sales] of salesMap.entries()) {
-                const [salespersonId, categoryId] = key.split('_').map(Number);
-                const target = salesTargets.find(t => t.product_category_id === categoryId);
-                if (target) {
-                    const targetAmount = Number(target.target_amount || 0);
-                    const achievement = targetAmount > 0 ? (sales.amount / targetAmount) * 100 : 0;
-                    performanceData.push({
-                        salesperson_id: salespersonId,
-                        salesperson_name: salespersonMap.get(salespersonId) || 'N/A',
-                        category_id: categoryId,
-                        category_name: target.sales_targets_product_categories?.category_name || 'N/A',
-                        target_quantity: target.target_quantity,
-                        target_amount: targetAmount,
-                        actual_quantity: sales.quantity,
-                        actual_sales: sales.amount,
-                        achievement_percentage: Math.round(achievement * 100) / 100,
-                        gap: sales.amount - targetAmount,
-                    });
+            // Iterate through all valid salespeople and their applicable targets
+            for (const salespersonId of filteredSalespersonIds) {
+                for (const target of salesTargets) {
+                    // Check if this target applies to this salesperson (they must be in the group)
+                    const isMember = target.sales_targets_groups?.sales_target_group_members_id?.some((member) => member.sales_person_id === salespersonId);
+                    if (isMember) {
+                        const categoryId = target.product_category_id;
+                        const key = `${salespersonId}_${categoryId}`;
+                        const sales = salesMap.get(key) || { quantity: 0, amount: 0 };
+                        const targetAmount = Number(target.target_amount || 0);
+                        const targetQuantity = Number(target.target_quantity || 0);
+                        let achievement = 0;
+                        if (targetAmount > 0) {
+                            achievement = (sales.amount / targetAmount) * 100;
+                        }
+                        else if (targetQuantity > 0) {
+                            achievement = (sales.quantity / targetQuantity) * 100;
+                        }
+                        const spInfo = salespersonMap.get(salespersonId);
+                        performanceData.push({
+                            salesperson_id: salespersonId,
+                            salesperson_name: spInfo?.name || 'N/A',
+                            salesperson_code: spInfo?.employee_id || 'N/A',
+                            category_id: categoryId,
+                            category_name: target.sales_targets_product_categories?.category_name || 'N/A',
+                            target_quantity: targetQuantity,
+                            target_amount: targetAmount,
+                            actual_quantity: sales.quantity,
+                            actual_sales: sales.amount,
+                            achievement_percentage: Math.round(achievement * 100) / 100,
+                            gap: sales.amount - targetAmount,
+                        });
+                    }
                 }
             }
             const totalTargetAmount = salesTargets.reduce((sum, target) => sum + Number(target.target_amount || 0), 0);
@@ -676,7 +697,7 @@ exports.reportsController = {
             salesTargets.forEach(target => {
                 target.sales_targets_groups?.sales_target_group_members_id?.forEach((member) => {
                     salespersonIds.add(member.sales_person_id);
-                    salespersonMap.set(member.sales_person_id, 'N/A');
+                    salespersonMap.set(member.sales_person_id, { name: 'N/A', employee_id: 'N/A' });
                 });
             });
             const salespersons = await prisma_client_1.default.users.findMany({
@@ -684,10 +705,13 @@ exports.reportsController = {
                     id: { in: Array.from(salespersonIds) },
                     is_active: 'Y',
                 },
-                select: { id: true, name: true, email: true },
+                select: { id: true, name: true, email: true, employee_id: true },
             });
             salespersons.forEach(sp => {
-                salespersonMap.set(sp.id, sp.name || 'N/A');
+                salespersonMap.set(sp.id, {
+                    name: sp.name || 'N/A',
+                    employee_id: sp.employee_id || 'N/A'
+                });
             });
             if (salesperson_id) {
                 const requestedSalespersonId = parseInt(salesperson_id);
@@ -742,37 +766,53 @@ exports.reportsController = {
                     amount: current.amount + Number(item.total_amount || 0),
                 });
             });
-            const salespersonIdsToFetch = Array.from(actualSalespersonIds).filter(id => !salespersonMap.has(id) || salespersonMap.get(id) === 'N/A');
+            const salespersonIdsToFetch = Array.from(actualSalespersonIds).filter(id => !salespersonMap.has(id) || salespersonMap.get(id)?.name === 'N/A');
             if (salespersonIdsToFetch.length > 0) {
                 const missingSalespersons = await prisma_client_1.default.users.findMany({
                     where: {
                         id: { in: salespersonIdsToFetch },
                     },
-                    select: { id: true, name: true, email: true },
+                    select: { id: true, name: true, email: true, employee_id: true },
                 });
                 missingSalespersons.forEach(sp => {
-                    salespersonMap.set(sp.id, sp.name || 'N/A');
+                    salespersonMap.set(sp.id, {
+                        name: sp.name || 'N/A',
+                        employee_id: sp.employee_id || 'N/A'
+                    });
                 });
             }
             const performanceData = [];
-            for (const [key, sales] of salesMap.entries()) {
-                const [salespersonId, categoryId] = key.split('_').map(Number);
-                const target = salesTargets.find(t => t.product_category_id === categoryId);
-                if (target) {
-                    const targetAmount = Number(target.target_amount || 0);
-                    const achievement = targetAmount > 0 ? (sales.amount / targetAmount) * 100 : 0;
-                    performanceData.push({
-                        salesperson_id: salespersonId,
-                        salesperson_name: salespersonMap.get(salespersonId) || 'N/A',
-                        category_id: categoryId,
-                        category_name: target.sales_targets_product_categories?.category_name || 'N/A',
-                        target_quantity: target.target_quantity,
-                        target_amount: targetAmount,
-                        actual_quantity: sales.quantity,
-                        actual_sales: sales.amount,
-                        achievement_percentage: Math.round(achievement * 100) / 100,
-                        gap: sales.amount - targetAmount,
-                    });
+            for (const salespersonId of Array.from(salespersonIds)) {
+                for (const target of salesTargets) {
+                    const isMember = target.sales_targets_groups?.sales_target_group_members_id?.some((member) => member.sales_person_id === salespersonId);
+                    if (isMember) {
+                        const categoryId = target.product_category_id;
+                        const key = `${salespersonId}_${categoryId}`;
+                        const sales = salesMap.get(key) || { quantity: 0, amount: 0 };
+                        const targetAmount = Number(target.target_amount || 0);
+                        const targetQuantity = Number(target.target_quantity || 0);
+                        let achievement = 0;
+                        if (targetAmount > 0) {
+                            achievement = (sales.amount / targetAmount) * 100;
+                        }
+                        else if (targetQuantity > 0) {
+                            achievement = (sales.quantity / targetQuantity) * 100;
+                        }
+                        const spInfo = salespersonMap.get(salespersonId);
+                        performanceData.push({
+                            salesperson_id: salespersonId,
+                            salesperson_name: spInfo?.name || 'N/A',
+                            salesperson_code: spInfo?.employee_id || 'N/A',
+                            category_id: categoryId,
+                            category_name: target.sales_targets_product_categories?.category_name || 'N/A',
+                            target_quantity: targetQuantity,
+                            target_amount: targetAmount,
+                            actual_quantity: sales.quantity,
+                            actual_sales: sales.amount,
+                            achievement_percentage: Math.round(achievement * 100) / 100,
+                            gap: sales.amount - targetAmount,
+                        });
+                    }
                 }
             }
             const categoryPerformance = new Map();

@@ -15,6 +15,7 @@ import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
 import { formatCurrency, type Currency } from 'utils/currencyUtils';
 import { formatDateTime } from 'utils/dateUtils';
+import { useResolvedUom } from 'hooks/useUnitOfMeasurement';
 
 interface InvoiceDetailProps {
   open: boolean;
@@ -33,45 +34,7 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
     error,
   } = useInvoice(invoice?.id || 0);
   const invoiceData = invoiceResponse?.data || invoice;
-
-  // const getStatusColor = (status: string) => {
-  //   const colors = {
-  //     draft: 'bg-gray-100 text-gray-800',
-  //     sent: 'bg-blue-100 text-blue-800',
-  //     paid: 'bg-green-100 text-green-800',
-  //     overdue: 'bg-red-100 text-red-800',
-  //     cancelled: 'bg-gray-100 text-gray-800',
-  //   };
-  //   return colors[status as keyof typeof colors] || 'bg-gray-100 text-gray-800';
-  // };
-
-  // const getStatusLabel = (status: string) => {
-  //   const labels = {
-  //     draft: 'Draft',
-  //     sent: 'Sent',
-  //     paid: 'Paid',
-  //     overdue: 'Overdue',
-  //     cancelled: 'Cancelled',
-  //   };
-  //   return labels[status as keyof typeof labels] || status;
-  // };
-
-  // const getStatusIcon = (status: string) => {
-  //   switch (status) {
-  //     case 'draft':
-  //       return <FileText className="w-4 h-4" />;
-  //     case 'sent':
-  //       return <Clock className="w-4 h-4" />;
-  //     case 'paid':
-  //       return <CheckCircle className="w-4 h-4" />;
-  //     case 'overdue':
-  //       return <AlertTriangle className="w-4 h-4" />;
-  //     case 'cancelled':
-  //       return <XCircle className="w-4 h-4" />;
-  //     default:
-  //       return <FileText className="w-4 h-4" />;
-  //   }
-  // };
+  const { resolveForProduct } = useResolvedUom();
 
   const formatCurrencyWithInvoiceCurrency = (
     amount: number | null | undefined
@@ -83,11 +46,6 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
 
     return formatCurrency(amount, undefined, currencies, currencyId);
   };
-
-  // const isOverdue = (invoice: Invoice) => {
-  //   if (!invoice.due_date || !invoice.balance_due) return false;
-  //   return new Date(invoice.due_date) < new Date() && invoice.balance_due > 0;
-  // };
 
   const handleBack = () => {
     onClose();
@@ -267,115 +225,9 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
           <div className="!flex !justify-center !gap-2 !mb-4">
             {formatDateTime(invoiceData.invoice_date)}
           </div>
-
-          {/* <div className="!space-y-1 !text-left !mt-4">
-            <div className="!p-2 !bg-gray-50 !rounded-md">
-              <Typography
-                variant="caption"
-                className="!text-gray-500 !text-xs !uppercase !tracking-wide !mb-0.5"
-              >
-                Total Amount
-              </Typography>
-              <Typography
-                variant="body2"
-                className="!font-semibold !text-gray-900"
-              >
-                {formatCurrencyWithInvoiceCurrency(invoiceData.total_amount)}
-              </Typography>
-            </div>
-
-            <div className="!p-2 !bg-gray-50 !rounded-md">
-              <Typography
-                variant="caption"
-                className="!text-gray-500 !text-xs !uppercase !tracking-wide !mb-0.5"
-              >
-                Amount Paid
-              </Typography>
-              <Typography
-                variant="body2"
-                className="!font-semibold !text-green-600"
-              >
-                {formatCurrencyWithInvoiceCurrency(
-                  invoiceData.balance_due === 0
-                    ? invoiceData.total_amount
-                    : invoiceData.amount_paid
-                )}
-              </Typography>
-            </div>
-
-            <div className="!p-2 !bg-gray-50 !rounded-md">
-              <Typography
-                variant="caption"
-                className="!text-gray-500 !text-xs !uppercase !tracking-wide !mb-0.5"
-              >
-                Balance Due
-              </Typography>
-              <Typography
-                variant="body2"
-                className="!font-semibold !text-red-600"
-              >
-                {formatCurrencyWithInvoiceCurrency(invoiceData.balance_due)}
-              </Typography>
-            </div>
-          </div> */}
         </div>
 
         <div className="!grid !grid-cols-1 md:!grid-cols-2 !gap-6">
-          {/* <InfoCard title="Invoice Information" icon={Info}> */}
-          {/* <div className="!space-y-3"> */}
-          {/* <div className="!flex !justify-between">
-                <Typography variant="body2" className="!text-gray-600">
-                  Invoice Date:
-                </Typography>
-                <Typography
-                  variant="body2"
-                  className="!font-semibold !text-gray-900"
-                >
-                  {formatDate(invoiceData.invoice_date)}
-                </Typography>
-              </div> */}
-          {/* <div className="!flex !justify-between">
-                <Typography variant="body2" className="!text-gray-600">
-                  Due Date:
-                </Typography>
-                <Typography
-                  variant="body2"
-                  className="!font-semibold !text-gray-900"
-                >
-                  {formatDate(invoiceData.due_date) || (
-                    <span className="!text-gray-500 font-normal">
-                      No Due Date
-                    </span>
-                  )}
-                </Typography>
-              </div> */}
-          {/* <div className="!flex !justify-between">
-                <Typography variant="body2" className="!text-gray-600">
-                  Payment Method:
-                </Typography>
-                <Typography
-                  variant="body2"
-                  className="!font-semibold !text-gray-900 !capitalize"
-                >
-                  {invoiceData.payment_method?.replaceAll('_', ' ') || 'N/A'}
-                </Typography>
-              </div> */}
-          {/* {invoiceData.parent_id && (
-                <div className="!flex !justify-between">
-                  <Typography variant="body2" className="!text-gray-600">
-                    Order Number:
-                  </Typography>
-                  <Typography
-                    variant="body2"
-                    className="!font-semibold !text-gray-900"
-                  >
-                    #{invoiceData.parent_id}
-                  </Typography>
-                </div>
-              )} */}
-          {/* </div> */}
-          {/* </InfoCard> */}
-
           <InfoCard title="Customer Information" icon={Package}>
             <div className="!space-y-3">
               <div className="!flex !justify-between">
@@ -418,74 +270,79 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
             <div className="!space-y-2">
               {invoiceData.invoice_items &&
               invoiceData.invoice_items.length > 0 ? (
-                invoiceData.invoice_items.map((item, index) => (
-                  <div
-                    key={item.id || index}
-                    className="!p-3 !bg-gray-50 !rounded-md !border !border-gray-200"
-                  >
-                    <div className="!flex !justify-between !items-start !mb-1">
-                      <div>
+                invoiceData.invoice_items.map((item, index) => {
+                  const { uomCase: itemCase, uomPcs: itemPcs } =
+                    resolveForProduct(item.product);
+                  return (
+                    <div
+                      key={item.id || index}
+                      className="!p-3 !bg-gray-50 !rounded-md !border !border-gray-200"
+                    >
+                      <div className="!flex !justify-between !items-start !mb-1">
+                        <div>
+                          <Typography
+                            variant="body2"
+                            className="!font-semibold !text-gray-900"
+                          >
+                            {item.product?.name ||
+                              item.product_name ||
+                              `Product #${item.product_id}`}
+                          </Typography>
+                          <Typography
+                            variant="caption"
+                            className="!text-gray-500 !block !mt-0.5"
+                          >
+                            Tracking:{' '}
+                            {item.tracking_type ||
+                              item.product?.tracking_type ||
+                              'None'}
+                            {item.batch_number
+                              ? ` | Batch: ${item.batch_number}`
+                              : ''}
+                          </Typography>
+                        </div>
                         <Typography
                           variant="body2"
                           className="!font-semibold !text-gray-900"
                         >
-                          {item.product?.name ||
-                            item.product_name ||
-                            `Product #${item.product_id}`}
-                        </Typography>
-                        <Typography
-                          variant="caption"
-                          className="!text-gray-500 !block !mt-0.5"
-                        >
-                          Tracking:{' '}
-                          {item.tracking_type ||
-                            item.product?.tracking_type ||
-                            'None'}
-                          {item.batch_number
-                            ? ` | Batch: ${item.batch_number}`
-                            : ''}
+                          {formatCurrencyWithInvoiceCurrency(
+                            item.total_amount ??
+                              (item.quantity || item.base_quantity || 1) *
+                                item.unit_price -
+                                (item.discount_amount || 0)
+                          )}
                         </Typography>
                       </div>
-                      <Typography
-                        variant="body2"
-                        className="!font-semibold !text-gray-900"
-                      >
-                        {formatCurrencyWithInvoiceCurrency(
-                          item.total_amount ??
-                            (item.quantity || item.base_quantity || 1) *
-                              item.unit_price -
-                              (item.discount_amount || 0)
-                        )}
-                      </Typography>
-                    </div>
-                    <div className="!flex !justify-between !text-xs !text-gray-500">
-                      <span>
-                        Qty: {item.quantity ? `${item.quantity} Cases ` : ''}
-                        {item.base_quantity ? `${item.base_quantity} PCs ` : ''}
-                        {!item.quantity && !item.base_quantity
-                          ? '0 '
-                          : ''}x{' '}
-                        {formatCurrencyWithInvoiceCurrency(item.unit_price)}
-                      </span>
-                      {item.discount_amount && item.discount_amount > 0 ? (
+                      <div className="!flex !justify-between !text-xs !text-gray-500">
+                        <span>
+                          Qty:{' '}
+                          {item.quantity ? `${item.quantity} ${itemCase} ` : ''}
+                          {item.base_quantity
+                            ? `${item.base_quantity} ${itemPcs} `
+                            : ''}
+                          {!item.quantity && !item.base_quantity ? '0 ' : ''}x{' '}
+                          {formatCurrencyWithInvoiceCurrency(item.unit_price)}
+                        </span>
+                        {item.discount_amount && item.discount_amount > 0 ? (
+                          <Typography
+                            variant="body2"
+                            className="!font-semibold !text-green-600"
+                          >
+                            Discount: -{formatCurrency(item.discount_amount)}
+                          </Typography>
+                        ) : null}
+                      </div>
+                      {item.notes && (
                         <Typography
-                          variant="body2"
-                          className="!font-semibold !text-green-600"
+                          variant="caption"
+                          className="!text-gray-600 !block !mt-1"
                         >
-                          Discount: -{formatCurrency(item.discount_amount)}
+                          {item.notes}
                         </Typography>
-                      ) : null}
+                      )}
                     </div>
-                    {item.notes && (
-                      <Typography
-                        variant="caption"
-                        className="!text-gray-600 !block !mt-1"
-                      >
-                        {item.notes}
-                      </Typography>
-                    )}
-                  </div>
-                ))
+                  );
+                })
               ) : (
                 <Typography
                   variant="body2"

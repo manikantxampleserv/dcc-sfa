@@ -17,8 +17,17 @@ import CustomDrawer from 'shared/Drawer';
 import Table, { type TableColumn } from 'shared/Table';
 import { formatDate } from 'utils/dateUtils';
 import { getSourceSystemLabel } from 'utils/sourceSystem';
+import { useResolvedUom } from 'hooks/useUnitOfMeasurement';
 
-const BatchList = ({ batches }: { batches: any[] }) => {
+const BatchList = ({
+  batches,
+  uomCase,
+  uomPcs,
+}: {
+  batches: any[];
+  uomCase: string;
+  uomPcs: string;
+}) => {
   const [expanded, setExpanded] = useState(false);
   const displayBatches = batches.slice(0, 3);
   const hiddenBatches = batches.slice(3);
@@ -37,8 +46,8 @@ const BatchList = ({ batches }: { batches: any[] }) => {
           {batch.expiry_date && ` • Exp: ${formatDate(batch.expiry_date)}`}
           {batch.base_quantity > 0 ? (
             <>
-              {` • Cases: ${batch.quantity || 0}`}
-              {` • Pcs: ${batch.base_quantity}`}
+              {` • ${uomCase}: ${batch.quantity || 0}`}
+              {` • ${uomPcs}: ${batch.base_quantity}`}
             </>
           ) : (
             batch.quantity != null && ` • Qty: ${batch.quantity}`
@@ -61,8 +70,8 @@ const BatchList = ({ batches }: { batches: any[] }) => {
                     ` • Exp: ${formatDate(batch.expiry_date)}`}
                   {batch.base_quantity > 0 ? (
                     <>
-                      {` • Cases: ${batch.quantity || 0}`}
-                      {` • Pcs: ${batch.base_quantity}`}
+                      {` • ${uomCase}: ${batch.quantity || 0}`}
+                      {` • ${uomPcs}: ${batch.base_quantity}`}
                     </>
                   ) : (
                     batch.quantity != null && ` • Qty: ${batch.quantity}`
@@ -149,6 +158,7 @@ const VanInventoryDetail: React.FC<VanInventoryDetailProps> = ({
     error,
   } = useVanInventoryById(vanInventory?.id || 0);
   const vanInventoryData = vanInventoryResponse?.data || vanInventory;
+  const { uomCase, uomPcs, resolveForProduct } = useResolvedUom();
 
   useEffect(() => {
     if (open) {
@@ -432,31 +442,42 @@ const VanInventoryDetail: React.FC<VanInventoryDetailProps> = ({
     {
       id: 'quantity',
       label: 'Quantity',
-      render: (_value, row) => (
-        <div className="flex flex-col gap-0.5">
-          {row.base_quantity > 0 ? (
-            <>
+      render: (_value, row) => {
+        const { uomCase: itemCase, uomPcs: itemPcs } = resolveForProduct(
+          row.van_inventory_items_products || row.product || row
+        );
+        return (
+          <div className="flex flex-col gap-0.5">
+            {row.base_quantity > 0 ? (
+              <>
+                <Typography variant="body2" className="!text-gray-700">
+                  {row.quantity || 0} {itemCase} {row.base_quantity} {itemPcs}
+                </Typography>
+              </>
+            ) : (
               <Typography variant="body2" className="!text-gray-700">
-                {row.quantity || 0} Cases
+                {row.quantity || 0}
               </Typography>
-              <Typography variant="body2" className="!text-gray-700 !text-xs">
-                {row.base_quantity} Pcs
-              </Typography>
-            </>
-          ) : (
-            <Typography variant="body2" className="!text-gray-700">
-              {row.quantity || 0}
-            </Typography>
-          )}
-        </div>
-      ),
+            )}
+          </div>
+        );
+      },
     },
     {
       id: 'details',
       label: 'Batches / Serials',
       render: (_value, row) => {
+        const { uomCase: itemCase, uomPcs: itemPcs } = resolveForProduct(
+          row.van_inventory_items_products || row.product || row
+        );
         if (row.product_batches && row.product_batches.length > 0) {
-          return <BatchList batches={row.product_batches} />;
+          return (
+            <BatchList
+              batches={row.product_batches}
+              uomCase={itemCase}
+              uomPcs={itemPcs}
+            />
+          );
         }
         if (row.product_serials && row.product_serials.length > 0) {
           return <SerialList serials={row.product_serials} />;
@@ -762,10 +783,9 @@ const VanInventoryDetail: React.FC<VanInventoryDetailProps> = ({
                 >
                   {totalQuantity > 0 || totalBaseQuantity > 0 ? (
                     <div className="flex flex-col">
-                      {totalQuantity > 0 && <span>{totalQuantity} Cases</span>}
-                      {totalBaseQuantity > 0 && (
-                        <span className="text-xs text-gray-500">
-                          {totalBaseQuantity} PCs
+                      {totalQuantity > 0 && (
+                        <span>
+                          {totalQuantity} {uomCase} {totalBaseQuantity} {uomPcs}
                         </span>
                       )}
                     </div>

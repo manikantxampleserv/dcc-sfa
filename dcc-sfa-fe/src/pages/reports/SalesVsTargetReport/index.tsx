@@ -1,4 +1,4 @@
-import { Box, Chip, MenuItem } from '@mui/material';
+import { Avatar, Box, Chip, MenuItem } from '@mui/material';
 import { usePermission } from 'hooks/usePermission';
 import { useSalesVsTargetReport } from 'hooks/useReports';
 import { useProductCategories } from 'hooks/useProductCategories';
@@ -83,13 +83,20 @@ const SalesVsTargetReport: React.FC = () => {
             .toUpperCase()
             .slice(0, 2) || 'U';
         return (
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-              <span className="text-xs font-semibold text-blue-600">
-                {initials}
+          <div className="flex items-center gap-2">
+            <Avatar variant="rounded" className="!bg-blue-200 !text-blue-600">
+              {initials}
+            </Avatar>
+            <div className="flex flex-col">
+              <span className="font-semibold text-gray-700">
+                {salespersonName}
               </span>
+              {row.salesperson_code && (
+                <span className="text-xs text-gray-400 mt-0.5">
+                  {row.salesperson_code}
+                </span>
+              )}
             </div>
-            <span className="font-semibold text-sm">{salespersonName}</span>
           </div>
         );
       },
@@ -100,16 +107,32 @@ const SalesVsTargetReport: React.FC = () => {
       render: value => <span className="text-sm">{value}</span>,
     },
     {
-      id: 'target_amount',
-      label: 'Target',
+      id: 'target_quantity',
+      label: 'Target Qty',
       numeric: true,
-      render: value => formatCurrency(Number(value)),
+      render: value => (
+        <span className="text-sm font-medium">{value || 0}</span>
+      ),
+    },
+    {
+      id: 'actual_quantity',
+      label: 'Actual Qty',
+      numeric: true,
+      render: value => (
+        <span className="text-sm font-medium">{value || 0}</span>
+      ),
+    },
+    {
+      id: 'target_amount',
+      label: 'Target Amount',
+      numeric: true,
+      render: value => formatCurrency(Number(value || 0)),
     },
     {
       id: 'actual_sales',
-      label: 'Actual Sales',
+      label: 'Actual Amount',
       numeric: true,
-      render: value => formatCurrency(Number(value)),
+      render: value => formatCurrency(Number(value || 0)),
     },
     {
       id: 'achievement_percentage',
@@ -141,15 +164,18 @@ const SalesVsTargetReport: React.FC = () => {
     },
     {
       id: 'gap',
-      label: 'Gap',
+      label: 'Gap Amount',
       numeric: true,
       render: value => (
         <span
-          className={`font-semibold ${
-            Number(value) >= 0 ? 'text-green-600' : 'text-red-600'
+          className={`font-bold px-2 py-1 rounded-md ${
+            Number(value) >= 0
+              ? 'bg-green-50 text-green-700'
+              : 'bg-red-50 text-red-700'
           }`}
         >
-          {Number(value) >= 0 ? '+' : ''} {formatCurrency(Number(value))}
+          {Number(value) >= 0 ? '+' : ''}
+          {formatCurrency(Number(value))}
         </span>
       ),
     },
@@ -162,16 +188,32 @@ const SalesVsTargetReport: React.FC = () => {
       render: value => <span className="font-semibold text-sm">{value}</span>,
     },
     {
-      id: 'target_amount',
-      label: 'Target',
+      id: 'target_quantity',
+      label: 'Target Qty',
       numeric: true,
-      render: value => formatCurrency(Number(value)),
+      render: value => (
+        <span className="text-sm font-medium">{value || 0}</span>
+      ),
+    },
+    {
+      id: 'actual_quantity',
+      label: 'Actual Qty',
+      numeric: true,
+      render: value => (
+        <span className="text-sm font-medium">{value || 0}</span>
+      ),
+    },
+    {
+      id: 'target_amount',
+      label: 'Target Amount',
+      numeric: true,
+      render: value => formatCurrency(Number(value || 0)),
     },
     {
       id: 'actual_sales',
-      label: 'Actual Sales',
+      label: 'Actual Amount',
       numeric: true,
-      render: value => formatCurrency(Number(value)),
+      render: value => formatCurrency(Number(value || 0)),
     },
     {
       id: 'achievement_percentage',
@@ -204,15 +246,18 @@ const SalesVsTargetReport: React.FC = () => {
     },
     {
       id: 'gap',
-      label: 'Gap',
+      label: 'Gap Amount',
       numeric: true,
       render: value => (
         <span
-          className={`font-semibold ${
-            Number(value) >= 0 ? 'text-green-600' : 'text-red-600'
+          className={`font-bold px-2 py-1 rounded-md ${
+            Number(value) >= 0
+              ? 'bg-green-50 text-green-700'
+              : 'bg-red-50 text-red-700'
           }`}
         >
-          {Number(value) >= 0 ? '+' : ''} {formatCurrency(Number(value))}
+          {Number(value) >= 0 ? '+' : ''}
+          {formatCurrency(Number(value))}
         </span>
       ),
     },
@@ -354,6 +399,7 @@ const SalesVsTargetReport: React.FC = () => {
       {/* Performance by Salesperson Table */}
       <Table
         columns={performanceColumns}
+        filterColunm={false}
         actions={
           <Box className="flex font-bold items-center gap-2">
             <Users className="w-5 h-5" /> Performance by Sales Person (
@@ -368,6 +414,7 @@ const SalesVsTargetReport: React.FC = () => {
 
       {/* Category Performance Table */}
       <Table
+        filterColunm={false}
         actions={
           <Box className="flex font-bold items-center gap-2">
             <BarChart3 className="w-5 h-5" /> Performance by Category (

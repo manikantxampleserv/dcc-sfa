@@ -143,6 +143,7 @@ const ManageSalesTargetGroup: React.FC<ManageSalesTargetGroupProps> = ({
       width: 300,
       render: (_value, row) => (
         <UserSelect
+          roleName="Salesman"
           name="sales_person_id"
           label="Sales Person"
           value={row.sales_person_id}
@@ -240,6 +241,7 @@ const ManageSalesTargetGroup: React.FC<ManageSalesTargetGroupProps> = ({
 
             {members.length > 0 && (
               <Table
+                compact
                 data={membersWithIndex}
                 columns={membersColumns}
                 getRowId={row => row._index.toString()}

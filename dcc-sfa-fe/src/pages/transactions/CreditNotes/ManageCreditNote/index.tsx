@@ -18,6 +18,7 @@ import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
 import ProductSelect from 'shared/ProductSelect';
 import Select from 'shared/Select';
+import { useUnitOfMeasurement } from 'hooks/useUnitOfMeasurement';
 import Table, { type TableColumn } from 'shared/Table';
 import { formatForDateInput } from 'utils/dateUtils';
 
@@ -43,6 +44,8 @@ const ManageCreditNote: React.FC<ManageCreditNoteProps> = ({
   creditNote,
 }) => {
   const isEdit = !!creditNote;
+  const { data: uomData } = useUnitOfMeasurement();
+  const dynamicUoms = React.useMemo(() => uomData?.data?.map((u: any) => u.name) || [], [uomData]);
   const [creditNoteItems, setCreditNoteItems] = useState<
     CreditNoteItemFormData[]
   >([]);
@@ -225,7 +228,7 @@ const ManageCreditNote: React.FC<ManageCreditNoteProps> = ({
       render: (_value, row) => (
         <Box className="!min-w-28">
           <Select
-            value={['CASE', 'PCS'].includes(row.unit) ? row.unit : 'CASE'}
+            value={dynamicUoms.includes(row.unit) ? row.unit : 'CASE'}
             onChange={(e: any) =>
               updateCreditNoteItem(row._index, 'unit', e.target.value as any)
             }
@@ -233,8 +236,9 @@ const ManageCreditNote: React.FC<ManageCreditNoteProps> = ({
             disableClearable
             label=""
           >
-            <MenuItem value="CASE">CASE</MenuItem>
-            <MenuItem value="PCS">PIECE</MenuItem>
+            {dynamicUoms.map((u: string) => (
+              <MenuItem key={u} value={u}>{u}</MenuItem>
+            ))}
           </Select>
         </Box>
       ),

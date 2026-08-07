@@ -5,6 +5,7 @@ import type {
   SingleSalespersonResponse,
 } from 'hooks/useInventoryItems';
 import { usePermission } from 'hooks/usePermission';
+import { useResolvedUom } from 'hooks/useUnitOfMeasurement';
 import { useCurrency } from 'hooks/useCurrency';
 import {
   AlertTriangle,
@@ -31,6 +32,7 @@ const InventoryItems: React.FC = () => {
 
   const { isRead } = usePermission('inventory-items');
   const { formatCurrency } = useCurrency();
+  const { uomCase, uomPcs } = useResolvedUom();
 
   const { data: inventoryResponse, isLoading: isLoadingInventory } =
     useInventoryItems(
@@ -294,15 +296,15 @@ const InventoryItems: React.FC = () => {
                               Total Quantity:{' '}
                               {[
                                 person.total_quantity > 0
-                                  ? `${person.total_quantity} Crates`
+                                  ? `${person.total_quantity} ${uomCase}`
                                   : null,
                                 person.total_base_quantity &&
                                 person.total_base_quantity > 0
-                                  ? `${person.total_base_quantity} PCs`
+                                  ? `${person.total_base_quantity} ${uomPcs}`
                                   : null,
                               ]
                                 .filter(Boolean)
-                                .join(' and ') || '0 Crates'}
+                                .join(' and ') || `0 ${uomCase}`}
                             </span>
                           </div>
                           <div className="flex items-center gap-1.5 text-sm">

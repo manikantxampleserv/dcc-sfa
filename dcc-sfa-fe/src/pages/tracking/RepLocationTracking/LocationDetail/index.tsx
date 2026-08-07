@@ -1,7 +1,7 @@
 import { Activity, Battery, Clock, MapPin, Users } from 'lucide-react';
 import React from 'react';
 import Drawer from 'shared/Drawer';
-import { formatDate } from 'utils/dateUtils';
+import { formatDateTime } from 'utils/dateUtils';
 
 interface LocationDetailProps {
   open: boolean;
@@ -173,7 +173,7 @@ const LocationDetail: React.FC<LocationDetailProps> = ({
               {rep.last_update ? (
                 <div>
                   <p className="font-medium text-gray-900">
-                    {formatDate(rep.last_update)}
+                    {formatDateTime(rep.last_update)}
                   </p>
                   <p className="text-xs text-gray-500 mt-1">
                     Real-time tracking active

@@ -11,6 +11,8 @@ const router = (0, express_1.Router)();
 router.post('/sales-targets', auth_middleware_1.authenticateToken, (0, audit_middleware_1.auditCreate)('sales_targets'), (0, auth_middleware_1.requirePermission)([{ module: 'sales-target', action: 'create' }]), salesTargets_validation_1.createSalesTargetValidation, validation_middleware_1.validate, salesTargets_controller_1.salesTargetsController.createSalesTarget);
 // Get all Sales Targets with pagination and filters
 router.get('/sales-targets', auth_middleware_1.authenticateToken, (0, auth_middleware_1.requirePermission)([{ module: 'sales-target', action: 'read' }]), salesTargets_controller_1.salesTargetsController.getAllSalesTargets);
+// Get Sales Targets for the logged-in Salesman
+router.get('/sales-targets/mobile/my-targets', auth_middleware_1.authenticateToken, salesTargets_controller_1.salesTargetsController.getSalesmanTargets);
 // Get Sales Target by ID
 router.get('/sales-targets/:id', auth_middleware_1.authenticateToken, (0, auth_middleware_1.requirePermission)([{ module: 'sales-target', action: 'read' }]), salesTargets_controller_1.salesTargetsController.getSalesTargetById);
 // Update Sales Target

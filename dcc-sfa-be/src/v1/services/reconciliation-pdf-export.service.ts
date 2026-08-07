@@ -23,6 +23,8 @@ export const exportReconciliationPdfService = async (
       });
 
       const { meta, data: rawItems } = reconciliationData;
+      const uomCase = meta?.uomCase || process.env.DEFAULT_UOM_CASE || 'Cases';
+      const uomPcs = meta?.uomPcs || process.env.DEFAULT_UOM_PCS || 'PCs';
 
       const items = (rawItems || []).reduce((acc: any[], item: any) => {
         const key = `${item.categoryName}_${item.skuCode}`;
@@ -388,8 +390,8 @@ export const exportReconciliationPdfService = async (
 
           const varianceStr =
             variance.c === 0 && variance.p === 0
-              ? `0 Cs ${isRGB ? '0 Btls' : ''}`.trim()
-              : `${sign}${absCases} Cs ${isRGB ? `${absPcs} Btls` : ''}`.trim();
+              ? `0 ${uomCase} ${isRGB ? `0 ${uomPcs}` : ''}`.trim()
+              : `${sign}${absCases} ${uomCase} ${isRGB ? `${absPcs} ${uomPcs}` : ''}`.trim();
 
           const load = normalizeQty(
             Number(item.loadQuantity),
@@ -442,12 +444,12 @@ export const exportReconciliationPdfService = async (
               String(catSno++),
               String(item.skuCode),
               String(item.skuName),
-              `${load.c} Cs ${isRGB ? `${load.p} Btls` : ''}`.trim(),
-              `${sale.c} Cs ${isRGB ? `${sale.p} Btls` : ''}`.trim(),
-              `${expected.c} Cs ${isRGB ? `${expected.p} Btls` : ''}`.trim(),
+              `${load.c} ${uomCase} ${isRGB ? `${load.p} ${uomPcs}` : ''}`.trim(),
+              `${sale.c} ${uomCase} ${isRGB ? `${sale.p} ${uomPcs}` : ''}`.trim(),
+              `${expected.c} ${uomCase} ${isRGB ? `${expected.p} ${uomPcs}` : ''}`.trim(),
               hasActualCases || hasActualPCs
-                ? `${actual.c} Cs ${isRGB ? `${actual.p} Btls` : ''}`.trim()
-                : `0 Cs ${isRGB ? '0 Btls' : ''}`.trim(),
+                ? `${actual.c} ${uomCase} ${isRGB ? `${actual.p} ${uomPcs}` : ''}`.trim()
+                : `0 ${uomCase} ${isRGB ? `0 ${uomPcs}` : ''}`.trim(),
               varianceStr,
               formatNum(price),
               formatNum(saleVal),

@@ -205,7 +205,7 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
                 tracking_type: item.tracking_type || null,
                 product_id: Number(item.product_id),
                 product_name: item.product_name || undefined,
-                unit: item.unit || undefined,
+                unit: item.unit || 'CASE',
                 quantity: quantity,
                 unit_price: unitPrice,
                 notes: item.notes,
@@ -289,7 +289,7 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
   const resolvePrice = (
     productId: number,
     priceLists: CustomerPriceListResult[] | undefined,
-    unit: 'CASE' | 'PCS' = 'CASE'
+    unit: string = 'CASE'
   ): string | null => {
     if (
       !priceLists ||
@@ -785,9 +785,7 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
     },
     {
       id: 'quantity',
-      label: orderItems.some(item => item.unit === 'PCS')
-        ? 'Quantity (pieces)'
-        : 'Quantity (cases)',
+      label: 'Quantity',
       render: (_value, row) => {
         const tracking = (row.tracking_type || '').toString().toLowerCase();
         const isNoneTracking = !tracking || tracking === 'none';
@@ -800,9 +798,7 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
             onChange={e => {
               updateOrderItem(row._index, 'quantity', e.target.value);
             }}
-            placeholder={
-              unit.toUpperCase() === 'PCS' ? 'Enter pieces' : 'Enter cases'
-            }
+            placeholder={`Enter ${unit.toLowerCase()}`}
             type="number"
             size="small"
             className="!min-w-20"
@@ -888,7 +884,7 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
               formik={formik}
               required
             />
-            <UserSelect formik={formik} required />
+            <UserSelect formik={formik} required roleName="Salesman" />
             <Input
               name="order_date"
               label="Order Date"

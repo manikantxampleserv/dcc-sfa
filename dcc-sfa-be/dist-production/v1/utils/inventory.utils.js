@@ -819,8 +819,13 @@ function getOrderedQuantities(item) {
         normalizedUnit = 'CASE';
     }
     else {
-        console.warn(` Unknown unit "${rawUnit}" — defaulting to CASE`);
-        normalizedUnit = 'CASE';
+        if (process.env.APP_ENV === 'demo') {
+            normalizedUnit = rawUnit;
+        }
+        else {
+            console.warn(` Unknown unit "${rawUnit}" — defaulting to CASE`);
+            normalizedUnit = 'CASE';
+        }
     }
     const quantityInCases = Number(item.quantity) || 0;
     const baseQuantityInPcs = Number(item.base_quantity) || 0;

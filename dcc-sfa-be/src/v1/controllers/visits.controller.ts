@@ -1449,7 +1449,7 @@ export const visitsController = {
                                 movement_date: new Date(),
                                 remarks: isUnitPcs
                                   ? `Sold via ${referenceLabel} - Batch: ${batchLot.batch_number} - ${piecesToDeduct} PCS`
-                                  : `Sold via ${referenceLabel} - Batch: ${batchLot.batch_number} - ${batchOrder.uomQty} CASE(S) (${piecesToDeduct} pieces)`,
+                                  : `Sold via ${referenceLabel} - Batch: ${batchLot.batch_number} - ${batchOrder.uomQty} ${itemUnit}(S) (${piecesToDeduct} pieces)`,
                                 is_active: 'Y',
                                 createdate: new Date(),
                                 createdby:
@@ -1883,7 +1883,7 @@ export const visitsController = {
                               movement_date: new Date(),
                               remarks: isUnitPcs
                                 ? `Sold via ${referenceLabel} - ${orderedPieces} PCS`
-                                : `Sold via ${referenceLabel} - ${orderedQty} CASE(S) (${orderedPieces} pieces)`,
+                                : `Sold via ${referenceLabel} - ${orderedQty} ${item.unit || 'CASE'}(S) (${orderedPieces} pieces)`,
                               is_active: 'Y',
                               createdate: new Date(),
                               createdby:

@@ -1,4 +1,6 @@
+import { AccessTime } from '@mui/icons-material';
 import {
+  Chip,
   Dialog,
   DialogActions,
   DialogContent,
@@ -12,18 +14,11 @@ import {
   useRealTimeGPSTracking,
 } from 'hooks/useGPSTracking';
 import { usePermission } from 'hooks/usePermission';
-import {
-  Activity,
-  Battery,
-  Clock,
-  MapPin,
-  Navigation,
-  Users,
-} from 'lucide-react';
+import { Activity, Battery, MapPin, Navigation, Users } from 'lucide-react';
 import React, { useState } from 'react';
 import Button from 'shared/Button';
 import StatsCard from 'shared/StatsCard';
-import { formatDate } from 'utils/dateUtils';
+import { formatDateTime } from 'utils/dateUtils';
 import toastService from 'utils/toast';
 import LocationDetail from './LocationDetail';
 import LocationTestGPS from './LocationTestGPS';
@@ -142,14 +137,13 @@ const RepLocationTracking: React.FC = () => {
           </p>
         </div>
         {isRead && (
-          <div className="flex items-center gap-3">
-            <div className="hidden md:flex items-center gap-2 px-3 py-1.5 border border-blue-500 text-blue-700 rounded-full bg-blue-50">
-              <Clock className="w-4 h-4" />
-              <span className="text-sm font-medium">
-                Last Update: {formatDate(summary.timestamp)}
-              </span>
-            </div>
-          </div>
+          <Chip
+            icon={<AccessTime />}
+            label={`Last Update: ${formatDateTime(summary.timestamp)}`}
+            color="primary"
+            size="medium"
+            variant="outlined"
+          />
         )}
       </div>
 
@@ -204,35 +198,35 @@ const RepLocationTracking: React.FC = () => {
           {isLoading ? (
             <RepCardsSkeleton />
           ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5">
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
               {realTimeGPS.map((rep: any) => (
                 <div
                   key={rep.user_id}
-                  className="bg-white shadow-sm p-6 rounded-lg border border-gray-100 transition-shadow cursor-pointer hover:shadow-md"
+                  className="bg-white shadow-sm p-4 rounded-lg border border-gray-100 transition-shadow cursor-pointer hover:shadow-md"
                   onClick={() => handleRepCardClick(rep)}
                 >
                   <div className="flex items-start gap-3">
                     <div
-                      className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                      className={`w-10 h-10 rounded-full flex items-center justify-center ${
                         rep.latitude && rep.longitude
                           ? 'bg-green-100'
                           : 'bg-gray-100'
                       }`}
                     >
                       {rep.latitude && rep.longitude ? (
-                        <MapPin className="w-6 h-6 text-green-600" />
+                        <MapPin className="w-5 h-5 text-green-600" />
                       ) : (
-                        <MapPin className="w-6 h-6 text-gray-400" />
+                        <MapPin className="w-5 h-5 text-gray-400" />
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-2">
-                        <h3 className="font-bold text-lg text-gray-900 truncate">
+                        <h3 className="font-semibold text-md text-gray-900 truncate">
                           {rep.user_name}
                         </h3>
                         {rep.employee_id && (
                           <span className="text-xs text-gray-500">
-                            #{rep.employee_id}
+                            {rep.employee_id}
                           </span>
                         )}
                       </div>
@@ -240,7 +234,7 @@ const RepLocationTracking: React.FC = () => {
                       {rep.latitude && rep.longitude ? (
                         <div className="flex items-center gap-4 pt-1">
                           {rep.speed_kph !== null && (
-                            <div className="flex items-center gap-1.5 text-sm">
+                            <div className="flex items-center gap-1.5 text-xs">
                               <Activity className="w-4 h-4 text-orange-500" />
                               <span className="text-gray-700 font-medium">
                                 {rep.speed_kph.toFixed(0)} km/h
@@ -248,7 +242,7 @@ const RepLocationTracking: React.FC = () => {
                             </div>
                           )}
                           {rep.battery_level !== null && (
-                            <div className="flex items-center gap-1.5 text-sm">
+                            <div className="flex items-center gap-1.5 text-xs">
                               <Battery className="w-4 h-4 text-purple-500" />
                               <span className="text-gray-700 font-medium">
                                 {rep.battery_level}%
@@ -256,9 +250,9 @@ const RepLocationTracking: React.FC = () => {
                             </div>
                           )}
                           {rep.last_update && (
-                            <div className="flex items-center gap-1.5 text-xs text-gray-500 ml-auto">
-                              <Clock className="w-3 h-3" />
-                              {formatDate(rep.last_update)}
+                            <div className="flex items-center gap-1 text-xs text-gray-500 ml-auto">
+                              <AccessTime className="!w-4 !h-4" />
+                              {formatDateTime(rep.last_update)}
                             </div>
                           )}
                         </div>
