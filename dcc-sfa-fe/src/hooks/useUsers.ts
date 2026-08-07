@@ -275,3 +275,28 @@ export const useUpdateUserProfile = (options?: {
     onSuccess: options?.onSuccess,
   });
 };
+
+/**
+ * Hook to update user log_inst
+ * @param options - Additional options for the mutation
+ * @returns Mutation for updating user log_inst
+ */
+export const useUpdateUserLogInst = (options?: {
+  onSuccess?: (
+    data: ApiResponse<any>,
+    variables: { id: number; log_inst: number }
+  ) => void;
+  onError?: (
+    error: any,
+    variables: { id: number; log_inst: number }
+  ) => void;
+}) => {
+  return useApiMutation({
+    mutationFn: ({ id, log_inst }: { id: number; log_inst: number }) =>
+      userService.updateUserLogInst(id, log_inst),
+    loadingMessage: 'Updating login instance control...',
+    invalidateQueries: ['users'],
+    onSuccess: options?.onSuccess,
+    onError: options?.onError,
+  });
+};
