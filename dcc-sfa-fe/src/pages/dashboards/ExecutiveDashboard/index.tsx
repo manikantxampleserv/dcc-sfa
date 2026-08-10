@@ -1,4 +1,4 @@
-import { Button, Skeleton } from '@mui/material';
+import { Button, Skeleton, Avatar } from '@mui/material';
 import {
   ArcElement,
   BarElement,
@@ -64,7 +64,7 @@ const ExecutiveDashboard: React.FC = () => {
     });
   const { data: auditLogs, isLoading: auditLogsLoading } = useAuditLogs({
     page: 1,
-    limit: 5,
+    limit: 100,
   });
   const { formatCurrency } = useCurrency();
 
@@ -1163,7 +1163,7 @@ const ExecutiveDashboard: React.FC = () => {
                 {auditLogs.logs.slice(0, 5).map((log: any) => (
                   <div
                     key={log.id}
-                    className="bg-white border border-gray-200 rounded-lg p-3 shadow-sm hover:shadow-md transition-shadow"
+                    className="bg-white border border-gray-200 rounded-lg p-3 shadow-sm transition-shadow"
                   >
                     <div className="text-xs flex justify-between items-center  text-gray-500 uppercase tracking-wide mb-2">
                       <p className="font-medium">
@@ -1173,31 +1173,49 @@ const ExecutiveDashboard: React.FC = () => {
                         {new Date(log.changed_at).toLocaleDateString()}
                       </span>
                     </div>
-                    <div className="text-sm text-gray-700">
-                      <span className="font-medium text-gray-900">
-                        {log.user_name}
-                      </span>
-                      <span className="mx-1">
-                        {log.action === 'CREATE' && (
-                          <span className="text-green-600 font-medium">
-                            created
+                    <div className="flex items-center gap-3 mt-2">
+                      <Avatar
+                        src="mkx"
+                        alt={log.user_name?.trim()}
+                        className="!rounded !bg-primary-100 !text-primary-500 !w-8 !h-8 !text-sm !font-semibold"
+                      >
+                        {log.user_name?.charAt(0).toUpperCase() || 'U'}
+                      </Avatar>
+                      <div className="flex flex-col">
+                        <div className="text-sm text-gray-700">
+                          <span className="font-medium text-gray-900">
+                            {log.user_name}
                           </span>
-                        )}
-                        {log.action === 'UPDATE' && (
-                          <span className="text-blue-600 font-medium">
-                            updated
+                          <span className="mx-1">
+                            {log.action === 'CREATE' && (
+                              <span className="text-green-600 font-medium">
+                                created
+                              </span>
+                            )}
+                            {log.action === 'UPDATE' && (
+                              <span className="text-blue-600 font-medium">
+                                updated
+                              </span>
+                            )}
+                            {log.action === 'DELETE' && (
+                              <span className="text-red-600 font-medium">
+                                deleted
+                              </span>
+                            )}
                           </span>
-                        )}
-                        {log.action === 'DELETE' && (
-                          <span className="text-red-600 font-medium">
-                            deleted
+                          <span className="text-gray-600">
+                            a {log.table_name?.replaceAll('_', ' ')} record
+                            {log.record_name
+                              ? ` (${log.record_name})`
+                              : log.record_id
+                                ? ` (ID: ${log.record_id})`
+                                : ''}
                           </span>
-                        )}
-                      </span>
-                      <span className="text-gray-600">
-                        a {log.table_name?.replaceAll('_', ' ')} record
-                        {log.record_id && ` (ID: ${log.record_id})`}
-                      </span>
+                        </div>
+                        <span className="text-xs text-gray-500">
+                          {log.employee_id || log.user_email || 'No ID'}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 ))}

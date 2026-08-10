@@ -83,10 +83,25 @@ export const auditLogsController = {
           parsedChangedData = log.changed_data;
         }
 
+        let record_name = null;
+        if (parsedChangedData && typeof parsedChangedData === 'object') {
+          record_name =
+            parsedChangedData.name ||
+            parsedChangedData.title ||
+            parsedChangedData.code ||
+            parsedChangedData.reference_number ||
+            parsedChangedData.reference ||
+            parsedChangedData.username ||
+            parsedChangedData.employee_id ||
+            parsedChangedData.description ||
+            null;
+        }
+
         return {
           id: log.id,
           table_name: log.table_name,
           record_id: log.record_id,
+          record_name: record_name,
           action: log.action,
           changed_data: parsedChangedData,
           changed_by: log.changed_by,

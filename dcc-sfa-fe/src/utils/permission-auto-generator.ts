@@ -14,6 +14,7 @@ import menuItems, { type MenuItem } from '../mock/sidebar';
 export const BACKEND_MODULES = [
   'executive-dashboard',
   'grading-dashboard',
+  'sales-control-tower',
   'reconciliation',
   'settlement-sheet',
   'user',
@@ -92,6 +93,7 @@ export type BackendModule = (typeof BACKEND_MODULES)[number];
 const MANUAL_PERMISSION_OVERRIDES: Record<string, BackendModule> = {
   'executive-dashboard': 'executive-dashboard',
   'grading-dashboard': 'grading-dashboard',
+  'sales-control-tower': 'sales-control-tower',
   reconciliation: 'reconciliation',
   'user-master': 'user',
   'role-permission': 'role',
