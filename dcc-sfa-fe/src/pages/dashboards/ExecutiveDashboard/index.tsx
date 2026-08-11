@@ -652,18 +652,18 @@ const ExecutiveDashboard: React.FC = () => {
                     <Skeleton
                       variant="text"
                       width="60%"
-                      height={20}
+                      height={10}
                       className="!mb-2"
                     />
                     <Skeleton
                       variant="text"
                       width="40%"
-                      height={16}
+                      height={10}
                       className="!mb-3"
                     />
                     <div className="flex gap-2">
-                      <Skeleton variant="rectangular" width={80} height={24} />
-                      <Skeleton variant="rectangular" width={80} height={24} />
+                      <Skeleton variant="rectangular" width={80} height={12} />
+                      <Skeleton variant="rectangular" width={80} height={12} />
                     </div>
                   </div>
                 ))}

@@ -1,4 +1,11 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import { exportSalesControlTowerData } from '../../../services/dashboard/salesControlTower';
 import {
   ArcElement,
   BarElement,
@@ -784,21 +791,57 @@ const Card: React.FC<{
     {children}
   </div>
 );
+const getLocalISODate = (d: Date) => {
+  const offset = d.getTimezoneOffset() * 60000;
+  return new Date(d.getTime() - offset).toISOString().split('T')[0];
+};
+
+const getDatesForMode = (mode: DateMode) => {
+  const now = new Date();
+  let startDate = '';
+  let endDate = '';
+  if (mode === 'all') {
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    startDate = getLocalISODate(firstDay);
+    endDate = getLocalISODate(lastDay);
+  } else if (mode === '7d') {
+    const start = new Date(now);
+    start.setDate(now.getDate() - 7);
+    startDate = getLocalISODate(start);
+    endDate = getLocalISODate(now);
+  } else if (mode === '15d') {
+    const start = new Date(now);
+    start.setDate(now.getDate() - 15);
+    startDate = getLocalISODate(start);
+    endDate = getLocalISODate(now);
+  } else if (mode === 'today') {
+    startDate = getLocalISODate(now);
+    endDate = getLocalISODate(now);
+  }
+  return { startDate, endDate };
+};
+
 /**
  * Main dashboard component for the Sales Control.
  * Handles data fetching, filtering, and layout of all KPI cards and charts.
  */
 const SalesControlTower: React.FC = () => {
-  const [filters, setFilters] = useState<FilterState>({
-    depot: '',
-    coord: '',
-    sup: '',
-    route: '',
-    sal: '',
-    brand: '',
-    pack: '',
-    ch: '',
-    dateMode: 'all',
+  const [filters, setFilters] = useState<FilterState>(() => {
+    const { startDate, endDate } = getDatesForMode('all');
+    return {
+      depot: '',
+      coord: '',
+      sup: '',
+      route: '',
+      sal: '',
+      brand: '',
+      pack: '',
+      ch: '',
+      dateMode: 'all',
+      startDate,
+      endDate,
+    };
   });
   const {
     data: apiData,
@@ -810,6 +853,27 @@ const SalesControlTower: React.FC = () => {
   const RAW_MAY: any[] = apiData?.data?.mayAgg?.rows || [];
   const RAW_APR: any[] = apiData?.data?.aprAgg?.rows || [];
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleExport = useCallback(async () => {
+    setIsExporting(true);
+    try {
+      await exportSalesControlTowerData({
+        startDate: filters.startDate,
+        endDate: filters.endDate,
+        depot_id: filters.depot || undefined,
+        route_id: filters.route || undefined,
+        salesman_id: filters.sal || undefined,
+        brand_id: filters.brand || undefined,
+        pack: filters.pack || undefined,
+        channel: filters.ch || undefined,
+      });
+    } catch (e) {
+      console.error('Export failed', e);
+    } finally {
+      setIsExporting(false);
+    }
+  }, [filters]);
   useEffect(() => {
     if (isFullscreen) {
       document.body.classList.add('ai-fullscreen-active');
@@ -823,33 +887,11 @@ const SalesControlTower: React.FC = () => {
   const [role, setRole] = useState<Role>('MD');
   const [dateMode, setDateMode] = useState<DateMode>('all');
   useEffect(() => {
-    const now = new Date();
-    let startDate = '';
-    let endDate = '';
-    const getLocalISODate = (d: Date) => {
-      const offset = d.getTimezoneOffset() * 60000;
-      return new Date(d.getTime() - offset).toISOString().split('T')[0];
-    };
-    if (dateMode === 'all') {
-      const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-      const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-      startDate = getLocalISODate(firstDay);
-      endDate = getLocalISODate(lastDay);
-    } else if (dateMode === '7d') {
-      const start = new Date(now);
-      start.setDate(now.getDate() - 7);
-      startDate = getLocalISODate(start);
-      endDate = getLocalISODate(now);
-    } else if (dateMode === '15d') {
-      const start = new Date(now);
-      start.setDate(now.getDate() - 15);
-      startDate = getLocalISODate(start);
-      endDate = getLocalISODate(now);
-    } else if (dateMode === 'today') {
-      startDate = getLocalISODate(now);
-      endDate = getLocalISODate(now);
-    }
-    setFilters(f => ({ ...f, startDate, endDate }));
+    const { startDate, endDate } = getDatesForMode(dateMode);
+    setFilters(f => {
+      if (f.startDate === startDate && f.endDate === endDate) return f;
+      return { ...f, startDate, endDate };
+    });
   }, [dateMode]);
   const [cmpMode, setCmpMode] = useState<CmpMode>('apr');
   const [kpiSel, setKpiSel] = useState<KpiKey | null>(null);
@@ -893,13 +935,19 @@ const SalesControlTower: React.FC = () => {
     [filterData]
   );
   const coords = useMemo(
-    () => (filterData.depots || []).map((f: any) => f.name).filter(Boolean),
-    [filterData]
-  ); 
+    () =>
+      Object.keys(mayAgg.byCoord || {})
+        .filter(c => c !== 'Unassigned')
+        .sort(),
+    [mayAgg.byCoord]
+  );
   const sups = useMemo(
-    () => (filterData.depots || []).map((f: any) => f.name).filter(Boolean),
-    [filterData]
-  ); 
+    () =>
+      Object.keys(mayAgg.bySup || {})
+        .filter(s => s !== 'Unassigned')
+        .sort(),
+    [mayAgg.bySup]
+  );
   const routes = useMemo(
     () => (filterData.routes || []).map((f: any) => f.name).filter(Boolean),
     [filterData]
@@ -1020,7 +1068,6 @@ const SalesControlTower: React.FC = () => {
     ).length;
     const totalRoutes = Object.keys(mayAgg.byRoute).length;
     const topSal = topN(mayAgg.bySal, 'UC', 1)[0];
-    const topBrand = topN(mayAgg.byBrand, 'TV', 1)[0];
     return [
       {
         color: 'red',
@@ -1053,14 +1100,6 @@ const SalesControlTower: React.FC = () => {
         val: FMT(mayAgg.totalUC - mayAgg.totalPC),
         sub: 'Potential uplift',
         cls: 'info' as const,
-      },
-      {
-        color: 'purple',
-        icon: '💎',
-        label: 'Top Brand by Revenue',
-        val: topBrand?.[0] ?? '—',
-        sub: `TZS ${FMT(topBrand?.[1]?.TV ?? 0)}`,
-        cls: 'up' as const,
       },
     ];
   }, [mayAgg]);
@@ -1406,13 +1445,12 @@ const SalesControlTower: React.FC = () => {
   };
   const routeRows = useMemo(() => {
     return Object.entries(mayAgg.byRoute).map(([route, v]) => {
-      const row = mayRows.find(r => r.Route === route);
       const aprV = aprAgg.byRoute[route] || { UC: 0 };
       return {
         Route: route,
-        Depot: row?.Depot ?? '',
-        Coordinator: row?.Coordinator ?? '',
-        Supervisor: row?.Supervisor ?? '',
+        Depot: v.Depot ?? '',
+        Coordinator: v.Coordinator ?? '',
+        Supervisor: v.Supervisor ?? '',
         UC: v.UC,
         PC: v.PC,
         TV: v.TV,
@@ -1649,6 +1687,44 @@ const SalesControlTower: React.FC = () => {
           >
             {FMTn(mayRows.length)} records
           </div>
+          {/* ── Export Excel button ───────────────────────── */}
+          <MuiTooltip
+            title="Export flat sales data to Excel"
+            arrow
+            placement="top"
+          >
+            <button
+              onClick={handleExport}
+              disabled={isExporting || isFetching}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 5,
+                padding: '4px 12px',
+                borderRadius: 6,
+                border: `1px solid ${C.green}`,
+                background: isExporting ? C.greenL : C.green,
+                color: isExporting ? C.green : '#fff',
+                fontSize: 11.5,
+                fontWeight: 600,
+                cursor: isExporting ? 'not-allowed' : 'pointer',
+                fontFamily: 'inherit',
+                transition: 'all .18s',
+                opacity: isExporting ? 0.7 : 1,
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {isExporting ? (
+                <>
+                  <span style={{ fontSize: 12 }}>⏳</span> Exporting…
+                </>
+              ) : (
+                <>
+                  <span style={{ fontSize: 13 }}>📊</span> Export Excel
+                </>
+              )}
+            </button>
+          </MuiTooltip>
           <MuiTooltip title="Refresh Data" arrow placement="top">
             <IconButton
               onClick={() => refetch()}

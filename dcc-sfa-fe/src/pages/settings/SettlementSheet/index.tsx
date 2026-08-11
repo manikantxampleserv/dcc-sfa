@@ -1,8 +1,12 @@
-import { Visibility } from '@mui/icons-material';
+import { Visibility, PictureAsPdf, GridOn } from '@mui/icons-material';
 import { MenuItem } from '@mui/material';
 import { usePermission } from 'hooks/usePermission';
+import { useCurrencyCode } from 'hooks/useCurrency';
+import { useResolvedUom } from 'hooks/useUnitOfMeasurement';
 import {
   useReconciliations,
+  useExportReconciliation,
+  useExportReconciliationPdf,
   type ReconciliationRecord,
 } from 'hooks/useReconciliation';
 import { AlertCircle, BarChart, ClipboardList, DollarSign } from 'lucide-react';
@@ -29,6 +33,37 @@ export default function SettlementSheet() {
   const [limit] = useState(10);
 
   const { isRead } = usePermission('settlement-sheet');
+  const currencyCode = useCurrencyCode();
+  const { uomCase, uomPcs } = useResolvedUom();
+  
+  const exportMutation = useExportReconciliation();
+  const exportPdfMutation = useExportReconciliationPdf();
+
+  const handleExport = async (row: ReconciliationRecord) => {
+    try {
+      await exportMutation.mutateAsync({
+        id: Number(row.id),
+        salesmanName: row.salesmanName,
+        currency: currencyCode,
+      });
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const handleExportPdf = async (row: ReconciliationRecord) => {
+    try {
+      await exportPdfMutation.mutateAsync({
+        id: Number(row.id),
+        salesmanName: row.salesmanName,
+        currency: currencyCode,
+        uomCase,
+        uomPcs,
+      });
+    } catch (error) {
+      console.error(error);
+    }
+  };
 
   const { data: responseData, isFetching } = useReconciliations(
     {
@@ -130,12 +165,26 @@ export default function SettlementSheet() {
       id: 'id',
       label: 'Actions',
       render: (_val, row) => (
-        <ActionButton
-          color="info"
-          icon={<Visibility />}
-          tooltip="View Settlement Sheet"
-          onClick={() => navigate(`/settings/settlement-sheet/${row.id}`)}
-        />
+        <div className="flex gap-2 items-center">
+          <ActionButton
+            color="info"
+            icon={<Visibility />}
+            tooltip="View Settlement Sheet"
+            onClick={() => navigate(`/settings/settlement-sheet/${row.id}`)}
+          />
+          <ActionButton
+            color="success"
+            icon={<GridOn />}
+            tooltip="Export to Excel"
+            onClick={() => handleExport(row)}
+          />
+          <ActionButton
+            color="error"
+            icon={<PictureAsPdf />}
+            tooltip="Export to PDF"
+            onClick={() => handleExportPdf(row)}
+          />
+        </div>
       ),
     },
   ];

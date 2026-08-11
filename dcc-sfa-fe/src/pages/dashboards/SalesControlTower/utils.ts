@@ -22,6 +22,9 @@ export interface AggBucket {
   PC: number;
   TV: number;
   count: number;
+  Depot?: string;
+  Coordinator?: string;
+  Supervisor?: string;
 }
 export type AggMap = Record<string, AggBucket>;
 export interface AggResult {
