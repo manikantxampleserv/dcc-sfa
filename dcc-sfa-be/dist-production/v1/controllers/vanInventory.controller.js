@@ -5395,7 +5395,6 @@ exports.vanInventoryController = {
                 const processedVanInventories = vanInventories
                     .map(vanInventory => {
                     const products = new Map();
-                    // Filter items under reconciliation
                     const stagedEntry = stagedStocksBySalesperson.get(currentSalespersonId);
                     const items = vanInventory.van_inventory_items_inventory.filter((it) => {
                         if (stagedEntry) {
@@ -6227,6 +6226,7 @@ exports.vanInventoryController = {
     //                 user_id: userIdNum,
     //                 loading_type: 'L',
     //                 status: 'A',
+    //                 approval_status: 'A',
     //                 is_cancelled: 'N',
     //                 createdate: { gte: sessionStart, lt: todayEnd },
     //               },
@@ -6512,6 +6512,7 @@ exports.vanInventoryController = {
                                     user_id: userIdNum,
                                     loading_type: 'L',
                                     status: 'A',
+                                    approval_status: 'A',
                                     is_cancelled: 'N',
                                     createdate: { gte: sessionStart, lt: todayEnd },
                                 },
@@ -6532,31 +6533,42 @@ exports.vanInventoryController = {
                                 baseQty: current.baseQty + (record.base_quantity || 0),
                             });
                         }
-                        const saleQtyRecords = await tx.stock_movements.findMany({
+                        // Use invoice_items as the authoritative source for Sale Qty.
+                        // stock_movements can include system-generated adjustments, internal
+                        // stock transfers, and return reversals all tagged as 'SALE', which
+                        // causes sale_qty to exceed actual customer sales and break the
+                        // Load - Sale = Expected ROP formula.
+                        // invoice_items only contain confirmed customer invoice lines, making
+                        // them the correct source of truth for what was actually sold.
+                        const saleInvoiceItems = await tx.invoice_items.findMany({
                             where: {
-                                OR: [
-                                    { createdby: userIdNum },
-                                    { from_location_id: locationId },
-                                ],
-                                movement_type: 'SALE',
-                                movement_date: { gte: sessionStart, lte: todayEnd },
-                                is_active: 'Y',
+                                invoices: {
+                                    OR: [{ salesperson_id: userIdNum }, { createdby: userIdNum }],
+                                    invoice_date: { gte: sessionStart, lte: todayEnd },
+                                    is_active: 'Y',
+                                },
                                 product_id: {
                                     in: Array.from(productMap.values()).map(p => p.product_id),
                                 },
                             },
-                            include: {
-                                batch_lots: { select: { batch_number: true } },
+                            select: {
+                                product_id: true,
+                                quantity: true,
+                                base_quantity: true,
                             },
                         });
                         const saleQtyMap = new Map();
-                        for (const record of saleQtyRecords) {
-                            const batchNum = record.batch_lots?.batch_number || '';
-                            const key = `${record.product_id}-${batchNum}`;
+                        for (const record of saleInvoiceItems) {
+                            if (!record.product_id)
+                                continue;
+                            // invoice_items do not carry a direct batch FK so we key by
+                            // product only (empty batch string). The reconciliation_items
+                            // batch rows will sum across their own batch key when looked up.
+                            const key = `${record.product_id}-`;
                             const current = saleQtyMap.get(key) || { qty: 0, baseQty: 0 };
                             saleQtyMap.set(key, {
-                                qty: current.qty + (record.quantity || 0),
-                                baseQty: current.baseQty + (record.base_quantity || 0),
+                                qty: current.qty + (Number(record.quantity) || 0),
+                                baseQty: current.baseQty + (Number(record.base_quantity) || 0),
                             });
                         }
                         const recon = await tx.reconciliation.create({
@@ -6578,10 +6590,11 @@ exports.vanInventoryController = {
                                 ?.qty || 0;
                             const loadBaseQty = loadQtyMap.get(`${p.product_id}-${p.batch_number || ''}`)
                                 ?.baseQty || 0;
-                            const saleQty = saleQtyMap.get(`${p.product_id}-${p.batch_number || ''}`)
-                                ?.qty || 0;
-                            const saleBaseQty = saleQtyMap.get(`${p.product_id}-${p.batch_number || ''}`)
-                                ?.baseQty || 0;
+                            // saleQtyMap is keyed by product_id only (no batch) because
+                            // invoice_items have no direct batch_lot_id FK. For batched products
+                            // all batches of the same product are summed under the same key.
+                            const saleQty = saleQtyMap.get(`${p.product_id}-`)?.qty || 0;
+                            const saleBaseQty = saleQtyMap.get(`${p.product_id}-`)?.baseQty || 0;
                             const unitPricePerPc = p.convRate > 0 ? p.price / p.convRate : 0;
                             const saleVal = saleQty * p.price + saleBaseQty * unitPricePerPc;
                             const taxAmount = (saleVal * p.taxRate) / 100;
