@@ -236,6 +236,24 @@ async function syncDeductionsForContainerGroup(tx, originalSalesPersonId, produc
     // No-op - container sub-users directly share the main/parent user's stock record!
     return;
 }
+function cleanObject(obj) {
+    if (typeof obj === 'string') {
+        return obj.trim();
+    }
+    if (Array.isArray(obj)) {
+        return obj.map(cleanObject);
+    }
+    if (obj !== null &&
+        typeof obj === 'object' &&
+        (obj.constructor === Object || !obj.constructor)) {
+        const cleaned = {};
+        for (const key of Object.keys(obj)) {
+            cleaned[key.trim()] = cleanObject(obj[key]);
+        }
+        return cleaned;
+    }
+    return obj;
+}
 exports.visitsController = {
     async createVisits(req, res) {
         try {
@@ -404,15 +422,16 @@ exports.visitsController = {
                 failed: [],
             };
             dataArray = dataArray.map((item, idx) => {
+                let parsedItem = item;
                 if (typeof item === 'string') {
                     try {
-                        return JSON.parse(item);
+                        parsedItem = JSON.parse(item);
                     }
                     catch (e) {
                         throw new Error(`Invalid JSON at visits[${idx}]`);
                     }
                 }
-                return item;
+                return cleanObject(parsedItem);
             });
             for (let index = 0; index < dataArray.length; index++) {
                 const data = dataArray[index];
@@ -727,6 +746,15 @@ exports.visitsController = {
                                         const groupUsers = await (0, inventory_utils_1.getContainerGroupUsers)(tx, visit.sales_person_id);
                                         const targetSalespersonIds = await (0, inventory_utils_1.getContainerOwnerAndSelf)(tx, visit.sales_person_id);
                                         for (const item of invoiceItems) {
+                                            const quantity = Number(item.quantity) || 0;
+                                            const baseQuantity = Number(item.base_quantity) || 0;
+                                            const quantityPieces = Number(item.quantity_pieces) || 0;
+                                            if (quantity === 0 &&
+                                                baseQuantity === 0 &&
+                                                quantityPieces === 0) {
+                                                console.log(`Skipping invoice item ${item.product_name || item.product_id} because quantity is 0`);
+                                                continue;
+                                            }
                                             const product = await tx.products.findUnique({
                                                 where: { id: Number(item.product_id) },
                                                 include: { product_unit_of_measurement: true },
