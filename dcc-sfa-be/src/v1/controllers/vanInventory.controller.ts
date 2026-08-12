@@ -159,10 +159,10 @@ const serializeVanInventory = (item: any): VanInventorySerialized => {
             customer_id: sn.customer_id || null,
             customer: sn.serial_numbers_customers
               ? {
-                id: sn.serial_numbers_customers.id,
-                name: sn.serial_numbers_customers.name,
-                email: sn.serial_numbers_customers.email,
-              }
+                  id: sn.serial_numbers_customers.id,
+                  name: sn.serial_numbers_customers.name,
+                  email: sn.serial_numbers_customers.email,
+                }
               : null,
             sold_date: sn.sold_date || null,
             created_date: sn.createdate || null,
@@ -314,12 +314,12 @@ const serializeVanInventory = (item: any): VanInventorySerialized => {
         serials.length > 0 ? serials.map((sn: any) => sn.serial_number) : null,
       tax_details: product?.product_tax_master
         ? {
-          id: product.product_tax_master.id,
-          name: product.product_tax_master.name,
-          code: product.product_tax_master.code,
-          tax_rate: Number(product.product_tax_master.tax_rate),
-          description: product.product_tax_master.description,
-        }
+            id: product.product_tax_master.id,
+            name: product.product_tax_master.name,
+            code: product.product_tax_master.code,
+            tax_rate: Number(product.product_tax_master.tax_rate),
+            description: product.product_tax_master.description,
+          }
         : null,
       product_serials: productSerials.length > 0 ? productSerials : null,
       product_batches: productBatches.length > 0 ? productBatches : null,
@@ -371,32 +371,32 @@ const serializeVanInventory = (item: any): VanInventorySerialized => {
     sale_type: item.sale_type || null,
     sub_inventory_users: item.van_inventory_sub_users
       ? item.van_inventory_sub_users.map((su: any) => ({
-        id: su.users?.id || su.user_id,
-        name: su.users?.name || '',
-        email: su.users?.email || '',
-      }))
+          id: su.users?.id || su.user_id,
+          name: su.users?.name || '',
+          email: su.users?.email || '',
+        }))
       : [],
     user: item.van_inventory_users
       ? {
-        id: item.van_inventory_users.id,
-        name: item.van_inventory_users.name,
-        email: item.van_inventory_users.email,
-        code: item.van_inventory_users.employee_id,
-      }
+          id: item.van_inventory_users.id,
+          name: item.van_inventory_users.name,
+          email: item.van_inventory_users.email,
+          code: item.van_inventory_users.employee_id,
+        }
       : null,
     vehicle: item.vehicle
       ? {
-        id: item.vehicle.id,
-        vehicle_number: item.vehicle.vehicle_number,
-        type: item.vehicle.type,
-      }
+          id: item.vehicle.id,
+          vehicle_number: item.vehicle.vehicle_number,
+          type: item.vehicle.type,
+        }
       : null,
     depot: item.van_inventory_depot
       ? {
-        id: item.van_inventory_depot.id,
-        name: item.van_inventory_depot.name,
-        code: item.van_inventory_depot.code,
-      }
+          id: item.van_inventory_depot.id,
+          name: item.van_inventory_depot.name,
+          code: item.van_inventory_depot.code,
+        }
       : null,
     items: processedItems,
     summary: summary,
@@ -852,8 +852,8 @@ async function processApprovedVanInventoryStock(
                     expiry_date: batchInput.expiry_date
                       ? new Date(batchInput.expiry_date)
                       : new Date(
-                        new Date().setFullYear(new Date().getFullYear() + 2)
-                      ),
+                          new Date().setFullYear(new Date().getFullYear() + 2)
+                        ),
                     quantity: batchQty,
                     remaining_quantity: batchQty,
                     //new changes
@@ -1924,11 +1924,11 @@ export const vanInventoryController = {
         batch_lot_id: it.batch_lot_id || null,
         batch: it.van_inventory_items_batch_lot
           ? {
-            id: it.van_inventory_items_batch_lot.id,
-            batch_number: it.van_inventory_items_batch_lot.batch_number,
-            lot_number: it.van_inventory_items_batch_lot.lot_number,
-            expiry_date: it.van_inventory_items_batch_lot.expiry_date,
-          }
+              id: it.van_inventory_items_batch_lot.id,
+              batch_number: it.van_inventory_items_batch_lot.batch_number,
+              lot_number: it.van_inventory_items_batch_lot.lot_number,
+              expiry_date: it.van_inventory_items_batch_lot.expiry_date,
+            }
           : null,
       }));
       return res.json({
@@ -2263,12 +2263,12 @@ export const vanInventoryController = {
                 tracking_type: p.tracking_type || null,
                 tax_details: p.product_tax_master
                   ? {
-                    id: p.product_tax_master.id,
-                    name: p.product_tax_master.name,
-                    code: p.product_tax_master.code,
-                    tax_rate: Number(p.product_tax_master.tax_rate),
-                    description: p.product_tax_master.description,
-                  }
+                      id: p.product_tax_master.id,
+                      name: p.product_tax_master.name,
+                      code: p.product_tax_master.code,
+                      tax_rate: Number(p.product_tax_master.tax_rate),
+                      description: p.product_tax_master.description,
+                    }
                   : null,
               });
             }
@@ -3640,7 +3640,7 @@ export const vanInventoryController = {
             loading_type: loadingType,
             document_date:
               inventoryData.document_date &&
-                inventoryData.document_date.trim() !== ''
+              inventoryData.document_date.trim() !== ''
                 ? new Date(inventoryData.document_date)
                 : new Date(),
             vehicle_id: inventoryData.vehicle_id
@@ -3792,10 +3792,10 @@ export const vanInventoryController = {
                           expiry_date: batchInput.expiry_date
                             ? new Date(batchInput.expiry_date)
                             : new Date(
-                              new Date().setFullYear(
-                                new Date().getFullYear() + 2
-                              )
-                            ),
+                                new Date().setFullYear(
+                                  new Date().getFullYear() + 2
+                                )
+                              ),
                           quantity: batchQty,
                           remaining_quantity: batchQty,
                           supplier_name: batchInput.supplier_name || null,
@@ -4005,10 +4005,10 @@ export const vanInventoryController = {
                           expiry_date: batchInput.expiry_date
                             ? new Date(batchInput.expiry_date)
                             : new Date(
-                              new Date().setFullYear(
-                                new Date().getFullYear() + 2
-                              )
-                            ),
+                                new Date().setFullYear(
+                                  new Date().getFullYear() + 2
+                                )
+                              ),
                           quantity: batchQty,
                           remaining_quantity: batchQty,
                           //new changes
@@ -4384,7 +4384,7 @@ export const vanInventoryController = {
                           base_quantity: Math.max(
                             0,
                             (inventoryStock.base_quantity || 0) -
-                            (parseInt(batchInput.base_quantity, 10) || 0)
+                              (parseInt(batchInput.base_quantity, 10) || 0)
                           ),
                           //new change
 
@@ -4617,7 +4617,7 @@ export const vanInventoryController = {
                         base_quantity: Math.max(
                           0,
                           (inventoryStock.base_quantity || 0) -
-                          (parseInt(item.base_quantity, 10) || 0)
+                            (parseInt(item.base_quantity, 10) || 0)
                         ),
                         //new change
 
@@ -5127,11 +5127,11 @@ export const vanInventoryController = {
       if (inventoryData.document_date !== undefined) {
         payload.document_date =
           inventoryData.document_date &&
-            //new change
-            inventoryData.document_date.trim() !== ''
+          //new change
+          inventoryData.document_date.trim() !== ''
             ? //new change
 
-            new Date(inventoryData.document_date)
+              new Date(inventoryData.document_date)
             : new Date();
       }
       if (inventoryData.vehicle_id !== undefined) {
@@ -5398,8 +5398,8 @@ export const vanInventoryController = {
           total_amount:
             data.quantity && data.unit_price
               ? Number(data.quantity) * Number(data.unit_price) -
-              (Number(data.discount_amount) || 0) +
-              (Number(data.tax_amount) || 0)
+                (Number(data.discount_amount) || 0) +
+                (Number(data.tax_amount) || 0)
               : undefined,
           notes: data.notes !== undefined ? data.notes : undefined,
         },
@@ -5503,7 +5503,7 @@ export const vanInventoryController = {
                   //new change
                   base_quantity:
                     item.base_quantity !== undefined &&
-                      item.base_quantity !== null
+                    item.base_quantity !== null
                       ? Number(item.base_quantity)
                       : null,
                   //new change
@@ -5960,10 +5960,10 @@ export const vanInventoryController = {
                   warranty_expired: warrantyExpired,
                   warranty_days_remaining: serial.warranty_expiry
                     ? Math.floor(
-                      (new Date(serial.warranty_expiry).getTime() -
-                        Date.now()) /
-                      (1000 * 60 * 60 * 24)
-                    )
+                        (new Date(serial.warranty_expiry).getTime() -
+                          Date.now()) /
+                          (1000 * 60 * 60 * 24)
+                      )
                     : null,
                   batch_id: serial.batch_id,
                   batch: serial.batch_lots,
@@ -5991,12 +5991,12 @@ export const vanInventoryController = {
                 van_inventories: [],
                 tax_details: product?.product_tax_master
                   ? {
-                    id: product.product_tax_master.id,
-                    name: product.product_tax_master.name,
-                    code: product.product_tax_master.code,
-                    tax_rate: Number(product.product_tax_master.tax_rate),
-                    description: product.product_tax_master.description,
-                  }
+                      id: product.product_tax_master.id,
+                      name: product.product_tax_master.name,
+                      code: product.product_tax_master.code,
+                      tax_rate: Number(product.product_tax_master.tax_rate),
+                      description: product.product_tax_master.description,
+                    }
                   : null,
               });
             }
@@ -6591,7 +6591,6 @@ export const vanInventoryController = {
           .map(vanInventory => {
             const products: Map<number, any> = new Map();
 
-            // Filter items under reconciliation
             const stagedEntry =
               stagedStocksBySalesperson.get(currentSalespersonId);
             const items = vanInventory.van_inventory_items_inventory.filter(
@@ -6677,10 +6676,10 @@ export const vanInventoryController = {
                       warranty_expired: warrantyExpired,
                       warranty_days_remaining: linkedSerial.warranty_expiry
                         ? Math.floor(
-                          (new Date(linkedSerial.warranty_expiry).getTime() -
-                            Date.now()) /
-                          (1000 * 60 * 60 * 24)
-                        )
+                            (new Date(linkedSerial.warranty_expiry).getTime() -
+                              Date.now()) /
+                              (1000 * 60 * 60 * 24)
+                          )
                         : null,
                       customer_id: linkedSerial.customer_id,
                       customer: linkedSerial.serial_numbers_customers,
@@ -6723,12 +6722,12 @@ export const vanInventoryController = {
                   serials: [],
                   tax_details: product?.product_tax_master
                     ? {
-                      id: product.product_tax_master.id,
-                      name: product.product_tax_master.name,
-                      code: product.product_tax_master.code,
-                      tax_rate: Number(product.product_tax_master.tax_rate),
-                      description: product.product_tax_master.description,
-                    }
+                        id: product.product_tax_master.id,
+                        name: product.product_tax_master.name,
+                        code: product.product_tax_master.code,
+                        tax_rate: Number(product.product_tax_master.tax_rate),
+                        description: product.product_tax_master.description,
+                      }
                     : null,
                 });
               }
@@ -6798,9 +6797,9 @@ export const vanInventoryController = {
               vehicle_id: vanInventory.vehicle_id,
               vehicle: vanInventory.vehicle
                 ? {
-                  vehicle_id: vanInventory.vehicle.id,
-                  vehicle_number: vanInventory.vehicle.vehicle_number,
-                }
+                    vehicle_id: vanInventory.vehicle.id,
+                    vehicle_number: vanInventory.vehicle.vehicle_number,
+                  }
                 : null,
               products: Array.from(products.values()),
             };
@@ -7408,6 +7407,346 @@ export const vanInventoryController = {
     );
   },
 
+  // async unloadVanInventory(req: Request, res: Response) {
+  //   try {
+  //     const loggedInUserId = (req as any).user?.id;
+  //     const targetUserId = req.body.user_id || loggedInUserId;
+
+  //     if (!targetUserId) {
+  //       return res.status(401).json({
+  //         success: false,
+  //         message: 'User not authenticated or token invalid',
+  //       });
+  //     }
+
+  //     const userIdNum = parseInt(targetUserId.toString(), 10);
+
+  //     const vanLocations = await prisma.van_inventory.findMany({
+  //       where: { user_id: userIdNum, is_active: 'Y' },
+  //       select: { location_id: true, vehicle_id: true },
+  //       distinct: ['location_id'],
+  //     });
+
+  //     if (vanLocations.length === 0) {
+  //       return res.status(400).json({
+  //         success: false,
+  //         message: 'No active van inventory found for authenticated user',
+  //       });
+  //     }
+
+  //     let totalItemsRequested = 0;
+  //     const reconciliationIds: number[] = [];
+  //     const errors: string[] = [];
+
+  //     for (const vanLoc of vanLocations) {
+  //       const locationId = vanLoc.location_id;
+  //       if (!locationId) continue;
+
+  //       try {
+  //         const reconciliationId = await prisma.$transaction(async tx => {
+  //           const stockToUnload = await tx.inventory_stock.findMany({
+  //             where: {
+  //               location_id: locationId,
+  //               salesperson_id: userIdNum,
+  //               is_active: 'Y',
+  //               OR: [{ is_unloadAll: 'N' }, { is_unloadAll: null }],
+  //             },
+  //             include: {
+  //               inventory_stock_products: {
+  //                 include: {
+  //                   product_tax_master: { select: { tax_rate: true } },
+  //                   product_unit_of_measurement: {
+  //                     select: { conversion_rate: true },
+  //                   },
+  //                 },
+  //               },
+  //               inventory_stock_batch: true,
+  //             },
+  //           });
+
+  //           if (stockToUnload.length === 0) return null;
+
+  //           const user = await tx.users.findUnique({
+  //             where: { id: userIdNum },
+  //             select: {
+  //               id: true,
+  //               name: true,
+  //               employee_id: true,
+  //               depot_id: true,
+  //               sap_code: true,
+  //             },
+  //           });
+  //           if (!user) return null;
+
+  //           const now = new Date();
+  //           const today = new Date(
+  //             Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())
+  //           );
+
+  //           const todayStart = new Date(today);
+  //           todayStart.setHours(0, 0, 0, 0);
+
+  //           const todayEnd = new Date(today);
+  //           todayEnd.setHours(23, 59, 59, 999);
+
+  //           const lastReconciliation = await tx.reconciliation.findFirst({
+  //             where: {
+  //               salesman_id: userIdNum,
+  //               createdate: { lt: todayEnd },
+  //             },
+  //             orderBy: { createdate: 'desc' },
+  //           });
+
+  //           let sessionStart = todayStart;
+  //           if (lastReconciliation && lastReconciliation.createdate) {
+  //             sessionStart = lastReconciliation.createdate;
+  //           } else {
+  //             sessionStart = new Date(0);
+  //           }
+
+  //           const productMap = new Map<
+  //             string,
+  //             {
+  //               product_id: number;
+  //               product_code: string;
+  //               total_qty: number;
+  //               total_base_qty: number;
+  //               batch_number: string | null;
+  //               price: number;
+  //               taxRate: number;
+  //               convRate: number;
+  //             }
+  //           >();
+
+  //           for (const stock of stockToUnload) {
+  //             if (stock.product_id === null) continue;
+  //             const qty = Number(stock.current_stock) || 0;
+  //             const baseQty = Number(stock.base_quantity) || 0;
+
+  //             const batchNum =
+  //               stock.inventory_stock_batch?.batch_number ?? null;
+  //             const productCode =
+  //               stock.inventory_stock_products?.code ||
+  //               String(stock.product_id);
+  //             const key = `${stock.product_id}-${batchNum}`;
+
+  //             const price =
+  //               Number(stock.inventory_stock_products?.base_price) || 0;
+  //             const taxRate =
+  //               Number(
+  //                 (stock.inventory_stock_products as any)?.product_tax_master
+  //                   ?.tax_rate
+  //               ) || 0;
+  //             const convRate =
+  //               Number(
+  //                 (stock.inventory_stock_products as any)
+  //                   ?.product_unit_of_measurement?.conversion_rate
+  //               ) || 1;
+
+  //             const existing = productMap.get(key);
+  //             if (existing) {
+  //               existing.total_qty += qty;
+  //               existing.total_base_qty += baseQty;
+  //             } else {
+  //               productMap.set(key, {
+  //                 product_id: stock.product_id,
+  //                 product_code: productCode,
+  //                 total_qty: qty,
+  //                 total_base_qty: baseQty,
+  //                 batch_number: batchNum,
+  //                 price,
+  //                 taxRate,
+  //                 convRate,
+  //               });
+  //             }
+  //             totalItemsRequested++;
+  //           }
+
+  //           if (productMap.size === 0) return null;
+
+  //           const loadQtyRecords = await tx.van_inventory_items.findMany({
+  //             where: {
+  //               van_inventory_items_inventory: {
+  //                 user_id: userIdNum,
+  //                 loading_type: 'L',
+  //                 status: 'A',
+  //                 approval_status: 'A',
+
+  //                 is_cancelled: 'N',
+  //                 createdate: { gte: sessionStart, lt: todayEnd },
+  //               },
+  //             },
+  //             include: {
+  //               van_inventory_items_batch_lot: {
+  //                 select: { batch_number: true },
+  //               },
+  //             },
+  //           });
+
+  //           const loadQtyMap = new Map<
+  //             string,
+  //             { qty: number; baseQty: number }
+  //           >();
+  //           for (const record of loadQtyRecords) {
+  //             const batchNum =
+  //               record.van_inventory_items_batch_lot?.batch_number || '';
+  //             const key = `${record.product_id}-${batchNum}`;
+  //             const current = loadQtyMap.get(key) || { qty: 0, baseQty: 0 };
+  //             loadQtyMap.set(key, {
+  //               qty: current.qty + (record.quantity || 0),
+  //               baseQty: current.baseQty + (record.base_quantity || 0),
+  //             });
+  //           }
+
+  //           const saleQtyRecords = await tx.stock_movements.findMany({
+  //             where: {
+  //               OR: [
+  //                 { createdby: userIdNum },
+  //                 { from_location_id: locationId },
+  //               ],
+  //               movement_type: 'SALE',
+  //               movement_date: { gte: sessionStart, lte: todayEnd },
+  //               is_active: 'Y',
+  //               product_id: {
+  //                 in: Array.from(productMap.values()).map(p => p.product_id),
+  //               },
+  //             },
+  //             include: {
+  //               batch_lots: { select: { batch_number: true } },
+  //             },
+  //           });
+
+  //           const saleQtyMap = new Map<
+  //             string,
+  //             { qty: number; baseQty: number }
+  //           >();
+  //           for (const record of saleQtyRecords) {
+  //             const batchNum = record.batch_lots?.batch_number || '';
+  //             const key = `${record.product_id}-${batchNum}`;
+  //             const current = saleQtyMap.get(key) || { qty: 0, baseQty: 0 };
+  //             saleQtyMap.set(key, {
+  //               qty: current.qty + (record.quantity || 0),
+  //               baseQty: current.baseQty + ((record as any).base_quantity || 0),
+  //             });
+  //           }
+
+  //           const recon = await tx.reconciliation.create({
+  //             data: {
+  //               salesman_id: userIdNum,
+  //               depot_id: user.depot_id ?? locationId,
+  //               status: 'P',
+  //               reconciliation_date: today,
+  //               is_active: 'Y',
+  //               createdate: new Date(),
+  //               createdby: userIdNum,
+  //             },
+  //           });
+
+  //           const toCreate: any[] = [];
+  //           for (const p of productMap.values()) {
+  //             const expectedQty = p.total_qty;
+  //             const expectedBaseQty = p.total_base_qty;
+
+  //             const loadQty =
+  //               loadQtyMap.get(`${p.product_id}-${p.batch_number || ''}`)
+  //                 ?.qty || 0;
+  //             const loadBaseQty =
+  //               loadQtyMap.get(`${p.product_id}-${p.batch_number || ''}`)
+  //                 ?.baseQty || 0;
+
+  //             const saleQty =
+  //               saleQtyMap.get(`${p.product_id}-${p.batch_number || ''}`)
+  //                 ?.qty || 0;
+  //             const saleBaseQty =
+  //               saleQtyMap.get(`${p.product_id}-${p.batch_number || ''}`)
+  //                 ?.baseQty || 0;
+
+  //             const unitPricePerPc = p.convRate > 0 ? p.price / p.convRate : 0;
+  //             const saleVal = saleQty * p.price + saleBaseQty * unitPricePerPc;
+  //             const taxAmount = (saleVal * p.taxRate) / 100;
+
+  //             toCreate.push({
+  //               reconciliation_id: recon.id,
+  //               product_id: p.product_id,
+  //               batch_number: p.batch_number,
+  //               expected_qty: expectedQty,
+  //               expected_base_qty: expectedBaseQty,
+  //               actual_qty: null,
+  //               actual_base_qty: 0,
+  //               load_qty: loadQty,
+  //               load_base_qty: loadBaseQty,
+  //               sale_qty: saleQty,
+  //               sale_base_qty: saleBaseQty,
+  //               variance: null,
+  //               variance_base_qty: 0,
+  //               tax_amount: taxAmount,
+  //               resolution_action: 'Awaiting Verification',
+  //               default_outlet_posting_qty: 0,
+  //               unload_adjustment_qty: 0,
+  //               stock_key: `${user.sap_code ?? user.id} | ${p.product_code}${p.batch_number ? ` | ${p.batch_number}` : ''}`,
+  //               is_active: 'Y',
+  //               createdate: new Date(),
+  //               createdby: userIdNum,
+  //             });
+  //           }
+
+  //           if (toCreate.length > 0) {
+  //             await tx.reconciliation_items.createMany({ data: toCreate });
+  //           }
+
+  //           await tx.inventory_stock.updateMany({
+  //             where: {
+  //               location_id: locationId,
+  //               salesperson_id: userIdNum,
+  //               is_active: 'Y',
+  //               OR: [{ is_unloadAll: 'N' }, { is_unloadAll: null }],
+  //             },
+  //             data: {
+  //               is_unloadAll: 'Y',
+  //               // Zero stock immediately so stale records never inflate future reconciliation totals.
+  //               // Multiple inventory_stock rows for the same product+batch get summed in productMap,
+  //               // so any non-zero 'Y' row would be incorrectly added to the next session's expected qty.
+  //               current_stock: 0,
+  //               available_stock: 0,
+  //               base_quantity: 0,
+  //             },
+  //           });
+
+  //           return recon.id;
+  //         });
+
+  //         if (reconciliationId) reconciliationIds.push(reconciliationId);
+  //       } catch (vanLocError: any) {
+  //         console.error(
+  //           `Failed to process location ${locationId}:`,
+  //           vanLocError
+  //         );
+  //         errors.push(`Location ${locationId}: ${vanLocError.message}`);
+  //       }
+  //     }
+
+  //     return res.json({
+  //       success: true,
+  //       message:
+  //         'Stock staged for reconciliation. Save the reconciliation to submit for unload approval.',
+  //       data: {
+  //         user_id: userIdNum,
+  //         reconciliation_ids: reconciliationIds,
+  //         total_items_requested: totalItemsRequested,
+  //         request_date: new Date(),
+  //         errors: errors.length ? errors : undefined,
+  //       },
+  //     });
+  //   } catch (error: any) {
+  //     console.error('Unload Van Inventory Error:', error);
+  //     return res.status(500).json({
+  //       success: false,
+  //       message: 'Failed to stage unload reconciliation',
+  //       error: error.message,
+  //     });
+  //   }
+  // },
+
   async unloadVanInventory(req: Request, res: Response) {
     try {
       const loggedInUserId = (req as any).user?.id;
@@ -7499,12 +7838,13 @@ export const vanInventoryController = {
             });
 
             let sessionStart = todayStart;
-            if (lastReconciliation && lastReconciliation.createdate) {
+            if (
+              lastReconciliation &&
+              lastReconciliation.createdate &&
+              lastReconciliation.createdate > todayStart
+            ) {
               sessionStart = lastReconciliation.createdate;
-            } else {
-              sessionStart = new Date(0);
             }
-
             const productMap = new Map<
               string,
               {
@@ -7571,6 +7911,8 @@ export const vanInventoryController = {
                   user_id: userIdNum,
                   loading_type: 'L',
                   status: 'A',
+                  approval_status: 'A',
+
                   is_cancelled: 'N',
                   createdate: { gte: sessionStart, lt: todayEnd },
                 },
@@ -7597,21 +7939,28 @@ export const vanInventoryController = {
               });
             }
 
-            const saleQtyRecords = await tx.stock_movements.findMany({
+            // Use invoice_items as the authoritative source for Sale Qty.
+            // stock_movements can include system-generated adjustments, internal
+            // stock transfers, and return reversals all tagged as 'SALE', which
+            // causes sale_qty to exceed actual customer sales and break the
+            // Load - Sale = Expected ROP formula.
+            // invoice_items only contain confirmed customer invoice lines, making
+            // them the correct source of truth for what was actually sold.
+            const saleInvoiceItems = await tx.invoice_items.findMany({
               where: {
-                OR: [
-                  { createdby: userIdNum },
-                  { from_location_id: locationId },
-                ],
-                movement_type: 'SALE',
-                movement_date: { gte: sessionStart, lte: todayEnd },
-                is_active: 'Y',
+                invoices: {
+                  OR: [{ salesperson_id: userIdNum }, { createdby: userIdNum }],
+                  invoice_date: { gte: sessionStart, lte: todayEnd },
+                  is_active: 'Y',
+                },
                 product_id: {
                   in: Array.from(productMap.values()).map(p => p.product_id),
                 },
               },
-              include: {
-                batch_lots: { select: { batch_number: true } },
+              select: {
+                product_id: true,
+                quantity: true,
+                base_quantity: true,
               },
             });
 
@@ -7619,13 +7968,16 @@ export const vanInventoryController = {
               string,
               { qty: number; baseQty: number }
             >();
-            for (const record of saleQtyRecords) {
-              const batchNum = record.batch_lots?.batch_number || '';
-              const key = `${record.product_id}-${batchNum}`;
+            for (const record of saleInvoiceItems) {
+              if (!record.product_id) continue;
+              // invoice_items do not carry a direct batch FK so we key by
+              // product only (empty batch string). The reconciliation_items
+              // batch rows will sum across their own batch key when looked up.
+              const key = `${record.product_id}-`;
               const current = saleQtyMap.get(key) || { qty: 0, baseQty: 0 };
               saleQtyMap.set(key, {
-                qty: current.qty + (record.quantity || 0),
-                baseQty: current.baseQty + ((record as any).base_quantity || 0),
+                qty: current.qty + (Number(record.quantity) || 0),
+                baseQty: current.baseQty + (Number(record.base_quantity) || 0),
               });
             }
 
@@ -7653,12 +8005,12 @@ export const vanInventoryController = {
                 loadQtyMap.get(`${p.product_id}-${p.batch_number || ''}`)
                   ?.baseQty || 0;
 
-              const saleQty =
-                saleQtyMap.get(`${p.product_id}-${p.batch_number || ''}`)
-                  ?.qty || 0;
+              // saleQtyMap is keyed by product_id only (no batch) because
+              // invoice_items have no direct batch_lot_id FK. For batched products
+              // all batches of the same product are summed under the same key.
+              const saleQty = saleQtyMap.get(`${p.product_id}-`)?.qty || 0;
               const saleBaseQty =
-                saleQtyMap.get(`${p.product_id}-${p.batch_number || ''}`)
-                  ?.baseQty || 0;
+                saleQtyMap.get(`${p.product_id}-`)?.baseQty || 0;
 
               const unitPricePerPc = p.convRate > 0 ? p.price / p.convRate : 0;
               const saleVal = saleQty * p.price + saleBaseQty * unitPricePerPc;
