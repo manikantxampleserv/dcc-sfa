@@ -1169,6 +1169,16 @@ export const visitsController = {
                         );
 
                       for (const item of invoiceItems) {
+                        const { orderedQty, orderedPieces, conversionFactor, uom: itemUnit } =
+                          getOrderedQuantities(item);
+
+                        if (orderedPieces === 0 && orderedQty === 0) {
+                          console.log(
+                            `Skipping item with 0 quantity: ${item.product_name || item.product_id}`
+                          );
+                          continue;
+                        }
+
                         const product = await tx.products.findUnique({
                           where: { id: Number(item.product_id) },
                           include: { product_unit_of_measurement: true },
@@ -1183,13 +1193,6 @@ export const visitsController = {
                         const trackingType =
                           (product.tracking_type as string)?.toUpperCase() ||
                           'NONE';
-
-                        const {
-                          orderedQty,
-                          orderedPieces,
-                          conversionFactor,
-                          uom: itemUnit,
-                        } = getOrderedQuantities(item);
 
                         const isUnitPcs = itemUnit === 'UNIT';
 
@@ -1319,12 +1322,8 @@ export const visitsController = {
                                 orderBy: { document_date: 'desc' },
                               });
 
-                            const vanInventoryIds = vanInventories.map(
-                              (v: any) => v.id
-                            );
                             const vanInventory = vanInventories[0] || null;
 
-                            // Buggy vanItems check for BATCH tracking type removed (we rely on inventory_stock instead)\r
                             const inventoryStock =
                               await tx.inventory_stock.findFirst({
                                 where: {

@@ -7911,7 +7911,6 @@ export const vanInventoryController = {
                   loading_type: 'L',
                   status: 'A',
                   approval_status: 'A',
-
                   is_cancelled: 'N',
                   createdate: { gte: sessionStart, lt: todayEnd },
                 },

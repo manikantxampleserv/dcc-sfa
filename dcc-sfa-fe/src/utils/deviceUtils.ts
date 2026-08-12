@@ -1,7 +1,7 @@
 export const formatDeviceInfo = (
   deviceInfo: string | null | undefined
 ): string => {
-  if (!deviceInfo) return 'Unknown device';
+  if (!deviceInfo) return 'SAP System';
 
   const info = deviceInfo.toLowerCase();
 

@@ -6,9 +6,9 @@ import {
   DialogContent,
   DialogTitle,
   IconButton,
+  MenuItem,
   Tooltip,
   Typography,
-  MenuItem,
 } from '@mui/material';
 import { useErrorLogs } from 'hooks/useErrorLogs';
 import { usePermission } from 'hooks/usePermission';
@@ -307,6 +307,29 @@ const ErrorLogs: React.FC = () => {
                 </Typography>
               </div>
 
+              {/* {(() => {
+                const aiSuggestion = selectedError.body?.ai_suggestion;
+                if (!aiSuggestion) return null;
+                return (
+                  <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Typography
+                        variant="subtitle2"
+                        className="text-blue-800 font-bold"
+                      >
+                        ✨ AI Suggestion
+                      </Typography>
+                      <span className="bg-blue-200 text-blue-800 text-[10px] px-2 py-0.5 rounded-full font-bold tracking-wider">
+                        BETA
+                      </span>
+                    </div>
+                    <Typography className="text-blue-900 text-sm whitespace-pre-wrap leading-relaxed">
+                      {aiSuggestion}
+                    </Typography>
+                  </div>
+                );
+              })()} */}
+
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
                   <Typography
@@ -376,8 +399,11 @@ const ErrorLogs: React.FC = () => {
                   </div>
                 )}
 
-              {selectedError.body &&
-                Object.keys(selectedError.body).length > 0 && (
+              {(() => {
+                const { ai_suggestion, ...displayBody } =
+                  selectedError.body || {};
+                if (Object.keys(displayBody).length === 0) return null;
+                return (
                   <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
                     <Typography
                       variant="subtitle2"
@@ -386,10 +412,11 @@ const ErrorLogs: React.FC = () => {
                       Request Body Payload
                     </Typography>
                     <pre className="text-xs bg-gray-100 p-3 rounded overflow-x-auto text-gray-800 border border-gray-200">
-                      {JSON.stringify(selectedError.body, null, 2)}
+                      {JSON.stringify(displayBody, null, 2)}
                     </pre>
                   </div>
-                )}
+                );
+              })()}
 
               {selectedError.stack && (
                 <div className="bg-gray-900 p-4 rounded-lg">
