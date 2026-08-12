@@ -14,8 +14,8 @@ const exportReconciliationExcelService = async (reconciliationData) => {
     const workbook = new exceljs_1.default.Workbook();
     const sheet = workbook.addWorksheet('SettlementSheet');
     const { meta, data: rawItems } = reconciliationData;
-    const uomCase = meta?.uomCase || 'Cases';
-    const uomPcs = meta?.uomPcs || 'PCs';
+    const uomCase = meta?.uomCase || process.env.DEFAULT_UOM_CASE || 'Cases';
+    const uomPcs = meta?.uomPcs || process.env.DEFAULT_UOM_PCS || 'PCs';
     const items = (rawItems || []).reduce((acc, item) => {
         const key = `${item.categoryName}_${item.skuCode}`;
         const existing = acc.find(i => `${i.categoryName}_${i.skuCode}` === key);
@@ -260,8 +260,20 @@ const exportReconciliationExcelService = async (reconciliationData) => {
                 hasActualCases || hasActualPCs
                     ? `${actual.c} ${uomCase} ${isRGB ? `${actual.p} ${uomPcs}` : ''}`.trim()
                     : '-';
-            const varianceVal = Number(item.variance) || 0;
-            const varianceBaseVal = Number(item.varianceBaseQty) || 0;
+            const expectedVal = Number(item.expectedRop) || 0;
+            const expectedBaseVal = Number(item.expectedBaseQty) || 0;
+            let varianceVal = 0;
+            let varianceBaseVal = 0;
+            if (hasActualCases || hasActualPCs) {
+                const expectedTotalPieces = expectedVal * conv + expectedBaseVal;
+                const actualTotalPieces = actualVal * conv + actualBaseVal;
+                const variancePieces = actualTotalPieces - expectedTotalPieces;
+                if (variancePieces !== 0) {
+                    const absV = Math.abs(variancePieces);
+                    varianceVal = Math.floor(absV / conv) * Math.sign(variancePieces);
+                    varianceBaseVal = (absV % conv) * Math.sign(variancePieces);
+                }
+            }
             const variance = normalizeQty(varianceVal, varianceBaseVal);
             const sign = variance.c < 0 || variance.p < 0
                 ? '-'
@@ -270,10 +282,10 @@ const exportReconciliationExcelService = async (reconciliationData) => {
                     : '';
             const absCases = Math.abs(variance.c);
             const absPcs = Math.abs(variance.p);
-            row.getCell(8).value =
-                variance.c === 0 && variance.p === 0
-                    ? `0 ${uomCase} ${isRGB ? `0 ${uomPcs}` : ''}`.trim()
-                    : `${sign}${absCases} ${uomCase} ${isRGB ? `${absPcs} ${uomPcs}` : ''}`.trim();
+            const varianceStr = variance.c === 0 && variance.p === 0
+                ? `0 ${uomCase} ${isRGB ? `0 ${uomPcs}` : ''}`.trim()
+                : `${sign}${absCases} ${uomCase} ${isRGB ? `${absPcs} ${uomPcs}` : ''}`.trim();
+            row.getCell(8).value = varianceStr;
             row.getCell(9).value = price;
             const saleVal = (Number(item.saleQuantity) || 0) * price +
                 (Number(item.saleBaseQty) || 0) * basePricePerPc;

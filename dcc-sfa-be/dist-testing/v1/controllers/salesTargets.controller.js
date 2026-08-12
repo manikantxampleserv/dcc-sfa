@@ -434,9 +434,8 @@ exports.salesTargetsController = {
             const allSales = await prisma_client_1.default.invoice_items.findMany({
                 where: {
                     invoices: {
-                        orders: {
-                            salesperson_id: salesmanId,
-                        },
+                        is_active: 'Y',
+                        OR: [{ salesperson_id: salesmanId }],
                     },
                 },
                 include: {
@@ -463,11 +462,11 @@ exports.salesTargetsController = {
                 }
                 let achievementPercentage = 0;
                 if (target.target_amount && target.target_amount > 0) {
-                    achievementPercentage = (achievedAmount / target.target_amount) * 100;
+                    achievementPercentage = Math.min((achievedAmount / target.target_amount) * 100, 100);
                 }
                 else if (target.target_quantity > 0) {
                     achievementPercentage =
-                        (achievedQuantity / target.target_quantity) * 100;
+                        Math.min((achievedQuantity / target.target_quantity) * 100, 100);
                 }
                 return {
                     ...target,

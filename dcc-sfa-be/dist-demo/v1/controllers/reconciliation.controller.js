@@ -59,14 +59,7 @@ exports.reconciliationController = {
             const reconcFilters = { is_active: 'Y' };
             if (isScopeRestricted) {
                 if (depotIds.length > 0) {
-                    reconcFilters.salesman = {
-                        ...reconcFilters.salesman,
-                        users_depots_users: {
-                            some: {
-                                depot_id: { in: depotIds },
-                            },
-                        },
-                    };
+                    reconcFilters.depot_id = { in: depotIds };
                 }
                 else {
                     reconcFilters.id = -1;

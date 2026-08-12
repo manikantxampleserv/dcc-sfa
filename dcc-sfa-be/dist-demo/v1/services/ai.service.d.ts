@@ -17,6 +17,7 @@ export declare class AIService {
      * Creates an instance of GoogleGenerativeAI using the GEMINI_API_KEY from environment variables.
      */
     constructor();
+    explainError(errorMessage: string, payload: any): Promise<string>;
     /**
      * Queries the AI model with a natural language question and conversational history.
      * It handles text-only responses and read-only SQL queries, formats the result, and extracts charts/tables.

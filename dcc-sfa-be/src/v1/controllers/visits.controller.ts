@@ -1062,6 +1062,19 @@ export const visitsController = {
                   for (const invoiceData of invoices) {
                     const invoiceItems = invoiceData.items || [];
 
+                    const hasNonZeroItems = invoiceItems.some((it: any) => {
+                      const { orderedQty, orderedPieces } =
+                        getOrderedQuantities(it);
+                      return orderedPieces > 0 || orderedQty > 0;
+                    });
+
+                    if (!hasNonZeroItems) {
+                      console.log(
+                        `Skipping invoice "${invoiceData.invoice_number || '(no number)'}" — all items have 0 quantity`
+                      );
+                      continue;
+                    }
+
                     let invoiceNumber = invoiceData.invoice_number;
                     if (!invoiceNumber) {
                       invoiceNumber =
@@ -1169,8 +1182,12 @@ export const visitsController = {
                         );
 
                       for (const item of invoiceItems) {
-                        const { orderedQty, orderedPieces, conversionFactor, uom: itemUnit } =
-                          getOrderedQuantities(item);
+                        const {
+                          orderedQty,
+                          orderedPieces,
+                          conversionFactor,
+                          uom: itemUnit,
+                        } = getOrderedQuantities(item);
 
                         if (orderedPieces === 0 && orderedQty === 0) {
                           console.log(
