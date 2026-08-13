@@ -241,7 +241,7 @@ export const exportReconciliationPdfService = async (
         'Tax Amount',
         'Action',
       ];
-      const colWidths = [16, 24, 110, 45, 45, 45, 45, 40, 40, 40, 40, 44];
+      const colWidths = [16, 24, 110, 45, 45, 45, 45, 40, 40, 40, 42, 42];
       const colAlignments: ('left' | 'center' | 'right')[] = [
         'center',
         'left',

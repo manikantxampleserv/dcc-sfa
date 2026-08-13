@@ -20,7 +20,7 @@ import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
-import { formatDateTime } from 'utils/dateUtils';
+import { formatDate, formatDateTime } from 'utils/dateUtils';
 
 export default function SettlementSheet() {
   const navigate = useNavigate();
@@ -114,17 +114,10 @@ export default function SettlementSheet() {
     { id: 'salesmanName', label: 'Rep Name', sortable: true },
     { id: 'depotName', label: 'Depot', sortable: true },
     {
-      id: 'reconciliation_date',
+      id: 'load_date',
       label: 'Load Date',
       sortable: true,
-      render: val =>
-        val
-          ? new Date(val as string).toLocaleDateString('en-GB', {
-              day: '2-digit',
-              month: 'short',
-              year: 'numeric',
-            })
-          : '-',
+      render: val => (val ? formatDate(val) : '-'),
     },
     {
       id: 'totalItems',
