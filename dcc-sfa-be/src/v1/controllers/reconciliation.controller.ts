@@ -446,6 +446,313 @@ export const reconciliationController = {
   /**
    * Save and reconcile updated actual quantity values
    */
+  // saveReconciliations: async (req: Request, res: Response) => {
+  //   try {
+  //     const { items } = req.body;
+  //     const userId = (req as any).user?.id || 1;
+
+  //     if (!items || !Array.isArray(items) || items.length === 0) {
+  //       return res.status(400).json({
+  //         success: false,
+  //         message: 'Items array is required and must not be empty.',
+  //       });
+  //     }
+
+  //     logger.info(
+  //       `Starting saveReconciliations transaction for ${items.length} items...`
+  //     );
+
+  //     const results = await prisma.$transaction(
+  //       async tx => {
+  //         const updatedItems = [];
+  //         const reconciliationIds = new Set<number>();
+
+  //         for (const itemPayload of items) {
+  //           const { id, actual_qty, actual_base_qty, tax_amount } = itemPayload;
+  //           const parsedActual =
+  //             actual_qty !== null &&
+  //             actual_qty !== '' &&
+  //             actual_qty !== undefined
+  //               ? Number(actual_qty)
+  //               : null;
+  //           const parsedActualBase =
+  //             actual_base_qty !== null &&
+  //             actual_base_qty !== '' &&
+  //             actual_base_qty !== undefined
+  //               ? Number(actual_base_qty)
+  //               : null;
+  //           const parsedTaxAmount =
+  //             tax_amount !== null &&
+  //             tax_amount !== '' &&
+  //             tax_amount !== undefined
+  //               ? Number(tax_amount)
+  //               : undefined;
+
+  //           const record = await tx.reconciliation_items.findUnique({
+  //             where: { id },
+  //             include: {
+  //               reconciliation: { include: { salesman: true, depot: true } },
+  //               product: { include: { product_unit_of_measurement: true } },
+  //             },
+  //           });
+
+  //           if (!record) {
+  //             throw new Error(`Reconciliation item with ID ${id} not found.`);
+  //           }
+
+  //           if (record.reconciliation?.salesman?.employee_id === 'MOS100801') {
+  //             logger.warn(`Skipping blocked salesman update for item ID ${id}`);
+  //             continue;
+  //           }
+
+  //           let variance: number | null = null;
+  //           let variance_base_qty: number | null = null;
+  //           let resAction = 'Awaiting Verification';
+  //           const conv =
+  //             Number(
+  //               record.product?.product_unit_of_measurement?.conversion_rate
+  //             ) || 1;
+
+  //           const loadQty =
+  //             record.load_qty !== null ? Number(record.load_qty) : 0;
+  //           const loadBaseQty =
+  //             record.load_base_qty !== null ? Number(record.load_base_qty) : 0;
+
+  //           const salesmanId = record.reconciliation?.salesman_id;
+  //           const recCreatedate = record.reconciliation?.createdate;
+  //           let saleQty =
+  //             record.sale_qty !== null ? Number(record.sale_qty) : 0;
+  //           let saleBaseQty =
+  //             record.sale_base_qty !== null ? Number(record.sale_base_qty) : 0;
+
+  //           if (salesmanId && record.product_id && recCreatedate) {
+  //             const now = new Date();
+  //             const todayEnd = new Date(now);
+  //             todayEnd.setHours(23, 59, 59, 999);
+
+  //             const prevReconciliation = await tx.reconciliation.findFirst({
+  //               where: {
+  //                 salesman_id: salesmanId,
+  //                 createdate: { lt: recCreatedate },
+  //                 id: { lt: record.reconciliation_id },
+  //               },
+  //               orderBy: { createdate: 'desc' },
+  //             });
+
+  //             const sessionStart =
+  //               prevReconciliation?.createdate ?? new Date(0);
+
+  //             const freshInvoiceItems = await tx.invoice_items.findMany({
+  //               where: {
+  //                 invoices: {
+  //                   OR: [
+  //                     { salesperson_id: salesmanId },
+  //                     { createdby: salesmanId },
+  //                   ],
+  //                   createdate: { gte: sessionStart, lt: todayEnd },
+  //                   is_active: 'Y',
+  //                   NOT: [{ invoice_number: { contains: 'RECON' } }],
+  //                 },
+  //                 product_id: record.product_id,
+  //               },
+  //               select: { quantity: true, base_quantity: true },
+  //             });
+
+  //             if (freshInvoiceItems.length > 0) {
+  //               const freshQty = freshInvoiceItems.reduce(
+  //                 (sum, i) => sum + (Number(i.quantity) || 0),
+  //                 0
+  //               );
+  //               const freshBaseQty = freshInvoiceItems.reduce(
+  //                 (sum, i) => sum + (Number(i.base_quantity) || 0),
+  //                 0
+  //               );
+  //               logger.info(
+  //                 `[saveReconciliations] Refreshed sale_qty for item ${id}: ${saleQty} → ${freshQty}`
+  //               );
+  //               saleQty = freshQty;
+  //               saleBaseQty = freshBaseQty;
+  //               await tx.reconciliation_items.update({
+  //                 where: { id },
+  //                 data: { sale_qty: freshQty, sale_base_qty: freshBaseQty },
+  //               });
+  //             }
+  //           }
+
+  //           const freshExpectedQty = loadQty - saleQty;
+  //           const freshExpectedBaseQty = loadBaseQty - saleBaseQty;
+
+  //           const expectedQty = freshExpectedQty;
+  //           const expectedBaseQty = freshExpectedBaseQty;
+  //           const expectedTotalPieces = expectedQty * conv + expectedBaseQty;
+
+  //           if (parsedActual !== null || parsedActualBase !== null) {
+  //             const actual = parsedActual || 0;
+  //             const actualBase = parsedActualBase || 0;
+
+  //             const actualTotalPieces = actual * conv + actualBase;
+  //             const variancePieces = actualTotalPieces - expectedTotalPieces;
+
+  //             if (variancePieces === 0) {
+  //               variance = 0;
+  //               variance_base_qty = 0;
+  //               resAction = 'CLEAN';
+  //             } else {
+  //               const absV = Math.abs(variancePieces);
+  //               variance = Math.floor(absV / conv) * Math.sign(variancePieces);
+  //               variance_base_qty = (absV % conv) * Math.sign(variancePieces);
+
+  //               if (variancePieces > 0) {
+  //                 resAction = 'Adjust Unload Upward';
+  //               } else {
+  //                 resAction = 'Post to Default Outlet';
+  //               }
+  //             }
+  //           }
+
+  //           const defaultOutletPostingQty =
+  //             resAction === 'Post to Default Outlet' && variance !== null
+  //               ? Math.abs(variance)
+  //               : 0;
+  //           const defaultOutletPostingBaseQty =
+  //             resAction === 'Post to Default Outlet' &&
+  //             variance_base_qty !== null
+  //               ? Math.abs(variance_base_qty)
+  //               : 0;
+
+  //           const unloadAdjustmentQty =
+  //             resAction === 'Adjust Unload Upward' && variance !== null
+  //               ? variance
+  //               : 0;
+  //           const unloadAdjustmentBaseQty =
+  //             resAction === 'Adjust Unload Upward' && variance_base_qty !== null
+  //               ? variance_base_qty
+  //               : 0;
+
+  //           const updatedItem = await tx.reconciliation_items.update({
+  //             where: { id },
+  //             data: {
+  //               actual_qty: parsedActual,
+  //               actual_base_qty: parsedActualBase,
+  //               expected_qty: expectedQty,
+  //               expected_base_qty: expectedBaseQty,
+  //               variance,
+  //               variance_base_qty,
+  //               tax_amount: parsedTaxAmount,
+  //               resolution_action: resAction,
+  //               default_outlet_posting_qty: defaultOutletPostingQty,
+  //               default_outlet_posting_base_qty: defaultOutletPostingBaseQty,
+  //               unload_adjustment_qty: unloadAdjustmentQty,
+  //               unload_adjustment_base_qty: unloadAdjustmentBaseQty,
+  //               updatedate: new Date(),
+  //               updatedby: userId,
+  //             },
+  //           });
+
+  //           const reconciliationId = record.reconciliation?.id;
+  //           if (reconciliationId) {
+  //             reconciliationIds.add(reconciliationId);
+  //           }
+
+  //           updatedItems.push({
+  //             ...updatedItem,
+  //             reconciliation_id: reconciliationId,
+  //           });
+  //         }
+
+  //         if (reconciliationIds.size > 0) {
+  //           for (const reconciliationId of reconciliationIds) {
+  //             await tx.reconciliation.update({
+  //               where: { id: reconciliationId },
+  //               data: {
+  //                 status: 'P',
+  //                 updatedate: new Date(),
+  //                 updatedby: userId,
+  //               },
+  //             });
+  //           }
+  //         }
+
+  //         return updatedItems;
+  //       },
+  //       {
+  //         maxWait: 1500000,
+  //         timeout: 3000000,
+  //       }
+  //     );
+
+  //     const reconciliationIds = Array.from(
+  //       new Set(results.map((item: any) => item.reconciliation_id))
+  //     );
+
+  //     const requestResults = [];
+
+  //     for (const reconciliationId of reconciliationIds) {
+  //       const existingRequest = await prisma.sfa_d_requests.findFirst({
+  //         where: {
+  //           request_type: 'RECONCILIATION_APPROVAL',
+  //           reference_id: reconciliationId,
+  //           status: 'P',
+  //         },
+  //       });
+
+  //       if (existingRequest) {
+  //         requestResults.push({
+  //           request_id: existingRequest.id,
+  //           status: existingRequest.status,
+  //           request_type: existingRequest.request_type,
+  //           reference_id: existingRequest.reference_id,
+  //         });
+  //         continue;
+  //       }
+
+  //       const reconciliationItems = results
+  //         .filter((item: any) => item.reconciliation_id === reconciliationId)
+  //         .map((item: any) => ({
+  //           id: item.id,
+  //           actual_qty: item.actual_qty,
+  //         }));
+
+  //       const rec = await prisma.reconciliation.findUnique({
+  //         where: { id: reconciliationId },
+  //         select: { depot_id: true },
+  //       });
+
+  //       const createdRequest = await createRequest({
+  //         requester_id: userId,
+  //         request_type: 'RECONCILIATION_APPROVAL',
+  //         reference_id: reconciliationId,
+  //         request_data: JSON.stringify({
+  //           reconciliation_items: reconciliationItems,
+  //           depot_id: rec?.depot_id,
+  //         }),
+  //         createdby: userId,
+  //         log_inst: 1,
+  //       });
+
+  //       requestResults.push({
+  //         request_id: createdRequest.id,
+  //         status: createdRequest.status,
+  //         request_type: createdRequest.request_type,
+  //         reference_id: createdRequest.reference_id,
+  //       });
+  //     }
+
+  //     res.json({
+  //       success: true,
+  //       message: 'Reconciliation data saved successfully',
+  //       data: results,
+  //       approval_requests: requestResults,
+  //     });
+  //   } catch (error: any) {
+  //     logger.error('Save Reconciliations Error:', error);
+  //     res.status(500).json({
+  //       success: false,
+  //       message: error.message || 'Failed to save reconciliation data',
+  //     });
+  //   }
+  // },
+
   saveReconciliations: async (req: Request, res: Response) => {
     try {
       const { items } = req.body;
@@ -517,17 +824,73 @@ export const reconciliationController = {
               record.load_qty !== null ? Number(record.load_qty) : 0;
             const loadBaseQty =
               record.load_base_qty !== null ? Number(record.load_base_qty) : 0;
-            const saleQty =
+
+            const salesmanId = record.reconciliation?.salesman_id;
+            const recCreatedate = record.reconciliation?.createdate;
+            let saleQty =
               record.sale_qty !== null ? Number(record.sale_qty) : 0;
-            const saleBaseQty =
+            let saleBaseQty =
               record.sale_base_qty !== null ? Number(record.sale_base_qty) : 0;
 
-            const expectedQty =
-              record.expected_qty !== null ? Number(record.expected_qty) : 0;
-            const expectedBaseQty =
-              record.expected_base_qty !== null
-                ? Number(record.expected_base_qty)
-                : 0;
+            if (salesmanId && record.product_id && recCreatedate) {
+              const now = new Date();
+              const todayEnd = new Date(now);
+              todayEnd.setHours(23, 59, 59, 999);
+
+              const prevReconciliation = await tx.reconciliation.findFirst({
+                where: {
+                  salesman_id: salesmanId,
+                  createdate: { lt: recCreatedate },
+                  id: { lt: record.reconciliation_id },
+                },
+                orderBy: { createdate: 'desc' },
+              });
+
+              const sessionStart =
+                prevReconciliation?.createdate ?? new Date(0);
+
+              const freshInvoiceItems = await tx.invoice_items.findMany({
+                where: {
+                  invoices: {
+                    OR: [
+                      { salesperson_id: salesmanId },
+                      { createdby: salesmanId },
+                    ],
+                    createdate: { gte: sessionStart, lt: todayEnd },
+                    is_active: 'Y',
+                    NOT: [{ invoice_number: { contains: 'RECON' } }],
+                  },
+                  product_id: record.product_id,
+                },
+                select: { quantity: true, base_quantity: true },
+              });
+
+              if (freshInvoiceItems.length > 0) {
+                const freshQty = freshInvoiceItems.reduce(
+                  (sum, i) => sum + (Number(i.quantity) || 0),
+                  0
+                );
+                const freshBaseQty = freshInvoiceItems.reduce(
+                  (sum, i) => sum + (Number(i.base_quantity) || 0),
+                  0
+                );
+                logger.info(
+                  `[saveReconciliations] Refreshed sale_qty for item ${id}: ${saleQty} → ${freshQty}`
+                );
+                saleQty = freshQty;
+                saleBaseQty = freshBaseQty;
+                await tx.reconciliation_items.update({
+                  where: { id },
+                  data: { sale_qty: freshQty, sale_base_qty: freshBaseQty },
+                });
+              }
+            }
+
+            const freshExpectedQty = loadQty - saleQty;
+            const freshExpectedBaseQty = loadBaseQty - saleBaseQty;
+
+            const expectedQty = freshExpectedQty;
+            const expectedBaseQty = freshExpectedBaseQty;
             const expectedTotalPieces = expectedQty * conv + expectedBaseQty;
 
             if (parsedActual !== null || parsedActualBase !== null) {
@@ -578,6 +941,8 @@ export const reconciliationController = {
               data: {
                 actual_qty: parsedActual,
                 actual_base_qty: parsedActualBase,
+                expected_qty: expectedQty,
+                expected_base_qty: expectedBaseQty,
                 variance,
                 variance_base_qty,
                 tax_amount: parsedTaxAmount,
@@ -694,7 +1059,6 @@ export const reconciliationController = {
       });
     }
   },
-
   /**
    * Export reconciliation sheet to styled Excel
    */
