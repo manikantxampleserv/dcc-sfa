@@ -35,6 +35,7 @@ interface Product {
   vat_percentage?: number | null;
   weight_in_grams?: number | null;
   volume_in_liters?: number | null;
+  unit_case_conversion_rate?: number | null;
   batch_lots?: { id: number; batch_number: string; lot_number: string }[];
   inventory_stock?: {
     id: number;
@@ -94,6 +95,7 @@ interface ManageProductPayload {
   vat_percentage?: number;
   weight_in_grams?: number;
   volume_in_liters?: number;
+  unit_case_conversion_rate?: number;
   is_active?: string;
 }
 
@@ -122,6 +124,7 @@ interface UpdateProductPayload {
   vat_percentage?: number;
   weight_in_grams?: number;
   volume_in_liters?: number;
+  unit_case_conversion_rate?: number;
   is_active?: string;
 }
 

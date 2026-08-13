@@ -207,6 +207,9 @@ const ManageProduct: React.FC<ManageProductProps> = ({
       volume_in_liters: selectedProduct?.volume_in_liters
         ? Number(selectedProduct.volume_in_liters)
         : '',
+      unit_case_conversion_rate: selectedProduct?.unit_case_conversion_rate
+        ? Number(selectedProduct.unit_case_conversion_rate)
+        : '',
       is_active: selectedProduct?.is_active || 'Y',
     },
     validationSchema: productValidationSchema,
@@ -262,6 +265,9 @@ const ManageProduct: React.FC<ManageProductProps> = ({
             : undefined,
           volume_in_liters: values.volume_in_liters
             ? Number(values.volume_in_liters)
+            : undefined,
+          unit_case_conversion_rate: values.unit_case_conversion_rate
+            ? Number(values.unit_case_conversion_rate)
             : undefined,
           is_active: values.is_active,
         };
@@ -494,6 +500,14 @@ const ManageProduct: React.FC<ManageProductProps> = ({
               label="Volume (liters)"
               type="number"
               placeholder="Enter volume in liters"
+              formik={formik}
+            />
+
+            <Input
+              name="unit_case_conversion_rate"
+              label="UCCR"
+              type="number"
+              placeholder="Enter UCCR"
               formik={formik}
             />
 
