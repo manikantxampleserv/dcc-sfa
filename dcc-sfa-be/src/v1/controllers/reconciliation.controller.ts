@@ -26,6 +26,7 @@ export const reconciliationController = {
    * List all reconciliations — one row per salesman load.
    * Returns reconciliation header data only (no item details).
    */
+
   getAllReconciliations: async (req: Request, res: Response) => {
     try {
       const page = Number(req.query.page) || 1;
@@ -184,6 +185,49 @@ export const reconciliationController = {
         orderBy: { id: 'desc' },
       });
 
+      const salesman_date_pairs = data
+        .filter((rec: any) => rec.salesman_id && rec.reconciliation_date)
+        .map((rec: any) => ({
+          salesman_id: rec.salesman_id as number,
+          rec_date: new Date(rec.reconciliation_date),
+        }));
+
+      const loadDateMap = new Map<string, Date | null>();
+      if (salesman_date_pairs.length > 0) {
+        const uniqueSalesmanIds = [
+          ...new Set(salesman_date_pairs.map((p: any) => p.salesman_id)),
+        ];
+        const vanLoads = await prisma.van_inventory.findMany({
+          where: {
+            user_id: { in: uniqueSalesmanIds as number[] },
+            loading_type: 'L',
+            approval_status: 'A',
+            is_cancelled: 'N',
+          },
+          select: { user_id: true, document_date: true },
+          orderBy: { document_date: 'asc' },
+        });
+
+        for (const pair of salesman_date_pairs) {
+          const recDateStr = pair.rec_date.toISOString().split('T')[0];
+          const key = `${pair.salesman_id}_${recDateStr}`;
+          if (loadDateMap.has(key)) continue;
+          const match = vanLoads
+            .filter(
+              (v: any) =>
+                v.user_id === pair.salesman_id &&
+                v.document_date &&
+                v.document_date.toISOString().split('T')[0] <= recDateStr
+            )
+            .sort(
+              (a: any, b: any) =>
+                new Date(b.document_date).getTime() -
+                new Date(a.document_date).getTime()
+            )[0];
+          loadDateMap.set(key, match?.document_date ?? null);
+        }
+      }
+
       const serializedData = data.map((rec: any) => {
         const items: any[] = rec.reconciliation_items ?? [];
         const totalItems = items.length;
@@ -202,6 +246,13 @@ export const reconciliationController = {
           overallStatus = 'Variance';
         }
 
+        const recDateStr = rec.reconciliation_date
+          ? new Date(rec.reconciliation_date).toISOString().split('T')[0]
+          : null;
+        const loadDate = recDateStr
+          ? (loadDateMap.get(`${rec.salesman_id}_${recDateStr}`) ?? null)
+          : null;
+
         return {
           id: rec.id,
           salesman_id: rec.salesman?.id,
@@ -212,6 +263,7 @@ export const reconciliationController = {
           depot_id: rec.depot?.id || null,
           depotName: rec.depot?.name || 'UNMAPPED',
           reconciliation_date: rec.reconciliation_date,
+          load_date: loadDate,
           status: rec.status || 'P',
           totalItems,
           pendingItems,
@@ -247,6 +299,228 @@ export const reconciliationController = {
       });
     }
   },
+
+  // getAllReconciliations: async (req: Request, res: Response) => {
+  //   try {
+  //     const page = Number(req.query.page) || 1;
+  //     const limit = Number(req.query.limit) || 10;
+  //     const search = req.query.search ? String(req.query.search).trim() : '';
+  //     const salesmanId = req.query.salesman_id
+  //       ? Number(req.query.salesman_id)
+  //       : null;
+  //     const depotId = req.query.depot_id ? Number(req.query.depot_id) : null;
+  //     const date = req.query.date ? String(req.query.date).trim() : '';
+  //     const status = req.query.status ? String(req.query.status).trim() : '';
+  //     const recStatus = req.query.rec_status
+  //       ? String(req.query.rec_status).trim()
+  //       : '';
+
+  //     const user = (req as any).user;
+  //     let isScopeRestricted = false;
+  //     let depotIds: number[] = [];
+
+  //     if (user && !isAdminRole(user.role)) {
+  //       isScopeRestricted = true;
+  //       const userDepots = await prisma.user_depots.findMany({
+  //         where: { user_id: user.id },
+  //         select: { depot_id: true },
+  //       });
+  //       depotIds = userDepots
+  //         .map((ud: any) => ud.depot_id)
+  //         .filter((id: any) => id !== null) as number[];
+  //     }
+
+  //     const reconcFilters: any = { is_active: 'Y' };
+
+  //     if (isScopeRestricted) {
+  //       if (depotIds.length > 0) {
+  //         reconcFilters.depot_id = { in: depotIds };
+  //       } else {
+  //         reconcFilters.id = -1;
+  //       }
+  //     }
+  //     if (salesmanId) reconcFilters.salesman_id = salesmanId;
+  //     if (depotId) reconcFilters.depot_id = depotId;
+  //     if (date) {
+  //       const d = new Date(date);
+  //       if (!isNaN(d.getTime())) reconcFilters.reconciliation_date = d;
+  //     }
+  //     if (search) {
+  //       reconcFilters.salesman = { name: { contains: search } };
+  //     }
+  //     if (recStatus) {
+  //       reconcFilters.status = recStatus;
+  //     }
+  //     if (status && status !== 'all') {
+  //       reconcFilters.reconciliation_items = {
+  //         some: {
+  //           resolution_action: resolveStatusFilter(status),
+
+  //           is_active: 'Y',
+  //         },
+  //       };
+  //     }
+
+  //     const latestOnly = req.query.latest_only === 'true';
+
+  //     const allMatching = await prisma.reconciliation.findMany({
+  //       where: reconcFilters,
+  //       select: { id: true, salesman_id: true, reconciliation_date: true },
+  //       orderBy: { id: 'asc' },
+  //     });
+
+  //     let finalIds: number[] = [];
+
+  //     if (latestOnly) {
+  //       const latestIdMap = new Map<string, number>();
+  //       const nonGroupableIds: number[] = [];
+  //       for (const rec of allMatching) {
+  //         if (!rec.salesman_id || !rec.reconciliation_date) {
+  //           nonGroupableIds.push(rec.id);
+  //           continue;
+  //         }
+  //         const dateStr = new Date(rec.reconciliation_date)
+  //           .toISOString()
+  //           .split('T')[0];
+  //         const key = `${rec.salesman_id}_${dateStr}`;
+  //         latestIdMap.set(key, rec.id);
+  //       }
+  //       finalIds = [...Array.from(latestIdMap.values()), ...nonGroupableIds];
+  //     } else {
+  //       finalIds = allMatching.map((r: { id: number }) => r.id);
+  //     }
+
+  //     if (reconcFilters.id !== -1) {
+  //       reconcFilters.id = { in: finalIds };
+  //     }
+
+  //     const ids = finalIds;
+
+  //     const itemStatsFilter: any = {
+  //       reconciliation_id: { in: ids },
+  //       is_active: 'Y',
+  //     };
+  //     if (status && status !== 'all') {
+  //       itemStatsFilter.resolution_action = resolveStatusFilter(status);
+  //     }
+
+  //     const allStatsItems = await prisma.reconciliation_items.findMany({
+  //       where: itemStatsFilter,
+  //       select: {
+  //         expected_qty: true,
+  //         actual_qty: true,
+  //         default_outlet_posting_qty: true,
+  //         unload_adjustment_qty: true,
+  //         resolution_action: true,
+  //       },
+  //     });
+
+  //     let totalExpected = 0,
+  //       totalActual = 0,
+  //       totalDefaultOutlet = 0,
+  //       totalUnloadAdjustment = 0,
+  //       totalPending = 0;
+  //     for (const item of allStatsItems) {
+  //       totalExpected += Number(item.expected_qty) || 0;
+  //       totalActual += Number(item.actual_qty) || 0;
+  //       totalDefaultOutlet += Number(item.default_outlet_posting_qty) || 0;
+  //       totalUnloadAdjustment += Number(item.unload_adjustment_qty) || 0;
+  //       if (
+  //         item.resolution_action === 'Awaiting Verification' ||
+  //         item.resolution_action === 'Awaiting Force-Push'
+  //       ) {
+  //         totalPending++;
+  //       }
+  //     }
+
+  //     const { data, pagination } = await paginate<any>({
+  //       model: prisma.reconciliation,
+  //       filters: reconcFilters,
+  //       page,
+  //       limit,
+  //       include: {
+  //         salesman: {
+  //           select: {
+  //             id: true,
+  //             name: true,
+  //             employee_id: true,
+  //             email: true,
+  //             sap_code: true,
+  //             users: { select: { name: true } },
+  //           },
+  //         },
+  //         depot: { select: { id: true, name: true, code: true } },
+  //         reconciliation_items: {
+  //           where: { is_active: 'Y' },
+  //           select: { id: true, resolution_action: true, actual_qty: true },
+  //         },
+  //       },
+  //       orderBy: { id: 'desc' },
+  //     });
+
+  //     const serializedData = data.map((rec: any) => {
+  //       const items: any[] = rec.reconciliation_items ?? [];
+  //       const totalItems = items.length;
+  //       const pendingItems = items.filter(
+  //         (i: any) => i.resolution_action !== 'CLEAN'
+  //       ).length;
+  //       const matchedItems = items.filter(
+  //         (i: any) => i.resolution_action === 'CLEAN'
+  //       ).length;
+  //       const varianceItems = totalItems - matchedItems;
+
+  //       let overallStatus = 'Pending';
+  //       if (totalItems > 0 && matchedItems === totalItems) {
+  //         overallStatus = 'Matched';
+  //       } else if (totalItems > 0 && pendingItems === 0) {
+  //         overallStatus = 'Variance';
+  //       }
+
+  //       return {
+  //         id: rec.id,
+  //         salesman_id: rec.salesman?.id,
+  //         salesmanName: rec.salesman?.name || 'UNMAPPED',
+  //         salesmanSapCode: rec.salesman?.sap_code || 'UNMAPPED',
+  //         salesmanEmail: rec.salesman?.email || '',
+  //         depot: rec.depot?.code || 'UNMAPPED',
+  //         depot_id: rec.depot?.id || null,
+  //         depotName: rec.depot?.name || 'UNMAPPED',
+  //         reconciliation_date: rec.reconciliation_date,
+  //         status: rec.status || 'P',
+  //         totalItems,
+  //         pendingItems,
+  //         matchedItems,
+  //         varianceItems,
+  //         overallStatus: rec.status,
+  //         createdate: rec.createdate,
+  //       };
+  //     });
+
+  //     res.json({
+  //       success: true,
+  //       message: 'Reconciliations retrieved successfully',
+  //       data: serializedData,
+  //       meta: {
+  //         requestDuration: Date.now(),
+  //         timestamp: new Date().toISOString(),
+  //         ...pagination,
+  //       },
+  //       stats: {
+  //         expected: totalExpected,
+  //         actual: totalActual,
+  //         default_outlet: totalDefaultOutlet,
+  //         unload_adjustment: totalUnloadAdjustment,
+  //         pending: totalPending,
+  //       },
+  //     });
+  //   } catch (error: any) {
+  //     logger.error('Get Reconciliations Error:', error);
+  //     res.status(500).json({
+  //       success: false,
+  //       message: error.message || 'Failed to retrieve reconciliations',
+  //     });
+  //   }
+  // },
 
   /**
    * Get loaded products (items) for a specific reconciliation by ID.
