@@ -15,6 +15,7 @@ import type { MenuItem } from '../mock/sidebar';
 export const useMenuPermissions = () => {
   const executiveDashboardPerms = usePermission('executive-dashboard' as BackendModule);
   const gradingDashboardPerms = usePermission('grading-dashboard' as BackendModule);
+  const salesControlTowerPerms = usePermission('sales-control-tower' as BackendModule);
   const reconciliationPerms = usePermission('reconciliation' as BackendModule);
   const settlementSheetPerms = usePermission('settlement-sheet' as BackendModule);
   const userPerms = usePermission('user' as BackendModule);
@@ -86,6 +87,7 @@ export const useMenuPermissions = () => {
   const permissions = useMemo(() => ({
     'executive-dashboard': executiveDashboardPerms,
     'grading-dashboard': gradingDashboardPerms,
+    'sales-control-tower': salesControlTowerPerms,
     'reconciliation': reconciliationPerms,
     'settlement-sheet': settlementSheetPerms,
     'user': userPerms,
@@ -156,6 +158,7 @@ export const useMenuPermissions = () => {
   }), [
     executiveDashboardPerms,
     gradingDashboardPerms,
+    salesControlTowerPerms,
     reconciliationPerms,
     settlementSheetPerms,
     userPerms,

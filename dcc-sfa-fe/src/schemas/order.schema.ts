@@ -25,7 +25,7 @@ export interface OrderFormValues {
 export interface OrderItemFormData {
   product_id: number;
   product_name?: string | null;
-  unit: 'CASE' | 'PCS';
+  unit: string;
   tracking_type?: string | null;
   quantity: string;
   unit_price?: string;

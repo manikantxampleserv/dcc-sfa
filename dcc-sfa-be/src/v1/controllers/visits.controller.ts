@@ -1062,6 +1062,19 @@ export const visitsController = {
                   for (const invoiceData of invoices) {
                     const invoiceItems = invoiceData.items || [];
 
+                    const hasNonZeroItems = invoiceItems.some((it: any) => {
+                      const { orderedQty, orderedPieces } =
+                        getOrderedQuantities(it);
+                      return orderedPieces > 0 || orderedQty > 0;
+                    });
+
+                    if (!hasNonZeroItems) {
+                      console.log(
+                        `Skipping invoice "${invoiceData.invoice_number || '(no number)'}" — all items have 0 quantity`
+                      );
+                      continue;
+                    }
+
                     let invoiceNumber = invoiceData.invoice_number;
                     if (!invoiceNumber) {
                       invoiceNumber =
@@ -1169,6 +1182,20 @@ export const visitsController = {
                         );
 
                       for (const item of invoiceItems) {
+                        const {
+                          orderedQty,
+                          orderedPieces,
+                          conversionFactor,
+                          uom: itemUnit,
+                        } = getOrderedQuantities(item);
+
+                        if (orderedPieces === 0 && orderedQty === 0) {
+                          console.log(
+                            `Skipping item with 0 quantity: ${item.product_name || item.product_id}`
+                          );
+                          continue;
+                        }
+
                         const product = await tx.products.findUnique({
                           where: { id: Number(item.product_id) },
                           include: { product_unit_of_measurement: true },
@@ -1183,13 +1210,6 @@ export const visitsController = {
                         const trackingType =
                           (product.tracking_type as string)?.toUpperCase() ||
                           'NONE';
-
-                        const {
-                          orderedQty,
-                          orderedPieces,
-                          conversionFactor,
-                          uom: itemUnit,
-                        } = getOrderedQuantities(item);
 
                         const isUnitPcs = itemUnit === 'UNIT';
 
@@ -1319,12 +1339,8 @@ export const visitsController = {
                                 orderBy: { document_date: 'desc' },
                               });
 
-                            const vanInventoryIds = vanInventories.map(
-                              (v: any) => v.id
-                            );
                             const vanInventory = vanInventories[0] || null;
 
-                            // Buggy vanItems check for BATCH tracking type removed (we rely on inventory_stock instead)\r
                             const inventoryStock =
                               await tx.inventory_stock.findFirst({
                                 where: {
@@ -1449,7 +1465,7 @@ export const visitsController = {
                                 movement_date: new Date(),
                                 remarks: isUnitPcs
                                   ? `Sold via ${referenceLabel} - Batch: ${batchLot.batch_number} - ${piecesToDeduct} PCS`
-                                  : `Sold via ${referenceLabel} - Batch: ${batchLot.batch_number} - ${batchOrder.uomQty} CASE(S) (${piecesToDeduct} pieces)`,
+                                  : `Sold via ${referenceLabel} - Batch: ${batchLot.batch_number} - ${batchOrder.uomQty} ${itemUnit}(S) (${piecesToDeduct} pieces)`,
                                 is_active: 'Y',
                                 createdate: new Date(),
                                 createdby:
@@ -1883,7 +1899,7 @@ export const visitsController = {
                               movement_date: new Date(),
                               remarks: isUnitPcs
                                 ? `Sold via ${referenceLabel} - ${orderedPieces} PCS`
-                                : `Sold via ${referenceLabel} - ${orderedQty} CASE(S) (${orderedPieces} pieces)`,
+                                : `Sold via ${referenceLabel} - ${orderedQty} ${item.unit || 'CASE'}(S) (${orderedPieces} pieces)`,
                               is_active: 'Y',
                               createdate: new Date(),
                               createdby:

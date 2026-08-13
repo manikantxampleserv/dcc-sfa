@@ -220,6 +220,12 @@ exports.gpsTrackingController = {
             }
             const usersWhere = {
                 is_active: 'Y',
+                user_role: {
+                    OR: [
+                        { role_key: { contains: 'salesman' } },
+                        { name: { contains: 'salesman' } },
+                    ],
+                },
             };
             if (isScopeRestricted) {
                 if (depotIds.length > 0) {
@@ -272,9 +278,17 @@ exports.gpsTrackingController = {
                     }),
                 };
             }));
+            // Sort descending by last updated timestamp
+            realTimeData.sort((a, b) => {
+                if (!a.last_update)
+                    return 1;
+                if (!b.last_update)
+                    return -1;
+                return (new Date(b.last_update).getTime() - new Date(a.last_update).getTime());
+            });
             const summary = {
                 total_users: realTimeData.length,
-                users_with_location: realTimeData.filter(u => u.latitude).length,
+                users_with_location: realTimeData.filter((u) => u.latitude).length,
                 timestamp: new Date(),
             };
             res.json({

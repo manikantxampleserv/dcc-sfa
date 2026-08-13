@@ -60,14 +60,7 @@ export const reconciliationController = {
 
       if (isScopeRestricted) {
         if (depotIds.length > 0) {
-          reconcFilters.salesman = {
-            ...reconcFilters.salesman,
-            users_depots_users: {
-              some: {
-                depot_id: { in: depotIds },
-              },
-            },
-          };
+          reconcFilters.depot_id = { in: depotIds };
         } else {
           reconcFilters.id = -1;
         }
@@ -1098,6 +1091,12 @@ export const reconciliationController = {
       }
 
       const format = req.query.format as string;
+
+      const uomCase = req.query.uomCase as string;
+      if (uomCase) data.meta.uomCase = uomCase;
+
+      const uomPcs = req.query.uomPcs as string;
+      if (uomPcs) data.meta.uomPcs = uomPcs;
 
       if (format === 'pdf') {
         const buffer = await exportReconciliationPdfService(data);

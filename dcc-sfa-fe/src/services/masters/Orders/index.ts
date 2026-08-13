@@ -11,7 +11,7 @@ interface OrderItem {
   parent_id?: number;
   product_id: number;
   product_name?: string;
-  unit: 'CASE' | 'PCS';
+  unit: string;
   quantity: number;
   unit_price: number;
   discount_amount?: number;

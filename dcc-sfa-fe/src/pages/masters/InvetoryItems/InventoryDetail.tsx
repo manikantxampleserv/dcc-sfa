@@ -18,6 +18,7 @@ import {
   type ChipProps,
 } from '@mui/material';
 import { useCurrency } from 'hooks/useCurrency';
+import { useResolvedUom } from 'hooks/useUnitOfMeasurement';
 import {
   useInventoryItemById,
   useSalespersonSummary,
@@ -249,6 +250,7 @@ const InventoryDetail = () => {
     defaultCurrencyId || 1
   );
   const currencySymbol = getCurrencySymbol(currencyCode);
+  const { uomCase, uomPcs } = useResolvedUom();
 
   const formatCompactNumber = (num: number): string => {
     if (num >= 1e9) {
@@ -286,8 +288,8 @@ const InventoryDetail = () => {
   ) => {
     const safeQty = Number(qty) || 0;
     const safeBaseQty = Number(baseQty) || 0;
-    const caseUnit = 'Crates';
-    const baseUnit = 'PCs';
+    const caseUnit = uomCase;
+    const baseUnit = uomPcs;
     if (safeQty === 0 && safeBaseQty === 0) {
       return `0 ${caseUnit}`;
     }
@@ -571,8 +573,8 @@ const InventoryDetail = () => {
         render: (_value, row) => {
           const qty = Number(row?.remaining_quantity) || 0;
           const baseQty = Number(row?.base_quantity) || 0;
-          const caseUnit = 'Crates';
-          const baseUnit = 'PCs';
+          const caseUnit = uomCase;
+          const baseUnit = uomPcs;
           if (qty === 0 && baseQty === 0) {
             return (
               <span className="font-mono text-sm text-gray-500">

@@ -236,24 +236,6 @@ async function syncDeductionsForContainerGroup(tx, originalSalesPersonId, produc
     // No-op - container sub-users directly share the main/parent user's stock record!
     return;
 }
-function cleanObject(obj) {
-    if (typeof obj === 'string') {
-        return obj.trim();
-    }
-    if (Array.isArray(obj)) {
-        return obj.map(cleanObject);
-    }
-    if (obj !== null &&
-        typeof obj === 'object' &&
-        (obj.constructor === Object || !obj.constructor)) {
-        const cleaned = {};
-        for (const key of Object.keys(obj)) {
-            cleaned[key.trim()] = cleanObject(obj[key]);
-        }
-        return cleaned;
-    }
-    return obj;
-}
 exports.visitsController = {
     async createVisits(req, res) {
         try {
@@ -422,16 +404,15 @@ exports.visitsController = {
                 failed: [],
             };
             dataArray = dataArray.map((item, idx) => {
-                let parsedItem = item;
                 if (typeof item === 'string') {
                     try {
-                        parsedItem = JSON.parse(item);
+                        return JSON.parse(item);
                     }
                     catch (e) {
                         throw new Error(`Invalid JSON at visits[${idx}]`);
                     }
                 }
-                return cleanObject(parsedItem);
+                return item;
             });
             for (let index = 0; index < dataArray.length; index++) {
                 const data = dataArray[index];
@@ -657,6 +638,14 @@ exports.visitsController = {
                                 console.log(`Processing ${invoices.length} invoice(s)`);
                                 for (const invoiceData of invoices) {
                                     const invoiceItems = invoiceData.items || [];
+                                    const hasNonZeroItems = invoiceItems.some((it) => {
+                                        const { orderedQty, orderedPieces } = (0, inventory_utils_1.getOrderedQuantities)(it);
+                                        return orderedPieces > 0 || orderedQty > 0;
+                                    });
+                                    if (!hasNonZeroItems) {
+                                        console.log(`Skipping invoice "${invoiceData.invoice_number || '(no number)'}" — all items have 0 quantity`);
+                                        continue;
+                                    }
                                     let invoiceNumber = invoiceData.invoice_number;
                                     if (!invoiceNumber) {
                                         invoiceNumber =
@@ -746,13 +735,9 @@ exports.visitsController = {
                                         const groupUsers = await (0, inventory_utils_1.getContainerGroupUsers)(tx, visit.sales_person_id);
                                         const targetSalespersonIds = await (0, inventory_utils_1.getContainerOwnerAndSelf)(tx, visit.sales_person_id);
                                         for (const item of invoiceItems) {
-                                            const quantity = Number(item.quantity) || 0;
-                                            const baseQuantity = Number(item.base_quantity) || 0;
-                                            const quantityPieces = Number(item.quantity_pieces) || 0;
-                                            if (quantity === 0 &&
-                                                baseQuantity === 0 &&
-                                                quantityPieces === 0) {
-                                                console.log(`Skipping invoice item ${item.product_name || item.product_id} because quantity is 0`);
+                                            const { orderedQty, orderedPieces, conversionFactor, uom: itemUnit, } = (0, inventory_utils_1.getOrderedQuantities)(item);
+                                            if (orderedPieces === 0 && orderedQty === 0) {
+                                                console.log(`Skipping item with 0 quantity: ${item.product_name || item.product_id}`);
                                                 continue;
                                             }
                                             const product = await tx.products.findUnique({
@@ -764,7 +749,6 @@ exports.visitsController = {
                                             }
                                             const trackingType = product.tracking_type?.toUpperCase() ||
                                                 'NONE';
-                                            const { orderedQty, orderedPieces, conversionFactor, uom: itemUnit, } = (0, inventory_utils_1.getOrderedQuantities)(item);
                                             const isUnitPcs = itemUnit === 'UNIT';
                                             console.log(`Processing ${trackingType} - Product: ${product.name}, ` +
                                                 `Unit: ${itemUnit}, ` +
@@ -861,9 +845,7 @@ exports.visitsController = {
                                                         },
                                                         orderBy: { document_date: 'desc' },
                                                     });
-                                                    const vanInventoryIds = vanInventories.map((v) => v.id);
                                                     const vanInventory = vanInventories[0] || null;
-                                                    // Buggy vanItems check for BATCH tracking type removed (we rely on inventory_stock instead)\r
                                                     const inventoryStock = await tx.inventory_stock.findFirst({
                                                         where: {
                                                             product_id: product.id,
@@ -939,7 +921,7 @@ exports.visitsController = {
                                                             movement_date: new Date(),
                                                             remarks: isUnitPcs
                                                                 ? `Sold via ${referenceLabel} - Batch: ${batchLot.batch_number} - ${piecesToDeduct} PCS`
-                                                                : `Sold via ${referenceLabel} - Batch: ${batchLot.batch_number} - ${batchOrder.uomQty} CASE(S) (${piecesToDeduct} pieces)`,
+                                                                : `Sold via ${referenceLabel} - Batch: ${batchLot.batch_number} - ${batchOrder.uomQty} ${itemUnit}(S) (${piecesToDeduct} pieces)`,
                                                             is_active: 'Y',
                                                             createdate: new Date(),
                                                             createdby: req.user?.id || visit.createdby || 1,
@@ -1231,7 +1213,7 @@ exports.visitsController = {
                                                         movement_date: new Date(),
                                                         remarks: isUnitPcs
                                                             ? `Sold via ${referenceLabel} - ${orderedPieces} PCS`
-                                                            : `Sold via ${referenceLabel} - ${orderedQty} CASE(S) (${orderedPieces} pieces)`,
+                                                            : `Sold via ${referenceLabel} - ${orderedQty} ${item.unit || 'CASE'}(S) (${orderedPieces} pieces)`,
                                                         is_active: 'Y',
                                                         createdate: new Date(),
                                                         createdby: req.user?.id || visit.createdby || 1,

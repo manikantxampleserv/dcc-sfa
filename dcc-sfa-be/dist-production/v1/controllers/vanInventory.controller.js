@@ -5442,7 +5442,6 @@ exports.vanInventoryController = {
                         // Process serials using normalized trackingType
                         let serials = [];
                         if (trackingType === 'serial') {
-                            // Only use serial directly linked to this van inventory item
                             const linkedSerial = item.van_inventory_serial;
                             if (linkedSerial && linkedSerial.status === 'in_van') {
                                 const warrantyExpired = linkedSerial.warranty_expiry &&

@@ -394,15 +394,17 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
   }));
 
   const filteredPriceListItems = priceListItemsWithIndex.filter(item => {
-    if (!subCategoryFilter) return true;
     const product = products.find(p => p.id === item.product_id);
-    return product?.product_sub_category?.id?.toString() === subCategoryFilter;
+    if (!product) return false;
+    if (!subCategoryFilter) return true;
+    return product.product_sub_category?.id?.toString() === subCategoryFilter;
   });
 
   const filteredNewPriceListItems = newPriceListItemsWithIndex.filter(item => {
-    if (!subCategoryFilter) return true;
     const product = products.find(p => p.id === item.product_id);
-    return product?.product_sub_category?.id?.toString() === subCategoryFilter;
+    if (!product) return false;
+    if (!subCategoryFilter) return true;
+    return product.product_sub_category?.id?.toString() === subCategoryFilter;
   });
 
   const sortItems = (items: (PriceListItemForm & { _index: number })[]) => {

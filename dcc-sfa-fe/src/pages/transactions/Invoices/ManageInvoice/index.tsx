@@ -12,6 +12,7 @@ import {
   useInvoice,
   useUpdateInvoice,
 } from 'hooks/useInvoices';
+import { useResolvedUom } from 'hooks/useUnitOfMeasurement';
 import { useOrder, useOrders } from 'hooks/useOrders';
 import {
   usePriceListByCustomer,
@@ -54,8 +55,8 @@ interface ManageInvoiceProps {
 export interface InvoiceItemFormData {
   product_id: number | '';
   product_name?: string;
-  unit: 'CASE' | 'PCS';
-  uom?: 'CASE' | 'PCS';
+  unit: string;
+  uom?: string;
   tracking_type?: string | null;
   quantity: string;
   base_quantity?: number;
@@ -74,6 +75,7 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
   invoice,
 }) => {
   const isEdit = !!invoice;
+  const { resolveForProduct } = useResolvedUom();
   const [invoiceItems, setInvoiceItems] = useState<InvoiceItemFormData[]>([]);
   const [isBatchSelectorOpen, setIsBatchSelectorOpen] = useState(false);
   const [isSerialSelectorOpen, setIsSerialSelectorOpen] = useState(false);
@@ -309,7 +311,6 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
       const product = salespersonData.products?.find(
         p => p.product_id === productId
       );
-      // Ensure tax rate is extracted correctly
       return Number((product as any)?.tax_details?.tax_rate) || 0;
     },
     [salespersonInventoryData]
@@ -367,8 +368,8 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
   const resolvePrice = (
     productId: number,
     priceLists: CustomerPriceListResult[] | undefined,
-    unit: 'CASE' | 'PCS' = 'CASE',
-    conversionRate: number = 24
+    unit: string = 'CASE',
+    conversionRate: number = 1
   ): string | null => {
     if (!priceLists || priceLists.length === 0) return null;
 
@@ -404,17 +405,29 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
 
       // 3. Base pricelist item price
       if (unit === 'PCS') {
-        const subUnitPrice = item.sub_unit_price;
+        const subUnitPrice = item.sub_unit_price || item.base_sub_unit_price;
         if (subUnitPrice) {
           return String(subUnitPrice);
         }
-        const casePrice = Number(item.unit_price);
+        const casePrice = Number(item.unit_price || item.base_unit_price);
         if (!isNaN(casePrice)) {
           const piecePrice = casePrice / conversionRate;
           return String(piecePrice.toFixed(2));
         }
       }
-      return String(item.unit_price);
+      return String(item.unit_price || item.base_unit_price);
+    }
+
+    // Fallback to product inventory base price
+    const productData = (
+      salespersonInventoryData?.data as SalespersonInventoryData
+    )?.products?.find((p: any) => p.product_id === productId);
+    if (productData?.unit_price) {
+      if (unit === 'PCS') {
+        const piecePrice = Number(productData.unit_price) / conversionRate;
+        return String(piecePrice.toFixed(2));
+      }
+      return String(productData.unit_price);
     }
 
     return null;
@@ -895,29 +908,47 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
     },
     {
       id: 'uom',
-      label: 'Case/PCs',
+      label: 'Sale Type',
       render: (_value, row) => {
-        const currentValue = ['CASE', 'PCS'].includes(row.unit)
-          ? row.unit
-          : 'CASE';
-
         const isSerialTracked = row.tracking_type?.toLowerCase() === 'serial';
+        const conversionRate = row.conversion_rate || 1;
+        const currentValue =
+          row.unit === 'PCS' || row.unit === 'PIECE' ? 'PCS' : 'CASE';
+
+        const productData = (
+          salespersonInventoryData?.data as SalespersonInventoryData
+        )?.products?.find((p: any) => p.product_id === row.product_id);
+        const { uomCase: itemCase, uomPcs: itemPcs } =
+          resolveForProduct(productData);
+
+        if (conversionRate <= 1 || isSerialTracked) {
+          return (
+            <Box className="!min-w-28 !flex !items-center !h-full">
+              <Typography variant="body2" className="!text-gray-700">
+                {itemCase}
+              </Typography>
+            </Box>
+          );
+        }
 
         return (
           <Box className="!min-w-28">
             <Select
               value={currentValue}
               onChange={(e: any) => {
-                const unit = e.target.value as 'CASE' | 'PCS';
-                handleUnitChange(row._index, unit);
+                const unit = e.target.value as string;
+                handleUnitChange(row._index, unit as any);
               }}
               size="small"
               disableClearable
               label=""
-              disabled={isSerialTracked}
             >
-              <MenuItem value="CASE">CASE</MenuItem>
-              {!isSerialTracked && <MenuItem value="PCS">PIECE</MenuItem>}
+              <MenuItem value="CASE">
+                {itemCase === 'Cs' ? 'Cases/Crates' : itemCase}
+              </MenuItem>
+              <MenuItem value="PCS">
+                {itemPcs === 'Btls' ? 'Bottles' : itemPcs}
+              </MenuItem>
             </Select>
           </Box>
         );
@@ -1090,6 +1121,7 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
               name="salesperson_id"
               label="Salesperson"
               formik={formik}
+              roleName="Salesman"
               required
               disabled={
                 formik.values.invoice_method === 'order' &&

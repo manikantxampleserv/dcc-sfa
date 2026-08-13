@@ -1,4 +1,4 @@
-import { Button, Skeleton } from '@mui/material';
+import { Button, Skeleton, Avatar } from '@mui/material';
 import {
   ArcElement,
   BarElement,
@@ -22,15 +22,14 @@ import {
 } from 'hooks/useExecutiveDashboard';
 import { useRequestsByUsersWithoutPermission } from 'hooks/useRequests';
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Bar, Chart, Doughnut, Line } from 'react-chartjs-2';
+import { Chart, Doughnut, Line } from 'react-chartjs-2';
 import {
   FaClipboardList,
-  FaMoneyBillWave,
   FaFileInvoice,
-  FaTruck,
+  FaMoneyBillWave,
   FaUsers,
 } from 'react-icons/fa';
+import { useNavigate } from 'react-router-dom';
 import type { Request } from 'services/requests';
 import ApprovalModal from 'shared/ApprovalModal';
 import { formatDateTime } from 'utils/dateUtils';
@@ -65,7 +64,7 @@ const ExecutiveDashboard: React.FC = () => {
     });
   const { data: auditLogs, isLoading: auditLogsLoading } = useAuditLogs({
     page: 1,
-    limit: 5,
+    limit: 100,
   });
   const { formatCurrency } = useCurrency();
 
@@ -174,14 +173,14 @@ const ExecutiveDashboard: React.FC = () => {
       color: 'green',
       progress: stats ? parseFloat(stats.salesRevenue.targetProgress) : 0,
     },
-    {
-      title: 'Deliveries',
-      value: stats?.deliveries.value.toLocaleString() || '0',
-      description: `${stats?.deliveries.successRate || '0'}% Success Rate`,
-      icon: FaTruck,
-      color: 'cyan',
-      progress: stats ? parseFloat(stats.deliveries.successRate) : 0,
-    },
+    // {
+    //   title: 'Deliveries',
+    //   value: stats?.deliveries.value.toLocaleString() || '0',
+    //   description: `${stats?.deliveries.successRate || '0'}% Success Rate`,
+    //   icon: FaTruck,
+    //   color: 'cyan',
+    //   progress: stats ? parseFloat(stats.deliveries.successRate) : 0,
+    // },
     {
       title: 'Active Outlets',
       value: stats?.activeOutlets.value.toLocaleString() || '0',
@@ -244,9 +243,19 @@ const ExecutiveDashboard: React.FC = () => {
       {
         label: 'Units Sold',
         data: topProducts?.quantities || [],
-        backgroundColor: CHART_COLORS.primary,
-        borderColor: CHART_COLORS.primary,
-        borderWidth: 1,
+        backgroundColor: [
+          '#3b82f6',
+          '#10b981',
+          '#f59e0b',
+          '#ef4444',
+          '#8b5cf6',
+          '#ec4899',
+          '#06b6d4',
+          '#14b8a6',
+          '#f97316',
+          '#6366f1',
+        ],
+        borderWidth: 0,
       },
     ],
   };
@@ -265,11 +274,13 @@ const ExecutiveDashboard: React.FC = () => {
     ],
   };
 
-  const averageDailyOrders = stats
-    ? Math.round(stats.totalInvoices.value / Math.max(lineChartLabels.length, 1))
+  const averageDailyInvoices = stats
+    ? Math.round(
+        stats.totalInvoices.value / Math.max(lineChartLabels.length, 1)
+      )
     : 0;
-  const ordersData = lineChartLabels.map(
-    (_, index) => averageDailyOrders + (index % 3)
+  const invoicesData = lineChartLabels.map(
+    (_, index) => averageDailyInvoices + (index % 3)
   );
   const composedChartDataValue = {
     labels: lineChartLabels,
@@ -284,8 +295,8 @@ const ExecutiveDashboard: React.FC = () => {
         yAxisID: 'y',
       },
       {
-        label: 'Orders',
-        data: ordersData,
+        label: 'Invoices',
+        data: invoicesData,
         type: 'line' as const,
         borderColor: CHART_COLORS.danger,
         backgroundColor: CHART_COLORS.danger + '20',
@@ -333,25 +344,25 @@ const ExecutiveDashboard: React.FC = () => {
     },
   };
 
-  const barChartOptions = {
+  const topProductsDoughnutOptions = {
     ...commonChartOptions,
     plugins: {
       ...commonChartOptions.plugins,
+      legend: {
+        position: 'bottom' as const,
+      },
       tooltip: {
         callbacks: {
           label: (context: any) => {
             const index = context.dataIndex;
             const fullName = barChartFullNames[index];
-            return `${fullName || context.dataset.label}: ${formatCurrency(context.parsed.y)}`;
+            const total = context.dataset.data.reduce(
+              (a: number, b: number) => a + b,
+              0
+            );
+            const percentage = ((context.parsed / total) * 100).toFixed(1);
+            return `${fullName || context.label}: ${context.parsed.toLocaleString()} Units (${percentage}%)`;
           },
-        },
-      },
-    },
-    scales: {
-      x: {
-        ticks: {
-          maxRotation: 45,
-          minRotation: 45,
         },
       },
     },
@@ -372,7 +383,7 @@ const ExecutiveDashboard: React.FC = () => {
               0
             );
             const percentage = ((context.parsed / total) * 100).toFixed(1);
-            return `${context.label}: ${formatCurrency(context.parsed)} (${percentage}%)`;
+            return `${context.label}: ${context.parsed} Invoices (${percentage}%)`;
           },
         },
       },
@@ -388,6 +399,9 @@ const ExecutiveDashboard: React.FC = () => {
           label: (context: any) => {
             const datasetLabel = context.dataset.label || '';
             const value = context.parsed.y;
+            if (datasetLabel === 'Invoices') {
+              return `${datasetLabel}: ${value}`;
+            }
             return `${datasetLabel}: ${formatCurrency(value)}`;
           },
         },
@@ -567,51 +581,36 @@ const ExecutiveDashboard: React.FC = () => {
     </div>
   );
 
-  // Sales Distribution Skeleton Component
-  const SalesDistributionSkeleton = () => (
-    <div className="space-y-4">
-      {[1, 2, 3].map(item => (
-        <div key={item}>
-          <div className="flex justify-between mb-2">
-            <Skeleton variant="text" width={120} height={16} />
-            <Skeleton variant="text" width={80} height={16} />
-          </div>
-          <Skeleton
-            variant="rectangular"
-            width="100%"
-            height={8}
-            className="!rounded-full !bg-gray-200 !mb-1"
-          />
-          <Skeleton variant="text" width={150} height={12} />
-        </div>
-      ))}
-    </div>
-  );
-
   if (isLoading) {
     return (
       <div className="flex flex-col gap-4">
         <HeaderSkeleton />
 
-        {/* Stats Cards Skeleton */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {[1, 2, 3, 4].map(i => (
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[1, 2, 3].map(i => (
             <StatsCardSkeleton key={i} />
           ))}
         </div>
 
-        {/* Charts Row Skeleton */}
+        {/* Revenue Trend & Invoices by Salesman */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="md:col-span-2">
             <div className="bg-white shadow-sm p-5 rounded-lg border border-gray-100">
+              <Skeleton
+                variant="text"
+                width={150}
+                height={24}
+                className="!mb-4"
+              />
               <ChartSkeleton height={288} />
             </div>
           </div>
           <div className="md:col-span-1">
-            <div className="bg-white shadow-sm p-1 rounded-lg border border-gray-100">
+            <div className="bg-white shadow-sm p-5 rounded-lg border border-gray-100">
               <Skeleton
                 variant="text"
-                width={150}
+                width={180}
                 height={24}
                 className="!mb-4"
               />
@@ -620,47 +619,115 @@ const ExecutiveDashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Top Products Chart Skeleton */}
-        <div className="bg-white shadow-sm p-5 rounded-lg border border-gray-100">
-          <ChartSkeleton height={288} />
+        {/* Top Selling Products & Pending Approvals */}
+        <div className="grid grid-cols-3 gap-4">
+          <div className="col-span-1">
+            <div className="bg-white shadow-sm p-5 rounded-lg border border-gray-100">
+              <Skeleton
+                variant="text"
+                width={220}
+                height={24}
+                className="!mb-4"
+              />
+              <DoughnutChartSkeleton />
+            </div>
+          </div>
+          <div className="col-span-2">
+            <div className="bg-white shadow-sm p-5 rounded-lg border border-gray-100">
+              <div className="flex justify-between items-center mb-4">
+                <Skeleton variant="text" width={150} height={24} />
+                <Skeleton
+                  variant="rectangular"
+                  width={80}
+                  height={32}
+                  className="!rounded"
+                />
+              </div>
+              <div className="space-y-3">
+                {[1, 2, 3].map(i => (
+                  <div
+                    key={i}
+                    className="bg-gray-50 rounded-lg p-4 border border-gray-200"
+                  >
+                    <Skeleton
+                      variant="text"
+                      width="60%"
+                      height={10}
+                      className="!mb-2"
+                    />
+                    <Skeleton
+                      variant="text"
+                      width="40%"
+                      height={10}
+                      className="!mb-3"
+                    />
+                    <div className="flex gap-2">
+                      <Skeleton variant="rectangular" width={80} height={12} />
+                      <Skeleton variant="rectangular" width={80} height={12} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* Revenue Trend Chart Skeleton */}
+        {/* Composed Chart */}
         <div className="bg-white shadow-sm p-5 rounded-lg border border-gray-100">
-          <ChartSkeleton height={288} />
-        </div>
-
-        {/* Composed Chart Skeleton */}
-        <div className="bg-white shadow-sm p-5 rounded-lg border border-gray-100">
+          <Skeleton variant="text" width={250} height={24} className="!mb-4" />
           <ChartSkeleton height={320} />
         </div>
 
-        {/* Revenue Distribution Skeleton */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Sales Performance & Activity Logs */}
+        <div className="grid grid-cols-1 gap-4">
           <div className="bg-white shadow-sm p-5 rounded-lg border border-gray-100">
             <Skeleton
               variant="text"
-              width={180}
+              width={250}
               height={24}
               className="!mb-4"
             />
-            <div className="h-64 w-full flex items-center justify-center">
-              <Skeleton
-                variant="circular"
-                width={200}
-                height={200}
-                className="!bg-gray-200"
-              />
-            </div>
+            <ChartSkeleton height={288} />
           </div>
           <div className="bg-white shadow-sm p-5 rounded-lg border border-gray-100">
             <Skeleton
               variant="text"
-              width={150}
+              width={200}
               height={24}
               className="!mb-4"
             />
-            <SalesDistributionSkeleton />
+            <div className="space-y-3">
+              {[1, 2, 3].map(i => (
+                <div
+                  key={i}
+                  className="bg-gray-50 rounded-lg p-4 border border-gray-200"
+                >
+                  <div className="flex items-center gap-3 mb-2">
+                    <Skeleton
+                      variant="circular"
+                      width={40}
+                      height={40}
+                      className="!bg-gray-200"
+                    />
+                    <div className="flex-1">
+                      <Skeleton
+                        variant="text"
+                        width="60%"
+                        height={20}
+                        className="!mb-1"
+                      />
+                      <Skeleton variant="text" width="40%" height={16} />
+                    </div>
+                  </div>
+                  <Skeleton
+                    variant="text"
+                    width="80%"
+                    height={16}
+                    className="!mb-2"
+                  />
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -676,7 +743,7 @@ const ExecutiveDashboard: React.FC = () => {
               Executive Dashboard
             </h2>
             <p className="text-gray-500 text-sm">
-              Track your sales performance, orders, and field operations
+              Track your sales performance, invoices, and field operations
             </p>
           </div>
           <div className="flex lg:mt-0 mt-3 gap-3">
@@ -693,7 +760,7 @@ const ExecutiveDashboard: React.FC = () => {
           </div>
         </div>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {stats_cards.map(stat => {
           const colors = getColorClasses(stat.color);
           return (
@@ -712,7 +779,7 @@ const ExecutiveDashboard: React.FC = () => {
                 </div>
               </div>
 
-              <div className="flex items-end gap-2 mb-4">
+              <div className="flex items-end justify-between gap-2 mb-4">
                 <span className="text-2xl font-bold text-gray-900">
                   {stat.value}
                 </span>
@@ -734,223 +801,26 @@ const ExecutiveDashboard: React.FC = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="md:col-span-2">
-          <div className="bg-white shadow-sm p-5 rounded-lg border border-gray-100">
-            <div className="flex justify-between items-center mb-2">
-              <h3 className="text-lg font-semibold text-gray-900">
-                Pending Approvals
+          {hasAreaChartData && (
+            <div className="bg-white shadow-sm p-5 rounded-lg border border-gray-100">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                Revenue Trend
               </h3>
-              <Button
-                variant="outlined"
-                size="small"
-                onClick={() => navigate('/workflows/approvals')}
-              >
-                View All
-              </Button>
-            </div>
-            {approvalsLoading ? (
-              <div className="space-y-3">
-                {[1, 2, 3].map(i => (
-                  <div
-                    key={i}
-                    className="bg-gray-50 rounded-lg p-4 border border-gray-200"
-                  >
-                    <Skeleton
-                      variant="text"
-                      width="60%"
-                      height={20}
-                      className="!mb-2"
-                    />
-                    <Skeleton
-                      variant="text"
-                      width="40%"
-                      height={16}
-                      className="!mb-3"
-                    />
-                    <div className="flex gap-2">
-                      <Skeleton variant="rectangular" width={80} height={24} />
-                      <Skeleton variant="rectangular" width={80} height={24} />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : pendingApprovals?.data && pendingApprovals.data.length > 0 ? (
-              <div className="space-y-2 max-h-72 hide-scrollbar overflow-y-auto">
-                {pendingApprovals.data.map(request => {
-                  const requesterName =
-                    request.requester?.name || `User #${request.requester_id}`;
-                  const requestTypeLabel = request.request_type
-                    .replace(/_/g, ' ')
-                    .replace(
-                      /\w\S*/g,
-                      txt => txt.charAt(0) + txt.substr(1).toLowerCase()
-                    );
-
-                  // Get reference number
-                  const getReferenceNumber = (req: Request): string => {
-                    if (req.reference_details) {
-                      if (
-                        req.request_type === 'ORDER_APPROVAL' &&
-                        req.reference_details.order_number
-                      ) {
-                        return req.reference_details.order_number;
-                      }
-                      if (
-                        req.request_type === 'ASSET_MOVEMENT_APPROVAL' &&
-                        req.reference_details.movement_number
-                      ) {
-                        return req.reference_details.movement_number;
-                      }
-                      if (
-                        req.request_type === 'LOCATION_RESET' &&
-                        req.reference_details.customer_code
-                      ) {
-                        return req.reference_details.customer_code;
-                      }
-                    }
-
-                    if (req.request_data) {
-                      try {
-                        const data = JSON.parse(req.request_data);
-                        if (req.request_type === 'CUSTOMER_CREATION') {
-                          return (
-                            data.customer_data?.code ||
-                            req.reference_details?.customer_code ||
-                            `NEW-CUST-${req.id}`
-                          );
-                        }
-                        if (req.request_type === 'LOCATION_RESET') {
-                          return (
-                            data.customer_code ||
-                            req.reference_details?.customer_code ||
-                            `LOC-${req.reference_id || req.id}`
-                          );
-                        }
-                      } catch (e) {
-                        console.error('Error parsing request data:', e);
-                      }
-                    }
-
-                    return req.reference_id
-                      ? `#${req.reference_id}`
-                      : `REQ-${req.id}`;
-                  };
-
-                  const referenceNumber = getReferenceNumber(request);
-
-                  const approvalStatus =
-                    request.approvals?.[0]?.status || request.status;
-
-                  return (
-                    <div
-                      key={request.id}
-                      className="bg-white rounded-lg border border-gray-200 p-3 hover:shadow-md transition-shadow"
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex justify-between items-center gap-2 flex-1 min-w-0">
-                          <span className="font-semibold text-gray-900 text-sm">
-                            {referenceNumber}
-                          </span>
-                        </div>
-                      </div>
-
-                      <p className="text-gray-600 text-xs leading-tight block mb-3">
-                        <span className="font-medium text-gray-800">
-                          {requesterName}
-                        </span>{' '}
-                        has requested{' '}
-                        <span className="font-medium text-gray-800">
-                          {requestTypeLabel}
-                        </span>
-                        {request.request_type === 'ORDER_APPROVAL' && (
-                          <>
-                            {' '}
-                            for order{' '}
-                            <span className="font-semibold text-blue-600">
-                              {referenceNumber}
-                            </span>
-                          </>
-                        )}
-                        {request.request_type === 'ASSET_MOVEMENT_APPROVAL' && (
-                          <>
-                            {' '}
-                            for asset movement{' '}
-                            <span className="font-semibold text-green-600">
-                              {referenceNumber}
-                            </span>
-                          </>
-                        )}
-                        {request.request_type === 'CUSTOMER_CREATION' && (
-                          <>
-                            {' '}
-                            for new customer{' '}
-                            <span className="font-semibold text-purple-600">
-                              {referenceNumber}
-                            </span>
-                          </>
-                        )}
-                        {request.request_type === 'LOCATION_RESET' && (
-                          <>
-                            {' '}
-                            for relocation{' '}
-                            <span className="font-semibold text-orange-600">
-                              {referenceNumber}
-                            </span>
-                          </>
-                        )}
-                      </p>
-
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          {request.createdate && (
-                            <span className="text-gray-500 text-xs">
-                              {formatDateTime(request.createdate.toString())}
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex gap-2 shrink-0">
-                          <button
-                            className="px-3 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
-                            onClick={() => handleApproveClick(request)}
-                            disabled={
-                              approvalStatus?.toUpperCase() !== 'P' &&
-                              approvalStatus?.toUpperCase() !== 'PENDING'
-                            }
-                          >
-                            Approve
-                          </button>
-                          <button
-                            className="px-3 py-1 bg-red-600 text-white rounded text-xs hover:bg-red-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
-                            onClick={() => handleRejectClick(request)}
-                            disabled={
-                              approvalStatus?.toUpperCase() !== 'P' &&
-                              approvalStatus?.toUpperCase() !== 'PENDING'
-                            }
-                          >
-                            Reject
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="h-72 flex items-center justify-center bg-gray-50 rounded-lg">
-                <div className="text-center">
-                  <div className="text-gray-400 mx-auto mb-2 flex justify-center">
-                    <FaClipboardList size={48} />
-                  </div>
-                  <span className="text-gray-500">No pending approvals</span>
+              {salesLoading ? (
+                <ChartSkeleton height={288} />
+              ) : (
+                <div className="h-72 w-full">
+                  <Line data={areaChartDataValue} options={lineChartOptions} />
                 </div>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="md:col-span-1">
           <div className="bg-white shadow-sm p-5 rounded-lg border border-gray-100">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              Order Status
+              Invoices by Salesman
             </h3>
             {orderStatusLoading ? (
               <DoughnutChartSkeleton />
@@ -967,7 +837,9 @@ const ExecutiveDashboard: React.FC = () => {
                   <div className="text-gray-400 mx-auto mb-2 flex justify-center">
                     <FaClipboardList size={48} />
                   </div>
-                  <span className="text-gray-500">No order data available</span>
+                  <span className="text-gray-500">
+                    No invoice data available
+                  </span>
                 </div>
               </div>
             )}
@@ -975,7 +847,7 @@ const ExecutiveDashboard: React.FC = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4">
+      <div className="grid grid-cols-3 gap-4">
         {hasBarChartData && (
           <div className="bg-white shadow-sm p-5 rounded-lg border border-gray-100">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">
@@ -984,33 +856,232 @@ const ExecutiveDashboard: React.FC = () => {
             {productsLoading ? (
               <ChartSkeleton height={288} />
             ) : (
-              <div className="h-72 w-full">
-                <Bar data={barChartDataValue} options={barChartOptions} />
+              <div className="h-72 w-full flex items-center justify-center">
+                <Doughnut
+                  data={barChartDataValue}
+                  options={topProductsDoughnutOptions}
+                />
               </div>
             )}
           </div>
         )}
 
-        {hasAreaChartData && (
-          <div className="bg-white shadow-sm p-5 rounded-lg border border-gray-100">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              Revenue Trend
+        <div className="bg-white shadow-sm col-span-2 p-5 rounded-lg border border-gray-100">
+          <div className="flex justify-between items-center mb-2">
+            <h3 className="text-lg font-semibold text-gray-900">
+              Pending Approvals
             </h3>
-            {salesLoading ? (
-              <ChartSkeleton height={288} />
-            ) : (
-              <div className="h-72 w-full">
-                <Line data={areaChartDataValue} options={lineChartOptions} />
-              </div>
-            )}
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={() => navigate('/workflows/approvals')}
+            >
+              View All
+            </Button>
           </div>
-        )}
+          {approvalsLoading ? (
+            <div className="space-y-3">
+              {[1, 2, 3].map(i => (
+                <div
+                  key={i}
+                  className="bg-gray-50 rounded-lg p-4 border border-gray-200"
+                >
+                  <Skeleton
+                    variant="text"
+                    width="60%"
+                    height={20}
+                    className="!mb-2"
+                  />
+                  <Skeleton
+                    variant="text"
+                    width="40%"
+                    height={16}
+                    className="!mb-3"
+                  />
+                  <div className="flex gap-2">
+                    <Skeleton variant="rectangular" width={80} height={24} />
+                    <Skeleton variant="rectangular" width={80} height={24} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : pendingApprovals?.data && pendingApprovals.data.length > 0 ? (
+            <div className="space-y-2 max-h-72 hide-scrollbar overflow-y-auto">
+              {pendingApprovals.data.map(request => {
+                const requesterName =
+                  request.requester?.name || `User #${request.requester_id}`;
+                const requestTypeLabel = request.request_type
+                  .replace(/_/g, ' ')
+                  .replace(
+                    /\w\S*/g,
+                    txt => txt.charAt(0) + txt.substr(1).toLowerCase()
+                  );
+
+                const getReferenceNumber = (req: Request): string => {
+                  if (req.reference_details) {
+                    if (
+                      req.request_type === 'ORDER_APPROVAL' &&
+                      req.reference_details.order_number
+                    ) {
+                      return req.reference_details.order_number;
+                    }
+                    if (
+                      req.request_type === 'ASSET_MOVEMENT_APPROVAL' &&
+                      req.reference_details.movement_number
+                    ) {
+                      return req.reference_details.movement_number;
+                    }
+                    if (
+                      req.request_type === 'LOCATION_RESET' &&
+                      req.reference_details.customer_code
+                    ) {
+                      return req.reference_details.customer_code;
+                    }
+                  }
+
+                  if (req.request_data) {
+                    try {
+                      const data = JSON.parse(req.request_data);
+                      if (req.request_type === 'CUSTOMER_CREATION') {
+                        return (
+                          data.customer_data?.code ||
+                          req.reference_details?.customer_code ||
+                          `NEW-CUST-${req.id}`
+                        );
+                      }
+                      if (req.request_type === 'LOCATION_RESET') {
+                        return (
+                          data.customer_code ||
+                          req.reference_details?.customer_code ||
+                          `LOC-${req.reference_id || req.id}`
+                        );
+                      }
+                    } catch (e) {
+                      console.error('Error parsing request data:', e);
+                    }
+                  }
+
+                  return req.reference_id
+                    ? `#${req.reference_id}`
+                    : `REQ-${req.id}`;
+                };
+
+                const referenceNumber = getReferenceNumber(request);
+
+                const approvalStatus =
+                  request.approvals?.[0]?.status || request.status;
+
+                return (
+                  <div
+                    key={request.id}
+                    className="bg-white rounded-lg border border-gray-200 p-3 hover:shadow-md transition-shadow"
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex justify-between items-center gap-2 flex-1 min-w-0">
+                        <span className="font-semibold text-gray-900 text-sm">
+                          {referenceNumber}
+                        </span>
+                      </div>
+                    </div>
+
+                    <p className="text-gray-600 text-xs leading-tight block mb-3">
+                      <span className="font-medium text-gray-800">
+                        {requesterName}
+                      </span>{' '}
+                      has requested{' '}
+                      <span className="font-medium text-gray-800">
+                        {requestTypeLabel}
+                      </span>
+                      {request.request_type === 'ORDER_APPROVAL' && (
+                        <>
+                          {' '}
+                          for order{' '}
+                          <span className="font-semibold text-blue-600">
+                            {referenceNumber}
+                          </span>
+                        </>
+                      )}
+                      {request.request_type === 'ASSET_MOVEMENT_APPROVAL' && (
+                        <>
+                          {' '}
+                          for asset movement{' '}
+                          <span className="font-semibold text-green-600">
+                            {referenceNumber}
+                          </span>
+                        </>
+                      )}
+                      {request.request_type === 'CUSTOMER_CREATION' && (
+                        <>
+                          {' '}
+                          for new customer{' '}
+                          <span className="font-semibold text-purple-600">
+                            {referenceNumber}
+                          </span>
+                        </>
+                      )}
+                      {request.request_type === 'LOCATION_RESET' && (
+                        <>
+                          {' '}
+                          for relocation{' '}
+                          <span className="font-semibold text-orange-600">
+                            {referenceNumber}
+                          </span>
+                        </>
+                      )}
+                    </p>
+
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {request.createdate && (
+                          <span className="text-gray-500 text-xs">
+                            {formatDateTime(request.createdate.toString())}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex gap-2 shrink-0">
+                        <button
+                          className="px-3 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                          onClick={() => handleApproveClick(request)}
+                          disabled={
+                            approvalStatus?.toUpperCase() !== 'P' &&
+                            approvalStatus?.toUpperCase() !== 'PENDING'
+                          }
+                        >
+                          Approve
+                        </button>
+                        <button
+                          className="px-3 py-1 bg-red-600 text-white rounded text-xs hover:bg-red-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                          onClick={() => handleRejectClick(request)}
+                          disabled={
+                            approvalStatus?.toUpperCase() !== 'P' &&
+                            approvalStatus?.toUpperCase() !== 'PENDING'
+                          }
+                        >
+                          Reject
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="h-72 flex items-center justify-center bg-gray-50 rounded-lg">
+              <div className="text-center">
+                <div className="text-gray-400 mx-auto mb-2 flex justify-center">
+                  <FaClipboardList size={48} />
+                </div>
+                <span className="text-gray-500">No pending approvals</span>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {hasComposedChartData && (
         <div className="bg-white shadow-sm p-5 rounded-lg border border-gray-100">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">
-            Sales vs Orders Performance
+            Sales vs Invoices Performance
           </h3>
           {salesLoading ? (
             <ChartSkeleton height={320} />
@@ -1027,7 +1098,7 @@ const ExecutiveDashboard: React.FC = () => {
       )}
 
       {/* Sales Performance & Trends and Activity Logs Side by Side */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1  gap-4">
         {/* Sales Performance & Trends */}
         {hasLineChartData && (
           <div className="bg-white shadow-sm p-5 rounded-lg border border-gray-100">
@@ -1092,7 +1163,7 @@ const ExecutiveDashboard: React.FC = () => {
                 {auditLogs.logs.slice(0, 5).map((log: any) => (
                   <div
                     key={log.id}
-                    className="bg-white border border-gray-200 rounded-lg p-3 shadow-sm hover:shadow-md transition-shadow"
+                    className="bg-white border border-gray-200 rounded-lg p-3 shadow-sm transition-shadow"
                   >
                     <div className="text-xs flex justify-between items-center  text-gray-500 uppercase tracking-wide mb-2">
                       <p className="font-medium">
@@ -1102,31 +1173,49 @@ const ExecutiveDashboard: React.FC = () => {
                         {new Date(log.changed_at).toLocaleDateString()}
                       </span>
                     </div>
-                    <div className="text-sm text-gray-700">
-                      <span className="font-medium text-gray-900">
-                        {log.user_name}
-                      </span>
-                      <span className="mx-1">
-                        {log.action === 'CREATE' && (
-                          <span className="text-green-600 font-medium">
-                            created
+                    <div className="flex items-center gap-3 mt-2">
+                      <Avatar
+                        src="mkx"
+                        alt={log.user_name?.trim()}
+                        className="!rounded !bg-primary-100 !text-primary-500 !w-8 !h-8 !text-sm !font-semibold"
+                      >
+                        {log.user_name?.charAt(0).toUpperCase() || 'U'}
+                      </Avatar>
+                      <div className="flex flex-col">
+                        <div className="text-sm text-gray-700">
+                          <span className="font-medium text-gray-900">
+                            {log.user_name}
                           </span>
-                        )}
-                        {log.action === 'UPDATE' && (
-                          <span className="text-blue-600 font-medium">
-                            updated
+                          <span className="mx-1">
+                            {log.action === 'CREATE' && (
+                              <span className="text-green-600 font-medium">
+                                created
+                              </span>
+                            )}
+                            {log.action === 'UPDATE' && (
+                              <span className="text-blue-600 font-medium">
+                                updated
+                              </span>
+                            )}
+                            {log.action === 'DELETE' && (
+                              <span className="text-red-600 font-medium">
+                                deleted
+                              </span>
+                            )}
                           </span>
-                        )}
-                        {log.action === 'DELETE' && (
-                          <span className="text-red-600 font-medium">
-                            deleted
+                          <span className="text-gray-600">
+                            a {log.table_name?.replaceAll('_', ' ')} record
+                            {log.record_name
+                              ? ` (${log.record_name})`
+                              : log.record_id
+                                ? ` (ID: ${log.record_id})`
+                                : ''}
                           </span>
-                        )}
-                      </span>
-                      <span className="text-gray-600">
-                        a {log.table_name?.replaceAll('_', ' ')} record
-                        {log.record_id && ` (ID: ${log.record_id})`}
-                      </span>
+                        </div>
+                        <span className="text-xs text-gray-500">
+                          {log.employee_id || log.user_email || 'No ID'}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 ))}

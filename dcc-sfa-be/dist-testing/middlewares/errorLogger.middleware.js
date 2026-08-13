@@ -5,6 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.errorLogger = void 0;
 const prisma_client_1 = __importDefault(require("../configs/prisma.client"));
+// import { aiService } from '../v1/services/ai.service';
 const errorLogger = (req, res, next) => {
     const originalJson = res.json;
     res.json = function (body) {
@@ -36,6 +37,21 @@ const errorLogger = (req, res, next) => {
                         device_info: (req.headers['user-agent'] || '').substring(0, 255) || null,
                     };
                     prisma_client_1.default.error_logs.create({ data: errorLog }).catch(console.error);
+                    // (async () => {
+                    //   try {
+                    //     const payload = { requestPayload: req.body, failedItemContext: failedItem };
+                    //     const suggestion = await aiService.explainError(
+                    //       errorLog.message,
+                    //       payload
+                    //     );
+                    //     if (suggestion) {
+                    //       const updatedPayload = { ...payload, ai_suggestion: suggestion };
+                    //       errorLog.body = JSON.stringify(updatedPayload);
+                    //     }
+                    //   } catch (aiError) {
+                    //     console.error('Failed to generate AI suggestion:', aiError);
+                    //   }
+                    // })();
                 }
             }
             catch (loggerError) {
@@ -65,6 +81,24 @@ const errorLogger = (req, res, next) => {
                     device_info: (req.headers['user-agent'] || '').substring(0, 255) || null,
                 };
                 prisma_client_1.default.error_logs.create({ data: errorLog }).catch(console.error);
+                // (async () => {
+                //   try {
+                //     const suggestion = await aiService.explainError(
+                //       errorLog.message,
+                //       req.body
+                //     );
+                //     if (suggestion) {
+                //       const currentBody = errorLog.body
+                //         ? JSON.parse(errorLog.body)
+                //         : {};
+                //       const updatedBody = { ...currentBody, ai_suggestion: suggestion };
+                //       errorLog.body = JSON.stringify(updatedBody);
+                //     }
+                //   } catch (aiError) {
+                //     console.error('Failed to generate AI suggestion:', aiError);
+                //   }
+                //   prisma.error_logs.create({ data: errorLog }).catch(console.error);
+                // })();
             }
             catch (loggerError) {
                 console.error('Failed to log error to database:', loggerError);

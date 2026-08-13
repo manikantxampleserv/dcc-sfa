@@ -999,8 +999,12 @@ export function getOrderedQuantities(item: any): {
   } else if (CASE_VARIANTS.includes(rawUnit)) {
     normalizedUnit = 'CASE';
   } else {
-    console.warn(` Unknown unit "${rawUnit}" — defaulting to CASE`);
-    normalizedUnit = 'CASE';
+    if (process.env.APP_ENV === 'demo') {
+      normalizedUnit = rawUnit;
+    } else {
+      console.warn(` Unknown unit "${rawUnit}" — defaulting to CASE`);
+      normalizedUnit = 'CASE';
+    }
   }
 
   const quantityInCases = Number(item.quantity) || 0;

@@ -231,6 +231,31 @@ export class AIService {
     }
   }
 
+  async explainError(errorMessage: string, payload: any): Promise<string> {
+    if (!this.genAI && process.env.GEMINI_API_KEY) {
+      this.genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    }
+    
+    if (!this.genAI) return '';
+    try {
+      const modelName = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
+      const model = this.genAI.getGenerativeModel({ model: modelName });
+      const prompt = `You are a helpful assistant for a Sales Force Automation (SFA) application.
+A user encountered an error in the system. Explain this error in a simple, user-friendly way. Tell them what mistake they might have made and how they can fix it.
+Do not use technical jargon or mention code/database details. Speak directly to the user.
+
+Error Message: ${errorMessage}
+Payload/Data sent: ${JSON.stringify(payload)}`;
+
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      return response.text();
+    } catch (err) {
+      console.error('Error generating AI explanation:', err);
+      return '';
+    }
+  }
+
   /**
    * Queries the AI model with a natural language question and conversational history.
    * It handles text-only responses and read-only SQL queries, formats the result, and extracts charts/tables.

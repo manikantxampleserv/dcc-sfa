@@ -114,13 +114,12 @@ const scheduleCustomerCategoryAssignment = async () => {
                 },
             });
             logger_1.default.info(`Fetching aggregated sales for ${customers.length} customers...`);
-            const orderSalesData = await prisma_client_1.default.orders.groupBy({
-                by: ['parent_id'],
+            const invoiceSalesData = await prisma_client_1.default.invoices.groupBy({
+                by: ['customer_id'],
                 where: {
-                    orders_customers: {
+                    invoices_customers: {
                         is_active: 'Y',
                     },
-                    status: { in: ['approved', 'pending', 'confirmed'] },
                     is_active: 'Y',
                 },
                 _sum: {
@@ -128,9 +127,9 @@ const scheduleCustomerCategoryAssignment = async () => {
                 },
             });
             const salesMap = new Map();
-            for (const order of orderSalesData) {
-                if (order.parent_id !== null) {
-                    salesMap.set(order.parent_id, Number(order._sum?.total_amount || 0));
+            for (const invoice of invoiceSalesData) {
+                if (invoice.customer_id !== null) {
+                    salesMap.set(invoice.customer_id, Number(invoice._sum?.total_amount || 0));
                 }
             }
             logger_1.default.info(`Processing ${customers.length} customers...`);

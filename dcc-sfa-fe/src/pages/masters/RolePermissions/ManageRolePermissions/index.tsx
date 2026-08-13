@@ -444,7 +444,7 @@ const ManageRolePermissions: React.FC<ManageRolePermissionsProps> = ({
                               className="!text-primary-600"
                             />
                             <span className="!font-medium !text-gray-900 !capitalize">
-                              {module.module?.replaceAll('-', '')}
+                              {module.module?.replaceAll('-', ' ')}
                             </span>
                           </div>
                         </TableCell>

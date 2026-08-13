@@ -58,7 +58,7 @@ const menuItems: MenuItem[] = [
       },
       {
         id: 'sales-control-tower',
-        label: 'Sales Control',
+        label: 'Sales Control Tower',
         icon: MdTrendingUp,
         href: '/dashboard/sales-control-tower',
       },

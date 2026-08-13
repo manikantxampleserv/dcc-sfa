@@ -527,7 +527,7 @@ export const reportsController = {
 
       const salespersons = await prisma.users.findMany({
         where: salespersonsWhere,
-        select: { id: true, name: true, email: true },
+        select: { id: true, name: true, email: true, employee_id: true },
       });
 
       // Filter out salespersonIds that are not in the depot scope
@@ -536,29 +536,35 @@ export const reportsController = {
         validSalespersonIds.has(id)
       );
 
-      const salespersonMap = new Map<number, string>();
+      const salespersonMap = new Map<
+        number,
+        { name: string; employee_id: string }
+      >();
       salespersons.forEach(sp => {
-        salespersonMap.set(sp.id, sp.name || 'N/A');
+        salespersonMap.set(sp.id, {
+          name: sp.name || 'N/A',
+          employee_id: sp.employee_id || 'N/A',
+        });
       });
 
-      const actualSales = await prisma.order_items.findMany({
+      const actualSales = await prisma.invoice_items.findMany({
         where: {
-          orders: {
+          invoices: {
             is_active: 'Y',
             salesperson_id: { in: filteredSalespersonIds },
             ...(Object.keys(dateFilter).length > 0 && {
-              order_date: dateFilter,
+              invoice_date: dateFilter,
             }),
           },
         },
         include: {
-          orders: {
+          invoices: {
             select: {
               salesperson_id: true,
-              order_date: true,
+              invoice_date: true,
             },
           },
-          products: {
+          invoice_items_products: {
             select: {
               category_id: true,
               product_categories_products: {
@@ -573,8 +579,8 @@ export const reportsController = {
       const actualSalespersonIds = new Set<number>();
 
       actualSales.forEach(item => {
-        const salespersonId = item.orders.salesperson_id;
-        const categoryId = item.products.category_id;
+        const salespersonId = item.invoices?.salesperson_id;
+        const categoryId = item.invoice_items_products?.category_id;
         const key = `${salespersonId}_${categoryId}`;
 
         if (salespersonId) {
@@ -589,7 +595,7 @@ export const reportsController = {
       });
 
       const salespersonIdsToFetch = Array.from(actualSalespersonIds).filter(
-        id => !salespersonMap.has(id) || salespersonMap.get(id) === 'N/A'
+        id => !salespersonMap.has(id) || salespersonMap.get(id)?.name === 'N/A'
       );
 
       if (salespersonIdsToFetch.length > 0) {
@@ -597,102 +603,125 @@ export const reportsController = {
           where: {
             id: { in: salespersonIdsToFetch },
           },
-          select: { id: true, name: true, email: true },
+          select: { id: true, name: true, email: true, employee_id: true },
         });
 
         missingSalespersons.forEach(sp => {
-          salespersonMap.set(sp.id, sp.name || 'N/A');
+          salespersonMap.set(sp.id, {
+            name: sp.name || 'N/A',
+            employee_id: sp.employee_id || 'N/A',
+          });
         });
       }
 
       const performanceData: any[] = [];
 
-      for (const [key, sales] of salesMap.entries()) {
-        const [salespersonId, categoryId] = key.split('_').map(Number);
+      // Iterate through all valid salespeople and their applicable targets
+      for (const salespersonId of filteredSalespersonIds) {
+        for (const target of salesTargets) {
+          // Check if this target applies to this salesperson (they must be in the group)
+          const isMember =
+            target.sales_targets_groups?.sales_target_group_members_id?.some(
+              (member: any) => member.sales_person_id === salespersonId
+            );
 
-        const target = salesTargets.find(
-          t => t.product_category_id === categoryId
-        );
+          if (isMember) {
+            const categoryId = target.product_category_id;
+            const key = `${salespersonId}_${categoryId}`;
+            const sales = salesMap.get(key) || { quantity: 0, amount: 0 };
 
-        if (target) {
-          const targetAmount = Number(target.target_amount || 0);
-          const achievement =
-            targetAmount > 0 ? (sales.amount / targetAmount) * 100 : 0;
+            const targetAmount = Number(target.target_amount || 0);
+            const targetQuantity = Number(target.target_quantity || 0);
 
-          performanceData.push({
-            salesperson_id: salespersonId,
-            salesperson_name: salespersonMap.get(salespersonId) || 'N/A',
-            category_id: categoryId,
-            category_name:
-              target.sales_targets_product_categories?.category_name || 'N/A',
-            target_quantity: target.target_quantity,
-            target_amount: targetAmount,
-            actual_quantity: sales.quantity,
-            actual_sales: sales.amount,
-            achievement_percentage: Math.round(achievement * 100) / 100,
-            gap: sales.amount - targetAmount,
-          });
+            let achievement = 0;
+            if (targetAmount > 0) {
+              achievement = Math.min((sales.amount / targetAmount) * 100, 100);
+            } else if (targetQuantity > 0) {
+              achievement = Math.min(
+                (sales.quantity / targetQuantity) * 100,
+                100
+              );
+            }
+
+            const spInfo = salespersonMap.get(salespersonId);
+            performanceData.push({
+              salesperson_id: salespersonId,
+              salesperson_name: spInfo?.name || 'N/A',
+              salesperson_code: spInfo?.employee_id || 'N/A',
+              category_id: categoryId,
+              category_name:
+                target.sales_targets_product_categories?.category_name || 'N/A',
+              target_quantity: targetQuantity,
+              target_amount: targetAmount,
+              actual_quantity: sales.quantity,
+              actual_sales: sales.amount,
+              achievement_percentage: Math.round(achievement * 100) / 100,
+              gap: sales.amount - targetAmount,
+            });
+          }
         }
       }
 
-      const totalTargetAmount = salesTargets.reduce(
-        (sum, target) => sum + Number(target.target_amount || 0),
+      const totalTargetAmount = performanceData.reduce(
+        (sum, data) => sum + data.target_amount,
         0
       );
-      const totalActualSales = Array.from(salesMap.values()).reduce(
-        (sum, sales) => sum + sales.amount,
+      const totalActualSales = performanceData.reduce(
+        (sum, data) => sum + data.actual_sales,
         0
       );
       const overallAchievement =
         totalTargetAmount > 0
-          ? (totalActualSales / totalTargetAmount) * 100
+          ? Math.min((totalActualSales / totalTargetAmount) * 100, 100)
           : 0;
 
       const categoryPerformance = new Map<
         number,
-        { target: number; actual: number }
+        {
+          target: number;
+          actual: number;
+          targetQty: number;
+          actualQty: number;
+          name?: string;
+        }
       >();
 
-      salesTargets.forEach(target => {
-        const categoryId = target.product_category_id;
+      performanceData.forEach(data => {
+        const categoryId = data.category_id;
         const current = categoryPerformance.get(categoryId) || {
           target: 0,
           actual: 0,
+          targetQty: 0,
+          actualQty: 0,
+          name: data.category_name,
         };
         categoryPerformance.set(categoryId, {
-          target: current.target + Number(target.target_amount || 0),
-          actual: current.actual,
-        });
-      });
-
-      actualSales.forEach(item => {
-        const categoryId = item.products.category_id;
-        const current = categoryPerformance.get(categoryId) || {
-          target: 0,
-          actual: 0,
-        };
-        categoryPerformance.set(categoryId, {
-          target: current.target,
-          actual: current.actual + Number(item.total_amount || 0),
+          target: current.target + data.target_amount,
+          actual: current.actual + data.actual_sales,
+          targetQty: current.targetQty + data.target_quantity,
+          actualQty: current.actualQty + data.actual_quantity,
+          name: current.name,
         });
       });
 
       const categoryPerformanceArray = Array.from(
         categoryPerformance.entries()
       ).map(([categoryId, data]) => {
-        const target = salesTargets.find(
-          t => t.product_category_id === categoryId
-        );
+        let achievement = 0;
+        if (data.target > 0) {
+          achievement = Math.min((data.actual / data.target) * 100, 100);
+        } else if (data.targetQty > 0) {
+          achievement = Math.min((data.actualQty / data.targetQty) * 100, 100);
+        }
+
         return {
           category_id: categoryId,
-          category_name:
-            target?.sales_targets_product_categories?.category_name || 'N/A',
+          category_name: data.name || 'N/A',
+          target_quantity: data.targetQty,
+          actual_quantity: data.actualQty,
           target_amount: data.target,
           actual_sales: data.actual,
-          achievement_percentage:
-            data.target > 0
-              ? Math.round((data.actual / data.target) * 10000) / 100
-              : 0,
+          achievement_percentage: Math.round(achievement * 100) / 100,
           gap: data.actual - data.target,
         };
       });
@@ -782,13 +811,19 @@ export const reportsController = {
       });
 
       const salespersonIds = new Set<number>();
-      const salespersonMap = new Map<number, string>();
+      const salespersonMap = new Map<
+        number,
+        { name: string; employee_id: string }
+      >();
 
       salesTargets.forEach(target => {
         target.sales_targets_groups?.sales_target_group_members_id?.forEach(
           (member: any) => {
             salespersonIds.add(member.sales_person_id);
-            salespersonMap.set(member.sales_person_id, 'N/A');
+            salespersonMap.set(member.sales_person_id, {
+              name: 'N/A',
+              employee_id: 'N/A',
+            });
           }
         );
       });
@@ -798,11 +833,14 @@ export const reportsController = {
           id: { in: Array.from(salespersonIds) },
           is_active: 'Y',
         },
-        select: { id: true, name: true, email: true },
+        select: { id: true, name: true, email: true, employee_id: true },
       });
 
       salespersons.forEach(sp => {
-        salespersonMap.set(sp.id, sp.name || 'N/A');
+        salespersonMap.set(sp.id, {
+          name: sp.name || 'N/A',
+          employee_id: sp.employee_id || 'N/A',
+        });
       });
 
       if (salesperson_id) {
@@ -817,24 +855,24 @@ export const reportsController = {
         salespersonIds.add(requestedSalespersonId);
       }
 
-      const actualSales = await prisma.order_items.findMany({
+      const actualSales = await prisma.invoice_items.findMany({
         where: {
-          orders: {
+          invoices: {
             is_active: 'Y',
             salesperson_id: { in: Array.from(salespersonIds) },
             ...(Object.keys(dateFilter).length > 0 && {
-              order_date: dateFilter,
+              invoice_date: dateFilter,
             }),
           },
         },
         include: {
-          orders: {
+          invoices: {
             select: {
               salesperson_id: true,
-              order_date: true,
+              invoice_date: true,
             },
           },
-          products: {
+          invoice_items_products: {
             select: {
               category_id: true,
               product_categories_products: {
@@ -849,8 +887,8 @@ export const reportsController = {
       const actualSalespersonIds = new Set<number>();
 
       actualSales.forEach(item => {
-        const salespersonId = item.orders.salesperson_id;
-        const categoryId = item.products.category_id;
+        const salespersonId = item.invoices?.salesperson_id;
+        const categoryId = item.invoice_items_products?.category_id;
         const key = `${salespersonId}_${categoryId}`;
 
         if (salespersonId) {
@@ -865,7 +903,7 @@ export const reportsController = {
       });
 
       const salespersonIdsToFetch = Array.from(actualSalespersonIds).filter(
-        id => !salespersonMap.has(id) || salespersonMap.get(id) === 'N/A'
+        id => !salespersonMap.has(id) || salespersonMap.get(id)?.name === 'N/A'
       );
 
       if (salespersonIdsToFetch.length > 0) {
@@ -873,101 +911,125 @@ export const reportsController = {
           where: {
             id: { in: salespersonIdsToFetch },
           },
-          select: { id: true, name: true, email: true },
+          select: { id: true, name: true, email: true, employee_id: true },
         });
 
         missingSalespersons.forEach(sp => {
-          salespersonMap.set(sp.id, sp.name || 'N/A');
+          salespersonMap.set(sp.id, {
+            name: sp.name || 'N/A',
+            employee_id: sp.employee_id || 'N/A',
+          });
         });
       }
 
       const performanceData: any[] = [];
 
-      for (const [key, sales] of salesMap.entries()) {
-        const [salespersonId, categoryId] = key.split('_').map(Number);
+      for (const salespersonId of Array.from(salespersonIds)) {
+        for (const target of salesTargets) {
+          const isMember =
+            target.sales_targets_groups?.sales_target_group_members_id?.some(
+              (member: any) => member.sales_person_id === salespersonId
+            );
 
-        const target = salesTargets.find(
-          t => t.product_category_id === categoryId
-        );
+          if (isMember) {
+            const categoryId = target.product_category_id;
+            const key = `${salespersonId}_${categoryId}`;
+            const sales = salesMap.get(key) || { quantity: 0, amount: 0 };
 
-        if (target) {
-          const targetAmount = Number(target.target_amount || 0);
-          const achievement =
-            targetAmount > 0 ? (sales.amount / targetAmount) * 100 : 0;
+            const targetAmount = Number(target.target_amount || 0);
+            const targetQuantity = Number(target.target_quantity || 0);
 
-          performanceData.push({
-            salesperson_id: salespersonId,
-            salesperson_name: salespersonMap.get(salespersonId) || 'N/A',
-            category_id: categoryId,
-            category_name:
-              target.sales_targets_product_categories?.category_name || 'N/A',
-            target_quantity: target.target_quantity,
-            target_amount: targetAmount,
-            actual_quantity: sales.quantity,
-            actual_sales: sales.amount,
-            achievement_percentage: Math.round(achievement * 100) / 100,
-            gap: sales.amount - targetAmount,
-          });
+            let achievement = 0;
+            if (targetAmount > 0) {
+              achievement = Math.min((sales.amount / targetAmount) * 100, 100);
+            } else if (targetQuantity > 0) {
+              achievement = Math.min(
+                (sales.quantity / targetQuantity) * 100,
+                100
+              );
+            }
+
+            const spInfo = salespersonMap.get(salespersonId);
+            performanceData.push({
+              salesperson_id: salespersonId,
+              salesperson_name: spInfo?.name || 'N/A',
+              salesperson_code: spInfo?.employee_id || 'N/A',
+              category_id: categoryId,
+              category_name:
+                target.sales_targets_product_categories?.category_name || 'N/A',
+              target_quantity: targetQuantity,
+              target_amount: targetAmount,
+              actual_quantity: sales.quantity,
+              actual_sales: sales.amount,
+              achievement_percentage: Math.round(achievement * 100) / 100,
+              gap: sales.amount - targetAmount,
+            });
+          }
         }
       }
 
       const categoryPerformance = new Map<
         number,
-        { target: number; actual: number; name: string }
+        {
+          target: number;
+          actual: number;
+          targetQty: number;
+          actualQty: number;
+          name: string;
+        }
       >();
 
-      salesTargets.forEach(target => {
-        const categoryId = target.product_category_id;
+      performanceData.forEach(data => {
+        const categoryId = data.category_id;
         const current = categoryPerformance.get(categoryId) || {
           target: 0,
           actual: 0,
-          name: target.sales_targets_product_categories?.category_name || 'N/A',
+          targetQty: 0,
+          actualQty: 0,
+          name: data.category_name,
         };
         categoryPerformance.set(categoryId, {
           ...current,
-          target: current.target + Number(target.target_amount || 0),
-        });
-      });
-
-      actualSales.forEach(item => {
-        const categoryId = item.products.category_id;
-        const current = categoryPerformance.get(categoryId) || {
-          target: 0,
-          actual: 0,
-          name: 'N/A',
-        };
-        categoryPerformance.set(categoryId, {
-          ...current,
-          actual: current.actual + Number(item.total_amount || 0),
+          target: current.target + data.target_amount,
+          actual: current.actual + data.actual_sales,
+          targetQty: current.targetQty + data.target_quantity,
+          actualQty: current.actualQty + data.actual_quantity,
+          name: current.name,
         });
       });
 
       const categoryPerformanceArray = Array.from(
         categoryPerformance.entries()
       ).map(([categoryId, data]) => {
+        let achievement = 0;
+        if (data.target > 0) {
+          achievement = Math.min((data.actual / data.target) * 100, 100);
+        } else if (data.targetQty > 0) {
+          achievement = Math.min((data.actualQty / data.targetQty) * 100, 100);
+        }
+
         return {
           category_name: data.name,
+          target_quantity: data.targetQty,
+          actual_quantity: data.actualQty,
           target_amount: data.target,
           actual_sales: data.actual,
-          achievement_percentage:
-            data.target > 0
-              ? Math.round((data.actual / data.target) * 10000) / 100
-              : 0,
+          achievement_percentage: Math.round(achievement * 100) / 100,
           gap: data.actual - data.target,
         };
       });
 
-      const totalTargetAmount = salesTargets.reduce(
-        (sum, target) => sum + Number(target.target_amount || 0),
+      const totalTargetAmount = performanceData.reduce(
+        (sum, data) => sum + data.target_amount,
         0
       );
-      const totalActualSales = Array.from(salesMap.values()).reduce(
-        (sum, sales) => sum + sales.amount,
+      const totalActualSales = performanceData.reduce(
+        (sum, data) => sum + data.actual_sales,
         0
       );
       const overallAchievement =
         totalTargetAmount > 0
-          ? (totalActualSales / totalTargetAmount) * 100
+          ? Math.min((totalActualSales / totalTargetAmount) * 100, 100)
           : 0;
 
       const ExcelJS = await import('exceljs');

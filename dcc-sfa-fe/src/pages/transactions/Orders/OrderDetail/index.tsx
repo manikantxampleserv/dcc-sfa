@@ -18,6 +18,7 @@ import React from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import Button from 'shared/Button';
 import { formatDate } from 'utils/dateUtils';
+import { resolveDefaultUom } from 'utils/uom';
 
 const OrderDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -140,21 +141,21 @@ const OrderDetail: React.FC = () => {
         display: `${displayQty} pieces`,
         details:
           conversionFactor > 1 && pieceQty > 0
-            ? `(${displayQty} pieces = ${(displayQty / conversionFactor).toFixed(2)} cases)`
+            ? `(${displayQty} pieces = ${(displayQty / conversionFactor).toFixed(2)} ${item.unit?.toLowerCase() || resolveDefaultUom().toLowerCase()})`
             : conversionFactor > 1 && pieceQty === 0
-              ? `(${displayQty} pieces = ${(displayQty / conversionFactor).toFixed(2)} cases)`
+              ? `(${displayQty} pieces = ${(displayQty / conversionFactor).toFixed(2)} ${item.unit?.toLowerCase() || resolveDefaultUom().toLowerCase()})`
               : '',
         pricePer: 'per piece',
       };
     }
 
-    // For CASE or any other unit
+    // For any unit
     if (caseQty > 0) {
       return {
-        display: `${caseQty} cases`,
+        display: `${caseQty} ${item.unit?.toLowerCase() || resolveDefaultUom().toLowerCase()}`,
         details:
           conversionFactor > 1
-            ? `(${caseQty} cases = ${caseQty * conversionFactor} pieces)`
+            ? `(${caseQty} ${item.unit?.toLowerCase() || resolveDefaultUom().toLowerCase()} = ${caseQty * conversionFactor} pieces)`
             : '',
         pricePer: 'per case',
       };
@@ -163,7 +164,7 @@ const OrderDetail: React.FC = () => {
         display: `${pieceQty} pieces`,
         details:
           conversionFactor > 1
-            ? `(${pieceQty} pieces = ${(pieceQty / conversionFactor).toFixed(2)} cases)`
+            ? `(${pieceQty} pieces = ${(pieceQty / conversionFactor).toFixed(2)} ${item.unit?.toLowerCase() || resolveDefaultUom().toLowerCase()})`
             : '',
         pricePer: 'per piece',
       };

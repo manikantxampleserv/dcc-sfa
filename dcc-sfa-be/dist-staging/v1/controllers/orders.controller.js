@@ -1055,7 +1055,7 @@ exports.ordersController = {
                         });
                     }
                     if (promotion.promotion_customer_exclusion_promotions.length > 0) {
-                        const isExcluded = promotion.promotion_customer_exclusion_promotions.some(exc => exc.is_excluded === 'Y');
+                        const isExcluded = promotion.promotion_customer_exclusion_promotions.some((exc) => exc.is_excluded === 'Y');
                         if (isExcluded) {
                             return res.status(400).json({
                                 success: false,
@@ -1071,19 +1071,19 @@ exports.ordersController = {
                     }
                     else {
                         if (promotion.promotion_salesperson_promotions.length > 0 &&
-                            promotion.promotion_salesperson_promotions.some(s => s.salesperson_id === orderData.salesperson_id)) {
+                            promotion.promotion_salesperson_promotions.some((s) => s.salesperson_id === orderData.salesperson_id)) {
                             isEligible = true;
                         }
                         if (!isEligible &&
                             customer.route_id &&
                             promotion.promotion_routes_promotions.length > 0 &&
-                            promotion.promotion_routes_promotions.some(r => r.route_id === customer.route_id)) {
+                            promotion.promotion_routes_promotions.some((r) => r.route_id === customer.route_id)) {
                             isEligible = true;
                         }
                         if (!isEligible &&
                             customer.type &&
                             promotion.promotion_customer_category_promotions.length > 0) {
-                            const categoryIds = promotion.promotion_customer_category_promotions.map(c => c.customer_category_id);
+                            const categoryIds = promotion.promotion_customer_category_promotions.map((c) => c.customer_category_id);
                             const categories = await prisma_client_1.default.customer_category.findMany({
                                 where: {
                                     id: { in: categoryIds },
@@ -1116,9 +1116,9 @@ exports.ordersController = {
                         where: { id: { in: productIds } },
                         select: { id: true, category_id: true },
                     });
-                    const productCategoryMap = new Map(products.map(p => [p.id, p.category_id]));
+                    const productCategoryMap = new Map(products.map((p) => [p.id, p.category_id]));
                     for (const item of items) {
-                        const productMatch = condition.promotion_condition_products.find(cp => cp.product_id === item.product_id ||
+                        const productMatch = condition.promotion_condition_products.find((cp) => cp.product_id === item.product_id ||
                             cp.category_id === productCategoryMap.get(item.product_id));
                         if (productMatch) {
                             const lineQty = new client_1.Prisma.Decimal(item.quantity || 0);
@@ -1135,7 +1135,7 @@ exports.ordersController = {
                             message: `Order value ${totalValue.toFixed(2)} does not meet minimum ${minValue.toFixed(2)}`,
                         });
                     }
-                    const applicableLevel = promotion.promotion_level_promotions.find(lvl => new client_1.Prisma.Decimal(lvl.threshold_value).lte(totalValue));
+                    const applicableLevel = promotion.promotion_level_promotions.find((lvl) => new client_1.Prisma.Decimal(lvl.threshold_value).lte(totalValue));
                     if (!applicableLevel) {
                         return res.status(400).json({
                             success: false,
@@ -1406,6 +1406,17 @@ exports.ordersController = {
                         }
                         else {
                             console.log('No approval workflow found - order processed without approval');
+                            await prisma_client_1.default.orders.update({
+                                where: { id: result.id },
+                                data: {
+                                    approval_status: 'A',
+                                    approved_by: userId,
+                                    approved_at: new Date(),
+                                },
+                            });
+                            result.approval_status = 'A';
+                            result.approved_by = userId;
+                            result.approved_at = new Date();
                         }
                     }
                 }
@@ -2181,7 +2192,7 @@ exports.ordersController = {
                                         }
                                         if (workflow.workflow_steps &&
                                             workflow.workflow_steps.length > 1) {
-                                            const managerStep = workflow.workflow_steps.find(s => s.step_name === 'Manager Approval');
+                                            const managerStep = workflow.workflow_steps.find((s) => s.step_name === 'Manager Approval');
                                             if (managerStep && managerStep.assigned_role) {
                                                 const managers = await prisma_client_1.default.users.findMany({
                                                     where: {
@@ -2194,7 +2205,7 @@ exports.ordersController = {
                                                     },
                                                     select: { id: true },
                                                 });
-                                                managers.forEach(m => {
+                                                managers.forEach((m) => {
                                                     if (!approvers.includes(m.id)) {
                                                         approvers.push(m.id);
                                                     }

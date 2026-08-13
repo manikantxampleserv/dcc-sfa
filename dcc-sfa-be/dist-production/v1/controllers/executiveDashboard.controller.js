@@ -54,7 +54,9 @@ exports.executiveDashboardController = {
                 },
             });
             const invoicesGrowthPercentage = invoicesLastMonthCount > 0
-                ? ((invoicesThisMonthCount - invoicesLastMonthCount) / invoicesLastMonthCount) * 100
+                ? ((invoicesThisMonthCount - invoicesLastMonthCount) /
+                    invoicesLastMonthCount) *
+                    100
                 : 0;
             const invoicesThisMonth = await prisma_client_1.default.invoices.findMany({
                 where: {
@@ -212,18 +214,18 @@ exports.executiveDashboardController = {
             const topN = parseInt(limit);
             const now = new Date();
             const startDate = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
-            const orderItems = await prisma_client_1.default.order_items.findMany({
+            const invoiceItems = await prisma_client_1.default.invoice_items.findMany({
                 where: {
-                    orders: {
+                    invoices: {
                         is_active: 'Y',
-                        order_date: { gte: startDate },
+                        invoice_date: { gte: startDate },
                     },
                 },
                 select: {
                     product_id: true,
                     quantity: true,
                     product_name: true,
-                    products: {
+                    invoice_items_products: {
                         select: {
                             id: true,
                             name: true,
@@ -233,13 +235,13 @@ exports.executiveDashboardController = {
                 },
             });
             const productSales = {};
-            orderItems.forEach(item => {
-                if (item.products) {
-                    const productId = item.products.id;
+            invoiceItems.forEach(item => {
+                if (item.invoice_items_products) {
+                    const productId = item.invoice_items_products.id;
                     if (!productSales[productId]) {
                         productSales[productId] = {
-                            name: item.products.name,
-                            code: item.products.code,
+                            name: item.invoice_items_products.name,
+                            code: item.invoice_items_products.code,
                             qty: 0,
                         };
                     }
@@ -273,31 +275,42 @@ exports.executiveDashboardController = {
      */
     async getOrderStatus(req, res) {
         try {
-            const orders = await prisma_client_1.default.orders.findMany({
+            const invoices = await prisma_client_1.default.invoices.findMany({
                 where: { is_active: 'Y' },
                 select: {
-                    status: true,
+                    invoices_salesperson: {
+                        select: {
+                            name: true,
+                        },
+                    },
                 },
             });
-            const statusCounts = {};
-            orders.forEach(order => {
-                const status = order.status || 'unknown';
-                statusCounts[status] = (statusCounts[status] || 0) + 1;
+            const counts = {};
+            invoices.forEach(invoice => {
+                const salesman = invoice.invoices_salesperson?.name;
+                if (salesman) {
+                    counts[salesman] = (counts[salesman] || 0) + 1;
+                }
             });
+            const sortedEntries = Object.entries(counts)
+                .sort(([, a], [, b]) => b - a)
+                .slice(0, 5);
+            const labels = sortedEntries.map(([label]) => label);
+            const values = sortedEntries.map(([, value]) => value);
             res.json({
                 success: true,
-                message: 'Order status data retrieved successfully',
+                message: 'Invoices by salesman data retrieved successfully',
                 data: {
-                    labels: Object.keys(statusCounts),
-                    values: Object.values(statusCounts),
+                    labels,
+                    values,
                 },
             });
         }
         catch (error) {
-            console.error('Get Order Status Error:', error);
+            console.error('Get Invoices by Salesman Error:', error);
             res.status(500).json({
                 success: false,
-                message: error.message || 'Failed to retrieve order status data',
+                message: error.message || 'Failed to retrieve invoices by salesman data',
             });
         }
     },

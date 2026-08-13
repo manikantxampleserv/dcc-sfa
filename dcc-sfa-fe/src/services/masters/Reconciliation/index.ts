@@ -168,15 +168,19 @@ export const exportReconciliationPdf = async ({
   id,
   salesmanName,
   currency,
+  uomCase,
+  uomPcs,
 }: {
   id: number;
   salesmanName?: string;
   currency?: string;
+  uomCase?: string;
+  uomPcs?: string;
 }): Promise<any> => {
   try {
     const response = await api.get(`/reconciliation/${id}/export`, {
       responseType: 'blob',
-      params: { currency, format: 'pdf' },
+      params: { currency, format: 'pdf', uomCase, uomPcs },
     });
 
     const blob = response.data;

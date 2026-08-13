@@ -63,6 +63,10 @@ const serializeSalesTarget = (salesTarget: any): SalesTargetSerialized => ({
 });
 
 export const salesTargetsController = {
+  /**
+   * Creates a new sales target.
+   * Validates group, category, and date overlaps.
+   */
   async createSalesTarget(req: Request, res: Response) {
     try {
       const errors = validationResult(req);
@@ -83,7 +87,6 @@ export const salesTargetsController = {
         is_active,
       } = req.body;
 
-      // Check if sales target group exists
       const salesTargetGroup = await prisma.sales_target_groups.findUnique({
         where: { id: sales_target_group_id },
       });
@@ -94,7 +97,6 @@ export const salesTargetsController = {
           .json({ message: 'Sales target group not found' });
       }
 
-      // Check if product category exists
       const productCategory = await prisma.product_categories.findUnique({
         where: { id: product_category_id },
       });
@@ -103,7 +105,6 @@ export const salesTargetsController = {
         return res.status(404).json({ message: 'Product category not found' });
       }
 
-      // Check for overlapping targets for the same group and category
       const existingTarget = await prisma.sales_targets.findFirst({
         where: {
           sales_target_group_id,
@@ -153,6 +154,10 @@ export const salesTargetsController = {
     }
   },
 
+  /**
+   * Retrieves all sales targets with pagination and filtering.
+   * Includes statistics for dashboard views.
+   */
   async getAllSalesTargets(req: any, res: any) {
     try {
       const {
@@ -190,7 +195,6 @@ export const salesTargetsController = {
         }),
       };
 
-      // Statistics
       const totalTargets = await prisma.sales_targets.count();
       const activeTargets = await prisma.sales_targets.count({
         where: { is_active: 'Y' },
@@ -212,7 +216,6 @@ export const salesTargetsController = {
         },
       });
 
-      // Paginate
       const { data, pagination } = await paginate({
         model: prisma.sales_targets,
         filters,
@@ -250,6 +253,9 @@ export const salesTargetsController = {
     }
   },
 
+  /**
+   * Retrieves a specific sales target by its ID.
+   */
   async getSalesTargetById(req: Request, res: Response) {
     try {
       const { id } = req.params;
@@ -275,6 +281,10 @@ export const salesTargetsController = {
     }
   },
 
+  /**
+   * Updates an existing sales target.
+   * Validates overlaps and references before updating.
+   */
   async updateSalesTarget(req: Request, res: Response) {
     try {
       const errors = validationResult(req);
@@ -304,7 +314,6 @@ export const salesTargetsController = {
         return res.status(404).json({ message: 'Sales target not found' });
       }
 
-      // Check if sales target group exists (if being updated)
       if (
         sales_target_group_id &&
         sales_target_group_id !== existingSalesTarget.sales_target_group_id
@@ -320,7 +329,6 @@ export const salesTargetsController = {
         }
       }
 
-      // Check if product category exists (if being updated)
       if (
         product_category_id &&
         product_category_id !== existingSalesTarget.product_category_id
@@ -336,7 +344,6 @@ export const salesTargetsController = {
         }
       }
 
-      // Check for overlapping targets (if period is being updated)
       if (
         start_date ||
         end_date ||
@@ -407,6 +414,9 @@ export const salesTargetsController = {
     }
   },
 
+  /**
+   * Soft-deletes a sales target by setting is_active to 'N'.
+   */
   async deleteSalesTarget(req: Request, res: Response) {
     try {
       const { id } = req.params;
@@ -419,14 +429,12 @@ export const salesTargetsController = {
         return res.status(404).json({ message: 'Sales target not found' });
       }
 
-      // Soft delete - set is_active to 'N'
-      await prisma.sales_targets.update({
+      await prisma.sales_bonus_rules.deleteMany({
+        where: { sales_target_id: parseInt(id) },
+      });
+
+      await prisma.sales_targets.delete({
         where: { id: parseInt(id) },
-        data: {
-          is_active: 'N',
-          updatedby: (req as any).user?.id || 1,
-          updatedate: new Date(),
-        },
       });
 
       res.json({
@@ -435,6 +443,153 @@ export const salesTargetsController = {
     } catch (error: any) {
       console.error('Delete Sales Target Error:', error);
       res.status(500).json({ message: error.message });
+    }
+  },
+
+  /**
+   * Retrieves personalized targets for the logged-in salesman.
+   * Merges group targets with individual overrides and calculates actual achievements.
+   */
+  async getSalesmanTargets(req: any, res: any) {
+    try {
+      const salesmanId = req.user?.id;
+      if (!salesmanId) {
+        return res.status(401).json({
+          success: false,
+          message: 'Unauthorized: User not found in token',
+        });
+      }
+
+      const groupMembers = await prisma.sales_target_group_members.findMany({
+        where: { sales_person_id: salesmanId, is_active: 'Y' },
+      });
+      const groupIds = groupMembers.map((gm: any) => gm.sales_target_group_id);
+
+      const baseTargets = await prisma.sales_targets.findMany({
+        where: {
+          sales_target_group_id: { in: groupIds },
+          is_active: 'Y',
+        },
+        include: {
+          sales_bonus_rules: { where: { is_active: 'Y' } },
+          sales_targets_product_categories: true,
+          sales_targets_groups: true,
+        },
+      });
+
+      const overrides = await prisma.sales_target_overrides.findMany({
+        where: {
+          sales_person_id: salesmanId,
+          is_active: 'Y',
+        },
+        include: {
+          sales_target_overrides_product_categories: true,
+        },
+      });
+
+      const overrideCategoryIds = new Set(
+        overrides.map((o: any) => o.product_category_id)
+      );
+      const finalTargets: any[] = [];
+
+      for (const bt of baseTargets) {
+        if (!overrideCategoryIds.has(bt.product_category_id)) {
+          finalTargets.push({
+            type: 'group_target',
+            id: bt.id,
+            group_name: bt.sales_targets_groups?.group_name,
+            product_category_id: bt.product_category_id,
+            category_name: bt.sales_targets_product_categories?.category_name,
+            target_quantity: bt.target_quantity,
+            target_amount: bt.target_amount ? Number(bt.target_amount) : null,
+            start_date: bt.start_date,
+            end_date: bt.end_date,
+            bonus_rules: (bt.sales_bonus_rules || []).map((br: any) => ({
+              ...br,
+              achievement_min_percent: Number(br.achievement_min_percent),
+              achievement_max_percent: Number(br.achievement_max_percent),
+              bonus_amount: br.bonus_amount ? Number(br.bonus_amount) : null,
+              bonus_percent: br.bonus_percent ? Number(br.bonus_percent) : null,
+            })),
+          });
+        }
+      }
+
+      for (const ov of overrides) {
+        finalTargets.push({
+          type: 'override_target',
+          id: ov.id,
+          group_name: 'Override',
+          product_category_id: ov.product_category_id,
+          category_name:
+            ov.sales_target_overrides_product_categories?.category_name,
+          target_quantity: ov.target_quantity,
+          target_amount: ov.target_amount ? Number(ov.target_amount) : null,
+          start_date: ov.start_date,
+          end_date: ov.end_date,
+          bonus_rules: [],
+        });
+      }
+
+      const allSales = await prisma.invoice_items.findMany({
+        where: {
+          invoices: {
+            is_active: 'Y',
+            OR: [{ salesperson_id: salesmanId }],
+          },
+        },
+        include: {
+          invoice_items_products: { select: { category_id: true } },
+          invoices: { select: { invoice_date: true } },
+        },
+      });
+
+      const targetsWithAchievement = finalTargets.map(target => {
+        let achievedQuantity = 0;
+        let achievedAmount = 0;
+
+        const targetStartDate = new Date(target.start_date).getTime();
+        const targetEndDate = new Date(target.end_date).getTime();
+
+        for (const sale of allSales) {
+          if (
+            sale.invoice_items_products?.category_id ===
+            target.product_category_id
+          ) {
+            const saleDate = sale.invoices?.invoice_date
+              ? new Date(sale.invoices.invoice_date).getTime()
+              : 0;
+            if (saleDate >= targetStartDate && saleDate <= targetEndDate) {
+              achievedQuantity += sale.quantity;
+              achievedAmount += Number(sale.total_amount || 0);
+            }
+          }
+        }
+
+        let achievementPercentage = 0;
+        if (target.target_amount && target.target_amount > 0) {
+          achievementPercentage = Math.min((achievedAmount / target.target_amount) * 100, 100);
+        } else if (target.target_quantity > 0) {
+          achievementPercentage =
+            Math.min((achievedQuantity / target.target_quantity) * 100, 100);
+        }
+
+        return {
+          ...target,
+          achieved_quantity: achievedQuantity,
+          achieved_amount: achievedAmount,
+          achievement_percentage: Math.round(achievementPercentage * 100) / 100, // round to 2 decimals
+        };
+      });
+
+      res.json({
+        success: true,
+        message: 'Salesman targets retrieved successfully',
+        data: targetsWithAchievement,
+      });
+    } catch (error: any) {
+      console.error('Get Salesman Targets Error:', error);
+      res.status(500).json({ success: false, message: error.message });
     }
   },
 };

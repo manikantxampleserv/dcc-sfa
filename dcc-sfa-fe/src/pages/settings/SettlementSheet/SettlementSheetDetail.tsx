@@ -8,18 +8,19 @@ import {
   useReconciliationById,
   type ReconciliationItem,
 } from 'hooks/useReconciliation';
+import { useResolvedUom } from 'hooks/useUnitOfMeasurement';
 import { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import Button from 'shared/Button';
 import { PopConfirm } from 'shared/DeleteConfirmation';
 import Table, { type TableColumn } from 'shared/Table';
-
 export default function SettlementSheetDetail() {
   const { id } = useParams<{ id: string }>();
   const { isRead } = usePermission('settlement-sheet');
   const exportMutation = useExportReconciliation();
   const exportPdfMutation = useExportReconciliationPdf();
   const currencyCode = useCurrencyCode();
+  const { uomCase, uomPcs } = useResolvedUom();
 
   const { data: responseData, isFetching } = useReconciliationById(Number(id), {
     enabled: isRead && !!id,
@@ -50,43 +51,35 @@ export default function SettlementSheetDetail() {
           (Number(item.loadQuantity) || 0);
         existing.loadBaseQty =
           (Number(existing.loadBaseQty) || 0) + (Number(item.loadBaseQty) || 0);
-
         existing.saleQuantity =
           (Number(existing.saleQuantity) || 0) +
           (Number(item.saleQuantity) || 0);
         existing.saleBaseQty =
           (Number(existing.saleBaseQty) || 0) + (Number(item.saleBaseQty) || 0);
-
         existing.expectedRop =
           (Number(existing.expectedRop) || 0) + (Number(item.expectedRop) || 0);
         existing.expectedBaseQty =
           (Number(existing.expectedBaseQty) || 0) +
           (Number(item.expectedBaseQty) || 0);
-
         const hasActualExisting =
           existing.actualRop !== '' || existing.actualBaseQty !== '';
         const hasActualItem =
           item.actualRop !== '' || item.actualBaseQty !== '';
-
         if (hasActualExisting || hasActualItem) {
           const actualExisting = Number(existing.actualRop) || 0;
           const actualItem = Number(item.actualRop) || 0;
           const actualBaseExisting = Number(existing.actualBaseQty) || 0;
           const actualBaseItem = Number(item.actualBaseQty) || 0;
-
           existing.actualRop = String(actualExisting + actualItem);
           existing.actualBaseQty = String(actualBaseExisting + actualBaseItem);
         }
-
         existing.variance =
           (Number(existing.variance) || 0) + (Number(item.variance) || 0);
         existing.varianceBaseQty =
           (Number(existing.varianceBaseQty) || 0) +
           (Number(item.varianceBaseQty) || 0);
-
         existing.taxAmount =
           (Number(existing.taxAmount) || 0) + (Number(item.taxAmount) || 0);
-
         if (
           !existing.resolutionAction ||
           existing.resolutionAction === 'CLEAN' ||
@@ -99,7 +92,6 @@ export default function SettlementSheetDetail() {
         skuMap.set(key, { ...item });
       }
     });
-
     const aggregatedArray = Array.from(skuMap.values());
     aggregatedArray.sort((a, b) => {
       const skuA = String(a.skuCode || '');
@@ -109,7 +101,6 @@ export default function SettlementSheetDetail() {
         sensitivity: 'base',
       });
     });
-
     return aggregatedArray;
   }, [items]);
 
@@ -130,26 +121,20 @@ export default function SettlementSheetDetail() {
     let totalTaxAmount = 0;
     let totalDefaultOutletValue = 0;
     let totalDefaultOutletTax = 0;
-
     aggregatedItems.forEach(item => {
       const conv = item.conversionRate || 1;
       const price = item.basePrice || 0;
       const basePricePerPc = price / conv;
-
       const saleVal =
         (item.saleQuantity || 0) * price +
         (item.saleBaseQty || 0) * basePricePerPc;
       totalSaleValue += saleVal;
-
       const itemTax = Number(item.taxAmount) || 0;
       totalTaxAmount += itemTax;
-
       const taxRate = saleVal > 0 ? itemTax / saleVal : 0.18;
-
       const variance = Number(item.variance) || 0;
       const varianceBase = Number(item.varianceBaseQty) || 0;
       const action = item.resolutionAction || '';
-
       if (
         action.includes('Default Outlet') &&
         (variance < 0 || varianceBase < 0)
@@ -200,7 +185,7 @@ export default function SettlementSheetDetail() {
           row.subCategoryName?.toUpperCase().includes('RETURNABLE GLASS');
         return (
           <span className="block text-center">
-            {load.c} Cases {isRGB && `${load.p} PCs`}
+            {load.c} {uomCase} {isRGB && `${load.p} ${uomPcs}`}
           </span>
         );
       },
@@ -228,7 +213,7 @@ export default function SettlementSheetDetail() {
           row.subCategoryName?.toUpperCase().includes('RETURNABLE GLASS');
         return (
           <span className="block text-center">
-            {sale.c} Cases {isRGB && `${sale.p} PCs`}
+            {sale.c} {uomCase} {isRGB && `${sale.p} ${uomPcs}`}
           </span>
         );
       },
@@ -256,7 +241,7 @@ export default function SettlementSheetDetail() {
           row.subCategoryName?.toUpperCase().includes('RETURNABLE GLASS');
         return (
           <span className="block text-center">
-            {expected.c} Cases {isRGB && `${expected.p} PCs`}
+            {expected.c} {uomCase} {isRGB && `${expected.p} ${uomPcs}`}
           </span>
         );
       },
@@ -294,8 +279,8 @@ export default function SettlementSheetDetail() {
         return (
           <span className="block text-center">
             {hasActualCases || hasActualPCs
-              ? `${actual.c} Cases ${isRGB ? `${actual.p} PCs` : ''}`
-              : `0 Cases ${isRGB ? '0 PCs' : ''}`}
+              ? `${actual.c} ${uomCase} ${isRGB ? `${actual.p} ${uomPcs}` : ''}`
+              : `0 ${uomCase} ${isRGB ? `0 ${uomPcs}` : ''}`}
           </span>
         );
       },
@@ -315,7 +300,7 @@ export default function SettlementSheetDetail() {
         if (val === null || val === undefined)
           return (
             <span className="block text-center font-medium text-gray-900">
-              0 Cases {isRGB && '0 PCs'}
+              0 {uomCase} {isRGB && `0 ${uomPcs}`}
             </span>
           );
 
@@ -345,7 +330,7 @@ export default function SettlementSheetDetail() {
         if (cases === 0 && pcs === 0) {
           return (
             <span className="block text-center font-medium text-gray-900">
-              0 Cases {isRGB && '0 PCs'}
+              0 {uomCase} {isRGB && `0 ${uomPcs}`}
             </span>
           );
         }
@@ -353,7 +338,7 @@ export default function SettlementSheetDetail() {
         return (
           <span className={`block text-center font-medium ${color}`}>
             {sign}
-            {cases} Cases {isRGB && `${pcs} PCs`}
+            {cases} {uomCase} {isRGB && `${pcs} ${uomPcs}`}
           </span>
         );
       },
@@ -459,6 +444,8 @@ export default function SettlementSheetDetail() {
         id: Number(id),
         salesmanName: headerInfo?.salesmanName,
         currency: currencyCode,
+        uomCase,
+        uomPcs,
       });
     } catch (error) {
       console.error(error);

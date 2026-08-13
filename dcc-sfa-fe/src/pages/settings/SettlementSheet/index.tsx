@@ -1,12 +1,17 @@
 import { Visibility } from '@mui/icons-material';
 import { MenuItem } from '@mui/material';
+import { useCurrencyCode } from 'hooks/useCurrency';
 import { usePermission } from 'hooks/usePermission';
 import {
+  useExportReconciliation,
+  useExportReconciliationPdf,
   useReconciliations,
   type ReconciliationRecord,
 } from 'hooks/useReconciliation';
+import { useResolvedUom } from 'hooks/useUnitOfMeasurement';
 import { AlertCircle, BarChart, ClipboardList, DollarSign } from 'lucide-react';
 import { useState } from 'react';
+import { FaFileExcel, FaFilePdf } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { ActionButton } from 'shared/ActionButton';
 import DepotSelect from 'shared/DepotSelect';
@@ -29,6 +34,37 @@ export default function SettlementSheet() {
   const [limit] = useState(10);
 
   const { isRead } = usePermission('settlement-sheet');
+  const currencyCode = useCurrencyCode();
+  const { uomCase, uomPcs } = useResolvedUom();
+
+  const exportMutation = useExportReconciliation();
+  const exportPdfMutation = useExportReconciliationPdf();
+
+  const handleExport = async (row: ReconciliationRecord) => {
+    try {
+      await exportMutation.mutateAsync({
+        id: Number(row.id),
+        salesmanName: row.salesmanName,
+        currency: currencyCode,
+      });
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const handleExportPdf = async (row: ReconciliationRecord) => {
+    try {
+      await exportPdfMutation.mutateAsync({
+        id: Number(row.id),
+        salesmanName: row.salesmanName,
+        currency: currencyCode,
+        uomCase,
+        uomPcs,
+      });
+    } catch (error) {
+      console.error(error);
+    }
+  };
 
   const { data: responseData, isFetching } = useReconciliations(
     {
@@ -76,7 +112,7 @@ export default function SettlementSheet() {
     },
     { id: 'salesmanSapCode', label: 'SAP Code', sortable: true },
     { id: 'salesmanName', label: 'Rep Name', sortable: true },
-    { id: 'depot', label: 'Depot/Route', sortable: true },
+    { id: 'depotName', label: 'Depot', sortable: true },
     {
       id: 'reconciliation_date',
       label: 'Load Date',
@@ -130,12 +166,27 @@ export default function SettlementSheet() {
       id: 'id',
       label: 'Actions',
       render: (_val, row) => (
-        <ActionButton
-          color="info"
-          icon={<Visibility />}
-          tooltip="View Settlement Sheet"
-          onClick={() => navigate(`/settings/settlement-sheet/${row.id}`)}
-        />
+        <div className="flex gap-2 items-center">
+          <ActionButton
+            color="info"
+            icon={<Visibility />}
+            tooltip="View Settlement Sheet"
+            onClick={() => navigate(`/settings/settlement-sheet/${row.id}`)}
+          />
+
+          <ActionButton
+            color="error"
+            icon={<FaFilePdf />}
+            tooltip="Export to PDF"
+            onClick={() => handleExportPdf(row)}
+          />
+          <ActionButton
+            color="success"
+            icon={<FaFileExcel />}
+            tooltip="Export to Excel"
+            onClick={() => handleExport(row)}
+          />
+        </div>
       ),
     },
   ];

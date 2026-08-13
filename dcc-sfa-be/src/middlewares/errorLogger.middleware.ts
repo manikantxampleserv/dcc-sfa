@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import prisma from '../configs/prisma.client';
+// import { aiService } from '../v1/services/ai.service';
 
 export const errorLogger = (
   req: Request,
@@ -44,6 +45,21 @@ export const errorLogger = (
               (req.headers['user-agent'] || '').substring(0, 255) || null,
           };
           prisma.error_logs.create({ data: errorLog }).catch(console.error);
+          // (async () => {
+          //   try {
+          //     const payload = { requestPayload: req.body, failedItemContext: failedItem };
+          //     const suggestion = await aiService.explainError(
+          //       errorLog.message,
+          //       payload
+          //     );
+          //     if (suggestion) {
+          //       const updatedPayload = { ...payload, ai_suggestion: suggestion };
+          //       errorLog.body = JSON.stringify(updatedPayload);
+          //     }
+          //   } catch (aiError) {
+          //     console.error('Failed to generate AI suggestion:', aiError);
+          //   }
+          // })();
         }
       } catch (loggerError) {
         console.error('Failed to log bulk failures to database:', loggerError);
@@ -80,6 +96,25 @@ export const errorLogger = (
             (req.headers['user-agent'] || '').substring(0, 255) || null,
         };
         prisma.error_logs.create({ data: errorLog }).catch(console.error);
+
+        // (async () => {
+        //   try {
+        //     const suggestion = await aiService.explainError(
+        //       errorLog.message,
+        //       req.body
+        //     );
+        //     if (suggestion) {
+        //       const currentBody = errorLog.body
+        //         ? JSON.parse(errorLog.body)
+        //         : {};
+        //       const updatedBody = { ...currentBody, ai_suggestion: suggestion };
+        //       errorLog.body = JSON.stringify(updatedBody);
+        //     }
+        //   } catch (aiError) {
+        //     console.error('Failed to generate AI suggestion:', aiError);
+        //   }
+        //   prisma.error_logs.create({ data: errorLog }).catch(console.error);
+        // })();
       } catch (loggerError) {
         console.error('Failed to log error to database:', loggerError);
       }

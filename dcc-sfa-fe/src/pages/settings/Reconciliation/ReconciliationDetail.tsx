@@ -9,6 +9,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { usePermission } from 'hooks/usePermission';
+import { useResolvedUom } from 'hooks/useUnitOfMeasurement';
 import Button from 'shared/Button';
 import { PopConfirm } from 'shared/DeleteConfirmation';
 import Table, { type TableColumn } from 'shared/Table';
@@ -17,6 +18,7 @@ export default function ReconciliationDetail() {
   const { id } = useParams<{ id: string }>();
   const reconciliationId = id ? Number(id) : null;
   const { isRead, isUpdate } = usePermission('reconciliation');
+  const { uomCase, uomPcs } = useResolvedUom();
 
   const [editedRecords, setEditedRecords] = useState<Record<number, string>>(
     {}
@@ -116,13 +118,13 @@ export default function ReconciliationDetail() {
         actualRop: localActualStr ?? '',
         actualBaseQty: localActualBaseStr ?? '',
         varianceDisplay: isRGB
-          ? `${sign}${vCases} Cases ${vPcs} PCs`
-          : `${sign}${vCases} Cases`,
+          ? `${sign}${vCases} ${uomCase} ${vPcs} ${uomPcs}`
+          : `${sign}${vCases} ${uomCase}`,
         status,
         resolutionAction,
       };
     },
-    [editedRecords, editedBaseRecords]
+    [editedRecords, editedBaseRecords, uomCase, uomPcs]
   );
 
   const autoFillMatchAll = useCallback(() => {
@@ -149,7 +151,10 @@ export default function ReconciliationDetail() {
           const abs = Math.abs(total);
           return { c: Math.floor(abs / conv) * sign, p: (abs % conv) * sign };
         };
-        const expected = normalizeQty(Number(row.expectedRop), Number(row.expectedBaseQty));
+        const expected = normalizeQty(
+          Number(row.expectedRop),
+          Number(row.expectedBaseQty)
+        );
 
         updates[row.id] = expected.c.toString();
         baseUpdates[row.id] = expected.p.toString();
@@ -241,7 +246,7 @@ export default function ReconciliationDetail() {
           const isRGB =
             row.subCategoryName?.toUpperCase().includes('RGB') ||
             row.subCategoryName?.toUpperCase().includes('RETURNABLE GLASS');
-            
+
           const conv = Number(row.conversionRate) || 1;
           const normalizeQty = (c: number, p: number) => {
             if (conv <= 1) return { c: c || 0, p: p || 0 };
@@ -250,11 +255,14 @@ export default function ReconciliationDetail() {
             const abs = Math.abs(total);
             return { c: Math.floor(abs / conv) * sign, p: (abs % conv) * sign };
           };
-          const expected = normalizeQty(Number(row.expectedRop), Number(row.expectedBaseQty));
+          const expected = normalizeQty(
+            Number(row.expectedRop),
+            Number(row.expectedBaseQty)
+          );
 
           return (
             <span className="font-semibold text-gray-800">
-              {expected.c} Cases {isRGB && `${expected.p} PCs`}
+              {expected.c} {uomCase} {isRGB && `${expected.p} ${uomPcs}`}
             </span>
           );
         },
@@ -273,7 +281,7 @@ export default function ReconciliationDetail() {
               <TextField
                 type="number"
                 size="small"
-                placeholder={isBlocked ? 'BLOCKED' : 'Cases'}
+                placeholder={isBlocked ? 'BLOCKED' : uomCase}
                 value={details.actualRop}
                 disabled={isBlocked || !isUpdate || isApproved}
                 onChange={e => handleActualChange(row.id, e.target.value)}
@@ -283,13 +291,13 @@ export default function ReconciliationDetail() {
                 }}
                 className={isBlocked ? 'bg-red-50/20' : 'bg-yellow-50/30'}
               />
-              <span className="text-xs text-gray-500">Cases</span>
+              <span className="text-xs text-gray-500">{uomCase}</span>
               {isRGB && (
                 <>
                   <TextField
                     type="number"
                     size="small"
-                    placeholder={isBlocked ? 'BLOCKED' : 'PCs'}
+                    placeholder={isBlocked ? 'BLOCKED' : uomPcs}
                     value={details.actualBaseQty}
                     disabled={isBlocked || !isUpdate || isApproved}
                     onChange={e =>
@@ -301,7 +309,7 @@ export default function ReconciliationDetail() {
                     }}
                     className={isBlocked ? 'bg-red-50/20' : 'bg-yellow-50/30'}
                   />
-                  <span className="text-xs text-gray-500">PCs</span>
+                  <span className="text-xs text-gray-500">{uomPcs}</span>
                 </>
               )}
             </div>

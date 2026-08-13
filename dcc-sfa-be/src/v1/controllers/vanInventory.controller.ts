@@ -6659,7 +6659,6 @@ export const vanInventoryController = {
               // Process serials using normalized trackingType
               let serials: any[] = [];
               if (trackingType === 'serial') {
-                // Only use serial directly linked to this van inventory item
                 const linkedSerial = item.van_inventory_serial;
 
                 if (linkedSerial && linkedSerial.status === 'in_van') {
@@ -7578,7 +7577,6 @@ export const vanInventoryController = {
                   loading_type: 'L',
                   status: 'A',
                   approval_status: 'A',
-
                   is_cancelled: 'N',
                   createdate: { gte: sessionStart, lt: todayEnd },
                 },

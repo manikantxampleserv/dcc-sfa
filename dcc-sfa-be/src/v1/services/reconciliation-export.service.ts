@@ -12,6 +12,8 @@ export const exportReconciliationExcelService = async (
   const sheet = workbook.addWorksheet('SettlementSheet');
 
   const { meta, data: rawItems } = reconciliationData;
+  const uomCase = meta?.uomCase || process.env.DEFAULT_UOM_CASE || 'Cases';
+  const uomPcs = meta?.uomPcs || process.env.DEFAULT_UOM_PCS || 'PCs';
 
   const items = (rawItems || []).reduce((acc: any[], item: any) => {
     const key = `${item.categoryName}_${item.skuCode}`;
@@ -287,21 +289,21 @@ export const exportReconciliationExcelService = async (
           Number(item.loadBaseQty)
         );
         row.getCell(4).value =
-          `${load.c} Cases ${isRGB ? `${load.p} PCs` : ''}`.trim();
+          `${load.c} ${uomCase} ${isRGB ? `${load.p} ${uomPcs}` : ''}`.trim();
 
         const sale = normalizeQty(
           Number(item.saleQuantity),
           Number(item.saleBaseQty)
         );
         row.getCell(5).value =
-          `${sale.c} Cases ${isRGB ? `${sale.p} PCs` : ''}`.trim();
+          `${sale.c} ${uomCase} ${isRGB ? `${sale.p} ${uomPcs}` : ''}`.trim();
 
         const expected = normalizeQty(
           Number(item.expectedRop),
           Number(item.expectedBaseQty)
         );
         row.getCell(6).value =
-          `${expected.c} Cases ${isRGB ? `${expected.p} PCs` : ''}`.trim();
+          `${expected.c} ${uomCase} ${isRGB ? `${expected.p} ${uomPcs}` : ''}`.trim();
 
         const hasActualCases =
           item.actualRop !== '' &&
@@ -317,11 +319,27 @@ export const exportReconciliationExcelService = async (
 
         row.getCell(7).value =
           hasActualCases || hasActualPCs
-            ? `${actual.c} Cases ${isRGB ? `${actual.p} PCs` : ''}`.trim()
+            ? `${actual.c} ${uomCase} ${isRGB ? `${actual.p} ${uomPcs}` : ''}`.trim()
             : '-';
 
-        const varianceVal = Number(item.variance) || 0;
-        const varianceBaseVal = Number(item.varianceBaseQty) || 0;
+        const expectedVal = Number(item.expectedRop) || 0;
+        const expectedBaseVal = Number(item.expectedBaseQty) || 0;
+
+        let varianceVal = 0;
+        let varianceBaseVal = 0;
+
+        if (hasActualCases || hasActualPCs) {
+          const expectedTotalPieces = expectedVal * conv + expectedBaseVal;
+          const actualTotalPieces = actualVal * conv + actualBaseVal;
+          const variancePieces = actualTotalPieces - expectedTotalPieces;
+
+          if (variancePieces !== 0) {
+            const absV = Math.abs(variancePieces);
+            varianceVal = Math.floor(absV / conv) * Math.sign(variancePieces);
+            varianceBaseVal = (absV % conv) * Math.sign(variancePieces);
+          }
+        }
+
         const variance = normalizeQty(varianceVal, varianceBaseVal);
 
         const sign =
@@ -332,10 +350,13 @@ export const exportReconciliationExcelService = async (
               : '';
         const absCases = Math.abs(variance.c);
         const absPcs = Math.abs(variance.p);
-        row.getCell(8).value =
+
+        const varianceStr =
           variance.c === 0 && variance.p === 0
-            ? `0 Cases ${isRGB ? '0 PCs' : ''}`.trim()
-            : `${sign}${absCases} Cases ${isRGB ? `${absPcs} PCs` : ''}`.trim();
+            ? `0 ${uomCase} ${isRGB ? `0 ${uomPcs}` : ''}`.trim()
+            : `${sign}${absCases} ${uomCase} ${isRGB ? `${absPcs} ${uomPcs}` : ''}`.trim();
+
+        row.getCell(8).value = varianceStr;
 
         row.getCell(9).value = price;
 

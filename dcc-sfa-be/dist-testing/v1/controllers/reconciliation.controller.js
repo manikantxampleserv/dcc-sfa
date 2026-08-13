@@ -59,14 +59,7 @@ exports.reconciliationController = {
             const reconcFilters = { is_active: 'Y' };
             if (isScopeRestricted) {
                 if (depotIds.length > 0) {
-                    reconcFilters.salesman = {
-                        ...reconcFilters.salesman,
-                        users_depots_users: {
-                            some: {
-                                depot_id: { in: depotIds },
-                            },
-                        },
-                    };
+                    reconcFilters.depot_id = { in: depotIds };
                 }
                 else {
                     reconcFilters.id = -1;
@@ -635,6 +628,12 @@ exports.reconciliationController = {
                 data.meta.currency = currency;
             }
             const format = req.query.format;
+            const uomCase = req.query.uomCase;
+            if (uomCase)
+                data.meta.uomCase = uomCase;
+            const uomPcs = req.query.uomPcs;
+            if (uomPcs)
+                data.meta.uomPcs = uomPcs;
             if (format === 'pdf') {
                 const buffer = await (0, reconciliation_pdf_export_service_1.exportReconciliationPdfService)(data);
                 res.setHeader('Content-Type', 'application/pdf');

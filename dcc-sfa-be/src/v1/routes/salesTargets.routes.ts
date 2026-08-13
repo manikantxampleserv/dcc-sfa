@@ -36,6 +36,13 @@ router.get(
   salesTargetsController.getAllSalesTargets
 );
 
+// Get Sales Targets for the logged-in Salesman
+router.get(
+  '/sales-targets/mobile/my-targets',
+  authenticateToken,
+  salesTargetsController.getSalesmanTargets
+);
+
 // Get Sales Target by ID
 router.get(
   '/sales-targets/:id',
