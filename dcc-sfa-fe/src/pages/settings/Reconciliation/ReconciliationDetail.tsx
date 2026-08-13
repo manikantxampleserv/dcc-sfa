@@ -74,7 +74,9 @@ export default function ReconciliationDetail() {
         };
       }
 
-      const isPending = localActualStr === '' || localActualStr == null;
+      // Only treat as pending if the value has never been set (null/undefined from server and not yet edited)
+      // If it's already approved, it's not pending.
+      const isPending = !isApproved && localActualStr == null;
 
       if (isPending) {
         return {
@@ -124,7 +126,7 @@ export default function ReconciliationDetail() {
         resolutionAction,
       };
     },
-    [editedRecords, editedBaseRecords, uomCase, uomPcs]
+    [editedRecords, editedBaseRecords, uomCase, uomPcs, isApproved]
   );
 
   const autoFillMatchAll = useCallback(() => {
@@ -178,9 +180,10 @@ export default function ReconciliationDetail() {
       const bVal = editedBaseRecords[id];
       return {
         id,
-        actual_qty: cVal === '' || cVal === undefined ? null : parseFloat(cVal),
-        actual_base_qty:
-          bVal === '' || bVal === undefined ? null : parseFloat(bVal),
+        // Default empty/missing fields to 0 so the backend never receives null
+        // and does not revert stock to van inventory or mark as Pending Verification
+        actual_qty: cVal === undefined ? null : parseFloat(cVal) || 0,
+        actual_base_qty: bVal === undefined ? null : parseFloat(bVal) || 0,
       };
     });
 

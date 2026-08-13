@@ -7689,23 +7689,30 @@ export const vanInventoryController = {
             });
 
             const toCreate: any[] = [];
+            const assignedSaleProducts = new Set<number>();
             for (const p of productMap.values()) {
               const expectedQty = p.total_qty;
               const expectedBaseQty = p.total_base_qty;
 
-              const loadQty =
-                loadQtyMap.get(`${p.product_id}-${p.batch_number || ''}`)
-                  ?.qty || 0;
-              const loadBaseQty =
-                loadQtyMap.get(`${p.product_id}-${p.batch_number || ''}`)
-                  ?.baseQty || 0;
+              let saleQty = 0;
+              let saleBaseQty = 0;
+              if (!assignedSaleProducts.has(p.product_id)) {
+                saleQty = saleQtyMap.get(`${p.product_id}-`)?.qty || 0;
+                saleBaseQty = saleQtyMap.get(`${p.product_id}-`)?.baseQty || 0;
+                assignedSaleProducts.add(p.product_id);
+              }
 
-              // saleQtyMap is keyed by product_id only (no batch) because
-              // invoice_items have no direct batch_lot_id FK. For batched products
-              // all batches of the same product are summed under the same key.
-              const saleQty = saleQtyMap.get(`${p.product_id}-`)?.qty || 0;
-              const saleBaseQty =
-                saleQtyMap.get(`${p.product_id}-`)?.baseQty || 0;
+              // Calculate Load Qty as Total Available Stock (Opening Stock + Today's Load).
+              // Since p.total_qty is the EOD stock (after sales), we can mathematically
+              // derive the total available stock before sales by adding the sales back.
+              let loadQty = expectedQty + saleQty;
+              let loadBaseQty = expectedBaseQty + saleBaseQty;
+
+              // Normalize base quantities
+              if (p.convRate > 0) {
+                loadQty += Math.floor(loadBaseQty / p.convRate);
+                loadBaseQty = loadBaseQty % p.convRate;
+              }
 
               const unitPricePerPc = p.convRate > 0 ? p.price / p.convRate : 0;
               const saleVal = saleQty * p.price + saleBaseQty * unitPricePerPc;
