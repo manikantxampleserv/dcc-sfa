@@ -2289,6 +2289,7 @@ export const vanInventoryController = {
       });
     }
   },
+
   async getAvailableBatches(req: Request, res: Response) {
     try {
       const { productId } = req.params;

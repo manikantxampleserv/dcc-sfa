@@ -567,7 +567,6 @@ model batch_lots {
   stock_transfer_lines          stock_transfer_lines[]
   van_inventory_items_batch_lot van_inventory_items[]
 
-  @@unique([batch_number, productsId, salesman_id])
   @@index([batch_number])
   @@index([expiry_date])
 }
@@ -1585,6 +1584,7 @@ model products {
   sub_category_id                  Int
   brand_id                         Int
   unit_of_measurement              Int
+  unit_case_conversion_rate        Decimal?                       @db.Decimal(18, 3)
   base_price                       Decimal?                       @db.Decimal(18, 2)
   tax_rate                         Decimal?                       @db.Decimal(5, 2)
   tax_id                           Int?
