@@ -7498,11 +7498,10 @@ export const vanInventoryController = {
 
   //           let sessionStart = todayStart;
   //           if (lastReconciliation && lastReconciliation.createdate) {
-  //             sessionStart = lastReconciliation.createdate;
-  //           } else {
-  //             sessionStart = new Date(0);
-  //           }
-
+  //              sessionStart = lastReconciliation.createdate;
+  //               } else {
+  //                 sessionStart = new Date(0);
+  //               }
   //           const productMap = new Map<
   //             string,
   //             {
@@ -7570,7 +7569,6 @@ export const vanInventoryController = {
   //                 loading_type: 'L',
   //                 status: 'A',
   //                 approval_status: 'A',
-
   //                 is_cancelled: 'N',
   //                 createdate: { gte: sessionStart, lt: todayEnd },
   //               },
@@ -7837,12 +7835,10 @@ export const vanInventoryController = {
             });
 
             let sessionStart = todayStart;
-            if (
-              lastReconciliation &&
-              lastReconciliation.createdate &&
-              lastReconciliation.createdate > todayStart
-            ) {
+            if (lastReconciliation && lastReconciliation.createdate) {
               sessionStart = lastReconciliation.createdate;
+            } else {
+              sessionStart = new Date(0);
             }
             const productMap = new Map<
               string,
@@ -7966,6 +7962,7 @@ export const vanInventoryController = {
               string,
               { qty: number; baseQty: number }
             >();
+
             for (const record of saleInvoiceItems) {
               if (!record.product_id) continue;
               // invoice_items do not carry a direct batch FK so we key by
@@ -7979,12 +7976,29 @@ export const vanInventoryController = {
               });
             }
 
+            const firstLoadInSession = await tx.van_inventory.findFirst({
+              where: {
+                user_id: userIdNum,
+                loading_type: 'L',
+                status: 'A',
+                approval_status: 'A',
+                is_cancelled: 'N',
+                createdate: { gte: sessionStart, lt: todayEnd },
+              },
+              orderBy: { createdate: 'asc' },
+            });
+
+            const effectiveLoadDate = firstLoadInSession
+              ? firstLoadInSession.document_date ||
+                firstLoadInSession.createdate
+              : today;
+
             const recon = await tx.reconciliation.create({
               data: {
                 salesman_id: userIdNum,
                 depot_id: user.depot_id ?? locationId,
                 status: 'P',
-                reconciliation_date: today,
+                reconciliation_date: effectiveLoadDate,
                 is_active: 'Y',
                 createdate: new Date(),
                 createdby: userIdNum,

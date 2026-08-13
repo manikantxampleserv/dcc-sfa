@@ -3585,8 +3585,6 @@ export const visitsController = {
 
   async getCoolerInspectionsForVisitedCustomers(req: any, res: any) {
     try {
-      console.log('Request Query:', req.query);
-
       const {
         page,
         limit,
