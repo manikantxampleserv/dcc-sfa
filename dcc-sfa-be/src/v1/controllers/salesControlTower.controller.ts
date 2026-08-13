@@ -1,6 +1,150 @@
 import { Request, Response } from 'express';
 import prisma from '../../configs/prisma.client';
 import ExcelJS from 'exceljs';
+
+const cache = new Map<string, { timestamp: number; data: any }>();
+const CACHE_TTL = 5 * 60 * 1000;
+
+const invoiceSelect = {
+  id: true,
+  invoice_date: true,
+  invoice_number: true,
+  customer_id: true,
+  invoice_items: {
+    select: {
+      quantity: true,
+      conversion_factor: true,
+      total_amount: true,
+      unit_price: true,
+      invoice_items_products: {
+        select: {
+          name: true,
+          brand_id: true,
+          sap_code: true,
+          code: true,
+          unit_case_conversion_rate: true,
+          product_brands: { select: { name: true } },
+          product_sub_categories_products: {
+            select: { sub_category_name: true },
+          },
+          product_categories_products: { select: { category_name: true } },
+          product_flavours_products: { select: { name: true } },
+          product_volumes_products: { select: { name: true } },
+        },
+      },
+    },
+  },
+  invoices_customers: {
+    select: {
+      code: true,
+      name: true,
+      latitude: true,
+      longitude: true,
+      customer_category_customer: { select: { category_name: true } },
+      customer_type_customer: { select: { type_name: true } },
+      customer_zones: { select: { name: true } },
+      customer_depot: {
+        select: {
+          name: true,
+          depots_coodrinator: { select: { name: true } },
+          depots_supervisior: { select: { name: true } },
+          user_depots_depot_id: {
+            select: {
+              users_depots_users: {
+                select: {
+                  name: true,
+                  user_role: { select: { name: true } },
+                },
+              },
+            },
+          },
+        },
+      },
+      customer_routes: {
+        select: {
+          name: true,
+          salespersons: {
+            select: {
+              user: {
+                select: {
+                  name: true,
+                  sap_code: true,
+                },
+              },
+            },
+          },
+          route_depots: {
+            select: {
+              name: true,
+              depots_coodrinator: { select: { name: true } },
+              depots_supervisior: { select: { name: true } },
+              user_depots_depot_id: {
+                select: {
+                  users_depots_users: {
+                    select: {
+                      name: true,
+                      user_role: { select: { name: true } },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+  invoices_salesperson: {
+    select: {
+      name: true,
+      sap_code: true,
+      route_salespersons: {
+        select: {
+          route: {
+            select: {
+              name: true,
+              route_depots: {
+                select: {
+                  name: true,
+                  depots_coodrinator: { select: { name: true } },
+                  depots_supervisior: { select: { name: true } },
+                  user_depots_depot_id: {
+                    select: {
+                      users_depots_users: {
+                        select: {
+                          name: true,
+                          user_role: { select: { name: true } },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      user_depot: {
+        select: {
+          name: true,
+          depots_coodrinator: { select: { name: true } },
+          depots_supervisior: { select: { name: true } },
+          user_depots_depot_id: {
+            select: {
+              users_depots_users: {
+                select: {
+                  name: true,
+                  user_role: { select: { name: true } },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+};
+
 /**
  * Controller for Sales Control Tower dashboard.
  */
@@ -13,6 +157,16 @@ export const salesControlTowerController = {
    */
   async getDashboardData(req: Request, res: Response) {
     try {
+      const cacheKey = JSON.stringify(req.query);
+      const cached = cache.get(cacheKey);
+      if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+        if (cache.size > 200) {
+          const keys = Array.from(cache.keys());
+          cache.delete(keys[0]);
+        }
+        return res.status(200).json(cached.data);
+      }
+
       const {
         startDate,
         endDate,
@@ -58,9 +212,11 @@ export const salesControlTowerController = {
         }
         if (salesman_id) {
           const sid = parseInt(salesman_id as string, 10);
-          where.salesperson_id = isNaN(sid) ? undefined : sid;
-          if (isNaN(sid))
+          if (!isNaN(sid)) {
+            where.OR = [{ salesperson_id: sid }, { createdby: sid }];
+          } else {
             where.invoices_salesperson = { name: salesman_id as string };
+          }
         }
         const custWhere: any = { is_active: 'Y' };
         if (depot_id) {
@@ -72,6 +228,60 @@ export const salesControlTowerController = {
           const rid = parseInt(route_id as string, 10);
           if (!isNaN(rid)) custWhere.route_id = rid;
           else custWhere.customer_routes = { name: route_id as string };
+        }
+        if (coordinator_id || supervisor_id) {
+          if (!custWhere.customer_depot) custWhere.customer_depot = {};
+          if (!custWhere.customer_depot.AND) custWhere.customer_depot.AND = [];
+
+          if (coordinator_id) {
+            const cid = parseInt(coordinator_id as string, 10);
+            if (!isNaN(cid)) {
+              custWhere.customer_depot.coordinator_id = cid;
+            } else {
+              custWhere.customer_depot.AND.push({
+                OR: [
+                  { depots_coodrinator: { name: coordinator_id as string } },
+                  {
+                    user_depots_depot_id: {
+                      some: {
+                        users_depots_users: {
+                          name: coordinator_id as string,
+                          user_role: { name: 'Sales coordinator' },
+                        },
+                      },
+                    },
+                  },
+                ],
+              });
+            }
+          }
+
+          if (supervisor_id) {
+            const sid = parseInt(supervisor_id as string, 10);
+            if (!isNaN(sid)) {
+              custWhere.customer_depot.supervisor_id = sid;
+            } else {
+              custWhere.customer_depot.AND.push({
+                OR: [
+                  { depots_supervisior: { name: supervisor_id as string } },
+                  {
+                    user_depots_depot_id: {
+                      some: {
+                        users_depots_users: {
+                          name: supervisor_id as string,
+                          user_role: { name: 'Area Sales Supervisor' },
+                        },
+                      },
+                    },
+                  },
+                ],
+              });
+            }
+          }
+
+          if (custWhere.customer_depot.AND.length === 0) {
+            delete custWhere.customer_depot.AND;
+          }
         }
         if (channel)
           custWhere.customer_category_customer = {
@@ -85,99 +295,7 @@ export const salesControlTowerController = {
       const fetchInvoices = async (sd?: string | null, ed?: string | null) => {
         return prisma.invoices.findMany({
           where: buildInvoiceWhere(sd, ed),
-          include: {
-            invoice_items: {
-              include: {
-                invoice_items_products: {
-                  include: {
-                    product_brands: true,
-                    product_sub_categories_products: true,
-                  },
-                },
-              },
-            },
-            invoices_customers: {
-              include: {
-                customer_depot: {
-                  include: {
-                    depots_coodrinator: true,
-                    depots_supervisior: true,
-                    user_depots_depot_id: {
-                      include: {
-                        users_depots_users: {
-                          include: {
-                            user_role: true,
-                          },
-                        },
-                      },
-                    },
-                  },
-                },
-                customer_routes: {
-                  include: {
-                    route_depots: {
-                      include: {
-                        depots_coodrinator: true,
-                        depots_supervisior: true,
-                        user_depots_depot_id: {
-                          include: {
-                            users_depots_users: {
-                              include: {
-                                user_role: true,
-                              },
-                            },
-                          },
-                        },
-                      },
-                    },
-                  },
-                },
-                customer_category_customer: true,
-              },
-            },
-            invoices_salesperson: {
-              include: {
-                route_salespersons: {
-                  include: {
-                    route: {
-                      include: {
-                        route_depots: {
-                          include: {
-                            depots_coodrinator: true,
-                            depots_supervisior: true,
-                            user_depots_depot_id: {
-                              include: {
-                                users_depots_users: {
-                                  include: {
-                                    user_role: true,
-                                  },
-                                },
-                              },
-                            },
-                          },
-                        },
-                      },
-                    },
-                  },
-                },
-                user_depot: {
-                  include: {
-                    depots_coodrinator: true,
-                    depots_supervisior: true,
-                    user_depots_depot_id: {
-                      include: {
-                        users_depots_users: {
-                          include: {
-                            user_role: true,
-                          },
-                        },
-                      },
-                    },
-                  },
-                },
-              },
-            },
-          },
+          select: invoiceSelect,
           orderBy: { invoice_date: 'asc' },
         });
       };
@@ -245,7 +363,8 @@ export const salesControlTowerController = {
           const dKey = inv.invoice_date
             ? inv.invoice_date.toISOString().split('T')[0]
             : 'Unknown';
-          const sName = inv.invoices_salesperson?.name || 'Unassigned';
+          const routeSalesman = inv.invoices_customers?.customer_routes?.salespersons?.[0]?.user;
+          const sName = inv.invoices_salesperson?.name || routeSalesman?.name || 'Unassigned';
           const rName =
             inv.invoices_customers?.customer_routes?.name ||
             inv.invoices_salesperson?.route_salespersons?.[0]?.route?.name ||
@@ -294,7 +413,7 @@ export const salesControlTowerController = {
           let invValue = 0;
           for (const item of validItems) {
             const pc = Number(item.quantity) || 0;
-            const uc = pc * Number(item.conversion_factor || 1);
+            const uc = pc * Number(item.invoice_items_products?.unit_case_conversion_rate || 1);
             const tv =
               Number(item.total_amount) || Number(item.unit_price) * pc;
             invPC += pc;
@@ -483,7 +602,7 @@ export const salesControlTowerController = {
         ...aprAgg
       } = aprAggRaw;
       (mayAgg as any).avgStrike = Number(strikeRate.toFixed(1));
-      return res.status(200).json({
+      const responseData = {
         success: true,
         data: {
           mayAgg,
@@ -504,7 +623,15 @@ export const salesControlTowerController = {
             })),
           },
         },
-      });
+      };
+
+      if (cache.size > 200) {
+        const keys = Array.from(cache.keys());
+        cache.delete(keys[0]);
+      }
+      cache.set(cacheKey, { timestamp: Date.now(), data: responseData });
+
+      return res.status(200).json(responseData);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
       return res.status(500).json({
@@ -526,6 +653,8 @@ export const salesControlTowerController = {
         startDate,
         endDate,
         depot_id,
+        coordinator_id,
+        supervisor_id,
         route_id,
         salesman_id,
         brand_id,
@@ -543,8 +672,11 @@ export const salesControlTowerController = {
       }
       if (salesman_id) {
         const sid = parseInt(salesman_id as string, 10);
-        if (!isNaN(sid)) where.salesperson_id = sid;
-        else where.invoices_salesperson = { name: salesman_id as string };
+        if (!isNaN(sid)) {
+          where.OR = [{ salesperson_id: sid }, { createdby: sid }];
+        } else {
+          where.invoices_salesperson = { name: salesman_id as string };
+        }
       }
       const custWhere: any = { is_active: 'Y' };
       if (depot_id) {
@@ -557,6 +689,24 @@ export const salesControlTowerController = {
         if (!isNaN(rid)) custWhere.route_id = rid;
         else custWhere.customer_routes = { name: route_id as string };
       }
+      if (coordinator_id) {
+        const cid = parseInt(coordinator_id as string, 10);
+        if (!custWhere.customer_depot) custWhere.customer_depot = {};
+        if (!isNaN(cid)) custWhere.customer_depot.coordinator_id = cid;
+        else
+          custWhere.customer_depot.depots_coodrinator = {
+            name: coordinator_id as string,
+          };
+      }
+      if (supervisor_id) {
+        const sid = parseInt(supervisor_id as string, 10);
+        if (!custWhere.customer_depot) custWhere.customer_depot = {};
+        if (!isNaN(sid)) custWhere.customer_depot.supervisor_id = sid;
+        else
+          custWhere.customer_depot.depots_supervisior = {
+            name: supervisor_id as string,
+          };
+      }
       if (channel)
         custWhere.customer_category_customer = {
           category_name: channel as string,
@@ -567,104 +717,7 @@ export const salesControlTowerController = {
       /** Fetch invoices with full relations */
       const invoices = await prisma.invoices.findMany({
         where,
-        include: {
-          invoice_items: {
-            include: {
-              invoice_items_products: {
-                include: {
-                  product_brands: true,
-                  product_sub_categories_products: true,
-                  product_categories_products: true,
-                  product_flavours_products: true,
-                  product_volumes_products: true,
-                },
-              },
-            },
-          },
-          invoices_customers: {
-            include: {
-              customer_depot: {
-                include: {
-                  depots_coodrinator: true,
-                  depots_supervisior: true,
-                  user_depots_depot_id: {
-                    include: {
-                      users_depots_users: {
-                        include: {
-                          user_role: true,
-                        },
-                      },
-                    },
-                  },
-                },
-              },
-              customer_routes: {
-                include: {
-                  route_depots: {
-                    include: {
-                      depots_coodrinator: true,
-                      depots_supervisior: true,
-                      user_depots_depot_id: {
-                        include: {
-                          users_depots_users: {
-                            include: {
-                              user_role: true,
-                            },
-                          },
-                        },
-                      },
-                    },
-                  },
-                },
-              },
-              customer_category_customer: true,
-              customer_zones: true,
-              customer_type_customer: true,
-            },
-          },
-          invoices_salesperson: {
-            include: {
-              route_salespersons: {
-                include: {
-                  route: {
-                    include: {
-                      route_depots: {
-                        include: {
-                          depots_coodrinator: true,
-                          depots_supervisior: true,
-                          user_depots_depot_id: {
-                            include: {
-                              users_depots_users: {
-                                include: {
-                                  user_role: true,
-                                },
-                              },
-                            },
-                          },
-                        },
-                      },
-                    },
-                  },
-                },
-              },
-              user_depot: {
-                include: {
-                  depots_coodrinator: true,
-                  depots_supervisior: true,
-                  user_depots_depot_id: {
-                    include: {
-                      users_depots_users: {
-                        include: {
-                          user_role: true,
-                        },
-                      },
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
+        select: invoiceSelect,
         orderBy: { invoice_date: 'asc' },
       });
 
@@ -683,8 +736,9 @@ export const salesControlTowerController = {
           (inv as any).invoices_salesperson?.route_salespersons?.[0]?.route
             ?.name ||
           '';
-        const salesman = (inv as any).invoices_salesperson?.name || '';
-        const sellerCode = (inv as any).invoices_salesperson?.sap_code || '';
+        const routeSalesman = (inv as any).invoices_customers?.customer_routes?.salespersons?.[0]?.user;
+        const salesman = (inv as any).invoices_salesperson?.name || routeSalesman?.name || '';
+        const sellerCode = (inv as any).invoices_salesperson?.sap_code || routeSalesman?.sap_code || '';
         const depotData =
           (inv as any).invoices_customers?.customer_depot ||
           (inv as any).invoices_customers?.customer_routes?.route_depots ||
@@ -767,7 +821,7 @@ export const salesControlTowerController = {
               product?.product_sub_categories_products?.sub_category_name || '',
             PhyCase: Number(item.quantity) || 0,
             UnitCase:
-              Number(item.quantity) * Number(item.conversion_factor || 1),
+              Number(item.quantity) * Number(product?.unit_case_conversion_rate || 1),
             Turnover:
               Number(item.total_amount) ||
               Number(item.quantity) * Number(item.unit_price || 0),

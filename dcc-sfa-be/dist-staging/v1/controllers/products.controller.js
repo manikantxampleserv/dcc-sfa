@@ -96,6 +96,9 @@ const serializeProduct = (product) => ({
     volume_in_liters: product.volume_in_liters
         ? Number(product.volume_in_liters)
         : null,
+    unit_case_conversion_rate: product.unit_case_conversion_rate
+        ? Number(product.unit_case_conversion_rate)
+        : null,
     batch_lots: normalizeToArray(product.product_product_batches).map((pb) => ({
         id: pb.id,
         batch_lot_id: pb.batch_lot_id,
@@ -461,6 +464,7 @@ exports.productsController = {
                         vat_percentage: data.vat_percentage || null,
                         weight_in_grams: data.weight_in_grams || null,
                         volume_in_liters: data.volume_in_liters || null,
+                        unit_case_conversion_rate: data.unit_case_conversion_rate || null,
                         createdate: new Date(),
                         createdby: userId,
                         log_inst: data.log_inst || 1,

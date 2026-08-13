@@ -133,190 +133,192 @@ interface KpiCardProps {
   demo?: boolean;
   sparkData?: number[];
 }
-const KpiCard: React.FC<KpiCardProps> = ({
-  label,
-  icon,
-  value,
-  growth,
-  color,
-  bg,
-  selected,
-  onClick,
-  demo,
-  sparkData = [],
-}) => {
-  const ref = useRef<HTMLCanvasElement>(null);
-  const chartRef = useRef<ChartJS | null>(null);
-  useEffect(() => {
-    if (!ref.current) return;
-    if (chartRef.current) {
-      chartRef.current.destroy();
-      chartRef.current = null;
-    }
-    if (!sparkData.length) return;
-    chartRef.current = new ChartJS(ref.current, {
-      type: 'line',
-      data: {
-        labels: sparkData.map((_, i) => i),
-        datasets: [
-          {
-            data: sparkData,
-            borderColor: color,
-            borderWidth: 1.5,
-            fill: true,
-            backgroundColor: color + '22',
-            pointRadius: 0,
-            tension: 0.4,
-          },
-        ],
-      },
-      options: {
-        responsive: false,
-        plugins: { legend: { display: false }, tooltip: { enabled: false } },
-        scales: { x: { display: false }, y: { display: false } },
-        animation: false,
-      },
-    });
-    return () => {
-      chartRef.current?.destroy();
-      chartRef.current = null;
-    };
-  }, [sparkData, color]);
-  const up = growth !== undefined && growth >= 0;
-  return (
-    <div
-      onClick={onClick}
-      style={{
-        background: C.surface,
-        border: `1px solid ${selected ? color : C.border}`,
-        borderRadius: 10,
-        padding: '14px 15px',
-        cursor: 'pointer',
-        position: 'relative',
-        overflow: 'hidden',
-        boxShadow: selected
-          ? `0 0 0 2px ${color}33`
-          : '0 1px 3px rgba(0,0,0,.07)',
-        transition: 'all .18s',
-        flex: 1,
-      }}
-    >
+const KpiCard: React.FC<KpiCardProps> = React.memo(
+  ({
+    label,
+    icon,
+    value,
+    growth,
+    color,
+    bg,
+    selected,
+    onClick,
+    demo,
+    sparkData = [],
+  }) => {
+    const ref = useRef<HTMLCanvasElement>(null);
+    const chartRef = useRef<ChartJS | null>(null);
+    useEffect(() => {
+      if (!ref.current) return;
+      if (chartRef.current) {
+        chartRef.current.destroy();
+        chartRef.current = null;
+      }
+      if (!sparkData.length) return;
+      chartRef.current = new ChartJS(ref.current, {
+        type: 'line',
+        data: {
+          labels: sparkData.map((_, i) => i),
+          datasets: [
+            {
+              data: sparkData,
+              borderColor: color,
+              borderWidth: 1.5,
+              fill: true,
+              backgroundColor: color + '22',
+              pointRadius: 0,
+              tension: 0.4,
+            },
+          ],
+        },
+        options: {
+          responsive: false,
+          plugins: { legend: { display: false }, tooltip: { enabled: false } },
+          scales: { x: { display: false }, y: { display: false } },
+          animation: false,
+        },
+      });
+      return () => {
+        chartRef.current?.destroy();
+        chartRef.current = null;
+      };
+    }, [sparkData, color]);
+    const up = growth !== undefined && growth >= 0;
+    return (
       <div
+        onClick={onClick}
         style={{
-          position: 'absolute',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          height: 3,
-          background: color,
-          opacity: selected ? 1 : 0,
-          transition: 'opacity .2s',
-        }}
-      />
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'flex-start',
-          marginBottom: 6,
+          background: C.surface,
+          border: `1px solid ${selected ? color : C.border}`,
+          borderRadius: 10,
+          padding: '14px 15px',
+          cursor: 'pointer',
+          position: 'relative',
+          overflow: 'hidden',
+          boxShadow: selected
+            ? `0 0 0 2px ${color}33`
+            : '0 1px 3px rgba(0,0,0,.07)',
+          transition: 'all .18s',
+          flex: 1,
         }}
       >
         <div
           style={{
-            fontSize: 10,
-            color: C.muted,
-            fontWeight: 700,
-            textTransform: 'uppercase',
-            letterSpacing: 0.55,
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: 3,
+            background: color,
+            opacity: selected ? 1 : 0,
+            transition: 'opacity .2s',
           }}
-        >
-          {label}
-          {demo && (
-            <span
-              style={{
-                fontSize: 8,
-                color: C.amber,
-                background: C.amberL,
-                border: `1px solid ${C.amber}44`,
-                padding: '1px 4px',
-                borderRadius: 3,
-                marginLeft: 4,
-                fontWeight: 700,
-              }}
-            >
-              DEMO
-            </span>
-          )}
-        </div>
+        />
         <div
           style={{
-            width: 26,
-            height: 26,
-            borderRadius: 6,
-            background: bg,
             display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: 13,
+            justifyContent: 'space-between',
+            alignItems: 'flex-start',
+            marginBottom: 6,
           }}
         >
-          {icon}
-        </div>
-      </div>
-      <div
-        style={{
-          fontSize: 22,
-          fontWeight: 800,
-          letterSpacing: -0.5,
-          color,
-          lineHeight: 1,
-          marginBottom: 6,
-        }}
-      >
-        {value}
-      </div>
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 4,
-        }}
-      >
-        {growth !== undefined && (
-          <span
+          <div
             style={{
-              fontSize: 11,
+              fontSize: 10,
+              color: C.muted,
               fontWeight: 700,
-              color: up ? C.green : C.red,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 2,
+              textTransform: 'uppercase',
+              letterSpacing: 0.55,
             }}
           >
-            {up ? '▲' : '▼'} {Math.abs(growth).toFixed(1)}%
+            {label}
+            {demo && (
+              <span
+                style={{
+                  fontSize: 8,
+                  color: C.amber,
+                  background: C.amberL,
+                  border: `1px solid ${C.amber}44`,
+                  padding: '1px 4px',
+                  borderRadius: 3,
+                  marginLeft: 4,
+                  fontWeight: 700,
+                }}
+              >
+                DEMO
+              </span>
+            )}
+          </div>
+          <div
+            style={{
+              width: 26,
+              height: 26,
+              borderRadius: 6,
+              background: bg,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 13,
+            }}
+          >
+            {icon}
+          </div>
+        </div>
+        <div
+          style={{
+            fontSize: 22,
+            fontWeight: 800,
+            letterSpacing: -0.5,
+            color,
+            lineHeight: 1,
+            marginBottom: 6,
+          }}
+        >
+          {value}
+        </div>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 4,
+          }}
+        >
+          {growth !== undefined && (
             <span
               style={{
-                fontSize: 10,
-                fontWeight: 400,
-                color: C.m2,
-                marginLeft: 2,
+                fontSize: 11,
+                fontWeight: 700,
+                color: up ? C.green : C.red,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 2,
               }}
             >
-              vs prev
+              {up ? '▲' : '▼'} {Math.abs(growth).toFixed(1)}%
+              <span
+                style={{
+                  fontSize: 10,
+                  fontWeight: 400,
+                  color: C.m2,
+                  marginLeft: 2,
+                }}
+              >
+                vs prev
+              </span>
             </span>
-          </span>
-        )}
-        <canvas ref={ref} width={68} height={24} style={{ flexShrink: 0 }} />
+          )}
+          <canvas ref={ref} width={68} height={24} style={{ flexShrink: 0 }} />
+        </div>
       </div>
-    </div>
-  );
-};
+    );
+  }
+);
 const RankList: React.FC<{
   entries: [string, number][];
   max: number;
   onRowClick?: (v: string) => void;
-}> = ({ entries, max, onRowClick }) => (
+}> = React.memo(({ entries, max, onRowClick }) => (
   <div
     style={{
       display: 'flex',
@@ -407,7 +409,7 @@ const RankList: React.FC<{
       );
     })}
   </div>
-);
+));
 interface TmNode {
   name: string;
   value: number;
@@ -416,7 +418,7 @@ interface TmNode {
 const Treemap: React.FC<{
   nodes: TmNode[];
   onDrill?: (name: string) => void;
-}> = ({ nodes, onDrill }) => {
+}> = React.memo(({ nodes, onDrill }) => {
   const total = nodes.reduce((s, n) => s + n.value, 0);
   if (!total)
     return (
@@ -530,214 +532,216 @@ const Treemap: React.FC<{
       ))}
     </div>
   );
-};
+});
 interface TableProps {
   cols: { key: string; label: string; numeric?: boolean }[];
   rows: Record<string, string | number>[];
   onRowClick?: (row: Record<string, string | number>) => void;
 }
-const DataTable: React.FC<TableProps> = ({ cols, rows, onRowClick }) => {
-  const [sortCol, setSortCol] = useState(cols[2]?.key || cols[0].key);
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
-  const [page, setPage] = useState(0);
-  const [search, setSearch] = useState('');
-  const PAGE = 15;
-  const filtered = useMemo(() => {
-    const s = search.toLowerCase();
-    return rows.filter(r =>
-      cols.some(c =>
-        String(r[c.key] ?? '')
-          .toLowerCase()
-          .includes(s)
-      )
-    );
-  }, [rows, search, cols]);
-  const sorted = useMemo(() => {
-    return [...filtered].sort((a, b) => {
-      const av = a[sortCol],
-        bv = b[sortCol];
-      const dir = sortDir === 'desc' ? -1 : 1;
-      if (typeof av === 'number' && typeof bv === 'number')
-        return dir * (bv - av);
-      return dir * String(bv ?? '').localeCompare(String(av ?? ''));
-    });
-  }, [filtered, sortCol, sortDir]);
-  const pageRows = sorted.slice(page * PAGE, page * PAGE + PAGE);
-  const totalPages = Math.ceil(sorted.length / PAGE);
-  const handleSort = (key: string) => {
-    if (sortCol === key) setSortDir(d => (d === 'desc' ? 'asc' : 'desc'));
-    else {
-      setSortCol(key);
-      setSortDir('desc');
-    }
-    setPage(0);
-  };
-  return (
-    <div>
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: 10,
-          gap: 8,
-          flexWrap: 'wrap',
-        }}
-      >
-        <input
-          value={search}
-          onChange={e => {
-            setSearch(e.target.value);
-            setPage(0);
-          }}
-          placeholder="Search…"
+const DataTable: React.FC<TableProps> = React.memo(
+  ({ cols, rows, onRowClick }) => {
+    const [sortCol, setSortCol] = useState(cols[2]?.key || cols[0].key);
+    const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+    const [page, setPage] = useState(0);
+    const [search, setSearch] = useState('');
+    const PAGE = 15;
+    const filtered = useMemo(() => {
+      const s = search.toLowerCase();
+      return rows.filter(r =>
+        cols.some(c =>
+          String(r[c.key] ?? '')
+            .toLowerCase()
+            .includes(s)
+        )
+      );
+    }, [rows, search, cols]);
+    const sorted = useMemo(() => {
+      return [...filtered].sort((a, b) => {
+        const av = a[sortCol],
+          bv = b[sortCol];
+        const dir = sortDir === 'desc' ? -1 : 1;
+        if (typeof av === 'number' && typeof bv === 'number')
+          return dir * (bv - av);
+        return dir * String(bv ?? '').localeCompare(String(av ?? ''));
+      });
+    }, [filtered, sortCol, sortDir]);
+    const pageRows = sorted.slice(page * PAGE, page * PAGE + PAGE);
+    const totalPages = Math.ceil(sorted.length / PAGE);
+    const handleSort = (key: string) => {
+      if (sortCol === key) setSortDir(d => (d === 'desc' ? 'asc' : 'desc'));
+      else {
+        setSortCol(key);
+        setSortDir('desc');
+      }
+      setPage(0);
+    };
+    return (
+      <div>
+        <div
           style={{
-            padding: '5px 10px',
-            border: `1px solid ${C.bord2}`,
-            borderRadius: 5,
-            fontSize: 11.5,
-            outline: 'none',
-            width: 200,
-            fontFamily: 'inherit',
-            color: C.text,
-            background: C.surface,
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: 10,
+            gap: 8,
+            flexWrap: 'wrap',
           }}
-        />
-      </div>
-      <div
-        style={{
-          overflowX: 'auto',
-          overflowY: 'auto',
-          maxHeight: 370,
-          borderRadius: 6,
-          border: `1px solid ${C.border}`,
-        }}
-      >
-        <table
-          style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}
         >
-          <thead>
-            <tr>
-              {cols.map(c => (
-                <th
-                  key={c.key}
-                  onClick={() => handleSort(c.key)}
-                  style={{
-                    fontSize: 10,
-                    textTransform: 'uppercase',
-                    letterSpacing: 0.5,
-                    color: C.muted,
-                    fontWeight: 700,
-                    padding: '8px 10px',
-                    borderBottom: `2px solid ${C.border}`,
-                    textAlign: c.numeric ? 'right' : 'left',
-                    cursor: 'pointer',
-                    whiteSpace: 'nowrap',
-                    background: C.s2,
-                    position: 'sticky',
-                    top: 0,
-                    zIndex: 5,
-                    userSelect: 'none',
-                  }}
-                >
-                  {c.label}
-                  {sortCol === c.key ? (sortDir === 'asc' ? ' ↑' : ' ↓') : ''}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {pageRows.map((row, i) => (
-              <tr
-                key={i}
-                onClick={() => onRowClick?.(row)}
-                style={{
-                  cursor: onRowClick ? 'pointer' : 'default',
-                  transition: 'background .1s',
-                }}
-                onMouseEnter={e =>
-                  ((e.currentTarget as HTMLElement).style.background = C.redL)
-                }
-                onMouseLeave={e =>
-                  ((e.currentTarget as HTMLElement).style.background = '')
-                }
-              >
-                {cols.map(c => {
-                  const val = row[c.key];
-                  return (
-                    <td
-                      key={c.key}
-                      style={{
-                        padding: '8px 10px',
-                        borderBottom: `1px solid ${C.border}`,
-                        textAlign: c.numeric ? 'right' : 'left',
-                        whiteSpace: 'nowrap',
-                        fontWeight: c.numeric ? 600 : 400,
-                        fontVariantNumeric: c.numeric
-                          ? 'tabular-nums'
-                          : undefined,
-                      }}
-                    >
-                      {typeof val === 'number' ? FMTn(val) : val}
-                    </td>
-                  );
-                })}
-              </tr>
-            ))}
-            {pageRows.length === 0 && (
+          <input
+            value={search}
+            onChange={e => {
+              setSearch(e.target.value);
+              setPage(0);
+            }}
+            placeholder="Search…"
+            style={{
+              padding: '5px 10px',
+              border: `1px solid ${C.bord2}`,
+              borderRadius: 5,
+              fontSize: 11.5,
+              outline: 'none',
+              width: 200,
+              fontFamily: 'inherit',
+              color: C.text,
+              background: C.surface,
+            }}
+          />
+        </div>
+        <div
+          style={{
+            overflowX: 'auto',
+            overflowY: 'auto',
+            maxHeight: 370,
+            borderRadius: 6,
+            border: `1px solid ${C.border}`,
+          }}
+        >
+          <table
+            style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}
+          >
+            <thead>
               <tr>
-                <td
-                  colSpan={cols.length}
-                  style={{ textAlign: 'center', padding: 20, color: C.muted }}
-                >
-                  No data
-                </td>
+                {cols.map(c => (
+                  <th
+                    key={c.key}
+                    onClick={() => handleSort(c.key)}
+                    style={{
+                      fontSize: 10,
+                      textTransform: 'uppercase',
+                      letterSpacing: 0.5,
+                      color: C.muted,
+                      fontWeight: 700,
+                      padding: '8px 10px',
+                      borderBottom: `2px solid ${C.border}`,
+                      textAlign: c.numeric ? 'right' : 'left',
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap',
+                      background: C.s2,
+                      position: 'sticky',
+                      top: 0,
+                      zIndex: 5,
+                      userSelect: 'none',
+                    }}
+                  >
+                    {c.label}
+                    {sortCol === c.key ? (sortDir === 'asc' ? ' ↑' : ' ↓') : ''}
+                  </th>
+                ))}
               </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginTop: 10,
-        }}
-      >
-        <span style={{ fontSize: 11, color: C.muted }}>
-          {sorted.length === 0
-            ? 'No results'
-            : `${page * PAGE + 1}–${Math.min((page + 1) * PAGE, sorted.length)} of ${sorted.length}`}
-        </span>
-        <div style={{ display: 'flex', gap: 5 }}>
-          {['← Prev', 'Next →'].map((lbl, idx) => (
-            <button
-              key={lbl}
-              disabled={idx === 0 ? page === 0 : page >= totalPages - 1}
-              onClick={() => setPage(p => p + (idx === 0 ? -1 : 1))}
-              style={{
-                padding: '4px 10px',
-                borderRadius: 5,
-                border: `1px solid ${C.bord2}`,
-                background: C.s3,
-                color: C.muted,
-                fontSize: 11.5,
-                cursor: 'pointer',
-                fontFamily: 'inherit',
-                opacity: (idx === 0 ? page === 0 : page >= totalPages - 1)
-                  ? 0.35
-                  : 1,
-              }}
-            >
-              {lbl}
-            </button>
-          ))}
+            </thead>
+            <tbody>
+              {pageRows.map((row, i) => (
+                <tr
+                  key={i}
+                  onClick={() => onRowClick?.(row)}
+                  style={{
+                    cursor: onRowClick ? 'pointer' : 'default',
+                    transition: 'background .1s',
+                  }}
+                  onMouseEnter={e =>
+                    ((e.currentTarget as HTMLElement).style.background = C.redL)
+                  }
+                  onMouseLeave={e =>
+                    ((e.currentTarget as HTMLElement).style.background = '')
+                  }
+                >
+                  {cols.map(c => {
+                    const val = row[c.key];
+                    return (
+                      <td
+                        key={c.key}
+                        style={{
+                          padding: '8px 10px',
+                          borderBottom: `1px solid ${C.border}`,
+                          textAlign: c.numeric ? 'right' : 'left',
+                          whiteSpace: 'nowrap',
+                          fontWeight: c.numeric ? 600 : 400,
+                          fontVariantNumeric: c.numeric
+                            ? 'tabular-nums'
+                            : undefined,
+                        }}
+                      >
+                        {typeof val === 'number' ? FMTn(val) : val}
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+              {pageRows.length === 0 && (
+                <tr>
+                  <td
+                    colSpan={cols.length}
+                    style={{ textAlign: 'center', padding: 20, color: C.muted }}
+                  >
+                    No data
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginTop: 10,
+          }}
+        >
+          <span style={{ fontSize: 11, color: C.muted }}>
+            {sorted.length === 0
+              ? 'No results'
+              : `${page * PAGE + 1}–${Math.min((page + 1) * PAGE, sorted.length)} of ${sorted.length}`}
+          </span>
+          <div style={{ display: 'flex', gap: 5 }}>
+            {['← Prev', 'Next →'].map((lbl, idx) => (
+              <button
+                key={lbl}
+                disabled={idx === 0 ? page === 0 : page >= totalPages - 1}
+                onClick={() => setPage(p => p + (idx === 0 ? -1 : 1))}
+                style={{
+                  padding: '4px 10px',
+                  borderRadius: 5,
+                  border: `1px solid ${C.bord2}`,
+                  background: C.s3,
+                  color: C.muted,
+                  fontSize: 11.5,
+                  cursor: 'pointer',
+                  fontFamily: 'inherit',
+                  opacity: (idx === 0 ? page === 0 : page >= totalPages - 1)
+                    ? 0.35
+                    : 1,
+                }}
+              >
+                {lbl}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
-    </div>
-  );
-};
+    );
+  }
+);
 const SH: React.FC<{ label: string }> = ({ label }) => (
   <div
     style={{
@@ -1466,6 +1470,32 @@ const SalesControlTower: React.FC = () => {
       };
     });
   }, [mayAgg, aprAgg, mayRows]);
+
+  const handleUcClick = useCallback(
+    () => setKpiSel(s => (s === 'UC' ? null : 'UC')),
+    []
+  );
+  const handlePcClick = useCallback(
+    () => setKpiSel(s => (s === 'PC' ? null : 'PC')),
+    []
+  );
+  const handleTvClick = useCallback(
+    () => setKpiSel(s => (s === 'TV' ? null : 'TV')),
+    []
+  );
+  const handleGrowthClick = useCallback(
+    () => setKpiSel(s => (s === 'growth' ? null : 'growth')),
+    []
+  );
+  const handleTargetClick = useCallback(
+    () => setKpiSel(s => (s === 'target' ? null : 'target')),
+    []
+  );
+  const handleNewClick = useCallback(
+    () => setKpiSel(s => (s === 'new' ? null : 'new')),
+    []
+  );
+
   if (loading) return <DashboardSkeleton isFullscreen={isFullscreen} />;
   if (error)
     return (
@@ -2074,7 +2104,7 @@ const SalesControlTower: React.FC = () => {
             color={C.red}
             bg={C.redL}
             selected={kpiSel === 'UC'}
-            onClick={() => setKpiSel(s => (s === 'UC' ? null : 'UC'))}
+            onClick={handleUcClick}
             sparkData={sparkDates}
           />
           <KpiCard
@@ -2085,7 +2115,7 @@ const SalesControlTower: React.FC = () => {
             color={C.blue}
             bg={C.blueL}
             selected={kpiSel === 'PC'}
-            onClick={() => setKpiSel(s => (s === 'PC' ? null : 'PC'))}
+            onClick={handlePcClick}
             sparkData={sparkDates.map(v => v * 0.75)}
           />
           {role === 'MD' && (
@@ -2097,7 +2127,7 @@ const SalesControlTower: React.FC = () => {
               color={C.green}
               bg={C.greenL}
               selected={kpiSel === 'TV'}
-              onClick={() => setKpiSel(s => (s === 'TV' ? null : 'TV'))}
+              onClick={handleTvClick}
               sparkData={sparkDates.map(v => v * 6000)}
             />
           )}
@@ -2108,7 +2138,7 @@ const SalesControlTower: React.FC = () => {
             color={C.amber}
             bg={C.amberL}
             selected={kpiSel === 'growth'}
-            onClick={() => setKpiSel(s => (s === 'growth' ? null : 'growth'))}
+            onClick={handleGrowthClick}
             sparkData={sparkDates.map(v => v * 0.03)}
           />
           <KpiCard
@@ -2119,7 +2149,7 @@ const SalesControlTower: React.FC = () => {
             color={C.purple}
             bg={C.purpleL}
             selected={kpiSel === 'target'}
-            onClick={() => setKpiSel(s => (s === 'target' ? null : 'target'))}
+            onClick={handleTargetClick}
             sparkData={sparkDates.map(v => v * 0.001)}
           />
           <KpiCard
@@ -2129,7 +2159,7 @@ const SalesControlTower: React.FC = () => {
             color={C.cyan}
             bg={C.cyanL}
             selected={kpiSel === 'new'}
-            onClick={() => setKpiSel(s => (s === 'new' ? null : 'new'))}
+            onClick={handleNewClick}
             sparkData={sparkDates.map(v => v * 0.02)}
           />
         </div>

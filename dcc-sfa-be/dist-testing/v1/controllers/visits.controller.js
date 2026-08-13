@@ -2578,7 +2578,6 @@ exports.visitsController = {
     },
     async getCoolerInspectionsForVisitedCustomers(req, res) {
         try {
-            console.log('Request Query:', req.query);
             const { page, limit, search, sales_person_id, customer_id, visit_id, startDate, endDate, isActive, requires_service, sortBy, sortOrder, } = req.query;
             if (!sales_person_id && !customer_id && !visit_id) {
                 return res.status(400).json({

@@ -170,6 +170,41 @@ exports.reconciliationController = {
                 },
                 orderBy: { id: 'desc' },
             });
+            const salesman_date_pairs = data
+                .filter((rec) => rec.salesman_id && rec.reconciliation_date)
+                .map((rec) => ({
+                salesman_id: rec.salesman_id,
+                rec_date: new Date(rec.reconciliation_date),
+            }));
+            const loadDateMap = new Map();
+            if (salesman_date_pairs.length > 0) {
+                const uniqueSalesmanIds = [
+                    ...new Set(salesman_date_pairs.map((p) => p.salesman_id)),
+                ];
+                const vanLoads = await prisma_client_1.default.van_inventory.findMany({
+                    where: {
+                        user_id: { in: uniqueSalesmanIds },
+                        loading_type: 'L',
+                        approval_status: 'A',
+                        is_cancelled: 'N',
+                    },
+                    select: { user_id: true, document_date: true },
+                    orderBy: { document_date: 'asc' },
+                });
+                for (const pair of salesman_date_pairs) {
+                    const recDateStr = pair.rec_date.toISOString().split('T')[0];
+                    const key = `${pair.salesman_id}_${recDateStr}`;
+                    if (loadDateMap.has(key))
+                        continue;
+                    const match = vanLoads
+                        .filter((v) => v.user_id === pair.salesman_id &&
+                        v.document_date &&
+                        v.document_date.toISOString().split('T')[0] <= recDateStr)
+                        .sort((a, b) => new Date(b.document_date).getTime() -
+                        new Date(a.document_date).getTime())[0];
+                    loadDateMap.set(key, match?.document_date ?? null);
+                }
+            }
             const serializedData = data.map((rec) => {
                 const items = rec.reconciliation_items ?? [];
                 const totalItems = items.length;
@@ -183,6 +218,12 @@ exports.reconciliationController = {
                 else if (totalItems > 0 && pendingItems === 0) {
                     overallStatus = 'Variance';
                 }
+                const recDateStr = rec.reconciliation_date
+                    ? new Date(rec.reconciliation_date).toISOString().split('T')[0]
+                    : null;
+                const loadDate = recDateStr
+                    ? (loadDateMap.get(`${rec.salesman_id}_${recDateStr}`) ?? null)
+                    : null;
                 return {
                     id: rec.id,
                     salesman_id: rec.salesman?.id,
@@ -193,6 +234,7 @@ exports.reconciliationController = {
                     depot_id: rec.depot?.id || null,
                     depotName: rec.depot?.name || 'UNMAPPED',
                     reconciliation_date: rec.reconciliation_date,
+                    load_date: loadDate,
                     status: rec.status || 'P',
                     totalItems,
                     pendingItems,
@@ -228,6 +270,208 @@ exports.reconciliationController = {
             });
         }
     },
+    // getAllReconciliations: async (req: Request, res: Response) => {
+    //   try {
+    //     const page = Number(req.query.page) || 1;
+    //     const limit = Number(req.query.limit) || 10;
+    //     const search = req.query.search ? String(req.query.search).trim() : '';
+    //     const salesmanId = req.query.salesman_id
+    //       ? Number(req.query.salesman_id)
+    //       : null;
+    //     const depotId = req.query.depot_id ? Number(req.query.depot_id) : null;
+    //     const date = req.query.date ? String(req.query.date).trim() : '';
+    //     const status = req.query.status ? String(req.query.status).trim() : '';
+    //     const recStatus = req.query.rec_status
+    //       ? String(req.query.rec_status).trim()
+    //       : '';
+    //     const user = (req as any).user;
+    //     let isScopeRestricted = false;
+    //     let depotIds: number[] = [];
+    //     if (user && !isAdminRole(user.role)) {
+    //       isScopeRestricted = true;
+    //       const userDepots = await prisma.user_depots.findMany({
+    //         where: { user_id: user.id },
+    //         select: { depot_id: true },
+    //       });
+    //       depotIds = userDepots
+    //         .map((ud: any) => ud.depot_id)
+    //         .filter((id: any) => id !== null) as number[];
+    //     }
+    //     const reconcFilters: any = { is_active: 'Y' };
+    //     if (isScopeRestricted) {
+    //       if (depotIds.length > 0) {
+    //         reconcFilters.depot_id = { in: depotIds };
+    //       } else {
+    //         reconcFilters.id = -1;
+    //       }
+    //     }
+    //     if (salesmanId) reconcFilters.salesman_id = salesmanId;
+    //     if (depotId) reconcFilters.depot_id = depotId;
+    //     if (date) {
+    //       const d = new Date(date);
+    //       if (!isNaN(d.getTime())) reconcFilters.reconciliation_date = d;
+    //     }
+    //     if (search) {
+    //       reconcFilters.salesman = { name: { contains: search } };
+    //     }
+    //     if (recStatus) {
+    //       reconcFilters.status = recStatus;
+    //     }
+    //     if (status && status !== 'all') {
+    //       reconcFilters.reconciliation_items = {
+    //         some: {
+    //           resolution_action: resolveStatusFilter(status),
+    //           is_active: 'Y',
+    //         },
+    //       };
+    //     }
+    //     const latestOnly = req.query.latest_only === 'true';
+    //     const allMatching = await prisma.reconciliation.findMany({
+    //       where: reconcFilters,
+    //       select: { id: true, salesman_id: true, reconciliation_date: true },
+    //       orderBy: { id: 'asc' },
+    //     });
+    //     let finalIds: number[] = [];
+    //     if (latestOnly) {
+    //       const latestIdMap = new Map<string, number>();
+    //       const nonGroupableIds: number[] = [];
+    //       for (const rec of allMatching) {
+    //         if (!rec.salesman_id || !rec.reconciliation_date) {
+    //           nonGroupableIds.push(rec.id);
+    //           continue;
+    //         }
+    //         const dateStr = new Date(rec.reconciliation_date)
+    //           .toISOString()
+    //           .split('T')[0];
+    //         const key = `${rec.salesman_id}_${dateStr}`;
+    //         latestIdMap.set(key, rec.id);
+    //       }
+    //       finalIds = [...Array.from(latestIdMap.values()), ...nonGroupableIds];
+    //     } else {
+    //       finalIds = allMatching.map((r: { id: number }) => r.id);
+    //     }
+    //     if (reconcFilters.id !== -1) {
+    //       reconcFilters.id = { in: finalIds };
+    //     }
+    //     const ids = finalIds;
+    //     const itemStatsFilter: any = {
+    //       reconciliation_id: { in: ids },
+    //       is_active: 'Y',
+    //     };
+    //     if (status && status !== 'all') {
+    //       itemStatsFilter.resolution_action = resolveStatusFilter(status);
+    //     }
+    //     const allStatsItems = await prisma.reconciliation_items.findMany({
+    //       where: itemStatsFilter,
+    //       select: {
+    //         expected_qty: true,
+    //         actual_qty: true,
+    //         default_outlet_posting_qty: true,
+    //         unload_adjustment_qty: true,
+    //         resolution_action: true,
+    //       },
+    //     });
+    //     let totalExpected = 0,
+    //       totalActual = 0,
+    //       totalDefaultOutlet = 0,
+    //       totalUnloadAdjustment = 0,
+    //       totalPending = 0;
+    //     for (const item of allStatsItems) {
+    //       totalExpected += Number(item.expected_qty) || 0;
+    //       totalActual += Number(item.actual_qty) || 0;
+    //       totalDefaultOutlet += Number(item.default_outlet_posting_qty) || 0;
+    //       totalUnloadAdjustment += Number(item.unload_adjustment_qty) || 0;
+    //       if (
+    //         item.resolution_action === 'Awaiting Verification' ||
+    //         item.resolution_action === 'Awaiting Force-Push'
+    //       ) {
+    //         totalPending++;
+    //       }
+    //     }
+    //     const { data, pagination } = await paginate<any>({
+    //       model: prisma.reconciliation,
+    //       filters: reconcFilters,
+    //       page,
+    //       limit,
+    //       include: {
+    //         salesman: {
+    //           select: {
+    //             id: true,
+    //             name: true,
+    //             employee_id: true,
+    //             email: true,
+    //             sap_code: true,
+    //             users: { select: { name: true } },
+    //           },
+    //         },
+    //         depot: { select: { id: true, name: true, code: true } },
+    //         reconciliation_items: {
+    //           where: { is_active: 'Y' },
+    //           select: { id: true, resolution_action: true, actual_qty: true },
+    //         },
+    //       },
+    //       orderBy: { id: 'desc' },
+    //     });
+    //     const serializedData = data.map((rec: any) => {
+    //       const items: any[] = rec.reconciliation_items ?? [];
+    //       const totalItems = items.length;
+    //       const pendingItems = items.filter(
+    //         (i: any) => i.resolution_action !== 'CLEAN'
+    //       ).length;
+    //       const matchedItems = items.filter(
+    //         (i: any) => i.resolution_action === 'CLEAN'
+    //       ).length;
+    //       const varianceItems = totalItems - matchedItems;
+    //       let overallStatus = 'Pending';
+    //       if (totalItems > 0 && matchedItems === totalItems) {
+    //         overallStatus = 'Matched';
+    //       } else if (totalItems > 0 && pendingItems === 0) {
+    //         overallStatus = 'Variance';
+    //       }
+    //       return {
+    //         id: rec.id,
+    //         salesman_id: rec.salesman?.id,
+    //         salesmanName: rec.salesman?.name || 'UNMAPPED',
+    //         salesmanSapCode: rec.salesman?.sap_code || 'UNMAPPED',
+    //         salesmanEmail: rec.salesman?.email || '',
+    //         depot: rec.depot?.code || 'UNMAPPED',
+    //         depot_id: rec.depot?.id || null,
+    //         depotName: rec.depot?.name || 'UNMAPPED',
+    //         reconciliation_date: rec.reconciliation_date,
+    //         status: rec.status || 'P',
+    //         totalItems,
+    //         pendingItems,
+    //         matchedItems,
+    //         varianceItems,
+    //         overallStatus: rec.status,
+    //         createdate: rec.createdate,
+    //       };
+    //     });
+    //     res.json({
+    //       success: true,
+    //       message: 'Reconciliations retrieved successfully',
+    //       data: serializedData,
+    //       meta: {
+    //         requestDuration: Date.now(),
+    //         timestamp: new Date().toISOString(),
+    //         ...pagination,
+    //       },
+    //       stats: {
+    //         expected: totalExpected,
+    //         actual: totalActual,
+    //         default_outlet: totalDefaultOutlet,
+    //         unload_adjustment: totalUnloadAdjustment,
+    //         pending: totalPending,
+    //       },
+    //     });
+    //   } catch (error: any) {
+    //     logger.error('Get Reconciliations Error:', error);
+    //     res.status(500).json({
+    //       success: false,
+    //       message: error.message || 'Failed to retrieve reconciliations',
+    //     });
+    //   }
+    // },
     /**
      * Get loaded products (items) for a specific reconciliation by ID.
      */
@@ -402,6 +646,275 @@ exports.reconciliationController = {
     /**
      * Save and reconcile updated actual quantity values
      */
+    // saveReconciliations: async (req: Request, res: Response) => {
+    //   try {
+    //     const { items } = req.body;
+    //     const userId = (req as any).user?.id || 1;
+    //     if (!items || !Array.isArray(items) || items.length === 0) {
+    //       return res.status(400).json({
+    //         success: false,
+    //         message: 'Items array is required and must not be empty.',
+    //       });
+    //     }
+    //     logger.info(
+    //       `Starting saveReconciliations transaction for ${items.length} items...`
+    //     );
+    //     const results = await prisma.$transaction(
+    //       async tx => {
+    //         const updatedItems = [];
+    //         const reconciliationIds = new Set<number>();
+    //         for (const itemPayload of items) {
+    //           const { id, actual_qty, actual_base_qty, tax_amount } = itemPayload;
+    //           const parsedActual =
+    //             actual_qty !== null &&
+    //             actual_qty !== '' &&
+    //             actual_qty !== undefined
+    //               ? Number(actual_qty)
+    //               : null;
+    //           const parsedActualBase =
+    //             actual_base_qty !== null &&
+    //             actual_base_qty !== '' &&
+    //             actual_base_qty !== undefined
+    //               ? Number(actual_base_qty)
+    //               : null;
+    //           const parsedTaxAmount =
+    //             tax_amount !== null &&
+    //             tax_amount !== '' &&
+    //             tax_amount !== undefined
+    //               ? Number(tax_amount)
+    //               : undefined;
+    //           const record = await tx.reconciliation_items.findUnique({
+    //             where: { id },
+    //             include: {
+    //               reconciliation: { include: { salesman: true, depot: true } },
+    //               product: { include: { product_unit_of_measurement: true } },
+    //             },
+    //           });
+    //           if (!record) {
+    //             throw new Error(`Reconciliation item with ID ${id} not found.`);
+    //           }
+    //           if (record.reconciliation?.salesman?.employee_id === 'MOS100801') {
+    //             logger.warn(`Skipping blocked salesman update for item ID ${id}`);
+    //             continue;
+    //           }
+    //           let variance: number | null = null;
+    //           let variance_base_qty: number | null = null;
+    //           let resAction = 'Awaiting Verification';
+    //           const conv =
+    //             Number(
+    //               record.product?.product_unit_of_measurement?.conversion_rate
+    //             ) || 1;
+    //           const loadQty =
+    //             record.load_qty !== null ? Number(record.load_qty) : 0;
+    //           const loadBaseQty =
+    //             record.load_base_qty !== null ? Number(record.load_base_qty) : 0;
+    //           const salesmanId = record.reconciliation?.salesman_id;
+    //           const recCreatedate = record.reconciliation?.createdate;
+    //           let saleQty =
+    //             record.sale_qty !== null ? Number(record.sale_qty) : 0;
+    //           let saleBaseQty =
+    //             record.sale_base_qty !== null ? Number(record.sale_base_qty) : 0;
+    //           if (salesmanId && record.product_id && recCreatedate) {
+    //             const now = new Date();
+    //             const todayEnd = new Date(now);
+    //             todayEnd.setHours(23, 59, 59, 999);
+    //             const prevReconciliation = await tx.reconciliation.findFirst({
+    //               where: {
+    //                 salesman_id: salesmanId,
+    //                 createdate: { lt: recCreatedate },
+    //                 id: { lt: record.reconciliation_id },
+    //               },
+    //               orderBy: { createdate: 'desc' },
+    //             });
+    //             const sessionStart =
+    //               prevReconciliation?.createdate ?? new Date(0);
+    //             const freshInvoiceItems = await tx.invoice_items.findMany({
+    //               where: {
+    //                 invoices: {
+    //                   OR: [
+    //                     { salesperson_id: salesmanId },
+    //                     { createdby: salesmanId },
+    //                   ],
+    //                   createdate: { gte: sessionStart, lt: todayEnd },
+    //                   is_active: 'Y',
+    //                   NOT: [{ invoice_number: { contains: 'RECON' } }],
+    //                 },
+    //                 product_id: record.product_id,
+    //               },
+    //               select: { quantity: true, base_quantity: true },
+    //             });
+    //             if (freshInvoiceItems.length > 0) {
+    //               const freshQty = freshInvoiceItems.reduce(
+    //                 (sum, i) => sum + (Number(i.quantity) || 0),
+    //                 0
+    //               );
+    //               const freshBaseQty = freshInvoiceItems.reduce(
+    //                 (sum, i) => sum + (Number(i.base_quantity) || 0),
+    //                 0
+    //               );
+    //               logger.info(
+    //                 `[saveReconciliations] Refreshed sale_qty for item ${id}: ${saleQty} → ${freshQty}`
+    //               );
+    //               saleQty = freshQty;
+    //               saleBaseQty = freshBaseQty;
+    //               await tx.reconciliation_items.update({
+    //                 where: { id },
+    //                 data: { sale_qty: freshQty, sale_base_qty: freshBaseQty },
+    //               });
+    //             }
+    //           }
+    //           const freshExpectedQty = loadQty - saleQty;
+    //           const freshExpectedBaseQty = loadBaseQty - saleBaseQty;
+    //           const expectedQty = freshExpectedQty;
+    //           const expectedBaseQty = freshExpectedBaseQty;
+    //           const expectedTotalPieces = expectedQty * conv + expectedBaseQty;
+    //           if (parsedActual !== null || parsedActualBase !== null) {
+    //             const actual = parsedActual || 0;
+    //             const actualBase = parsedActualBase || 0;
+    //             const actualTotalPieces = actual * conv + actualBase;
+    //             const variancePieces = actualTotalPieces - expectedTotalPieces;
+    //             if (variancePieces === 0) {
+    //               variance = 0;
+    //               variance_base_qty = 0;
+    //               resAction = 'CLEAN';
+    //             } else {
+    //               const absV = Math.abs(variancePieces);
+    //               variance = Math.floor(absV / conv) * Math.sign(variancePieces);
+    //               variance_base_qty = (absV % conv) * Math.sign(variancePieces);
+    //               if (variancePieces > 0) {
+    //                 resAction = 'Adjust Unload Upward';
+    //               } else {
+    //                 resAction = 'Post to Default Outlet';
+    //               }
+    //             }
+    //           }
+    //           const defaultOutletPostingQty =
+    //             resAction === 'Post to Default Outlet' && variance !== null
+    //               ? Math.abs(variance)
+    //               : 0;
+    //           const defaultOutletPostingBaseQty =
+    //             resAction === 'Post to Default Outlet' &&
+    //             variance_base_qty !== null
+    //               ? Math.abs(variance_base_qty)
+    //               : 0;
+    //           const unloadAdjustmentQty =
+    //             resAction === 'Adjust Unload Upward' && variance !== null
+    //               ? variance
+    //               : 0;
+    //           const unloadAdjustmentBaseQty =
+    //             resAction === 'Adjust Unload Upward' && variance_base_qty !== null
+    //               ? variance_base_qty
+    //               : 0;
+    //           const updatedItem = await tx.reconciliation_items.update({
+    //             where: { id },
+    //             data: {
+    //               actual_qty: parsedActual,
+    //               actual_base_qty: parsedActualBase,
+    //               expected_qty: expectedQty,
+    //               expected_base_qty: expectedBaseQty,
+    //               variance,
+    //               variance_base_qty,
+    //               tax_amount: parsedTaxAmount,
+    //               resolution_action: resAction,
+    //               default_outlet_posting_qty: defaultOutletPostingQty,
+    //               default_outlet_posting_base_qty: defaultOutletPostingBaseQty,
+    //               unload_adjustment_qty: unloadAdjustmentQty,
+    //               unload_adjustment_base_qty: unloadAdjustmentBaseQty,
+    //               updatedate: new Date(),
+    //               updatedby: userId,
+    //             },
+    //           });
+    //           const reconciliationId = record.reconciliation?.id;
+    //           if (reconciliationId) {
+    //             reconciliationIds.add(reconciliationId);
+    //           }
+    //           updatedItems.push({
+    //             ...updatedItem,
+    //             reconciliation_id: reconciliationId,
+    //           });
+    //         }
+    //         if (reconciliationIds.size > 0) {
+    //           for (const reconciliationId of reconciliationIds) {
+    //             await tx.reconciliation.update({
+    //               where: { id: reconciliationId },
+    //               data: {
+    //                 status: 'P',
+    //                 updatedate: new Date(),
+    //                 updatedby: userId,
+    //               },
+    //             });
+    //           }
+    //         }
+    //         return updatedItems;
+    //       },
+    //       {
+    //         maxWait: 1500000,
+    //         timeout: 3000000,
+    //       }
+    //     );
+    //     const reconciliationIds = Array.from(
+    //       new Set(results.map((item: any) => item.reconciliation_id))
+    //     );
+    //     const requestResults = [];
+    //     for (const reconciliationId of reconciliationIds) {
+    //       const existingRequest = await prisma.sfa_d_requests.findFirst({
+    //         where: {
+    //           request_type: 'RECONCILIATION_APPROVAL',
+    //           reference_id: reconciliationId,
+    //           status: 'P',
+    //         },
+    //       });
+    //       if (existingRequest) {
+    //         requestResults.push({
+    //           request_id: existingRequest.id,
+    //           status: existingRequest.status,
+    //           request_type: existingRequest.request_type,
+    //           reference_id: existingRequest.reference_id,
+    //         });
+    //         continue;
+    //       }
+    //       const reconciliationItems = results
+    //         .filter((item: any) => item.reconciliation_id === reconciliationId)
+    //         .map((item: any) => ({
+    //           id: item.id,
+    //           actual_qty: item.actual_qty,
+    //         }));
+    //       const rec = await prisma.reconciliation.findUnique({
+    //         where: { id: reconciliationId },
+    //         select: { depot_id: true },
+    //       });
+    //       const createdRequest = await createRequest({
+    //         requester_id: userId,
+    //         request_type: 'RECONCILIATION_APPROVAL',
+    //         reference_id: reconciliationId,
+    //         request_data: JSON.stringify({
+    //           reconciliation_items: reconciliationItems,
+    //           depot_id: rec?.depot_id,
+    //         }),
+    //         createdby: userId,
+    //         log_inst: 1,
+    //       });
+    //       requestResults.push({
+    //         request_id: createdRequest.id,
+    //         status: createdRequest.status,
+    //         request_type: createdRequest.request_type,
+    //         reference_id: createdRequest.reference_id,
+    //       });
+    //     }
+    //     res.json({
+    //       success: true,
+    //       message: 'Reconciliation data saved successfully',
+    //       data: results,
+    //       approval_requests: requestResults,
+    //     });
+    //   } catch (error: any) {
+    //     logger.error('Save Reconciliations Error:', error);
+    //     res.status(500).json({
+    //       success: false,
+    //       message: error.message || 'Failed to save reconciliation data',
+    //     });
+    //   }
+    // },
     saveReconciliations: async (req, res) => {
         try {
             const { items } = req.body;
@@ -453,12 +966,54 @@ exports.reconciliationController = {
                     const conv = Number(record.product?.product_unit_of_measurement?.conversion_rate) || 1;
                     const loadQty = record.load_qty !== null ? Number(record.load_qty) : 0;
                     const loadBaseQty = record.load_base_qty !== null ? Number(record.load_base_qty) : 0;
-                    const saleQty = record.sale_qty !== null ? Number(record.sale_qty) : 0;
-                    const saleBaseQty = record.sale_base_qty !== null ? Number(record.sale_base_qty) : 0;
-                    const expectedQty = record.expected_qty !== null ? Number(record.expected_qty) : 0;
-                    const expectedBaseQty = record.expected_base_qty !== null
-                        ? Number(record.expected_base_qty)
-                        : 0;
+                    const salesmanId = record.reconciliation?.salesman_id;
+                    const recCreatedate = record.reconciliation?.createdate;
+                    let saleQty = record.sale_qty !== null ? Number(record.sale_qty) : 0;
+                    let saleBaseQty = record.sale_base_qty !== null ? Number(record.sale_base_qty) : 0;
+                    if (salesmanId && record.product_id && recCreatedate) {
+                        const now = new Date();
+                        const todayEnd = new Date(now);
+                        todayEnd.setHours(23, 59, 59, 999);
+                        const prevReconciliation = await tx.reconciliation.findFirst({
+                            where: {
+                                salesman_id: salesmanId,
+                                createdate: { lt: recCreatedate },
+                                id: { lt: record.reconciliation_id },
+                            },
+                            orderBy: { createdate: 'desc' },
+                        });
+                        const sessionStart = prevReconciliation?.createdate ?? new Date(0);
+                        const freshInvoiceItems = await tx.invoice_items.findMany({
+                            where: {
+                                invoices: {
+                                    OR: [
+                                        { salesperson_id: salesmanId },
+                                        { createdby: salesmanId },
+                                    ],
+                                    createdate: { gte: sessionStart, lt: todayEnd },
+                                    is_active: 'Y',
+                                    NOT: [{ invoice_number: { contains: 'RECON' } }],
+                                },
+                                product_id: record.product_id,
+                            },
+                            select: { quantity: true, base_quantity: true },
+                        });
+                        if (freshInvoiceItems.length > 0) {
+                            const freshQty = freshInvoiceItems.reduce((sum, i) => sum + (Number(i.quantity) || 0), 0);
+                            const freshBaseQty = freshInvoiceItems.reduce((sum, i) => sum + (Number(i.base_quantity) || 0), 0);
+                            logger_1.default.info(`[saveReconciliations] Refreshed sale_qty for item ${id}: ${saleQty} → ${freshQty}`);
+                            saleQty = freshQty;
+                            saleBaseQty = freshBaseQty;
+                            await tx.reconciliation_items.update({
+                                where: { id },
+                                data: { sale_qty: freshQty, sale_base_qty: freshBaseQty },
+                            });
+                        }
+                    }
+                    const freshExpectedQty = loadQty - saleQty;
+                    const freshExpectedBaseQty = loadBaseQty - saleBaseQty;
+                    const expectedQty = freshExpectedQty;
+                    const expectedBaseQty = freshExpectedBaseQty;
                     const expectedTotalPieces = expectedQty * conv + expectedBaseQty;
                     if (parsedActual !== null || parsedActualBase !== null) {
                         const actual = parsedActual || 0;
@@ -500,6 +1055,8 @@ exports.reconciliationController = {
                         data: {
                             actual_qty: parsedActual,
                             actual_base_qty: parsedActualBase,
+                            expected_qty: expectedQty,
+                            expected_base_qty: expectedBaseQty,
                             variance,
                             variance_base_qty,
                             tax_amount: parsedTaxAmount,
