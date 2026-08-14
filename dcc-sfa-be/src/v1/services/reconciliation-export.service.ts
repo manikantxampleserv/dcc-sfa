@@ -670,7 +670,6 @@ export const exportReconciliationExcelService = async (
   const depositCell = sheet.getCell(`J${currentRow}`);
   depositCell.value =
     grandTotalSaleValue +
-    grandTotalTaxAmount +
     grandTotalDefaultOutletValue +
     grandTotalDefaultOutletTax;
   depositCell.numFmt = '#,##0';
