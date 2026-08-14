@@ -32,6 +32,7 @@ export const productValidationSchema = yup.object().shape({
     .required('Unit of measurement is required')
     .min(1, 'Please select a valid unit of measurement'),
   base_price: yup.number().min(0, 'Base price must be at least 0').nullable(),
+  unit_case_conversion_rate: yup.number().min(0, 'UCCR must be at least 0').nullable(),
   tax_rate: yup
     .number()
     .min(0, 'Tax rate must be at least 0')

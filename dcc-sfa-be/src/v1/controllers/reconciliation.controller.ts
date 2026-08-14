@@ -567,6 +567,11 @@ export const reconciliationController = {
         }
       }
 
+      const defaultPricelist = await prisma.pricelists.findFirst({
+        where: { is_default: 'Y', is_active: 'Y' },
+        select: { id: true },
+      });
+
       const reconciliation = await prisma.reconciliation.findFirst({
         where: whereClause,
         include: {
@@ -590,6 +595,10 @@ export const reconciliationController = {
                   name: true,
                   code: true,
                   base_price: true,
+                  pricelist_items_products: {
+                    where: { pricelist_id: defaultPricelist?.id || -1 },
+                    select: { unit_price: true },
+                  },
                   product_categories_products: {
                     select: { category_name: true },
                   },
@@ -640,9 +649,12 @@ export const reconciliationController = {
             ) || 1,
           subUnit: item.product?.product_unit_of_measurement?.sub_unit || 'PCs',
           basePrice:
-            item.product?.base_price !== null
-              ? Number(item.product?.base_price)
-              : 0,
+            item.product?.pricelist_items_products?.[0]?.unit_price !==
+            undefined
+              ? Number(item.product?.pricelist_items_products[0].unit_price)
+              : item.product?.base_price !== null
+                ? Number(item.product?.base_price)
+                : 0,
           loadQuantity: item.load_qty !== null ? Number(item.load_qty) : 0,
           loadBaseQty:
             item.load_base_qty !== null ? Number(item.load_base_qty) : 0,

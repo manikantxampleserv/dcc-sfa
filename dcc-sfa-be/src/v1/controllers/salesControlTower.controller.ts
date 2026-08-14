@@ -13,6 +13,7 @@ const invoiceSelect = {
   invoice_items: {
     select: {
       quantity: true,
+      base_quantity: true,
       conversion_factor: true,
       total_amount: true,
       unit_price: true,
@@ -363,8 +364,12 @@ export const salesControlTowerController = {
           const dKey = inv.invoice_date
             ? inv.invoice_date.toISOString().split('T')[0]
             : 'Unknown';
-          const routeSalesman = inv.invoices_customers?.customer_routes?.salespersons?.[0]?.user;
-          const sName = inv.invoices_salesperson?.name || routeSalesman?.name || 'Unassigned';
+          const routeSalesman =
+            inv.invoices_customers?.customer_routes?.salespersons?.[0]?.user;
+          const sName =
+            inv.invoices_salesperson?.name ||
+            routeSalesman?.name ||
+            'Unassigned';
           const rName =
             inv.invoices_customers?.customer_routes?.name ||
             inv.invoices_salesperson?.route_salespersons?.[0]?.route?.name ||
@@ -412,8 +417,16 @@ export const salesControlTowerController = {
           let invPC = 0;
           let invValue = 0;
           for (const item of validItems) {
-            const pc = Number(item.quantity) || 0;
-            const uc = pc * Number(item.invoice_items_products?.unit_case_conversion_rate || 1);
+            const qty = Number(item.quantity) || 0;
+            const baseQty = Number(item.base_quantity) || 0;
+            const conv = Number(item.conversion_factor) || 1;
+            const pc = qty + (conv > 0 ? baseQty / conv : 0);
+            
+            const uc =
+              pc *
+              Number(
+                item.invoice_items_products?.unit_case_conversion_rate || 1
+              );
             const tv =
               Number(item.total_amount) || Number(item.unit_price) * pc;
             invPC += pc;
@@ -512,7 +525,14 @@ export const salesControlTowerController = {
           lte: end,
         };
       }
-      if (salesman_id) visitWhere.user_id = parseInt(salesman_id as string, 10);
+      if (salesman_id) {
+        const sid = parseInt(salesman_id as string, 10);
+        if (!isNaN(sid)) {
+          visitWhere.OR = [{ sales_person_id: sid }, { createdby: sid }];
+        } else {
+          visitWhere.visits_salesperson = { name: salesman_id as string };
+        }
+      }
       const visits = await prisma.visits.count({ where: visitWhere });
       if (visits > 0) {
         const productiveVisits = await prisma.visits.count({
@@ -736,9 +756,14 @@ export const salesControlTowerController = {
           (inv as any).invoices_salesperson?.route_salespersons?.[0]?.route
             ?.name ||
           '';
-        const routeSalesman = (inv as any).invoices_customers?.customer_routes?.salespersons?.[0]?.user;
-        const salesman = (inv as any).invoices_salesperson?.name || routeSalesman?.name || '';
-        const sellerCode = (inv as any).invoices_salesperson?.sap_code || routeSalesman?.sap_code || '';
+        const routeSalesman = (inv as any).invoices_customers?.customer_routes
+          ?.salespersons?.[0]?.user;
+        const salesman =
+          (inv as any).invoices_salesperson?.name || routeSalesman?.name || '';
+        const sellerCode =
+          (inv as any).invoices_salesperson?.sap_code ||
+          routeSalesman?.sap_code ||
+          '';
         const depotData =
           (inv as any).invoices_customers?.customer_depot ||
           (inv as any).invoices_customers?.customer_routes?.route_depots ||
@@ -819,12 +844,15 @@ export const salesControlTowerController = {
             SKU: product?.name || '',
             Pack:
               product?.product_sub_categories_products?.sub_category_name || '',
-            PhyCase: Number(item.quantity) || 0,
+            PhyCase: 
+              (Number(item.quantity) || 0) + 
+              ((Number(item.base_quantity) || 0) / (Number(item.conversion_factor) || 1)),
             UnitCase:
-              Number(item.quantity) * Number(product?.unit_case_conversion_rate || 1),
+              ((Number(item.quantity) || 0) + ((Number(item.base_quantity) || 0) / (Number(item.conversion_factor) || 1))) *
+              Number(product?.unit_case_conversion_rate || 1),
             Turnover:
               Number(item.total_amount) ||
-              Number(item.quantity) * Number(item.unit_price || 0),
+              ((Number(item.quantity) || 0) + ((Number(item.base_quantity) || 0) / (Number(item.conversion_factor) || 1))) * Number(item.unit_price || 0),
           });
         }
       }
