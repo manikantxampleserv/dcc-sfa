@@ -77,7 +77,7 @@ export default function Reconciliation() {
     { id: 'salesmanName', label: 'Rep Name', sortable: true },
     { id: 'depot', label: 'Depot/Route', sortable: true },
     {
-      id: 'reconciliation_date',
+      id: 'load_date',
       label: 'Load Date',
       sortable: true,
       render: val => (val ? formatDate(val) : '-'),

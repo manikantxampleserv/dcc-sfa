@@ -1201,130 +1201,6 @@ exports.vanInventoryController = {
     async processApprovedVanInventoryStock(inventoryId, userId, requestData) {
         await processApprovedVanInventoryStock(inventoryId, userId, requestData);
     },
-    // async getSalespersonInventoryItems(req: Request, res: Response) {
-    //   try {
-    //     const { salesperson_id } = req.params;
-    //     const { page, limit, product_id } = req.query;
-    //     if (!salesperson_id) {
-    //       return res.status(400).json({
-    //         success: false,
-    //         message: 'Salesperson ID is required',
-    //       });
-    //     }
-    //     const pageNum = parseInt(page as string, 10) || 1;
-    //     const limitNum = parseInt(limit as string, 10) || 50;
-    //     const salespersonIdNum = parseInt(salesperson_id as string, 10);
-    //     const user = await prisma.users.findUnique({
-    //       where: { id: salespersonIdNum },
-    //       select: { id: true, name: true, email: true },
-    //     });
-    //     if (!user) {
-    //       return res.status(404).json({
-    //         success: false,
-    //         message: 'Salesperson not found',
-    //       });
-    //     }
-    //     const vans = await prisma.van_inventory.findMany({
-    //       where: { user_id: salespersonIdNum, is_active: 'Y' },
-    //       select: { id: true },
-    //     });
-    //     const vanIds = vans.map(v => v.id);
-    //     if (vanIds.length === 0) {
-    //       return res.json({
-    //         success: true,
-    //         message: 'No inventory items found for salesperson',
-    //         data: [],
-    //         pagination: {
-    //           current_page: pageNum,
-    //           per_page: limitNum,
-    //           total_pages: 0,
-    //           total_count: 0,
-    //           has_next: false,
-    //           has_prev: false,
-    //         },
-    //       });
-    //     }
-    //     const itemsRaw = (await prisma.van_inventory_items.findMany({
-    //       where: {
-    //         parent_id: { in: vanIds },
-    //         ...(product_id
-    //           ? { product_id: parseInt(product_id as string, 10) }
-    //           : {}),
-    //       },
-    //       include: {
-    //         van_inventory_items_products: {
-    //           select: {
-    //             id: true,
-    //             name: true,
-    //             code: true,
-    //             unit_of_measurement: true,
-    //             tracking_type: true,
-    //             product_unit_of_measurement: true,
-    //           },
-    //         },
-    //         van_inventory_items_batch_lot: {
-    //           select: {
-    //             id: true,
-    //             batch_number: true,
-    //             lot_number: true,
-    //             expiry_date: true,
-    //           },
-    //         },
-    //       },
-    //       orderBy: { id: 'desc' },
-    //     })) as any;
-    //     const totalCount = itemsRaw.length;
-    //     const startIndex = (pageNum - 1) * limitNum;
-    //     const paginated = itemsRaw.slice(startIndex, startIndex + limitNum);
-    //     const data = paginated.map((it: any) => ({
-    //       item_id: it.id,
-    //       van_inventory_id: it.parent_id,
-    //       product_id: it.product_id,
-    //       product_name:
-    //         it.van_inventory_items_products?.name || it.product_name || null,
-    //       product_code: it.van_inventory_items_products?.code || null,
-    //       tracking_type: it.van_inventory_items_products?.tracking_type || null,
-    //       unit: it.unit || null,
-    //       unit_of_measurement:
-    //         it.van_inventory_items_products?.product_unit_of_measurement,
-    //       quantity: it.quantity,
-    //       unit_price: Number(it.unit_price || 0),
-    //       discount_amount: Number(it.discount_amount || 0),
-    //       tax_amount: Number(it.tax_amount || 0),
-    //       total_amount: Number(it.total_amount || 0),
-    //       notes: it.notes || null,
-    //       batch_lot_id: it.batch_lot_id || null,
-    //       batch: it.van_inventory_items_batch_lot
-    //         ? {
-    //           id: it.van_inventory_items_batch_lot.id,
-    //           batch_number: it.van_inventory_items_batch_lot.batch_number,
-    //           lot_number: it.van_inventory_items_batch_lot.lot_number,
-    //           expiry_date: it.van_inventory_items_batch_lot.expiry_date,
-    //         }
-    //         : null,
-    //     }));
-    //     return res.json({
-    //       success: true,
-    //       message: 'Salesperson inventory items fetched successfully',
-    //       data,
-    //       pagination: {
-    //         current_page: pageNum,
-    //         per_page: limitNum,
-    //         total_pages: Math.ceil(totalCount / limitNum),
-    //         total_count: totalCount,
-    //         has_next: startIndex + limitNum < totalCount,
-    //         has_prev: startIndex > 0,
-    //       },
-    //     });
-    //   } catch (error: any) {
-    //     console.error('Get Salesperson Inventory Items Error:', error);
-    //     return res.status(500).json({
-    //       success: false,
-    //       message: 'Failed to retrieve salesperson inventory items',
-    //       error: error.message,
-    //     });
-    //   }
-    // },
     async getSalespersonInventoryItems(req, res) {
         try {
             const { salesperson_id } = req.params;
@@ -6301,6 +6177,15 @@ exports.vanInventoryController = {
                             },
                         });
                         const toCreate = [];
+                        /**
+                         * Track which product_ids have already had their saleQty consumed.
+                         * invoice_items carry no batch FK so saleQtyMap is keyed by
+                         * `productId-` (no batch suffix). When a product has multiple
+                         * inventory_stock rows (one per batch), only the first productMap
+                         * entry for that productId should claim the sale qty; subsequent
+                         * batch-rows of the same product get saleQty = 0 to avoid
+                         * double-counting.
+                         */
                         const assignedSaleProducts = new Set();
                         for (const p of productMap.values()) {
                             const expectedQty = p.total_qty;
@@ -6308,20 +6193,29 @@ exports.vanInventoryController = {
                             let saleQty = 0;
                             let saleBaseQty = 0;
                             if (!assignedSaleProducts.has(p.product_id)) {
+                                // Always look up by product-only key because invoice_items
+                                // do not store a batch reference.
                                 saleQty = saleQtyMap.get(`${p.product_id}-`)?.qty || 0;
                                 saleBaseQty = saleQtyMap.get(`${p.product_id}-`)?.baseQty || 0;
                                 assignedSaleProducts.add(p.product_id);
                             }
-                            // Calculate Load Qty as Total Available Stock (Opening Stock + Today's Load).
-                            // Since p.total_qty is the EOD stock (after sales), we can mathematically
-                            // derive the total available stock before sales by adding the sales back.
+                            // load_qty = current remaining stock + qty sold today.
+                            // This equals the total stock the salesman had available at the
+                            // start of the session, ensuring load_qty >= sale_qty always.
                             let loadQty = expectedQty + saleQty;
                             let loadBaseQty = expectedBaseQty + saleBaseQty;
-                            // Normalize base quantities
+                            // Normalise sub-unit overflow into cases.
                             if (p.convRate > 0) {
                                 loadQty += Math.floor(loadBaseQty / p.convRate);
                                 loadBaseQty = loadBaseQty % p.convRate;
                             }
+                            // Safety guard: load_qty must never be less than sale_qty.
+                            // This can theoretically happen if inventory_stock was manually
+                            // zeroed before the unload was triggered.
+                            if (loadQty < saleQty)
+                                loadQty = saleQty;
+                            if (loadBaseQty < saleBaseQty)
+                                loadBaseQty = saleBaseQty;
                             const unitPricePerPc = p.convRate > 0 ? p.price / p.convRate : 0;
                             const saleVal = saleQty * p.price + saleBaseQty * unitPricePerPc;
                             const taxAmount = (saleVal * p.taxRate) / 100;
