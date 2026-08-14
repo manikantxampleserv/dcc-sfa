@@ -281,6 +281,10 @@ async function resolveRequesterDepotId(tx, requesterId, requestType, requestData
 }
 async function processDefaultOutletInvoice(reconciliationIdForInvoice, userIdForInvoice) {
     try {
+        const defaultPricelist = await prisma_client_1.default.pricelists.findFirst({
+            where: { is_default: 'Y', is_active: 'Y' },
+            select: { id: true },
+        });
         const reconciliation = await prisma_client_1.default.reconciliation.findUnique({
             where: { id: reconciliationIdForInvoice },
             include: {
@@ -304,6 +308,10 @@ async function processDefaultOutletInvoice(reconciliationIdForInvoice, userIdFor
                             select: {
                                 id: true,
                                 base_price: true,
+                                pricelist_items_products: {
+                                    where: { pricelist_id: defaultPricelist?.id || -1 },
+                                    select: { unit_price: true },
+                                },
                                 product_tax_master: {
                                     select: { tax_rate: true },
                                 },
@@ -343,7 +351,11 @@ async function processDefaultOutletInvoice(reconciliationIdForInvoice, userIdFor
         const salespersonId = reconciliation.salesman?.id || null;
         const invoiceItems = shortageItems.map((item) => {
             const conv = Number(item.product?.product_unit_of_measurement?.conversion_rate) || 1;
-            const price = Number(item.product?.base_price) || 0;
+            const price = item.product?.pricelist_items_products?.[0]?.unit_price !== undefined
+                ? Number(item.product?.pricelist_items_products[0].unit_price)
+                : item.product?.base_price !== null
+                    ? Number(item.product?.base_price)
+                    : 0;
             const taxRate = Number(item.product?.product_tax_master?.tax_rate) || 0;
             const shortCases = Number(item.default_outlet_posting_qty) || 0;
             const shortPcs = Number(item.default_outlet_posting_base_qty) || 0;
