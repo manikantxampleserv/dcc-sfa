@@ -5851,7 +5851,7 @@ exports.vanInventoryController = {
                     loading_type: 'U',
                     approval_status: 'A',
                     is_active: 'Y',
-                    document_date: new Date(),
+                    document_date: reconciliation.reconciliation_date ?? new Date(),
                     createdate: new Date(),
                     createdby: approvedByUserId,
                     updatedate: new Date(),
