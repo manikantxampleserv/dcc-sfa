@@ -13,6 +13,7 @@ const invoiceSelect = {
   invoice_items: {
     select: {
       quantity: true,
+      base_quantity: true,
       conversion_factor: true,
       total_amount: true,
       unit_price: true,
@@ -416,7 +417,11 @@ export const salesControlTowerController = {
           let invPC = 0;
           let invValue = 0;
           for (const item of validItems) {
-            const pc = Number(item.quantity) || 0;
+            const qty = Number(item.quantity) || 0;
+            const baseQty = Number(item.base_quantity) || 0;
+            const conv = Number(item.conversion_factor) || 1;
+            const pc = qty + (conv > 0 ? baseQty / conv : 0);
+            
             const uc =
               pc *
               Number(
@@ -839,13 +844,15 @@ export const salesControlTowerController = {
             SKU: product?.name || '',
             Pack:
               product?.product_sub_categories_products?.sub_category_name || '',
-            PhyCase: Number(item.quantity) || 0,
+            PhyCase: 
+              (Number(item.quantity) || 0) + 
+              ((Number(item.base_quantity) || 0) / (Number(item.conversion_factor) || 1)),
             UnitCase:
-              Number(item.quantity) *
+              ((Number(item.quantity) || 0) + ((Number(item.base_quantity) || 0) / (Number(item.conversion_factor) || 1))) *
               Number(product?.unit_case_conversion_rate || 1),
             Turnover:
               Number(item.total_amount) ||
-              Number(item.quantity) * Number(item.unit_price || 0),
+              ((Number(item.quantity) || 0) + ((Number(item.base_quantity) || 0) / (Number(item.conversion_factor) || 1))) * Number(item.unit_price || 0),
           });
         }
       }
