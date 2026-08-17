@@ -1091,7 +1091,7 @@ exports.reconciliationController = {
                             variance = Math.floor(absV / conv) * Math.sign(variancePieces);
                             variance_base_qty = (absV % conv) * Math.sign(variancePieces);
                             if (variancePieces > 0) {
-                                resAction = 'Adjust Unload Upward';
+                                resAction = 'Post to Default Outlet';
                             }
                             else {
                                 resAction = 'Post to Default Outlet';

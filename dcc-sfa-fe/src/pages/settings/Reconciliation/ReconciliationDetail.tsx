@@ -104,7 +104,7 @@ export default function ReconciliationDetail() {
         resolutionAction = 'Post to Default Outlet';
       } else if (variancePieces > 0) {
         status = 'Excess';
-        resolutionAction = 'Adjust Unload Upward';
+        resolutionAction = 'Post to Default Outlet';
       }
 
       const absV = Math.abs(variancePieces);
@@ -348,7 +348,7 @@ export default function ReconciliationDetail() {
           let color = 'default';
           if (details.resolutionAction === 'CLEAN') color = 'success';
           else if (details.resolutionAction === 'Post to Default Outlet')
-            color = 'error';
+            color = details.status === 'Excess' ? 'info' : 'error';
           else if (details.resolutionAction === 'Adjust Unload Upward')
             color = 'info';
           else if (details.resolutionAction === 'Awaiting Force-Push')

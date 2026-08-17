@@ -552,7 +552,7 @@ const exportReconciliationPdfService = async (reconciliationData) => {
                 width: 352,
                 align: 'right',
             });
-            const totalStr = `${formatNum(grandTotalSaleValue + grandTotalTaxAmount + grandTotalDefaultOutletValue + grandTotalDefaultOutletTax)}`;
+            const totalStr = `${formatNum(grandTotalSaleValue + grandTotalDefaultOutletValue + grandTotalDefaultOutletTax)}`;
             doc
                 .fillColor('red')
                 .text(totalStr, 386, y + 3.5, { width: 174, align: 'right' });

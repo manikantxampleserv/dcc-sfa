@@ -1248,7 +1248,7 @@ export const reconciliationController = {
                 variance_base_qty = (absV % conv) * Math.sign(variancePieces);
 
                 if (variancePieces > 0) {
-                  resAction = 'Adjust Unload Upward';
+                  resAction = 'Post to Default Outlet';
                 } else {
                   resAction = 'Post to Default Outlet';
                 }

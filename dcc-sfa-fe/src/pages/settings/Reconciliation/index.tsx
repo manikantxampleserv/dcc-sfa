@@ -21,7 +21,8 @@ export default function Reconciliation() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDate, setSelectedDate] = useState(
-    new Date().toISOString().split('T')[0]
+    sessionStorage.getItem('reconciliation_date_filter') ||
+      new Date().toISOString().split('T')[0]
   );
   const [depotFilter, setDepotFilter] = useState<number | undefined>(undefined);
   const [statusFilter, setStatusFilter] = useState('all');
@@ -243,6 +244,10 @@ export default function Reconciliation() {
                   value={selectedDate}
                   onChange={e => {
                     setSelectedDate(e.target.value);
+                    sessionStorage.setItem(
+                      'reconciliation_date_filter',
+                      e.target.value
+                    );
                     setPage(1);
                   }}
                   className="!w-44"
