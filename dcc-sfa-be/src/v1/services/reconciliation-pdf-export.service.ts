@@ -413,10 +413,12 @@ export const exportReconciliationPdfService = async (
 
           const rawAction = String(item.resolutionAction || '-');
           let actionText = rawAction;
-          if (rawAction === 'Posted to Default Outlet') {
+          if (
+            rawAction === 'Posted to Default Outlet' ||
+            rawAction === 'Post to Default Outlet' ||
+            rawAction.includes('Adjust')
+          ) {
             actionText = 'Posted to D/O';
-          } else if (rawAction === 'Adjust Unload Upward') {
-            actionText = 'Adj. Unload';
           } else if (
             rawAction === 'Awaiting Verification' ||
             rawAction === 'Pending'
@@ -429,9 +431,7 @@ export const exportReconciliationPdfService = async (
               ? '#C6E0B4'
               : actionText === 'Posted to D/O'
                 ? '#F8CBAD'
-                : actionText === 'Adj. Unload'
-                  ? '#f0f9ff'
-                  : undefined;
+                : undefined;
 
           const actionColor = actionText === 'CLEAN' ? '#006100' : 'black';
 
@@ -479,17 +479,18 @@ export const exportReconciliationPdfService = async (
 
           if (
             item.resolutionAction &&
-            item.resolutionAction.includes('Default Outlet') &&
-            (varianceVal < 0 || varianceBaseVal < 0)
+            (item.resolutionAction.includes('Default Outlet') || item.resolutionAction.includes('Adjust'))
           ) {
-            const shortageValue =
-              Math.abs(varianceVal) * price +
-              Math.abs(varianceBaseVal) * basePricePerPc;
-            grandTotalDefaultOutletValue += shortageValue;
+            const isExcess = varianceVal > 0 || varianceBaseVal > 0;
+            const sign = isExcess ? -1 : 1;
+            const outletValue =
+              (Math.abs(varianceVal) * price +
+              Math.abs(varianceBaseVal) * basePricePerPc) * sign;
+            grandTotalDefaultOutletValue += outletValue;
 
             const itemTax = Number(item.taxAmount) || 0;
             const taxRate = saleVal > 0 ? itemTax / saleVal : 0.18;
-            grandTotalDefaultOutletTax += shortageValue * taxRate;
+            grandTotalDefaultOutletTax += outletValue * taxRate;
           }
         });
 
@@ -663,15 +664,15 @@ export const exportReconciliationPdfService = async (
 
       doc.rect(386, y, 178, 13).fillAndStroke('#E7E6E6', '#A6A6A6');
       doc
-        .fillColor('red')
+        .fillColor(grandTotalDefaultOutletValue < 0 ? 'blue' : 'red')
         .text(
-          'Default Outlet Posting Value (Shortage — Salesman accountable):',
+          'Default Outlet Posting Value (Net Shortage/Excess):',
           30,
           y + 3.5,
           { width: 352, align: 'right' }
         );
       doc
-        .fillColor('red')
+        .fillColor(grandTotalDefaultOutletValue < 0 ? 'blue' : 'red')
         .text(`${formatNum(grandTotalDefaultOutletValue)}`, 386, y + 3.5, {
           width: 174,
           align: 'right',
@@ -680,15 +681,15 @@ export const exportReconciliationPdfService = async (
 
       doc.rect(386, y, 178, 13).fillAndStroke('#E7E6E6', '#A6A6A6');
       doc
-        .fillColor('red')
+        .fillColor(grandTotalDefaultOutletTax < 0 ? 'blue' : 'red')
         .text(
-          'Default Outlet Posting Tax Amount (Shortage — Salesman accountable):',
+          'Default Outlet Posting Tax Amount (Net Shortage/Excess):',
           30,
           y + 3.5,
           { width: 352, align: 'right' }
         );
       doc
-        .fillColor('red')
+        .fillColor(grandTotalDefaultOutletTax < 0 ? 'blue' : 'red')
         .text(`${formatNum(grandTotalDefaultOutletTax)}`, 386, y + 3.5, {
           width: 174,
           align: 'right',
