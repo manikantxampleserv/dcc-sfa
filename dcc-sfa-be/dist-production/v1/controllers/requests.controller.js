@@ -351,12 +351,13 @@ async function processDefaultOutletInvoice(reconciliationIdForInvoice, userIdFor
         const salespersonId = reconciliation.salesman?.id || null;
         const invoiceItems = shortageItems.map((item) => {
             const conv = Number(item.product?.product_unit_of_measurement?.conversion_rate) || 1;
-            const price = item.product?.pricelist_items_products?.[0]?.unit_price !== undefined
+            const inclusivePrice = item.product?.pricelist_items_products?.[0]?.unit_price !== undefined
                 ? Number(item.product?.pricelist_items_products[0].unit_price)
                 : item.product?.base_price !== null
                     ? Number(item.product?.base_price)
                     : 0;
             const taxRate = Number(item.product?.product_tax_master?.tax_rate) || 0;
+            const price = inclusivePrice / (1 + taxRate / 100);
             const isExcess = (Number(item.variance) || 0) > 0 ||
                 (Number(item.variance_base_qty) || 0) > 0;
             const shortCases = isExcess
