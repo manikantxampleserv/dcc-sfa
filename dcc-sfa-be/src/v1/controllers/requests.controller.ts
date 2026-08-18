@@ -3337,7 +3337,7 @@ async function processDefaultOutletInvoice(
             customer_id: defaultOutletId,
             salesperson_id: salespersonId,
             currency_id: null,
-            invoice_date: new Date(),
+            invoice_date: reconciliation.reconciliation_date || new Date(),
             due_date: null,
             status: 'paid',
             payment_method: 'cash',

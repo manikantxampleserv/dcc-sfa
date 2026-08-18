@@ -139,7 +139,9 @@ export default function SettlementSheetDetail() {
         const isExcess = variance > 0 || varianceBase > 0;
         const sign = isExcess ? -1 : 1;
         const outletValue =
-          (Math.abs(variance) * price + Math.abs(varianceBase) * basePricePerPc) * sign;
+          (Math.abs(variance) * price +
+            Math.abs(varianceBase) * basePricePerPc) *
+          sign;
         totalDefaultOutletValue += outletValue;
         totalDefaultOutletTax += outletValue * taxRate;
       }
@@ -403,10 +405,11 @@ export default function SettlementSheetDetail() {
           | 'warning' = 'default';
         if (displayVal === 'CLEAN') color = 'success';
         else if (displayVal?.includes('Default Outlet')) {
-          const isExcess = (Number(row.variance) || 0) > 0 || (Number(row.varianceBaseQty) || 0) > 0;
+          const isExcess =
+            (Number(row.variance) || 0) > 0 ||
+            (Number(row.varianceBaseQty) || 0) > 0;
           color = isExcess ? 'info' : 'error';
-        }
-        else if (displayVal?.includes('Adjust')) color = 'info';
+        } else if (displayVal?.includes('Adjust')) color = 'info';
         return (
           <div className="text-center block">
             <Chip
@@ -607,7 +610,9 @@ export default function SettlementSheetDetail() {
                 <span className="text-gray-600">
                   Default Outlet Posting Value (Net Shortage/Excess):
                 </span>
-                <span className={`font-semibold ${grandTotal.totalDefaultOutletValue < 0 ? 'text-blue-600' : 'text-red-600'}`}>
+                <span
+                  className={`font-semibold ${grandTotal.totalDefaultOutletValue < 0 ? 'text-blue-600' : 'text-red-600'}`}
+                >
                   {grandTotal.totalDefaultOutletValue.toLocaleString()} TZS
                 </span>
               </div>
@@ -615,7 +620,9 @@ export default function SettlementSheetDetail() {
                 <span className="text-gray-600">
                   Default Outlet Posting Tax Amount (Net Shortage/Excess):
                 </span>
-                <span className={`font-semibold ${grandTotal.totalDefaultOutletTax < 0 ? 'text-blue-600' : 'text-red-600'}`}>
+                <span
+                  className={`font-semibold ${grandTotal.totalDefaultOutletTax < 0 ? 'text-blue-600' : 'text-red-600'}`}
+                >
                   {grandTotal.totalDefaultOutletTax.toLocaleString(undefined, {
                     minimumFractionDigits: 2,
                     maximumFractionDigits: 2,
