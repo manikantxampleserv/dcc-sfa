@@ -6295,13 +6295,23 @@ export const vanInventoryController = {
                 assignedSaleProducts.add(p.product_id);
               }
 
-              let loadQty = expectedQty + saleQty;
-              let loadBaseQty = expectedBaseQty + saleBaseQty;
+              /**
+               * Use actual van loading records as the source of truth for load_qty.
+               * The key format matches loadQtyMap: `${product_id}-${batchNumber || ''}`.
+               * Note: productMap stores batch_number as null for non-batched products,
+               * so we normalize with ?? '' to match the loadQtyMap key format.
+               */
+              const loadKey = `${p.product_id}-${p.batch_number ?? ''}`;
+              const loadRecord = loadQtyMap.get(loadKey) || { qty: 0, baseQty: 0 };
+              let loadQty = loadRecord.qty;
+              let loadBaseQty = loadRecord.baseQty;
 
+              /** Normalize: convert any excess base units into full cases */
               if (p.convRate > 0) {
                 loadQty += Math.floor(loadBaseQty / p.convRate);
                 loadBaseQty = loadBaseQty % p.convRate;
               }
+              /** Safety guard: load must cover at minimum what was sold in this session */
               if (loadQty < saleQty) loadQty = saleQty;
               if (loadBaseQty < saleBaseQty) loadBaseQty = saleBaseQty;
 

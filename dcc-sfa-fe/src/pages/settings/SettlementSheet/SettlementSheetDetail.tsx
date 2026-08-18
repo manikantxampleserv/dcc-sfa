@@ -637,6 +637,7 @@ export default function SettlementSheetDetail() {
                 <span className="text-xl font-bold text-blue-700 print:text-black">
                   {(
                     grandTotal.totalSaleValue +
+                    grandTotal.totalTaxAmount +
                     grandTotal.totalDefaultOutletValue +
                     grandTotal.totalDefaultOutletTax
                   ).toLocaleString(undefined, {
