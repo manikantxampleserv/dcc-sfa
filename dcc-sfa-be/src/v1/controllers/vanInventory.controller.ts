@@ -6088,7 +6088,7 @@ export const vanInventoryController = {
 
             const now = new Date();
             const today = new Date(
-              Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())
+              Date.UTC(now.getFullYear(), now.getMonth(), now.getDate() - 1)
             );
 
             const todayStart = new Date(today);
