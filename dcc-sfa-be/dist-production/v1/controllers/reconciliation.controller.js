@@ -940,6 +940,19 @@ exports.reconciliationController = {
             const results = await prisma_client_1.default.$transaction(async (tx) => {
                 const updatedItems = [];
                 const reconciliationIds = new Set();
+                /**
+                 * Cache for refreshed sale_qty per (reconciliation_id, product_id).
+                 *
+                 * invoice_items have no batch FK, so when a product has multiple
+                 * reconciliation_item rows (one per batch), every row would otherwise
+                 * re-fetch ALL sales for that product_id and end up with the full
+                 * total — multiplying sale_qty by the number of batches.
+                 *
+                 * Solution: the first batch row for a (reconciliation_id, product_id)
+                 * pair fetches and caches the fresh total.  Subsequent rows for the
+                 * same pair get { qty: 0, baseQty: 0 } so the sum stays correct.
+                 */
+                const refreshedProductSaleMap = new Map();
                 for (const itemPayload of items) {
                     const { id, actual_qty, actual_base_qty, tax_amount } = itemPayload;
                     const parsedActual = actual_qty !== null &&
@@ -982,43 +995,80 @@ exports.reconciliationController = {
                     let saleQty = record.sale_qty !== null ? Number(record.sale_qty) : 0;
                     let saleBaseQty = record.sale_base_qty !== null ? Number(record.sale_base_qty) : 0;
                     if (salesmanId && record.product_id && recCreatedate) {
-                        const now = new Date();
-                        const todayEnd = new Date(now);
-                        todayEnd.setHours(23, 59, 59, 999);
-                        const prevReconciliation = await tx.reconciliation.findFirst({
-                            where: {
-                                salesman_id: salesmanId,
-                                createdate: { lt: recCreatedate },
-                                id: { lt: record.reconciliation_id },
-                            },
-                            orderBy: { createdate: 'desc' },
-                        });
-                        const sessionStart = prevReconciliation?.createdate ?? new Date(0);
-                        const freshInvoiceItems = await tx.invoice_items.findMany({
-                            where: {
-                                invoices: {
-                                    OR: [
-                                        { salesperson_id: salesmanId },
-                                        { createdby: salesmanId },
-                                    ],
-                                    createdate: { gte: sessionStart, lt: todayEnd },
-                                    is_active: 'Y',
-                                    NOT: [{ invoice_number: { contains: 'RECON' } }],
+                        const reconcSaleKey = `${record.reconciliation_id}-${record.product_id}`;
+                        if (refreshedProductSaleMap.has(reconcSaleKey)) {
+                            // A previous batch row already claimed the total for this
+                            // (reconciliation, product) pair.  This row gets 0 to avoid
+                            // double-counting.
+                            const cached = refreshedProductSaleMap.get(reconcSaleKey);
+                            if (cached.qty === 0 && cached.baseQty === 0) {
+                                // already zeroed — keep stored sale_qty from the DB
+                            }
+                            else {
+                                // Mark as consumed; this row gets 0
+                                refreshedProductSaleMap.set(reconcSaleKey, { qty: 0, baseQty: 0 });
+                                saleQty = 0;
+                                saleBaseQty = 0;
+                                await tx.reconciliation_items.update({
+                                    where: { id },
+                                    data: { sale_qty: 0, sale_base_qty: 0 },
+                                });
+                            }
+                        }
+                        else {
+                            // First time we see this (reconciliation, product) pair.
+                            // Fetch fresh totals from invoice_items.
+                            const now = new Date();
+                            const todayEnd = new Date(now);
+                            todayEnd.setHours(23, 59, 59, 999);
+                            const prevReconciliation = await tx.reconciliation.findFirst({
+                                where: {
+                                    salesman_id: salesmanId,
+                                    createdate: { lt: recCreatedate },
+                                    id: { lt: record.reconciliation_id },
                                 },
-                                product_id: record.product_id,
-                            },
-                            select: { quantity: true, base_quantity: true },
-                        });
-                        if (freshInvoiceItems.length > 0) {
-                            const freshQty = freshInvoiceItems.reduce((sum, i) => sum + (Number(i.quantity) || 0), 0);
-                            const freshBaseQty = freshInvoiceItems.reduce((sum, i) => sum + (Number(i.base_quantity) || 0), 0);
-                            logger_1.default.info(`[saveReconciliations] Refreshed sale_qty for item ${id}: ${saleQty} → ${freshQty}`);
-                            saleQty = freshQty;
-                            saleBaseQty = freshBaseQty;
-                            await tx.reconciliation_items.update({
-                                where: { id },
-                                data: { sale_qty: freshQty, sale_base_qty: freshBaseQty },
+                                orderBy: { createdate: 'desc' },
                             });
+                            const sessionStart = prevReconciliation?.createdate ?? new Date(0);
+                            const freshInvoiceItems = await tx.invoice_items.findMany({
+                                where: {
+                                    invoices: {
+                                        OR: [
+                                            { salesperson_id: salesmanId },
+                                            { createdby: salesmanId },
+                                        ],
+                                        createdate: { gte: sessionStart, lt: todayEnd },
+                                        is_active: 'Y',
+                                        NOT: [{ invoice_number: { contains: 'RECON' } }],
+                                    },
+                                    product_id: record.product_id,
+                                },
+                                select: { quantity: true, base_quantity: true },
+                            });
+                            if (freshInvoiceItems.length > 0) {
+                                const freshQty = freshInvoiceItems.reduce((sum, i) => sum + (Number(i.quantity) || 0), 0);
+                                const freshBaseQty = freshInvoiceItems.reduce((sum, i) => sum + (Number(i.base_quantity) || 0), 0);
+                                logger_1.default.info(`[saveReconciliations] Refreshed sale_qty for item ${id} (product ${record.product_id}): ${saleQty} → ${freshQty}`);
+                                // Cache so subsequent batch rows of this product get 0.
+                                refreshedProductSaleMap.set(reconcSaleKey, {
+                                    qty: freshQty,
+                                    baseQty: freshBaseQty,
+                                });
+                                saleQty = freshQty;
+                                saleBaseQty = freshBaseQty;
+                                await tx.reconciliation_items.update({
+                                    where: { id },
+                                    data: { sale_qty: freshQty, sale_base_qty: freshBaseQty },
+                                });
+                            }
+                            else {
+                                // No new invoices found; mark as consumed with stored value
+                                // so subsequent rows get 0.
+                                refreshedProductSaleMap.set(reconcSaleKey, {
+                                    qty: saleQty,
+                                    baseQty: saleBaseQty,
+                                });
+                            }
                         }
                     }
                     const freshExpectedQty = loadQty - saleQty;
@@ -1041,7 +1091,7 @@ exports.reconciliationController = {
                             variance = Math.floor(absV / conv) * Math.sign(variancePieces);
                             variance_base_qty = (absV % conv) * Math.sign(variancePieces);
                             if (variancePieces > 0) {
-                                resAction = 'Adjust Unload Upward';
+                                resAction = 'Post to Default Outlet';
                             }
                             else {
                                 resAction = 'Post to Default Outlet';

@@ -3186,6 +3186,11 @@ async function processDefaultOutletInvoice(
   userIdForInvoice: number
 ) {
   try {
+    const defaultPricelist = await prisma.pricelists.findFirst({
+      where: { is_default: 'Y', is_active: 'Y' },
+      select: { id: true },
+    });
+
     const reconciliation = await prisma.reconciliation.findUnique({
       where: { id: reconciliationIdForInvoice },
       include: {
@@ -3209,6 +3214,10 @@ async function processDefaultOutletInvoice(
               select: {
                 id: true,
                 base_price: true,
+                pricelist_items_products: {
+                  where: { pricelist_id: defaultPricelist?.id || -1 },
+                  select: { unit_price: true },
+                },
                 product_tax_master: {
                   select: { tax_rate: true },
                 },
@@ -3260,10 +3269,16 @@ async function processDefaultOutletInvoice(
     const invoiceItems = shortageItems.map((item: any) => {
       const conv =
         Number(item.product?.product_unit_of_measurement?.conversion_rate) || 1;
-      const price = Number(item.product?.base_price) || 0;
+      const price =
+        item.product?.pricelist_items_products?.[0]?.unit_price !== undefined
+          ? Number(item.product?.pricelist_items_products[0].unit_price)
+          : item.product?.base_price !== null
+            ? Number(item.product?.base_price)
+            : 0;
       const taxRate = Number(item.product?.product_tax_master?.tax_rate) || 0;
-      const shortCases = Number(item.default_outlet_posting_qty) || 0;
-      const shortPcs = Number(item.default_outlet_posting_base_qty) || 0;
+      const isExcess = (Number(item.variance) || 0) > 0 || (Number(item.variance_base_qty) || 0) > 0;
+      const shortCases = isExcess ? -(Number(item.default_outlet_posting_qty) || 0) : (Number(item.default_outlet_posting_qty) || 0);
+      const shortPcs = isExcess ? -(Number(item.default_outlet_posting_base_qty) || 0) : (Number(item.default_outlet_posting_base_qty) || 0);
       const unitPricePerPc = conv > 0 ? price / conv : 0;
       const lineTotal = shortCases * price + shortPcs * unitPricePerPc;
       const taxAmount = (lineTotal * taxRate) / 100;
@@ -3287,8 +3302,8 @@ async function processDefaultOutletInvoice(
         product_name: productName,
         unit: unit,
         notes: item.batch_number
-          ? `Variance shortage - ${shortCases} Cases ${shortPcs} PCs (Batches: ${item.batch_number})`
-          : `Variance shortage - ${shortCases} Cases ${shortPcs} PCs`,
+          ? `Variance ${shortCases < 0 || shortPcs < 0 ? 'excess' : 'shortage'} - ${Math.abs(shortCases)} Cases ${Math.abs(shortPcs)} PCs (Batches: ${item.batch_number})`
+          : `Variance ${shortCases < 0 || shortPcs < 0 ? 'excess' : 'shortage'} - ${Math.abs(shortCases)} Cases ${Math.abs(shortPcs)} PCs`,
         batch_lot_id: item.batch_lot_id || null,
       };
     });

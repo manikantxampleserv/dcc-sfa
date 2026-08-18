@@ -122,7 +122,7 @@ export const useDeleteUnitOfMeasurement = () => {
  * @returns { uomCase, uomPcs } — abbreviated display labels ready for rendering.
  */
 export const useResolvedUom = () => {
-  const { data: uomData } = useUnitOfMeasurement();
+  const { data: uomData } = useUnitOfMeasurement({ limit: 1000 });
 
   const resolved = (() => {
     const data = uomData?.data || [];

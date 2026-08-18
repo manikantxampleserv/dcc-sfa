@@ -135,14 +135,13 @@ export default function SettlementSheetDetail() {
       const variance = Number(item.variance) || 0;
       const varianceBase = Number(item.varianceBaseQty) || 0;
       const action = item.resolutionAction || '';
-      if (
-        action.includes('Default Outlet') &&
-        (variance < 0 || varianceBase < 0)
-      ) {
-        const shortageValue =
-          Math.abs(variance) * price + Math.abs(varianceBase) * basePricePerPc;
-        totalDefaultOutletValue += shortageValue;
-        totalDefaultOutletTax += shortageValue * taxRate;
+      if (action.includes('Default Outlet')) {
+        const isExcess = variance > 0 || varianceBase > 0;
+        const sign = isExcess ? -1 : 1;
+        const outletValue =
+          (Math.abs(variance) * price + Math.abs(varianceBase) * basePricePerPc) * sign;
+        totalDefaultOutletValue += outletValue;
+        totalDefaultOutletTax += outletValue * taxRate;
       }
     });
     return {
@@ -381,13 +380,17 @@ export default function SettlementSheetDetail() {
     {
       id: 'resolutionAction',
       label: 'Action',
-      render: val => {
+      render: (val, row) => {
         let displayVal = val;
         if (
           displayVal === 'Awaiting Verification' ||
           displayVal === 'Pending'
         ) {
           displayVal = 'CLEAN';
+        }
+
+        if (displayVal?.includes('Adjust')) {
+          displayVal = 'Post to Default Outlet';
         }
 
         let color:
@@ -399,7 +402,10 @@ export default function SettlementSheetDetail() {
           | 'success'
           | 'warning' = 'default';
         if (displayVal === 'CLEAN') color = 'success';
-        else if (displayVal?.includes('Default Outlet')) color = 'error';
+        else if (displayVal?.includes('Default Outlet')) {
+          const isExcess = (Number(row.variance) || 0) > 0 || (Number(row.varianceBaseQty) || 0) > 0;
+          color = isExcess ? 'info' : 'error';
+        }
         else if (displayVal?.includes('Adjust')) color = 'info';
         return (
           <div className="text-center block">
@@ -599,19 +605,17 @@ export default function SettlementSheetDetail() {
               </div>
               <div className="flex justify-between items-center py-2 border-b border-gray-200">
                 <span className="text-gray-600">
-                  Default Outlet Posting Value (Shortage — Salesman
-                  accountable):
+                  Default Outlet Posting Value (Net Shortage/Excess):
                 </span>
-                <span className="font-semibold text-red-600">
+                <span className={`font-semibold ${grandTotal.totalDefaultOutletValue < 0 ? 'text-blue-600' : 'text-red-600'}`}>
                   {grandTotal.totalDefaultOutletValue.toLocaleString()} TZS
                 </span>
               </div>
               <div className="flex justify-between items-center py-2 border-b border-gray-200">
                 <span className="text-gray-600">
-                  Default Outlet Posting Tax Amount (Shortage — Salesman
-                  accountable):
+                  Default Outlet Posting Tax Amount (Net Shortage/Excess):
                 </span>
-                <span className="font-semibold text-red-600">
+                <span className={`font-semibold ${grandTotal.totalDefaultOutletTax < 0 ? 'text-blue-600' : 'text-red-600'}`}>
                   {grandTotal.totalDefaultOutletTax.toLocaleString(undefined, {
                     minimumFractionDigits: 2,
                     maximumFractionDigits: 2,

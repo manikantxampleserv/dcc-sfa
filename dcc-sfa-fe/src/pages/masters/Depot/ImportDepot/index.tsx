@@ -112,7 +112,6 @@ const ImportDepot: React.FC<ImportDepotProps> = ({
       open={drawerOpen}
       setOpen={handleCancel}
       title="Import Depots"
-      size="large"
     >
       <Box className="!p-5">
         <form onSubmit={formik.handleSubmit} className="!space-y-6">
@@ -321,7 +320,7 @@ const ImportDepot: React.FC<ImportDepotProps> = ({
                 disabled={!uploadedFile || importDataMutation.isPending}
                 loading={importDataMutation.isPending}
               >
-                {importDataMutation.isPending ? 'Importing...' : 'Import Data'}
+                {importDataMutation.isPending ? 'Importing...' : 'Import'}
               </Button>
             )}
 
