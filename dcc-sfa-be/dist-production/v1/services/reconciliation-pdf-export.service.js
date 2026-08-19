@@ -95,7 +95,7 @@ const exportReconciliationPdfService = async (reconciliationData) => {
                 underline: true,
             });
             doc.moveDown(2.5);
-            doc.fillColor('black');
+            doc.fillColor('black').fontSize(10);
             const startY = doc.y;
             doc
                 .font('Helvetica-Bold')

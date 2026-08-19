@@ -6,8 +6,9 @@ interface PaginationParams {
     select?: any;
     include?: any;
     orderBy?: any;
+    maxRetries?: number;
 }
-export declare function paginate<T>({ model, filters, page, limit, select, include, orderBy, }: PaginationParams): Promise<{
+export declare function paginate<T>({ model, filters, page, limit, select, include, orderBy, maxRetries, }: PaginationParams): Promise<{
     data: T[];
     pagination: {
         current_page: number;

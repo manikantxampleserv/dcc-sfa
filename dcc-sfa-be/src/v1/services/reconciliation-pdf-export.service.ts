@@ -118,7 +118,7 @@ export const exportReconciliationPdfService = async (
 
       doc.moveDown(2.5);
 
-      doc.fillColor('black');
+      doc.fillColor('black').fontSize(10);
       const startY = doc.y;
       doc
         .font('Helvetica-Bold')

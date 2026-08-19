@@ -3269,14 +3269,43 @@ async function processDefaultOutletInvoice(
     const invoiceItems = shortageItems.map((item: any) => {
       const conv =
         Number(item.product?.product_unit_of_measurement?.conversion_rate) || 1;
-      const inclusivePrice =
+
+      /**
+       * Catalog price from pricelist or product base_price.
+       * This price is already tax-exclusive (consistent with how mobile app invoices store unit_price).
+       * Do NOT divide by (1 + taxRate) — the old approach assumed the price was tax-inclusive,
+       * which caused unit_price to be stored with tax baked in when taxRate was 0 or missing.
+       */
+      const catalogPrice =
         item.product?.pricelist_items_products?.[0]?.unit_price !== undefined
           ? Number(item.product?.pricelist_items_products[0].unit_price)
           : item.product?.base_price !== null
             ? Number(item.product?.base_price)
             : 0;
-      const taxRate = Number(item.product?.product_tax_master?.tax_rate) || 0;
-      const price = inclusivePrice / (1 + taxRate / 100);
+
+      /**
+       * Derive effective tax rate from the reconciliation item's recorded tax_amount (sourced from
+       * the mobile app's actual sale), rather than from product_tax_master.tax_rate which is often
+       * not configured (0) and would result in no tax being calculated at all.
+       */
+      const productTaxRate =
+        Number(item.product?.product_tax_master?.tax_rate) || 0;
+      const saleQty = Number(item.sale_qty) || 0;
+      const saleBaseQty = Number(item.sale_base_qty) || 0;
+      const saleUnitPricePerPc = conv > 0 ? catalogPrice / conv : 0;
+      const saleValue =
+        saleQty * catalogPrice + saleBaseQty * saleUnitPricePerPc;
+      const reconTaxAmount = Number(item.tax_amount) || 0;
+
+      /**
+       * effectiveTaxRate is a decimal fraction (e.g. 0.18 for 18%).
+       * Prefer rate derived from actual sale tax; fall back to product master rate.
+       */
+      const effectiveTaxRate =
+        saleValue > 0 ? reconTaxAmount / saleValue : productTaxRate / 100;
+      const effectiveTaxRatePercent = effectiveTaxRate * 100;
+
+      const price = catalogPrice;
       const isExcess =
         (Number(item.variance) || 0) > 0 ||
         (Number(item.variance_base_qty) || 0) > 0;
@@ -3288,8 +3317,8 @@ async function processDefaultOutletInvoice(
         : Number(item.default_outlet_posting_base_qty) || 0;
       const unitPricePerPc = conv > 0 ? price / conv : 0;
       const lineTotal = shortCases * price + shortPcs * unitPricePerPc;
-      const taxAmount = (lineTotal * taxRate) / 100;
-      const itemTotal = lineTotal + taxAmount;
+
+      const totalTaxForItem = lineTotal * effectiveTaxRate;
       const taxCode = item.product?.product_tax_master?.code || null;
       const productName = item.product?.name || null;
       const unit = item.product?.product_unit_of_measurement?.name || null;
@@ -3300,11 +3329,15 @@ async function processDefaultOutletInvoice(
         base_quantity: shortPcs,
         unit_price: price,
         subtotal: lineTotal,
-        tax_amount: taxAmount,
+        /** Total tax for this item across all units (matches normal invoice format). */
+        tax_amount: totalTaxForItem,
         discount_amount: 0,
-        total_amount: itemTotal,
+        /**
+         * Tax-exclusive subtotal only (matches normal invoice format).
+         */
+        total_amount: lineTotal,
         tax_code: taxCode,
-        tax_rate: taxRate,
+        tax_rate: effectiveTaxRatePercent,
         conversion_factor: conv,
         product_name: productName,
         unit: unit,
@@ -3323,10 +3356,8 @@ async function processDefaultOutletInvoice(
       (s: number, i: any) => s + i.tax_amount,
       0
     );
-    const invoiceTotalAmount = invoiceItems.reduce(
-      (s: number, i: any) => s + i.total_amount,
-      0
-    );
+    /** Invoice grand total = tax-exclusive subtotal + total tax (tax-inclusive). */
+    const invoiceTotalAmount = invoiceSubtotal + invoiceTaxTotal;
 
     await prisma.$transaction(
       async (txInner: any) => {

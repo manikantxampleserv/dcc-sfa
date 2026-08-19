@@ -105,12 +105,6 @@ const exportReconciliationExcelService = async (reconciliationData) => {
     titleCell.value = 'SettlementSheet — Daily Salesman Settlement';
     titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
     applyFont(titleCell, { size: 16, bold: true, color: { argb: 'FF1F4E78' } });
-    sheet.mergeCells('A3:L3');
-    const subTitleCell = sheet.getCell('A3');
-    subTitleCell.value =
-        'Dynamic template: select a salesman from the dropdown to populate all figures. Printable per day, per salesman.';
-    subTitleCell.alignment = { horizontal: 'center', vertical: 'middle' };
-    applyFont(subTitleCell, { italic: true, color: { argb: 'FF7F7F7F' } });
     const curDate = meta.reconciliation_date
         ? new Date(meta.reconciliation_date).toLocaleDateString('en-GB')
         : '-';
@@ -311,11 +305,13 @@ const exportReconciliationExcelService = async (reconciliationData) => {
             catSaleValue += saleVal;
             catTaxAmount += taxAmount;
             if (item.resolutionAction &&
-                (item.resolutionAction.includes('Default Outlet') || item.resolutionAction.includes('Adjust'))) {
+                (item.resolutionAction.includes('Default Outlet') ||
+                    item.resolutionAction.includes('Adjust'))) {
                 const isExcess = varianceVal > 0 || varianceBaseVal > 0;
                 const sign = isExcess ? -1 : 1;
                 const outletValue = (Math.abs(varianceVal) * price +
-                    Math.abs(varianceBaseVal) * basePricePerPc) * sign;
+                    Math.abs(varianceBaseVal) * basePricePerPc) *
+                    sign;
                 grandTotalDefaultOutletValue += outletValue;
                 const taxRate = saleVal > 0 ? taxAmount / saleVal : 0.18;
                 grandTotalDefaultOutletTax += outletValue * taxRate;
@@ -338,7 +334,9 @@ const exportReconciliationExcelService = async (reconciliationData) => {
                     else if (action === 'Posted to D/O') {
                         applyFill(cell, 'FFF4B084');
                     }
-                    else if (action === 'CLEAN' || action === 'Awaiting Verification' || action === 'Pending') {
+                    else if (action === 'CLEAN' ||
+                        action === 'Awaiting Verification' ||
+                        action === 'Pending') {
                         applyFill(cell, 'FFC6E0B4');
                         applyFont(cell, { color: { argb: 'FF006100' }, bold: true });
                     }
@@ -529,15 +527,19 @@ const exportReconciliationExcelService = async (reconciliationData) => {
     currentRow++;
     sheet.mergeCells(`A${currentRow}:I${currentRow}`);
     const shortageText = sheet.getCell(`A${currentRow}`);
-    shortageText.value =
-        'Default Outlet Posting Value (Net Shortage/Excess):';
+    shortageText.value = 'Default Outlet Posting Value (Net Shortage/Excess):';
     shortageText.alignment = { horizontal: 'right' };
-    applyFont(shortageText, { color: { argb: grandTotalDefaultOutletValue < 0 ? 'FF0000FF' : 'FFFF0000' } });
+    applyFont(shortageText, {
+        color: { argb: grandTotalDefaultOutletValue < 0 ? 'FF0000FF' : 'FFFF0000' },
+    });
     sheet.mergeCells(`J${currentRow}:L${currentRow}`);
     const shortageCell = sheet.getCell(`J${currentRow}`);
     shortageCell.value = grandTotalDefaultOutletValue;
     shortageCell.numFmt = '#,##0';
-    applyFont(shortageCell, { bold: true, color: { argb: grandTotalDefaultOutletValue < 0 ? 'FF0000FF' : 'FFFF0000' } });
+    applyFont(shortageCell, {
+        bold: true,
+        color: { argb: grandTotalDefaultOutletValue < 0 ? 'FF0000FF' : 'FFFF0000' },
+    });
     applyFill(shortageCell, 'FFEAEAEA');
     applyFill(sheet.getCell(`K${currentRow}`), 'FFEAEAEA');
     applyFill(sheet.getCell(`L${currentRow}`), 'FFEAEAEA');
@@ -550,12 +552,17 @@ const exportReconciliationExcelService = async (reconciliationData) => {
     shortageTaxText.value =
         'Default Outlet Posting Tax Amount (Net Shortage/Excess):';
     shortageTaxText.alignment = { horizontal: 'right' };
-    applyFont(shortageTaxText, { color: { argb: grandTotalDefaultOutletTax < 0 ? 'FF0000FF' : 'FFFF0000' } });
+    applyFont(shortageTaxText, {
+        color: { argb: grandTotalDefaultOutletTax < 0 ? 'FF0000FF' : 'FFFF0000' },
+    });
     sheet.mergeCells(`J${currentRow}:L${currentRow}`);
     const shortageTaxCell = sheet.getCell(`J${currentRow}`);
     shortageTaxCell.value = grandTotalDefaultOutletTax;
     shortageTaxCell.numFmt = '#,##0';
-    applyFont(shortageTaxCell, { bold: true, color: { argb: grandTotalDefaultOutletTax < 0 ? 'FF0000FF' : 'FFFF0000' } });
+    applyFont(shortageTaxCell, {
+        bold: true,
+        color: { argb: grandTotalDefaultOutletTax < 0 ? 'FF0000FF' : 'FFFF0000' },
+    });
     applyFill(shortageTaxCell, 'FFEAEAEA');
     applyFill(sheet.getCell(`K${currentRow}`), 'FFEAEAEA');
     applyFill(sheet.getCell(`L${currentRow}`), 'FFEAEAEA');
@@ -572,6 +579,7 @@ const exportReconciliationExcelService = async (reconciliationData) => {
     const depositCell = sheet.getCell(`J${currentRow}`);
     depositCell.value =
         grandTotalSaleValue +
+            grandTotalTaxAmount +
             grandTotalDefaultOutletValue +
             grandTotalDefaultOutletTax;
     depositCell.numFmt = '#,##0';

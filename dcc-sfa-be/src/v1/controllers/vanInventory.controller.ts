@@ -6305,11 +6305,23 @@ export const vanInventoryController = {
               let loadBaseQty = actualLoad.baseQty;
 
               if (p.convRate > 0) {
+                saleQty += Math.floor(saleBaseQty / p.convRate);
+                saleBaseQty = saleBaseQty % p.convRate;
+
                 loadQty += Math.floor(loadBaseQty / p.convRate);
                 loadBaseQty = loadBaseQty % p.convRate;
+
+                const totalSaleBaseUnits = saleQty * p.convRate + saleBaseQty;
+                const totalLoadBaseUnits = loadQty * p.convRate + loadBaseQty;
+
+                if (totalLoadBaseUnits < totalSaleBaseUnits) {
+                  loadQty = Math.floor(totalSaleBaseUnits / p.convRate);
+                  loadBaseQty = totalSaleBaseUnits % p.convRate;
+                }
+              } else {
+                if (loadQty < saleQty) loadQty = saleQty;
+                if (loadBaseQty < saleBaseQty) loadBaseQty = saleBaseQty;
               }
-              if (loadQty < saleQty) loadQty = saleQty;
-              if (loadBaseQty < saleBaseQty) loadBaseQty = saleBaseQty;
 
               const unitPricePerPc = p.convRate > 0 ? p.price / p.convRate : 0;
               const saleVal = saleQty * p.price + saleBaseQty * unitPricePerPc;

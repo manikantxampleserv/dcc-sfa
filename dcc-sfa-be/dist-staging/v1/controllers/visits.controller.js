@@ -1252,10 +1252,11 @@ exports.visitsController = {
                                                 });
                                             }
                                         }
-                                        const subtotal = (await tx.invoice_items.aggregate({
+                                        const invoiceItemsDb = await tx.invoice_items.findMany({
                                             where: { parent_id: createdInvoice.id },
-                                            _sum: { total_amount: true },
-                                        }))._sum.total_amount || 0;
+                                            select: { total_amount: true },
+                                        });
+                                        const subtotal = invoiceItemsDb.reduce((sum, item) => sum + (Number(item.total_amount) || 0), 0);
                                         await tx.invoices.update({
                                             where: { id: createdInvoice.id },
                                             data: {

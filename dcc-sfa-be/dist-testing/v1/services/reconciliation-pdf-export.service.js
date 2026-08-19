@@ -94,15 +94,8 @@ const exportReconciliationPdfService = async (reconciliationData) => {
                 align: 'center',
                 underline: true,
             });
-            doc
-                .fontSize(10)
-                .fillColor('#7F7F7F')
-                .text('Dynamic template: printable per day, per salesman.', {
-                align: 'center',
-                oblique: true,
-            });
             doc.moveDown(2.5);
-            doc.fillColor('black');
+            doc.fillColor('black').fontSize(10);
             const startY = doc.y;
             doc
                 .font('Helvetica-Bold')
@@ -550,7 +543,7 @@ const exportReconciliationPdfService = async (reconciliationData) => {
                 width: 352,
                 align: 'right',
             });
-            const totalStr = `${formatNum(grandTotalSaleValue + grandTotalDefaultOutletValue + grandTotalDefaultOutletTax)}`;
+            const totalStr = `${formatNum(grandTotalSaleValue + grandTotalTaxAmount + grandTotalDefaultOutletValue + grandTotalDefaultOutletTax)}`;
             doc
                 .fillColor('red')
                 .text(totalStr, 386, y + 3.5, { width: 174, align: 'right' });
