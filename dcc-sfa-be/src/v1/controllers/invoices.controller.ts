@@ -177,6 +177,7 @@ const serializeInvoice = (invoice: any): InvoiceSerialized => ({
       unit_price: Number(item.unit_price),
       discount_amount: Number(item.discount_amount),
       tax_amount: Number(item.tax_amount),
+      total_amount: Number(item.total_amount) || 0,
       notes: cleanNotes || null,
       batch_number: batchNumber,
       uom: item.uom,

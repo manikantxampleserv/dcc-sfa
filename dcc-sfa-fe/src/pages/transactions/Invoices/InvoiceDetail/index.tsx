@@ -307,8 +307,10 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
                         >
                           {formatCurrencyWithInvoiceCurrency(
                             item.total_amount ??
-                              (item.quantity || item.base_quantity || 1) *
-                                item.unit_price -
+                              (item.quantity || 0) * item.unit_price +
+                                (item.base_quantity || 0) *
+                                  (item.unit_price /
+                                    (item.conversion_factor || 1)) -
                                 (item.discount_amount || 0)
                           )}
                         </Typography>
@@ -321,7 +323,11 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
                             ? `${item.base_quantity} ${itemPcs} `
                             : ''}
                           {!item.quantity && !item.base_quantity ? '0 ' : ''}x{' '}
-                          {formatCurrencyWithInvoiceCurrency(item.unit_price)}
+                          {formatCurrencyWithInvoiceCurrency(
+                            !item.quantity && item.base_quantity
+                              ? item.unit_price / (item.conversion_factor || 1)
+                              : item.unit_price
+                          )}
                         </span>
                         {item.discount_amount && item.discount_amount > 0 ? (
                           <Typography

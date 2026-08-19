@@ -2919,10 +2919,10 @@ const serializeRequest = (request: any): RequestSerialized => ({
   log_inst: request.log_inst,
   requester: request.sfa_d_requests_requester
     ? {
-      id: request.sfa_d_requests_requester.id,
-      name: request.sfa_d_requests_requester.name,
-      email: request.sfa_d_requests_requester.email,
-    }
+        id: request.sfa_d_requests_requester.id,
+        name: request.sfa_d_requests_requester.name,
+        email: request.sfa_d_requests_requester.email,
+      }
     : null,
   approvals:
     request.sfa_d_requests_approvals_request?.map((approval: any) => ({
@@ -2934,14 +2934,14 @@ const serializeRequest = (request: any): RequestSerialized => ({
       action_at: approval.action_at,
       approver: approval.sfa_d_requests_approvals_approver
         ? {
-          id: approval.sfa_d_requests_approvals_approver.id,
-          name: approval.sfa_d_requests_approvals_approver.name,
-          email: approval.sfa_d_requests_approvals_approver.email,
-          profile_image:
-            approval.sfa_d_requests_approvals_approver.profile_image || null,
-          employee_id:
-            approval.sfa_d_requests_approvals_approver.employee_id || null,
-        }
+            id: approval.sfa_d_requests_approvals_approver.id,
+            name: approval.sfa_d_requests_approvals_approver.name,
+            email: approval.sfa_d_requests_approvals_approver.email,
+            profile_image:
+              approval.sfa_d_requests_approvals_approver.profile_image || null,
+            employee_id:
+              approval.sfa_d_requests_approvals_approver.employee_id || null,
+          }
         : null,
       reference_details: request.reference_details || null,
     })) || [],
@@ -3269,16 +3269,23 @@ async function processDefaultOutletInvoice(
     const invoiceItems = shortageItems.map((item: any) => {
       const conv =
         Number(item.product?.product_unit_of_measurement?.conversion_rate) || 1;
-      const price =
+      const inclusivePrice =
         item.product?.pricelist_items_products?.[0]?.unit_price !== undefined
           ? Number(item.product?.pricelist_items_products[0].unit_price)
           : item.product?.base_price !== null
             ? Number(item.product?.base_price)
             : 0;
       const taxRate = Number(item.product?.product_tax_master?.tax_rate) || 0;
-      const isExcess = (Number(item.variance) || 0) > 0 || (Number(item.variance_base_qty) || 0) > 0;
-      const shortCases = isExcess ? -(Number(item.default_outlet_posting_qty) || 0) : (Number(item.default_outlet_posting_qty) || 0);
-      const shortPcs = isExcess ? -(Number(item.default_outlet_posting_base_qty) || 0) : (Number(item.default_outlet_posting_base_qty) || 0);
+      const price = inclusivePrice / (1 + taxRate / 100);
+      const isExcess =
+        (Number(item.variance) || 0) > 0 ||
+        (Number(item.variance_base_qty) || 0) > 0;
+      const shortCases = isExcess
+        ? -(Number(item.default_outlet_posting_qty) || 0)
+        : Number(item.default_outlet_posting_qty) || 0;
+      const shortPcs = isExcess
+        ? -(Number(item.default_outlet_posting_base_qty) || 0)
+        : Number(item.default_outlet_posting_base_qty) || 0;
       const unitPricePerPc = conv > 0 ? price / conv : 0;
       const lineTotal = shortCases * price + shortPcs * unitPricePerPc;
       const taxAmount = (lineTotal * taxRate) / 100;
@@ -3331,7 +3338,7 @@ async function processDefaultOutletInvoice(
             customer_id: defaultOutletId,
             salesperson_id: salespersonId,
             currency_id: null,
-            invoice_date: new Date(),
+            invoice_date: reconciliation.reconciliation_date || new Date(),
             due_date: null,
             status: 'paid',
             payment_method: 'cash',
@@ -3764,28 +3771,16 @@ export const createRequest = async (data: {
               depot_id: toDepotId || null,
               outlet_id: toCustomerId || null,
               current_location: `${toDirection} (${toDepotId || toCustomerId})`,
-              current_status: isDisposal
-                ? 'Damaged'
-                : toCustomerId
-                  ? 'Installed'
-                  : 'Available',
+              current_status:
+                assetMovement.movement_type?.toLowerCase() === 'disposal'
+                  ? 'Retired'
+                  : toCustomerId
+                    ? 'Installed'
+                    : 'Available',
               updatedate: new Date(),
               updatedby: data.createdby,
             },
           });
-
-          // const existingCooler = await prisma.coolers.findUnique({
-          //   where: { id: data.reference_id },
-          // });
-
-          // if (existingCooler) {
-          //   await prisma.coolers.update({
-          //     where: { id: data.reference_id },
-          //     data: {
-          //       approval_status: 'A',
-          //     },
-          //   });
-          // }
 
           await prisma.coolers.updateMany({
             where: {
@@ -4041,16 +4036,13 @@ export const createRequest = async (data: {
           });
         }
 
-        const emailTemplate = await generateEmailContent(
-          'notify_approver',
-          {
-            approver_name: firstApprover.approval_work_flow_approver.name,
-            requester_name: requester.name,
-            request_type: data.request_type,
-            request_detail: orderData,
-            company_name: process.env.COMPANY_NAME || 'SFA System',
-          }
-        );
+        const emailTemplate = await generateEmailContent('notify_approver', {
+          approver_name: firstApprover.approval_work_flow_approver.name,
+          requester_name: requester.name,
+          request_type: data.request_type,
+          request_detail: orderData,
+          company_name: process.env.COMPANY_NAME || 'SFA System',
+        });
 
         if (emailTemplate && emailTemplate.subject !== '__SKIP_EMAIL__') {
           await sendEmail({
@@ -4661,7 +4653,10 @@ export const requestsController = {
                     .map((v: any) => v.location_id)
                     .filter(Boolean) as number[];
 
-                  if (reconRecord.depot_id && !locationIds.includes(reconRecord.depot_id)) {
+                  if (
+                    reconRecord.depot_id &&
+                    !locationIds.includes(reconRecord.depot_id)
+                  ) {
                     locationIds.push(reconRecord.depot_id);
                   }
 
@@ -4672,8 +4667,15 @@ export const requestsController = {
                     const restoredBaseQty = Number(item.expected_base_qty) || 0;
 
                     let batchId: number | null = null;
-                    const cleanBatch = item.batch_number ? item.batch_number.trim() : '';
-                    if (cleanBatch && cleanBatch !== '-' && cleanBatch.toLowerCase() !== 'null' && cleanBatch.toLowerCase() !== 'none') {
+                    const cleanBatch = item.batch_number
+                      ? item.batch_number.trim()
+                      : '';
+                    if (
+                      cleanBatch &&
+                      cleanBatch !== '-' &&
+                      cleanBatch.toLowerCase() !== 'null' &&
+                      cleanBatch.toLowerCase() !== 'none'
+                    ) {
                       const batchRecord = await tx.batch_lots.findFirst({
                         where: {
                           batch_number: cleanBatch,
@@ -4941,7 +4943,10 @@ export const requestsController = {
                     .map((v: any) => v.location_id)
                     .filter(Boolean) as number[];
 
-                  if (reconForStock.depot_id && !locationIds.includes(reconForStock.depot_id)) {
+                  if (
+                    reconForStock.depot_id &&
+                    !locationIds.includes(reconForStock.depot_id)
+                  ) {
                     locationIds.push(reconForStock.depot_id);
                   }
 
@@ -5189,11 +5194,12 @@ export const requestsController = {
                     depot_id: toDepotId || null,
                     outlet_id: toCustomerId || null,
                     current_location: `${toDirection} (${toDepotId || toCustomerId})`,
-                    current_status: isDisposal
-                      ? 'Damaged'
-                      : toCustomerId
-                        ? 'Installed'
-                        : 'Available',
+                    current_status:
+                      assetMovement.movement_type?.toLowerCase() === 'disposal'
+                        ? 'Retired'
+                        : toCustomerId
+                          ? 'Installed'
+                          : 'Available',
                     updatedate: new Date(),
                     updatedby: userId,
                   },
@@ -5223,7 +5229,7 @@ export const requestsController = {
 
                 if (
                   assetMovement.movement_type?.toLowerCase() ===
-                  'maintenance' ||
+                    'maintenance' ||
                   assetMovement.movement_type?.toLowerCase() === 'repair'
                 ) {
                   try {

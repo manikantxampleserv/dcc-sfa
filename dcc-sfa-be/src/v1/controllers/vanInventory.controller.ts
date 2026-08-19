@@ -6296,6 +6296,7 @@ export const vanInventoryController = {
                 assignedSaleProducts.add(p.product_id);
               }
 
+<<<<<<< HEAD
               const loadKey = `${p.product_id}-${p.batch_number || ''}`;
               const actualLoad = loadQtyMap.get(loadKey) || {
                 qty: 0,
@@ -6303,11 +6304,30 @@ export const vanInventoryController = {
               };
               let loadQty = actualLoad.qty;
               let loadBaseQty = actualLoad.baseQty;
+=======
+              /**
+               * Use actual van loading records as the source of truth for load_qty.
+               * The key format matches loadQtyMap: `${product_id}-${batchNumber || ''}`.
+               * Note: productMap stores batch_number as null for non-batched products,
+               * so we normalize with ?? '' to match the loadQtyMap key format.
+               */
+              const loadKey = `${p.product_id}-${p.batch_number ?? ''}`;
+              const loadRecord = loadQtyMap.get(loadKey) || { qty: 0, baseQty: 0 };
+              let loadQty = loadRecord.qty;
+              let loadBaseQty = loadRecord.baseQty;
+>>>>>>> 2e38f7cac277b6435a5867145cb768db7cbf4fee
 
+              /** Normalize: convert any excess base units into full cases */
               if (p.convRate > 0) {
                 loadQty += Math.floor(loadBaseQty / p.convRate);
                 loadBaseQty = loadBaseQty % p.convRate;
               }
+<<<<<<< HEAD
+=======
+              /** Safety guard: load must cover at minimum what was sold in this session */
+              if (loadQty < saleQty) loadQty = saleQty;
+              if (loadBaseQty < saleBaseQty) loadBaseQty = saleBaseQty;
+>>>>>>> 2e38f7cac277b6435a5867145cb768db7cbf4fee
 
               const unitPricePerPc = p.convRate > 0 ? p.price / p.convRate : 0;
               const saleVal = saleQty * p.price + saleBaseQty * unitPricePerPc;

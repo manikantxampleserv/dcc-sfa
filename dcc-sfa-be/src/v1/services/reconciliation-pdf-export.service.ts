@@ -115,13 +115,7 @@ export const exportReconciliationPdfService = async (
           align: 'center',
           underline: true,
         });
-      doc
-        .fontSize(10)
-        .fillColor('#7F7F7F')
-        .text('Dynamic template: printable per day, per salesman.', {
-          align: 'center',
-          oblique: true,
-        });
+
       doc.moveDown(2.5);
 
       doc.fillColor('black');
@@ -705,7 +699,7 @@ export const exportReconciliationPdfService = async (
           align: 'right',
         });
 
-      const totalStr = `${formatNum(grandTotalSaleValue + grandTotalDefaultOutletValue + grandTotalDefaultOutletTax)}`;
+      const totalStr = `${formatNum(grandTotalSaleValue + grandTotalTaxAmount + grandTotalDefaultOutletValue + grandTotalDefaultOutletTax)}`;
       doc
         .fillColor('red')
         .text(totalStr, 386, y + 3.5, { width: 174, align: 'right' });

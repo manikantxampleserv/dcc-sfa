@@ -351,15 +351,21 @@ async function processDefaultOutletInvoice(reconciliationIdForInvoice, userIdFor
         const salespersonId = reconciliation.salesman?.id || null;
         const invoiceItems = shortageItems.map((item) => {
             const conv = Number(item.product?.product_unit_of_measurement?.conversion_rate) || 1;
-            const price = item.product?.pricelist_items_products?.[0]?.unit_price !== undefined
+            const inclusivePrice = item.product?.pricelist_items_products?.[0]?.unit_price !== undefined
                 ? Number(item.product?.pricelist_items_products[0].unit_price)
                 : item.product?.base_price !== null
                     ? Number(item.product?.base_price)
                     : 0;
             const taxRate = Number(item.product?.product_tax_master?.tax_rate) || 0;
-            const isExcess = (Number(item.variance) || 0) > 0 || (Number(item.variance_base_qty) || 0) > 0;
-            const shortCases = isExcess ? -(Number(item.default_outlet_posting_qty) || 0) : (Number(item.default_outlet_posting_qty) || 0);
-            const shortPcs = isExcess ? -(Number(item.default_outlet_posting_base_qty) || 0) : (Number(item.default_outlet_posting_base_qty) || 0);
+            const price = inclusivePrice / (1 + taxRate / 100);
+            const isExcess = (Number(item.variance) || 0) > 0 ||
+                (Number(item.variance_base_qty) || 0) > 0;
+            const shortCases = isExcess
+                ? -(Number(item.default_outlet_posting_qty) || 0)
+                : Number(item.default_outlet_posting_qty) || 0;
+            const shortPcs = isExcess
+                ? -(Number(item.default_outlet_posting_base_qty) || 0)
+                : Number(item.default_outlet_posting_base_qty) || 0;
             const unitPricePerPc = conv > 0 ? price / conv : 0;
             const lineTotal = shortCases * price + shortPcs * unitPricePerPc;
             const taxAmount = (lineTotal * taxRate) / 100;
@@ -398,7 +404,7 @@ async function processDefaultOutletInvoice(reconciliationIdForInvoice, userIdFor
                     customer_id: defaultOutletId,
                     salesperson_id: salespersonId,
                     currency_id: null,
-                    invoice_date: new Date(),
+                    invoice_date: reconciliation.reconciliation_date || new Date(),
                     due_date: null,
                     status: 'paid',
                     payment_method: 'cash',
@@ -749,8 +755,8 @@ const createRequest = async (data) => {
                             depot_id: toDepotId || null,
                             outlet_id: toCustomerId || null,
                             current_location: `${toDirection} (${toDepotId || toCustomerId})`,
-                            current_status: isDisposal
-                                ? 'Damaged'
+                            current_status: assetMovement.movement_type?.toLowerCase() === 'disposal'
+                                ? 'Retired'
                                 : toCustomerId
                                     ? 'Installed'
                                     : 'Available',
@@ -758,17 +764,6 @@ const createRequest = async (data) => {
                             updatedby: data.createdby,
                         },
                     });
-                    // const existingCooler = await prisma.coolers.findUnique({
-                    //   where: { id: data.reference_id },
-                    // });
-                    // if (existingCooler) {
-                    //   await prisma.coolers.update({
-                    //     where: { id: data.reference_id },
-                    //     data: {
-                    //       approval_status: 'A',
-                    //     },
-                    //   });
-                    // }
                     await prisma_client_1.default.coolers.updateMany({
                         where: {
                             asset_master_id: {
@@ -1479,7 +1474,8 @@ exports.requestsController = {
                                 const locationIds = vanLocations
                                     .map((v) => v.location_id)
                                     .filter(Boolean);
-                                if (reconRecord.depot_id && !locationIds.includes(reconRecord.depot_id)) {
+                                if (reconRecord.depot_id &&
+                                    !locationIds.includes(reconRecord.depot_id)) {
                                     locationIds.push(reconRecord.depot_id);
                                 }
                                 for (const item of reconItems) {
@@ -1488,8 +1484,13 @@ exports.requestsController = {
                                     const restoredQty = Number(item.expected_qty) || 0;
                                     const restoredBaseQty = Number(item.expected_base_qty) || 0;
                                     let batchId = null;
-                                    const cleanBatch = item.batch_number ? item.batch_number.trim() : '';
-                                    if (cleanBatch && cleanBatch !== '-' && cleanBatch.toLowerCase() !== 'null' && cleanBatch.toLowerCase() !== 'none') {
+                                    const cleanBatch = item.batch_number
+                                        ? item.batch_number.trim()
+                                        : '';
+                                    if (cleanBatch &&
+                                        cleanBatch !== '-' &&
+                                        cleanBatch.toLowerCase() !== 'null' &&
+                                        cleanBatch.toLowerCase() !== 'none') {
                                         const batchRecord = await tx.batch_lots.findFirst({
                                             where: {
                                                 batch_number: cleanBatch,
@@ -1705,7 +1706,8 @@ exports.requestsController = {
                                 const locationIds = vanLocations
                                     .map((v) => v.location_id)
                                     .filter(Boolean);
-                                if (reconForStock.depot_id && !locationIds.includes(reconForStock.depot_id)) {
+                                if (reconForStock.depot_id &&
+                                    !locationIds.includes(reconForStock.depot_id)) {
                                     locationIds.push(reconForStock.depot_id);
                                 }
                                 if (locationIds.length > 0) {
@@ -1910,8 +1912,8 @@ exports.requestsController = {
                                     depot_id: toDepotId || null,
                                     outlet_id: toCustomerId || null,
                                     current_location: `${toDirection} (${toDepotId || toCustomerId})`,
-                                    current_status: isDisposal
-                                        ? 'Damaged'
+                                    current_status: assetMovement.movement_type?.toLowerCase() === 'disposal'
+                                        ? 'Retired'
                                         : toCustomerId
                                             ? 'Installed'
                                             : 'Available',
