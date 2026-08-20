@@ -550,6 +550,9 @@ exports.reconciliationController = {
                                     product_sub_categories_products: {
                                         select: { sub_category_name: true },
                                     },
+                                    product_tax_master: {
+                                        select: { tax_rate: true },
+                                    },
                                     product_unit_of_measurement: {
                                         select: { conversion_rate: true, sub_unit: true },
                                     },
@@ -592,9 +595,11 @@ exports.reconciliationController = {
                         : item.product?.base_price !== null
                             ? Number(item.product?.base_price)
                             : 0,
-                taxPercent: item.tax_percent !== null
+                unitPrice: item.unit_price !== null ? Number(item.unit_price) : null,
+                taxPercent: item.tax_percent !== null ? Number(item.tax_percent) : null,
+                taxRate: item.tax_percent !== null
                     ? Number(item.tax_percent)
-                    : null,
+                    : Number(item.product?.product_tax_master?.tax_rate) || 0,
                 loadQuantity: item.load_qty !== null ? Number(item.load_qty) : 0,
                 loadBaseQty: item.load_base_qty !== null ? Number(item.load_base_qty) : 0,
                 saleQuantity: item.sale_qty !== null ? Number(item.sale_qty) : 0,
@@ -1010,7 +1015,10 @@ exports.reconciliationController = {
                             }
                             else {
                                 // Mark as consumed; this row gets 0
-                                refreshedProductSaleMap.set(reconcSaleKey, { qty: 0, baseQty: 0 });
+                                refreshedProductSaleMap.set(reconcSaleKey, {
+                                    qty: 0,
+                                    baseQty: 0,
+                                });
                                 saleQty = 0;
                                 saleBaseQty = 0;
                                 await tx.reconciliation_items.update({
