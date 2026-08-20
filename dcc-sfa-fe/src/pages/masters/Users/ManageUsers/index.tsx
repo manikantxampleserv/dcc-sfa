@@ -10,14 +10,28 @@ import {
   MenuItem,
   Typography,
   Avatar,
+  Skeleton,
 } from '@mui/material';
-import { Route as RouteIcon } from 'lucide-react';
+import {
+  Route as RouteIcon,
+  GripVertical,
+  UserPlus,
+  Users as UsersIcon,
+  Search,
+} from 'lucide-react';
+import classNames from 'classnames';
+import { DragDropContext, Draggable, Droppable } from '@hello-pangea/dnd';
 import { useFormik } from 'formik';
 import { useDepots } from 'hooks/useDepots';
 import { useRolesDropdown } from 'hooks/useRoles';
 import { useRouteAssignment, useRoutes } from 'hooks/useRoutes';
-import { useCreateUser, useUpdateUser, type User } from 'hooks/useUsers';
-import React, { useState } from 'react';
+import {
+  useCreateUser,
+  useUpdateUser,
+  useUsers,
+  type User,
+} from 'hooks/useUsers';
+import React, { useState, useMemo } from 'react';
 import validationSchema from 'schemas/masters/Users';
 import ActiveInactiveField from 'shared/ActiveInactiveField';
 import Button from 'shared/Button';
@@ -27,6 +41,32 @@ import Input from 'shared/Input';
 import Select from 'shared/Select';
 import UserSelect from 'shared/UserSelect';
 import { formatForDateInput } from 'utils/dateUtils';
+
+const getInitials = (name: string): string => {
+  if (!name) return '';
+  return name
+    .split(' ')
+    .map(n => n[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
+};
+
+const getAvatarColor = (name: string): string => {
+  if (!name) return '!bg-gray-500';
+  const colors = [
+    '!bg-blue-500',
+    '!bg-green-500',
+    '!bg-orange-500',
+    '!bg-teal-500',
+    '!bg-red-500',
+    '!bg-purple-500',
+    '!bg-pink-500',
+    '!bg-indigo-500',
+  ];
+  const index = name.charCodeAt(0) % colors.length;
+  return colors[index];
+};
 
 interface ManageUsersProps {
   selectedUser?: User | null;
@@ -50,6 +90,18 @@ const ManageUsers: React.FC<ManageUsersProps> = ({
     Array<{ id: number; name: string; code: string }>
   >([]);
   const [pendingValues, setPendingValues] = useState<any>(null);
+
+  const [availableUsersSearch, setAvailableUsersSearch] = useState('');
+
+  const { data: usersResponse, isFetching: isFetchingUsers } = useUsers(
+    {
+      page: 1,
+      limit: 10000,
+      isActive: 'Y',
+    },
+    { enabled: drawerOpen }
+  );
+  const allUsers = usersResponse?.data || [];
 
   const { data: rolesResponse, isLoading: rolesLoading } = useRolesDropdown({
     enabled: drawerOpen,
@@ -90,6 +142,11 @@ const ManageUsers: React.FC<ManageUsersProps> = ({
       selectedUser?.depots && Array.isArray(selectedUser.depots)
         ? selectedUser.depots.map((d: any) => d?.id?.toString()).filter(Boolean)
         : [],
+    sub_inventory_user_ids:
+      (selectedUser as any)?.sub_inventory_users &&
+      Array.isArray((selectedUser as any).sub_inventory_users)
+        ? (selectedUser as any).sub_inventory_users.map((u: any) => u.id.toString())
+        : [],
     sap_code: selectedUser?.sap_code || '',
     phone_number: selectedUser?.phone_number || '',
     employee_id: selectedUser?.employee_id || '',
@@ -111,6 +168,10 @@ const ManageUsers: React.FC<ManageUsersProps> = ({
       formData.append(
         'depot_ids',
         JSON.stringify(values.depot_ids.map(Number))
+      );
+      formData.append(
+        'sub_inventory_user_ids',
+        JSON.stringify(values.sub_inventory_user_ids.map(Number))
       );
       formData.append('sap_code', values.sap_code);
       formData.append('phone_number', values.phone_number);
@@ -149,6 +210,18 @@ const ManageUsers: React.FC<ManageUsersProps> = ({
     initialValues,
     validationSchema,
     enableReinitialize: true,
+    validate: values => {
+      const errors: any = {};
+      const selectedRoleObj = roles.find(r => r.id === values.role_id);
+      const isGroupRoleSubmit =
+        selectedRoleObj?.name?.toLowerCase().includes('group') || false;
+
+      if (isGroupRoleSubmit && values.sub_inventory_user_ids.length === 0) {
+        errors.sub_inventory_user_ids =
+          'Please assign at least one container member';
+      }
+      return errors;
+    },
     onSubmit: async values => {
       if (isEdit && selectedUser) {
         const initialDepotIds =
@@ -225,11 +298,150 @@ const ManageUsers: React.FC<ManageUsersProps> = ({
     setConfirmDialogOpen(false);
     setRoutesToRemove([]);
     setPendingValues(null);
+    setAvailableUsersSearch('');
   };
 
   const removeUploadedFile = () => {
     setUploadedFile(null);
   };
+
+  const isGroupRole = useMemo(() => {
+    const selectedRoleObj = roles.find(r => r.id === formik.values.role_id);
+    return selectedRoleObj?.name?.toLowerCase().includes('group') || false;
+  }, [roles, formik.values.role_id]);
+
+  const availableUsers = useMemo(() => {
+    if (!allUsers) return [];
+    const assignedIds = formik.values.sub_inventory_user_ids;
+    return allUsers
+      .filter(user => {
+        const roleName =
+          typeof user.role === 'object' ? user.role?.name : user.role;
+        return (
+          typeof roleName === 'string' &&
+          roleName.toLowerCase().includes('salesman')
+        );
+      })
+      .filter(
+        user =>
+          !assignedIds.includes(user.id.toString()) &&
+          user.id !== selectedUser?.id
+      )
+      .filter(user => {
+        if (!availableUsersSearch) return true;
+        const searchLower = availableUsersSearch.toLowerCase();
+        return (
+          user.name?.toLowerCase().includes(searchLower) ||
+          user.email?.toLowerCase().includes(searchLower) ||
+          user.employee_id?.toLowerCase().includes(searchLower)
+        );
+      });
+  }, [
+    allUsers,
+    formik.values.sub_inventory_user_ids,
+    availableUsersSearch,
+    selectedUser?.id,
+  ]);
+
+  const assignedUsers = useMemo(() => {
+    return formik.values.sub_inventory_user_ids
+      .map((id: string) => allUsers.find(u => u.id.toString() === id))
+      .filter(Boolean);
+  }, [formik.values.sub_inventory_user_ids, allUsers]);
+
+  const onDragEnd = (result: any) => {
+    const { destination, source, draggableId } = result;
+
+    if (!destination) return;
+    if (
+      destination.droppableId === source.droppableId &&
+      destination.index === source.index
+    )
+      return;
+
+    const newAssignedIds = Array.from(formik.values.sub_inventory_user_ids);
+
+    if (
+      source.droppableId === 'available-users' &&
+      destination.droppableId === 'assigned-users'
+    ) {
+      newAssignedIds.splice(destination.index, 0, draggableId as string);
+      formik.setFieldValue('sub_inventory_user_ids', newAssignedIds);
+    } else if (
+      source.droppableId === 'assigned-users' &&
+      destination.droppableId === 'available-users'
+    ) {
+      formik.setFieldValue(
+        'sub_inventory_user_ids',
+        newAssignedIds.filter(id => id !== draggableId)
+      );
+    } else if (
+      source.droppableId === 'assigned-users' &&
+      destination.droppableId === 'assigned-users'
+    ) {
+      const [removed] = newAssignedIds.splice(source.index, 1);
+      newAssignedIds.splice(destination.index, 0, removed as string);
+      formik.setFieldValue('sub_inventory_user_ids', newAssignedIds);
+    }
+  };
+
+  const SkeletonCard = () => (
+    <div className="!flex !items-center !gap-3 !p-2 !bg-white !border !border-gray-200 !rounded-lg !mb-2">
+      <Skeleton
+        variant="circular"
+        width={40}
+        height={40}
+        className="!flex-shrink-0"
+      />
+      <Box className="!flex-1">
+        <Skeleton variant="text" width="60%" height={20} />
+        <Skeleton variant="text" width="40%" height={16} className="!mt-1" />
+      </Box>
+    </div>
+  );
+
+  const UserCard = ({
+    user,
+    showSequence,
+  }: {
+    user: any;
+    showSequence?: number;
+  }) => (
+    <div
+      className={classNames(
+        '!flex !items-center !gap-3 !p-2 !pr-3 !bg-white !border !border-gray-200 !rounded-lg !mb-2',
+        { 'hover:!border-blue-300 hover:!shadow-md': true }
+      )}
+    >
+      <GripVertical className="!w-5 !h-5 !text-gray-400 !cursor-grab !flex-shrink-0" />
+      <Avatar
+        alt={user.name}
+        src={user.profile_pic || user.profile_image || undefined}
+        className={classNames(
+          '!w-10 !h-10 !flex-shrink-0 !text-white !font-medium',
+          getAvatarColor(user.name)
+        )}
+      >
+        {getInitials(user.name)}
+      </Avatar>
+      <Box className="!flex-1 !min-w-0">
+        <Typography variant="body2" className="!font-medium !text-gray-900">
+          {user.name}
+        </Typography>
+        <Typography
+          variant="caption"
+          className="!text-gray-500 !text-xs !block !mt-0.5"
+        >
+          {user.sap_code || 'No SAP Code'}
+        </Typography>
+      </Box>
+      {showSequence !== undefined && (
+        <Box className="!flex-shrink-0 !flex !items-center !justify-center !w-6 !h-6 !rounded-full !bg-primary-500 !text-white !text-xs !font-semibold">
+          {showSequence}
+        </Box>
+      )}
+    </div>
+  );
 
   return (
     <CustomDrawer
@@ -391,6 +603,186 @@ const ManageUsers: React.FC<ManageUsersProps> = ({
               )}
             </Box>
           </Box>
+          {isGroupRole && (
+            <Box className="mb-6 flex flex-col gap-2 select-none">
+              <p className="!font-semibold !text-gray-900 !my-1">
+                Setup Container Group
+              </p>
+              <DragDropContext onDragEnd={onDragEnd}>
+                <div className="!grid !grid-cols-2 !gap-4 !h-[400px]">
+                  {/* Available Users Panel */}
+                  <Box className="!border !border-gray-200 !rounded-lg !flex !flex-col !overflow-hidden">
+                    <Box className="!p-2 !border-b !border-gray-200 !bg-gray-50">
+                      <Typography
+                        variant="subtitle1"
+                        className="!font-semibold !text-blue-600"
+                      >
+                        Available Salesmen ({availableUsers.length})
+                      </Typography>
+                      <p className="!text-gray-500 !text-xs !block !mt-1">
+                        Drag salesmen from the left panel to assign
+                      </p>
+                    </Box>
+                    <Box className="!p-2 !border-b !border-gray-200 !bg-white !flex !gap-2 !items-center">
+                      <div className="!relative !w-full">
+                        <Search className="!absolute !left-2 !top-[7px] !w-3.5 !h-3.5 !text-gray-400" />
+                        <input
+                          type="text"
+                          placeholder="Search users..."
+                          value={availableUsersSearch}
+                          onChange={e =>
+                            setAvailableUsersSearch(e.target.value)
+                          }
+                          className="!w-full !pl-8 !pr-2 !h-[28px] !text-xs !border !border-gray-300 !rounded focus:!outline-none focus:!border-blue-500 focus:!ring-1 focus:!ring-blue-500"
+                        />
+                      </div>
+                    </Box>
+                    <Box className="!flex-1 !overflow-hidden">
+                      <Droppable droppableId="available-users">
+                        {(provided, snapshot) => (
+                          <div
+                            {...provided.droppableProps}
+                            ref={provided.innerRef}
+                            className={classNames(
+                              '!h-full !p-2 !overflow-y-auto',
+                              {
+                                '!bg-blue-50': snapshot.isDraggingOver,
+                              }
+                            )}
+                            style={{ transition: 'background-color 0.2s ease' }}
+                          >
+                            {isFetchingUsers ? (
+                              Array.from({ length: 4 }).map((_, idx) => (
+                                <SkeletonCard key={idx} />
+                              ))
+                            ) : availableUsers.length > 0 ? (
+                              availableUsers.map((user: any, index: number) => (
+                                <Draggable
+                                  key={user.id.toString()}
+                                  draggableId={user.id.toString()}
+                                  index={index}
+                                >
+                                  {provided => (
+                                    <div
+                                      ref={provided.innerRef}
+                                      {...provided.draggableProps}
+                                      {...provided.dragHandleProps}
+                                      style={{
+                                        ...provided.draggableProps.style,
+                                      }}
+                                    >
+                                      <UserCard user={user} />
+                                    </div>
+                                  )}
+                                </Draggable>
+                              ))
+                            ) : (
+                              <Box className="!p-8 !text-center !h-full !flex !flex-col !justify-center !items-center">
+                                <UsersIcon className="!w-12 !h-12 !text-gray-300 !mb-2" />
+                                <Typography
+                                  variant="body2"
+                                  className="!text-gray-500"
+                                >
+                                  {availableUsersSearch
+                                    ? 'No users found'
+                                    : 'All users are assigned'}
+                                </Typography>
+                              </Box>
+                            )}
+                            {provided.placeholder}
+                          </div>
+                        )}
+                      </Droppable>
+                    </Box>
+                  </Box>
+
+                  {/* Assigned Users Panel */}
+                  <Box className="!border !border-gray-200 !rounded-lg !flex !flex-col !overflow-hidden">
+                    <Box className="!p-2 !border-b !border-gray-200 !bg-gray-50">
+                      <Typography
+                        variant="subtitle1"
+                        className="!font-semibold !text-green-600"
+                      >
+                        Assigned Container Members ({assignedUsers.length})
+                      </Typography>
+                      <p className="!text-gray-500 !text-xs !block !mt-1">
+                        At least one member must be assigned
+                      </p>
+                    </Box>
+                    <Box className="!flex-1 !overflow-hidden">
+                      <Droppable droppableId="assigned-users">
+                        {(provided, snapshot) => (
+                          <div
+                            {...provided.droppableProps}
+                            ref={provided.innerRef}
+                            className={classNames(
+                              '!h-full !p-2 !overflow-y-auto',
+                              {
+                                '!bg-green-50': snapshot.isDraggingOver,
+                              }
+                            )}
+                            style={{ transition: 'background-color 0.2s ease' }}
+                          >
+                            {assignedUsers.length > 0 ? (
+                              assignedUsers.map((user: any, index: number) => (
+                                <Draggable
+                                  key={user.id.toString()}
+                                  draggableId={user.id.toString()}
+                                  index={index}
+                                >
+                                  {provided => (
+                                    <div
+                                      ref={provided.innerRef}
+                                      {...provided.draggableProps}
+                                      {...provided.dragHandleProps}
+                                      style={{
+                                        ...provided.draggableProps.style,
+                                      }}
+                                    >
+                                      <UserCard
+                                        user={user}
+                                        showSequence={index + 1}
+                                      />
+                                    </div>
+                                  )}
+                                </Draggable>
+                              ))
+                            ) : (
+                              <Box className="!p-8 !text-center !h-full !flex !flex-col !justify-center !items-center">
+                                <UserPlus className="!w-12 !h-12 !text-gray-300 !mb-2" />
+                                <Typography
+                                  variant="body2"
+                                  className="!text-gray-500"
+                                >
+                                  No assigned users
+                                </Typography>
+                                <Typography
+                                  variant="caption"
+                                  className="!text-gray-400 !block !mt-1"
+                                >
+                                  Drag users from the left panel to assign
+                                </Typography>
+                              </Box>
+                            )}
+                            {provided.placeholder}
+                          </div>
+                        )}
+                      </Droppable>
+                    </Box>
+                  </Box>
+                </div>
+              </DragDropContext>
+              {formik.errors.sub_inventory_user_ids && (
+                <Typography
+                  variant="caption"
+                  color="error"
+                  className="!mt-1 !block"
+                >
+                  {formik.errors.sub_inventory_user_ids as string}
+                </Typography>
+              )}
+            </Box>
+          )}
           <Box className="md:!col-span-2">
             <ActiveInactiveField name="is_active" formik={formik} required />
           </Box>

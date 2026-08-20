@@ -94,6 +94,9 @@ model users {
   van_inventory_sub_users                                           van_inventory_sub_users[]
   reconciliations_as_salesman                                       reconciliation[]             @relation("ReconciliationSalesman")
   batch_lots_salesman                                               batch_lots[]                 @relation("salesman_batch_lots")
+  sub_inventory_parent_id                                           Int?
+  sub_inventory_parent                                              users?                       @relation("sub_inventory_users_rel", fields: [sub_inventory_parent_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  sub_inventory_users                                               users[]                      @relation("sub_inventory_users_rel")
 }
 
 model user_depots {
