@@ -3639,8 +3639,9 @@ export const createRequest = async (data: {
 
         setImmediate(async () => {
           try {
-            const { vanInventoryController } =
-              await import('./vanInventory.controller');
+            const { vanInventoryController } = await import(
+              './vanInventory.controller'
+            );
 
             let vanInventoryIdToProcess: number | null = null;
             let reqData: any = null;
@@ -5469,8 +5470,9 @@ export const requestsController = {
             `Approved VAN_INVENTORY request detected: requestId=${result.request.id}, referenceId=${result.request.reference_id}`
           );
           try {
-            const { vanInventoryController } =
-              await import('../controllers/vanInventory.controller');
+            const { vanInventoryController } = await import(
+              '../controllers/vanInventory.controller'
+            );
             await vanInventoryController.processApprovedVanInventoryStock(
               result.request.reference_id,
               userId,
@@ -5523,8 +5525,9 @@ export const requestsController = {
           result.request.reference_id
         ) {
           try {
-            const { vanInventoryController } =
-              await import('../controllers/vanInventory.controller');
+            const { vanInventoryController } = await import(
+              '../controllers/vanInventory.controller'
+            );
 
             const vanInventoryId =
               await vanInventoryController.createVanInventoryFromReconciliation(
@@ -5938,8 +5941,12 @@ export const requestsController = {
           createdate: 'desc',
         },
       });
+      // const requestIds = myApprovals.map(approval => approval.request_id);
+      const validApprovals = myApprovals.filter(
+        approval => approval.sfa_d_requests_approvals_request !== null
+      );
 
-      const requestIds = myApprovals.map(approval => approval.request_id);
+      const requestIds = validApprovals.map(approval => approval.request_id);
 
       const previousPendingApprovals =
         await prisma.sfa_d_request_approvals.findMany({
@@ -5961,7 +5968,7 @@ export const requestsController = {
         pendingSequencesMap.get(approval.request_id)!.push(approval.sequence);
       });
 
-      const filteredApprovals = myApprovals.filter(approval => {
+      const filteredApprovals = validApprovals.filter(approval => {
         const pendingSequences =
           pendingSequencesMap.get(approval.request_id) || [];
         const hasPreviousPending = pendingSequences.some(
