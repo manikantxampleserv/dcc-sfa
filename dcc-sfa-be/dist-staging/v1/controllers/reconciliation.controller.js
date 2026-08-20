@@ -585,12 +585,16 @@ exports.reconciliationController = {
                     '',
                 conversionRate: Number(item.product?.product_unit_of_measurement?.conversion_rate) || 1,
                 subUnit: item.product?.product_unit_of_measurement?.sub_unit || 'PCs',
-                basePrice: item.product?.pricelist_items_products?.[0]?.unit_price !==
-                    undefined
-                    ? Number(item.product?.pricelist_items_products[0].unit_price)
-                    : item.product?.base_price !== null
-                        ? Number(item.product?.base_price)
-                        : 0,
+                basePrice: item.unit_price !== null
+                    ? Number(item.unit_price)
+                    : item.product?.pricelist_items_products?.[0]?.unit_price !== undefined
+                        ? Number(item.product?.pricelist_items_products[0].unit_price)
+                        : item.product?.base_price !== null
+                            ? Number(item.product?.base_price)
+                            : 0,
+                taxPercent: item.tax_percent !== null
+                    ? Number(item.tax_percent)
+                    : null,
                 loadQuantity: item.load_qty !== null ? Number(item.load_qty) : 0,
                 loadBaseQty: item.load_base_qty !== null ? Number(item.load_base_qty) : 0,
                 saleQuantity: item.sale_qty !== null ? Number(item.sale_qty) : 0,

@@ -2481,7 +2481,9 @@ exports.requestsController = {
                     createdate: 'desc',
                 },
             });
-            const requestIds = myApprovals.map(approval => approval.request_id);
+            // const requestIds = myApprovals.map(approval => approval.request_id);
+            const validApprovals = myApprovals.filter(approval => approval.sfa_d_requests_approvals_request !== null);
+            const requestIds = validApprovals.map(approval => approval.request_id);
             const previousPendingApprovals = await prisma_client_1.default.sfa_d_request_approvals.findMany({
                 where: {
                     request_id: { in: requestIds },
@@ -2499,7 +2501,7 @@ exports.requestsController = {
                 }
                 pendingSequencesMap.get(approval.request_id).push(approval.sequence);
             });
-            const filteredApprovals = myApprovals.filter(approval => {
+            const filteredApprovals = validApprovals.filter(approval => {
                 const pendingSequences = pendingSequencesMap.get(approval.request_id) || [];
                 const hasPreviousPending = pendingSequences.some(seq => seq < approval.sequence);
                 return !hasPreviousPending;

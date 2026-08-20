@@ -4843,6 +4843,119 @@ exports.vanInventoryController = {
                         });
                         if (!user)
                             return null;
+                        // ── Resolve pricelist: depot-specific & default ──────────────────
+                        const productIdsInStock = stockToUnload
+                            .map(s => s.product_id)
+                            .filter((id) => id !== null);
+                        // 1) Fetch depot-specific pricelist
+                        const depotPricelist = user.depot_id
+                            ? await tx.pricelists.findFirst({
+                                where: {
+                                    depot_id: user.depot_id,
+                                    is_active: 'Y',
+                                },
+                                orderBy: { priority: 'asc' },
+                                include: {
+                                    pricelist_item: {
+                                        where: {
+                                            product_id: { in: productIdsInStock },
+                                            is_active: 'Y',
+                                        },
+                                        include: {
+                                            pricelist_item_special_prices: {
+                                                where: { is_active: 'Y' },
+                                            },
+                                        },
+                                    },
+                                },
+                            })
+                            : null;
+                        // 2) Fetch default pricelist
+                        const defaultPricelist = await tx.pricelists.findFirst({
+                            where: { is_default: 'Y', is_active: 'Y' },
+                            include: {
+                                pricelist_item: {
+                                    where: {
+                                        product_id: { in: productIdsInStock },
+                                        is_active: 'Y',
+                                    },
+                                    include: {
+                                        pricelist_item_special_prices: {
+                                            where: { is_active: 'Y' },
+                                        },
+                                    },
+                                },
+                            },
+                        });
+                        // Resolve price & taxRate for each product in stock (individually)
+                        const today_date = new Date();
+                        const priceMap = new Map();
+                        for (const productId of productIdsInStock) {
+                            let resolvedPrice = null;
+                            let resolvedTax = null;
+                            // 1. Try Depot Pricelist (Special first, then Normal)
+                            if (depotPricelist) {
+                                const depotItem = depotPricelist.pricelist_item.find(item => item.product_id === productId);
+                                if (depotItem) {
+                                    // Check special prices in depot
+                                    const validSpecial = depotItem.pricelist_item_special_prices.find(sp => {
+                                        const from = sp.valid_from ? new Date(sp.valid_from) : null;
+                                        const to = sp.valid_to ? new Date(sp.valid_to) : null;
+                                        const afterFrom = !from || today_date >= from;
+                                        const beforeTo = !to || today_date <= to;
+                                        return afterFrom && beforeTo;
+                                    });
+                                    if (validSpecial) {
+                                        resolvedPrice = Number(validSpecial.sale_price);
+                                        resolvedTax =
+                                            validSpecial.tax_percent !== null
+                                                ? Number(validSpecial.tax_percent)
+                                                : null;
+                                    }
+                                    else {
+                                        resolvedPrice = Number(depotItem.unit_price);
+                                        resolvedTax =
+                                            depotItem.tax_percent !== null
+                                                ? Number(depotItem.tax_percent)
+                                                : null;
+                                    }
+                                }
+                            }
+                            // 2. Try Default Pricelist (Special first, then Normal) if not resolved by depot pricelist
+                            if (resolvedPrice === null && defaultPricelist) {
+                                const defaultItem = defaultPricelist.pricelist_item.find(item => item.product_id === productId);
+                                if (defaultItem) {
+                                    // Check special prices in default
+                                    const validSpecial = defaultItem.pricelist_item_special_prices.find(sp => {
+                                        const from = sp.valid_from ? new Date(sp.valid_from) : null;
+                                        const to = sp.valid_to ? new Date(sp.valid_to) : null;
+                                        const afterFrom = !from || today_date >= from;
+                                        const beforeTo = !to || today_date <= to;
+                                        return afterFrom && beforeTo;
+                                    });
+                                    if (validSpecial) {
+                                        resolvedPrice = Number(validSpecial.sale_price);
+                                        resolvedTax =
+                                            validSpecial.tax_percent !== null
+                                                ? Number(validSpecial.tax_percent)
+                                                : null;
+                                    }
+                                    else {
+                                        resolvedPrice = Number(defaultItem.unit_price);
+                                        resolvedTax =
+                                            defaultItem.tax_percent !== null
+                                                ? Number(defaultItem.tax_percent)
+                                                : null;
+                                    }
+                                }
+                            }
+                            if (resolvedPrice !== null) {
+                                priceMap.set(productId, {
+                                    price: resolvedPrice,
+                                    taxRate: resolvedTax,
+                                });
+                            }
+                        }
                         const now = new Date();
                         const today = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
                         const todayStart = new Date(today);
@@ -4873,9 +4986,14 @@ exports.vanInventoryController = {
                             const productCode = stock.inventory_stock_products?.code ||
                                 String(stock.product_id);
                             const key = `${stock.product_id}-${batchNum}`;
-                            const price = Number(stock.inventory_stock_products?.base_price) || 0;
-                            const taxRate = Number(stock.inventory_stock_products?.product_tax_master
-                                ?.tax_rate) || 0;
+                            // Resolve price from pricelist (special → depot-specific → default → base_price)
+                            const priceEntry = priceMap.get(stock.product_id);
+                            const price = priceEntry?.price ??
+                                (Number(stock.inventory_stock_products?.base_price) || 0);
+                            const taxRate = priceEntry && priceEntry.taxRate !== null
+                                ? priceEntry.taxRate
+                                : Number(stock.inventory_stock_products
+                                    ?.product_tax_master?.tax_rate) || 0;
                             const convRate = Number(stock.inventory_stock_products
                                 ?.product_unit_of_measurement?.conversion_rate) || 1;
                             const existing = productMap.get(key);
@@ -5034,6 +5152,8 @@ exports.vanInventoryController = {
                                 variance: null,
                                 variance_base_qty: 0,
                                 tax_amount: taxAmount,
+                                unit_price: p.price,
+                                tax_percent: p.taxRate,
                                 resolution_action: 'Awaiting Verification',
                                 default_outlet_posting_qty: 0,
                                 unload_adjustment_qty: 0,
