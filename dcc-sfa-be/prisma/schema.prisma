@@ -3318,6 +3318,8 @@ model reconciliation_items {
   variance                        Decimal?  @db.Decimal(18, 4)
   variance_base_qty               Int?      @default(0)
   tax_amount                      Decimal?  @db.Decimal(18, 2)
+  unit_price                      Decimal?  @db.Decimal(18, 4)
+  tax_percent                     Decimal?  @db.Decimal(5, 2)
   resolution_action               String?   @db.NVarChar(255)
   default_outlet_posting_qty      Decimal?  @db.Decimal(18, 4)
   default_outlet_posting_base_qty Int?      @default(0)
