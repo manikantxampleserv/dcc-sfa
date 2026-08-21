@@ -9,6 +9,7 @@ import { createRequest } from './requests.controller';
 import prisma from '../../configs/prisma.client';
 import { Prisma } from '@prisma/client';
 import { isAdminRole } from '../../configs/permissions.config';
+import { getContainerOwnerAndSelf } from '../utils/inventory.utils';
 
 interface OrderSerialized {
   id: number;
@@ -865,6 +866,8 @@ async function processInventoryChange(
     trackingType,
   });
 
+  const targetSalespersonIds = await getContainerOwnerAndSelf(tx, order.salesperson_id || userId);
+
   if (trackingType === 'BATCH') {
     const batchData = item.batches || item.product_batches;
 
@@ -940,7 +943,10 @@ async function processInventoryChange(
           where: {
             product_id: product.id,
             batch_lot_id: batch.batch_lot_id,
-            van_inventory_items_inventory: { is_active: 'Y' },
+            van_inventory_items_inventory: {
+              user_id: { in: targetSalespersonIds },
+              is_active: 'Y',
+            },
           },
         });
         if (!vanItem && movementType === 'SALE') {
@@ -970,7 +976,11 @@ async function processInventoryChange(
         }
 
         const stock = await tx.inventory_stock.findFirst({
-          where: { product_id: product.id, batch_id: batch.batch_lot_id },
+          where: {
+            product_id: product.id,
+            batch_id: batch.batch_lot_id,
+            salesperson_id: { in: targetSalespersonIds },
+          },
         });
         if (stock) {
           const stockRes = calc(
@@ -1107,7 +1117,11 @@ async function processInventoryChange(
       });
 
       const inventoryStock = await tx.inventory_stock.findFirst({
-        where: { product_id: product.id, serial_number_id: serial.id },
+        where: {
+          product_id: product.id,
+          serial_number_id: serial.id,
+          salesperson_id: { in: targetSalespersonIds },
+        },
       });
       if (inventoryStock) {
         const qChange = movementType === 'SALE' ? -1 : 1;
@@ -1126,7 +1140,10 @@ async function processInventoryChange(
         where: {
           product_id: product.id,
           serial_id: serial.id,
-          van_inventory_items_inventory: { is_active: 'Y' },
+          van_inventory_items_inventory: {
+            user_id: { in: targetSalespersonIds },
+            is_active: 'Y',
+          },
         },
       });
       if (vanItem) {
@@ -1170,7 +1187,10 @@ async function processInventoryChange(
     const vanItem = await tx.van_inventory_items.findFirst({
       where: {
         product_id: product.id,
-        van_inventory_items_inventory: { is_active: 'Y' },
+        van_inventory_items_inventory: {
+          user_id: { in: targetSalespersonIds },
+          is_active: 'Y',
+        },
       },
     });
 
@@ -1223,6 +1243,7 @@ async function processInventoryChange(
         product_id: product.id,
         batch_id: null,
         serial_number_id: null,
+        salesperson_id: { in: targetSalespersonIds },
       },
     });
 

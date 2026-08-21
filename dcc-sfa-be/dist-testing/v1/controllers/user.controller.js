@@ -28,8 +28,12 @@ const serializeUser = (user, includeCreatedAt = false, includeUpdatedAt = false)
     platform: user.platform || null,
     is_active: user.is_active,
     log_inst: user.log_inst ?? null,
+    sub_inventory_parent_id: user.sub_inventory_parent_id,
+    sub_inventory_parent_name: user.sub_inventory_parent?.name || null,
+    has_active_van_inventory: user.inventory_stock_users ? user.inventory_stock_users.length > 0 : false,
     ...(includeCreatedAt && { created_at: user.createdate }),
     ...(includeUpdatedAt && { updated_at: user.updatedate }),
+    sub_inventory_users: user.sub_inventory_users || [],
     role: user.user_role
         ? {
             id: user.user_role.id,
@@ -94,7 +98,7 @@ exports.userController = {
                 res.validationError(errors.array(), 400);
                 return;
             }
-            const { email, password, name, role_id, parent_id, depot_ids, zone_id, phone_number, address, sap_code, employee_id, joining_date, reporting_to, is_active, platform, } = req.body;
+            const { email, password, name, role_id, parent_id, depot_ids, zone_id, phone_number, address, sap_code, employee_id, joining_date, reporting_to, is_active, platform, sub_inventory_user_ids, } = req.body;
             let parsedDepotIds = [];
             if (typeof depot_ids === 'string') {
                 if (depot_ids.startsWith('[')) {
@@ -115,10 +119,34 @@ exports.userController = {
             else if (Array.isArray(depot_ids)) {
                 parsedDepotIds = depot_ids.map(Number).filter(id => !isNaN(id));
             }
+            let parsedSubInventoryUserIds = [];
+            if (sub_inventory_user_ids !== undefined) {
+                if (typeof sub_inventory_user_ids === 'string') {
+                    if (sub_inventory_user_ids.startsWith('[')) {
+                        try {
+                            parsedSubInventoryUserIds = JSON.parse(sub_inventory_user_ids);
+                        }
+                        catch {
+                            parsedSubInventoryUserIds = [];
+                        }
+                    }
+                    else {
+                        parsedSubInventoryUserIds = sub_inventory_user_ids
+                            .split(',')
+                            .map((id) => parseInt(id.trim()))
+                            .filter((id) => !isNaN(id));
+                    }
+                }
+                else if (Array.isArray(sub_inventory_user_ids)) {
+                    parsedSubInventoryUserIds = sub_inventory_user_ids
+                        .map(Number)
+                        .filter((id) => !isNaN(id));
+                }
+            }
             if (email) {
                 const existingUser = await prisma_client_1.default.users.findFirst({ where: { email } });
                 if (existingUser) {
-                    res.error('Email already exists', 400);
+                    res.error(`Email '${email}' already exists (ID: ${existingUser.id})`, 400);
                     return;
                 }
             }
@@ -127,7 +155,7 @@ exports.userController = {
                     where: { employee_id },
                 });
                 if (existingEmployee) {
-                    res.error('Employee ID already exists', 400);
+                    res.error(`Employee ID '${employee_id}' already exists (ID: ${existingEmployee.id})`, 400);
                     return;
                 }
             }
@@ -181,6 +209,12 @@ exports.userController = {
                         createdby: req.user?.id ?? 0,
                         createdate: new Date(),
                     })),
+                });
+            }
+            if (parsedSubInventoryUserIds.length > 0) {
+                await prisma_client_1.default.users.updateMany({
+                    where: { id: { in: parsedSubInventoryUserIds } },
+                    data: { sub_inventory_parent_id: newUser.id },
                 });
             }
             const userWithDepots = await prisma_client_1.default.users.findUnique({
@@ -289,6 +323,32 @@ exports.userController = {
                             email: true,
                         },
                     },
+                    sub_inventory_parent: {
+                        select: {
+                            name: true,
+                        },
+                    },
+                    inventory_stock_users: {
+                        where: {
+                            current_stock: { gt: 0 },
+                            is_active: 'Y',
+                            OR: [{ is_unloadAll: 'N' }, { is_unloadAll: null }],
+                        },
+                        select: {
+                            id: true,
+                        },
+                        take: 1,
+                    },
+                    sub_inventory_users: {
+                        where: { is_active: 'Y' },
+                        select: {
+                            id: true,
+                            name: true,
+                            email: true,
+                            employee_id: true,
+                            profile_image: true,
+                        },
+                    },
                 },
             });
             const totalUsers = await prisma_client_1.default.users.count();
@@ -372,6 +432,11 @@ exports.userController = {
                             email: true,
                         },
                     },
+                    sub_inventory_parent: {
+                        select: {
+                            name: true,
+                        },
+                    },
                     other_users: {
                         where: { is_active: 'Y' },
                         select: {
@@ -381,6 +446,25 @@ exports.userController = {
                             employee_id: true,
                             profile_image: true,
                         },
+                    },
+                    sub_inventory_users: {
+                        where: { is_active: 'Y' },
+                        select: {
+                            id: true,
+                            name: true,
+                            email: true,
+                            employee_id: true,
+                            profile_image: true,
+                        },
+                    },
+                    inventory_stock_users: {
+                        where: {
+                            current_stock: { gt: 0 },
+                            is_active: 'Y',
+                            OR: [{ is_unloadAll: 'N' }, { is_unloadAll: null }],
+                        },
+                        select: { id: true },
+                        take: 1,
                     },
                 },
             });
@@ -473,7 +557,7 @@ exports.userController = {
                 res.error('User not found', 404);
                 return;
             }
-            const { createdate, updatedate, password, id, is_active, depot_ids, ...userData } = req.body;
+            const { createdate, updatedate, password, id, is_active, depot_ids, sub_inventory_user_ids, ...userData } = req.body;
             let parsedDepotIds = [];
             if (depot_ids !== undefined) {
                 if (typeof depot_ids === 'string') {
@@ -496,6 +580,30 @@ exports.userController = {
                     parsedDepotIds = depot_ids.map(Number).filter(id => !isNaN(id));
                 }
             }
+            let parsedSubInventoryUserIds = [];
+            if (sub_inventory_user_ids !== undefined) {
+                if (typeof sub_inventory_user_ids === 'string') {
+                    if (sub_inventory_user_ids.startsWith('[')) {
+                        try {
+                            parsedSubInventoryUserIds = JSON.parse(sub_inventory_user_ids);
+                        }
+                        catch {
+                            parsedSubInventoryUserIds = [];
+                        }
+                    }
+                    else {
+                        parsedSubInventoryUserIds = sub_inventory_user_ids
+                            .split(',')
+                            .map((id) => parseInt(id.trim()))
+                            .filter((id) => !isNaN(id));
+                    }
+                }
+                else if (Array.isArray(sub_inventory_user_ids)) {
+                    parsedSubInventoryUserIds = sub_inventory_user_ids
+                        .map(Number)
+                        .filter((id) => !isNaN(id));
+                }
+            }
             if (userData.email && userData.email !== existingUser.email) {
                 const existingEmail = await prisma_client_1.default.users.findFirst({
                     where: {
@@ -504,7 +612,7 @@ exports.userController = {
                     },
                 });
                 if (existingEmail) {
-                    res.error('Email already exists', 400);
+                    res.error(`Email '${userData.email}' already exists (ID: ${existingEmail.id}, Target: ${targetUserId})`, 400);
                     return;
                 }
             }
@@ -517,7 +625,7 @@ exports.userController = {
                     },
                 });
                 if (existingEmployeeId) {
-                    res.error('Employee ID already exists', 400);
+                    res.error(`Employee ID '${userData.employee_id}' already exists (ID: ${existingEmployeeId.id}, Target: ${targetUserId})`, 400);
                     return;
                 }
             }
@@ -614,6 +722,50 @@ exports.userController = {
                     });
                 }
             }
+            if (sub_inventory_user_ids !== undefined) {
+                await prisma_client_1.default.users.updateMany({
+                    where: { sub_inventory_parent_id: targetUserId },
+                    data: { sub_inventory_parent_id: null },
+                });
+                if (parsedSubInventoryUserIds.length > 0) {
+                    await prisma_client_1.default.users.updateMany({
+                        where: { id: { in: parsedSubInventoryUserIds } },
+                        data: { sub_inventory_parent_id: targetUserId },
+                    });
+                }
+                // Sync changes to active container van inventories
+                const activeContainerVans = await prisma_client_1.default.van_inventory.findMany({
+                    where: {
+                        user_id: targetUserId,
+                        sale_type: 'container',
+                        is_active: 'Y',
+                    },
+                    select: { id: true },
+                });
+                if (activeContainerVans.length > 0) {
+                    const activeVanIds = activeContainerVans.map((v) => v.id);
+                    await prisma_client_1.default.van_inventory_sub_users.deleteMany({
+                        where: { parent_id: { in: activeVanIds } },
+                    });
+                    if (parsedSubInventoryUserIds.length > 0) {
+                        const newSubUserRecords = [];
+                        for (const vanId of activeVanIds) {
+                            for (const subUserId of parsedSubInventoryUserIds) {
+                                newSubUserRecords.push({
+                                    parent_id: vanId,
+                                    user_id: subUserId,
+                                    createdby: currentUserId,
+                                    is_active: 'Y',
+                                    createdate: new Date(),
+                                });
+                            }
+                        }
+                        await prisma_client_1.default.van_inventory_sub_users.createMany({
+                            data: newSubUserRecords,
+                        });
+                    }
+                }
+            }
             const finalUser = await prisma_client_1.default.users.findUnique({
                 where: { id: targetUserId },
                 include: {
@@ -625,6 +777,16 @@ exports.userController = {
                         },
                     },
                     users: { select: { id: true, name: true, email: true } },
+                    sub_inventory_users: {
+                        where: { is_active: 'Y' },
+                        select: {
+                            id: true,
+                            name: true,
+                            email: true,
+                            employee_id: true,
+                            profile_image: true,
+                        },
+                    },
                 },
             });
             const serializedUser = serializeUser(finalUser, true, true);
@@ -998,11 +1160,21 @@ exports.userController = {
                 ];
             }
             if (role_name) {
-                where.user_role = {
-                    name: {
-                        contains: role_name,
-                    },
-                };
+                const roles = role_name.split(',').map(r => r.trim());
+                if (roles.length > 1) {
+                    where.user_role = {
+                        name: {
+                            in: roles,
+                        },
+                    };
+                }
+                else {
+                    where.user_role = {
+                        name: {
+                            contains: role_name,
+                        },
+                    };
+                }
             }
             const users = await prisma_client_1.default.users.findMany({
                 where,

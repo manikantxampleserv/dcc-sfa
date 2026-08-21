@@ -1784,6 +1784,21 @@ exports.vanInventoryController = {
                     const vehicleExists = await resolveRecordByIdOrSap('vehicles', inventoryData.vehicle_id, inventoryData.vehicle_sap, 'Vehicle');
                     inventoryData.vehicle_id = vehicleExists.id;
                 }
+                const subUsers = await tx.users.findMany({
+                    where: {
+                        sub_inventory_parent_id: spUser.id,
+                        is_active: 'Y',
+                    },
+                    select: { id: true },
+                });
+                if (subUsers.length > 0) {
+                    inventoryData.sale_type = 'container';
+                    inventoryData.sub_inventory_user_ids = subUsers.map((u) => u.id);
+                }
+                else {
+                    inventoryData.sale_type = 'normal';
+                    inventoryData.sub_inventory_user_ids = [];
+                }
                 const loadingType = inventoryData.loading_type || 'L';
                 const payload = {
                     user_id: Number(inventoryData.user_id),
