@@ -144,7 +144,7 @@ interface GetInvoicesParams {
   due_date_to?: string;
   is_active?: string;
   time_filter?: string;
-  salesperson_id?: number;
+  salesperson_id?: number | string;
   start_date?: string;
   end_date?: string;
 }

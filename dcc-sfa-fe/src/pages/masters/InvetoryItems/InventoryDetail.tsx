@@ -2,7 +2,6 @@ import {
   Block,
   CheckCircle,
   Download,
-  Inventory,
   Upload,
   Visibility,
 } from '@mui/icons-material';
@@ -18,27 +17,23 @@ import {
   type ChipProps,
 } from '@mui/material';
 import { useCurrency } from 'hooks/useCurrency';
-import { useResolvedUom } from 'hooks/useUnitOfMeasurement';
 import {
   useInventoryItemById,
   useSalespersonSummary,
 } from 'hooks/useInventoryItems';
 import { useInvoices, type Invoice } from 'hooks/useInvoices';
+import { useResolvedUom } from 'hooks/useUnitOfMeasurement';
 import {
   useUnloadVanInventory,
   useVanInventory,
   type VanInventory,
 } from 'hooks/useVanInventory';
 import {
-  AlertTriangle,
   Calendar,
   DollarSign,
   Fingerprint,
   Layers,
-  Mail,
-  MapPin,
   Package,
-  Phone,
   Receipt,
   ShoppingBag,
   TrendingUp,
@@ -415,19 +410,7 @@ const InventoryDetail = () => {
         );
       });
     }
-    return rawInvoices.filter(inv => {
-      const allowedIds = salespersonData?.combined_salesperson_ids || [
-        inventoryId,
-      ];
-      return (
-        (inv.salesperson_id !== null &&
-          inv.salesperson_id !== undefined &&
-          allowedIds.includes(Number(inv.salesperson_id))) ||
-        (inv.createdby !== null &&
-          inv.createdby !== undefined &&
-          allowedIds.includes(Number(inv.createdby)))
-      );
-    });
+    return rawInvoices;
   }, [
     invoicesResponse,
     inventoryId,
@@ -535,6 +518,157 @@ const InventoryDetail = () => {
       });
     }, [products]);
 
+  const productColumns = useMemo<TableColumn<ProductInventory>[]>(
+    () => [
+      {
+        id: 'product_name',
+        label: 'Product',
+        sortable: true,
+        render: (_value, row) => {
+          const tooltipContent =
+            row.tracking_type?.toLowerCase() === 'batch' ? (
+              <div className="flex flex-col min-w-80">
+                <div className="font-semibold text-xs border-b border-gray-200 p-1.5 text-gray-900 bg-gray-50 flex justify-between items-center rounded-t-[4px]">
+                  <span>Batch Details</span>
+                  <span className="text-gray-500 font-medium truncate max-w-[180px]">
+                    {row.product_name}
+                  </span>
+                </div>
+                <div className="flex flex-col gap-1.5 p-1.5">
+                  {row.batches?.map(b => (
+                    <div
+                      key={b.batch_number}
+                      className="flex justify-between items-center gap-4 text-xs"
+                    >
+                      <span className="font-medium text-gray-800">
+                        {b.batch_number}
+                      </span>
+                      <span className="font-mono bg-gray-100 border border-gray-200 px-1.5 py-0.5 rounded text-xs text-gray-700">
+                        {formatQuantityAndBase(
+                          Number(b.remaining_quantity),
+                          Number(b.base_quantity)
+                        )}
+                      </span>
+                    </div>
+                  ))}
+                  {(!row.batches || row.batches.length === 0) && (
+                    <span className="text-xs text-gray-400">No batches</span>
+                  )}
+                </div>
+              </div>
+            ) : (
+              ''
+            );
+
+          return (
+            <Tooltip
+              title={tooltipContent}
+              arrow
+              placement="top"
+              enterDelay={500}
+              slotProps={{
+                tooltip: {
+                  sx: {
+                    backgroundColor: '#ffffff',
+                    color: '#111827',
+                    boxShadow:
+                      '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)',
+                    border: '1px solid #e5e7eb',
+                    padding: 0,
+                    maxWidth: 350,
+                  },
+                },
+                arrow: {
+                  sx: {
+                    color: '#ffffff',
+                    '&::before': {
+                      border: '1px solid #e5e7eb',
+                    },
+                  },
+                },
+              }}
+            >
+              <div className="flex items-center gap-3">
+                <Avatar
+                  className="!bg-blue-100 !rounded-md !text-blue-600"
+                  src=""
+                >
+                  {row.product_name?.charAt(0) || 'P'}
+                </Avatar>
+                <div className="flex flex-col">
+                  <span className="font-medium text-gray-900">
+                    {row.product_name || 'Unknown Product'}
+                  </span>
+                  <span className="text-xs text-gray-500">
+                    {row.product_code || 'N/A'}
+                  </span>
+                </div>
+              </div>
+            </Tooltip>
+          );
+        },
+      },
+      {
+        id: 'total_remaining_quantity',
+        label: 'Total Quantity',
+        sortable: true,
+        render: (_value, row) => (
+          <span className="font-medium">
+            {formatQuantityAndBase(
+              row.total_remaining_quantity < 0
+                ? 0
+                : row.total_remaining_quantity,
+              Number(row.total_remaining_base_quantity) < 0
+                ? 0
+                : row.total_remaining_base_quantity
+            )}
+          </span>
+        ),
+      },
+      {
+        id: 'tracking_type',
+        label: 'Tracking Type',
+        sortable: true,
+        render: (value: string) => <span className="uppercase">{value}</span>,
+      },
+      {
+        id: 'tracking_count',
+        label: 'Tracking Info',
+        sortable: false,
+        render: (_value, row) => {
+          if (row.tracking_type?.toLowerCase() === 'batch') {
+            return <span>{row.batches?.length || 0} Batches</span>;
+          } else if (row.tracking_type?.toLowerCase() === 'serial') {
+            return <span>{row.serials?.length || 0} Serials</span>;
+          }
+          return <span className="text-gray-400 italic">None</span>;
+        },
+      },
+      {
+        id: 'status',
+        label: 'Status',
+        sortable: false,
+        render: (_value, row) => {
+          const stockStatus = getStockStatus(
+            Number(row.total_remaining_quantity) ||
+              Number(row.total_remaining_base_quantity) ||
+              0
+          );
+          return (
+            <Chip
+              label={stockStatus.label}
+              size="small"
+              color={stockStatus.color as ChipProps['color']}
+              variant="outlined"
+            />
+          );
+        },
+      },
+    ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
+  );
+
   const batchColumns = useMemo<
     TableColumn<
       BatchInfo & { product_id: number | string; product: ProductInventory }
@@ -546,13 +680,18 @@ const InventoryDetail = () => {
         label: 'Product',
         sortable: true,
         render: (_value, row) => (
-          <div className="flex flex-col">
-            <span className="font-medium text-gray-900">
-              {row.product?.product_name || 'N/A'}
-            </span>
-            <span className="text-xs text-gray-500">
-              {row.product?.product_code || ''}
-            </span>
+          <div className="flex items-center gap-3">
+            <Avatar className="!bg-blue-100 !rounded-md !text-blue-600" src="">
+              {row?.product?.product_name?.charAt(0) || 'P'}
+            </Avatar>
+            <div className="flex flex-col">
+              <span className="font-medium text-gray-900">
+                {row.product?.product_name || 'N/A'}
+              </span>
+              <span className="text-xs text-gray-500">
+                {row.product?.product_code || ''}
+              </span>
+            </div>
           </div>
         ),
       },
@@ -835,7 +974,33 @@ const InventoryDetail = () => {
           </Box>
         ),
       },
-
+      {
+        id: 'salesperson',
+        label: 'Salesman',
+        render: (_value, row) => (
+          <Box className="flex items-center gap-1">
+            <Avatar
+              alt={row.salesperson?.name}
+              src="mkx"
+              className="!rounded !bg-primary-100 !text-primary-500"
+            />
+            <div>
+              <Typography
+                variant="body2"
+                className="!text-gray-900 !font-medium"
+              >
+                {row.salesperson?.name || 'N/A'}
+              </Typography>
+              <Typography
+                variant="caption"
+                className="!text-gray-500 !text-xs !block !mt-0.5"
+              >
+                {row.salesperson?.sap_code || 'N/A'}
+              </Typography>
+            </div>
+          </Box>
+        ),
+      },
       {
         id: 'total_amount',
         label: 'Amounts',
@@ -1013,8 +1178,8 @@ const InventoryDetail = () => {
     <div className="flex flex-col">
       {renderHeader()}
 
-      <div className="bg-white mb-5 shadow-sm rounded-lg border border-gray-100 p-6">
-        <div className="flex items-start gap-6">
+      <div className="bg-white mb-5 shadow-sm rounded-lg border border-gray-100 p-4">
+        <div className="flex items-center gap-6">
           <Avatar
             src={salespersonData?.salesperson_profile_image || undefined}
             alt={salespersonData?.salesperson_name || 'Unknown'}
@@ -1023,7 +1188,7 @@ const InventoryDetail = () => {
             {salespersonData?.salesperson_name?.charAt(0)}
           </Avatar>
           <div className="flex-1">
-            <div className="flex items-start gap-4 mb-2 justify-between">
+            <div className="flex items-start gap-2 mb-2 justify-between">
               <div>
                 <h2 className="text-lg font-bold text-gray-900">
                   {salespersonData?.salesperson_name || 'Unknown'}
@@ -1031,6 +1196,25 @@ const InventoryDetail = () => {
                 <p className="text-gray-500 text-sm">
                   {salespersonData?.salesperson_role || 'Unknown'}
                 </p>
+                <div className="flex flex-wrap items-center gap-1">
+                  {salespersonData?.salesperson_employee_id && (
+                    <span className="text-gray-500 text-xs">
+                      {salespersonData.salesperson_employee_id}
+                    </span>
+                  )}
+                  <span className="text-gray-500">•</span>
+                  {salespersonData?.salesperson_sap_code && (
+                    <span className="text-gray-500 text-xs">
+                      {salespersonData.salesperson_sap_code}
+                    </span>
+                  )}
+                </div>
+                {salespersonData?.helpers && (
+                  <span className="text-gray-500 text-xs">
+                    <span className="font-medium">Salesmen : </span>
+                    {salespersonData.helpers}
+                  </span>
+                )}
               </div>
               <Chip
                 label="Active"
@@ -1038,26 +1222,6 @@ const InventoryDetail = () => {
                 color="success"
                 variant="outlined"
               />
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="flex items-center gap-2 text-gray-600">
-                <Mail className="w-4 h-4" />
-                <span className="text-sm">
-                  {salespersonData?.salesperson_email || 'No Email'}
-                </span>
-              </div>
-              <div className="flex items-center gap-2 text-gray-600">
-                <Phone className="w-4 h-4" />
-                <span className="text-sm">
-                  {salespersonData?.salesperson_phone || 'No Phone Number'}
-                </span>
-              </div>
-              <div className="flex items-center gap-2 text-gray-600">
-                <MapPin className="w-4 h-4" />
-                <span className="text-sm">
-                  {salespersonData?.salesperson_address || 'No Address'}
-                </span>
-              </div>
             </div>
           </div>
         </div>
@@ -1109,189 +1273,13 @@ const InventoryDetail = () => {
       </Box>
 
       <TabPanel value={tabValue} index={0}>
-        {Array.isArray(products) && products.length > 0 ? (
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
-            {products
-              ?.sort(
-                (a, b) =>
-                  (b.total_remaining_quantity || 0) -
-                  (a.total_remaining_quantity || 0)
-              )
-              .map(product => {
-                const stockStatus = getStockStatus(
-                  Number(product.total_remaining_quantity) ||
-                    Number(product.total_remaining_base_quantity) ||
-                    0
-                );
-                const tooltipContent =
-                  product.tracking_type?.toLowerCase() === 'batch' ? (
-                    <div className="flex flex-col min-w-80">
-                      <div className="font-semibold text-xs border-b border-gray-200 p-1.5 text-gray-900 bg-gray-50 flex justify-between items-center rounded-t-[4px]">
-                        <span>Batch Details</span>
-                        <span className="text-gray-500 font-medium truncate max-w-[180px]">
-                          {product.product_name}
-                        </span>
-                      </div>
-                      <div className="flex flex-col gap-1.5 p-1.5">
-                        {product.batches?.map(b => (
-                          <div
-                            key={b.batch_number}
-                            className="flex justify-between items-center gap-4 text-xs"
-                          >
-                            <span className="font-medium text-gray-800">
-                              {b.batch_number}
-                            </span>
-                            <span className="font-mono bg-gray-100 border border-gray-200 px-1.5 py-0.5 rounded text-xs text-gray-700">
-                              {formatQuantityAndBase(
-                                Number(b.remaining_quantity),
-                                Number(b.base_quantity)
-                              )}
-                            </span>
-                          </div>
-                        ))}
-                        {(!product.batches || product.batches.length === 0) && (
-                          <span className="text-xs text-gray-400">
-                            No batches
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  ) : (
-                    ''
-                  );
-
-                return (
-                  <Tooltip
-                    key={product.product_id}
-                    title={tooltipContent}
-                    arrow
-                    placement="top"
-                    enterDelay={1000}
-                    slotProps={{
-                      tooltip: {
-                        sx: {
-                          backgroundColor: '#ffffff',
-                          color: '#111827',
-                          boxShadow:
-                            '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)',
-                          border: '1px solid #e5e7eb',
-                          padding: 0,
-                          maxWidth: 350,
-                        },
-                      },
-                      arrow: {
-                        sx: {
-                          color: '#ffffff',
-                          '&::before': {
-                            border: '1px solid #e5e7eb',
-                          },
-                        },
-                      },
-                    }}
-                  >
-                    <div className="bg-white shadow-sm rounded-lg border border-gray-100 transition-shadow hover:shadow-md cursor-default">
-                      <div className="flex items-start justify-between mb-4 pb-0 p-3">
-                        <div className="flex items-center gap-3">
-                          <Avatar
-                            className="!bg-blue-100 !rounded-md !text-blue-600"
-                            src=""
-                          >
-                            {product.product_name?.charAt(0) || 'P'}
-                          </Avatar>
-                          <div className="flex flex-col">
-                            <h3 className="font-semibold text-gray-900 text-sm">
-                              {product.product_name || 'Unknown Product'}
-                            </h3>
-                            <p className="text-xs text-gray-500 truncate text-ellipsis">
-                              {product.product_code || 'N/A'}
-                            </p>
-                          </div>
-                        </div>
-                        <Chip
-                          label={stockStatus.label}
-                          size="small"
-                          color={stockStatus.color as ChipProps['color']}
-                          variant="outlined"
-                        />
-                      </div>
-                      <div className="space-y-1 pb-3 px-4">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-gray-600">
-                            Total Quantity
-                          </span>
-                          <span className="font-medium">
-                            {formatQuantityAndBase(
-                              product.total_remaining_quantity < 0
-                                ? 0
-                                : product.total_remaining_quantity,
-                              Number(product.total_remaining_base_quantity) < 0
-                                ? 0
-                                : product.total_remaining_base_quantity
-                            )}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-gray-600">
-                            Tracking Type
-                          </span>
-                          <span className="font-medium uppercase">
-                            {product.tracking_type}
-                          </span>
-                        </div>
-                        {product.tracking_type?.toLowerCase() === 'batch' ? (
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm text-gray-600">
-                              Batches
-                            </span>
-                            <span className="font-medium">
-                              {product.batches?.length || 0}
-                            </span>
-                          </div>
-                        ) : (
-                          product.tracking_type?.toLowerCase() === 'serial' && (
-                            <div className="flex items-center justify-between">
-                              <span className="text-sm text-gray-600">
-                                Serial Numbers
-                              </span>
-                              <span className="font-medium">
-                                {product.serials?.length || 0}
-                              </span>
-                            </div>
-                          )
-                        )}
-                      </div>
-                      {product.total_quantity > 0 &&
-                        product.total_quantity <= 10 && (
-                          <div className="border-t border-gray-100 p-3">
-                            <div className="flex items-center gap-2 text-orange-600 text-sm">
-                              <AlertTriangle className="w-4 h-4" />
-                              <span className="font-medium">
-                                Low Stock Alert
-                              </span>
-                            </div>
-                          </div>
-                        )}
-                    </div>
-                  </Tooltip>
-                );
-              })}
-          </div>
-        ) : (
-          <div className="flex flex-col items-center justify-center py-5 px-4 text-center bg-gray-50/50 rounded-lg border border-dashed border-gray-200">
-            <div className="w-16 h-16 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center mb-4">
-              <Inventory className="w-8 h-8" />
-            </div>
-            <Typography
-              variant="h6"
-              className="text-gray-900 font-semibold mb-1"
-            >
-              No items loaded
-            </Typography>
-            <Typography variant="body2" className="text-gray-500 max-w-sm">
-              This salesperson currently has no active inventory items.
-            </Typography>
-          </div>
-        )}
+        <Table<ProductInventory>
+          data={products || []}
+          columns={productColumns}
+          getRowId={(row: ProductInventory) => row.product_id}
+          pagination={false}
+          emptyMessage="No items loaded"
+        />
       </TabPanel>
 
       <TabPanel value={tabValue} index={1}>

@@ -27,6 +27,9 @@ const serializeUser = (
   platform: user.platform || null,
   is_active: user.is_active,
   log_inst: user.log_inst ?? null,
+  sub_inventory_parent_id: user.sub_inventory_parent_id,
+  sub_inventory_parent_name: user.sub_inventory_parent?.name || null,
+  has_active_van_inventory: user.inventory_stock_users ? user.inventory_stock_users.length > 0 : false,
   ...(includeCreatedAt && { created_at: user.createdate }),
   ...(includeUpdatedAt && { updated_at: user.updatedate }),
   sub_inventory_users: user.sub_inventory_users || [],
@@ -373,6 +376,32 @@ export const userController = {
               email: true,
             },
           },
+          sub_inventory_parent: {
+            select: {
+              name: true,
+            },
+          },
+          inventory_stock_users: {
+            where: {
+              current_stock: { gt: 0 },
+              is_active: 'Y',
+              OR: [{ is_unloadAll: 'N' }, { is_unloadAll: null }],
+            },
+            select: {
+              id: true,
+            },
+            take: 1,
+          },
+          sub_inventory_users: {
+            where: { is_active: 'Y' },
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              employee_id: true,
+              profile_image: true,
+            },
+          },
         },
       });
 
@@ -471,6 +500,11 @@ export const userController = {
               email: true,
             },
           },
+          sub_inventory_parent: {
+            select: {
+              name: true,
+            },
+          },
           other_users: {
             where: { is_active: 'Y' },
             select: {
@@ -490,6 +524,15 @@ export const userController = {
               employee_id: true,
               profile_image: true,
             },
+          },
+          inventory_stock_users: {
+            where: { 
+              current_stock: { gt: 0 },
+              is_active: 'Y',
+              OR: [{ is_unloadAll: 'N' }, { is_unloadAll: null }],
+            },
+            select: { id: true },
+            take: 1,
           },
         },
       });
@@ -807,6 +850,42 @@ export const userController = {
             where: { id: { in: parsedSubInventoryUserIds } },
             data: { sub_inventory_parent_id: targetUserId },
           });
+        }
+
+        // Sync changes to active container van inventories
+        const activeContainerVans = await prisma.van_inventory.findMany({
+          where: {
+            user_id: targetUserId,
+            sale_type: 'container',
+            is_active: 'Y',
+          },
+          select: { id: true },
+        });
+
+        if (activeContainerVans.length > 0) {
+          const activeVanIds = activeContainerVans.map((v: any) => v.id);
+
+          await prisma.van_inventory_sub_users.deleteMany({
+            where: { parent_id: { in: activeVanIds } },
+          });
+
+          if (parsedSubInventoryUserIds.length > 0) {
+            const newSubUserRecords: any[] = [];
+            for (const vanId of activeVanIds) {
+              for (const subUserId of parsedSubInventoryUserIds) {
+                newSubUserRecords.push({
+                  parent_id: vanId,
+                  user_id: subUserId,
+                  createdby: currentUserId,
+                  is_active: 'Y',
+                  createdate: new Date(),
+                });
+              }
+            }
+            await prisma.van_inventory_sub_users.createMany({
+              data: newSubUserRecords,
+            });
+          }
         }
       }
 
@@ -1276,11 +1355,20 @@ export const userController = {
       }
 
       if (role_name) {
-        where.user_role = {
-          name: {
-            contains: role_name as string,
-          },
-        };
+        const roles = (role_name as string).split(',').map(r => r.trim());
+        if (roles.length > 1) {
+          where.user_role = {
+            name: {
+              in: roles,
+            },
+          };
+        } else {
+          where.user_role = {
+            name: {
+              contains: role_name as string,
+            },
+          };
+        }
       }
 
       const users = await prisma.users.findMany({

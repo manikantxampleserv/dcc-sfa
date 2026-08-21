@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import classNames from 'classnames';
 import { DragDropContext, Draggable, Droppable } from '@hello-pangea/dnd';
+import { toast } from 'react-toastify';
 import { useFormik } from 'formik';
 import { useDepots } from 'hooks/useDepots';
 import { useRolesDropdown } from 'hooks/useRoles';
@@ -134,30 +135,37 @@ const ManageUsers: React.FC<ManageUsersProps> = ({
     },
   });
 
-  const initialValues = {
-    name: selectedUser?.name || '',
-    email: selectedUser?.email || '',
-    role_id: selectedUser?.role_id || '',
-    depot_ids:
-      selectedUser?.depots && Array.isArray(selectedUser.depots)
-        ? selectedUser.depots.map((d: any) => d?.id?.toString()).filter(Boolean)
-        : [],
-    sub_inventory_user_ids:
-      (selectedUser as any)?.sub_inventory_users &&
-      Array.isArray((selectedUser as any).sub_inventory_users)
-        ? (selectedUser as any).sub_inventory_users.map((u: any) => u.id.toString())
-        : [],
-    sap_code: selectedUser?.sap_code || '',
-    phone_number: selectedUser?.phone_number || '',
-    employee_id: selectedUser?.employee_id || '',
-    address: selectedUser?.address || '',
-    joining_date: formatForDateInput(selectedUser?.joining_date),
-    reporting_to: selectedUser?.reporting_to || '',
-    platform: selectedUser?.platform || 'both',
-    password: '',
-    is_active: selectedUser?.is_active || 'Y',
-    isEdit: !!selectedUser,
-  };
+  const initialValues = useMemo(
+    () => ({
+      name: selectedUser?.name || '',
+      email: selectedUser?.email || '',
+      role_id: selectedUser?.role_id || '',
+      depot_ids:
+        selectedUser?.depots && Array.isArray(selectedUser.depots)
+          ? selectedUser.depots
+              .map((d: any) => d?.id?.toString())
+              .filter(Boolean)
+          : [],
+      sub_inventory_user_ids:
+        (selectedUser as any)?.sub_inventory_users &&
+        Array.isArray((selectedUser as any).sub_inventory_users)
+          ? (selectedUser as any).sub_inventory_users.map((u: any) =>
+              u.id.toString()
+            )
+          : [],
+      sap_code: selectedUser?.sap_code || '',
+      phone_number: selectedUser?.phone_number || '',
+      employee_id: selectedUser?.employee_id || '',
+      address: selectedUser?.address || '',
+      joining_date: formatForDateInput(selectedUser?.joining_date),
+      reporting_to: selectedUser?.reporting_to || '',
+      platform: selectedUser?.platform || 'both',
+      password: '',
+      is_active: selectedUser?.is_active || 'Y',
+      isEdit: !!selectedUser,
+    }),
+    [selectedUser]
+  );
 
   const saveUserData = async (values: typeof initialValues) => {
     try {
@@ -327,6 +335,21 @@ const ManageUsers: React.FC<ManageUsersProps> = ({
           !assignedIds.includes(user.id.toString()) &&
           user.id !== selectedUser?.id
       )
+      .map(user => {
+        let disabledReason = '';
+        if (user.has_active_van_inventory) {
+          disabledReason = 'Has loaded items in inventory';
+        } else if (
+          user.sub_inventory_parent_id &&
+          user.sub_inventory_parent_id !== selectedUser?.id
+        ) {
+          const groupName = user.sub_inventory_parent_name
+            ? ` ${user.sub_inventory_parent_name}`
+            : '';
+          disabledReason = `Already assigned to${groupName}`;
+        }
+        return { ...user, disabledReason };
+      })
       .filter(user => {
         if (!availableUsersSearch) return true;
         const searchLower = availableUsersSearch.toLowerCase();
@@ -365,6 +388,13 @@ const ManageUsers: React.FC<ManageUsersProps> = ({
       source.droppableId === 'available-users' &&
       destination.droppableId === 'assigned-users'
     ) {
+      const draggedUser = availableUsers.find(
+        u => u.id.toString() === draggableId
+      );
+      if (draggedUser?.disabledReason) {
+        toast.error(draggedUser.disabledReason);
+        return;
+      }
       newAssignedIds.splice(destination.index, 0, draggableId as string);
       formik.setFieldValue('sub_inventory_user_ids', newAssignedIds);
     } else if (
@@ -403,17 +433,20 @@ const ManageUsers: React.FC<ManageUsersProps> = ({
   const UserCard = ({
     user,
     showSequence,
+    disabledReason,
   }: {
     user: any;
     showSequence?: number;
+    disabledReason?: string;
   }) => (
     <div
+      title={disabledReason || ''}
       className={classNames(
         '!flex !items-center !gap-3 !p-2 !pr-3 !bg-white !border !border-gray-200 !rounded-lg !mb-2',
-        { 'hover:!border-blue-300 hover:!shadow-md': true }
+        'hover:!border-blue-300 hover:!shadow-md'
       )}
     >
-      <GripVertical className="!w-5 !h-5 !text-gray-400 !cursor-grab !flex-shrink-0" />
+      <GripVertical className="!w-5 !h-5 !flex-shrink-0 !text-gray-400 !cursor-grab" />
       <Avatar
         alt={user.name}
         src={user.profile_pic || user.profile_image || undefined}
@@ -671,7 +704,10 @@ const ManageUsers: React.FC<ManageUsersProps> = ({
                                         ...provided.draggableProps.style,
                                       }}
                                     >
-                                      <UserCard user={user} />
+                                      <UserCard
+                                        user={user}
+                                        disabledReason={user.disabledReason}
+                                      />
                                     </div>
                                   )}
                                 </Draggable>

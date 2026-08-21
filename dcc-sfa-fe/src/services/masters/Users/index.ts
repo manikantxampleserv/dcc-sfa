@@ -19,6 +19,9 @@ interface User {
   name: string;
   role_id: number;
   parent_id?: number | null;
+  sub_inventory_parent_id?: number | null;
+  sub_inventory_parent_name?: string | null;
+  has_active_van_inventory?: boolean;
   depot_id?: number | null;
   zone_id?: number | null;
   phone_number?: string | null;
@@ -297,7 +300,9 @@ export const updateUserLogInst = async (
   log_inst: number
 ): Promise<ApiResponse<any>> => {
   try {
-    const response = await axiosInstance.put(`/users/${id}/log-inst`, { log_inst });
+    const response = await axiosInstance.put(`/users/${id}/log-inst`, {
+      log_inst,
+    });
     return response.data;
   } catch (error) {
     throw error;
