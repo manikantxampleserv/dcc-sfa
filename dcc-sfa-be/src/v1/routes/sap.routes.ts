@@ -1,11 +1,10 @@
 import express from 'express';
-import { sapController } from '../controllers/sap.controller';
 import {
   authenticateToken,
   requirePermission,
 } from '../../middlewares/auth.middleware';
-import { auditUpdate } from '../../middlewares/audit.middleware';
 import { createRequestLogger } from '../../middlewares/requestLogger.middleware';
+import { sapController } from '../controllers/sap.controller';
 const router = express.Router();
 
 router.use(createRequestLogger('sap'));

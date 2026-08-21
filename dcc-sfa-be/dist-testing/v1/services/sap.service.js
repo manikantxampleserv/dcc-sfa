@@ -172,6 +172,9 @@ exports.sapService = {
         if (!spUser) {
             throw new Error(`Salesman with SAP code ${inventoryData.salesman_sap_code} not found`);
         }
+        if (spUser.sub_inventory_parent_id) {
+            throw new Error(`This salesman is assigned as a container group member. Please sync inventory using the container group's SAP code instead.`);
+        }
         inventoryData.user_id = spUser.id;
         let targetDepotId = null;
         if (inventoryData.depot_sap_code) {

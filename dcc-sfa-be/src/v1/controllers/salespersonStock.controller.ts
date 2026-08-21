@@ -80,7 +80,13 @@ export const salespersonStockController = {
           phone_number: true,
           profile_image: true,
           address: true,
+          employee_id: true,
+          sap_code: true,
           user_role: { select: { name: true } },
+          sub_inventory_users: {
+            where: { is_active: 'Y' },
+            select: { name: true },
+          },
         },
       });
 
@@ -405,6 +411,12 @@ export const salespersonStockController = {
           salesperson_phone: salesperson.phone_number,
           salesperson_profile_image: salesperson.profile_image,
           salesperson_address: salesperson.address,
+          salesperson_employee_id: salesperson.employee_id || null,
+          salesperson_sap_code: salesperson.sap_code || null,
+          helpers:
+            salesperson.sub_inventory_users
+              ?.map((u: any) => u.name)
+              .join(', ') || null,
           combined_salesperson_ids: targetSalespersonIds,
           total_van_inventories: totalVanInventories,
           total_products: products.length,
@@ -600,16 +612,32 @@ async function handleAllSalespersons(
     req.query;
 
   const usersWhere: any = {
-    user_role: {
-      OR: [
-        { name: { contains: 'Salesman' } },
-        { name: { contains: 'salesman' } },
-        { name: { contains: 'Sales Person' } },
-        { name: { contains: 'sales person' } },
-        { name: { contains: 'Sales Man' } },
-        { name: { contains: 'sales man' } },
-      ],
-    },
+    AND: [
+      {
+        OR: [
+          {
+            user_role: {
+              OR: [
+                { name: { contains: 'Salesman' } },
+                { name: { contains: 'salesman' } },
+                { name: { contains: 'Sales Person' } },
+                { name: { contains: 'sales person' } },
+                { name: { contains: 'Sales Man' } },
+                { name: { contains: 'sales man' } },
+                { name: { contains: 'Group' } },
+                { name: { contains: 'group' } },
+              ],
+            },
+          },
+          {
+            van_inventory_users: {
+              some: { is_active: 'Y' },
+            },
+          },
+        ],
+      },
+      { sub_inventory_parent_id: null },
+    ],
   };
   if (supervisor_id) {
     usersWhere.reporting_to = parseInt(supervisor_id as string, 10);
@@ -632,13 +660,15 @@ async function handleAllSalespersons(
 
   if (isScopeRestricted) {
     if (depotIds.length > 0) {
-      usersWhere.users_depots_users = {
-        some: {
-          depot_id: { in: depotIds },
+      usersWhere.AND.push({
+        users_depots_users: {
+          some: {
+            depot_id: { in: depotIds },
+          },
         },
-      };
+      });
     } else {
-      usersWhere.id = -1;
+      usersWhere.AND.push({ id: -1 });
     }
   }
 
@@ -651,8 +681,14 @@ async function handleAllSalespersons(
       phone_number: true,
       profile_image: true,
       address: true,
+      sap_code: true,
       user_role: { select: { name: true } },
+      sub_inventory_users: {
+        where: { is_active: 'Y' },
+        select: { name: true },
+      },
     },
+
   });
 
   const consolidated: any[] = [];
@@ -735,6 +771,8 @@ async function handleAllSalespersons(
       0
     );
 
+    if (totalQty === 0 && totalBaseQty === 0) continue;
+
     productStockMap.forEach((_, pid) => overallProducts.add(pid));
     overallTotalQty += totalQty;
     overallVanInventories += vanInventoriesCount;
@@ -747,7 +785,10 @@ async function handleAllSalespersons(
       salesperson_email: sp.email,
       salesperson_phone: sp.phone_number,
       salesperson_profile_image: sp.profile_image,
+      salesperson_sap_code: sp.sap_code || null,
       salesperson_address: sp.address,
+      helpers:
+        sp.sub_inventory_users?.map((u: any) => u.name).join(', ') || null,
       total_van_inventories: vanInventoriesCount,
       total_products: productStockMap.size,
       total_quantity: totalQty,

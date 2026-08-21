@@ -98,6 +98,9 @@ export interface SalespersonInventoryData {
   salesperson_phone: string;
   salesperson_profile_image?: string;
   salesperson_address?: string;
+  salesperson_employee_id?: string | null;
+  salesperson_sap_code?: string | null;
+  helpers?: string | null;
   combined_salesperson_ids?: number[];
   total_van_inventories: number;
   total_products: number;

@@ -865,13 +865,58 @@ export const invoicesController = {
       };
 
       if (salesperson_id) {
-        if (!filters.AND) filters.AND = [];
-        filters.AND.push({
-          OR: [
-            { salesperson_id: Number(salesperson_id) },
-            { createdby: Number(salesperson_id) },
-          ],
+        let ids = String(salesperson_id)
+          .split(',')
+          .map(id => Number(id.trim()))
+          .filter(id => !isNaN(id));
+
+        // Automatically expand the ID to include group members if it's a single ID
+        if (ids.length === 1) {
+          const expandedIds = await getContainerOwnerAndSelf(prisma, ids[0]);
+          if (expandedIds.length > 0) {
+            ids = expandedIds;
+          }
+        }
+
+        let invoiceIdsFromMovements: number[] = [];
+        
+        // Find active van inventories for these users
+        const vanInventories = await prisma.van_inventory.findMany({
+          where: {
+            user_id: { in: ids },
+            is_active: 'Y',
+            status: 'A',
+          },
+          select: { id: true },
         });
+
+        if (vanInventories.length > 0) {
+          const movements = await prisma.stock_movements.findMany({
+            where: {
+              van_inventory_id: { in: vanInventories.map((v: any) => v.id) },
+              reference_type: 'INVOICE',
+            },
+            select: { reference_id: true },
+          });
+          invoiceIdsFromMovements = movements
+            .map((m: any) => m.reference_id)
+            .filter((id: any) => id !== null) as number[];
+        }
+
+        if (ids.length > 0) {
+          if (!filters.AND) filters.AND = [];
+          
+          const orConditions: any[] = [
+            { salesperson_id: { in: ids } },
+            { createdby: { in: ids } },
+          ];
+          
+          if (invoiceIdsFromMovements.length > 0) {
+            orConditions.push({ id: { in: invoiceIdsFromMovements } });
+          }
+          
+          filters.AND.push({ OR: orConditions });
+        }
       }
 
       if (isScopeRestricted) {

@@ -39,7 +39,6 @@ import Input from 'shared/Input';
 import Select from 'shared/Select';
 import Table, { type TableColumn } from 'shared/Table';
 import UserSelect from 'shared/UserSelect';
-import MultiUserSelect from 'shared/MultiUserSelect';
 import ManageBatch from '../ManageBatch';
 import ManageSerial from '../ManageSerial';
 
@@ -1065,7 +1064,7 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
               label="Van Inventory User"
               formik={formik}
               required
-              roleName="Salesman"
+              roleName="Salesman,Sales Group"
               onChange={() => {
                 formik.setFieldValue('location_id', '');
               }}
@@ -1092,30 +1091,6 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
               <MenuItem value="L">Load</MenuItem>
               <MenuItem value="U">Unload</MenuItem>
             </Select>
-
-            <Select
-              disableClearable
-              name="sale_type"
-              label="Sale Type"
-              formik={formik}
-              required
-            >
-              <MenuItem value="normal">Normal</MenuItem>
-              <MenuItem value="container">Container</MenuItem>
-            </Select>
-
-            {formik.values.sale_type === 'container' && (
-              <Box className="md:col-span-2">
-                <MultiUserSelect
-                  name="sub_inventory_user_ids"
-                  label="Sub Inventory Users"
-                  formik={formik}
-                  required
-                  roleName="Salesman"
-                  placeholder="Select Sub Inventory Users..."
-                />
-              </Box>
-            )}
 
             <Input
               name="document_date"
