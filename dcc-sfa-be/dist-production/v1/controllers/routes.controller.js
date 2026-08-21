@@ -158,8 +158,6 @@ exports.routesController = {
                                 { name: { contains: 'Salesperson' } },
                                 { role_key: { contains: 'salesman' } },
                                 { role_key: { contains: 'salesperson' } },
-                                { name: { contains: 'Surveyor' } },
-                                { role_key: { contains: 'surveyor' } },
                             ],
                         },
                     },
