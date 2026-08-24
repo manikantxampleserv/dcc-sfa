@@ -10,6 +10,7 @@ const requests_controller_1 = require("./requests.controller");
 const prisma_client_1 = __importDefault(require("../../configs/prisma.client"));
 const client_1 = require("@prisma/client");
 const permissions_config_1 = require("../../configs/permissions.config");
+const inventory_utils_1 = require("../utils/inventory.utils");
 const serializeOrder = (order) => ({
     id: order.id,
     order_number: order.order_number,
@@ -574,6 +575,7 @@ async function processInventoryChange(tx, params) {
         conversionFactor,
         trackingType,
     });
+    const targetSalespersonIds = await (0, inventory_utils_1.getContainerOwnerAndSelf)(tx, order.salesperson_id || userId);
     if (trackingType === 'BATCH') {
         const batchData = item.batches || item.product_batches;
         if (!batchData || !Array.isArray(batchData) || batchData.length === 0) {
@@ -627,7 +629,10 @@ async function processInventoryChange(tx, params) {
                     where: {
                         product_id: product.id,
                         batch_lot_id: batch.batch_lot_id,
-                        van_inventory_items_inventory: { is_active: 'Y' },
+                        van_inventory_items_inventory: {
+                            user_id: { in: targetSalespersonIds },
+                            is_active: 'Y',
+                        },
                     },
                 });
                 if (!vanItem && movementType === 'SALE') {
@@ -650,7 +655,11 @@ async function processInventoryChange(tx, params) {
                     console.log(` VAN PCS → cases=${vanRes.newQuantity}, pcs=${vanRes.newBaseQuantity}`);
                 }
                 const stock = await tx.inventory_stock.findFirst({
-                    where: { product_id: product.id, batch_id: batch.batch_lot_id },
+                    where: {
+                        product_id: product.id,
+                        batch_id: batch.batch_lot_id,
+                        salesperson_id: { in: targetSalespersonIds },
+                    },
                 });
                 if (stock) {
                     const stockRes = calc(Number(stock.current_stock) || 0, Number(stock.base_quantity) || 0);
@@ -778,7 +787,11 @@ async function processInventoryChange(tx, params) {
                 },
             });
             const inventoryStock = await tx.inventory_stock.findFirst({
-                where: { product_id: product.id, serial_number_id: serial.id },
+                where: {
+                    product_id: product.id,
+                    serial_number_id: serial.id,
+                    salesperson_id: { in: targetSalespersonIds },
+                },
             });
             if (inventoryStock) {
                 const qChange = movementType === 'SALE' ? -1 : 1;
@@ -796,7 +809,10 @@ async function processInventoryChange(tx, params) {
                 where: {
                     product_id: product.id,
                     serial_id: serial.id,
-                    van_inventory_items_inventory: { is_active: 'Y' },
+                    van_inventory_items_inventory: {
+                        user_id: { in: targetSalespersonIds },
+                        is_active: 'Y',
+                    },
                 },
             });
             if (vanItem) {
@@ -842,7 +858,10 @@ async function processInventoryChange(tx, params) {
         const vanItem = await tx.van_inventory_items.findFirst({
             where: {
                 product_id: product.id,
-                van_inventory_items_inventory: { is_active: 'Y' },
+                van_inventory_items_inventory: {
+                    user_id: { in: targetSalespersonIds },
+                    is_active: 'Y',
+                },
             },
         });
         if (vanItem) {
@@ -886,6 +905,7 @@ async function processInventoryChange(tx, params) {
                 product_id: product.id,
                 batch_id: null,
                 serial_number_id: null,
+                salesperson_id: { in: targetSalespersonIds },
             },
         });
         if (stock) {

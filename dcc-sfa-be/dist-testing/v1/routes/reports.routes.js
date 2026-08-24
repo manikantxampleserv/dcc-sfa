@@ -144,5 +144,19 @@ router.get('/attendance-history', auth_middleware_1.authenticateToken, (0, auth_
  * @params Query: start_date, end_date, user_id, action_type, search
  */
 router.get('/attendance-history/export', auth_middleware_1.authenticateToken, (0, auth_middleware_1.requirePermission)([{ module: 'report', action: 'read' }]), reports_controller_1.reportsController.exportAttendanceHistoryReport);
+/**
+ * @route GET /api/v1/reports/cooler-inspections
+ * @description Get Cooler Inspections Report
+ * @access Private (requires authentication)
+ * @params Query: page, limit, barcode, customer_name, is_working, action_required, status, inspector_id, inspection_date
+ */
+router.get('/cooler-inspections', auth_middleware_1.authenticateToken, (0, auth_middleware_1.requirePermission)([{ module: 'report', action: 'read' }]), reports_controller_1.reportsController.getCoolerInspectionsReport);
+/**
+ * @route GET /api/v1/reports/cooler-inspections/export
+ * @description Export Cooler Inspections Report to Excel
+ * @access Private (requires authentication)
+ * @params Query: barcode, serial, brand, location, depot_name, code, outlet_name, status, last_scanned_date, seller_id
+ */
+router.get('/cooler-inspections/export', auth_middleware_1.authenticateToken, (0, auth_middleware_1.requirePermission)([{ module: 'report', action: 'read' }]), reports_controller_1.reportsController.exportCoolerInspectionsReport);
 exports.default = router;
 //# sourceMappingURL=reports.routes.js.map

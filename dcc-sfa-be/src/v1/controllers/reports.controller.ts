@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { paginate } from '../../utils/paginate';
 import prisma from '../../configs/prisma.client';
 import { isAdminRole } from '../../configs/permissions.config';
+import { getTimeFilter } from '../../utils/dateFilters';
 
 async function getReportData(filters: any) {
   const {
@@ -4803,6 +4804,310 @@ export const reportsController = {
       res.send(Buffer.from(buffer));
     } catch (error: any) {
       console.error('Export Attendance History Report Error:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Failed to export report',
+      });
+    }
+  },
+
+  /**
+   * Get Cooler Inspections Report
+   * Returns paginated cooler inspections data.
+   */
+  async getCoolerInspectionsReport(req: Request, res: Response) {
+    try {
+      const {
+        page,
+        limit,
+        barcode,
+        customer_name,
+        is_working,
+        action_required,
+        status,
+        inspector_id,
+        inspection_date,
+      } = req.query;
+
+      const page_num = page ? parseInt(page as string, 10) : 1;
+      const limit_num = limit ? parseInt(limit as string, 10) : 10;
+
+      const where: any = {};
+
+      if (barcode) {
+        where.coolers = {
+          OR: [
+            { code: { contains: barcode as string } },
+            {
+              cooler_asset_master: { barcode: { contains: barcode as string } },
+            },
+          ],
+        };
+      }
+      if (customer_name) {
+        where.coolers = {
+          ...where.coolers,
+          coolers_customers: {
+            name: { contains: customer_name as string },
+          },
+        };
+      }
+      if (is_working) {
+        where.is_working = is_working === 'Y' ? 'Y' : 'N';
+      }
+      if (action_required) {
+        where.action_required = action_required === 'Y' ? 'Y' : 'N';
+      }
+      if (status && status !== 'all') {
+        const statusVal = (status as string).toLowerCase();
+        where.is_active =
+          statusVal === 'active' || statusVal === 'y' ? 'Y' : 'N';
+      }
+      if (inspector_id) {
+        where.inspected_by = parseInt(inspector_id as string, 10);
+      }
+
+      if (inspection_date) {
+        const targetDate = new Date(inspection_date as string);
+        if (!isNaN(targetDate.getTime())) {
+          const startOfDay = new Date(targetDate);
+          startOfDay.setHours(0, 0, 0, 0);
+          const endOfDay = new Date(targetDate);
+          endOfDay.setHours(23, 59, 59, 999);
+          where.inspection_date = { gte: startOfDay, lte: endOfDay };
+        }
+      }
+
+      const skip = (page_num - 1) * limit_num;
+
+      const inspections = await prisma.cooler_inspections.findMany({
+        where,
+        skip,
+        take: limit_num,
+        orderBy: { inspection_date: 'desc' },
+        include: {
+          coolers: {
+            include: {
+              cooler_asset_master: true,
+              coolers_customers: true,
+            },
+          },
+          users: {
+            select: { id: true, name: true, employee_id: true, email: true },
+          },
+        },
+      });
+
+      const totalCount = await prisma.cooler_inspections.count({ where });
+
+      const workingCount = await prisma.cooler_inspections.count({
+        where: { ...where, is_working: 'Y' },
+      });
+      const notWorkingCount = await prisma.cooler_inspections.count({
+        where: { ...where, is_working: 'N' },
+      });
+      const actionRequiredCount = await prisma.cooler_inspections.count({
+        where: { ...where, action_required: 'Y' },
+      });
+
+      res.json({
+        success: true,
+        message: 'Cooler Inspections Report retrieved successfully',
+        data: inspections,
+        meta: {
+          current_page: page_num,
+          total_pages: Math.ceil(totalCount / limit_num),
+          total_count: totalCount,
+          has_next: skip + limit_num < totalCount,
+          has_previous: page_num > 1,
+        },
+        stats: {
+          total_inspections: totalCount,
+          working_coolers: workingCount,
+          not_working_coolers: notWorkingCount,
+          action_required: actionRequiredCount,
+        },
+      });
+    } catch (error: any) {
+      console.error('Get Cooler Inspections Report Error:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Failed to retrieve report',
+      });
+    }
+  },
+
+  /**
+   * Export Cooler Inspections Report to Excel
+   */
+  async exportCoolerInspectionsReport(req: Request, res: Response) {
+    try {
+      const {
+        barcode,
+        customer_name,
+        is_working,
+        action_required,
+        status,
+        inspector_id,
+        inspection_date,
+      } = req.query;
+
+      const where: any = {};
+
+      if (barcode) {
+        where.coolers = {
+          OR: [
+            { code: { contains: barcode as string } },
+            {
+              cooler_asset_master: { barcode: { contains: barcode as string } },
+            },
+          ],
+        };
+      }
+      if (customer_name) {
+        where.coolers = {
+          ...where.coolers,
+          coolers_customers: {
+            name: { contains: customer_name as string },
+          },
+        };
+      }
+      if (is_working) {
+        where.is_working = is_working === 'Y' ? 'Y' : 'N';
+      }
+      if (action_required) {
+        where.action_required = action_required === 'Y' ? 'Y' : 'N';
+      }
+      if (status && status !== 'all') {
+        const statusVal = (status as string).toLowerCase();
+        where.is_active =
+          statusVal === 'active' || statusVal === 'y' ? 'Y' : 'N';
+      }
+      if (inspector_id) {
+        where.inspected_by = parseInt(inspector_id as string, 10);
+      }
+
+      if (inspection_date) {
+        const targetDate = new Date(inspection_date as string);
+        if (!isNaN(targetDate.getTime())) {
+          const startOfDay = new Date(targetDate);
+          startOfDay.setHours(0, 0, 0, 0);
+          const endOfDay = new Date(targetDate);
+          endOfDay.setHours(23, 59, 59, 999);
+          where.inspection_date = { gte: startOfDay, lte: endOfDay };
+        }
+      }
+
+      const inspections = await prisma.cooler_inspections.findMany({
+        where,
+        orderBy: { inspection_date: 'desc' },
+        include: {
+          coolers: {
+            include: {
+              cooler_asset_master: {
+                include: {
+                  asset_master_asset_types: true,
+                  asset_master_asset_sub_types: true,
+                  asset_master_brand: true,
+                  asset_master_brands: true,
+                },
+              },
+              coolers_customers: true,
+              cooler_types: true,
+              cooler_sub_types: true,
+            },
+          },
+          users: {
+            select: { id: true, name: true, employee_id: true, email: true },
+          },
+        },
+      });
+
+      const ExcelJS = await import('exceljs');
+      const workbook = new ExcelJS.Workbook();
+      const sheet = workbook.addWorksheet('Cooler Inspections', {
+        pageSetup: { paperSize: 9, orientation: 'landscape' },
+      });
+
+      sheet.columns = [
+        { header: 'Barcode', key: 'barcode', width: 20 },
+        { header: 'Serial', key: 'serial', width: 20 },
+        { header: 'Type', key: 'type', width: 20 },
+        { header: 'SubType', key: 'subtype', width: 20 },
+        { header: 'Brand', key: 'brand', width: 20 },
+        { header: 'Location (Outlet / Depot)', key: 'location', width: 20 },
+        { header: 'Depot Name', key: 'depot_name', width: 20 },
+        { header: 'Depot / OutletCode', key: 'depot_outlet_code', width: 20 },
+        { header: 'OutletName', key: 'outlet_name', width: 25 },
+        { header: 'Status', key: 'status', width: 15 },
+        { header: 'Disabled', key: 'disabled', width: 15 },
+        { header: 'InstallDate', key: 'install_date', width: 20 },
+        { header: 'LastScanned Date', key: 'last_scanned_date', width: 20 },
+        {
+          header: 'Last Scanned Seller Code',
+          key: 'last_scanned_seller_code',
+          width: 20,
+        },
+        {
+          header: 'Last Scanned Seller Name',
+          key: 'last_scanned_seller_name',
+          width: 25,
+        },
+      ];
+
+      sheet.columns.forEach(column => {
+        column.font = { name: 'Aptos Narrow', size: 11 };
+      });
+
+      inspections.forEach(row => {
+        sheet.addRow({
+          barcode: row.coolers?.cooler_asset_master?.barcode || '',
+          serial: row.coolers?.serial_number || '',
+          type:
+            row.coolers?.cooler_types?.name ||
+            row.coolers?.cooler_asset_master?.asset_master_asset_types?.name ||
+            '',
+          subtype:
+            row.coolers?.cooler_sub_types?.name ||
+            row.coolers?.cooler_asset_master?.asset_master_asset_sub_types
+              ?.name ||
+            '',
+          brand:
+            row.coolers?.brand ||
+            row.coolers?.cooler_asset_master?.brand ||
+            row.coolers?.cooler_asset_master?.asset_master_brand?.name ||
+            row.coolers?.cooler_asset_master?.asset_master_brands?.name ||
+            '',
+          location: 'Outlet',
+          depot_name: '',
+          depot_outlet_code: row.coolers?.coolers_customers?.code || '',
+          outlet_name: row.coolers?.coolers_customers?.name || '',
+          status: row.is_working === 'Y' ? 'Working' : 'Not Working',
+          disabled: row.coolers?.is_active === 'N' ? 'TRUE' : 'FALSE',
+          install_date: row.coolers?.install_date
+            ? new Date(row.coolers.install_date).toLocaleDateString()
+            : '',
+          last_scanned_date: row.inspection_date
+            ? new Date(row.inspection_date).toLocaleString()
+            : '',
+          last_scanned_seller_code: row.users?.employee_id || '',
+          last_scanned_seller_name: row.users?.name || '',
+        });
+      });
+
+      res.setHeader(
+        'Content-Type',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      );
+      res.setHeader(
+        'Content-Disposition',
+        'attachment; filename=Cooler_Inspections_Report.xlsx'
+      );
+
+      await workbook.xlsx.write(res);
+      res.end();
+    } catch (error: any) {
+      console.error('Export Cooler Inspections Report Error:', error);
       res.status(500).json({
         success: false,
         message: error.message || 'Failed to export report',

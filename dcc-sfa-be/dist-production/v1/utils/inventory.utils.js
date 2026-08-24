@@ -748,24 +748,12 @@ async function processVanInventoryItems(tx, inventory, items, userId, loadingTyp
     }
 }
 async function getContainerOwnerAndSelf(tx, userId) {
-    const containerSub = await tx.van_inventory_sub_users.findFirst({
-        where: {
-            user_id: userId,
-            is_active: 'Y',
-            van_inventory: {
-                sale_type: 'container',
-                is_active: 'Y',
-                status: 'A',
-            },
-        },
-        include: {
-            van_inventory: {
-                select: { user_id: true },
-            },
-        },
+    const user = await tx.users.findUnique({
+        where: { id: userId },
+        select: { sub_inventory_parent_id: true, is_active: true },
     });
-    if (containerSub?.van_inventory) {
-        return Array.from(new Set([containerSub.van_inventory.user_id, userId]));
+    if (user && user.is_active === 'Y' && user.sub_inventory_parent_id) {
+        return Array.from(new Set([user.sub_inventory_parent_id, userId]));
     }
     return [userId];
 }

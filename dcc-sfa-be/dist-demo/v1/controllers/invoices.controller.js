@@ -642,14 +642,51 @@ exports.invoicesController = {
                         : undefined),
             };
             if (salesperson_id) {
-                if (!filters.AND)
-                    filters.AND = [];
-                filters.AND.push({
-                    OR: [
-                        { salesperson_id: Number(salesperson_id) },
-                        { createdby: Number(salesperson_id) },
-                    ],
+                let ids = String(salesperson_id)
+                    .split(',')
+                    .map(id => Number(id.trim()))
+                    .filter(id => !isNaN(id));
+                // Automatically expand the ID to include group members if it's a single ID
+                if (ids.length === 1) {
+                    const expandedIds = await (0, inventory_utils_1.getContainerOwnerAndSelf)(prisma_client_1.default, ids[0]);
+                    if (expandedIds.length > 0) {
+                        ids = expandedIds;
+                    }
+                }
+                let invoiceIdsFromMovements = [];
+                // Find active van inventories for these users
+                const vanInventories = await prisma_client_1.default.van_inventory.findMany({
+                    where: {
+                        user_id: { in: ids },
+                        is_active: 'Y',
+                        status: 'A',
+                    },
+                    select: { id: true },
                 });
+                if (vanInventories.length > 0) {
+                    const movements = await prisma_client_1.default.stock_movements.findMany({
+                        where: {
+                            van_inventory_id: { in: vanInventories.map((v) => v.id) },
+                            reference_type: 'INVOICE',
+                        },
+                        select: { reference_id: true },
+                    });
+                    invoiceIdsFromMovements = movements
+                        .map((m) => m.reference_id)
+                        .filter((id) => id !== null);
+                }
+                if (ids.length > 0) {
+                    if (!filters.AND)
+                        filters.AND = [];
+                    const orConditions = [
+                        { salesperson_id: { in: ids } },
+                        { createdby: { in: ids } },
+                    ];
+                    if (invoiceIdsFromMovements.length > 0) {
+                        orConditions.push({ id: { in: invoiceIdsFromMovements } });
+                    }
+                    filters.AND.push({ OR: orConditions });
+                }
             }
             if (isScopeRestricted) {
                 if (depotIds.length > 0) {

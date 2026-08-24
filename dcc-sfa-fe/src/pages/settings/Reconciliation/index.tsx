@@ -1,5 +1,5 @@
 import { Visibility } from '@mui/icons-material';
-import { Chip, MenuItem } from '@mui/material';
+import { Chip } from '@mui/material';
 import { usePermission } from 'hooks/usePermission';
 import {
   useReconciliations,
@@ -12,7 +12,6 @@ import { ActionButton } from 'shared/ActionButton';
 import DepotSelect from 'shared/DepotSelect';
 import Input from 'shared/Input';
 import SearchInput from 'shared/SearchInput';
-import Select from 'shared/Select';
 import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
 import { formatDate, formatDateTime } from 'utils/dateUtils';
@@ -25,7 +24,6 @@ export default function Reconciliation() {
       new Date().toISOString().split('T')[0]
   );
   const [depotFilter, setDepotFilter] = useState<number | undefined>(undefined);
-  const [statusFilter, setStatusFilter] = useState('all');
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
 
@@ -38,7 +36,7 @@ export default function Reconciliation() {
       search: searchQuery || undefined,
       depot_id: depotFilter,
       date: selectedDate || undefined,
-      status: statusFilter !== 'all' ? statusFilter : undefined,
+      status: 'all',
     },
     {
       enabled: isRead,
@@ -253,7 +251,7 @@ export default function Reconciliation() {
                   className="!w-44"
                 />
 
-                <div className="w-52">
+                <div className="w-64">
                   <DepotSelect
                     value={depotFilter ? ({ id: depotFilter } as any) : null}
                     onChange={(_, value) => {
@@ -263,22 +261,6 @@ export default function Reconciliation() {
                     placeholder="Filter by Depot"
                   />
                 </div>
-
-                <Select
-                  value={statusFilter}
-                  onChange={e => {
-                    setStatusFilter(e.target.value as string);
-                    setPage(1);
-                  }}
-                  className="!w-72"
-                >
-                  <MenuItem value="all">All Statuses</MenuItem>
-                  <MenuItem value="Pending">Pending Verification</MenuItem>
-                  <MenuItem value="Matched">Matched (CLEAN)</MenuItem>
-                  <MenuItem value="Short">Shortage (Outlet Posting)</MenuItem>
-                  <MenuItem value="Excess">Excess (Unload Adjustment)</MenuItem>
-                  <MenuItem value="Blocked">Blocked (Force-Push Req)</MenuItem>
-                </Select>
               </div>
             </div>
           ) : (

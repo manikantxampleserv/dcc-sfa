@@ -4794,6 +4794,481 @@ exports.vanInventoryController = {
      * @param req
      * @param res
      */
+    // async unloadVanInventory(req: Request, res: Response) {
+    //   try {
+    //     const loggedInUserId = (req as any).user?.id;
+    //     const targetUserId = req.body.user_id || loggedInUserId;
+    //     if (!targetUserId) {
+    //       return res.status(401).json({
+    //         success: false,
+    //         message: 'User not authenticated or token invalid',
+    //       });
+    //     }
+    //     const userIdNum = parseInt(targetUserId.toString(), 10);
+    //     const vanLocations = await prisma.van_inventory.findMany({
+    //       where: { user_id: userIdNum, is_active: 'Y' },
+    //       select: { location_id: true, vehicle_id: true },
+    //       distinct: ['location_id'],
+    //     });
+    //     if (vanLocations.length === 0) {
+    //       return res.status(400).json({
+    //         success: false,
+    //         message: 'No active van inventory found for authenticated user',
+    //       });
+    //     }
+    //     let totalItemsRequested = 0;
+    //     const reconciliationIds: number[] = [];
+    //     const errors: string[] = [];
+    //     for (const vanLoc of vanLocations) {
+    //       const locationId = vanLoc.location_id;
+    //       if (!locationId) continue;
+    //       try {
+    //         const reconciliationId = await prisma.$transaction(async tx => {
+    //           const stockToUnload = await tx.inventory_stock.findMany({
+    //             where: {
+    //               location_id: locationId,
+    //               salesperson_id: userIdNum,
+    //               is_active: 'Y',
+    //               OR: [{ is_unloadAll: 'N' }, { is_unloadAll: null }],
+    //             },
+    //             include: {
+    //               inventory_stock_products: {
+    //                 include: {
+    //                   product_tax_master: { select: { tax_rate: true } },
+    //                   product_unit_of_measurement: {
+    //                     select: { conversion_rate: true },
+    //                   },
+    //                 },
+    //               },
+    //               inventory_stock_batch: true,
+    //             },
+    //           });
+    //           if (stockToUnload.length === 0) return null;
+    //           const user = await tx.users.findUnique({
+    //             where: { id: userIdNum },
+    //             select: {
+    //               id: true,
+    //               name: true,
+    //               employee_id: true,
+    //               depot_id: true,
+    //               sap_code: true,
+    //             },
+    //           });
+    //           if (!user) return null;
+    //           // ── Resolve pricelist: depot-specific & default ──────────────────
+    //           const productIdsInStock = stockToUnload
+    //             .map(s => s.product_id)
+    //             .filter((id): id is number => id !== null);
+    //           // 1) Fetch depot-specific pricelist
+    //           const depotPricelist = user.depot_id
+    //             ? await tx.pricelists.findFirst({
+    //                 where: {
+    //                   depot_id: user.depot_id,
+    //                   is_active: 'Y',
+    //                 },
+    //                 orderBy: { priority: 'asc' },
+    //                 include: {
+    //                   pricelist_item: {
+    //                     where: {
+    //                       product_id: { in: productIdsInStock },
+    //                       is_active: 'Y',
+    //                     },
+    //                     include: {
+    //                       pricelist_item_special_prices: {
+    //                         where: { is_active: 'Y' },
+    //                       },
+    //                     },
+    //                   },
+    //                 },
+    //               })
+    //             : null;
+    //           // 2) Fetch default pricelist
+    //           const defaultPricelist = await tx.pricelists.findFirst({
+    //             where: { is_default: 'Y', is_active: 'Y' },
+    //             include: {
+    //               pricelist_item: {
+    //                 where: {
+    //                   product_id: { in: productIdsInStock },
+    //                   is_active: 'Y',
+    //                 },
+    //                 include: {
+    //                   pricelist_item_special_prices: {
+    //                     where: { is_active: 'Y' },
+    //                   },
+    //                 },
+    //               },
+    //             },
+    //           });
+    //           // Resolve price & taxRate for each product in stock (individually)
+    //           const today_date = new Date();
+    //           const priceMap = new Map<
+    //             number,
+    //             { price: number; taxRate: number | null }
+    //           >();
+    //           for (const productId of productIdsInStock) {
+    //             let resolvedPrice: number | null = null;
+    //             let resolvedTax: number | null = null;
+    //             // 1. Try Depot Pricelist (Special first, then Normal)
+    //             if (depotPricelist) {
+    //               const depotItem = depotPricelist.pricelist_item.find(
+    //                 item => item.product_id === productId
+    //               );
+    //               if (depotItem) {
+    //                 // Check special prices in depot
+    //                 const validSpecial = (
+    //                   depotItem.pricelist_item_special_prices as any[]
+    //                 ).find(sp => {
+    //                   const from = sp.valid_from ? new Date(sp.valid_from) : null;
+    //                   const to = sp.valid_to ? new Date(sp.valid_to) : null;
+    //                   const afterFrom = !from || today_date >= from;
+    //                   const beforeTo = !to || today_date <= to;
+    //                   return afterFrom && beforeTo;
+    //                 });
+    //                 if (validSpecial) {
+    //                   resolvedPrice = Number(validSpecial.sale_price);
+    //                   resolvedTax =
+    //                     validSpecial.tax_percent !== null
+    //                       ? Number(validSpecial.tax_percent)
+    //                       : null;
+    //                 } else {
+    //                   resolvedPrice = Number(depotItem.unit_price);
+    //                   resolvedTax =
+    //                     depotItem.tax_percent !== null
+    //                       ? Number(depotItem.tax_percent)
+    //                       : null;
+    //                 }
+    //               }
+    //             }
+    //             // 2. Try Default Pricelist (Special first, then Normal) if not resolved by depot pricelist
+    //             if (resolvedPrice === null && defaultPricelist) {
+    //               const defaultItem = defaultPricelist.pricelist_item.find(
+    //                 item => item.product_id === productId
+    //               );
+    //               if (defaultItem) {
+    //                 // Check special prices in default
+    //                 const validSpecial = (
+    //                   defaultItem.pricelist_item_special_prices as any[]
+    //                 ).find(sp => {
+    //                   const from = sp.valid_from ? new Date(sp.valid_from) : null;
+    //                   const to = sp.valid_to ? new Date(sp.valid_to) : null;
+    //                   const afterFrom = !from || today_date >= from;
+    //                   const beforeTo = !to || today_date <= to;
+    //                   return afterFrom && beforeTo;
+    //                 });
+    //                 if (validSpecial) {
+    //                   resolvedPrice = Number(validSpecial.sale_price);
+    //                   resolvedTax =
+    //                     validSpecial.tax_percent !== null
+    //                       ? Number(validSpecial.tax_percent)
+    //                       : null;
+    //                 } else {
+    //                   resolvedPrice = Number(defaultItem.unit_price);
+    //                   resolvedTax =
+    //                     defaultItem.tax_percent !== null
+    //                       ? Number(defaultItem.tax_percent)
+    //                       : null;
+    //                 }
+    //               }
+    //             }
+    //             if (resolvedPrice !== null) {
+    //               priceMap.set(productId, {
+    //                 price: resolvedPrice,
+    //                 taxRate: resolvedTax,
+    //               });
+    //             }
+    //           }
+    //           const now = new Date();
+    //           const today = new Date(
+    //             Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())
+    //           );
+    //           const todayStart = new Date(today);
+    //           todayStart.setHours(0, 0, 0, 0);
+    //           const todayEnd = new Date(today);
+    //           todayEnd.setHours(23, 59, 59, 999);
+    //           const lastReconciliation = await tx.reconciliation.findFirst({
+    //             where: {
+    //               salesman_id: userIdNum,
+    //               createdate: { lt: todayEnd },
+    //             },
+    //             orderBy: { createdate: 'desc' },
+    //           });
+    //           let sessionStart = todayStart;
+    //           if (lastReconciliation && lastReconciliation.createdate) {
+    //             sessionStart = lastReconciliation.createdate;
+    //           } else {
+    //             sessionStart = new Date(0);
+    //           }
+    //           const productMap = new Map<
+    //             string,
+    //             {
+    //               product_id: number;
+    //               product_code: string;
+    //               total_qty: number;
+    //               total_base_qty: number;
+    //               batch_number: string | null;
+    //               price: number;
+    //               taxRate: number;
+    //               convRate: number;
+    //             }
+    //           >();
+    //           for (const stock of stockToUnload) {
+    //             if (stock.product_id === null) continue;
+    //             const qty = Number(stock.current_stock) || 0;
+    //             const baseQty = Number(stock.base_quantity) || 0;
+    //             const batchNum =
+    //               stock.inventory_stock_batch?.batch_number ?? null;
+    //             const productCode =
+    //               stock.inventory_stock_products?.code ||
+    //               String(stock.product_id);
+    //             const key = `${stock.product_id}-${batchNum}`;
+    //             // Resolve price from pricelist (special → depot-specific → default → base_price)
+    //             const priceEntry = priceMap.get(stock.product_id!);
+    //             const price =
+    //               priceEntry?.price ??
+    //               (Number(stock.inventory_stock_products?.base_price) || 0);
+    //             const taxRate =
+    //               priceEntry && priceEntry.taxRate !== null
+    //                 ? priceEntry.taxRate
+    //                 : Number(
+    //                     (stock.inventory_stock_products as any)
+    //                       ?.product_tax_master?.tax_rate
+    //                   ) || 0;
+    //             const convRate =
+    //               Number(
+    //                 (stock.inventory_stock_products as any)
+    //                   ?.product_unit_of_measurement?.conversion_rate
+    //               ) || 1;
+    //             const existing = productMap.get(key);
+    //             if (existing) {
+    //               existing.total_qty += qty;
+    //               existing.total_base_qty += baseQty;
+    //             } else {
+    //               productMap.set(key, {
+    //                 product_id: stock.product_id,
+    //                 product_code: productCode,
+    //                 total_qty: qty,
+    //                 total_base_qty: baseQty,
+    //                 batch_number: batchNum,
+    //                 price,
+    //                 taxRate,
+    //                 convRate,
+    //               });
+    //             }
+    //             totalItemsRequested++;
+    //           }
+    //           if (productMap.size === 0) return null;
+    //           const loadQtyRecords = await tx.van_inventory_items.findMany({
+    //             where: {
+    //               van_inventory_items_inventory: {
+    //                 user_id: userIdNum,
+    //                 loading_type: 'L',
+    //                 status: 'A',
+    //                 approval_status: 'A',
+    //                 is_cancelled: 'N',
+    //                 createdate: { gte: sessionStart, lt: todayEnd },
+    //               },
+    //             },
+    //             include: {
+    //               van_inventory_items_batch_lot: {
+    //                 select: { batch_number: true },
+    //               },
+    //             },
+    //           });
+    //           const loadQtyMap = new Map<
+    //             string,
+    //             { qty: number; baseQty: number }
+    //           >();
+    //           for (const record of loadQtyRecords) {
+    //             const batchNum =
+    //               record.van_inventory_items_batch_lot?.batch_number || '';
+    //             const key = `${record.product_id}-${batchNum}`;
+    //             const current = loadQtyMap.get(key) || { qty: 0, baseQty: 0 };
+    //             loadQtyMap.set(key, {
+    //               qty: current.qty + (record.quantity || 0),
+    //               baseQty: current.baseQty + (record.base_quantity || 0),
+    //             });
+    //           }
+    //           console.log(
+    //             '[DEBUG Reconciliation] sessionStart:',
+    //             sessionStart.toISOString()
+    //           );
+    //           console.log(
+    //             '[DEBUG Reconciliation] todayEnd:',
+    //             todayEnd.toISOString()
+    //           );
+    //           console.log(
+    //             '[DEBUG Reconciliation] querying salesperson:',
+    //             userIdNum
+    //           );
+    //           const saleInvoiceItems = await tx.invoice_items.findMany({
+    //             where: {
+    //               invoices: {
+    //                 OR: [{ salesperson_id: userIdNum }, { createdby: userIdNum }],
+    //                 createdate: { gte: sessionStart, lt: todayEnd },
+    //                 is_active: 'Y',
+    //                 NOT: [
+    //                   {
+    //                     invoice_number: {
+    //                       contains: 'RECON',
+    //                     },
+    //                   },
+    //                 ],
+    //               },
+    //               product_id: {
+    //                 in: Array.from(productMap.values()).map(p => p.product_id),
+    //               },
+    //             },
+    //             select: {
+    //               product_id: true,
+    //               quantity: true,
+    //               base_quantity: true,
+    //             },
+    //           });
+    //           console.log(
+    //             '[DEBUG Reconciliation] Found invoice items count:',
+    //             saleInvoiceItems.length
+    //           );
+    //           for (const item of saleInvoiceItems) {
+    //             console.log(
+    //               `[DEBUG Reconciliation]   Product ID: ${item.product_id} | Qty: ${item.quantity}`
+    //             );
+    //           }
+    //           const saleQtyMap = new Map<
+    //             string,
+    //             { qty: number; baseQty: number }
+    //           >();
+    //           for (const record of saleInvoiceItems) {
+    //             if (!record.product_id) continue;
+    //             const key = `${record.product_id}-`;
+    //             const current = saleQtyMap.get(key) || { qty: 0, baseQty: 0 };
+    //             saleQtyMap.set(key, {
+    //               qty: current.qty + (Number(record.quantity) || 0),
+    //               baseQty: current.baseQty + (Number(record.base_quantity) || 0),
+    //             });
+    //           }
+    //           const recon = await tx.reconciliation.create({
+    //             data: {
+    //               salesman_id: userIdNum,
+    //               depot_id: user.depot_id ?? locationId,
+    //               status: 'P',
+    //               reconciliation_date: today,
+    //               is_active: 'Y',
+    //               createdate: new Date(),
+    //               createdby: userIdNum,
+    //             },
+    //           });
+    //           const toCreate: any[] = [];
+    //           const assignedSaleProducts = new Set<number>();
+    //           for (const p of productMap.values()) {
+    //             const expectedQty = p.total_qty;
+    //             const expectedBaseQty = p.total_base_qty;
+    //             let saleQty = 0;
+    //             let saleBaseQty = 0;
+    //             if (!assignedSaleProducts.has(p.product_id)) {
+    //               saleQty = saleQtyMap.get(`${p.product_id}-`)?.qty || 0;
+    //               saleBaseQty = saleQtyMap.get(`${p.product_id}-`)?.baseQty || 0;
+    //               assignedSaleProducts.add(p.product_id);
+    //             }
+    //             const loadKey = `${p.product_id}-${p.batch_number || ''}`;
+    //             const actualLoad = loadQtyMap.get(loadKey) || {
+    //               qty: 0,
+    //               baseQty: 0,
+    //             };
+    //             let loadQty = actualLoad.qty;
+    //             let loadBaseQty = actualLoad.baseQty;
+    //             if (p.convRate > 0) {
+    //               saleQty += Math.floor(saleBaseQty / p.convRate);
+    //               saleBaseQty = saleBaseQty % p.convRate;
+    //               loadQty += Math.floor(loadBaseQty / p.convRate);
+    //               loadBaseQty = loadBaseQty % p.convRate;
+    //               const totalSaleBaseUnits = saleQty * p.convRate + saleBaseQty;
+    //               const totalLoadBaseUnits = loadQty * p.convRate + loadBaseQty;
+    //               if (totalLoadBaseUnits < totalSaleBaseUnits) {
+    //                 loadQty = Math.floor(totalSaleBaseUnits / p.convRate);
+    //                 loadBaseQty = totalSaleBaseUnits % p.convRate;
+    //               }
+    //             } else {
+    //               if (loadQty < saleQty) loadQty = saleQty;
+    //               if (loadBaseQty < saleBaseQty) loadBaseQty = saleBaseQty;
+    //             }
+    //             const unitPricePerPc = p.convRate > 0 ? p.price / p.convRate : 0;
+    //             const saleVal = saleQty * p.price + saleBaseQty * unitPricePerPc;
+    //             const taxAmount = (saleVal * p.taxRate) / 100;
+    //             toCreate.push({
+    //               reconciliation_id: recon.id,
+    //               product_id: p.product_id,
+    //               batch_number: p.batch_number,
+    //               expected_qty: expectedQty,
+    //               expected_base_qty: expectedBaseQty,
+    //               actual_qty: null,
+    //               actual_base_qty: 0,
+    //               load_qty: loadQty,
+    //               load_base_qty: loadBaseQty,
+    //               sale_qty: saleQty,
+    //               sale_base_qty: saleBaseQty,
+    //               variance: null,
+    //               variance_base_qty: 0,
+    //               tax_amount: taxAmount,
+    //               unit_price: p.price,
+    //               tax_percent: p.taxRate,
+    //               resolution_action: 'Awaiting Verification',
+    //               default_outlet_posting_qty: 0,
+    //               unload_adjustment_qty: 0,
+    //               stock_key: `${user.sap_code ?? user.id} | ${p.product_code}${p.batch_number ? ` | ${p.batch_number}` : ''}`,
+    //               is_active: 'Y',
+    //               createdate: new Date(),
+    //               createdby: userIdNum,
+    //             });
+    //           }
+    //           if (toCreate.length > 0) {
+    //             await tx.reconciliation_items.createMany({ data: toCreate });
+    //           }
+    //           await tx.inventory_stock.updateMany({
+    //             where: {
+    //               location_id: locationId,
+    //               salesperson_id: userIdNum,
+    //               is_active: 'Y',
+    //               OR: [{ is_unloadAll: 'N' }, { is_unloadAll: null }],
+    //             },
+    //             data: {
+    //               is_unloadAll: 'Y',
+    //               current_stock: 0,
+    //               available_stock: 0,
+    //               base_quantity: 0,
+    //             },
+    //           });
+    //           return recon.id;
+    //         });
+    //         if (reconciliationId) reconciliationIds.push(reconciliationId);
+    //       } catch (vanLocError: any) {
+    //         console.error(
+    //           `Failed to process location ${locationId}:`,
+    //           vanLocError
+    //         );
+    //         errors.push(`Location ${locationId}: ${vanLocError.message}`);
+    //       }
+    //     }
+    //     return res.json({
+    //       success: true,
+    //       message:
+    //         'Stock staged for reconciliation. Save the reconciliation to submit for unload approval.',
+    //       data: {
+    //         user_id: userIdNum,
+    //         reconciliation_ids: reconciliationIds,
+    //         total_items_requested: totalItemsRequested,
+    //         request_date: new Date(),
+    //         errors: errors.length ? errors : undefined,
+    //       },
+    //     });
+    //   } catch (error: any) {
+    //     console.error('Unload Van Inventory Error:', error);
+    //     return res.status(500).json({
+    //       success: false,
+    //       message: 'Failed to stage unload reconciliation',
+    //       error: error.message,
+    //     });
+    //   }
+    // },
     async unloadVanInventory(req, res) {
         try {
             const loggedInUserId = req.user?.id;
@@ -5049,6 +5524,12 @@ exports.vanInventoryController = {
                                 },
                             },
                         });
+                        // Build loadQtyMap from van_inventory_items (loading records for this session).
+                        // Key: `{product_id}-{batch_number}` — matches the productMap keys built from inventory_stock.
+                        // For SAP-sourced loads where van_inventory_items stores the TOTAL quantity under
+                        // one primary batch_lot_id (e.g. KNMW 500ml with 329 Cases stored under CK6-019),
+                        // the map will have a single entry for that primary batch with the full load quantity.
+                        // The hasLoadEntry guard in the loop below ensures we trust this actual load record.
                         const loadQtyMap = new Map();
                         for (const record of loadQtyRecords) {
                             const batchNum = record.van_inventory_items_batch_lot?.batch_number || '';
@@ -5125,6 +5606,7 @@ exports.vanInventoryController = {
                                 assignedSaleProducts.add(p.product_id);
                             }
                             const loadKey = `${p.product_id}-${p.batch_number || ''}`;
+                            const hasLoadEntry = loadQtyMap.has(loadKey);
                             const actualLoad = loadQtyMap.get(loadKey) || {
                                 qty: 0,
                                 baseQty: 0,
@@ -5136,18 +5618,22 @@ exports.vanInventoryController = {
                                 saleBaseQty = saleBaseQty % p.convRate;
                                 loadQty += Math.floor(loadBaseQty / p.convRate);
                                 loadBaseQty = loadBaseQty % p.convRate;
-                                const totalSaleBaseUnits = saleQty * p.convRate + saleBaseQty;
-                                const totalLoadBaseUnits = loadQty * p.convRate + loadBaseQty;
-                                if (totalLoadBaseUnits < totalSaleBaseUnits) {
-                                    loadQty = Math.floor(totalSaleBaseUnits / p.convRate);
-                                    loadBaseQty = totalSaleBaseUnits % p.convRate;
+                                if (!hasLoadEntry) {
+                                    const totalSaleBaseUnits = saleQty * p.convRate + saleBaseQty;
+                                    const totalLoadBaseUnits = loadQty * p.convRate + loadBaseQty;
+                                    if (totalLoadBaseUnits < totalSaleBaseUnits) {
+                                        loadQty = Math.floor(totalSaleBaseUnits / p.convRate);
+                                        loadBaseQty = totalSaleBaseUnits % p.convRate;
+                                    }
                                 }
                             }
                             else {
-                                if (loadQty < saleQty)
-                                    loadQty = saleQty;
-                                if (loadBaseQty < saleBaseQty)
-                                    loadBaseQty = saleBaseQty;
+                                if (!hasLoadEntry) {
+                                    if (loadQty < saleQty)
+                                        loadQty = saleQty;
+                                    if (loadBaseQty < saleBaseQty)
+                                        loadBaseQty = saleBaseQty;
+                                }
                             }
                             const unitPricePerPc = p.convRate > 0 ? p.price / p.convRate : 0;
                             const saleVal = saleQty * p.price + saleBaseQty * unitPricePerPc;
@@ -5226,338 +5712,6 @@ exports.vanInventoryController = {
             });
         }
     },
-    // async unloadVanInventory(req: Request, res: Response) {
-    //   try {
-    //     const loggedInUserId = (req as any).user?.id;
-    //     const targetUserId = req.body.user_id || loggedInUserId;
-    //     if (!targetUserId) {
-    //       return res.status(401).json({
-    //         success: false,
-    //         message: 'User not authenticated or token invalid',
-    //       });
-    //     }
-    //     const userIdNum = parseInt(targetUserId.toString(), 10);
-    //     const vanLocations = await prisma.van_inventory.findMany({
-    //       where: { user_id: userIdNum, is_active: 'Y' },
-    //       select: { location_id: true, vehicle_id: true },
-    //       distinct: ['location_id'],
-    //     });
-    //     if (vanLocations.length === 0) {
-    //       return res.status(400).json({
-    //         success: false,
-    //         message: 'No active van inventory found for authenticated user',
-    //       });
-    //     }
-    //     let totalItemsRequested = 0;
-    //     const reconciliationIds: number[] = [];
-    //     const errors: string[] = [];
-    //     for (const vanLoc of vanLocations) {
-    //       const locationId = vanLoc.location_id;
-    //       if (!locationId) continue;
-    //       try {
-    //         const reconciliationId = await prisma.$transaction(async tx => {
-    //           const stockToUnload = await tx.inventory_stock.findMany({
-    //             where: {
-    //               location_id: locationId,
-    //               salesperson_id: userIdNum,
-    //               is_active: 'Y',
-    //               OR: [{ is_unloadAll: 'N' }, { is_unloadAll: null }],
-    //             },
-    //             include: {
-    //               inventory_stock_products: {
-    //                 include: {
-    //                   product_tax_master: { select: { tax_rate: true } },
-    //                   product_unit_of_measurement: {
-    //                     select: { conversion_rate: true },
-    //                   },
-    //                 },
-    //               },
-    //               inventory_stock_batch: true,
-    //             },
-    //           });
-    //           if (stockToUnload.length === 0) return null;
-    //           const user = await tx.users.findUnique({
-    //             where: { id: userIdNum },
-    //             select: {
-    //               id: true,
-    //               name: true,
-    //               employee_id: true,
-    //               depot_id: true,
-    //               sap_code: true,
-    //             },
-    //           });
-    //           if (!user) return null;
-    //           const now = new Date();
-    //           const today = new Date(
-    //             Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())
-    //           );
-    //           const todayStart = new Date(today);
-    //           todayStart.setHours(0, 0, 0, 0);
-    //           const todayEnd = new Date(today);
-    //           todayEnd.setHours(23, 59, 59, 999);
-    //           const lastReconciliation = await tx.reconciliation.findFirst({
-    //             where: {
-    //               salesman_id: userIdNum,
-    //               createdate: { lt: todayEnd },
-    //             },
-    //             orderBy: { createdate: 'desc' },
-    //           });
-    //           let sessionStart = todayStart;
-    //           if (lastReconciliation && lastReconciliation.createdate) {
-    //             sessionStart = lastReconciliation.createdate;
-    //           } else {
-    //             sessionStart = new Date(0);
-    //           }
-    //           const productMap = new Map<
-    //             string,
-    //             {
-    //               product_id: number;
-    //               product_code: string;
-    //               total_qty: number;
-    //               total_base_qty: number;
-    //               batch_number: string | null;
-    //               price: number;
-    //               taxRate: number;
-    //               convRate: number;
-    //             }
-    //           >();
-    //           for (const stock of stockToUnload) {
-    //             if (stock.product_id === null) continue;
-    //             const qty = Number(stock.current_stock) || 0;
-    //             const baseQty = Number(stock.base_quantity) || 0;
-    //             const batchNum =
-    //               stock.inventory_stock_batch?.batch_number ?? null;
-    //             const productCode =
-    //               stock.inventory_stock_products?.code ||
-    //               String(stock.product_id);
-    //             const key = `${stock.product_id}-${batchNum}`;
-    //             const price =
-    //               Number(stock.inventory_stock_products?.base_price) || 0;
-    //             const taxRate =
-    //               Number(
-    //                 (stock.inventory_stock_products as any)?.product_tax_master
-    //                   ?.tax_rate
-    //               ) || 0;
-    //             const convRate =
-    //               Number(
-    //                 (stock.inventory_stock_products as any)
-    //                   ?.product_unit_of_measurement?.conversion_rate
-    //               ) || 1;
-    //             const existing = productMap.get(key);
-    //             if (existing) {
-    //               existing.total_qty += qty;
-    //               existing.total_base_qty += baseQty;
-    //             } else {
-    //               productMap.set(key, {
-    //                 product_id: stock.product_id,
-    //                 product_code: productCode,
-    //                 total_qty: qty,
-    //                 total_base_qty: baseQty,
-    //                 batch_number: batchNum,
-    //                 price,
-    //                 taxRate,
-    //                 convRate,
-    //               });
-    //             }
-    //             totalItemsRequested++;
-    //           }
-    //           if (productMap.size === 0) return null;
-    //           const loadQtyRecords = await tx.van_inventory_items.findMany({
-    //             where: {
-    //               van_inventory_items_inventory: {
-    //                 user_id: userIdNum,
-    //                 loading_type: 'L',
-    //                 status: 'A',
-    //                 approval_status: 'A',
-    //                 is_cancelled: 'N',
-    //                 createdate: { gte: sessionStart, lt: todayEnd },
-    //               },
-    //             },
-    //             include: {
-    //               van_inventory_items_batch_lot: {
-    //                 select: { batch_number: true },
-    //               },
-    //             },
-    //           });
-    //           const loadQtyMap = new Map<
-    //             string,
-    //             { qty: number; baseQty: number }
-    //           >();
-    //           for (const record of loadQtyRecords) {
-    //             const batchNum =
-    //               record.van_inventory_items_batch_lot?.batch_number || '';
-    //             const key = `${record.product_id}-${batchNum}`;
-    //             const current = loadQtyMap.get(key) || { qty: 0, baseQty: 0 };
-    //             loadQtyMap.set(key, {
-    //               qty: current.qty + (record.quantity || 0),
-    //               baseQty: current.baseQty + (record.base_quantity || 0),
-    //             });
-    //           }
-    //           console.log(
-    //             '[DEBUG Reconciliation] sessionStart:',
-    //             sessionStart.toISOString()
-    //           );
-    //           console.log(
-    //             '[DEBUG Reconciliation] todayEnd:',
-    //             todayEnd.toISOString()
-    //           );
-    //           console.log(
-    //             '[DEBUG Reconciliation] querying salesperson:',
-    //             userIdNum
-    //           );
-    //           const saleInvoiceItems = await tx.invoice_items.findMany({
-    //             where: {
-    //               invoices: {
-    //                 OR: [{ salesperson_id: userIdNum }, { createdby: userIdNum }],
-    //                 createdate: { gte: sessionStart, lt: todayEnd },
-    //                 is_active: 'Y',
-    //                 NOT: [
-    //                   {
-    //                     invoice_number: {
-    //                       contains: 'RECON',
-    //                     },
-    //                   },
-    //                 ],
-    //               },
-    //               product_id: {
-    //                 in: Array.from(productMap.values()).map(p => p.product_id),
-    //               },
-    //             },
-    //             select: {
-    //               product_id: true,
-    //               quantity: true,
-    //               base_quantity: true,
-    //             },
-    //           });
-    //           console.log(
-    //             '[DEBUG Reconciliation] Found invoice items count:',
-    //             saleInvoiceItems.length
-    //           );
-    //           for (const item of saleInvoiceItems) {
-    //             console.log(
-    //               `[DEBUG Reconciliation]   Product ID: ${item.product_id} | Qty: ${item.quantity}`
-    //             );
-    //           }
-    //           const saleQtyMap = new Map<
-    //             string,
-    //             { qty: number; baseQty: number }
-    //           >();
-    //           for (const record of saleInvoiceItems) {
-    //             if (!record.product_id) continue;
-    //             const key = `${record.product_id}-`;
-    //             const current = saleQtyMap.get(key) || { qty: 0, baseQty: 0 };
-    //             saleQtyMap.set(key, {
-    //               qty: current.qty + (Number(record.quantity) || 0),
-    //               baseQty: current.baseQty + (Number(record.base_quantity) || 0),
-    //             });
-    //           }
-    //           const recon = await tx.reconciliation.create({
-    //             data: {
-    //               salesman_id: userIdNum,
-    //               depot_id: user.depot_id ?? locationId,
-    //               status: 'P',
-    //               reconciliation_date: today,
-    //               is_active: 'Y',
-    //               createdate: new Date(),
-    //               createdby: userIdNum,
-    //             },
-    //           });
-    //           const toCreate: any[] = [];
-    //           const assignedSaleProducts = new Set<number>();
-    //           for (const p of productMap.values()) {
-    //             const expectedQty = p.total_qty;
-    //             const expectedBaseQty = p.total_base_qty;
-    //             let saleQty = 0;
-    //             let saleBaseQty = 0;
-    //             if (!assignedSaleProducts.has(p.product_id)) {
-    //               saleQty = saleQtyMap.get(`${p.product_id}-`)?.qty || 0;
-    //               saleBaseQty = saleQtyMap.get(`${p.product_id}-`)?.baseQty || 0;
-    //               assignedSaleProducts.add(p.product_id);
-    //             }
-    //             let loadQty = expectedQty + saleQty;
-    //             let loadBaseQty = expectedBaseQty + saleBaseQty;
-    //             if (p.convRate > 0) {
-    //               loadQty += Math.floor(loadBaseQty / p.convRate);
-    //               loadBaseQty = loadBaseQty % p.convRate;
-    //             }
-    //             if (loadQty < saleQty) loadQty = saleQty;
-    //             if (loadBaseQty < saleBaseQty) loadBaseQty = saleBaseQty;
-    //             const unitPricePerPc = p.convRate > 0 ? p.price / p.convRate : 0;
-    //             const saleVal = saleQty * p.price + saleBaseQty * unitPricePerPc;
-    //             const taxAmount = (saleVal * p.taxRate) / 100;
-    //             toCreate.push({
-    //               reconciliation_id: recon.id,
-    //               product_id: p.product_id,
-    //               batch_number: p.batch_number,
-    //               expected_qty: expectedQty,
-    //               expected_base_qty: expectedBaseQty,
-    //               actual_qty: null,
-    //               actual_base_qty: 0,
-    //               load_qty: loadQty,
-    //               load_base_qty: loadBaseQty,
-    //               sale_qty: saleQty,
-    //               sale_base_qty: saleBaseQty,
-    //               variance: null,
-    //               variance_base_qty: 0,
-    //               tax_amount: taxAmount,
-    //               resolution_action: 'Awaiting Verification',
-    //               default_outlet_posting_qty: 0,
-    //               unload_adjustment_qty: 0,
-    //               stock_key: `${user.sap_code ?? user.id} | ${p.product_code}${p.batch_number ? ` | ${p.batch_number}` : ''}`,
-    //               is_active: 'Y',
-    //               createdate: new Date(),
-    //               createdby: userIdNum,
-    //             });
-    //           }
-    //           if (toCreate.length > 0) {
-    //             await tx.reconciliation_items.createMany({ data: toCreate });
-    //           }
-    //           await tx.inventory_stock.updateMany({
-    //             where: {
-    //               location_id: locationId,
-    //               salesperson_id: userIdNum,
-    //               is_active: 'Y',
-    //               OR: [{ is_unloadAll: 'N' }, { is_unloadAll: null }],
-    //             },
-    //             data: {
-    //               is_unloadAll: 'Y',
-    //               current_stock: 0,
-    //               available_stock: 0,
-    //               base_quantity: 0,
-    //             },
-    //           });
-    //           return recon.id;
-    //         });
-    //         if (reconciliationId) reconciliationIds.push(reconciliationId);
-    //       } catch (vanLocError: any) {
-    //         console.error(
-    //           `Failed to process location ${locationId}:`,
-    //           vanLocError
-    //         );
-    //         errors.push(`Location ${locationId}: ${vanLocError.message}`);
-    //       }
-    //     }
-    //     return res.json({
-    //       success: true,
-    //       message:
-    //         'Stock staged for reconciliation. Save the reconciliation to submit for unload approval.',
-    //       data: {
-    //         user_id: userIdNum,
-    //         reconciliation_ids: reconciliationIds,
-    //         total_items_requested: totalItemsRequested,
-    //         request_date: new Date(),
-    //         errors: errors.length ? errors : undefined,
-    //       },
-    //     });
-    //   } catch (error: any) {
-    //     console.error('Unload Van Inventory Error:', error);
-    //     return res.status(500).json({
-    //       success: false,
-    //       message: 'Failed to stage unload reconciliation',
-    //       error: error.message,
-    //     });
-    //   }
-    // },
     /**
      * Controller method to getProducts
      * @param req

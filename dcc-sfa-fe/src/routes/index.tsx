@@ -94,6 +94,7 @@ import SalesVsTargetReport from 'pages/reports/SalesVsTargetReport';
 import SurveyResponses from 'pages/reports/SurveyResponses';
 import SurveyResponseDetail from 'pages/reports/SurveyResponses/SurveyResponseDetail';
 import VisitFrequencyCompletionReport from 'pages/reports/VisitFrequencyCompletionReport';
+import CoolerInspectionsReport from 'pages/reports/CoolerInspectionsReport';
 import EmailTemplates from 'pages/settings/EmailTemplates';
 import SystemSettings from 'pages/settings/SystemSettings';
 import ErrorLogs from 'pages/settings/ErrorLogs';
@@ -1059,6 +1060,14 @@ const router = createBrowserRouter(
           element: (
             <PermissionGuard module="survey" action="read">
               <SurveyResponseDetail />
+            </PermissionGuard>
+          ),
+        },
+        {
+          path: '/reports/cooler-inspections',
+          element: (
+            <PermissionGuard module="report" action="read">
+              <CoolerInspectionsReport />
             </PermissionGuard>
           ),
         },
