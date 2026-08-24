@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { paginate } from '../../utils/paginate';
 import prisma from '../../configs/prisma.client';
 import { deleteFile, uploadFile } from '../../utils/blackbaze';
+import { getTimeFilter } from '../../utils/dateFilters';
 
 interface CoolerInspectionSerialized {
   id: number;
@@ -247,6 +248,11 @@ export const coolerInspectionsController = {
         user_id,
         inspector_id,
         visit_id,
+        time_filter,
+        start_date,
+        end_date,
+        inspection_date_from,
+        inspection_date_to,
       } = req.query;
 
       const page_num = page ? parseInt(page as string, 10) : 1;
@@ -254,6 +260,12 @@ export const coolerInspectionsController = {
       const searchLower = search ? (search as string).toLowerCase() : '';
 
       const inspectorFilter = inspector_id || inspected_by || user_id;
+
+      const timeBasedDateFilter = getTimeFilter(
+        time_filter as string | undefined,
+        start_date as string | undefined,
+        end_date as string | undefined
+      );
 
       const filters: any = {
         ...(search && {
@@ -298,6 +310,20 @@ export const coolerInspectionsController = {
             visit_id:
               visit_id === 'null' ? null : parseInt(visit_id as string, 10),
           }),
+        ...(timeBasedDateFilter
+          ? { inspection_date: timeBasedDateFilter }
+          : inspection_date_from || inspection_date_to
+            ? {
+                inspection_date: {
+                  ...(inspection_date_from && {
+                    gte: new Date(inspection_date_from as string),
+                  }),
+                  ...(inspection_date_to && {
+                    lte: new Date(inspection_date_to as string),
+                  }),
+                },
+              }
+            : undefined),
       };
 
       const totalInspections = await prisma.cooler_inspections.count();
