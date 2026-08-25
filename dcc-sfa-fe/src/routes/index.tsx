@@ -1156,6 +1156,7 @@ const router = createBrowserRouter(
   }
 );
 
+console.log('MKX 2');
 const AppRouter: React.FC = () => {
   return <RouterProvider router={router} />;
 };
