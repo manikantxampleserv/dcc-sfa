@@ -142,13 +142,18 @@ export const useResolvedUom = () => {
         secondaryList.some(s => u.name?.toLowerCase().includes(s))
       ) || data.find((u: any) => u?.id !== primary?.id);
 
-    let uomCase =
-      primary?.name || import.meta.env.VITE_DEFAULT_UOM_CASE || 'Cases';
-    let uomPcs =
-      primary?.sub_unit ||
-      secondary?.name ||
-      import.meta.env.VITE_DEFAULT_UOM_PCS ||
-      'PCs';
+    const isValidUom = (val: any) =>
+      val && typeof val === 'string' && val.toLowerCase() !== 'none';
+
+    let uomCase = isValidUom(primary?.name)
+      ? primary.name
+      : import.meta.env.VITE_DEFAULT_UOM_CASE || 'Cases';
+
+    let uomPcs = isValidUom(primary?.sub_unit)
+      ? primary.sub_unit
+      : isValidUom(secondary?.name)
+        ? secondary.name
+        : import.meta.env.VITE_DEFAULT_UOM_PCS || 'PCs';
 
     const resolveForProduct = (product: any) => {
       if (!product) return { uomCase, uomPcs };
@@ -163,8 +168,10 @@ export const useResolvedUom = () => {
 
       if (productUom) {
         return {
-          uomCase: productUom.name || uomCase,
-          uomPcs: productUom.sub_unit || uomPcs,
+          uomCase: isValidUom(productUom.name) ? productUom.name : uomCase,
+          uomPcs: isValidUom(productUom.sub_unit)
+            ? productUom.sub_unit
+            : uomPcs,
         };
       }
 

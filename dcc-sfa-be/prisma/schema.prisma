@@ -172,6 +172,7 @@ model roles {
   id                      Int                  @id @default(autoincrement())
   name                    String               @unique @db.NVarChar(100)
   description             String?              @db.NVarChar(500)
+  type                    String               @default("normal") @db.NVarChar(50)
   is_active               String               @default("Y") @db.Char(1)
   createdate              DateTime?            @default(now()) @db.DateTime
   createdby               Int

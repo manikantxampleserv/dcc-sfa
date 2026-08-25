@@ -258,7 +258,7 @@ const CoolerInspectionsReport: React.FC = () => {
       <Box className="!flex !justify-between !items-start sm:!items-center">
         <Box>
           <p className="!font-bold text-xl !text-gray-900">
-            Cooler Inspections Report
+            Daily Cooler's Inspections Report
           </p>
           <p className="!text-gray-500 text-sm">
             Track and analyze cooler inspections across all locations

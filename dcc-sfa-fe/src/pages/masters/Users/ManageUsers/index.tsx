@@ -221,8 +221,7 @@ const ManageUsers: React.FC<ManageUsersProps> = ({
     validate: values => {
       const errors: any = {};
       const selectedRoleObj = roles.find(r => r.id === values.role_id);
-      const isGroupRoleSubmit =
-        selectedRoleObj?.name?.toLowerCase().includes('group') || false;
+      const isGroupRoleSubmit = selectedRoleObj?.type === 'container';
 
       if (isGroupRoleSubmit && values.sub_inventory_user_ids.length === 0) {
         errors.sub_inventory_user_ids =
@@ -315,7 +314,7 @@ const ManageUsers: React.FC<ManageUsersProps> = ({
 
   const isGroupRole = useMemo(() => {
     const selectedRoleObj = roles.find(r => r.id === formik.values.role_id);
-    return selectedRoleObj?.name?.toLowerCase().includes('group') || false;
+    return selectedRoleObj?.type === 'container';
   }, [roles, formik.values.role_id]);
 
   const availableUsers = useMemo(() => {
@@ -327,7 +326,9 @@ const ManageUsers: React.FC<ManageUsersProps> = ({
           typeof user.role === 'object' ? user.role?.name : user.role;
         return (
           typeof roleName === 'string' &&
-          roleName.toLowerCase().includes('salesman')
+          roleName.toLowerCase().includes('salesman') &&
+          !user.sap_code &&
+          (!user.routes || user.routes.length === 0)
         );
       })
       .filter(
@@ -465,7 +466,7 @@ const ManageUsers: React.FC<ManageUsersProps> = ({
           variant="caption"
           className="!text-gray-500 !text-xs !block !mt-0.5"
         >
-          {user.sap_code || 'No SAP Code'}
+          {user.employee_id || 'No User ID'}
         </Typography>
       </Box>
       {showSequence !== undefined && (
