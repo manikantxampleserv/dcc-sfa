@@ -27,10 +27,10 @@ import { useAuth } from '../../../context/AuthContext';
  * Validation schema for login form
  */
 const loginValidationSchema = Yup.object({
-  email: Yup.string().required('Mobile Number or SAP Code is required'),
+  email: Yup.string().required('Email or User Code is required'),
   password: Yup.string()
-    .min(4, 'OTP must be at least 4 characters')
-    .required('OTP is required'),
+    .min(6, 'Password must be at least 6 characters')
+    .required('Password is required'),
 });
 
 /**
@@ -270,7 +270,7 @@ const Login: React.FC = () => {
             Welcome Back
           </h1>
           <p className="text-gray-600 text-sm sm:text-base">
-            Enter your mobile number or SAP code to receive an OTP.
+            Enter your email and password to access your account.
           </p>
         </div>
 
@@ -283,8 +283,8 @@ const Login: React.FC = () => {
           <Input
             name="email"
             type="text"
-            label="Mobile Number or SAP Code"
-            placeholder="e.g. +255712345678 or 1000234"
+            label="Username"
+            placeholder="Enter your email or employee code"
             formik={formik}
             required
             className="!mt-4"
@@ -293,8 +293,8 @@ const Login: React.FC = () => {
           <Input
             name="password"
             type="password"
-            label="One Time Password (OTP)"
-            placeholder="Enter your 4-digit OTP"
+            label="Password"
+            placeholder="Enter your password"
             formik={formik}
             required
             className="!mt-6"
@@ -337,28 +337,24 @@ const Login: React.FC = () => {
         </form>
 
         {/* Demo Credentials */}
-        <div className="mt-8 pt-8 border-t border-gray-200">
-          <div className="text-sm font-semibold text-gray-900 mb-3">
-            Demo Users (Click to Fill)
-          </div>
-          <div className="flex flex-wrap gap-2">
+        <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-100">
+          <p className="text-sm font-semibold text-blue-800 mb-2">
+            Demo Credentials (Click to auto-fill):
+          </p>
+          <div className="text-xs space-y-1">
             <button
-              onClick={() => handleFillDemoData('1000234')}
-              className="px-3 py-1.5 text-xs font-medium bg-blue-50 text-blue-700 rounded hover:bg-blue-100 transition-colors"
+              type="button"
+              onClick={() => handleFillDemoData('ahmed@stockist.co.tz')}
+              className="w-full text-left p-2 rounded hover:bg-blue-100 transition-colors text-blue-700"
             >
-              Customer (SAP: 1000234)
+              <strong>Customer:</strong> ahmed@stockist.co.tz / password
             </button>
             <button
-              onClick={() => handleFillDemoData('sales@dcc.com')}
-              className="px-3 py-1.5 text-xs font-medium bg-indigo-50 text-indigo-700 rounded hover:bg-indigo-100 transition-colors"
+              type="button"
+              onClick={() => handleFillDemoData('grace@bonite.co.tz')}
+              className="w-full text-left p-2 rounded hover:bg-blue-100 transition-colors text-blue-700"
             >
-              Sales Officer
-            </button>
-            <button
-              onClick={() => handleFillDemoData('admin@dcc.com')}
-              className="px-3 py-1.5 text-xs font-medium bg-purple-50 text-purple-700 rounded hover:bg-purple-100 transition-colors"
-            >
-              Admin
+              <strong>Sales Officer:</strong> grace@bonite.co.tz / password
             </button>
           </div>
         </div>
