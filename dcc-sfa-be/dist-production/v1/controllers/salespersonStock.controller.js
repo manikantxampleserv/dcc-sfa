@@ -412,7 +412,7 @@ exports.salespersonStockController = {
                     .json({ success: false, message: 'Invalid salesperson_id' });
             }
             const targetSalespersonIds = await (0, inventory_utils_1.getContainerOwnerAndSelf)(prisma_client_1.default, salespersonIdNum);
-            // Build date filter
+            /** Build date filter */
             let dateFilterForVan = undefined;
             let dateFilterForInvoice = undefined;
             if (time_filter === 'today') {
@@ -451,8 +451,8 @@ exports.salespersonStockController = {
                 is_cancelled: 'N',
             };
             if (dateFilterForVan) {
-                // usually document_date or createdate, we can check document_date primarily, fallback createdate
-                // to simplify, check document_date
+                /** usually document_date or createdate, we can check document_date primarily, fallback createdate
+                 * to simplify, check document_date */
                 vanWhere.document_date = dateFilterForVan;
             }
             const vanInventories = await prisma_client_1.default.van_inventory.findMany({
@@ -628,40 +628,66 @@ async function handleAllSalespersons(req, res, pageNum, limitNum) {
     if (depot_id) {
         parsedDepotId = parseInt(depot_id, 10);
     }
-    for (const sp of allSalespersons) {
-        const targetSalespersonIds = await (0, inventory_utils_1.getContainerOwnerAndSelf)(prisma_client_1.default, sp.id);
-        const stockWhere = {
-            AND: [
-                {
-                    OR: [
-                        { salesperson_id: { in: targetSalespersonIds } },
-                        // { createdby: sp.id },
-                    ],
-                },
-                {
-                    OR: [{ is_unloadAll: 'N' }, { is_unloadAll: null }],
-                },
-            ],
-            is_active: 'Y',
-        };
-        if (parsedDepotId) {
-            stockWhere.location_id = parsedDepotId;
+    const allSalespersonIds = allSalespersons.map(sp => sp.id);
+    /** Bulk fetch van inventory counts */
+    const vanInventoriesCounts = await prisma_client_1.default.van_inventory.groupBy({
+        by: ['user_id'],
+        where: { user_id: { in: allSalespersonIds }, is_active: 'Y' },
+        _count: { id: true },
+    });
+    const vanInventoryCountMap = new Map(vanInventoriesCounts.map((item) => [item.user_id, item._count.id]));
+    /** Bulk fetch stock records */
+    const stockWhere = {
+        AND: [
+            { salesperson_id: { in: allSalespersonIds } },
+            { OR: [{ is_unloadAll: 'N' }, { is_unloadAll: null }] },
+        ],
+        is_active: 'Y',
+    };
+    if (parsedDepotId)
+        stockWhere.location_id = parsedDepotId;
+    if (product_id)
+        stockWhere.product_id = parseInt(product_id, 10);
+    const stockRecordsAll = await prisma_client_1.default.inventory_stock.findMany({
+        where: stockWhere,
+        select: {
+            salesperson_id: true,
+            product_id: true,
+            current_stock: true,
+            base_quantity: true,
+            batch_id: true,
+            serial_number_id: true,
+        },
+    });
+    /** Group stock records by salesperson */
+    const stockBySalesperson = new Map();
+    for (const s of stockRecordsAll) {
+        if (s.salesperson_id) {
+            if (!stockBySalesperson.has(s.salesperson_id)) {
+                stockBySalesperson.set(s.salesperson_id, []);
+            }
+            stockBySalesperson.get(s.salesperson_id).push(s);
         }
-        if (product_id)
-            stockWhere.product_id = parseInt(product_id, 10);
-        const vanInventoriesCount = await prisma_client_1.default.van_inventory.count({
-            where: { user_id: { in: targetSalespersonIds }, is_active: 'Y' },
-        });
-        const stockRecords = await prisma_client_1.default.inventory_stock.findMany({
-            where: stockWhere,
-            select: {
-                product_id: true,
-                current_stock: true,
-                base_quantity: true,
-                batch_id: true,
-                serial_number_id: true,
-            },
-        });
+    }
+    /** Bulk fetch today's invoices count */
+    const todayDate = new Date();
+    todayDate.setHours(0, 0, 0, 0);
+    const todayInvoicesCounts = await prisma_client_1.default.invoices.groupBy({
+        by: ['salesperson_id'],
+        where: {
+            salesperson_id: { in: allSalespersonIds },
+            invoice_date: { gte: todayDate },
+            is_active: 'Y',
+        },
+        _count: { id: true },
+    });
+    const todayInvoicesCountMap = new Map(todayInvoicesCounts.map((item) => [
+        item.salesperson_id,
+        item._count.id,
+    ]));
+    for (const sp of allSalespersons) {
+        const vanInventoriesCount = vanInventoryCountMap.get(sp.id) || 0;
+        const stockRecords = stockBySalesperson.get(sp.id) || [];
         if (stockRecords.length === 0)
             continue;
         const productStockMap = new Map();
@@ -684,6 +710,7 @@ async function handleAllSalespersons(req, res, pageNum, limitNum) {
         const totalBaseQty = Array.from(productBaseStockMap.values()).reduce((a, b) => a + b, 0);
         if (totalQty === 0 && totalBaseQty === 0)
             continue;
+        const todayInvoicesCount = todayInvoicesCountMap.get(sp.id) || 0;
         productStockMap.forEach((_, pid) => overallProducts.add(pid));
         overallTotalQty += totalQty;
         overallVanInventories += vanInventoriesCount;
@@ -699,6 +726,7 @@ async function handleAllSalespersons(req, res, pageNum, limitNum) {
             salesperson_address: sp.address,
             helpers: sp.sub_inventory_users?.map((u) => u.name).join(', ') || null,
             total_van_inventories: vanInventoriesCount,
+            today_invoices: todayInvoicesCount,
             total_products: productStockMap.size,
             total_quantity: totalQty,
             total_base_quantity: totalBaseQty,
@@ -707,7 +735,6 @@ async function handleAllSalespersons(req, res, pageNum, limitNum) {
             total_serials: serialIds.size,
         });
     }
-    consolidated.sort((a, b) => b.total_quantity - a.total_quantity);
     const startIndex = (pageNum - 1) * limitNum;
     const paginatedData = consolidated.slice(startIndex, startIndex + limitNum);
     return res.json({

@@ -59,6 +59,13 @@ import {
   type CoolerInspectionsReportFilters,
   type CoolerInspectionsReportData,
 } from '../services/reports/coolerInspections';
+import {
+  fetchCoolersReport,
+  exportCoolersReport,
+  type CoolersReportFilters,
+  type CoolersReportData,
+} from '../services/reports/coolersReport';
+
 import { useApiMutation } from './useApiMutation';
 
 export const reportKeys = {
@@ -84,6 +91,8 @@ export const reportKeys = {
     [...reportKeys.lists(), 'outstanding-collection', filters] as const,
   attendanceHistory: (filters?: AttendanceHistoryReportFilters) =>
     [...reportKeys.lists(), 'attendance-history', filters] as const,
+  coolers: (filters?: CoolersReportFilters) =>
+    ['reports', 'coolers', filters] as const,
   coolerInspections: (filters?: CoolerInspectionsReportFilters) =>
     [...reportKeys.lists(), 'cooler-inspections', filters] as const,
 };
@@ -283,6 +292,32 @@ export const useCoolerInspectionsReport = (
 export const useExportCoolerInspectionsReport = () => {
   return useApiMutation({
     mutationFn: exportCoolerInspectionsReport,
+    loadingMessage: 'Exporting report...',
+    successMessage: 'Report exported successfully!',
+  });
+};
+
+/**
+ * Hook to fetch Coolers Report
+ */
+export const useCoolersReport = (
+  filters?: CoolersReportFilters,
+  options?: Omit<UseQueryOptions<CoolersReportData>, 'queryKey' | 'queryFn'>
+) => {
+  return useQuery<CoolersReportData>({
+    queryKey: reportKeys.coolers(filters),
+    queryFn: () => fetchCoolersReport(filters),
+    staleTime: 3 * 60 * 1000,
+    ...options,
+  });
+};
+
+/**
+ * Hook to export Coolers Report to Excel
+ */
+export const useExportCoolersReport = () => {
+  return useApiMutation({
+    mutationFn: exportCoolersReport,
     loadingMessage: 'Exporting report...',
     successMessage: 'Report exported successfully!',
   });

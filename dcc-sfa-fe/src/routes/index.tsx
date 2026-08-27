@@ -95,6 +95,7 @@ import SurveyResponses from 'pages/reports/SurveyResponses';
 import SurveyResponseDetail from 'pages/reports/SurveyResponses/SurveyResponseDetail';
 import VisitFrequencyCompletionReport from 'pages/reports/VisitFrequencyCompletionReport';
 import CoolerInspectionsReport from 'pages/reports/CoolerInspectionsReport';
+import CoolersReport from 'pages/reports/CoolersReport';
 import EmailTemplates from 'pages/settings/EmailTemplates';
 import SystemSettings from 'pages/settings/SystemSettings';
 import ErrorLogs from 'pages/settings/ErrorLogs';
@@ -1071,6 +1072,14 @@ const router = createBrowserRouter(
             </PermissionGuard>
           ),
         },
+          {
+            path: '/reports/coolers',
+            element: (
+              <PermissionGuard module="report" action="read">
+                <CoolersReport />
+              </PermissionGuard>
+            ),
+          },
         {
           path: '/workflows/approvals',
           element: (
@@ -1156,9 +1165,9 @@ const router = createBrowserRouter(
   }
 );
 
-console.log('MKX 2');
 const AppRouter: React.FC = () => {
   return <RouterProvider router={router} />;
 };
 
 export default AppRouter;
+

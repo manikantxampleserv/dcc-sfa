@@ -507,6 +507,12 @@ const menuItems: MenuItem[] = [
         icon: MdBuild,
         href: '/reports/cooler-inspections',
       },
+      {
+        id: 'coolers-report',
+        label: 'Coolers Report',
+        icon: MdBuild,
+        href: '/reports/coolers',
+      },
     ],
   },
   {

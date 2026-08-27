@@ -293,4 +293,28 @@ router.get(
   reportsController.exportCoolerInspectionsReport
 );
 
+/**
+ * @route GET /api/v1/reports/coolers
+ * @description Get Coolers Report
+ * @access Private (requires authentication)
+ */
+router.get(
+  '/coolers',
+  authenticateToken,
+  requirePermission([{ module: 'report', action: 'read' }]),
+  reportsController.getCoolersReport
+);
+
+/**
+ * @route GET /api/v1/reports/coolers/export
+ * @description Export Coolers Report to Excel
+ * @access Private (requires authentication)
+ */
+router.get(
+  '/coolers/export',
+  authenticateToken,
+  requirePermission([{ module: 'report', action: 'read' }]),
+  reportsController.exportCoolersReport
+);
+
 export default router;
