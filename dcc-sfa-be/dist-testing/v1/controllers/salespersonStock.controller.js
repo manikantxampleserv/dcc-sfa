@@ -412,7 +412,7 @@ exports.salespersonStockController = {
                     .json({ success: false, message: 'Invalid salesperson_id' });
             }
             const targetSalespersonIds = await (0, inventory_utils_1.getContainerOwnerAndSelf)(prisma_client_1.default, salespersonIdNum);
-            // Build date filter
+            /** Build date filter */
             let dateFilterForVan = undefined;
             let dateFilterForInvoice = undefined;
             if (time_filter === 'today') {
@@ -451,8 +451,8 @@ exports.salespersonStockController = {
                 is_cancelled: 'N',
             };
             if (dateFilterForVan) {
-                // usually document_date or createdate, we can check document_date primarily, fallback createdate
-                // to simplify, check document_date
+                /** usually document_date or createdate, we can check document_date primarily, fallback createdate
+                 * to simplify, check document_date */
                 vanWhere.document_date = dateFilterForVan;
             }
             const vanInventories = await prisma_client_1.default.van_inventory.findMany({
@@ -629,14 +629,14 @@ async function handleAllSalespersons(req, res, pageNum, limitNum) {
         parsedDepotId = parseInt(depot_id, 10);
     }
     const allSalespersonIds = allSalespersons.map(sp => sp.id);
-    // Bulk fetch van inventory counts
+    /** Bulk fetch van inventory counts */
     const vanInventoriesCounts = await prisma_client_1.default.van_inventory.groupBy({
         by: ['user_id'],
         where: { user_id: { in: allSalespersonIds }, is_active: 'Y' },
         _count: { id: true },
     });
     const vanInventoryCountMap = new Map(vanInventoriesCounts.map((item) => [item.user_id, item._count.id]));
-    // Bulk fetch stock records
+    /** Bulk fetch stock records */
     const stockWhere = {
         AND: [
             { salesperson_id: { in: allSalespersonIds } },
@@ -659,7 +659,7 @@ async function handleAllSalespersons(req, res, pageNum, limitNum) {
             serial_number_id: true,
         },
     });
-    // Group stock records by salesperson
+    /** Group stock records by salesperson */
     const stockBySalesperson = new Map();
     for (const s of stockRecordsAll) {
         if (s.salesperson_id) {
@@ -669,7 +669,7 @@ async function handleAllSalespersons(req, res, pageNum, limitNum) {
             stockBySalesperson.get(s.salesperson_id).push(s);
         }
     }
-    // Bulk fetch today's invoices count
+    /** Bulk fetch today's invoices count */
     const todayDate = new Date();
     todayDate.setHours(0, 0, 0, 0);
     const todayInvoicesCounts = await prisma_client_1.default.invoices.groupBy({
@@ -681,7 +681,10 @@ async function handleAllSalespersons(req, res, pageNum, limitNum) {
         },
         _count: { id: true },
     });
-    const todayInvoicesCountMap = new Map(todayInvoicesCounts.map((item) => [item.salesperson_id, item._count.id]));
+    const todayInvoicesCountMap = new Map(todayInvoicesCounts.map((item) => [
+        item.salesperson_id,
+        item._count.id,
+    ]));
     for (const sp of allSalespersons) {
         const vanInventoriesCount = vanInventoryCountMap.get(sp.id) || 0;
         const stockRecords = stockBySalesperson.get(sp.id) || [];
