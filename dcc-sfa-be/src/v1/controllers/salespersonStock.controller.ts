@@ -465,7 +465,7 @@ export const salespersonStockController = {
         salespersonIdNum
       );
 
-      // Build date filter
+      /** Build date filter */
       let dateFilterForVan: any = undefined;
       let dateFilterForInvoice: any = undefined;
 
@@ -503,8 +503,8 @@ export const salespersonStockController = {
         is_cancelled: 'N',
       };
       if (dateFilterForVan) {
-        // usually document_date or createdate, we can check document_date primarily, fallback createdate
-        // to simplify, check document_date
+        /** usually document_date or createdate, we can check document_date primarily, fallback createdate
+         * to simplify, check document_date */
         vanWhere.document_date = dateFilterForVan;
       }
 
@@ -688,7 +688,6 @@ async function handleAllSalespersons(
         select: { name: true },
       },
     },
-
   });
 
   const consolidated: any[] = [];
@@ -702,42 +701,75 @@ async function handleAllSalespersons(
   if (depot_id) {
     parsedDepotId = parseInt(depot_id as string, 10);
   }
-  for (const sp of allSalespersons) {
-    const targetSalespersonIds = await getContainerOwnerAndSelf(prisma, sp.id);
 
-    const stockWhere: any = {
-      AND: [
-        {
-          OR: [
-            { salesperson_id: { in: targetSalespersonIds } },
-            // { createdby: sp.id },
-          ],
-        },
-        {
-          OR: [{ is_unloadAll: 'N' }, { is_unloadAll: null }],
-        },
-      ],
-      is_active: 'Y',
-    };
-    if (parsedDepotId) {
-      stockWhere.location_id = parsedDepotId;
+  const allSalespersonIds = allSalespersons.map(sp => sp.id);
+
+  /** Bulk fetch van inventory counts */
+  const vanInventoriesCounts = await prisma.van_inventory.groupBy({
+    by: ['user_id'],
+    where: { user_id: { in: allSalespersonIds }, is_active: 'Y' },
+    _count: { id: true },
+  });
+  const vanInventoryCountMap = new Map(
+    vanInventoriesCounts.map((item: any) => [item.user_id, item._count.id])
+  );
+
+  /** Bulk fetch stock records */
+  const stockWhere: any = {
+    AND: [
+      { salesperson_id: { in: allSalespersonIds } },
+      { OR: [{ is_unloadAll: 'N' }, { is_unloadAll: null }] },
+    ],
+    is_active: 'Y',
+  };
+  if (parsedDepotId) stockWhere.location_id = parsedDepotId;
+  if (product_id) stockWhere.product_id = parseInt(product_id as string, 10);
+
+  const stockRecordsAll = await prisma.inventory_stock.findMany({
+    where: stockWhere,
+    select: {
+      salesperson_id: true,
+      product_id: true,
+      current_stock: true,
+      base_quantity: true,
+      batch_id: true,
+      serial_number_id: true,
+    },
+  });
+
+  /** Group stock records by salesperson */
+  const stockBySalesperson = new Map<number, any[]>();
+  for (const s of stockRecordsAll) {
+    if (s.salesperson_id) {
+      if (!stockBySalesperson.has(s.salesperson_id)) {
+        stockBySalesperson.set(s.salesperson_id, []);
+      }
+      stockBySalesperson.get(s.salesperson_id)!.push(s);
     }
-    if (product_id) stockWhere.product_id = parseInt(product_id as string, 10);
+  }
 
-    const vanInventoriesCount = await prisma.van_inventory.count({
-      where: { user_id: { in: targetSalespersonIds }, is_active: 'Y' },
-    });
+  /** Bulk fetch today's invoices count */
+  const todayDate = new Date();
+  todayDate.setHours(0, 0, 0, 0);
+  const todayInvoicesCounts = await prisma.invoices.groupBy({
+    by: ['salesperson_id'],
+    where: {
+      salesperson_id: { in: allSalespersonIds },
+      invoice_date: { gte: todayDate },
+      is_active: 'Y',
+    },
+    _count: { id: true },
+  });
+  const todayInvoicesCountMap = new Map(
+    todayInvoicesCounts.map((item: any) => [
+      item.salesperson_id,
+      item._count.id,
+    ])
+  );
 
-    const stockRecords = await prisma.inventory_stock.findMany({
-      where: stockWhere,
-      select: {
-        product_id: true,
-        current_stock: true,
-        base_quantity: true,
-        batch_id: true,
-        serial_number_id: true,
-      },
-    });
+  for (const sp of allSalespersons) {
+    const vanInventoriesCount = vanInventoryCountMap.get(sp.id) || 0;
+    const stockRecords = stockBySalesperson.get(sp.id) || [];
 
     if (stockRecords.length === 0) continue;
 
@@ -773,6 +805,8 @@ async function handleAllSalespersons(
 
     if (totalQty === 0 && totalBaseQty === 0) continue;
 
+    const todayInvoicesCount = todayInvoicesCountMap.get(sp.id) || 0;
+
     productStockMap.forEach((_, pid) => overallProducts.add(pid));
     overallTotalQty += totalQty;
     overallVanInventories += vanInventoriesCount;
@@ -790,6 +824,7 @@ async function handleAllSalespersons(
       helpers:
         sp.sub_inventory_users?.map((u: any) => u.name).join(', ') || null,
       total_van_inventories: vanInventoriesCount,
+      today_invoices: todayInvoicesCount,
       total_products: productStockMap.size,
       total_quantity: totalQty,
       total_base_quantity: totalBaseQty,
@@ -798,8 +833,6 @@ async function handleAllSalespersons(
       total_serials: serialIds.size,
     });
   }
-
-  consolidated.sort((a, b) => b.total_quantity - a.total_quantity);
 
   const startIndex = (pageNum - 1) * limitNum;
   const paginatedData = consolidated.slice(startIndex, startIndex + limitNum);
@@ -824,18 +857,6 @@ async function handleAllSalespersons(
     },
     pagination: buildPagination(pageNum, limitNum, consolidated.length),
   });
-}
-
-interface SalespersonData {
-  id: number;
-  name: string;
-  email: string | null;
-  phone_number: string | null;
-  profile_image: string | null;
-  address: string | null;
-  user_role: {
-    name: string;
-  } | null;
 }
 
 function buildPagination(page: number, limit: number, total: number) {

@@ -128,12 +128,20 @@ export const useResolvedUom = () => {
     const data = uomData?.data || [];
 
     const primary =
-      data.find((u: any) => u.sub_unit) ||
+      data.find(
+        (u: any) =>
+          (u.name?.toLowerCase().includes('case') ||
+            u.name?.toLowerCase().includes('crate') ||
+            u.name?.toLowerCase() === 'cs') &&
+          u.sub_unit
+      ) ||
       data.find(
         (u: any) =>
           u.name?.toLowerCase().includes('case') ||
-          u.name?.toLowerCase().includes('crate')
+          u.name?.toLowerCase().includes('crate') ||
+          u.name?.toLowerCase() === 'cs'
       ) ||
+      data.find((u: any) => u.sub_unit) ||
       data[0];
 
     const secondaryList = ['pcs', 'pieces', 'bottles', 'units', 'each'];
@@ -190,9 +198,11 @@ export const useResolvedUom = () => {
         }
       }
       if (uomCase.toLowerCase().includes('crate')) uomCase = 'Cs';
+      if (uomCase.toLowerCase().includes('case')) uomCase = 'Cs';
       if (uomPcs.toLowerCase().includes('bottle')) uomPcs = 'Btls';
       return { uomCase, uomPcs };
     };
+    if (uomCase.toLowerCase().includes('case')) uomCase = 'Cs';
     if (uomCase.toLowerCase().includes('crate')) uomCase = 'Cs';
     if (uomPcs.toLowerCase().includes('bottle')) uomPcs = 'Btls';
     return { uomCase, uomPcs, resolveForProduct };

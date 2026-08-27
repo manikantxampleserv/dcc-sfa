@@ -137,20 +137,15 @@ const InventoryItems: React.FC = () => {
           />
         ),
       },
-      // {
-      //   id: 'helpers',
-      //   label: 'Salesmen (Helpers)',
-      //   render: (_value, row) =>
-      //     row.helpers ? (
-      //       <span className="text-sm text-gray-700">{row.helpers}</span>
-      //     ) : (
-      //       <span className="italic text-xs text-gray-400">None</span>
-      //     ),
-      // },
       {
-        id: 'total_van_inventories',
-        label: 'Van Inventories',
+        id: 'today_invoices',
+        label: "Today's Invoices",
         numeric: true,
+        render: (_value, row) => (
+          <span className="font-semibold text-gray-800">
+            {row.today_invoices || 0}
+          </span>
+        ),
       },
       {
         id: 'total_quantity',

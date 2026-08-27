@@ -11,23 +11,27 @@ interface Product {
 }
 
 interface ProductMultiSelectProps {
-  name: string;
+  name?: string;
   label: string;
   required?: boolean;
   fullWidth?: boolean;
   size?: 'small' | 'medium';
   formik?: FormikProps<any>;
+  value?: number[];
+  onChange?: (event: any, newValue: Product[]) => void;
   className?: string;
   disabled?: boolean;
 }
 
 const ProductMultiSelect: React.FC<ProductMultiSelectProps> = ({
-  name,
+  name = '',
   label,
   required = false,
   fullWidth = true,
   size = 'small',
   formik,
+  value,
+  onChange,
   className,
   disabled = false,
 }) => {
@@ -38,7 +42,7 @@ const ProductMultiSelect: React.FC<ProductMultiSelectProps> = ({
   >([]);
   const attemptedFetchIds = useRef<Set<number>>(new Set());
 
-  const currentValue = formik?.values[name] || [];
+  const currentValue = formik?.values[name] || value || [];
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -128,11 +132,14 @@ const ProductMultiSelect: React.FC<ProductMultiSelectProps> = ({
 
   const handleChange = (_event: any, newValue: Product[]) => {
     setInputValue('');
-    if (formik) {
+    if (formik && name) {
       formik.setFieldValue(
         name,
         newValue.map(v => v.id)
       );
+    }
+    if (onChange) {
+      onChange(_event, newValue);
     }
   };
 

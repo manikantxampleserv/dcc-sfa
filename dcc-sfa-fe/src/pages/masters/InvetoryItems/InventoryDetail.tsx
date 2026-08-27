@@ -294,7 +294,7 @@ const InventoryDetail = () => {
       safeBaseQty > 0 ? `${safeBaseQty} ${baseUnit}` : null,
     ]
       .filter(Boolean)
-      .join(' ');
+      .join(' & ');
   };
 
   const [tabValue, setTabValue] = useState(0);
