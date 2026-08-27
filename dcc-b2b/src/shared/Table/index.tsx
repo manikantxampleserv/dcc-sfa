@@ -1,0 +1,789 @@
+import { FilterList } from '@mui/icons-material';
+import {
+  Box,
+  Divider,
+  FormControlLabel,
+  IconButton,
+  Menu,
+  Table as MuiTable,
+  TableBody as MuiTableBody,
+  TableCell as MuiTableCell,
+  TableContainer as MuiTableContainer,
+  TableHead as MuiTableHead,
+  TablePagination as MuiTablePagination,
+  TableRow as MuiTableRow,
+  TableSortLabel as MuiTableSortLabel,
+  Paper,
+  Skeleton,
+  Typography,
+} from '@mui/material';
+import { visuallyHidden } from '@mui/utils';
+import classNames from 'classnames';
+import { ArrowUpDown, Lock } from 'lucide-react';
+import React, { useEffect, useMemo, useState, type ReactNode } from 'react';
+import CustomSwitch from '../CustomSwitch';
+const useUserPreferences = () => ({ data: null as any });
+const useSaveUserPreferences = () => ({ mutate: (_val: any) => {} });
+const generateTableId = (columns: any[]) => columns.map(c => c.id).join('-');
+
+/**
+ * Configuration for a table column
+ * @template T - The type of data in the table rows
+ */
+export interface TableColumn<T = any> {
+  id: Extract<keyof T, string | number> | string;
+  label: string;
+  numeric?: boolean;
+  disablePadding?: boolean;
+  sortable?: boolean;
+  width?: string | number;
+  render?: (value: any, row: T, index: number) => ReactNode;
+  className?: string;
+  isVisible?: boolean;
+  /** Whether this column can be hidden/shown by the user */
+  hideable?: boolean;
+}
+
+/**
+ * Configuration for table actions (bulk operations)
+ * @template T - The type of data in the table rows
+ */
+export interface TableAction<T = any> {
+  label: string;
+  icon?: ReactNode;
+  onClick: (selectedRows: T[]) => void;
+  show?: (selectedRows: T[]) => boolean;
+  disabled?: (selectedRows: T[]) => boolean;
+}
+
+/**
+ * Configuration for action bar items
+ */
+export interface ActionBarItem {
+  label: string;
+  icon?: ReactNode;
+  onClick: () => void;
+  variant?: 'contained' | 'outlined' | 'text';
+  color?: 'primary' | 'secondary' | 'error' | 'warning' | 'info' | 'success';
+  disabled?: boolean;
+  show?: boolean;
+}
+
+/**
+ * Props for the Enhanced Table component
+ * @template T - The type of data in the table rows
+ */
+export interface TableProps<T = any> {
+  /** Array of data to display in the table */
+  data?: T[];
+  /** Legacy prop alias for data */
+  rows?: T[];
+  /** Column configuration array */
+  columns: TableColumn<T>[];
+  /** Optional table title */
+  title?: string;
+  /** Enable/disable sorting functionality */
+  sortable?: boolean;
+  /** Enable/disable pagination */
+  pagination?: boolean;
+  /** Array of bulk actions */
+  actions?: TableAction<T>[] | ReactNode;
+  /** Callback when a row is clicked */
+  onRowClick?: (row: T, index: number) => void;
+  /** Loading state */
+  loading?: boolean;
+  /** Message to show when no data */
+  emptyMessage?: string;
+  /** Function to get unique ID for each row */
+  getRowId?: (row: T, index: number) => string | number;
+  /** Initial column to sort by */
+  initialOrderBy?: keyof T;
+  /** Initial sort direction */
+  initialOrder?: 'asc' | 'desc' | 'none';
+  /** Enable sticky header */
+  stickyHeader?: boolean;
+  /** Maximum height of the table container */
+  maxHeight?: string | number;
+  /** Minimum height of the table container */
+  minHeight?: string | number;
+  /** Total count of records (for backend pagination) */
+  totalCount?: number;
+  /** Current page number (controlled) */
+  page?: number;
+  /** Number of rows per page (controlled) */
+  rowsPerPage?: number;
+  /** Callback when page changes */
+  onPageChange?: (page: number) => void;
+  /** Action bar items to display at the top */
+  actionBarItems?: ActionBarItem[];
+  /** Action bar title */
+  actionBarTitle?: string;
+  /** Search functionality */
+  searchValue?: string;
+  /** Search placeholder text */
+  searchPlaceholder?: string;
+  /** Search change handler */
+  onSearchChange?: (value: string) => void;
+  /** Show search instead of title */
+  showSearch?: boolean;
+  /** Permission check - if false, shows no access UI. Checks for 'read' permission by default */
+  isPermission?: boolean;
+  /** Custom message for no access state */
+  noAccessMessage?: string;
+  /** Disable minimum width constraint to prevent horizontal scrolling */
+  compact?: boolean;
+  /** Unique identifier for this table (used for localStorage persistence) */
+  tableId?: string;
+  /** Unique identifier for this table (used for localStorage persistence) */
+  filterColunm?: boolean;
+  /** Optional ID for DOM targeting (e.g., for guided tours) */
+  id?: string;
+  /** Function to group rows by a string key */
+  groupBy?: (row: T) => string;
+  /** Function to render the group header content */
+  renderGroupHeader?: (group: string, rows: T[]) => ReactNode;
+}
+
+/** Sort order type with three states */
+type Order = 'asc' | 'desc' | 'none';
+
+/**
+ * Get nested property value from object using dot notation
+ * @param obj - The object to get property from
+ * @param path - The property path (e.g., 'customer.name')
+ * @returns The property value
+ */
+function getNestedValue(obj: any, path: string): any {
+  return path.split('.').reduce((current, key) => {
+    return current && current[key] !== undefined ? current[key] : '';
+  }, obj);
+}
+
+/**
+ * Comparator function for descending sort
+ * @template T - The type of objects being compared
+ * @param a - First object to compare
+ * @param b - Second object to compare
+ * @param orderBy - Property to compare by
+ * @returns Comparison result
+ */
+function descendingComparator<T>(a: T, b: T, orderBy: keyof T | string) {
+  const aValue = getNestedValue(a, String(orderBy));
+  const bValue = getNestedValue(b, String(orderBy));
+
+  if (bValue < aValue) {
+    return -1;
+  }
+  if (bValue > aValue) {
+    return 1;
+  }
+  return 0;
+}
+
+/**
+ * Get comparator function based on sort order
+ * @template Key - The key type for comparison
+ * @param order - Sort order ('asc' or 'desc')
+ * @param orderBy - Property to sort by
+ * @returns Comparator function
+ */
+function getComparator<Key extends keyof any>(
+  order: Order,
+  orderBy: Key
+): (a: { [key in Key]: any }, b: { [key in Key]: any }) => number {
+  if (order === 'none') {
+    return () => 0;
+  }
+  return order === 'desc'
+    ? (a, b) => descendingComparator(a, b, orderBy)
+    : (a, b) => -descendingComparator(a, b, orderBy);
+}
+
+/**
+ * Props for the Enhanced Table Head component
+ * @template T - The type of data in the table rows
+ */
+interface TableHeadProps<T> {
+  onRequestSort: (
+    event: React.MouseEvent<unknown>,
+    property: keyof T | string
+  ) => void;
+  order: Order;
+  orderBy: string;
+  columns: TableColumn<T>[];
+  sortable: boolean;
+  compact?: boolean;
+  columnVisibility?: Record<string, boolean>;
+}
+
+/**
+ * Enhanced table header component with sorting functionality
+ * @template T - The type of data in the table rows
+ * @param props - Component props
+ * @returns Table header JSX element
+ */
+function TableHead<T>(props: TableHeadProps<T>) {
+  const {
+    order,
+    orderBy,
+    onRequestSort,
+    columns,
+    sortable,
+    compact,
+    columnVisibility,
+  } = props;
+
+  const createSortHandler =
+    (property: keyof T | string) => (event: React.MouseEvent<unknown>) => {
+      onRequestSort(event, property);
+    };
+
+  const visibleColumns = columns.filter(column => {
+    const columnId = String(column.id);
+    return columnVisibility
+      ? columnVisibility[columnId] !== false
+      : column.isVisible !== false;
+  });
+
+  return (
+    <MuiTableHead>
+      <MuiTableRow>
+        {visibleColumns.map(column => (
+          <MuiTableCell
+            key={String(column.id)}
+            align={column.numeric ? 'right' : 'left'}
+            padding={column.disablePadding ? 'none' : 'normal'}
+            sortDirection={
+              orderBy === column.id && order !== 'none' ? order : false
+            }
+            className={classNames(
+              column.className,
+              '!border-b !px-1.5 !border-gray-200 !bg-blue-50 !font-semibold',
+              '!whitespace-nowrap !text-gray-700 !p-4 !text-sm',
+              compact ? '!py-3 !text-xs' : '',
+              column.numeric && '!justify-end'
+            )}
+            style={{ width: column.width }}
+          >
+            {sortable && column.sortable !== false ? (
+              <MuiTableSortLabel
+                IconComponent={ArrowUpDown}
+                slotProps={{
+                  icon: {
+                    className: '!w-4 !h-4 !text-primary-500',
+                  },
+                }}
+                active={orderBy === column.id && order !== 'none'}
+                direction={
+                  orderBy === column.id && order !== 'none' ? order : 'asc'
+                }
+                onClick={createSortHandler(column.id)}
+                className={classNames(
+                  'hover:!text-blue-600 !flex !justify-between',
+                  orderBy === column.id && order !== 'none' && '!text-blue-600'
+                )}
+              >
+                {column.label}
+                {orderBy === column.id && order !== 'none' ? (
+                  <Box component="span" sx={visuallyHidden}>
+                    {order === 'desc'
+                      ? 'sorted descending'
+                      : 'sorted ascending'}
+                  </Box>
+                ) : null}
+              </MuiTableSortLabel>
+            ) : (
+              column.label
+            )}
+          </MuiTableCell>
+        ))}
+      </MuiTableRow>
+    </MuiTableHead>
+  );
+}
+
+/**
+ * Props for the Skeleton Loader component
+ */
+interface SkeletonLoaderProps {
+  columns: TableColumn[];
+  rows?: number;
+}
+
+/**
+ * Skeleton loader component for table loading states
+ * @param props - Component props
+ * @returns Skeleton rows JSX elements
+ */
+function SkeletonLoader({ columns, rows = 3 }: SkeletonLoaderProps) {
+  const skeletonRows = Array.from({ length: rows }, (_, index) => index);
+
+  const getSkeletonWidth = (_column: TableColumn, index: number) => {
+    const widths = ['60%', '80%', '70%', '90%', '50%', '75%'];
+    return widths[index % widths.length];
+  };
+
+  const visibleColumns = columns.filter(column => column.isVisible !== false);
+
+  return (
+    <>
+      {skeletonRows.map((_row, rowIndex) => (
+        <MuiTableRow key={`skeleton-row-${rowIndex}`}>
+          {visibleColumns.map((column, colIndex) => (
+            <MuiTableCell
+              key={`skeleton-${rowIndex}-${String(column.id)}`}
+              align={column.numeric ? 'right' : 'left'}
+              padding={column.disablePadding ? 'none' : 'normal'}
+              className="!border-b !border-gray-100 !h-[50px]"
+            >
+              <Box className="!flex !items-center !gap-1.5">
+                <Box className="!flex-1">
+                  <Skeleton
+                    variant="text"
+                    width={getSkeletonWidth(column, colIndex)}
+                    height={20}
+                    className="!bg-gray-100 !rounded"
+                  />
+                </Box>
+              </Box>
+            </MuiTableCell>
+          ))}
+        </MuiTableRow>
+      ))}
+    </>
+  );
+}
+
+/**
+ * Enhanced Table component with sorting, pagination, and loading states
+ * Supports both client-side and server-side pagination
+ * @template T - The type of data objects in the table
+ * @param props - Component props
+ * @returns Enhanced table JSX element
+ */
+export default function Table<T extends Record<string, any>>(
+  props: TableProps<T>
+) {
+  const {
+    data: propData,
+    rows: propRows,
+    columns,
+    sortable = true,
+    pagination = true,
+    onRowClick,
+    loading = false,
+    emptyMessage = 'No data available',
+    getRowId = (row: T, index: number) => (row as any).id ?? index,
+    initialOrderBy,
+    initialOrder = 'none',
+    stickyHeader = false,
+    maxHeight,
+    minHeight,
+    page = 0,
+    rowsPerPage = 6,
+    onPageChange,
+    isPermission = true,
+    noAccessMessage = 'You do not have permission to access this content',
+    compact = false,
+    tableId,
+    filterColunm = true,
+    id,
+  } = props;
+
+  const data = propData || propRows || [];
+  const actualTotalCount = props.totalCount || data.length;
+
+  const [order, setOrder] = useState<Order>(initialOrder);
+  const [internalPage, setInternalPage] = useState(page);
+
+  useEffect(() => {
+    setInternalPage(page);
+  }, [page]);
+
+  const [orderBy, setOrderBy] = useState<keyof T | ''>(() => {
+    if (initialOrderBy && initialOrder !== 'none') {
+      const column = columns.find(col => col.id === initialOrderBy);
+      if (column && column.sortable !== false) {
+        return initialOrderBy;
+      }
+    }
+    return '';
+  });
+
+  const columnMap = useMemo(() => {
+    return new Map(columns.map(col => [String(col.id), col]));
+  }, [columns]);
+
+  const initialColumnVisibility: Record<string, boolean> = {};
+  columns.forEach(column => {
+    initialColumnVisibility[String(column.id)] = column.isVisible !== false;
+  });
+
+  const autoTableId = useMemo(() => generateTableId(columns), [columns]);
+  const activeTableId = tableId || autoTableId;
+
+  const { data: preferencesResponse } = useUserPreferences();
+  const savePreferences = useSaveUserPreferences();
+
+  const [columnVisibility, setColumnVisibility] = useState<
+    Record<string, boolean>
+  >(initialColumnVisibility);
+
+  useEffect(() => {
+    if (preferencesResponse?.data) {
+      const savedPref = preferencesResponse.data.find(
+        (p: { route: string }) => p.route === activeTableId
+      );
+      if (savedPref) {
+        setColumnVisibility(savedPref.preferences);
+      }
+    }
+  }, [preferencesResponse, activeTableId]);
+
+  const [columnFilterAnchorEl, setColumnFilterAnchorEl] =
+    useState<null | HTMLElement>(null);
+  const isColumnFilterOpen = Boolean(columnFilterAnchorEl);
+
+  const visibleColumns = useMemo(() => {
+    if (loading) {
+      return columns.filter(column => column.isVisible !== false);
+    }
+    return columns.filter(column => {
+      const columnId = String(column.id);
+      return columnVisibility[columnId] !== false && column.isVisible !== false;
+    });
+  }, [columns, columnVisibility, loading]);
+
+  const hideableColumns = useMemo(() => {
+    return columns.filter(column => column.hideable !== false);
+  }, [columns]);
+
+  const handleRequestSort = (
+    _event: React.MouseEvent<unknown>,
+    property: keyof T | string
+  ) => {
+    const column = columnMap.get(String(property));
+    if (column?.sortable === false) {
+      return;
+    }
+
+    if (orderBy !== property) {
+      setOrder('asc');
+      setOrderBy(property);
+    } else {
+      if (order === 'none') {
+        setOrder('asc');
+      } else if (order === 'asc') {
+        setOrder('desc');
+      } else {
+        setOrder('none');
+        setOrderBy('');
+      }
+    }
+  };
+
+  const handleClick = (
+    _event: React.MouseEvent<unknown>,
+    row: T,
+    index: number
+  ) => {
+    onRowClick?.(row, index);
+  };
+
+  const handleChangePage = (_event: unknown, newPage: number) => {
+    setInternalPage(newPage);
+    onPageChange?.(newPage);
+  };
+
+  const handleColumnFilterClick = (event: React.MouseEvent<HTMLElement>) => {
+    setColumnFilterAnchorEl(event.currentTarget);
+  };
+
+  const handleColumnFilterClose = () => {
+    setColumnFilterAnchorEl(null);
+  };
+
+  const handleColumnVisibilityChange = (
+    columnId: string,
+    isVisible: boolean
+  ) => {
+    const newVisibility = { ...columnVisibility, [columnId]: isVisible };
+    setColumnVisibility(newVisibility);
+    savePreferences.mutate({
+      route: activeTableId,
+      preferences: newVisibility,
+    });
+  };
+
+  const visibleRows = useMemo(() => {
+    let result = data;
+    if (sortable && orderBy && order !== 'none') {
+      result = [...data].sort(getComparator(order, orderBy));
+    }
+
+    // Client-side pagination if onPageChange is not provided
+    if (pagination && !onPageChange) {
+      const startIndex = internalPage * rowsPerPage;
+      result = result.slice(startIndex, startIndex + rowsPerPage);
+    }
+
+    return result;
+  }, [
+    data,
+    order,
+    orderBy,
+    sortable,
+    pagination,
+    onPageChange,
+    internalPage,
+    rowsPerPage,
+  ]);
+
+  const isInitialLoading = loading && data.length === 0;
+  const hasNoPermission = !isPermission;
+
+  const renderTableContent = () => {
+    if (hasNoPermission) {
+      return (
+        <Box className="!flex !flex-col !items-center !justify-center !py-16 !px-4">
+          <Box className="!mb-4 !p-4 !rounded-full !bg-red-100">
+            <Lock className="!w-12 !h-12 !text-red-500" />
+          </Box>
+          <Box className="!text-center !max-w-md">
+            <Box className="!text-lg !font-semibold !text-gray-700 !mb-2">
+              Access Denied
+            </Box>
+            <Box className="!text-sm !text-gray-500">{noAccessMessage}</Box>
+          </Box>
+        </Box>
+      );
+    }
+
+    if (isInitialLoading) {
+      return (
+        <MuiTable
+          className={compact ? '' : '!min-w-[750px]'}
+          size="small"
+          stickyHeader={stickyHeader}
+        >
+          <TableHead
+            compact={compact}
+            order={order}
+            orderBy={orderBy ? String(orderBy) : ''}
+            onRequestSort={() => {}}
+            columns={columns}
+            sortable={sortable}
+          />
+          <MuiTableBody>
+            <SkeletonLoader columns={columns} rows={6} />
+          </MuiTableBody>
+        </MuiTable>
+      );
+    }
+
+    return (
+      <MuiTable
+        className={compact ? '' : '!min-w-[750px]'}
+        size="small"
+        stickyHeader={stickyHeader}
+      >
+        <TableHead
+          compact={compact}
+          order={order}
+          orderBy={orderBy ? String(orderBy) : ''}
+          onRequestSort={handleRequestSort}
+          columns={columns}
+          sortable={sortable}
+          columnVisibility={columnVisibility}
+        />
+        <MuiTableBody>
+          {loading ? (
+            <SkeletonLoader columns={columns} rows={rowsPerPage} />
+          ) : visibleRows.length === 0 ? (
+            <MuiTableRow>
+              <MuiTableCell
+                colSpan={columns.length}
+                align="center"
+                className="!py-4 !border-none !text-gray-500 !italic"
+              >
+                {emptyMessage}
+              </MuiTableCell>
+            </MuiTableRow>
+          ) : (
+            (() => {
+              const renderRow = (row: T, index: number) => {
+                const rowId = getRowId(row, index);
+                return (
+                  <MuiTableRow
+                    hover
+                    onClick={event => handleClick(event, row, index)}
+                    tabIndex={-1}
+                    key={String(rowId)}
+                    className="!whitespace-nowrap last:!border-b-0 !cursor-pointer hover:!bg-gray-50"
+                  >
+                    {visibleColumns.map(column => (
+                      <MuiTableCell
+                        key={String(column.id)}
+                        align={column.numeric ? 'right' : 'left'}
+                        padding={column.disablePadding ? 'none' : 'normal'}
+                        className="!border-b !p-1.5 !border-gray-100 !text-gray-700 !whitespace-nowrap !text-sm"
+                      >
+                        {column.render
+                          ? column.render(row[column.id], row, index)
+                          : String(row[column.id] || '')}
+                      </MuiTableCell>
+                    ))}
+                  </MuiTableRow>
+                );
+              };
+
+              if (!props.groupBy) {
+                return visibleRows.map((row, index) => renderRow(row, index));
+              }
+
+              const groups: { group: string; rows: T[] }[] = [];
+              const groupMap = new Map<string, T[]>();
+              visibleRows.forEach(row => {
+                const group = props.groupBy!(row);
+                if (!groupMap.has(group)) {
+                  const newGroup: T[] = [];
+                  groupMap.set(group, newGroup);
+                  groups.push({ group, rows: newGroup });
+                }
+                groupMap.get(group)!.push(row);
+              });
+
+              return groups.map(({ group, rows }) => (
+                <React.Fragment key={`group-${group}`}>
+                  <MuiTableRow className="!bg-gray-200">
+                    <MuiTableCell
+                      colSpan={visibleColumns.length}
+                      className="!py-2 !px-4 !font-bold !text-gray-800"
+                    >
+                      {props.renderGroupHeader
+                        ? props.renderGroupHeader(group, rows)
+                        : group}
+                    </MuiTableCell>
+                  </MuiTableRow>
+                  {rows.map((row, index) => renderRow(row, index))}
+                </React.Fragment>
+              ));
+            })()
+          )}
+        </MuiTableBody>
+      </MuiTable>
+    );
+  };
+
+  return (
+    <Box className="!w-full" id={id}>
+      <Paper
+        elevation={0}
+        className="!bg-white !shadow-sm !rounded-lg !border !border-gray-100"
+      >
+        {props.actions && !Array.isArray(props.actions) && (
+          <>
+            <Box
+              className={classNames(
+                '!p-3 flex gap-2',
+                filterColunm ? 'justify-between items-start' : 'items-start'
+              )}
+            >
+              {props.actions}{' '}
+              {filterColunm &&
+                isPermission &&
+                hideableColumns &&
+                hideableColumns.length > 0 && (
+                  <Box className="!relative">
+                    <IconButton
+                      className="!bg-blue-500/20 !size-9.5 !rounded !mt-px"
+                      onClick={handleColumnFilterClick}
+                    >
+                      <FilterList className="!text-blue-500" />
+                    </IconButton>
+                    <Divider className="!border-gray-200" />
+                  </Box>
+                )}
+            </Box>
+          </>
+        )}
+        <Menu
+          anchorEl={columnFilterAnchorEl}
+          open={isColumnFilterOpen}
+          onClose={handleColumnFilterClose}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+          transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+          slotProps={{
+            paper: {
+              className: '!overflow-y-auto relative',
+              sx: {
+                boxShadow:
+                  '0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.1)',
+                overflow: 'visible',
+              },
+            },
+          }}
+        >
+          <Box className="w-72">
+            <Typography
+              variant="subtitle2"
+              className="!font-semibold p-1.5 !text-gray-700"
+            >
+              Show/Hide Columns
+            </Typography>
+
+            <Divider className="" />
+
+            <Box className="!space-y-2 p-2">
+              {hideableColumns.map(column => {
+                const columnId = String(column.id);
+                const isVisible = columnVisibility[columnId] !== false;
+                return (
+                  <FormControlLabel
+                    key={columnId}
+                    control={
+                      <CustomSwitch
+                        checked={isVisible}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                          handleColumnVisibilityChange(
+                            columnId,
+                            e.target.checked
+                          )
+                        }
+                      />
+                    }
+                    label={
+                      <Box className="!flex !items-center !gap-2">
+                        <Typography className="!text-gray-700">
+                          {column.label}
+                        </Typography>
+                      </Box>
+                    }
+                    labelPlacement="start"
+                    className="!justify-between !w-full !mx-0"
+                  />
+                );
+              })}
+            </Box>
+          </Box>
+        </Menu>
+        <MuiTableContainer style={{ maxHeight, minHeight }}>
+          {renderTableContent()}
+        </MuiTableContainer>
+        {pagination && isPermission && (
+          <MuiTablePagination
+            rowsPerPageOptions={[]}
+            component="div"
+            showFirstButton
+            showLastButton
+            count={actualTotalCount}
+            onPageChange={handleChangePage}
+            page={onPageChange ? page : internalPage}
+            rowsPerPage={rowsPerPage}
+            className="!border-t !border-gray-200 [&_.MuiTablePagination-toolbar]:!text-gray-700 [&_.MuiTablePagination-selectIcon]:!text-gray-500"
+          />
+        )}
+      </Paper>
+    </Box>
+  );
+}

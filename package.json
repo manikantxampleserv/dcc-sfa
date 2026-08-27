@@ -5,11 +5,12 @@
   "private": true,
   "workspaces": [
     "dcc-sfa-be",
-    "dcc-sfa-fe"
+    "dcc-sfa-fe",
+    "dcc-b2b"
   ],
   "scripts": {
     "setup": "npm install && npm run prisma:generate",
-    "dev": "concurrently --names \"BE,FE\" --prefix-colors \"blue,green\" --kill-others \"npm run dev --workspace=dcc-sfa-be\" \"npm run dev --workspace=dcc-sfa-fe\"",
+    "dev": "concurrently --names \"BE,FE,B2B\" --prefix-colors \"blue,green,magenta\" --kill-others \"npm run dev --workspace=dcc-sfa-be\" \"npm run dev --workspace=dcc-sfa-fe\" \"npm run dev --workspace=dcc-b2b\"",
     "build:staging": "concurrently --names \"BE,FE\" --prefix-colors \"blue,green\" \"npm run build:staging --workspace=dcc-sfa-be\" \"npm run build:staging --workspace=dcc-sfa-fe\"",
     "build:testing": "concurrently --names \"BE,FE\" --prefix-colors \"blue,green\" \"npm run build:testing --workspace=dcc-sfa-be\" \"npm run build:testing --workspace=dcc-sfa-fe\"",
     "build:production": "concurrently --names \"BE,FE\" --prefix-colors \"blue,green\" \"npm run build:production --workspace=dcc-sfa-be\" \"npm run build:production --workspace=dcc-sfa-fe\"",

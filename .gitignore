@@ -18,11 +18,6 @@ out/
 
 .cursor/
 
-
-
-
-
-
 # Environment variables
 **/.env
 **/.env.local
@@ -174,10 +169,12 @@ dcc-sfa-be/prisma/migrations/
 !dcc-sfa-be/prisma/migrations/.gitkeep
 
 
-executive_dashboard_v5.html
+PROJECT CHARTER B2B Ordering System (1).docx
 
-SalesControlTower_Dataset.xlsx
+Bonite_IndentSales_Overview.pdf
 
-Sample Data File.xlsx
+Business and functional requirements B2B Ordering System.docx
 
-Cooler Master Cum Transaction Report.xlsx
+KPI governance structure B2B ordering system.docx
+
+STAKEHOLDER REQUIREMENTS VALIDATION REPORT B2B Ordering System.docx
