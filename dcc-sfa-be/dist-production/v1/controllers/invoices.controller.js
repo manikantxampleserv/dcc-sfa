@@ -292,7 +292,10 @@ exports.invoicesController = {
                                             product_id: product?.id,
                                             salesperson_id: { in: targetSalespersonIds },
                                             batch_id: batchOrder.batch_lot_id,
+                                            is_active: 'Y',
+                                            OR: [{ is_unloadAll: 'N' }, { is_unloadAll: null }],
                                         },
+                                        orderBy: { current_stock: 'desc' },
                                     });
                                     if (inventoryStock) {
                                         const stockDeduction = (0, inventory_utils_1.calculateStockDeduction)(inventoryStock.current_stock || 0, inventoryStock.base_quantity || 0, piecesToDeduct, conversionRate, itemUnit, batchOrder.uomQty);
@@ -453,10 +456,13 @@ exports.invoicesController = {
                                         salesperson_id: { in: targetSalespersonIds },
                                         batch_id: null,
                                         serial_number_id: null,
+                                        is_active: 'Y',
+                                        OR: [{ is_unloadAll: 'N' }, { is_unloadAll: null }],
                                         ...(vanInventory?.location_id && {
                                             location_id: vanInventory.location_id,
                                         }),
                                     },
+                                    orderBy: { current_stock: 'desc' },
                                 });
                                 if (inventoryStock) {
                                     const stockDeduction = (0, inventory_utils_1.calculateStockDeduction)(inventoryStock.current_stock || 0, inventoryStock.base_quantity || 0, orderedPieces, conversionRate, itemUnit, orderedQty);
@@ -642,14 +648,36 @@ exports.invoicesController = {
                         : undefined),
             };
             if (salesperson_id) {
-                if (!filters.AND)
-                    filters.AND = [];
-                filters.AND.push({
-                    OR: [
-                        { salesperson_id: Number(salesperson_id) },
-                        { createdby: Number(salesperson_id) },
-                    ],
-                });
+                let ids = String(salesperson_id)
+                    .split(',')
+                    .map(id => Number(id.trim()))
+                    .filter(id => !isNaN(id));
+                // Automatically expand the ID to include group members if it's a single ID
+                if (ids.length === 1) {
+                    const expandedIds = await (0, inventory_utils_1.getContainerOwnerAndSelf)(prisma_client_1.default, ids[0]);
+                    if (expandedIds.length > 0) {
+                        ids = expandedIds;
+                    }
+                }
+                if (ids.length > 0) {
+                    if (!filters.AND)
+                        filters.AND = [];
+                    const orConditions = [
+                        { salesperson_id: { in: ids } },
+                        { createdby: { in: ids } },
+                        {
+                            orders: {
+                                is: {
+                                    OR: [
+                                        { salesperson_id: { in: ids } },
+                                        { createdby: { in: ids } },
+                                    ],
+                                },
+                            },
+                        },
+                    ];
+                    filters.AND.push({ OR: orConditions });
+                }
             }
             if (isScopeRestricted) {
                 if (depotIds.length > 0) {

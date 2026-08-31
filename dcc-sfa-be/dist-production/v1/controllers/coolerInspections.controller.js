@@ -7,6 +7,7 @@ exports.coolerInspectionsController = void 0;
 const paginate_1 = require("../../utils/paginate");
 const prisma_client_1 = __importDefault(require("../../configs/prisma.client"));
 const blackbaze_1 = require("../../utils/blackbaze");
+const dateFilters_1 = require("../../utils/dateFilters");
 const serializeCoolerInspection = (inspection) => ({
     id: inspection.id,
     cooler_id: inspection.cooler_id,
@@ -173,11 +174,12 @@ exports.coolerInspectionsController = {
     },
     async getCoolerInspections(req, res) {
         try {
-            const { page, limit, search, isActive, isWorking, actionRequired, cooler_id, inspected_by, user_id, inspector_id, visit_id, } = req.query;
+            const { page, limit, search, isActive, isWorking, actionRequired, cooler_id, inspected_by, user_id, inspector_id, visit_id, time_filter, start_date, end_date, inspection_date_from, inspection_date_to, } = req.query;
             const page_num = page ? parseInt(page, 10) : 1;
             const limit_num = limit ? parseInt(limit, 10) : 10;
             const searchLower = search ? search.toLowerCase() : '';
             const inspectorFilter = inspector_id || inspected_by || user_id;
+            const timeBasedDateFilter = (0, dateFilters_1.getTimeFilter)(time_filter, start_date, end_date);
             const filters = {
                 ...(search && {
                     OR: [
@@ -220,6 +222,20 @@ exports.coolerInspectionsController = {
                     visit_id !== '' && {
                     visit_id: visit_id === 'null' ? null : parseInt(visit_id, 10),
                 }),
+                ...(timeBasedDateFilter
+                    ? { inspection_date: timeBasedDateFilter }
+                    : inspection_date_from || inspection_date_to
+                        ? {
+                            inspection_date: {
+                                ...(inspection_date_from && {
+                                    gte: new Date(inspection_date_from),
+                                }),
+                                ...(inspection_date_to && {
+                                    lte: new Date(inspection_date_to),
+                                }),
+                            },
+                        }
+                        : undefined),
             };
             const totalInspections = await prisma_client_1.default.cooler_inspections.count();
             const activeInspections = await prisma_client_1.default.cooler_inspections.count({
