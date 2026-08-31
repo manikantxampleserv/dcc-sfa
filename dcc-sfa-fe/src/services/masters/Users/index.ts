@@ -68,6 +68,7 @@ interface User {
     email: string;
   } | null;
   permissions?: string[];
+  routes?: Array<any> | null;
   recent_activities?: RecentActivity;
   subordinate_count?: number;
   manager_team_count?: number;

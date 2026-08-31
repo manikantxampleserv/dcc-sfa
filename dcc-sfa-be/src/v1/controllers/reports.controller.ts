@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { paginate } from '../../utils/paginate';
 import prisma from '../../configs/prisma.client';
 import { isAdminRole } from '../../configs/permissions.config';
+import { getTimeFilter } from '../../utils/dateFilters';
 
 async function getReportData(filters: any) {
   const {
@@ -4803,6 +4804,909 @@ export const reportsController = {
       res.send(Buffer.from(buffer));
     } catch (error: any) {
       console.error('Export Attendance History Report Error:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Failed to export report',
+      });
+    }
+  },
+
+  /**
+   * Get Cooler Inspections Report
+   * Returns paginated cooler inspections data.
+   */
+  async getCoolerInspectionsReport(req: Request, res: Response) {
+    try {
+      const {
+        page,
+        limit,
+        barcode,
+        customer_name,
+        is_working,
+        action_required,
+        status,
+        inspector_id,
+        inspection_date,
+      } = req.query;
+
+      const page_num = page ? parseInt(page as string, 10) : 1;
+      const limit_num = limit ? parseInt(limit as string, 10) : 10;
+
+      const where: any = {};
+
+      if (barcode) {
+        where.coolers = {
+          OR: [
+            { code: { contains: barcode as string } },
+            {
+              cooler_asset_master: { barcode: { contains: barcode as string } },
+            },
+          ],
+        };
+      }
+      if (customer_name) {
+        where.coolers = {
+          ...where.coolers,
+          coolers_customers: {
+            name: { contains: customer_name as string },
+          },
+        };
+      }
+      if (is_working) {
+        where.is_working = is_working === 'Y' ? 'Y' : 'N';
+      }
+      if (action_required) {
+        where.action_required = action_required === 'Y' ? 'Y' : 'N';
+      }
+      if (status && status !== 'all') {
+        const statusVal = (status as string).toLowerCase();
+        where.is_active =
+          statusVal === 'active' || statusVal === 'y' ? 'Y' : 'N';
+      }
+      if (inspector_id) {
+        where.inspected_by = parseInt(inspector_id as string, 10);
+      }
+
+      if (inspection_date) {
+        const targetDate = new Date(inspection_date as string);
+        if (!isNaN(targetDate.getTime())) {
+          const startOfDay = new Date(targetDate);
+          startOfDay.setHours(0, 0, 0, 0);
+          const endOfDay = new Date(targetDate);
+          endOfDay.setHours(23, 59, 59, 999);
+          where.inspection_date = { gte: startOfDay, lte: endOfDay };
+        }
+      }
+
+      const skip = (page_num - 1) * limit_num;
+
+      const inspections = await prisma.cooler_inspections.findMany({
+        where,
+        skip,
+        take: limit_num,
+        orderBy: { inspection_date: 'desc' },
+        include: {
+          coolers: {
+            include: {
+              cooler_asset_master: true,
+              coolers_customers: true,
+            },
+          },
+          users: {
+            select: { id: true, name: true, employee_id: true, email: true },
+          },
+        },
+      });
+
+      const totalCount = await prisma.cooler_inspections.count({ where });
+
+      const workingCount = await prisma.cooler_inspections.count({
+        where: { ...where, is_working: 'Y' },
+      });
+      const notWorkingCount = await prisma.cooler_inspections.count({
+        where: { ...where, is_working: 'N' },
+      });
+      const actionRequiredCount = await prisma.cooler_inspections.count({
+        where: { ...where, action_required: 'Y' },
+      });
+
+      res.json({
+        success: true,
+        message: 'Cooler Inspections Report retrieved successfully',
+        data: inspections,
+        meta: {
+          current_page: page_num,
+          total_pages: Math.ceil(totalCount / limit_num),
+          total_count: totalCount,
+          has_next: skip + limit_num < totalCount,
+          has_previous: page_num > 1,
+        },
+        stats: {
+          total_inspections: totalCount,
+          working_coolers: workingCount,
+          not_working_coolers: notWorkingCount,
+          action_required: actionRequiredCount,
+        },
+      });
+    } catch (error: any) {
+      console.error('Get Cooler Inspections Report Error:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Failed to retrieve report',
+      });
+    }
+  },
+
+  /**
+   * Export Cooler Inspections Report to Excel
+   */
+  async exportCoolerInspectionsReport(req: Request, res: Response) {
+    try {
+      const {
+        barcode,
+        customer_name,
+        is_working,
+        action_required,
+        status,
+        inspector_id,
+        inspection_date,
+      } = req.query;
+
+      const where: any = {};
+
+      if (barcode) {
+        where.coolers = {
+          OR: [
+            { code: { contains: barcode as string } },
+            {
+              cooler_asset_master: { barcode: { contains: barcode as string } },
+            },
+          ],
+        };
+      }
+      if (customer_name) {
+        where.coolers = {
+          ...where.coolers,
+          coolers_customers: {
+            name: { contains: customer_name as string },
+          },
+        };
+      }
+      if (is_working) {
+        where.is_working = is_working === 'Y' ? 'Y' : 'N';
+      }
+      if (action_required) {
+        where.action_required = action_required === 'Y' ? 'Y' : 'N';
+      }
+      if (status && status !== 'all') {
+        const statusVal = (status as string).toLowerCase();
+        where.is_active =
+          statusVal === 'active' || statusVal === 'y' ? 'Y' : 'N';
+      }
+      if (inspector_id) {
+        where.inspected_by = parseInt(inspector_id as string, 10);
+      }
+
+      if (inspection_date) {
+        const targetDate = new Date(inspection_date as string);
+        if (!isNaN(targetDate.getTime())) {
+          const startOfDay = new Date(targetDate);
+          startOfDay.setHours(0, 0, 0, 0);
+          const endOfDay = new Date(targetDate);
+          endOfDay.setHours(23, 59, 59, 999);
+          where.inspection_date = { gte: startOfDay, lte: endOfDay };
+        }
+      }
+
+      const inspections = await prisma.cooler_inspections.findMany({
+        where,
+        orderBy: { inspection_date: 'desc' },
+        include: {
+          coolers: {
+            include: {
+              cooler_asset_master: {
+                include: {
+                  asset_master_asset_types: true,
+                  asset_master_asset_sub_types: true,
+                  asset_master_brand: true,
+                  asset_master_brands: true,
+                },
+              },
+              coolers_customers: true,
+              cooler_types: true,
+              cooler_sub_types: true,
+            },
+          },
+          users: {
+            select: { id: true, name: true, employee_id: true, email: true },
+          },
+        },
+      });
+
+      const ExcelJS = await import('exceljs');
+      const workbook = new ExcelJS.Workbook();
+      const sheet = workbook.addWorksheet('Cooler Inspections', {
+        pageSetup: { paperSize: 9, orientation: 'landscape' },
+      });
+
+      sheet.columns = [
+        { header: 'Barcode', key: 'barcode', width: 20 },
+        { header: 'Serial', key: 'serial', width: 20 },
+        { header: 'Type', key: 'type', width: 20 },
+        { header: 'SubType', key: 'subtype', width: 20 },
+        { header: 'Brand', key: 'brand', width: 20 },
+        { header: 'Location (Outlet / Depot)', key: 'location', width: 20 },
+        { header: 'Depot Name', key: 'depot_name', width: 20 },
+        { header: 'Depot / OutletCode', key: 'depot_outlet_code', width: 20 },
+        { header: 'OutletName', key: 'outlet_name', width: 25 },
+        { header: 'Status', key: 'status', width: 15 },
+        { header: 'Disabled', key: 'disabled', width: 15 },
+        { header: 'InstallDate', key: 'install_date', width: 20 },
+        { header: 'LastScanned Date', key: 'last_scanned_date', width: 20 },
+        {
+          header: 'Last Scanned Seller Code',
+          key: 'last_scanned_seller_code',
+          width: 20,
+        },
+        {
+          header: 'Last Scanned Seller Name',
+          key: 'last_scanned_seller_name',
+          width: 25,
+        },
+      ];
+
+      sheet.columns.forEach(column => {
+        column.font = { name: 'Aptos Narrow', size: 11 };
+      });
+
+      inspections.forEach(row => {
+        sheet.addRow({
+          barcode: row.coolers?.cooler_asset_master?.barcode || '',
+          serial: row.coolers?.serial_number || '',
+          type:
+            row.coolers?.cooler_types?.name ||
+            row.coolers?.cooler_asset_master?.asset_master_asset_types?.name ||
+            '',
+          subtype:
+            row.coolers?.cooler_sub_types?.name ||
+            row.coolers?.cooler_asset_master?.asset_master_asset_sub_types
+              ?.name ||
+            '',
+          brand:
+            row.coolers?.brand ||
+            row.coolers?.cooler_asset_master?.brand ||
+            row.coolers?.cooler_asset_master?.asset_master_brand?.name ||
+            row.coolers?.cooler_asset_master?.asset_master_brands?.name ||
+            '',
+          location: 'Outlet',
+          depot_name: '',
+          depot_outlet_code: row.coolers?.coolers_customers?.code || '',
+          outlet_name: row.coolers?.coolers_customers?.name || '',
+          status: row.is_working === 'Y' ? 'Working' : 'Not Working',
+          disabled: row.coolers?.is_active === 'N' ? 'TRUE' : 'FALSE',
+          install_date: row.coolers?.install_date
+            ? new Date(row.coolers.install_date).toLocaleDateString()
+            : '',
+          last_scanned_date: row.inspection_date
+            ? new Date(row.inspection_date).toLocaleString()
+            : '',
+          last_scanned_seller_code: row.users?.employee_id || '',
+          last_scanned_seller_name: row.users?.name || '',
+        });
+      });
+
+      res.setHeader(
+        'Content-Type',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      );
+      res.setHeader(
+        'Content-Disposition',
+        'attachment; filename=Cooler_Inspections_Report.xlsx'
+      );
+
+      await workbook.xlsx.write(res);
+      res.end();
+    } catch (error: any) {
+      console.error('Export Cooler Inspections Report Error:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Failed to export report',
+      });
+    }
+  },
+
+  /**
+   * Get Coolers Report
+   * Returns paginated coolers data for report.
+   */
+
+  async getCoolersReport(req: Request, res: Response) {
+    try {
+      const {
+        page,
+        limit,
+        barcode,
+        customer_name,
+        is_working,
+        action_required,
+        status,
+        inspector_id,
+        inspection_date,
+      } = req.query;
+
+      const page_num = page ? parseInt(page as string, 10) : 1;
+      const limit_num = limit ? parseInt(limit as string, 10) : 10;
+
+      const where: any = {
+        asset_master_asset_types: { name: 'Cooler' },
+      };
+
+      const andConditions = [];
+      if (barcode) {
+        andConditions.push({
+          OR: [
+            { code: { contains: barcode as string } },
+            { barcode: { contains: barcode as string } },
+          ],
+        });
+      }
+      if (customer_name) {
+        andConditions.push({
+          OR: [
+            { current_location: { contains: customer_name as string } },
+            {
+              cooler_asset_master: {
+                some: {
+                  coolers_customers: {
+                    name: { contains: customer_name as string },
+                  },
+                },
+              },
+            },
+          ],
+        });
+      }
+      if (status && status !== 'all') {
+        const statusVal = (status as string).toLowerCase();
+        andConditions.push({
+          is_active: statusVal === 'active' || statusVal === 'y' ? 'Y' : 'N',
+        });
+      }
+
+      const coolerWhere: any = {};
+      const inspectionWhere: any = {};
+      let hasCoolerFilter = false;
+      let hasInspectionFilter = false;
+
+      if (inspector_id) {
+        inspectionWhere.inspected_by = parseInt(inspector_id as string, 10);
+        hasInspectionFilter = true;
+      }
+      if (is_working) {
+        coolerWhere.status = is_working === 'Y' ? 'working' : 'not_working';
+        hasCoolerFilter = true;
+      }
+      if (action_required) {
+        inspectionWhere.action_required = action_required === 'Y' ? 'Y' : 'N';
+        hasInspectionFilter = true;
+      }
+
+      if (hasInspectionFilter) {
+        coolerWhere.cooler_inspections = { some: inspectionWhere };
+        hasCoolerFilter = true;
+      }
+      if (inspection_date) {
+        const targetDate = new Date(inspection_date as string);
+        if (!isNaN(targetDate.getTime())) {
+          const startOfDay = new Date(targetDate);
+          startOfDay.setHours(0, 0, 0, 0);
+          const endOfDay = new Date(targetDate);
+          endOfDay.setHours(23, 59, 59, 999);
+          coolerWhere.last_scanned_date = { gte: startOfDay, lte: endOfDay };
+          hasCoolerFilter = true;
+        }
+      }
+      if (hasCoolerFilter) {
+        andConditions.push({ cooler_asset_master: { some: coolerWhere } });
+      }
+
+      if (andConditions.length > 0) {
+        where.AND = andConditions;
+      }
+
+      const skip = (page_num - 1) * limit_num;
+
+      const assets = await prisma.asset_master.findMany({
+        where,
+        skip,
+        take: limit_num,
+        orderBy: { createdate: 'desc' },
+        include: {
+          asset_master_asset_types: true,
+          asset_master_asset_sub_types: true,
+          asset_master_brand: true,
+          asset_master_brands: true,
+          cooler_asset_master: {
+            include: {
+              cooler_inspections: {
+                orderBy: { inspection_date: 'desc' },
+                take: 1,
+                include: {
+                  users: {
+                    select: {
+                      id: true,
+                      name: true,
+                      employee_id: true,
+                      email: true,
+                    },
+                  },
+                },
+              },
+              coolers_customers: true,
+              cooler_types: true,
+              cooler_sub_types: true,
+              users: {
+                select: {
+                  id: true,
+                  name: true,
+                  employee_id: true,
+                  email: true,
+                },
+              },
+            },
+          },
+          asset_master_depot: {
+            select: { id: true, name: true, code: true },
+          },
+        },
+      });
+
+      const mappedAssets = assets.map((a: any) => {
+        const deployedCooler =
+          a.cooler_asset_master && a.cooler_asset_master.length > 0
+            ? a.cooler_asset_master[0]
+            : null;
+        const latestInspection =
+          deployedCooler?.cooler_inspections &&
+          deployedCooler.cooler_inspections.length > 0
+            ? deployedCooler.cooler_inspections[0]
+            : null;
+
+        return {
+          id: a.id,
+          // Asset fields
+          name: a.name || '',
+          code: a.code || '',
+          barcode: a.barcode || '',
+          serial_number: a.serial_number || '',
+          asset_type: a.asset_master_asset_types?.name || '',
+          asset_sub_type: a.asset_master_asset_sub_types?.name || '',
+          brand:
+            a.asset_master_brands?.name ||
+            a.asset_master_brand?.name ||
+            a.brand ||
+            '',
+          current_location: a.current_location || '',
+          is_active: a.is_active,
+          current_status: a.current_status || '',
+          install_date:
+            deployedCooler?.install_date || a.installation_date || null,
+
+          // Cooler (deployed) fields
+          cooler_code: deployedCooler?.code || null,
+          cooler_status: deployedCooler?.status || null,
+          cooler_type: deployedCooler?.cooler_types?.name || null,
+          cooler_sub_type: deployedCooler?.cooler_sub_types?.name || null,
+
+          // Customer (outlet) or depot the cooler is currently at
+          customer: deployedCooler?.coolers_customers
+            ? {
+                id: deployedCooler.coolers_customers.id,
+                name: deployedCooler.coolers_customers.name,
+                code: deployedCooler.coolers_customers.code,
+                type: 'outlet',
+              }
+            : a.asset_master_depot
+              ? {
+                  id: a.asset_master_depot.id,
+                  name: a.asset_master_depot.name,
+                  code: a.asset_master_depot.code,
+                  type: 'depot',
+                }
+              : a.current_location
+                ? { name: a.current_location, code: null, type: 'other' }
+                : null,
+
+          // Latest inspection
+          inspection_date: latestInspection?.inspection_date || null,
+          temperature:
+            latestInspection?.temperature ??
+            deployedCooler?.temperature ??
+            null,
+          is_working: latestInspection?.is_working ?? null,
+          action_required: latestInspection?.action_required ?? null,
+
+          inspector: latestInspection?.users
+            ? {
+                id: latestInspection.users.id,
+                name: latestInspection.users.name,
+                employee_id: latestInspection.users.employee_id,
+                email: latestInspection.users.email,
+              }
+            : null,
+
+          technician: deployedCooler?.users
+            ? {
+                id: deployedCooler.users.id,
+                name: deployedCooler.users.name,
+                employee_id: deployedCooler.users.employee_id,
+                email: deployedCooler.users.email,
+              }
+            : null,
+        };
+      });
+
+      const totalCount = await prisma.asset_master.count({ where });
+
+      const baseWhere = {
+        asset_master_asset_types: { name: 'Cooler' },
+      } as any;
+
+      const deployedCount = await prisma.asset_master.count({
+        where: {
+          ...baseWhere,
+          cooler_asset_master: { some: {} },
+        },
+      });
+
+      const workingCount = await prisma.asset_master.count({
+        where: {
+          ...baseWhere,
+          cooler_asset_master: {
+            some: {
+              cooler_inspections: { some: { is_working: 'Y' } },
+            },
+          },
+        },
+      });
+
+      const actionRequiredCount = await prisma.asset_master.count({
+        where: {
+          ...baseWhere,
+          cooler_asset_master: {
+            some: {
+              cooler_inspections: { some: { action_required: 'Y' } },
+            },
+          },
+        },
+      });
+
+      res.json({
+        success: true,
+        message: 'Coolers Report retrieved successfully',
+        data: mappedAssets,
+        meta: {
+          current_page: page_num,
+          total_pages: Math.ceil(totalCount / limit_num),
+          total_count: totalCount,
+          has_next: skip + limit_num < totalCount,
+          has_previous: page_num > 1,
+        },
+        stats: {
+          total: totalCount,
+          deployed: deployedCount,
+          working: workingCount,
+          action_required: actionRequiredCount,
+        },
+      });
+    } catch (error: any) {
+      console.error('Get Coolers Report Error:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Failed to retrieve report',
+      });
+    }
+  },
+
+  async exportCoolersReport(req: Request, res: Response) {
+    try {
+      const {
+        barcode,
+        customer_name,
+        is_working,
+        action_required,
+        status,
+        inspector_id,
+        inspection_date,
+      } = req.query;
+
+      const where: any = {
+        asset_master_asset_types: { name: 'Cooler' },
+      };
+
+      const andConditions = [];
+      if (barcode) {
+        andConditions.push({
+          OR: [
+            { code: { contains: barcode as string } },
+            { barcode: { contains: barcode as string } },
+          ],
+        });
+      }
+      if (customer_name) {
+        andConditions.push({
+          OR: [
+            { current_location: { contains: customer_name as string } },
+            {
+              cooler_asset_master: {
+                some: {
+                  coolers_customers: {
+                    name: { contains: customer_name as string },
+                  },
+                },
+              },
+            },
+          ],
+        });
+      }
+      if (status && status !== 'all') {
+        const statusVal = (status as string).toLowerCase();
+        andConditions.push({
+          is_active: statusVal === 'active' || statusVal === 'y' ? 'Y' : 'N',
+        });
+      }
+
+      const coolerWhere: any = {};
+      const inspectionWhere: any = {};
+      let hasCoolerFilter = false;
+      let hasInspectionFilter = false;
+
+      if (inspector_id) {
+        inspectionWhere.inspected_by = parseInt(inspector_id as string, 10);
+        hasInspectionFilter = true;
+      }
+      if (is_working) {
+        coolerWhere.status = is_working === 'Y' ? 'working' : 'not_working';
+        hasCoolerFilter = true;
+      }
+      if (action_required) {
+        inspectionWhere.action_required = action_required === 'Y' ? 'Y' : 'N';
+        hasInspectionFilter = true;
+      }
+
+      if (hasInspectionFilter) {
+        coolerWhere.cooler_inspections = { some: inspectionWhere };
+        hasCoolerFilter = true;
+      }
+      if (inspection_date) {
+        const targetDate = new Date(inspection_date as string);
+        if (!isNaN(targetDate.getTime())) {
+          const startOfDay = new Date(targetDate);
+          startOfDay.setHours(0, 0, 0, 0);
+          const endOfDay = new Date(targetDate);
+          endOfDay.setHours(23, 59, 59, 999);
+          coolerWhere.last_scanned_date = { gte: startOfDay, lte: endOfDay };
+          hasCoolerFilter = true;
+        }
+      }
+      if (hasCoolerFilter) {
+        andConditions.push({ cooler_asset_master: { some: coolerWhere } });
+      }
+
+      if (andConditions.length > 0) {
+        where.AND = andConditions;
+      }
+
+      const limit_num = 1000;
+      let offset = 0;
+      let hasMore = true;
+      const allAssets = [];
+
+      while (hasMore) {
+        const chunk = await prisma.asset_master.findMany({
+          where,
+          skip: offset,
+          take: limit_num,
+          orderBy: { createdate: 'desc' },
+          include: {
+            asset_master_asset_types: true,
+            asset_master_asset_sub_types: true,
+            asset_master_brand: true,
+            asset_master_brands: true,
+            cooler_asset_master: {
+              include: {
+                cooler_inspections: {
+                  orderBy: { inspection_date: 'desc' },
+                  take: 1,
+                  include: {
+                    users: {
+                      select: {
+                        id: true,
+                        name: true,
+                        employee_id: true,
+                        email: true,
+                      },
+                    },
+                  },
+                },
+                coolers_customers: true,
+                cooler_types: true,
+                cooler_sub_types: true,
+                users: {
+                  select: {
+                    id: true,
+                    name: true,
+                    employee_id: true,
+                    email: true,
+                  },
+                },
+              },
+            },
+            asset_master_depot: {
+              select: { id: true, name: true, code: true },
+            },
+          },
+        });
+
+        allAssets.push(...chunk);
+
+        if (chunk.length < limit_num) {
+          hasMore = false;
+        } else {
+          offset += limit_num;
+        }
+      }
+
+      const assets = allAssets;
+
+      const ExcelJS = await import('exceljs');
+      const workbook = new ExcelJS.Workbook();
+      const sheet = workbook.addWorksheet('Cooler Reports', {
+        pageSetup: { paperSize: 9, orientation: 'landscape' },
+      });
+
+      sheet.columns = [
+        { header: 'Barcode', key: 'barcode', width: 20 },
+        { header: 'Serial', key: 'serial', width: 20 },
+        { header: 'Type', key: 'type', width: 20 },
+        { header: 'SubType', key: 'subtype', width: 20 },
+        { header: 'Brand', key: 'brand', width: 20 },
+        { header: 'Location (Outlet / Depot)', key: 'location', width: 20 },
+        { header: 'Depot Name', key: 'depot_name', width: 20 },
+        { header: 'Depot / OutletCode', key: 'depot_outlet_code', width: 20 },
+        { header: 'OutletName', key: 'outlet_name', width: 25 },
+        { header: 'Status', key: 'status', width: 15 },
+        { header: 'Disabled', key: 'disabled', width: 15 },
+        { header: 'InstallDate', key: 'install_date', width: 20 },
+        { header: 'LastScanned Date', key: 'last_scanned_date', width: 20 },
+        {
+          header: 'Last Scanned Seller Code',
+          key: 'last_scanned_seller_code',
+          width: 20,
+        },
+        {
+          header: 'Last Scanned Seller Name',
+          key: 'last_scanned_seller_name',
+          width: 25,
+        },
+      ];
+
+      sheet.columns.forEach(column => {
+        if (column) column.font = { name: 'Aptos Narrow', size: 11 };
+      });
+
+      assets.forEach((row: any) => {
+        const deployedCooler =
+          row.cooler_asset_master && row.cooler_asset_master.length > 0
+            ? row.cooler_asset_master[0]
+            : null;
+        const latestInspection =
+          deployedCooler?.cooler_inspections &&
+          deployedCooler.cooler_inspections.length > 0
+            ? deployedCooler.cooler_inspections[0]
+            : null;
+
+        const isWorking =
+          latestInspection?.is_working === 'Y'
+            ? 'Working'
+            : latestInspection?.is_working === 'N'
+              ? 'Not Working'
+              : deployedCooler?.status === 'working'
+                ? 'Working'
+                : deployedCooler?.status
+                  ? 'Not Working'
+                  : 'N/A';
+
+        const installDate =
+          deployedCooler?.install_date || row.installation_date || null;
+
+        const lastScannedDate =
+          latestInspection?.inspection_date ||
+          deployedCooler?.last_scanned_date ||
+          null;
+
+        sheet.addRow({
+          barcode: row.barcode || '—',
+          serial: row.serial_number || '—',
+          type:
+            deployedCooler?.cooler_types?.name ||
+            row.asset_master_asset_types?.name ||
+            '—',
+          subtype:
+            deployedCooler?.cooler_sub_types?.name ||
+            row.asset_master_asset_sub_types?.name ||
+            '—',
+          brand:
+            row.asset_master_brands?.name ||
+            row.asset_master_brand?.name ||
+            deployedCooler?.brand ||
+            row.brand ||
+            '—',
+          location: deployedCooler?.coolers_customers
+            ? 'Outlet'
+            : row.asset_master_depot
+              ? 'Depot'
+              : row.depot_id
+                ? 'Depot'
+                : '—',
+          depot_name: !deployedCooler?.coolers_customers
+            ? row.asset_master_depot?.name || '—'
+            : '—',
+          depot_outlet_code:
+            deployedCooler?.coolers_customers?.code ||
+            (!deployedCooler?.coolers_customers &&
+              row.asset_master_depot?.code) ||
+            '—',
+          outlet_name:
+            deployedCooler?.coolers_customers?.name ||
+            (!deployedCooler?.coolers_customers &&
+              row.asset_master_depot?.name) ||
+            row.current_location ||
+            '—',
+          status: isWorking,
+          disabled: row.is_active === 'N' ? 'YES' : 'NO',
+          install_date: installDate
+            ? new Date(installDate).toLocaleDateString()
+            : '—',
+          last_scanned_date: lastScannedDate
+            ? new Date(lastScannedDate).toLocaleString()
+            : '—',
+          last_scanned_seller_code:
+            latestInspection?.users?.employee_id ||
+            deployedCooler?.users?.employee_id ||
+            '—',
+          last_scanned_seller_name:
+            latestInspection?.users?.name || deployedCooler?.users?.name || '—',
+        });
+      });
+
+      const headerRow = sheet.getRow(1);
+      if (headerRow) {
+        headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        headerRow.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FF4472C4' },
+        };
+        headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
+        headerRow.height = 25;
+      }
+
+      const buffer = await workbook.xlsx.writeBuffer();
+
+      res.setHeader(
+        'Content-Type',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      );
+      res.setHeader(
+        'Content-Disposition',
+        'attachment; filename=Cooler_Reports_' + Date.now() + '.xlsx'
+      );
+      res.setHeader('Content-Length', buffer.byteLength.toString());
+
+      res.send(Buffer.from(buffer));
+    } catch (error: any) {
+      console.error('Export Coolers Report Error:', error);
       res.status(500).json({
         success: false,
         message: error.message || 'Failed to export report',

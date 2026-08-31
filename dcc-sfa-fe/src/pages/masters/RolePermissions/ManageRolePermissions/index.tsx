@@ -11,6 +11,7 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  MenuItem,
 } from '@mui/material';
 import { useFormik } from 'formik';
 import { usePermissionsByModule } from 'hooks/usePermissions';
@@ -21,6 +22,7 @@ import ActiveInactiveField from 'shared/ActiveInactiveField';
 import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
+import Select from 'shared/Select';
 
 interface ManageRolePermissionsProps {
   selectedRole?: Role | null;
@@ -90,6 +92,7 @@ const ManageRolePermissions: React.FC<ManageRolePermissionsProps> = ({
 
   const initialValues = {
     name: selectedRole?.name || '',
+    type: selectedRole?.type || 'normal',
     description: selectedRole?.description || '',
     is_active: selectedRole?.is_active || 'Y',
     permissions:
@@ -109,6 +112,7 @@ const ManageRolePermissions: React.FC<ManageRolePermissionsProps> = ({
             id: selectedRole.id,
             roleData: {
               name: values.name,
+              type: values.type,
               description: values.description,
               is_active: values.is_active,
               permissions: values.permissions,
@@ -117,6 +121,7 @@ const ManageRolePermissions: React.FC<ManageRolePermissionsProps> = ({
         } else {
           await createRoleMutation.mutateAsync({
             name: values.name,
+            type: values.type,
             description: values.description,
             is_active: values.is_active,
             permissions: values.permissions,
@@ -302,7 +307,7 @@ const ManageRolePermissions: React.FC<ManageRolePermissionsProps> = ({
           {/* Role Basic Information */}
           <Box className="space-y-4">
             <p className="!font-semibold !text-gray-900">Role Information</p>
-            <div className="flex sm:flex-row flex-col sm:gap-4 gap-2">
+            <div className="grid grid-cols-2 gap-4">
               <Input
                 name="name"
                 formik={formik}
@@ -310,6 +315,16 @@ const ManageRolePermissions: React.FC<ManageRolePermissionsProps> = ({
                 placeholder="Enter role name"
                 required
               />
+              <Select
+                name="type"
+                formik={formik}
+                label="Role Type"
+                fullWidth
+                required
+              >
+                <MenuItem value="normal">Normal</MenuItem>
+                <MenuItem value="container">Container Group</MenuItem>
+              </Select>
             </div>
 
             <ActiveInactiveField

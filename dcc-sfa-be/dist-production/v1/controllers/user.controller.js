@@ -30,7 +30,9 @@ const serializeUser = (user, includeCreatedAt = false, includeUpdatedAt = false)
     log_inst: user.log_inst ?? null,
     sub_inventory_parent_id: user.sub_inventory_parent_id,
     sub_inventory_parent_name: user.sub_inventory_parent?.name || null,
-    has_active_van_inventory: user.inventory_stock_users ? user.inventory_stock_users.length > 0 : false,
+    has_active_van_inventory: user.inventory_stock_users
+        ? user.inventory_stock_users.length > 0
+        : false,
     ...(includeCreatedAt && { created_at: user.createdate }),
     ...(includeUpdatedAt && { updated_at: user.updatedate }),
     sub_inventory_users: user.sub_inventory_users || [],
@@ -75,7 +77,7 @@ const serializeUser = (user, includeCreatedAt = false, includeUpdatedAt = false)
             symbol: user.companies.companies_currencies.symbol,
         }
         : null,
-    routes: user.route_salespersons
+    routes: user.route_salespersons && user.route_salespersons.length > 0
         ? user.route_salespersons.map((rs) => ({
             id: rs.route.id,
             name: rs.route.name,
@@ -88,7 +90,20 @@ const serializeUser = (user, includeCreatedAt = false, includeUpdatedAt = false)
             role: rs.role,
             assigned_at: rs.assigned_at,
         }))
-        : [],
+        : user.sub_inventory_parent?.route_salespersons
+            ? user.sub_inventory_parent.route_salespersons.map((rs) => ({
+                id: rs.route.id,
+                name: rs.route.name,
+                code: rs.route.code,
+                description: rs.route.description,
+                start_location: rs.route.start_location,
+                end_location: rs.route.end_location,
+                estimated_distance: rs.route.estimated_distance,
+                estimated_time: rs.route.estimated_time,
+                role: rs.role,
+                assigned_at: rs.assigned_at,
+            }))
+            : [],
 });
 exports.userController = {
     async createUser(req, res) {
@@ -324,8 +339,11 @@ exports.userController = {
                         },
                     },
                     sub_inventory_parent: {
-                        select: {
-                            name: true,
+                        include: {
+                            route_salespersons: {
+                                where: { is_active: 'Y' },
+                                include: { route: true },
+                            },
                         },
                     },
                     inventory_stock_users: {
@@ -348,6 +366,10 @@ exports.userController = {
                             employee_id: true,
                             profile_image: true,
                         },
+                    },
+                    route_salespersons: {
+                        where: { is_active: 'Y' },
+                        include: { route: true },
                     },
                 },
             });
@@ -433,8 +455,11 @@ exports.userController = {
                         },
                     },
                     sub_inventory_parent: {
-                        select: {
-                            name: true,
+                        include: {
+                            route_salespersons: {
+                                where: { is_active: 'Y' },
+                                include: { route: true },
+                            },
                         },
                     },
                     other_users: {
@@ -922,25 +947,14 @@ exports.userController = {
                             email: true,
                         },
                     },
-                    // route_salespersons: {
-                    //   where: {
-                    //     is_active: 'Y',
-                    //   },
-                    //   include: {
-                    //     route: {
-                    //       select: {
-                    //         id: true,
-                    //         name: true,
-                    //         code: true,
-                    //         description: true,
-                    //         start_location: true,
-                    //         end_location: true,
-                    //         estimated_distance: true,
-                    //         estimated_time: true,
-                    //       },
-                    //     },
-                    //   },
-                    // },
+                    sub_inventory_parent: {
+                        include: {
+                            route_salespersons: {
+                                where: { is_active: 'Y' },
+                                include: { route: true },
+                            },
+                        },
+                    },
                     route_salespersons: {
                         where: {
                             is_active: 'Y',
@@ -973,12 +987,8 @@ exports.userController = {
                 return;
             }
             const serializedUser = serializeUser(user);
-            const depotIds = user.users_depots_users
-                ?.map((ud) => ud.user_depots_depot_id?.id)
-                .filter((id) => id !== undefined) || [];
             const response = {
                 ...serializedUser,
-                // depot_id: depotIds.length > 0 ? depotIds[0] : null,
             };
             res.success('User profile fetched successfully', response, 200);
         }

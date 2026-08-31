@@ -1,4 +1,4 @@
-import { Close } from '@mui/icons-material';
+import { Close, Inventory2Outlined } from '@mui/icons-material';
 import {
   Alert,
   Autocomplete,
@@ -13,6 +13,7 @@ import {
   Tab,
   Tabs,
   TextField,
+  Tooltip,
   Typography,
 } from '@mui/material';
 import { useFormik } from 'formik';
@@ -40,6 +41,7 @@ import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
 import ProductCategorySelect from 'shared/ProductCategorySelect';
 import ProductSelect from 'shared/ProductSelect';
+import ProductMultiSelect from 'shared/ProductMultiSelect';
 import Select from 'shared/Select';
 import Table from 'shared/Table';
 import * as Yup from 'yup';
@@ -54,7 +56,9 @@ interface ManagePromotionProps {
 interface ProductCondition {
   _index: number;
   id?: number;
-  product_id?: number;
+  product_ids?: number[];
+  product_names?: string[];
+  product_details?: { name: string; code: string }[];
   product_group?: string;
   min_quantity?: number;
   unit?: string;
@@ -93,13 +97,12 @@ interface GiftRow {
   gift_limit?: number;
 }
 
-const QUANTITY_TYPES = ['Price', 'Quantity'];
+const QUANTITY_TYPES = ['Price', 'Quantity', 'Volume'];
 const GIFT_TYPES = ['Free Product', 'Percent', 'Amount'];
 const PAY_TYPES = ['Cash', 'Credit', 'Both'];
 const SCOPE_TYPES = ['(B) Distributor Channel', '(C) Customer Channel'];
 const SLIP_TYPES = ['All', 'Invoice', 'Waybill', 'Order'];
 const PROM_CONFLICT_TYPES = ['Normal', 'Exclusive', 'Priority'];
-const REG_DISC_CONF_TYPES = ['Normal', 'Override', 'Combine'];
 
 const promotionValidationSchema = Yup.object({
   name: Yup.string().required('Name is required'),
@@ -255,12 +258,12 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
   );
   const [productConditionForm, setProductConditionForm] = useState<{
     group: string;
-    product: string;
+    product: number[];
     at_least: string;
     unit?: string;
   }>({
     group: '',
-    product: '',
+    product: [],
     at_least: '',
     unit: 'unit',
   });
@@ -287,30 +290,79 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
     const promotion = promotionDetailResponse.data;
 
     if (promotion.conditions && Array.isArray(promotion.conditions)) {
-      const loadedConditions: ProductCondition[] = [];
-      promotion.conditions.forEach((condition: any, idx: number) => {
+      const loadedConditionsMap = new Map<string, ProductCondition>();
+
+      promotion.conditions.forEach((condition: any) => {
         if (
           condition.promotion_condition_products &&
           Array.isArray(condition.promotion_condition_products) &&
           condition.promotion_condition_products.length > 0
         ) {
-          const conditionProduct = condition.promotion_condition_products[0];
-          loadedConditions.push({
-            _index: idx,
-            id: condition.id,
-            product_id: conditionProduct.product_id,
-            product_group: conditionProduct.product_group,
-            min_quantity: Number(conditionProduct.condition_quantity) || 0,
-            unit: 'unit',
-            type:
-              condition.condition_type === 'PRICE'
-                ? 'Price'
-                : condition.condition_type === 'QUANTITY'
-                  ? 'Quantity'
-                  : 'Quantity',
+          const type =
+            condition.condition_type === 'PRICE' ? 'Price' : 'Quantity';
+
+          condition.promotion_condition_products.forEach((cp: any) => {
+            const minQ = Number(cp.condition_quantity) || 0;
+            const groupKey = `${type}-${minQ}-${cp.product_group || ''}`;
+
+            if (!loadedConditionsMap.has(groupKey)) {
+              loadedConditionsMap.set(groupKey, {
+                _index: loadedConditionsMap.size,
+                id: condition.id,
+                product_ids: cp.product_id ? [cp.product_id] : [],
+                product_names: cp.product_id
+                  ? [
+                      cp.products?.name ||
+                        cp.promotion_condition_productId?.name ||
+                        cp.product_id.toString(),
+                    ]
+                  : [],
+                product_details: cp.product_id
+                  ? [
+                      {
+                        name:
+                          cp.products?.name ||
+                          cp.promotion_condition_productId?.name ||
+                          cp.product_id.toString(),
+                        code:
+                          cp.products?.code ||
+                          cp.promotion_condition_productId?.code ||
+                          '',
+                      },
+                    ]
+                  : [],
+                product_group: cp.product_group,
+                min_quantity: minQ,
+                unit: 'unit',
+                type: type,
+              });
+            } else {
+              const existing = loadedConditionsMap.get(groupKey)!;
+              if (
+                cp.product_id &&
+                !existing.product_ids?.includes(cp.product_id)
+              ) {
+                existing.product_ids?.push(cp.product_id);
+                const name =
+                  cp.products?.name ||
+                  cp.promotion_condition_productId?.name ||
+                  cp.product_id.toString();
+                existing.product_names?.push(name);
+                if (!existing.product_details) existing.product_details = [];
+                existing.product_details.push({
+                  name,
+                  code:
+                    cp.products?.code ||
+                    cp.promotion_condition_productId?.code ||
+                    '',
+                });
+              }
+            }
           });
         }
       });
+      const loadedConditions = Array.from(loadedConditionsMap.values());
+
       setProductConditions(prev => {
         const prevStr = JSON.stringify(prev);
         const newStr = JSON.stringify(loadedConditions);
@@ -516,7 +568,7 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
   const resetProductConditionForm = () => {
     setProductConditionForm({
       group: '',
-      product: '',
+      product: [],
       at_least: '0',
       unit: 'unit',
     });
@@ -555,16 +607,12 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
   const formik = useFormik({
     initialValues: {
       name: selectedPromotion?.name || '',
-      short_name: selectedPromotion?.name || '',
       code: selectedPromotion?.code || '',
       pay_type: 'Cash',
       scope: '(B) Distributor Channel',
       slip_type: 'All',
       mandatory: false,
       prom_conflict: 'Normal',
-      degree: '1',
-      nr: '1',
-      reg_disc_conf: 'Normal',
       conflict_with_constant_disc: false,
       start_date: selectedPromotion?.start_date
         ? new Date(selectedPromotion.start_date).toISOString().split('T')[0]
@@ -616,23 +664,35 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
             ? selectedCustomerChannels
             : undefined;
 
-        const productConditionsData = productConditions
-          .filter(c => c.product_id || c.product_group)
-          .map(c => {
-            const product = c.product_id
-              ? products.find(p => p.id === c.product_id)
-              : null;
-            const defaultCategoryId =
-              productCategories.length > 0 ? productCategories[0].id : null;
-            return {
-              product_id: c.product_group ? undefined : c.product_id,
-              category_id: product?.category_id || defaultCategoryId,
-              product_group: c.product_group,
-              min_quantity: c.min_quantity || 0,
-              min_value: c.min_quantity || 0,
-              quantity_type: (c.type || 'Quantity').toUpperCase(),
-            };
-          });
+        const productConditionsData = productConditions.flatMap((c): any[] => {
+          if (c.product_group) {
+            return [
+              {
+                category_id:
+                  productCategories.length > 0 ? productCategories[0].id : null,
+                product_group: c.product_group,
+                min_quantity: c.min_quantity || 0,
+                min_value: c.min_quantity || 0,
+                quantity_type: (c.type || 'Quantity').toUpperCase(),
+              },
+            ];
+          }
+          if (c.product_ids && c.product_ids.length > 0) {
+            return c.product_ids.map(pid => {
+              const product = products.find(p => p.id === pid);
+              const defaultCategoryId =
+                productCategories.length > 0 ? productCategories[0].id : null;
+              return {
+                product_id: pid,
+                category_id: product?.category_id || defaultCategoryId,
+                min_quantity: c.min_quantity || 0,
+                min_value: c.min_quantity || 0,
+                quantity_type: (c.type || 'Quantity').toUpperCase(),
+              };
+            });
+          }
+          return [];
+        });
 
         const giftBenefits = giftRows
           .filter(g => g.product_id)
@@ -776,7 +836,10 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
   });
 
   const addProductCondition = () => {
-    if (!productConditionForm.group && !productConditionForm.product) {
+    if (
+      !productConditionForm.group &&
+      productConditionForm.product.length === 0
+    ) {
       setValidationErrors({
         ...validationErrors,
         productCondition_new: 'Product or Product Category must be selected',
@@ -805,36 +868,57 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
       }, 100);
       return;
     }
-    const newCondition: ProductCondition = {
-      _index: productConditions.length,
-      product_group: productConditionForm.group,
-      product_id: productConditionForm.product
-        ? parseInt(productConditionForm.product)
-        : undefined,
-      min_quantity: parseFloat(productConditionForm.at_least) || 0,
-      unit:
-        selectedConditionType === 'Quantity'
-          ? productConditionForm.unit
-          : undefined,
-      type: selectedConditionType,
-    };
-    setProductConditions([...productConditions, newCondition]);
+
+    const minQ = parseFloat(productConditionForm.at_least) || 0;
+    const unit =
+      selectedConditionType === 'Quantity'
+        ? productConditionForm.unit
+        : undefined;
+    const type = selectedConditionType;
+
+    let newCondition: ProductCondition | null = null;
+    if (productConditionForm.product.length > 0) {
+      const selectedNames = productConditionForm.product.map(id => {
+        const p = products.find(prod => prod.id === id);
+        return p ? p.name : id.toString();
+      });
+      const selectedDetails = productConditionForm.product.map(id => {
+        const p = products.find(prod => prod.id === id);
+        return p
+          ? { name: p.name, code: p.code }
+          : { name: id.toString(), code: '' };
+      });
+      newCondition = {
+        product_details: selectedDetails,
+        _index: Date.now(),
+        product_group: '',
+        product_ids: productConditionForm.product,
+        product_names: selectedNames,
+        min_quantity: minQ,
+        unit,
+        type,
+      };
+    } else if (productConditionForm.group) {
+      newCondition = {
+        _index: Date.now(),
+        product_group: productConditionForm.group,
+        product_ids: [],
+        product_names: [],
+        min_quantity: minQ,
+        unit,
+        type,
+      };
+    }
+
+    if (newCondition) {
+      setProductConditions([...productConditions, newCondition]);
+    }
     resetProductConditionForm();
     setValidationErrors({});
   };
 
   const removeProductCondition = (index: number) => {
     setProductConditions(productConditions.filter((_, i) => i !== index));
-  };
-
-  const updateProductCondition = (
-    index: number,
-    field: keyof ProductCondition,
-    value: any
-  ) => {
-    const updated = [...productConditions];
-    updated[index] = { ...updated[index], [field]: value };
-    setProductConditions(updated);
   };
 
   const removeGiftRow = (index: number) => {
@@ -1210,19 +1294,7 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
                 label="Name"
                 formik={formik}
                 required
-                fullWidth
-              />
-              <Input
-                name="short_name"
-                label="Short Name"
-                formik={formik}
-                fullWidth
-              />
-              <Input
-                name="code"
-                label="Code"
-                formik={formik}
-                required
+                className="!col-span-2"
                 fullWidth
               />
               <Select
@@ -1269,47 +1341,6 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
                   </MenuItem>
                 ))}
               </Select>
-              <Input
-                name="degree"
-                label="Degree"
-                type="number"
-                formik={formik}
-                fullWidth
-              />
-              <Input
-                name="nr"
-                label="Nr"
-                type="number"
-                formik={formik}
-                fullWidth
-              />
-              <Select
-                name="reg_disc_conf"
-                label="Reg.Disc. Conf."
-                formik={formik}
-                fullWidth
-              >
-                {REG_DISC_CONF_TYPES.map(type => (
-                  <MenuItem key={type} value={type}>
-                    {type}
-                  </MenuItem>
-                ))}
-              </Select>
-              {/* <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={formik.values.conflict_with_constant_disc}
-                    onChange={e =>
-                      formik.setFieldValue(
-                        'conflict_with_constant_disc',
-                        e.target.checked
-                      )
-                    }
-                  />
-                }
-                className="!col-span-2"
-                label="Conflict with Constant disc."
-              /> */}
               <Input
                 name="start_date"
                 label="Start"
@@ -1920,7 +1951,7 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
                   setSelectedConditionType(newType);
                   setProductConditionForm({
                     ...productConditionForm,
-                    product: '',
+                    product: [],
                     group: '',
                     unit:
                       newType === 'Price'
@@ -1944,24 +1975,95 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
             {productConditions.length > 0 && (
               <Box className="!mb-4">
                 <Table
-                  data={productConditions.map((condition, idx) => ({
-                    id: condition._index,
-                    type: condition.type || 'Quantity',
-                    product_group:
-                      condition.product_group ||
-                      (condition.product_id
-                        ? products.find(p => p.id === condition.product_id)
-                            ?.name || '-'
-                        : '-'),
-                    at_least:
-                      condition.type === 'Price'
-                        ? `${condition.min_quantity || 0}`
-                        : `${condition.min_quantity || 0} ${condition.unit || 'unit'}`,
-                    _index: idx,
-                  }))}
+                  data={productConditions.map((condition, idx) => {
+                    let displayGroup = '-';
+                    if (condition.product_group) {
+                      displayGroup = condition.product_group;
+                    } else if (
+                      condition.product_names &&
+                      condition.product_names.length > 0
+                    ) {
+                      const count = condition.product_names.length;
+                      displayGroup =
+                        count > 1
+                          ? `${count} Products Selected`
+                          : condition.product_names[0];
+                    }
+                    return {
+                      id: condition._index,
+                      type: condition.type || 'Quantity',
+                      product_group: displayGroup,
+                      tooltip_names: condition.product_names,
+                      tooltip_details:
+                        condition.product_details ||
+                        (condition.product_names
+                          ? condition.product_names.map(name => ({
+                              name,
+                              code: '',
+                            }))
+                          : []),
+                      at_least:
+                        condition.type === 'Price'
+                          ? `${condition.min_quantity || 0}`
+                          : `${condition.min_quantity || 0} ${condition.unit || 'unit'}`,
+                      _index: idx,
+                    };
+                  })}
                   columns={[
                     { id: 'type', label: 'Type' },
-                    { id: 'product_group', label: 'Product/Category' },
+                    {
+                      id: 'product_group',
+                      label: 'Product/Category',
+                      render: (_val, row: any) =>
+                        row.tooltip_names && row.tooltip_names.length > 1 ? (
+                          <Tooltip
+                            title={
+                              <Box className="!flex !flex-col !p-1">
+                                {row.tooltip_details?.map(
+                                  (detail: any, i: number) => (
+                                    <Box
+                                      key={i}
+                                      className="!flex !items-center !gap-3 !bg-white !p-2"
+                                    >
+                                      <Box className="!bg-[#e6f4ff] !text-[#1677ff] !p-2 !rounded !flex !items-center !justify-center">
+                                        <Inventory2Outlined fontSize="small" />
+                                      </Box>
+                                      <Box className="!flex !flex-col">
+                                        <Typography
+                                          variant="body2"
+                                          className="!font-medium !text-gray-900 !leading-tight"
+                                        >
+                                          {detail.name}
+                                        </Typography>
+                                        {detail.code && (
+                                          <Typography
+                                            variant="caption"
+                                            className="!text-gray-500"
+                                          >
+                                            {detail.code}
+                                          </Typography>
+                                        )}
+                                      </Box>
+                                    </Box>
+                                  )
+                                )}
+                              </Box>
+                            }
+                            arrow
+                            placement="top"
+                            classes={{
+                              tooltip:
+                                '!bg-gray-50 !p-1 !shadow-lg !border !border-gray-200',
+                            }}
+                          >
+                            <span className="!border-b !border-dashed !border-gray-400">
+                              {row.product_group}
+                            </span>
+                          </Tooltip>
+                        ) : (
+                          <span>{row.product_group}</span>
+                        ),
+                    },
                     { id: 'at_least', label: 'At least' },
                     {
                       id: 'actions',
@@ -1974,7 +2076,7 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
                               setSelectedProductConditionIndex(row._index);
                               setProductConditionForm({
                                 group: condition.product_group || '',
-                                product: condition.product_id?.toString() || '',
+                                product: condition.product_ids || [],
                                 at_least:
                                   condition.min_quantity?.toString() || '',
                                 unit:
@@ -1985,7 +2087,10 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
                               setSelectedConditionType(
                                 condition.type || 'Quantity'
                               );
-                              if (condition.product_id) {
+                              if (
+                                condition.product_ids &&
+                                condition.product_ids.length > 0
+                              ) {
                                 setConditionProductTab(0);
                               } else if (condition.product_group) {
                                 setConditionProductTab(1);
@@ -2053,7 +2158,7 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
                     setConditionProductTab(newValue);
                     setProductConditionForm({
                       ...productConditionForm,
-                      product: '',
+                      product: [],
                       group: '',
                     });
                   }}
@@ -2066,16 +2171,14 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
                 </Tabs>
               </Box>
               {conditionProductTab === 0 ? (
-                <ProductSelect
-                  label="Product"
+                <ProductMultiSelect
+                  label="Products"
                   value={productConditionForm.product}
-                  onChange={(_event, product) => {
-                    const selectedProduct = product
-                      ? product.id.toString()
-                      : '';
+                  onChange={(_event, products) => {
+                    const selectedIds = products.map(p => p.id);
                     setProductConditionForm({
                       ...productConditionForm,
-                      product: selectedProduct,
+                      product: selectedIds,
                       group: '',
                     });
                   }}
@@ -2094,7 +2197,7 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
                     setProductConditionForm({
                       ...productConditionForm,
                       group: selectedCategoryName,
-                      product: '',
+                      product: [],
                     });
                   }}
                   fullWidth
@@ -2109,36 +2212,45 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
                   size="small"
                   onClick={() => {
                     if (selectedProductConditionIndex !== null) {
-                      const idx = selectedProductConditionIndex;
-                      updateProductCondition(
-                        idx,
-                        'product_group',
-                        productConditionForm.group
+                      const updatedConditions = productConditions.filter(
+                        (_, i) => i !== selectedProductConditionIndex
                       );
-                      updateProductCondition(
-                        idx,
-                        'product_id',
-                        productConditionForm.product
-                          ? parseInt(productConditionForm.product)
-                          : undefined
-                      );
-                      updateProductCondition(
-                        idx,
-                        'min_quantity',
-                        parseFloat(productConditionForm.at_least) || 0
-                      );
-                      updateProductCondition(
-                        idx,
-                        'unit',
+                      const minQ =
+                        parseFloat(productConditionForm.at_least) || 0;
+                      const unit =
                         selectedConditionType === 'Quantity'
                           ? productConditionForm.unit
-                          : undefined
-                      );
-                      updateProductCondition(
-                        idx,
-                        'type',
-                        selectedConditionType
-                      );
+                          : undefined;
+                      const type = selectedConditionType;
+
+                      let newConditions: ProductCondition[] = [];
+                      if (productConditionForm.product.length > 0) {
+                        newConditions = productConditionForm.product.map(
+                          (productId, idx) => ({
+                            _index: Date.now() + idx,
+                            product_group: '',
+                            product_id: productId,
+                            min_quantity: minQ,
+                            unit,
+                            type,
+                          })
+                        );
+                      } else if (productConditionForm.group) {
+                        newConditions = [
+                          {
+                            _index: Date.now(),
+                            product_group: productConditionForm.group,
+                            min_quantity: minQ,
+                            unit,
+                            type,
+                          },
+                        ];
+                      }
+
+                      setProductConditions([
+                        ...updatedConditions,
+                        ...newConditions,
+                      ]);
                       setSelectedProductConditionIndex(null);
                       resetProductConditionForm();
                       setValidationErrors({});

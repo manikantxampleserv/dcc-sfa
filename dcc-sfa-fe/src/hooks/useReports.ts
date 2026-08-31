@@ -53,6 +53,20 @@ import {
   type AttendanceHistoryReportFilters,
   type AttendanceHistoryReportData,
 } from '../services/reports/attendance';
+import {
+  fetchCoolerInspectionsReport,
+  exportCoolerInspectionsReport,
+  type CoolerInspectionsReportFilters,
+  type CoolerInspectionsReportData,
+} from '../services/reports/coolerInspections';
+import {
+  fetchCoolersReport,
+  exportCoolersReport,
+  type CoolersReportFilters,
+  type CoolersReportData,
+} from '../services/reports/coolersReport';
+
+import { useApiMutation } from './useApiMutation';
 
 export const reportKeys = {
   all: ['reports'] as const,
@@ -77,6 +91,10 @@ export const reportKeys = {
     [...reportKeys.lists(), 'outstanding-collection', filters] as const,
   attendanceHistory: (filters?: AttendanceHistoryReportFilters) =>
     [...reportKeys.lists(), 'attendance-history', filters] as const,
+  coolers: (filters?: CoolersReportFilters) =>
+    ['reports', 'coolers', filters] as const,
+  coolerInspections: (filters?: CoolerInspectionsReportFilters) =>
+    [...reportKeys.lists(), 'cooler-inspections', filters] as const,
 };
 
 /**
@@ -247,5 +265,60 @@ export const useAttendanceHistoryReport = (
     queryFn: () => fetchAttendanceHistoryReport(filters),
     staleTime: 3 * 60 * 1000,
     ...options,
+  });
+};
+
+/**
+ * Hook to fetch Cooler Inspections Report
+ */
+export const useCoolerInspectionsReport = (
+  filters?: CoolerInspectionsReportFilters,
+  options?: Omit<
+    UseQueryOptions<CoolerInspectionsReportData>,
+    'queryKey' | 'queryFn'
+  >
+) => {
+  return useQuery<CoolerInspectionsReportData>({
+    queryKey: reportKeys.coolerInspections(filters),
+    queryFn: () => fetchCoolerInspectionsReport(filters),
+    staleTime: 3 * 60 * 1000,
+    ...options,
+  });
+};
+
+/**
+ * Hook to export Cooler Inspections Report to Excel
+ */
+export const useExportCoolerInspectionsReport = () => {
+  return useApiMutation({
+    mutationFn: exportCoolerInspectionsReport,
+    loadingMessage: 'Exporting report...',
+    successMessage: 'Report exported successfully!',
+  });
+};
+
+/**
+ * Hook to fetch Coolers Report
+ */
+export const useCoolersReport = (
+  filters?: CoolersReportFilters,
+  options?: Omit<UseQueryOptions<CoolersReportData>, 'queryKey' | 'queryFn'>
+) => {
+  return useQuery<CoolersReportData>({
+    queryKey: reportKeys.coolers(filters),
+    queryFn: () => fetchCoolersReport(filters),
+    staleTime: 3 * 60 * 1000,
+    ...options,
+  });
+};
+
+/**
+ * Hook to export Coolers Report to Excel
+ */
+export const useExportCoolersReport = () => {
+  return useApiMutation({
+    mutationFn: exportCoolersReport,
+    loadingMessage: 'Exporting report...',
+    successMessage: 'Report exported successfully!',
   });
 };

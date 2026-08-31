@@ -103,6 +103,7 @@ export interface SalespersonInventoryData {
   helpers?: string | null;
   combined_salesperson_ids?: number[];
   total_van_inventories: number;
+  today_invoices?: number;
   total_products: number;
   total_remaining_quantity: number;
   total_quantity: number;

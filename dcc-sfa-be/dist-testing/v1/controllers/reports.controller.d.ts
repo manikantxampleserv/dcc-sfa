@@ -104,5 +104,14 @@ export declare const reportsController: {
      * GET /api/v1/reports/attendance-history/export
      */
     exportAttendanceHistoryReport(req: Request, res: Response): Promise<void>;
+    /**
+     * Get Cooler Inspections Report
+     * Returns paginated cooler inspections data.
+     */
+    getCoolerInspectionsReport(req: Request, res: Response): Promise<void>;
+    /**
+     * Export Cooler Inspections Report to Excel
+     */
+    exportCoolerInspectionsReport(req: Request, res: Response): Promise<void>;
 };
 //# sourceMappingURL=reports.controller.d.ts.map

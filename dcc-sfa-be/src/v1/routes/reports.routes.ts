@@ -267,4 +267,54 @@ router.get(
   reportsController.exportAttendanceHistoryReport
 );
 
+/**
+ * @route GET /api/v1/reports/cooler-inspections
+ * @description Get Cooler Inspections Report
+ * @access Private (requires authentication)
+ * @params Query: page, limit, barcode, customer_name, is_working, action_required, status, inspector_id, inspection_date
+ */
+router.get(
+  '/cooler-inspections',
+  authenticateToken,
+  requirePermission([{ module: 'report', action: 'read' }]),
+  reportsController.getCoolerInspectionsReport
+);
+
+/**
+ * @route GET /api/v1/reports/cooler-inspections/export
+ * @description Export Cooler Inspections Report to Excel
+ * @access Private (requires authentication)
+ * @params Query: barcode, serial, brand, location, depot_name, code, outlet_name, status, last_scanned_date, seller_id
+ */
+router.get(
+  '/cooler-inspections/export',
+  authenticateToken,
+  requirePermission([{ module: 'report', action: 'read' }]),
+  reportsController.exportCoolerInspectionsReport
+);
+
+/**
+ * @route GET /api/v1/reports/coolers
+ * @description Get Coolers Report
+ * @access Private (requires authentication)
+ */
+router.get(
+  '/coolers',
+  authenticateToken,
+  requirePermission([{ module: 'report', action: 'read' }]),
+  reportsController.getCoolersReport
+);
+
+/**
+ * @route GET /api/v1/reports/coolers/export
+ * @description Export Coolers Report to Excel
+ * @access Private (requires authentication)
+ */
+router.get(
+  '/coolers/export',
+  authenticateToken,
+  requirePermission([{ module: 'report', action: 'read' }]),
+  reportsController.exportCoolersReport
+);
+
 export default router;

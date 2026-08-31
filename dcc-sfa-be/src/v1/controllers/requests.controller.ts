@@ -3186,10 +3186,28 @@ async function processDefaultOutletInvoice(
   userIdForInvoice: number
 ) {
   try {
-    const defaultPricelist = await prisma.pricelists.findFirst({
-      where: { is_default: 'Y', is_active: 'Y' },
-      select: { id: true },
+    const basicRecon = await prisma.reconciliation.findUnique({
+      where: { id: reconciliationIdForInvoice },
+      select: { salesman: { select: { depot_id: true } } },
     });
+    const salesmanDepotId = basicRecon?.salesman?.depot_id;
+
+    let targetPricelistId = -1;
+    if (salesmanDepotId) {
+      const depotPricelist = await prisma.pricelists.findFirst({
+        where: { depot_id: salesmanDepotId, is_active: 'Y' },
+        select: { id: true },
+      });
+      if (depotPricelist) targetPricelistId = depotPricelist.id;
+    }
+
+    if (targetPricelistId === -1) {
+      const defaultPricelist = await prisma.pricelists.findFirst({
+        where: { is_default: 'Y', is_active: 'Y' },
+        select: { id: true },
+      });
+      if (defaultPricelist) targetPricelistId = defaultPricelist.id;
+    }
 
     const reconciliation = await prisma.reconciliation.findUnique({
       where: { id: reconciliationIdForInvoice },
@@ -3215,7 +3233,7 @@ async function processDefaultOutletInvoice(
                 id: true,
                 base_price: true,
                 pricelist_items_products: {
-                  where: { pricelist_id: defaultPricelist?.id || -1 },
+                  where: { pricelist_id: targetPricelistId },
                   select: { unit_price: true },
                 },
                 product_tax_master: {
@@ -3249,7 +3267,6 @@ async function processDefaultOutletInvoice(
       return;
     }
 
-    // Idempotency check
     const existing = await prisma.invoices.findFirst({
       where: {
         notes: {
@@ -3639,9 +3656,8 @@ export const createRequest = async (data: {
 
         setImmediate(async () => {
           try {
-            const { vanInventoryController } = await import(
-              './vanInventory.controller'
-            );
+            const { vanInventoryController } =
+              await import('./vanInventory.controller');
 
             let vanInventoryIdToProcess: number | null = null;
             let reqData: any = null;
@@ -5470,9 +5486,8 @@ export const requestsController = {
             `Approved VAN_INVENTORY request detected: requestId=${result.request.id}, referenceId=${result.request.reference_id}`
           );
           try {
-            const { vanInventoryController } = await import(
-              '../controllers/vanInventory.controller'
-            );
+            const { vanInventoryController } =
+              await import('../controllers/vanInventory.controller');
             await vanInventoryController.processApprovedVanInventoryStock(
               result.request.reference_id,
               userId,
@@ -5525,9 +5540,8 @@ export const requestsController = {
           result.request.reference_id
         ) {
           try {
-            const { vanInventoryController } = await import(
-              '../controllers/vanInventory.controller'
-            );
+            const { vanInventoryController } =
+              await import('../controllers/vanInventory.controller');
 
             const vanInventoryId =
               await vanInventoryController.createVanInventoryFromReconciliation(

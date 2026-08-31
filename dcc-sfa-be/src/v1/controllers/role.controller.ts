@@ -10,6 +10,7 @@ const serializeRole = (
   id: role.id,
   name: role.name,
   description: role.description,
+  type: role.type,
   // user_id: role.user_id,
   is_active: role.is_active,
   role_key: role.role_key,
@@ -50,6 +51,7 @@ export const rolesController = {
       const {
         name,
         description,
+        type,
         // user_id,
         is_active,
         permissions = [],
@@ -72,6 +74,7 @@ export const rolesController = {
           data: {
             name,
             description,
+            type: type || 'normal',
             is_active: is_active ?? 'Y',
             createdby: req.user?.id || 1,
             createdate: new Date(),
@@ -350,6 +353,7 @@ export const rolesController = {
         select: {
           id: true,
           name: true,
+          type: true,
         },
         orderBy: {
           name: 'asc',

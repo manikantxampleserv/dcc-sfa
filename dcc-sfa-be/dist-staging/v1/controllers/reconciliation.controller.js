@@ -513,10 +513,28 @@ exports.reconciliationController = {
                     whereClause.id = -1;
                 }
             }
-            const defaultPricelist = await prisma_client_1.default.pricelists.findFirst({
-                where: { is_default: 'Y', is_active: 'Y' },
-                select: { id: true },
+            const basicRecon = await prisma_client_1.default.reconciliation.findFirst({
+                where: whereClause,
+                select: { salesman: { select: { depot_id: true } } },
             });
+            const salesmanDepotId = basicRecon?.salesman?.depot_id;
+            let targetPricelistId = -1;
+            if (salesmanDepotId) {
+                const depotPricelist = await prisma_client_1.default.pricelists.findFirst({
+                    where: { depot_id: salesmanDepotId, is_active: 'Y' },
+                    select: { id: true },
+                });
+                if (depotPricelist)
+                    targetPricelistId = depotPricelist.id;
+            }
+            if (targetPricelistId === -1) {
+                const defaultPricelist = await prisma_client_1.default.pricelists.findFirst({
+                    where: { is_default: 'Y', is_active: 'Y' },
+                    select: { id: true },
+                });
+                if (defaultPricelist)
+                    targetPricelistId = defaultPricelist.id;
+            }
             const reconciliation = await prisma_client_1.default.reconciliation.findFirst({
                 where: whereClause,
                 include: {
@@ -541,7 +559,7 @@ exports.reconciliationController = {
                                     code: true,
                                     base_price: true,
                                     pricelist_items_products: {
-                                        where: { pricelist_id: defaultPricelist?.id || -1 },
+                                        where: { pricelist_id: targetPricelistId },
                                         select: { unit_price: true },
                                     },
                                     product_categories_products: {

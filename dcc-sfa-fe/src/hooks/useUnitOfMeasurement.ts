@@ -128,12 +128,20 @@ export const useResolvedUom = () => {
     const data = uomData?.data || [];
 
     const primary =
-      data.find((u: any) => u.sub_unit) ||
+      data.find(
+        (u: any) =>
+          (u.name?.toLowerCase().includes('case') ||
+            u.name?.toLowerCase().includes('crate') ||
+            u.name?.toLowerCase() === 'cs') &&
+          u.sub_unit
+      ) ||
       data.find(
         (u: any) =>
           u.name?.toLowerCase().includes('case') ||
-          u.name?.toLowerCase().includes('crate')
+          u.name?.toLowerCase().includes('crate') ||
+          u.name?.toLowerCase() === 'cs'
       ) ||
+      data.find((u: any) => u.sub_unit) ||
       data[0];
 
     const secondaryList = ['pcs', 'pieces', 'bottles', 'units', 'each'];
@@ -142,13 +150,18 @@ export const useResolvedUom = () => {
         secondaryList.some(s => u.name?.toLowerCase().includes(s))
       ) || data.find((u: any) => u?.id !== primary?.id);
 
-    let uomCase =
-      primary?.name || import.meta.env.VITE_DEFAULT_UOM_CASE || 'Cases';
-    let uomPcs =
-      primary?.sub_unit ||
-      secondary?.name ||
-      import.meta.env.VITE_DEFAULT_UOM_PCS ||
-      'PCs';
+    const isValidUom = (val: any) =>
+      val && typeof val === 'string' && val.toLowerCase() !== 'none';
+
+    let uomCase = isValidUom(primary?.name)
+      ? primary.name
+      : import.meta.env.VITE_DEFAULT_UOM_CASE || 'Cases';
+
+    let uomPcs = isValidUom(primary?.sub_unit)
+      ? primary.sub_unit
+      : isValidUom(secondary?.name)
+        ? secondary.name
+        : import.meta.env.VITE_DEFAULT_UOM_PCS || 'PCs';
 
     const resolveForProduct = (product: any) => {
       if (!product) return { uomCase, uomPcs };
@@ -163,8 +176,10 @@ export const useResolvedUom = () => {
 
       if (productUom) {
         return {
-          uomCase: productUom.name || uomCase,
-          uomPcs: productUom.sub_unit || uomPcs,
+          uomCase: isValidUom(productUom.name) ? productUom.name : uomCase,
+          uomPcs: isValidUom(productUom.sub_unit)
+            ? productUom.sub_unit
+            : uomPcs,
         };
       }
 
@@ -183,9 +198,11 @@ export const useResolvedUom = () => {
         }
       }
       if (uomCase.toLowerCase().includes('crate')) uomCase = 'Cs';
+      if (uomCase.toLowerCase().includes('case')) uomCase = 'Cs';
       if (uomPcs.toLowerCase().includes('bottle')) uomPcs = 'Btls';
       return { uomCase, uomPcs };
     };
+    if (uomCase.toLowerCase().includes('case')) uomCase = 'Cs';
     if (uomCase.toLowerCase().includes('crate')) uomCase = 'Cs';
     if (uomPcs.toLowerCase().includes('bottle')) uomPcs = 'Btls';
     return { uomCase, uomPcs, resolveForProduct };

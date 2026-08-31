@@ -281,10 +281,28 @@ async function resolveRequesterDepotId(tx, requesterId, requestType, requestData
 }
 async function processDefaultOutletInvoice(reconciliationIdForInvoice, userIdForInvoice) {
     try {
-        const defaultPricelist = await prisma_client_1.default.pricelists.findFirst({
-            where: { is_default: 'Y', is_active: 'Y' },
-            select: { id: true },
+        const basicRecon = await prisma_client_1.default.reconciliation.findUnique({
+            where: { id: reconciliationIdForInvoice },
+            select: { salesman: { select: { depot_id: true } } },
         });
+        const salesmanDepotId = basicRecon?.salesman?.depot_id;
+        let targetPricelistId = -1;
+        if (salesmanDepotId) {
+            const depotPricelist = await prisma_client_1.default.pricelists.findFirst({
+                where: { depot_id: salesmanDepotId, is_active: 'Y' },
+                select: { id: true },
+            });
+            if (depotPricelist)
+                targetPricelistId = depotPricelist.id;
+        }
+        if (targetPricelistId === -1) {
+            const defaultPricelist = await prisma_client_1.default.pricelists.findFirst({
+                where: { is_default: 'Y', is_active: 'Y' },
+                select: { id: true },
+            });
+            if (defaultPricelist)
+                targetPricelistId = defaultPricelist.id;
+        }
         const reconciliation = await prisma_client_1.default.reconciliation.findUnique({
             where: { id: reconciliationIdForInvoice },
             include: {
@@ -309,7 +327,7 @@ async function processDefaultOutletInvoice(reconciliationIdForInvoice, userIdFor
                                 id: true,
                                 base_price: true,
                                 pricelist_items_products: {
-                                    where: { pricelist_id: defaultPricelist?.id || -1 },
+                                    where: { pricelist_id: targetPricelistId },
                                     select: { unit_price: true },
                                 },
                                 product_tax_master: {
@@ -336,7 +354,6 @@ async function processDefaultOutletInvoice(reconciliationIdForInvoice, userIdFor
             console.warn(`[DefaultOutletInvoice] Depot "${reconciliation.depot?.name}" has no Default Outlet configured. Cannot auto-create invoice for reconciliation ${reconciliationIdForInvoice}.`);
             return;
         }
-        // Idempotency check
         const existing = await prisma_client_1.default.invoices.findFirst({
             where: {
                 notes: {
@@ -2481,7 +2498,9 @@ exports.requestsController = {
                     createdate: 'desc',
                 },
             });
-            const requestIds = myApprovals.map(approval => approval.request_id);
+            // const requestIds = myApprovals.map(approval => approval.request_id);
+            const validApprovals = myApprovals.filter(approval => approval.sfa_d_requests_approvals_request !== null);
+            const requestIds = validApprovals.map(approval => approval.request_id);
             const previousPendingApprovals = await prisma_client_1.default.sfa_d_request_approvals.findMany({
                 where: {
                     request_id: { in: requestIds },
@@ -2499,7 +2518,7 @@ exports.requestsController = {
                 }
                 pendingSequencesMap.get(approval.request_id).push(approval.sequence);
             });
-            const filteredApprovals = myApprovals.filter(approval => {
+            const filteredApprovals = validApprovals.filter(approval => {
                 const pendingSequences = pendingSequencesMap.get(approval.request_id) || [];
                 const hasPreviousPending = pendingSequences.some(seq => seq < approval.sequence);
                 return !hasPreviousPending;

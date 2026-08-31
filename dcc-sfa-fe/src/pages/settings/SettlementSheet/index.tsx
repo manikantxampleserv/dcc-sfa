@@ -1,5 +1,4 @@
 import { Visibility } from '@mui/icons-material';
-import { MenuItem } from '@mui/material';
 import { useCurrencyCode } from 'hooks/useCurrency';
 import { usePermission } from 'hooks/usePermission';
 import {
@@ -17,7 +16,6 @@ import { ActionButton } from 'shared/ActionButton';
 import DepotSelect from 'shared/DepotSelect';
 import Input from 'shared/Input';
 import SearchInput from 'shared/SearchInput';
-import Select from 'shared/Select';
 import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
 import { formatDate, formatDateTime } from 'utils/dateUtils';
@@ -30,7 +28,6 @@ export default function SettlementSheet() {
       new Date().toISOString().split('T')[0]
   );
   const [depotFilter, setDepotFilter] = useState<number | undefined>(undefined);
-  const [statusFilter, setStatusFilter] = useState('all');
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
 
@@ -74,7 +71,7 @@ export default function SettlementSheet() {
       search: searchQuery || undefined,
       depot_id: depotFilter,
       date: selectedDate || undefined,
-      status: statusFilter !== 'all' ? statusFilter : undefined,
+      status: 'all',
       rec_status: 'A',
       latest_only: false,
     },
@@ -295,22 +292,6 @@ export default function SettlementSheet() {
                     placeholder="Filter by Depot"
                   />
                 </div>
-
-                <Select
-                  value={statusFilter}
-                  onChange={e => {
-                    setStatusFilter(e.target.value as string);
-                    setPage(1);
-                  }}
-                  className="!w-72"
-                >
-                  <MenuItem value="all">All Statuses</MenuItem>
-                  <MenuItem value="Pending">Pending Verification</MenuItem>
-                  <MenuItem value="Matched">Matched (CLEAN)</MenuItem>
-                  <MenuItem value="Short">Shortage (Outlet Posting)</MenuItem>
-                  <MenuItem value="Excess">Excess (Unload Adjustment)</MenuItem>
-                  <MenuItem value="Blocked">Blocked (Force-Push Req)</MenuItem>
-                </Select>
               </div>
             </div>
           ) : (

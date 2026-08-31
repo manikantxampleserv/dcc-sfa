@@ -87,22 +87,15 @@ const AttendanceReports: React.FC = () => {
         if (!user) return <span className="text-sm text-gray-500">N/A</span>;
         return (
           <div className="flex items-center gap-3">
-            <Avatar className="w-10 h-10 !rounded !bg-blue-100">
-              <span className="text-blue-600 font-semibold text-sm">
-                {user.name
-                  ? user.name
-                      .split(' ')
-                      .map((n: string) => n[0])
-                      .join('')
-                      .toUpperCase()
-                      .slice(0, 2)
-                  : 'U'}
-              </span>
-            </Avatar>
+            <Avatar
+              src="mkx"
+              alt={user.name}
+              className="w-10 h-10 !rounded !text-blue-500 !bg-blue-100"
+            ></Avatar>
             <div className="flex flex-col">
               <span className="font-semibold text-sm">{user.name}</span>
               <span className="text-xs text-gray-500">
-                {user.employee_id || `ID: ${user.id}`} • {user.email}
+                {user.employee_id || `ID: ${user.id}`}
               </span>
             </div>
           </div>

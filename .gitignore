@@ -18,11 +18,6 @@ out/
 
 .cursor/
 
-
-
-
-
-
 # Environment variables
 **/.env
 **/.env.local
@@ -172,10 +167,3 @@ dcc-sfa-be/logs/
 # Prisma
 dcc-sfa-be/prisma/migrations/
 !dcc-sfa-be/prisma/migrations/.gitkeep
-
-
-executive_dashboard_v5.html
-
-SalesControlTower_Dataset.xlsx
-
-Sample Data File.xlsx

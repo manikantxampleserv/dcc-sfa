@@ -1,0 +1,75 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
+@import 'tailwindcss';
+
+/* Tailwind CSS v4 Theme Configuration */
+@theme {
+  /* Primary Color Palette – same as SFA */
+  --color-primary-50: oklch(0.97 0.013 238.7);
+  --color-primary-100: oklch(0.93 0.039 240.1);
+  --color-primary-200: oklch(0.86 0.074 241.4);
+  --color-primary-300: oklch(0.76 0.12 243.4);
+  --color-primary-400: oklch(0.64 0.16 244.9);
+  --color-primary-500: oklch(0.53 0.18 245.5);
+  --color-primary-600: oklch(0.43 0.19 246.1);
+  --color-primary-700: oklch(0.35 0.18 246.8);
+  --color-primary-800: oklch(0.28 0.15 247.1);
+  --color-primary-900: oklch(0.23 0.12 246.9);
+  --color-primary-950: oklch(0.15 0.08 247.2);
+}
+
+/* Global Font */
+* {
+  font-family: 'Poppins', sans-serif !important;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background-color: #f3f4f6;
+}
+::-webkit-scrollbar-thumb {
+  background-color: #d5d8dc;
+  border-radius: 1px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: #9ca3af;
+}
+::-webkit-scrollbar-thumb:active {
+  background-color: #6b7280;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Remove number spinners */
+input[type='number']::-webkit-outer-spin-button,
+input[type='number']::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type='number'] {
+  appearance: textfield;
+}
+
+/* MUI Tooltip override */
+.MuiTooltip-tooltip {
+  background-color: white !important;
+  border-radius: 6px !important;
+  color: black !important;
+  max-width: 400px !important;
+  border: 2px #b5b5b533 solid !important;
+}
+.MuiTooltip-arrow::before {
+  border: 2px #b5b5b533 solid !important;
+  background-color: white !important;
+}
+
+/* Status badge animations */
+@keyframes pulse-ring {
+  0% { transform: scale(0.8); opacity: 1; }
+  100% { transform: scale(2.4); opacity: 0; }
+}

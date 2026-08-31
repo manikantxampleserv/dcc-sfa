@@ -5,6 +5,7 @@ const validationSchema = Yup.object({
     .required('Role name is required')
     .min(2, 'Role name must be at least 2 characters')
     .max(50, 'Role name must not exceed 50 characters'),
+  type: Yup.string().required('Role type is required'),
   description: Yup.string().max(
     200,
     'Description must not exceed 200 characters'

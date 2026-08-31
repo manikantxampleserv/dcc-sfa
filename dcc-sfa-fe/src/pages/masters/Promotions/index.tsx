@@ -21,7 +21,7 @@ import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
-import { formatDate } from 'utils/dateUtils';
+import { formatDate, formatDateTime } from 'utils/dateUtils';
 import ManagePromotion from './ManagePromotion';
 
 const PromotionsManagement: React.FC = () => {
@@ -185,10 +185,10 @@ const PromotionsManagement: React.FC = () => {
     },
     {
       id: 'createdate',
-      label: 'Created',
+      label: 'Created Date',
       render: (_value, row) => (
         <Typography variant="body2" className="!text-gray-500">
-          {formatDate(row.createdate?.toString())}
+          {formatDateTime(row.createdate?.toString())}
         </Typography>
       ),
     },

@@ -2,37 +2,31 @@ import {
   Block,
   CardGiftcard,
   CheckCircle,
-  Inventory,
   People,
   Tag,
-  TrendingUp,
   Warning,
+  Inventory2Outlined,
+  Inventory,
 } from '@mui/icons-material';
 import {
   Avatar,
   Box,
   Chip,
   Paper,
-  Skeleton,
   Tab,
   Tabs,
   Typography,
+  Tooltip,
+  Skeleton,
 } from '@mui/material';
-import {
-  useActivatePromotion,
-  useApplyPromotion,
-  useCalculateEligiblePromotions,
-  useDeactivatePromotion,
-  usePromotion,
-  useSettlePeriodPromotion,
-} from 'hooks/usePromotions';
-import { Activity, ArrowLeft, Calendar, Info } from 'lucide-react';
+import { usePromotion } from 'hooks/usePromotions';
+import { ArrowLeft, Info } from 'lucide-react';
 import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { DeleteButton, EditButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
 import Table from 'shared/Table';
-import { formatDate } from 'utils/dateUtils';
+import { formatDate, formatDateTime } from 'utils/dateUtils';
 import { formatLabel } from 'utils/stringUtils';
 import UpdatedManagePromotion from '../ManagePromotion';
 
@@ -72,37 +66,77 @@ const PromotionDetail: React.FC = () => {
   } = usePromotion(Number(id));
 
   const promotion = promotionResponse?.data;
-  const promotionId = Number(id);
 
-  const activateMutation = useActivatePromotion(promotionId, {
-    onSuccess: () => {
-      console.log('Promotion activated successfully');
-    },
-  });
+  const groupedConditions = React.useMemo(() => {
+    if (!promotion?.conditions) return [];
 
-  const deactivateMutation = useDeactivatePromotion(promotionId, {
-    onSuccess: () => {
-      console.log('Promotion deactivated successfully');
-    },
-  });
+    const groups = new Map();
+    promotion.conditions.forEach((condition: any) => {
+      const key = `${condition.condition_type}-${condition.applies_to_type}-${condition.min_value}`;
+      if (!groups.has(key)) {
+        groups.set(key, {
+          ...condition,
+          id: condition.id,
+          grouped_ids: [condition.id],
+          grouped_products: condition.promotion_condition_products
+            ? [...condition.promotion_condition_products]
+            : [],
+        });
+      } else {
+        const existing = groups.get(key);
+        existing.grouped_ids.push(condition.id);
+        if (condition.promotion_condition_products) {
+          existing.grouped_products.push(
+            ...condition.promotion_condition_products
+          );
+        }
+      }
+    });
 
-  const calculateMutation = useCalculateEligiblePromotions({
-    onSuccess: data => {
-      console.log('Eligible promotions calculated:', data);
-    },
-  });
+    const result = Array.from(groups.values());
+    result.forEach((group: any) => {
+      const productGroups = new Map();
+      group.grouped_products.forEach((p: any) => {
+        const pKey = `${p.condition_quantity}-${p.product_group || ''}`;
+        if (!productGroups.has(pKey)) {
+          productGroups.set(pKey, {
+            ...p,
+            product_ids: p.product_id ? [p.product_id] : [],
+            product_details: p.product_id
+              ? [
+                  {
+                    name:
+                      p.products?.name ||
+                      p.promotion_condition_productId?.name ||
+                      `Product ID: ${p.product_id}`,
+                    code:
+                      p.products?.code ||
+                      p.promotion_condition_productId?.code ||
+                      '',
+                  },
+                ]
+              : [],
+          });
+        } else {
+          const existingP = productGroups.get(pKey);
+          if (p.product_id) {
+            existingP.product_ids.push(p.product_id);
+            existingP.product_details.push({
+              name:
+                p.products?.name ||
+                p.promotion_condition_productId?.name ||
+                `Product ID: ${p.product_id}`,
+              code:
+                p.products?.code || p.promotion_condition_productId?.code || '',
+            });
+          }
+        }
+      });
+      group.display_products = Array.from(productGroups.values());
+    });
 
-  const applyMutation = useApplyPromotion({
-    onSuccess: data => {
-      console.log('Promotion applied successfully:', data);
-    },
-  });
-
-  const settleMutation = useSettlePeriodPromotion(promotionId, {
-    onSuccess: data => {
-      console.log('Period promotion settled successfully:', data);
-    },
-  });
+    return result;
+  }, [promotion?.conditions]);
 
   const handleBack = () => {
     navigate('/masters/promotions');
@@ -115,32 +149,6 @@ const PromotionDetail: React.FC = () => {
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
-  };
-
-  const handleActivateDeactivate = () => {
-    if (promotion?.is_active === 'Y') {
-      deactivateMutation.mutate(undefined);
-    } else {
-      activateMutation.mutate(undefined);
-    }
-  };
-
-  const handleCalculateEligible = () => {
-    console.warn(
-      'Calculate Eligible Promotions requires order data. This feature needs additional implementation.'
-    );
-  };
-
-  const handleApply = () => {
-    console.warn(
-      'Apply Promotion requires order data. This feature needs additional implementation.'
-    );
-  };
-
-  const handleSettlePeriod = () => {
-    console.warn(
-      'Settle Period Promotion requires period dates and customer IDs. This feature needs additional implementation.'
-    );
   };
 
   if (isLoading) {
@@ -363,7 +371,7 @@ const PromotionDetail: React.FC = () => {
                   className="!font-semibold !text-gray-900"
                 >
                   {promotion.createdate
-                    ? formatDate(promotion.createdate.toString())
+                    ? formatDateTime(promotion.createdate.toString())
                     : 'N/A'}
                 </Typography>
               </div>
@@ -453,7 +461,7 @@ const PromotionDetail: React.FC = () => {
                 />
                 <Tab
                   icon={<Inventory />}
-                  label={`Conditions (${promotion.conditions?.length || 0})`}
+                  label={`Conditions (${groupedConditions.length || 0})`}
                   iconPosition="start"
                 />
                 <Tab
@@ -461,7 +469,6 @@ const PromotionDetail: React.FC = () => {
                   label={`Levels & Benefits (${promotion.levels?.length || 0})`}
                   iconPosition="start"
                 />
-                {/* <Tab icon={<Activity />} label="Actions" iconPosition="start" /> */}
               </Tabs>
             </Box>
 
@@ -684,14 +691,17 @@ const PromotionDetail: React.FC = () => {
 
             <TabPanel value={tabValue} index={2}>
               <div className="!space-y-4">
-                {promotion.conditions && promotion.conditions.length > 0 ? (
-                  promotion.conditions.map((condition: any) => (
+                {groupedConditions && groupedConditions.length > 0 ? (
+                  groupedConditions.map((condition: any, index: number) => (
                     <Paper
                       key={condition.id}
                       className="!p-4 !rounded-lg !shadow-sm !border !bg-white !border-gray-200"
                     >
-                      <Typography variant="h6" className="!font-semibold !mb-3">
-                        Condition {condition.id}
+                      <Typography
+                        variant="body1"
+                        className="!font-semibold !mb-3"
+                      >
+                        Condition {index + 1}
                       </Typography>
                       <div className="!grid !grid-cols-2 !gap-4 !mb-3">
                         <div>
@@ -737,26 +747,92 @@ const PromotionDetail: React.FC = () => {
                           </Typography>
                         </div>
                       </div>
-                      {condition.promotion_condition_products &&
-                      condition.promotion_condition_products.length > 0 ? (
+                      {condition.display_products &&
+                      condition.display_products.length > 0 ? (
                         <Table
-                          data={condition.promotion_condition_products.map(
-                            (product: any) => ({
-                              id: product.id,
-                              type: formatLabel(condition.condition_type),
-                              product_group:
-                                product.product_group ||
-                                (product.product_id
-                                  ? `Product ID: ${product.product_id}`
-                                  : product.category_id
-                                    ? `Category ID: ${product.category_id}`
-                                    : 'N/A'),
-                              at_least: product.condition_quantity,
-                            })
+                          data={condition.display_products.map(
+                            (product: any, idx: number) => {
+                              let displayGroup = '-';
+                              if (product.product_group) {
+                                displayGroup = product.product_group;
+                              } else if (
+                                product.product_details &&
+                                product.product_details.length > 0
+                              ) {
+                                const count = product.product_details.length;
+                                displayGroup =
+                                  count > 1
+                                    ? `${count} Products Selected`
+                                    : product.product_details[0].name;
+                              } else if (product.category_id) {
+                                displayGroup = `Category ID: ${product.category_id}`;
+                              }
+
+                              return {
+                                id: product.id || idx,
+                                type: formatLabel(condition.condition_type),
+                                product_group: displayGroup,
+                                tooltip_details: product.product_details,
+                                at_least: product.condition_quantity,
+                              };
+                            }
                           )}
                           columns={[
                             { id: 'type', label: 'Type' },
-                            { id: 'product_group', label: 'Product/Category' },
+                            {
+                              id: 'product_group',
+                              label: 'Product/Category',
+                              render: (_val, row: any) =>
+                                row.tooltip_details &&
+                                row.tooltip_details.length > 1 ? (
+                                  <Tooltip
+                                    title={
+                                      <Box className="!flex !flex-col !p-1">
+                                        {row.tooltip_details.map(
+                                          (detail: any, i: number) => (
+                                            <Box
+                                              key={i}
+                                              className="!flex !items-center !gap-3 !bg-white !p-2"
+                                            >
+                                              <Box className="!bg-[#e6f4ff] !text-[#1677ff] !p-2 !rounded !flex !items-center !justify-center">
+                                                <Inventory2Outlined fontSize="small" />
+                                              </Box>
+                                              <Box className="!flex !flex-col">
+                                                <Typography
+                                                  variant="body2"
+                                                  className="!font-medium !text-gray-900 !leading-tight"
+                                                >
+                                                  {detail.name}
+                                                </Typography>
+                                                {detail.code && (
+                                                  <Typography
+                                                    variant="caption"
+                                                    className="!text-gray-500"
+                                                  >
+                                                    {detail.code}
+                                                  </Typography>
+                                                )}
+                                              </Box>
+                                            </Box>
+                                          )
+                                        )}
+                                      </Box>
+                                    }
+                                    arrow
+                                    placement="top"
+                                    classes={{
+                                      tooltip:
+                                        '!bg-gray-50 !p-1 !shadow-lg !border !border-gray-200',
+                                    }}
+                                  >
+                                    <span className="!border-b !border-dashed !border-gray-400 !cursor-pointer">
+                                      {row.product_group}
+                                    </span>
+                                  </Tooltip>
+                                ) : (
+                                  <span>{row.product_group}</span>
+                                ),
+                            },
                             { id: 'at_least', label: 'At least' },
                           ]}
                           pagination={false}
@@ -868,76 +944,6 @@ const PromotionDetail: React.FC = () => {
                     No levels defined
                   </Typography>
                 )}
-              </div>
-            </TabPanel>
-
-            <TabPanel value={tabValue} index={4}>
-              <div className="!space-y-4">
-                <Paper className="!p-4 !rounded-lg !shadow-sm !border !bg-white !border-gray-200">
-                  <Typography variant="h6" className="!font-semibold !mb-3">
-                    Promotion Actions
-                  </Typography>
-                  <div className="!space-y-2">
-                    <Button
-                      variant={
-                        promotion.is_active === 'Y' ? 'outlined' : 'contained'
-                      }
-                      startIcon={
-                        promotion.is_active === 'Y' ? (
-                          <Block />
-                        ) : (
-                          <CheckCircle />
-                        )
-                      }
-                      fullWidth
-                      onClick={handleActivateDeactivate}
-                      disabled={
-                        activateMutation.isPending ||
-                        deactivateMutation.isPending
-                      }
-                    >
-                      {activateMutation.isPending ||
-                      deactivateMutation.isPending
-                        ? 'Processing...'
-                        : promotion.is_active === 'Y'
-                          ? 'Deactivate Promotion'
-                          : 'Activate Promotion'}
-                    </Button>
-                    <Button
-                      variant="outlined"
-                      startIcon={<TrendingUp />}
-                      fullWidth
-                      onClick={handleCalculateEligible}
-                      disabled={calculateMutation.isPending}
-                    >
-                      {calculateMutation.isPending
-                        ? 'Calculating...'
-                        : 'Calculate Eligible Promotions'}
-                    </Button>
-                    <Button
-                      variant="outlined"
-                      startIcon={<CheckCircle />}
-                      fullWidth
-                      onClick={handleApply}
-                      disabled={applyMutation.isPending}
-                    >
-                      {applyMutation.isPending
-                        ? 'Applying...'
-                        : 'Apply Promotion'}
-                    </Button>
-                    <Button
-                      variant="outlined"
-                      startIcon={<Calendar />}
-                      fullWidth
-                      onClick={handleSettlePeriod}
-                      disabled={settleMutation.isPending}
-                    >
-                      {settleMutation.isPending
-                        ? 'Settling...'
-                        : 'Settle Period Promotion'}
-                    </Button>
-                  </div>
-                </Paper>
               </div>
             </TabPanel>
           </div>

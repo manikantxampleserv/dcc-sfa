@@ -11,6 +11,7 @@ const serializeRole = (role, includeCreatedAt = false, includeUpdatedAt = false)
     id: role.id,
     name: role.name,
     description: role.description,
+    type: role.type,
     // user_id: role.user_id,
     is_active: role.is_active,
     role_key: role.role_key,
@@ -46,7 +47,7 @@ exports.rolesController = {
                 res.validationError(errors.array(), 400);
                 return;
             }
-            const { name, description, 
+            const { name, description, type, 
             // user_id,
             is_active, permissions = [], } = req.body;
             const existingRole = await prisma_client_1.default.roles.findFirst({
@@ -64,6 +65,7 @@ exports.rolesController = {
                     data: {
                         name,
                         description,
+                        type: type || 'normal',
                         is_active: is_active ?? 'Y',
                         createdby: req.user?.id || 1,
                         createdate: new Date(),
@@ -307,6 +309,7 @@ exports.rolesController = {
                 select: {
                     id: true,
                     name: true,
+                    type: true,
                 },
                 orderBy: {
                     name: 'asc',
