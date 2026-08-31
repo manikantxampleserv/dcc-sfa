@@ -415,7 +415,10 @@ export const invoicesController = {
                       product_id: product?.id,
                       salesperson_id: { in: targetSalespersonIds },
                       batch_id: batchOrder.batch_lot_id,
+                      is_active: 'Y',
+                      OR: [{ is_unloadAll: 'N' }, { is_unloadAll: null }],
                     },
+                    orderBy: { current_stock: 'desc' },
                   });
 
                   if (inventoryStock) {
@@ -619,10 +622,13 @@ export const invoicesController = {
                     salesperson_id: { in: targetSalespersonIds },
                     batch_id: null,
                     serial_number_id: null,
+                    is_active: 'Y',
+                    OR: [{ is_unloadAll: 'N' }, { is_unloadAll: null }],
                     ...(vanInventory?.location_id && {
                       location_id: vanInventory.location_id,
                     }),
                   },
+                  orderBy: { current_stock: 'desc' },
                 });
 
                 if (inventoryStock) {
@@ -878,43 +884,24 @@ export const invoicesController = {
           }
         }
 
-        let invoiceIdsFromMovements: number[] = [];
-        
-        // Find active van inventories for these users
-        const vanInventories = await prisma.van_inventory.findMany({
-          where: {
-            user_id: { in: ids },
-            is_active: 'Y',
-            status: 'A',
-          },
-          select: { id: true },
-        });
-
-        if (vanInventories.length > 0) {
-          const movements = await prisma.stock_movements.findMany({
-            where: {
-              van_inventory_id: { in: vanInventories.map((v: any) => v.id) },
-              reference_type: 'INVOICE',
-            },
-            select: { reference_id: true },
-          });
-          invoiceIdsFromMovements = movements
-            .map((m: any) => m.reference_id)
-            .filter((id: any) => id !== null) as number[];
-        }
-
         if (ids.length > 0) {
           if (!filters.AND) filters.AND = [];
-          
+
           const orConditions: any[] = [
             { salesperson_id: { in: ids } },
             { createdby: { in: ids } },
+            {
+              orders: {
+                is: {
+                  OR: [
+                    { salesperson_id: { in: ids } },
+                    { createdby: { in: ids } },
+                  ],
+                },
+              },
+            },
           ];
-          
-          if (invoiceIdsFromMovements.length > 0) {
-            orConditions.push({ id: { in: invoiceIdsFromMovements } });
-          }
-          
+
           filters.AND.push({ OR: orConditions });
         }
       }
