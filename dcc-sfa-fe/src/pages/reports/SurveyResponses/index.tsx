@@ -176,12 +176,13 @@ const SurveyResponses: React.FC = () => {
             >
               {row.submitted_user?.name}
             </Typography>
-            {row?.submitted_user?.email && (
+            {(row?.submitted_user?.employee_id ||
+              row?.submitted_user?.email) && (
               <Typography
                 variant="caption"
                 className="!text-gray-500 !text-xs !block !mt-0.5"
               >
-                {row.submitted_user.email}
+                {row.submitted_user.employee_id || row.submitted_user.email}
               </Typography>
             )}
           </Box>

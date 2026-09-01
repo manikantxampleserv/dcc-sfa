@@ -113,5 +113,11 @@ export declare const reportsController: {
      * Export Cooler Inspections Report to Excel
      */
     exportCoolerInspectionsReport(req: Request, res: Response): Promise<void>;
+    /**
+     * Get Coolers Report
+     * Returns paginated coolers data for report.
+     */
+    getCoolersReport(req: Request, res: Response): Promise<void>;
+    exportCoolersReport(req: Request, res: Response): Promise<void>;
 };
 //# sourceMappingURL=reports.controller.d.ts.map

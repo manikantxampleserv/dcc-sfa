@@ -156,8 +156,10 @@ exports.routesController = {
                             OR: [
                                 { name: { contains: 'Salesman' } },
                                 { name: { contains: 'Salesperson' } },
+                                { name: { contains: 'Surveyor' } },
                                 { role_key: { contains: 'salesman' } },
                                 { role_key: { contains: 'salesperson' } },
+                                { role_key: { contains: 'surveyor' } },
                             ],
                         },
                     },

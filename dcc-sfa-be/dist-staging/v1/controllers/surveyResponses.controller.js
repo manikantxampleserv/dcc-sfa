@@ -35,6 +35,7 @@ const serializeSurveyResponse = (item) => ({
             id: item.survey_responses_submitted_by_users.id,
             name: item.survey_responses_submitted_by_users.name,
             email: item.survey_responses_submitted_by_users.email,
+            employee_id: item.survey_responses_submitted_by_users.employee_id || item.survey_responses_submitted_by_users.employee || null,
         }
         : null,
     customer: item.survey_response_customer

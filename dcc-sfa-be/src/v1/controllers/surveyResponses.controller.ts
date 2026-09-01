@@ -45,6 +45,7 @@ interface SurveyResponseSerialized {
     id: number;
     name: string;
     email: string;
+    employee_id?: string | null;
   } | null;
   customer?: {
     id: number;
@@ -108,6 +109,7 @@ const serializeSurveyResponse = (item: any): SurveyResponseSerialized => ({
         id: item.survey_responses_submitted_by_users.id,
         name: item.survey_responses_submitted_by_users.name,
         email: item.survey_responses_submitted_by_users.email,
+        employee_id: item.survey_responses_submitted_by_users.employee_id || item.survey_responses_submitted_by_users.employee || null,
       }
     : null,
   customer: item.survey_response_customer

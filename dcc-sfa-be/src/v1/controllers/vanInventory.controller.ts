@@ -2370,7 +2370,9 @@ export const vanInventoryController = {
 
           if (subUsers.length > 0) {
             inventoryData.sale_type = 'container';
-            inventoryData.sub_inventory_user_ids = subUsers.map((u: any) => u.id);
+            inventoryData.sub_inventory_user_ids = subUsers.map(
+              (u: any) => u.id
+            );
           } else {
             inventoryData.sale_type = 'normal';
             inventoryData.sub_inventory_user_ids = [];

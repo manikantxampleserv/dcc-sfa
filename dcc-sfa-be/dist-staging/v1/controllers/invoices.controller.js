@@ -292,7 +292,10 @@ exports.invoicesController = {
                                             product_id: product?.id,
                                             salesperson_id: { in: targetSalespersonIds },
                                             batch_id: batchOrder.batch_lot_id,
+                                            is_active: 'Y',
+                                            OR: [{ is_unloadAll: 'N' }, { is_unloadAll: null }],
                                         },
+                                        orderBy: { current_stock: 'desc' },
                                     });
                                     if (inventoryStock) {
                                         const stockDeduction = (0, inventory_utils_1.calculateStockDeduction)(inventoryStock.current_stock || 0, inventoryStock.base_quantity || 0, piecesToDeduct, conversionRate, itemUnit, batchOrder.uomQty);
@@ -453,10 +456,13 @@ exports.invoicesController = {
                                         salesperson_id: { in: targetSalespersonIds },
                                         batch_id: null,
                                         serial_number_id: null,
+                                        is_active: 'Y',
+                                        OR: [{ is_unloadAll: 'N' }, { is_unloadAll: null }],
                                         ...(vanInventory?.location_id && {
                                             location_id: vanInventory.location_id,
                                         }),
                                     },
+                                    orderBy: { current_stock: 'desc' },
                                 });
                                 if (inventoryStock) {
                                     const stockDeduction = (0, inventory_utils_1.calculateStockDeduction)(inventoryStock.current_stock || 0, inventoryStock.base_quantity || 0, orderedPieces, conversionRate, itemUnit, orderedQty);
@@ -653,38 +659,23 @@ exports.invoicesController = {
                         ids = expandedIds;
                     }
                 }
-                let invoiceIdsFromMovements = [];
-                // Find active van inventories for these users
-                const vanInventories = await prisma_client_1.default.van_inventory.findMany({
-                    where: {
-                        user_id: { in: ids },
-                        is_active: 'Y',
-                        status: 'A',
-                    },
-                    select: { id: true },
-                });
-                if (vanInventories.length > 0) {
-                    const movements = await prisma_client_1.default.stock_movements.findMany({
-                        where: {
-                            van_inventory_id: { in: vanInventories.map((v) => v.id) },
-                            reference_type: 'INVOICE',
-                        },
-                        select: { reference_id: true },
-                    });
-                    invoiceIdsFromMovements = movements
-                        .map((m) => m.reference_id)
-                        .filter((id) => id !== null);
-                }
                 if (ids.length > 0) {
                     if (!filters.AND)
                         filters.AND = [];
                     const orConditions = [
                         { salesperson_id: { in: ids } },
                         { createdby: { in: ids } },
+                        {
+                            orders: {
+                                is: {
+                                    OR: [
+                                        { salesperson_id: { in: ids } },
+                                        { createdby: { in: ids } },
+                                    ],
+                                },
+                            },
+                        },
                     ];
-                    if (invoiceIdsFromMovements.length > 0) {
-                        orConditions.push({ id: { in: invoiceIdsFromMovements } });
-                    }
                     filters.AND.push({ OR: orConditions });
                 }
             }

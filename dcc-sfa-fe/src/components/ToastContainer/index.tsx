@@ -7,7 +7,6 @@
 
 import React from 'react';
 import { ToastContainer as ReactToastifyContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
 
 /**
  * ToastContainer component with application-specific styling

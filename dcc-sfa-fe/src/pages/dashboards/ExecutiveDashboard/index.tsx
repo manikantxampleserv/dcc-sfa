@@ -438,7 +438,6 @@ const ExecutiveDashboard: React.FC = () => {
     approvalsLoading ||
     auditLogsLoading;
 
-  // Header Skeleton Component
   const HeaderSkeleton = () => (
     <div className="bg-white shadow-sm p-5 rounded-lg border border-gray-100">
       <div className="lg:flex justify-between items-center">

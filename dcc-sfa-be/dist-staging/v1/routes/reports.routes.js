@@ -158,5 +158,17 @@ router.get('/cooler-inspections', auth_middleware_1.authenticateToken, (0, auth_
  * @params Query: barcode, serial, brand, location, depot_name, code, outlet_name, status, last_scanned_date, seller_id
  */
 router.get('/cooler-inspections/export', auth_middleware_1.authenticateToken, (0, auth_middleware_1.requirePermission)([{ module: 'report', action: 'read' }]), reports_controller_1.reportsController.exportCoolerInspectionsReport);
+/**
+ * @route GET /api/v1/reports/coolers
+ * @description Get Coolers Report
+ * @access Private (requires authentication)
+ */
+router.get('/coolers', auth_middleware_1.authenticateToken, (0, auth_middleware_1.requirePermission)([{ module: 'report', action: 'read' }]), reports_controller_1.reportsController.getCoolersReport);
+/**
+ * @route GET /api/v1/reports/coolers/export
+ * @description Export Coolers Report to Excel
+ * @access Private (requires authentication)
+ */
+router.get('/coolers/export', auth_middleware_1.authenticateToken, (0, auth_middleware_1.requirePermission)([{ module: 'report', action: 'read' }]), reports_controller_1.reportsController.exportCoolersReport);
 exports.default = router;
 //# sourceMappingURL=reports.routes.js.map

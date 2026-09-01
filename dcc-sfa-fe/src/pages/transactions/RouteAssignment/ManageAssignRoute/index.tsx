@@ -133,7 +133,7 @@ const ManageAssignRoute: React.FC<ManageAssignRouteProps> = ({
         destination.droppableId === 'assigned-routes'
       ) {
         if (selectedRouteIds.length >= 3) {
-          toast.warning('Limit reached: A salesman can have at most 3 routes.');
+          toast.warning('Limit reached: A user can have at most 3 routes.');
           return;
         }
         if (selectedRouteIds.includes(routeId)) return;

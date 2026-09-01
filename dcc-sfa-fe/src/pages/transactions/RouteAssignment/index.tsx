@@ -207,7 +207,7 @@ const RouteAssignmentManagement: React.FC = () => {
             Route Assignment Management
           </p>
           <p className="!text-gray-500 text-sm">
-            Assign routes to salespersons and manage coverage
+            Assign routes to personnel and manage coverage
           </p>
         </Box>
       </Box>
@@ -237,7 +237,7 @@ const RouteAssignmentManagement: React.FC = () => {
           />
           <StatsCard
             icon={<Person />}
-            title="Total Sales Persons"
+            title="Total Personnel"
             value={totalSalespersons}
             color="blue"
             isLoading={isFetching}
@@ -257,7 +257,7 @@ const RouteAssignmentManagement: React.FC = () => {
         <div className="bg-white shadow-sm p-4 rounded-lg border border-gray-100 mb-4">
           <div className="flex items-center flex-wrap gap-4">
             <SearchInput
-              placeholder="Search Salesperson..."
+              placeholder="Search Personnel..."
               value={search}
               onChange={handleSearchChange}
               className="!w-80"
@@ -394,7 +394,7 @@ const RouteAssignmentManagement: React.FC = () => {
 
       {isRead && !isFetching && assignments.length === 0 && (
         <div className="col-span-full text-center py-12">
-          <p className="text-gray-500 text-lg">No salespersons found</p>
+          <p className="text-gray-500 text-lg">No personnel found</p>
         </div>
       )}
 

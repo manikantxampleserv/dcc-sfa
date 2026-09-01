@@ -50,6 +50,7 @@ interface SurveyResponse {
     id: number;
     name: string;
     email: string;
+    employee_id?: string | null;
   } | null;
   customer?: {
     id: number;
