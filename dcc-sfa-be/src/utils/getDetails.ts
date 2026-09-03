@@ -136,7 +136,13 @@ async function getRequestDetailsByType(
               where: { is_active: 'Y' },
               include: {
                 product: {
-                  select: { name: true },
+                  select: {
+                    name: true,
+                    code: true,
+                    product_unit_of_measurement: {
+                      select: { conversion_rate: true },
+                    },
+                  },
                 },
               },
             },
@@ -159,8 +165,19 @@ async function getRequestDetailsByType(
           items: reconciliation.reconciliation_items.map((item: any) => ({
             id: item.id,
             stock_name: item.product?.name || 'N/A',
-            expected_rop: item.expected_qty || 0,
-            actual_rop: item.actual_qty || 0,
+            stock_code: item.product?.code || 'N/A',
+            batch_number: item.batch_number || '',
+            expected_rop: Number(item.expected_qty) || 0,
+            expected_base_qty: Number(item.expected_base_qty) || 0,
+            actual_rop: Number(item.actual_qty) || 0,
+            actual_base_qty: Number(item.actual_base_qty) || 0,
+            variance: Number(item.variance) || 0,
+            variance_base_qty: Number(item.variance_base_qty) || 0,
+            conversion_rate:
+              Number(
+                item.product?.product_unit_of_measurement?.conversion_rate
+              ) || 1,
+            resolution_action: item.resolution_action || 'CLEAN',
           })),
           message: 'Reconciliation approval request',
         };

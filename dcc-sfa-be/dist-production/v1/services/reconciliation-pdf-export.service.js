@@ -321,8 +321,14 @@ const exportReconciliationPdfService = async (reconciliationData) => {
                         actionText = 'Posted to D/O';
                     }
                     else if (rawAction === 'Awaiting Verification' ||
-                        rawAction === 'Pending') {
-                        actionText = 'CLEAN';
+                        rawAction === 'Pending' ||
+                        rawAction === '-') {
+                        if (variance.c === 0 && variance.p === 0) {
+                            actionText = 'CLEAN';
+                        }
+                        else {
+                            actionText = 'Posted to D/O';
+                        }
                     }
                     const actionBg = actionText === 'CLEAN'
                         ? '#C6E0B4'
@@ -362,11 +368,13 @@ const exportReconciliationPdfService = async (reconciliationData) => {
                     catSaleValue += saleVal;
                     catTaxAmount += Number(item.taxAmount) || 0;
                     if (item.resolutionAction &&
-                        (item.resolutionAction.includes('Default Outlet') || item.resolutionAction.includes('Adjust'))) {
+                        (item.resolutionAction.includes('Default Outlet') ||
+                            item.resolutionAction.includes('Adjust'))) {
                         const isExcess = varianceVal > 0 || varianceBaseVal > 0;
                         const sign = isExcess ? -1 : 1;
                         const outletValue = (Math.abs(varianceVal) * price +
-                            Math.abs(varianceBaseVal) * basePricePerPc) * sign;
+                            Math.abs(varianceBaseVal) * basePricePerPc) *
+                            sign;
                         grandTotalDefaultOutletValue += outletValue;
                         const itemTax = Number(item.taxAmount) || 0;
                         const taxRate = saleVal > 0 ? itemTax / saleVal : 0.18;

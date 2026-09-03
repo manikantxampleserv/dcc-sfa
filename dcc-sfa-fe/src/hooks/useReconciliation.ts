@@ -61,7 +61,7 @@ export const useReconciliationById = (
 export const useSaveReconciliation = () => {
   return useApiMutation({
     mutationFn: reconciliationService.saveReconciliations,
-    invalidateQueries: ['reconciliation'],
+    invalidateQueries: ['reconciliation', 'requests'],
     loadingMessage: 'Saving reconciliation data...',
   });
 };

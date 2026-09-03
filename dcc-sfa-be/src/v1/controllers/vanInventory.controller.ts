@@ -3473,8 +3473,22 @@ export const vanInventoryController = {
         ...(loadingType === 'L' && { loading_type: 'L' }),
         ...(loadingType === 'U' && { loading_type: 'U' }),
         ...(user_id && { user_id: parseInt(user_id as string, 10) }),
-        ...(documentDateFilter && { document_date: documentDateFilter }),
       };
+
+      if (documentDateFilter) {
+        if (!filters.AND) filters.AND = [];
+        filters.AND.push({
+          OR: [
+            { document_date: documentDateFilter },
+            {
+              AND: [
+                { document_date: null },
+                { createdate: documentDateFilter },
+              ],
+            },
+          ],
+        });
+      }
 
       if (isScopeRestricted) {
         if (depotIds.length > 0) {
@@ -3546,7 +3560,7 @@ export const vanInventoryController = {
         vanInventoryThisMonth,
       ] = await Promise.all([
         prisma.van_inventory.count({
-          where: isScopeRestricted ? filters : undefined,
+          where: filters,
         }),
         prisma.van_inventory.count({ where: { ...filters, is_active: 'Y' } }),
         prisma.van_inventory.count({ where: { ...filters, is_active: 'N' } }),
@@ -4687,16 +4701,24 @@ export const vanInventoryController = {
         };
       };
 
-      let dateFilter = {};
-      if (time_filter && time_filter !== 'all') {
-        const tf = getTimeFilter(
-          time_filter as string,
-          req.query.start_date as string | undefined,
-          req.query.end_date as string | undefined
-        );
-        if (tf) {
-          dateFilter = { document_date: tf };
-        }
+      let dateFilter: any = {};
+      const tf = getTimeFilter(
+        time_filter as string | undefined,
+        req.query.start_date as string | undefined,
+        req.query.end_date as string | undefined
+      );
+      if (tf) {
+        dateFilter = {
+          OR: [
+            { document_date: tf },
+            {
+              AND: [
+                { document_date: null },
+                { createdate: tf },
+              ],
+            },
+          ],
+        };
       } else if (document_date) {
         const date = new Date(document_date as string);
         if (isNaN(date.getTime())) {
@@ -4712,11 +4734,21 @@ export const vanInventoryController = {
         const endOfDay = new Date(date);
         endOfDay.setHours(23, 59, 59, 999);
 
+        const dayRange = {
+          gte: startOfDay,
+          lte: endOfDay,
+        };
+
         dateFilter = {
-          document_date: {
-            gte: startOfDay,
-            lte: endOfDay,
-          },
+          OR: [
+            { document_date: dayRange },
+            {
+              AND: [
+                { document_date: null },
+                { createdate: dayRange },
+              ],
+            },
+          ],
         };
       }
 
@@ -5433,8 +5465,25 @@ export const vanInventoryController = {
         };
       };
 
-      let dateFilter = {};
-      if (document_date) {
+      let dateFilter: any = {};
+      const tf = getTimeFilter(
+        req.query.time_filter as string | undefined,
+        req.query.start_date as string | undefined,
+        req.query.end_date as string | undefined
+      );
+      if (tf) {
+        dateFilter = {
+          OR: [
+            { document_date: tf },
+            {
+              AND: [
+                { document_date: null },
+                { createdate: tf },
+              ],
+            },
+          ],
+        };
+      } else if (document_date) {
         const date = new Date(document_date as string);
         if (isNaN(date.getTime())) {
           return res.status(400).json({
@@ -5449,11 +5498,21 @@ export const vanInventoryController = {
         const endOfDay = new Date(date);
         endOfDay.setHours(23, 59, 59, 999);
 
+        const dayRange = {
+          gte: startOfDay,
+          lte: endOfDay,
+        };
+
         dateFilter = {
-          document_date: {
-            gte: startOfDay,
-            lte: endOfDay,
-          },
+          OR: [
+            { document_date: dayRange },
+            {
+              AND: [
+                { document_date: null },
+                { createdate: dayRange },
+              ],
+            },
+          ],
         };
       }
 

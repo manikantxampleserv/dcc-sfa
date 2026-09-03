@@ -23,11 +23,25 @@ const ApprovalsSidebar: React.FC<ApprovalsSidebarProps> = ({
   const [dialogType, setDialogType] = useState<'approve' | 'reject'>('approve');
   const [selectedRequest, setSelectedRequest] = useState<Request | null>(null);
 
-  const { data: requestsResponse, isLoading } =
-    useRequestsByUsersWithoutPermission(
-      { page: 1, limit: 20, status: 'P' },
-      { enabled: open }
-    );
+  const {
+    data: requestsResponse,
+    isLoading,
+    refetch,
+  } = useRequestsByUsersWithoutPermission(
+    { page: 1, limit: 20, status: 'P' },
+    {
+      enabled: open,
+      refetchOnMount: 'always',
+      refetchOnWindowFocus: true,
+      refetchInterval: open ? 10000 : false,
+    }
+  );
+
+  React.useEffect(() => {
+    if (open) {
+      refetch();
+    }
+  }, [open, refetch]);
 
   const requests: Request[] = requestsResponse?.data || [];
 

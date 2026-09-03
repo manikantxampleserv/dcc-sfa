@@ -854,21 +854,31 @@ export const invoicesController = {
         ...(status && { status: status as string }),
         ...(payment_method && { payment_method: payment_method as string }),
         ...(currency_id && { currency_id: Number(currency_id) }),
-        ...(timeBasedDateFilter
-          ? { invoice_date: timeBasedDateFilter }
-          : invoice_date_from || invoice_date_to
-            ? {
-                invoice_date: {
-                  ...(invoice_date_from && {
-                    gte: new Date(invoice_date_from as string),
-                  }),
-                  ...(invoice_date_to && {
-                    lte: new Date(invoice_date_to as string),
-                  }),
-                },
-              }
-            : undefined),
       };
+
+      if (timeBasedDateFilter) {
+        if (!filters.AND) filters.AND = [];
+        filters.AND.push({
+          OR: [
+            { invoice_date: timeBasedDateFilter },
+            {
+              AND: [
+                { invoice_date: null },
+                { createdate: timeBasedDateFilter },
+              ],
+            },
+          ],
+        });
+      } else if (invoice_date_from || invoice_date_to) {
+        filters.invoice_date = {
+          ...(invoice_date_from && {
+            gte: new Date(invoice_date_from as string),
+          }),
+          ...(invoice_date_to && {
+            lte: new Date(invoice_date_to as string),
+          }),
+        };
+      }
 
       if (salesperson_id) {
         let ids = String(salesperson_id)

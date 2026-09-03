@@ -2,6 +2,7 @@ import {
   Accordion,
   AccordionDetails,
   AccordionSummary,
+  Chip,
   Dialog,
   DialogActions,
   DialogContent,
@@ -11,6 +12,7 @@ import {
 } from '@mui/material';
 
 import { useTakeActionOnRequest } from 'hooks/useRequests';
+import { useQueryClient } from '@tanstack/react-query';
 import { Check, ChevronDown, FileText, X } from 'lucide-react';
 import React from 'react';
 import type { Request } from 'services/requests';
@@ -31,6 +33,7 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({
   request,
   type,
 }) => {
+  const queryClient = useQueryClient();
   const takeActionMutation = useTakeActionOnRequest();
 
   const handleSubmit = async () => {
@@ -44,6 +47,8 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({
         action: type === 'approve' ? 'A' : 'R',
         remarks: type === 'approve' ? 'Approved' : 'Rejected',
       });
+      await queryClient.invalidateQueries({ queryKey: ['requests'] });
+      await queryClient.refetchQueries({ queryKey: ['requests'] });
       onClose();
     } catch (error) {
       console.error('Error taking action on request:', error);
@@ -141,7 +146,9 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({
     <Dialog
       open={open}
       onClose={handleCancel}
-      maxWidth="sm"
+      maxWidth={
+        request?.request_type === 'RECONCILIATION_APPROVAL' ? 'md' : 'sm'
+      }
       fullWidth
       className="!rounded-lg"
     >
@@ -699,87 +706,240 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({
                 )}
 
                 {request.request_type === 'RECONCILIATION_APPROVAL' && (
-                  <div className="!grid !grid-cols-1 md:!grid-cols-2 !gap-4">
-                    {request.reference_details.salesman_name && (
-                      <div className="!space-y-1 md:!col-span-2">
+                  <div className="!space-y-4">
+                    <div className="!grid !grid-cols-1 md:!grid-cols-3 !gap-3 !bg-white !p-3 !rounded-lg !border !border-gray-200">
+                      {request.reference_details.salesman_name && (
+                        <div className="!space-y-1">
+                          <Typography
+                            variant="caption"
+                            className="!text-gray-500 !text-xs !uppercase !tracking-wide !font-medium"
+                          >
+                            Salesman
+                          </Typography>
+                          <Typography
+                            variant="body2"
+                            className="!font-semibold !text-gray-900"
+                          >
+                            {request.reference_details.salesman_name}{' '}
+                            {request.reference_details.salesman_employee_id
+                              ? `(${request.reference_details.salesman_employee_id})`
+                              : ''}
+                          </Typography>
+                        </div>
+                      )}
+
+                      <div className="!space-y-1">
                         <Typography
                           variant="caption"
-                          className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                          className="!text-gray-500 !text-xs !uppercase !tracking-wide !font-medium"
                         >
-                          Salesman
+                          Reconciliation Date
                         </Typography>
                         <Typography
                           variant="body2"
                           className="!font-semibold !text-gray-900"
                         >
-                          {request.reference_details.salesman_name}{' '}
-                          {request.reference_details.salesman_employee_id
-                            ? `(${request.reference_details.salesman_employee_id})`
+                          {request.reference_details.reconciliation_date ||
+                            'N/A'}
+                        </Typography>
+                      </div>
+
+                      <div className="!space-y-1">
+                        <Typography
+                          variant="caption"
+                          className="!text-gray-500 !text-xs !uppercase !tracking-wide !font-medium"
+                        >
+                          Depot
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          className="!font-medium !text-gray-800"
+                        >
+                          {request.reference_details.depot_name || 'N/A'}
+                          {request.reference_details.depot_code
+                            ? ` (${request.reference_details.depot_code})`
                             : ''}
                         </Typography>
                       </div>
-                    )}
 
-                    <div className="!space-y-1">
-                      <Typography
-                        variant="caption"
-                        className="!text-gray-500 !text-xs !uppercase !tracking-wide"
-                      >
-                        Reconciliation Date
-                      </Typography>
-                      <Typography
-                        variant="body2"
-                        className="!font-semibold !text-gray-900"
-                      >
-                        {request.reference_details.reconciliation_date || 'N/A'}
-                      </Typography>
+                      <div className="!space-y-1">
+                        <Typography
+                          variant="caption"
+                          className="!text-gray-500 !text-xs !uppercase !tracking-wide !font-medium"
+                        >
+                          Total Items
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          className="!font-semibold !text-gray-900"
+                        >
+                          {request.reference_details.total_items ??
+                            request.reference_details.items?.length ??
+                            'N/A'}
+                        </Typography>
+                      </div>
+
+                      {request.reference_details.message && (
+                        <div className="!space-y-1 md:!col-span-2">
+                          <Typography
+                            variant="caption"
+                            className="!text-gray-500 !text-xs !uppercase !tracking-wide !font-medium"
+                          >
+                            Message
+                          </Typography>
+                          <Typography
+                            variant="body2"
+                            className="!font-medium !text-gray-800 !italic"
+                          >
+                            {request.reference_details.message}
+                          </Typography>
+                        </div>
+                      )}
                     </div>
 
-                    <div className="!space-y-1">
-                      <Typography
-                        variant="caption"
-                        className="!text-gray-500 !text-xs !uppercase !tracking-wide"
-                      >
-                        Depot
-                      </Typography>
-                      <Typography
-                        variant="body2"
-                        className="!font-medium !text-gray-800"
-                      >
-                        {request.reference_details.depot_name || 'N/A'}
-                      </Typography>
-                    </div>
+                    {Array.isArray(request.reference_details.items) &&
+                      request.reference_details.items.length > 0 && (
+                        <div className="!space-y-2">
+                          <div className="!flex !justify-between !items-center">
+                            <Typography
+                              variant="caption"
+                              className="!text-gray-600 !text-xs !uppercase !tracking-wider !font-bold"
+                            >
+                              Reconciliation Items (
+                              {request.reference_details.items.length})
+                            </Typography>
+                          </div>
+                          <div className="!border !border-gray-200 !rounded-lg !overflow-hidden !shadow-sm">
+                            <div className="!max-h-[360px] !overflow-y-auto">
+                              <table className="!w-full !text-left !border-collapse !text-xs">
+                                <thead className="!bg-gray-100 !sticky !top-0 !z-10 !border-b !border-gray-200">
+                                  <tr>
+                                    <th className="!py-2.5 !px-3 !font-semibold !text-gray-700 !text-center !w-10">
+                                      #
+                                    </th>
+                                    <th className="!py-2.5 !px-3 !font-semibold !text-gray-700">
+                                      Item Name
+                                    </th>
+                                    <th className="!py-2.5 !px-3 !font-semibold !text-gray-700 !text-center">
+                                      Batch
+                                    </th>
+                                    <th className="!py-2.5 !px-3 !font-semibold !text-gray-700 !text-center">
+                                      Expected ROP
+                                    </th>
+                                    <th className="!py-2.5 !px-3 !font-semibold !text-gray-700 !text-center">
+                                      Actual ROP
+                                    </th>
+                                    <th className="!py-2.5 !px-3 !font-semibold !text-gray-700 !text-center">
+                                      Variance
+                                    </th>
+                                    <th className="!py-2.5 !px-3 !font-semibold !text-gray-700 !text-center">
+                                      Action
+                                    </th>
+                                  </tr>
+                                </thead>
+                                <tbody className="!divide-y !divide-gray-200 !bg-white">
+                                  {request.reference_details.items.map(
+                                    (item: any, idx: number) => {
+                                      const exp =
+                                        Number(item.expected_rop) || 0;
+                                      const act = Number(item.actual_rop) || 0;
+                                      const v =
+                                        item.variance !== undefined &&
+                                        item.variance !== null
+                                          ? Number(item.variance)
+                                          : act - exp;
 
-                    <div className="!space-y-1">
-                      <Typography
-                        variant="caption"
-                        className="!text-gray-500 !text-xs !uppercase !tracking-wide"
-                      >
-                        Total Items
-                      </Typography>
-                      <Typography
-                        variant="body2"
-                        className="!font-medium !text-gray-800"
-                      >
-                        {request.reference_details.total_items ?? 'N/A'}
-                      </Typography>
-                    </div>
+                                      const isShort = v < 0;
+                                      const isExcess = v > 0;
+                                      const isClean = v === 0;
 
-                    <div className="!space-y-1 md:!col-span-2">
-                      <Typography
-                        variant="caption"
-                        className="!text-gray-500 !text-xs !uppercase !tracking-wide"
-                      >
-                        Message
-                      </Typography>
-                      <Typography
-                        variant="body2"
-                        className="!font-medium !text-gray-800 !italic"
-                      >
-                        {request.reference_details.message ||
-                          'No message provided'}
-                      </Typography>
-                    </div>
+                                      const vColor = isShort
+                                        ? '!text-red-600'
+                                        : isExcess
+                                          ? '!text-blue-600'
+                                          : '!text-gray-800';
+
+                                      const sign = isShort
+                                        ? ''
+                                        : isExcess
+                                          ? '+'
+                                          : '';
+
+                                      let actionLabel =
+                                        item.resolution_action || 'CLEAN';
+                                      if (
+                                        actionLabel.includes(
+                                          'Default Outlet'
+                                        ) ||
+                                        actionLabel.includes('Adjust')
+                                      ) {
+                                        actionLabel = 'Post to D/O';
+                                      } else if (
+                                        actionLabel ===
+                                          'Awaiting Verification' ||
+                                        actionLabel === 'Pending' ||
+                                        actionLabel === '-'
+                                      ) {
+                                        actionLabel = isClean
+                                          ? 'CLEAN'
+                                          : 'Post to D/O';
+                                      }
+
+                                      return (
+                                        <tr
+                                          key={item.id || idx}
+                                          className="hover:!bg-blue-50/40 !transition-colors"
+                                        >
+                                          <td className="!py-2.5 !px-3 !text-gray-400 !text-center">
+                                            {idx + 1}
+                                          </td>
+                                          <td className="!py-2.5 !px-3">
+                                            <div className="!font-semibold !text-gray-900">
+                                              {item.stock_name}
+                                            </div>
+                                            {item.stock_code &&
+                                              item.stock_code !== 'N/A' && (
+                                                <span className="!text-[11px] !text-gray-500 !font-mono">
+                                                  {item.stock_code}
+                                                </span>
+                                              )}
+                                          </td>
+                                          <td className="!py-2.5 !px-3 !text-center !text-gray-600 !font-mono !text-[11px]">
+                                            {item.batch_number || '-'}
+                                          </td>
+                                          <td className="!py-2.5 !px-3 !text-center !font-medium !text-gray-800 !whitespace-nowrap">
+                                            {exp} Cs
+                                          </td>
+                                          <td className="!py-2.5 !px-3 !text-center !font-medium !text-gray-800 !whitespace-nowrap">
+                                            {act} Cs
+                                          </td>
+                                          <td
+                                            className={`!py-2.5 !px-3 !text-center !font-bold !whitespace-nowrap ${vColor}`}
+                                          >
+                                            {sign}
+                                            {v} Cs
+                                          </td>
+                                          <td className="!py-2.5 !px-3 !text-center !whitespace-nowrap">
+                                            <Chip
+                                              label={actionLabel}
+                                              size="small"
+                                              color={
+                                                isClean ? 'success' : 'error'
+                                              }
+                                              variant="outlined"
+                                              className="!text-[11px] !font-semibold !h-6"
+                                            />
+                                          </td>
+                                        </tr>
+                                      );
+                                    }
+                                  )}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                   </div>
                 )}
 

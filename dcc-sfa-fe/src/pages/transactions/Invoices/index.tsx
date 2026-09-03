@@ -56,10 +56,7 @@ const InvoicesManagement: React.FC = () => {
       page,
       limit,
       salesperson_id: salespersonFilter ? Number(salespersonFilter) : undefined,
-      time_filter:
-        timeFilter !== 'all' && timeFilter !== 'custom'
-          ? timeFilter
-          : undefined,
+      time_filter: timeFilter !== 'all' ? timeFilter : undefined,
       start_date:
         timeFilter === 'custom' && customDateRange.start
           ? customDateRange.start
@@ -124,10 +121,7 @@ const InvoicesManagement: React.FC = () => {
         salesperson_id: salespersonFilter
           ? Number(salespersonFilter)
           : undefined,
-        time_filter:
-          timeFilter !== 'all' && timeFilter !== 'custom'
-            ? timeFilter
-            : undefined,
+        time_filter: timeFilter !== 'all' ? timeFilter : undefined,
         start_date:
           timeFilter === 'custom' && customDateRange.start
             ? customDateRange.start
@@ -326,9 +320,15 @@ const InvoicesManagement: React.FC = () => {
         </Box>
         <DateRangeFilter
           timeFilter={timeFilter}
-          setTimeFilter={setTimeFilter}
+          setTimeFilter={val => {
+            setTimeFilter(val);
+            setPage(1);
+          }}
           customDateRange={customDateRange}
-          setCustomDateRange={setCustomDateRange}
+          setCustomDateRange={val => {
+            setCustomDateRange(val);
+            setPage(1);
+          }}
         />
       </Box>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">

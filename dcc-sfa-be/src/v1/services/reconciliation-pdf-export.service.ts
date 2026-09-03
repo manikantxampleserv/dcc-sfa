@@ -415,9 +415,14 @@ export const exportReconciliationPdfService = async (
             actionText = 'Posted to D/O';
           } else if (
             rawAction === 'Awaiting Verification' ||
-            rawAction === 'Pending'
+            rawAction === 'Pending' ||
+            rawAction === '-'
           ) {
-            actionText = 'CLEAN';
+            if (variance.c === 0 && variance.p === 0) {
+              actionText = 'CLEAN';
+            } else {
+              actionText = 'Posted to D/O';
+            }
           }
 
           const actionBg =
@@ -473,13 +478,15 @@ export const exportReconciliationPdfService = async (
 
           if (
             item.resolutionAction &&
-            (item.resolutionAction.includes('Default Outlet') || item.resolutionAction.includes('Adjust'))
+            (item.resolutionAction.includes('Default Outlet') ||
+              item.resolutionAction.includes('Adjust'))
           ) {
             const isExcess = varianceVal > 0 || varianceBaseVal > 0;
             const sign = isExcess ? -1 : 1;
             const outletValue =
               (Math.abs(varianceVal) * price +
-              Math.abs(varianceBaseVal) * basePricePerPc) * sign;
+                Math.abs(varianceBaseVal) * basePricePerPc) *
+              sign;
             grandTotalDefaultOutletValue += outletValue;
 
             const itemTax = Number(item.taxAmount) || 0;

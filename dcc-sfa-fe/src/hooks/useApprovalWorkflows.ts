@@ -90,11 +90,13 @@ export const useApproveWorkflowStep = () => {
       stepId?: number;
       comments?: string;
     }) => approvalWorkflowsService.approveWorkflowStep(id, stepId, comments),
-    invalidateQueries: ['approval-workflows', 'orders'],
+    invalidateQueries: ['approval-workflows', 'orders', 'requests'],
     loadingMessage: 'Approving workflow step...',
     onSuccess: () => {
-      // Invalidate orders to reflect updated approval status
+      // Invalidate orders and requests to reflect updated approval status
       queryClient.invalidateQueries({ queryKey: orderKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: ['requests'] });
+      queryClient.refetchQueries({ queryKey: ['requests'] });
     },
   });
 };
@@ -117,11 +119,13 @@ export const useRejectWorkflowStep = () => {
       rejectionReason: string;
     }) =>
       approvalWorkflowsService.rejectWorkflowStep(id, rejectionReason, stepId),
-    invalidateQueries: ['approval-workflows', 'orders'],
+    invalidateQueries: ['approval-workflows', 'orders', 'requests'],
     loadingMessage: 'Rejecting workflow step...',
     onSuccess: () => {
-      // Invalidate orders to reflect updated approval status
+      // Invalidate orders and requests to reflect updated approval status
       queryClient.invalidateQueries({ queryKey: orderKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: ['requests'] });
+      queryClient.refetchQueries({ queryKey: ['requests'] });
     },
   });
 };

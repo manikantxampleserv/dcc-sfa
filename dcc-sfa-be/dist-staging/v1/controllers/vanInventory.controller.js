@@ -2602,8 +2602,22 @@ exports.vanInventoryController = {
                 ...(loadingType === 'L' && { loading_type: 'L' }),
                 ...(loadingType === 'U' && { loading_type: 'U' }),
                 ...(user_id && { user_id: parseInt(user_id, 10) }),
-                ...(documentDateFilter && { document_date: documentDateFilter }),
             };
+            if (documentDateFilter) {
+                if (!filters.AND)
+                    filters.AND = [];
+                filters.AND.push({
+                    OR: [
+                        { document_date: documentDateFilter },
+                        {
+                            AND: [
+                                { document_date: null },
+                                { createdate: documentDateFilter },
+                            ],
+                        },
+                    ],
+                });
+            }
             if (isScopeRestricted) {
                 if (depotIds.length > 0) {
                     filters.van_inventory_users = {
@@ -2668,7 +2682,7 @@ exports.vanInventoryController = {
             });
             const [totalVanInventory, activeVanInventory, inactiveVanInventory, vanInventoryThisMonth,] = await Promise.all([
                 prisma_client_1.default.van_inventory.count({
-                    where: isScopeRestricted ? filters : undefined,
+                    where: filters,
                 }),
                 prisma_client_1.default.van_inventory.count({ where: { ...filters, is_active: 'Y' } }),
                 prisma_client_1.default.van_inventory.count({ where: { ...filters, is_active: 'N' } }),
@@ -3643,11 +3657,19 @@ exports.vanInventoryController = {
                 };
             };
             let dateFilter = {};
-            if (time_filter && time_filter !== 'all') {
-                const tf = (0, dateFilters_1.getTimeFilter)(time_filter, req.query.start_date, req.query.end_date);
-                if (tf) {
-                    dateFilter = { document_date: tf };
-                }
+            const tf = (0, dateFilters_1.getTimeFilter)(time_filter, req.query.start_date, req.query.end_date);
+            if (tf) {
+                dateFilter = {
+                    OR: [
+                        { document_date: tf },
+                        {
+                            AND: [
+                                { document_date: null },
+                                { createdate: tf },
+                            ],
+                        },
+                    ],
+                };
             }
             else if (document_date) {
                 const date = new Date(document_date);
@@ -3661,11 +3683,20 @@ exports.vanInventoryController = {
                 startOfDay.setHours(0, 0, 0, 0);
                 const endOfDay = new Date(date);
                 endOfDay.setHours(23, 59, 59, 999);
+                const dayRange = {
+                    gte: startOfDay,
+                    lte: endOfDay,
+                };
                 dateFilter = {
-                    document_date: {
-                        gte: startOfDay,
-                        lte: endOfDay,
-                    },
+                    OR: [
+                        { document_date: dayRange },
+                        {
+                            AND: [
+                                { document_date: null },
+                                { createdate: dayRange },
+                            ],
+                        },
+                    ],
                 };
             }
             if (!salesperson_id ||
@@ -4279,7 +4310,21 @@ exports.vanInventoryController = {
                 };
             };
             let dateFilter = {};
-            if (document_date) {
+            const tf = (0, dateFilters_1.getTimeFilter)(req.query.time_filter, req.query.start_date, req.query.end_date);
+            if (tf) {
+                dateFilter = {
+                    OR: [
+                        { document_date: tf },
+                        {
+                            AND: [
+                                { document_date: null },
+                                { createdate: tf },
+                            ],
+                        },
+                    ],
+                };
+            }
+            else if (document_date) {
                 const date = new Date(document_date);
                 if (isNaN(date.getTime())) {
                     return res.status(400).json({
@@ -4291,11 +4336,20 @@ exports.vanInventoryController = {
                 startOfDay.setHours(0, 0, 0, 0);
                 const endOfDay = new Date(date);
                 endOfDay.setHours(23, 59, 59, 999);
+                const dayRange = {
+                    gte: startOfDay,
+                    lte: endOfDay,
+                };
                 dateFilter = {
-                    document_date: {
-                        gte: startOfDay,
-                        lte: endOfDay,
-                    },
+                    OR: [
+                        { document_date: dayRange },
+                        {
+                            AND: [
+                                { document_date: null },
+                                { createdate: dayRange },
+                            ],
+                        },
+                    ],
                 };
             }
             if (!salesperson_id ||
@@ -4794,6 +4848,7 @@ exports.vanInventoryController = {
      * @param req
      * @param res
      */
+    //Stable unload
     // async unloadVanInventory(req: Request, res: Response) {
     //   try {
     //     const loggedInUserId = (req as any).user?.id;
@@ -5074,6 +5129,12 @@ exports.vanInventoryController = {
     //               },
     //             },
     //           });
+    //           // Build loadQtyMap from van_inventory_items (loading records for this session).
+    //           // Key: `{product_id}-{batch_number}` — matches the productMap keys built from inventory_stock.
+    //           // For SAP-sourced loads where van_inventory_items stores the TOTAL quantity under
+    //           // one primary batch_lot_id (e.g. KNMW 500ml with 329 Cases stored under CK6-019),
+    //           // the map will have a single entry for that primary batch with the full load quantity.
+    //           // The hasLoadEntry guard in the loop below ensures we trust this actual load record.
     //           const loadQtyMap = new Map<
     //             string,
     //             { qty: number; baseQty: number }
@@ -5170,6 +5231,7 @@ exports.vanInventoryController = {
     //               assignedSaleProducts.add(p.product_id);
     //             }
     //             const loadKey = `${p.product_id}-${p.batch_number || ''}`;
+    //             const hasLoadEntry = loadQtyMap.has(loadKey);
     //             const actualLoad = loadQtyMap.get(loadKey) || {
     //               qty: 0,
     //               baseQty: 0,
@@ -5181,15 +5243,19 @@ exports.vanInventoryController = {
     //               saleBaseQty = saleBaseQty % p.convRate;
     //               loadQty += Math.floor(loadBaseQty / p.convRate);
     //               loadBaseQty = loadBaseQty % p.convRate;
-    //               const totalSaleBaseUnits = saleQty * p.convRate + saleBaseQty;
-    //               const totalLoadBaseUnits = loadQty * p.convRate + loadBaseQty;
-    //               if (totalLoadBaseUnits < totalSaleBaseUnits) {
-    //                 loadQty = Math.floor(totalSaleBaseUnits / p.convRate);
-    //                 loadBaseQty = totalSaleBaseUnits % p.convRate;
+    //               if (!hasLoadEntry) {
+    //                 const totalSaleBaseUnits = saleQty * p.convRate + saleBaseQty;
+    //                 const totalLoadBaseUnits = loadQty * p.convRate + loadBaseQty;
+    //                 if (totalLoadBaseUnits < totalSaleBaseUnits) {
+    //                   loadQty = Math.floor(totalSaleBaseUnits / p.convRate);
+    //                   loadBaseQty = totalSaleBaseUnits % p.convRate;
+    //                 }
     //               }
     //             } else {
-    //               if (loadQty < saleQty) loadQty = saleQty;
-    //               if (loadBaseQty < saleBaseQty) loadBaseQty = saleBaseQty;
+    //               if (!hasLoadEntry) {
+    //                 if (loadQty < saleQty) loadQty = saleQty;
+    //                 if (loadBaseQty < saleBaseQty) loadBaseQty = saleBaseQty;
+    //               }
     //             }
     //             const unitPricePerPc = p.convRate > 0 ? p.price / p.convRate : 0;
     //             const saleVal = saleQty * p.price + saleBaseQty * unitPricePerPc;
@@ -5269,6 +5335,7 @@ exports.vanInventoryController = {
     //     });
     //   }
     // },
+    //new changes
     async unloadVanInventory(req, res) {
         try {
             const loggedInUserId = req.user?.id;
@@ -5594,16 +5661,64 @@ exports.vanInventoryController = {
                             },
                         });
                         const toCreate = [];
-                        const assignedSaleProducts = new Set();
+                        const totalLoadBaseByProduct = new Map();
                         for (const p of productMap.values()) {
+                            const loadKey = `${p.product_id}-${p.batch_number || ''}`;
+                            const load = loadQtyMap.get(loadKey) || { qty: 0, baseQty: 0 };
+                            const loadBaseUnits = p.convRate > 0
+                                ? load.qty * p.convRate + load.baseQty
+                                : load.qty;
+                            totalLoadBaseByProduct.set(p.product_id, (totalLoadBaseByProduct.get(p.product_id) || 0) + loadBaseUnits);
+                        }
+                        const assignedSaleBaseByProduct = new Map();
+                        const lastBatchKeyByProduct = new Map();
+                        for (const [key, p] of productMap.entries()) {
+                            lastBatchKeyByProduct.set(p.product_id, key);
+                        }
+                        for (const [mapKey, p] of productMap.entries()) {
                             const expectedQty = p.total_qty;
                             const expectedBaseQty = p.total_base_qty;
                             let saleQty = 0;
                             let saleBaseQty = 0;
-                            if (!assignedSaleProducts.has(p.product_id)) {
-                                saleQty = saleQtyMap.get(`${p.product_id}-`)?.qty || 0;
-                                saleBaseQty = saleQtyMap.get(`${p.product_id}-`)?.baseQty || 0;
-                                assignedSaleProducts.add(p.product_id);
+                            const totalSaleEntry = saleQtyMap.get(`${p.product_id}-`);
+                            if (totalSaleEntry) {
+                                const totalSaleBaseUnits = p.convRate > 0
+                                    ? totalSaleEntry.qty * p.convRate + totalSaleEntry.baseQty
+                                    : totalSaleEntry.qty;
+                                const totalLoadBaseUnits = totalLoadBaseByProduct.get(p.product_id) || 0;
+                                const loadKey = `${p.product_id}-${p.batch_number || ''}`;
+                                const thisBatchLoad = loadQtyMap.get(loadKey) || {
+                                    qty: 0,
+                                    baseQty: 0,
+                                };
+                                const thisBatchLoadBaseUnits = p.convRate > 0
+                                    ? thisBatchLoad.qty * p.convRate + thisBatchLoad.baseQty
+                                    : thisBatchLoad.qty;
+                                const alreadyAssigned = assignedSaleBaseByProduct.get(p.product_id) || 0;
+                                const isLastBatch = lastBatchKeyByProduct.get(p.product_id) === mapKey;
+                                let batchSaleBaseUnits;
+                                if (isLastBatch) {
+                                    batchSaleBaseUnits = totalSaleBaseUnits - alreadyAssigned;
+                                }
+                                else if (totalLoadBaseUnits > 0) {
+                                    batchSaleBaseUnits = Math.floor((thisBatchLoadBaseUnits / totalLoadBaseUnits) *
+                                        totalSaleBaseUnits);
+                                }
+                                else {
+                                    batchSaleBaseUnits =
+                                        alreadyAssigned === 0 ? totalSaleBaseUnits : 0;
+                                }
+                                console.log(`DEBUG SALES DIST Product: ${p.product_id}, Batch: ${p.batch_number}, isLastBatch: ${isLastBatch}, totalLoadBaseUnits: ${totalLoadBaseUnits}, thisBatchLoadBaseUnits: ${thisBatchLoadBaseUnits}, totalSaleBaseUnits: ${totalSaleBaseUnits}, batchSaleBaseUnits: ${batchSaleBaseUnits}`);
+                                batchSaleBaseUnits = Math.max(0, batchSaleBaseUnits);
+                                assignedSaleBaseByProduct.set(p.product_id, alreadyAssigned + batchSaleBaseUnits);
+                                if (p.convRate > 0) {
+                                    saleQty = Math.floor(batchSaleBaseUnits / p.convRate);
+                                    saleBaseQty = batchSaleBaseUnits % p.convRate;
+                                }
+                                else {
+                                    saleQty = batchSaleBaseUnits;
+                                    saleBaseQty = 0;
+                                }
                             }
                             const loadKey = `${p.product_id}-${p.batch_number || ''}`;
                             const hasLoadEntry = loadQtyMap.has(loadKey);
@@ -5614,16 +5729,14 @@ exports.vanInventoryController = {
                             let loadQty = actualLoad.qty;
                             let loadBaseQty = actualLoad.baseQty;
                             if (p.convRate > 0) {
-                                saleQty += Math.floor(saleBaseQty / p.convRate);
-                                saleBaseQty = saleBaseQty % p.convRate;
                                 loadQty += Math.floor(loadBaseQty / p.convRate);
                                 loadBaseQty = loadBaseQty % p.convRate;
                                 if (!hasLoadEntry) {
-                                    const totalSaleBaseUnits = saleQty * p.convRate + saleBaseQty;
-                                    const totalLoadBaseUnits = loadQty * p.convRate + loadBaseQty;
-                                    if (totalLoadBaseUnits < totalSaleBaseUnits) {
-                                        loadQty = Math.floor(totalSaleBaseUnits / p.convRate);
-                                        loadBaseQty = totalSaleBaseUnits % p.convRate;
+                                    const batchSaleBase = saleQty * p.convRate + saleBaseQty;
+                                    const batchLoadBase = loadQty * p.convRate + loadBaseQty;
+                                    if (batchLoadBase < batchSaleBase) {
+                                        loadQty = Math.floor(batchSaleBase / p.convRate);
+                                        loadBaseQty = batchSaleBase % p.convRate;
                                     }
                                 }
                             }

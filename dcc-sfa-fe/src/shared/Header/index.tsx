@@ -83,9 +83,10 @@ const Header: React.FC<HeaderProps> = ({ sidebarOpen, toggleSidebar }) => {
       status: 'P',
     },
     {
-      retry: false,
-      refetchOnMount: false,
-      refetchOnWindowFocus: false,
+      retry: 2,
+      refetchOnMount: 'always',
+      refetchOnWindowFocus: true,
+      refetchInterval: 15000,
     }
   );
 

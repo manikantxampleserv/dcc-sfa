@@ -466,35 +466,60 @@ export const salespersonStockController = {
       );
 
       /** Build date filter */
-      let dateFilterForVan: any = undefined;
-      let dateFilterForInvoice: any = undefined;
+      let dateFilterRange: { gte?: Date; lte?: Date } | undefined = undefined;
 
-      if (time_filter === 'today') {
+      if (start_date || end_date) {
+        dateFilterRange = {};
+        if (start_date) {
+          dateFilterRange.gte = new Date(`${start_date}T00:00:00.000Z`);
+        }
+        if (end_date) {
+          dateFilterRange.lte = new Date(`${end_date}T23:59:59.999Z`);
+        }
+      } else if (time_filter === 'today') {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-        dateFilterForVan = { gte: today };
-        dateFilterForInvoice = { gte: today };
+        const endToday = new Date();
+        endToday.setHours(23, 59, 59, 999);
+        dateFilterRange = { gte: today, lte: endToday };
+      } else if (time_filter === 'yesterday') {
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        yesterday.setHours(0, 0, 0, 0);
+        const endYesterday = new Date();
+        endYesterday.setDate(endYesterday.getDate() - 1);
+        endYesterday.setHours(23, 59, 59, 999);
+        dateFilterRange = { gte: yesterday, lte: endYesterday };
       } else if (time_filter === 'this_week') {
         const today = new Date();
         const first = today.getDate() - today.getDay();
         const firstDay = new Date(today.setDate(first));
         firstDay.setHours(0, 0, 0, 0);
-        dateFilterForVan = { gte: firstDay };
-        dateFilterForInvoice = { gte: firstDay };
+        dateFilterRange = { gte: firstDay };
       } else if (time_filter === 'this_month') {
         const today = new Date();
         const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
-        dateFilterForVan = { gte: firstDay };
-        dateFilterForInvoice = { gte: firstDay };
-      } else if (time_filter === 'custom' && start_date && end_date) {
-        dateFilterForVan = {
-          gte: new Date(start_date as string),
-          lte: new Date(`${end_date}T23:59:59.999Z`),
-        };
-        dateFilterForInvoice = {
-          gte: new Date(start_date as string),
-          lte: new Date(`${end_date}T23:59:59.999Z`),
-        };
+        firstDay.setHours(0, 0, 0, 0);
+        dateFilterRange = { gte: firstDay };
+      } else if (time_filter === 'prev_month') {
+        const now = new Date();
+        const firstDay = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        firstDay.setHours(0, 0, 0, 0);
+        const lastDay = new Date(now.getFullYear(), now.getMonth(), 0);
+        lastDay.setHours(23, 59, 59, 999);
+        dateFilterRange = { gte: firstDay, lte: lastDay };
+      } else if (time_filter === 'this_year') {
+        const now = new Date();
+        const firstDay = new Date(now.getFullYear(), 0, 1);
+        firstDay.setHours(0, 0, 0, 0);
+        dateFilterRange = { gte: firstDay };
+      } else if (time_filter === 'prev_year') {
+        const now = new Date();
+        const firstDay = new Date(now.getFullYear() - 1, 0, 1);
+        firstDay.setHours(0, 0, 0, 0);
+        const lastDay = new Date(now.getFullYear() - 1, 11, 31);
+        lastDay.setHours(23, 59, 59, 999);
+        dateFilterRange = { gte: firstDay, lte: lastDay };
       }
 
       const vanWhere: any = {
@@ -502,10 +527,13 @@ export const salespersonStockController = {
         approval_status: 'A',
         is_cancelled: 'N',
       };
-      if (dateFilterForVan) {
-        /** usually document_date or createdate, we can check document_date primarily, fallback createdate
-         * to simplify, check document_date */
-        vanWhere.document_date = dateFilterForVan;
+      if (dateFilterRange) {
+        vanWhere.OR = [
+          { document_date: dateFilterRange },
+          {
+            AND: [{ document_date: null }, { createdate: dateFilterRange }],
+          },
+        ];
       }
 
       const vanInventories = await prisma.van_inventory.findMany({
@@ -518,9 +546,19 @@ export const salespersonStockController = {
           { salesperson_id: { in: targetSalespersonIds } },
           { createdby: { in: targetSalespersonIds } },
         ],
+        is_active: 'Y',
       };
-      if (dateFilterForInvoice) {
-        invoiceWhere.invoice_date = dateFilterForInvoice;
+      if (dateFilterRange) {
+        invoiceWhere.AND = [
+          {
+            OR: [
+              { invoice_date: dateFilterRange },
+              {
+                AND: [{ invoice_date: null }, { createdate: dateFilterRange }],
+              },
+            ],
+          },
+        ];
       }
 
       const invoices = await prisma.invoices.findMany({
