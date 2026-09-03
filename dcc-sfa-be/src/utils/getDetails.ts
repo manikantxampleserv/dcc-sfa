@@ -132,15 +132,18 @@ async function getRequestDetailsByType(
             depot: {
               select: { id: true, name: true, code: true },
             },
+            reconciliation_items: {
+              where: { is_active: 'Y' },
+              include: {
+                product: {
+                  select: { name: true },
+                },
+              },
+            },
           },
         });
 
         if (!reconciliation) return {};
-
-        const reconciliationItemsCount =
-          await prisma.reconciliation_items.count({
-            where: { reconciliation_id: reconciliation.id, is_active: 'Y' },
-          });
 
         return {
           reconciliation_id: reconciliation.id,
@@ -152,7 +155,13 @@ async function getRequestDetailsByType(
           depot_code: reconciliation.depot?.code || 'N/A',
           salesman_name: reconciliation.salesman?.name || 'N/A',
           salesman_employee_id: reconciliation.salesman?.employee_id || 'N/A',
-          total_items: reconciliationItemsCount,
+          total_items: reconciliation.reconciliation_items.length,
+          items: reconciliation.reconciliation_items.map((item: any) => ({
+            id: item.id,
+            stock_name: item.product?.name || 'N/A',
+            expected_rop: item.expected_qty || 0,
+            actual_rop: item.actual_qty || 0,
+          })),
           message: 'Reconciliation approval request',
         };
 
