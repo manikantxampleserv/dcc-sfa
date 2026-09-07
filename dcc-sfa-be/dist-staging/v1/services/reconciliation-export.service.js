@@ -287,8 +287,20 @@ const exportReconciliationExcelService = async (reconciliationData) => {
             const taxAmount = Number(item.taxAmount) || 0;
             row.getCell(11).value = taxAmount;
             let action = item.resolutionAction || '-';
-            if (action.includes('Adjust') || action.includes('Default Outlet')) {
+            const hasVariance = varianceVal !== 0 || varianceBaseVal !== 0;
+            if (action.includes('Adjust') ||
+                action.includes('Default Outlet') ||
+                (hasVariance &&
+                    (action === '-' ||
+                        action === 'Awaiting Verification' ||
+                        action === 'Pending' ||
+                        action === 'CLEAN'))) {
                 action = 'Posted to D/O';
+            }
+            else if (action === 'Awaiting Verification' ||
+                action === 'Pending' ||
+                action === '-') {
+                action = 'CLEAN';
             }
             row.getCell(12).value = action;
             catLoad +=

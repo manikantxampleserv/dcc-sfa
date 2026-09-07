@@ -364,20 +364,96 @@ const InventoryDetail = () => {
     }
   };
 
+  /**
+   * Helper to compute start and end bounds for date filtering
+   * @param filter - Selected time filter identifier
+   * @param customRange - Custom date range with start and end strings
+   * @returns Date boundaries object or null
+   */
+  const getDateRangeBounds = useCallback(
+    (
+      filter: string,
+      customRange: { start: string; end: string }
+    ): { start?: Date; end?: Date } | null => {
+      if (filter === 'all') return null;
+
+      if (filter === 'custom') {
+        if (!customRange.start && !customRange.end) return null;
+        const bounds: { start?: Date; end?: Date } = {};
+        if (customRange.start) {
+          const s = new Date(`${customRange.start}T00:00:00.000Z`);
+          bounds.start = isNaN(s.getTime()) ? undefined : s;
+        }
+        if (customRange.end) {
+          const e = new Date(`${customRange.end}T23:59:59.999Z`);
+          bounds.end = isNaN(e.getTime()) ? undefined : e;
+        }
+        return bounds;
+      }
+
+      const now = new Date();
+      if (filter === 'today') {
+        const start = new Date(now);
+        start.setHours(0, 0, 0, 0);
+        const end = new Date(now);
+        end.setHours(23, 59, 59, 999);
+        return { start, end };
+      }
+      if (filter === 'yesterday') {
+        const start = new Date(now);
+        start.setDate(start.getDate() - 1);
+        start.setHours(0, 0, 0, 0);
+        const end = new Date(now);
+        end.setDate(end.getDate() - 1);
+        end.setHours(23, 59, 59, 999);
+        return { start, end };
+      }
+      if (filter === 'this_week') {
+        const first = now.getDate() - now.getDay();
+        const start = new Date(now.setDate(first));
+        start.setHours(0, 0, 0, 0);
+        return { start };
+      }
+      if (filter === 'this_month') {
+        const start = new Date(now.getFullYear(), now.getMonth(), 1);
+        start.setHours(0, 0, 0, 0);
+        return { start };
+      }
+      if (filter === 'prev_month') {
+        const start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        start.setHours(0, 0, 0, 0);
+        const end = new Date(now.getFullYear(), now.getMonth(), 0);
+        end.setHours(23, 59, 59, 999);
+        return { start, end };
+      }
+      if (filter === 'this_year') {
+        const start = new Date(now.getFullYear(), 0, 1);
+        start.setHours(0, 0, 0, 0);
+        return { start };
+      }
+      if (filter === 'prev_year') {
+        const start = new Date(now.getFullYear() - 1, 0, 1);
+        start.setHours(0, 0, 0, 0);
+        const end = new Date(now.getFullYear() - 1, 11, 31);
+        end.setHours(23, 59, 59, 999);
+        return { start, end };
+      }
+
+      return null;
+    },
+    []
+  );
+
   const vanInventories = useMemo(() => {
     let data = vanInventoryResponse?.data || [];
-    if (
-      timeFilter === 'custom' &&
-      customDateRange.start &&
-      customDateRange.end
-    ) {
+    const bounds = getDateRangeBounds(timeFilter, customDateRange);
+    if (bounds) {
       data = data.filter(v => {
         const dt = new Date(v.document_date || v.createdate || '');
         if (isNaN(dt.getTime())) return true;
-        return (
-          dt >= new Date(customDateRange.start) &&
-          dt <= new Date(`${customDateRange.end}T23:59:59.999Z`)
-        );
+        if (bounds.start && dt < bounds.start) return false;
+        if (bounds.end && dt > bounds.end) return false;
+        return true;
       });
     }
     return data.filter(v => {
@@ -392,35 +468,25 @@ const InventoryDetail = () => {
     customDateRange,
     salespersonData,
     inventoryId,
+    getDateRangeBounds,
   ]);
 
   const salespersonInvoices = useMemo(() => {
     let rawInvoices = invoicesResponse?.data || [];
-    if (
-      timeFilter === 'custom' &&
-      customDateRange.start &&
-      customDateRange.end
-    ) {
+    const bounds = getDateRangeBounds(timeFilter, customDateRange);
+    if (bounds) {
       rawInvoices = rawInvoices.filter(inv => {
         const dt = new Date(inv.invoice_date || inv.createdate || '');
         if (isNaN(dt.getTime())) return true;
-        return (
-          dt >= new Date(customDateRange.start) &&
-          dt <= new Date(`${customDateRange.end}T23:59:59.999Z`)
-        );
+        if (bounds.start && dt < bounds.start) return false;
+        if (bounds.end && dt > bounds.end) return false;
+        return true;
       });
     }
     return rawInvoices;
-  }, [
-    invoicesResponse,
-    inventoryId,
-    timeFilter,
-    customDateRange,
-    salespersonData,
-  ]);
+  }, [invoicesResponse, timeFilter, customDateRange, getDateRangeBounds]);
 
-  const apiTimeFilter =
-    timeFilter !== 'all' && timeFilter !== 'custom' ? timeFilter : undefined;
+  const apiTimeFilter = timeFilter !== 'all' ? timeFilter : undefined;
   const apiStartDate =
     timeFilter === 'custom' && customDateRange.start
       ? customDateRange.start

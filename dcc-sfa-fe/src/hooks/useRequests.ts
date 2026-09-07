@@ -5,7 +5,11 @@
  * @version 1.0.0
  */
 
-import { useQuery, type UseQueryOptions } from '@tanstack/react-query';
+import {
+  useQuery,
+  useQueryClient,
+  type UseQueryOptions,
+} from '@tanstack/react-query';
 import { useApiMutation } from './useApiMutation';
 import * as requestService from '../services/requests';
 import type { ApiResponse } from '../types/api.types';
@@ -48,7 +52,8 @@ export const useRequestsByUsers = (
   return useQuery({
     queryKey: requestQueryKeys.byUsers(params),
     queryFn: () => requestService.fetchRequestsByUsers(params),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 5 * 1000,
+    refetchOnWindowFocus: true,
     ...options,
   });
 };
@@ -69,7 +74,8 @@ export const useRequestsByUsersWithoutPermission = (
   return useQuery({
     queryKey: requestQueryKeys.byUsersWithoutPermission(params),
     queryFn: () => requestService.fetchRequestsByUsersWithoutPermission(params),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 5 * 1000,
+    refetchOnWindowFocus: true,
     ...options,
   });
 };
@@ -79,10 +85,26 @@ export const useRequestsByUsersWithoutPermission = (
  * @returns Mutation object for taking action on request
  */
 export const useTakeActionOnRequest = () => {
+  const queryClient = useQueryClient();
+
   return useApiMutation({
     mutationFn: requestService.takeActionOnRequest,
-    invalidateQueries: ['requests'],
+    invalidateQueries: [
+      'requests',
+      'reconciliation',
+      'orders',
+      'van-inventory',
+      'asset-movements',
+      'customers',
+      'approval-workflows',
+      'workflow',
+      'dashboard-statistics',
+    ],
     loadingMessage: 'Processing request...',
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: requestQueryKeys.all });
+      queryClient.refetchQueries({ queryKey: requestQueryKeys.all });
+    },
   });
 };
 

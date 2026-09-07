@@ -92,7 +92,60 @@ export default function SettlementSheetDetail() {
         skuMap.set(key, { ...item });
       }
     });
-    const aggregatedArray = Array.from(skuMap.values());
+    const aggregatedArray = Array.from(skuMap.values()).map(item => {
+      const conv = Number(item.conversionRate) || 1;
+      const hasActualCases =
+        item.actualRop !== '' &&
+        item.actualRop !== null &&
+        item.actualRop !== undefined;
+      const hasActualPCs =
+        item.actualBaseQty !== '' &&
+        item.actualBaseQty !== null &&
+        item.actualBaseQty !== undefined;
+
+      const actualVal = hasActualCases ? Number(item.actualRop) : 0;
+      const actualBaseVal = hasActualPCs ? Number(item.actualBaseQty) : 0;
+
+      const expectedVal = Number(item.expectedRop) || 0;
+      const expectedBaseVal = Number(item.expectedBaseQty) || 0;
+
+      const expectedTotalPieces = expectedVal * conv + expectedBaseVal;
+      const actualTotalPieces = actualVal * conv + actualBaseVal;
+      const variancePieces = actualTotalPieces - expectedTotalPieces;
+
+      let varianceVal = 0;
+      let varianceBaseVal = 0;
+
+      if (variancePieces !== 0) {
+        const absV = Math.abs(variancePieces);
+        varianceVal = Math.floor(absV / conv) * Math.sign(variancePieces);
+        varianceBaseVal = (absV % conv) * Math.sign(variancePieces);
+      }
+
+      let resAction = item.resolutionAction;
+      if (
+        !resAction ||
+        resAction === 'Awaiting Verification' ||
+        resAction === 'Pending' ||
+        resAction === '-' ||
+        (resAction === 'CLEAN' && variancePieces !== 0)
+      ) {
+        if (variancePieces === 0) {
+          resAction = 'CLEAN';
+        } else {
+          resAction = 'Post to Default Outlet';
+        }
+      }
+
+      return {
+        ...item,
+        actualRop: String(actualVal),
+        actualBaseQty: String(actualBaseVal),
+        variance: varianceVal,
+        varianceBaseQty: varianceBaseVal,
+        resolutionAction: resAction,
+      };
+    });
     aggregatedArray.sort((a, b) => {
       const skuA = String(a.skuCode || '');
       const skuB = String(b.skuCode || '');
@@ -384,11 +437,17 @@ export default function SettlementSheetDetail() {
       label: 'Action',
       render: (val, row) => {
         let displayVal = val;
+        const v = Number(row.variance) || 0;
+        const vb = Number(row.varianceBaseQty) || 0;
+        const hasVariance = v !== 0 || vb !== 0;
+
         if (
           displayVal === 'Awaiting Verification' ||
-          displayVal === 'Pending'
+          displayVal === 'Pending' ||
+          displayVal === '-' ||
+          (displayVal === 'CLEAN' && hasVariance)
         ) {
-          displayVal = 'CLEAN';
+          displayVal = hasVariance ? 'Post to Default Outlet' : 'CLEAN';
         }
 
         if (displayVal?.includes('Adjust')) {

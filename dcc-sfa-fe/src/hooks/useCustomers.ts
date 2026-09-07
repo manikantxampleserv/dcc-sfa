@@ -125,6 +125,7 @@ export const useCreateCustomer = (options?: {
     loadingMessage: 'Creating customer...',
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: customerKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: ['requests'] });
       options?.onSuccess?.(data, variables);
     },
     onError: options?.onError,
@@ -160,6 +161,7 @@ export const useUpdateCustomer = (options?: {
       queryClient.invalidateQueries({
         queryKey: customerKeys.detail(variables.id),
       });
+      queryClient.invalidateQueries({ queryKey: ['requests'] });
       options?.onSuccess?.(data, variables);
     },
     onError: options?.onError,

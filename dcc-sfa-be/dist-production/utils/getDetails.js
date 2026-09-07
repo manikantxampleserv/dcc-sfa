@@ -121,13 +121,24 @@ async function getRequestDetailsByType(request_type, reference_id, request_data)
                         depot: {
                             select: { id: true, name: true, code: true },
                         },
+                        reconciliation_items: {
+                            where: { is_active: 'Y' },
+                            include: {
+                                product: {
+                                    select: {
+                                        name: true,
+                                        code: true,
+                                        product_unit_of_measurement: {
+                                            select: { conversion_rate: true },
+                                        },
+                                    },
+                                },
+                            },
+                        },
                     },
                 });
                 if (!reconciliation)
                     return {};
-                const reconciliationItemsCount = await prisma_client_1.default.reconciliation_items.count({
-                    where: { reconciliation_id: reconciliation.id, is_active: 'Y' },
-                });
                 return {
                     reconciliation_id: reconciliation.id,
                     reconciliation_date: reconciliation.reconciliation_date
@@ -138,7 +149,21 @@ async function getRequestDetailsByType(request_type, reference_id, request_data)
                     depot_code: reconciliation.depot?.code || 'N/A',
                     salesman_name: reconciliation.salesman?.name || 'N/A',
                     salesman_employee_id: reconciliation.salesman?.employee_id || 'N/A',
-                    total_items: reconciliationItemsCount,
+                    total_items: reconciliation.reconciliation_items.length,
+                    items: reconciliation.reconciliation_items.map((item) => ({
+                        id: item.id,
+                        stock_name: item.product?.name || 'N/A',
+                        stock_code: item.product?.code || 'N/A',
+                        batch_number: item.batch_number || '',
+                        expected_rop: Number(item.expected_qty) || 0,
+                        expected_base_qty: Number(item.expected_base_qty) || 0,
+                        actual_rop: Number(item.actual_qty) || 0,
+                        actual_base_qty: Number(item.actual_base_qty) || 0,
+                        variance: Number(item.variance) || 0,
+                        variance_base_qty: Number(item.variance_base_qty) || 0,
+                        conversion_rate: Number(item.product?.product_unit_of_measurement?.conversion_rate) || 1,
+                        resolution_action: item.resolution_action || 'CLEAN',
+                    })),
                     message: 'Reconciliation approval request',
                 };
             case 'ASSET_MOVEMENT_APPROVAL':

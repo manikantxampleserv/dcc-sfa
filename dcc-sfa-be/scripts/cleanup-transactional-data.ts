@@ -72,6 +72,12 @@ async function main() {
     /** Pre-run counts */
     log('Pre-cleanup record counts:');
     console.table({
+      credit_note_items: await prisma.credit_note_items.count(),
+      credit_notes: await prisma.credit_notes.count(),
+      return_requests: await prisma.return_requests.count(),
+      stock_transfer_lines: await prisma.stock_transfer_lines.count(),
+      stock_transfer_requests: await prisma.stock_transfer_requests.count(),
+      customer_purchase_history: await prisma.customer_purchase_history.count(),
       stock_movements: await prisma.stock_movements.count(),
       invoice_items: await prisma.invoice_items.count(),
       refund_lines: await prisma.refund_lines.count(),
@@ -84,6 +90,30 @@ async function main() {
       van_inventory_sub_users: await prisma.van_inventory_sub_users.count(),
       sfa_d_request_approvals: await prisma.sfa_d_request_approvals.count(),
       sfa_d_requests: await prisma.sfa_d_requests.count(),
+      survey_answers: await prisma.survey_answers.count(),
+      survey_responses: await prisma.survey_responses.count(),
+      cooler_inspections: await prisma.cooler_inspections.count(),
+      audit_logs: await prisma.audit_logs.count(),
+      notifications: await prisma.notifications.count(),
+      error_logs: await prisma.error_logs.count(),
+      request_logs: await prisma.request_logs.count(),
+      promotion_tracking: await prisma.promotion_tracking.count(),
+      asset_movement_assets: await prisma.asset_movement_assets.count(),
+      asset_movement_contracts: await prisma.asset_movement_contracts.count(),
+      asset_movements: await prisma.asset_movements.count(),
+      asset_warranty_claims: await prisma.asset_warranty_claims.count(),
+      warranty_claims: await prisma.warranty_claims.count(),
+      customer_assets_history: await prisma.customer_assets_history.count(),
+      customer_assets: await prisma.customer_assets.count(),
+      visit_attachments: await prisma.visit_attachments.count(),
+      visit_tasks: await prisma.visit_tasks.count(),
+      visits: await prisma.visits.count(),
+      attendance_history: await prisma.attendance_history.count(),
+      attendance: await prisma.attendance.count(),
+      gps_logs: await prisma.gps_logs.count(),
+      competitor_activity: await prisma.competitor_activity.count(),
+      customer_complaints: await prisma.customer_complaints.count(),
+      login_history: await prisma.login_history.count(),
       van_inventory_items: await prisma.van_inventory_items.count(),
       van_inventory: await prisma.van_inventory.count(),
       reconciliation_items: await prisma.reconciliation_items.count(),
@@ -97,6 +127,22 @@ async function main() {
 
     /** 1. Stock Movements */
     await del('stock_movements', () => prisma.stock_movements.deleteMany({}));
+
+    /** Financial & Transfers */
+    await del('credit_note_items', () =>
+      prisma.credit_note_items.deleteMany({})
+    );
+    await del('credit_notes', () => prisma.credit_notes.deleteMany({}));
+    await del('return_requests', () => prisma.return_requests.deleteMany({}));
+    await del('stock_transfer_lines', () =>
+      prisma.stock_transfer_lines.deleteMany({})
+    );
+    await del('stock_transfer_requests', () =>
+      prisma.stock_transfer_requests.deleteMany({})
+    );
+    await del('customer_purchase_history', () =>
+      prisma.customer_purchase_history.deleteMany({})
+    );
 
     /** 2. Invoice Items */
     await del('invoice_items', () => prisma.invoice_items.deleteMany({}));
@@ -134,6 +180,61 @@ async function main() {
       prisma.sfa_d_request_approvals.deleteMany({})
     );
     await del('sfa_d_requests', () => prisma.sfa_d_requests.deleteMany({}));
+
+    /** Surveys */
+    await del('survey_answers', () => prisma.survey_answers.deleteMany({}));
+    await del('survey_responses', () => prisma.survey_responses.deleteMany({}));
+
+    /** Coolers */
+    await del('cooler_inspections', () =>
+      prisma.cooler_inspections.deleteMany({})
+    );
+
+    /** Logs */
+    await del('audit_logs', () => prisma.audit_logs.deleteMany({}));
+    await del('notifications', () => prisma.notifications.deleteMany({}));
+    await del('error_logs', () => prisma.error_logs.deleteMany({}));
+    await del('request_logs', () => prisma.request_logs.deleteMany({}));
+    await del('promotion_tracking', () =>
+      prisma.promotion_tracking.deleteMany({})
+    );
+
+    /** Assets & Warranties */
+    await del('asset_movement_assets', () =>
+      prisma.asset_movement_assets.deleteMany({})
+    );
+    await del('asset_movement_contracts', () =>
+      prisma.asset_movement_contracts.deleteMany({})
+    );
+    await del('asset_movements', () => prisma.asset_movements.deleteMany({}));
+    await del('asset_warranty_claims', () =>
+      prisma.asset_warranty_claims.deleteMany({})
+    );
+    await del('warranty_claims', () => prisma.warranty_claims.deleteMany({}));
+    await del('customer_assets_history', () =>
+      prisma.customer_assets_history.deleteMany({})
+    );
+    await del('customer_assets', () => prisma.customer_assets.deleteMany({}));
+
+    /** Field Activities */
+    await del('visit_attachments', () =>
+      prisma.visit_attachments.deleteMany({})
+    );
+    await del('visit_tasks', () => prisma.visit_tasks.deleteMany({}));
+    await del('visits', () => prisma.visits.deleteMany({}));
+    await del('attendance_history', () =>
+      prisma.attendance_history.deleteMany({})
+    );
+    await del('attendance', () => prisma.attendance.deleteMany({}));
+    await del('gps_logs', () => prisma.gps_logs.deleteMany({}));
+    await del('competitor_activity', () =>
+      prisma.competitor_activity.deleteMany({})
+    );
+    await del('customer_complaints', () =>
+      prisma.customer_complaints.deleteMany({})
+    );
+    await del('login_history', () => prisma.login_history.deleteMany({}));
+
     await del('van_inventory_items', () =>
       prisma.van_inventory_items.deleteMany({})
     );
@@ -167,6 +268,13 @@ async function main() {
       console.log('');
       log('Post-cleanup verification (should all be 0):');
       console.table({
+        credit_note_items: await prisma.credit_note_items.count(),
+        credit_notes: await prisma.credit_notes.count(),
+        return_requests: await prisma.return_requests.count(),
+        stock_transfer_lines: await prisma.stock_transfer_lines.count(),
+        stock_transfer_requests: await prisma.stock_transfer_requests.count(),
+        customer_purchase_history:
+          await prisma.customer_purchase_history.count(),
         stock_movements: await prisma.stock_movements.count(),
         invoice_items: await prisma.invoice_items.count(),
         refund_lines: await prisma.refund_lines.count(),
@@ -178,6 +286,31 @@ async function main() {
         orders: await prisma.orders.count(),
         sfa_d_request_approvals: await prisma.sfa_d_request_approvals.count(),
         sfa_d_requests: await prisma.sfa_d_requests.count(),
+        survey_answers: await prisma.survey_answers.count(),
+        survey_responses: await prisma.survey_responses.count(),
+        cooler_inspections: await prisma.cooler_inspections.count(),
+        coolers: await prisma.coolers.count(),
+        audit_logs: await prisma.audit_logs.count(),
+        notifications: await prisma.notifications.count(),
+        error_logs: await prisma.error_logs.count(),
+        request_logs: await prisma.request_logs.count(),
+        promotion_tracking: await prisma.promotion_tracking.count(),
+        asset_movement_assets: await prisma.asset_movement_assets.count(),
+        asset_movement_contracts: await prisma.asset_movement_contracts.count(),
+        asset_movements: await prisma.asset_movements.count(),
+        asset_warranty_claims: await prisma.asset_warranty_claims.count(),
+        warranty_claims: await prisma.warranty_claims.count(),
+        customer_assets_history: await prisma.customer_assets_history.count(),
+        customer_assets: await prisma.customer_assets.count(),
+        visit_attachments: await prisma.visit_attachments.count(),
+        visit_tasks: await prisma.visit_tasks.count(),
+        visits: await prisma.visits.count(),
+        attendance_history: await prisma.attendance_history.count(),
+        attendance: await prisma.attendance.count(),
+        gps_logs: await prisma.gps_logs.count(),
+        competitor_activity: await prisma.competitor_activity.count(),
+        customer_complaints: await prisma.customer_complaints.count(),
+        login_history: await prisma.login_history.count(),
         van_inventory_items: await prisma.van_inventory_items.count(),
         van_inventory: await prisma.van_inventory.count(),
         inventory_stock: await prisma.inventory_stock.count(),

@@ -68,6 +68,7 @@ export const useCreateOrder = (options?: {
     loadingMessage: 'Creating order...',
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: orderKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: ['requests'] });
       options?.onSuccess?.(data, variables);
     },
     onError: options?.onError,

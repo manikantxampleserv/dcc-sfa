@@ -69,6 +69,9 @@ export interface Request {
     approval_status?: string;
     vehicle_info?: string;
     items_details?: Record<string, any>;
+    depot_code?: string;
+    items?: any[];
+    [key: string]: any;
   } | null;
   approvals?: {
     id: number;

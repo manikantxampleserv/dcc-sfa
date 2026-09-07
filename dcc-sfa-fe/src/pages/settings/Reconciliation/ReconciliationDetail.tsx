@@ -169,26 +169,28 @@ export default function ReconciliationDetail() {
   }, [items, editedRecords, editedBaseRecords]);
 
   const handleSave = useCallback(async () => {
-    const allEditedIds = new Set([
-      ...Object.keys(editedRecords),
-      ...Object.keys(editedBaseRecords),
-    ]);
+    const payloadItems = items.map(row => {
+      const cVal = editedRecords[row.id];
+      const bVal = editedBaseRecords[row.id];
 
-    const payloadItems = Array.from(allEditedIds).map(idStr => {
-      const id = Number(idStr);
-      const cVal = editedRecords[id];
-      const bVal = editedBaseRecords[id];
+      const actualRop = cVal !== undefined ? cVal : row.actualRop;
+      const actualBaseQty = bVal !== undefined ? bVal : row.actualBaseQty;
+
       return {
-        id,
-        // Default empty/missing fields to 0 so the backend never receives null
-        // and does not revert stock to van inventory or mark as Pending Verification
-        actual_qty: cVal === undefined ? null : parseFloat(cVal) || 0,
-        actual_base_qty: bVal === undefined ? null : parseFloat(bVal) || 0,
+        id: row.id,
+        actual_qty:
+          actualRop === null || actualRop === ''
+            ? 0
+            : parseFloat(String(actualRop)) || 0,
+        actual_base_qty:
+          actualBaseQty === null || actualBaseQty === ''
+            ? 0
+            : parseFloat(String(actualBaseQty)) || 0,
       };
     });
 
     if (payloadItems.length === 0) {
-      toast.warn('No modifications to save.');
+      toast.warn('No items to save.');
       return;
     }
 

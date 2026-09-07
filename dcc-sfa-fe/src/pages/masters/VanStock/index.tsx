@@ -60,10 +60,7 @@ const VanInventories: React.FC = () => {
       loading_type:
         typeFilter === 'all' ? undefined : typeFilter === 'load' ? 'L' : 'U',
       user_id: userFilter,
-      time_filter:
-        timeFilter !== 'all' && timeFilter !== 'custom'
-          ? timeFilter
-          : undefined,
+      time_filter: timeFilter !== 'all' ? timeFilter : undefined,
       start_date:
         timeFilter === 'custom' && customDateRange.start
           ? customDateRange.start
@@ -125,10 +122,7 @@ const VanInventories: React.FC = () => {
         user_id: userFilter,
         loading_type:
           typeFilter === 'all' ? undefined : typeFilter === 'load' ? 'L' : 'U',
-        time_filter:
-          timeFilter !== 'all' && timeFilter !== 'custom'
-            ? timeFilter
-            : undefined,
+        time_filter: timeFilter !== 'all' ? timeFilter : undefined,
         start_date:
           timeFilter === 'custom' && customDateRange.start
             ? customDateRange.start
@@ -146,7 +140,14 @@ const VanInventories: React.FC = () => {
     } catch (error) {
       console.error('Error exporting van inventory:', error);
     }
-  }, [exportToExcelMutation, search]);
+  }, [
+    exportToExcelMutation,
+    search,
+    userFilter,
+    typeFilter,
+    timeFilter,
+    customDateRange,
+  ]);
 
   const getLoadingTypeLabel = (type: string) => {
     switch (type) {
@@ -326,9 +327,15 @@ const VanInventories: React.FC = () => {
         </Box>
         <DateRangeFilter
           timeFilter={timeFilter}
-          setTimeFilter={setTimeFilter}
+          setTimeFilter={val => {
+            setTimeFilter(val);
+            setPage(1);
+          }}
           customDateRange={customDateRange}
-          setCustomDateRange={setCustomDateRange}
+          setCustomDateRange={val => {
+            setCustomDateRange(val);
+            setPage(1);
+          }}
         />
       </Box>
 
