@@ -1371,6 +1371,54 @@ export const reconciliationController = {
       const requestResults = [];
 
       for (const reconciliationId of reconciliationIds) {
+        const previousRequest = await prisma.sfa_d_requests.findFirst({
+          where: {
+            request_type: 'RECONCILIATION_APPROVAL',
+            reference_id: reconciliationId,
+          },
+          orderBy: { id: 'desc' },
+        });
+
+        let vanInventoryId: number | null = null;
+        if (previousRequest?.request_data) {
+          try {
+            const parsed = JSON.parse(previousRequest.request_data);
+            if (parsed?.van_inventory_id) {
+              vanInventoryId = Number(parsed.van_inventory_id);
+            }
+          } catch {}
+        }
+
+        if (vanInventoryId) {
+          await prisma.van_inventory.update({
+            where: { id: vanInventoryId },
+            data: {
+              approval_status: 'P',
+              updatedby: userId,
+              updatedate: new Date(),
+            },
+          });
+        }
+
+        const reconciliationItems = results
+          .filter((item: any) => item.reconciliation_id === reconciliationId)
+          .map((item: any) => ({
+            id: item.id,
+            actual_qty: item.actual_qty,
+            actual_base_qty: item.actual_base_qty,
+          }));
+
+        const rec = await prisma.reconciliation.findUnique({
+          where: { id: reconciliationId },
+          select: { depot_id: true },
+        });
+
+        const requestDataPayload = JSON.stringify({
+          reconciliation_items: reconciliationItems,
+          depot_id: rec?.depot_id,
+          ...(vanInventoryId && { van_inventory_id: vanInventoryId }),
+        });
+
         const existingRequest = await prisma.sfa_d_requests.findFirst({
           where: {
             request_type: 'RECONCILIATION_APPROVAL',
@@ -1380,6 +1428,14 @@ export const reconciliationController = {
         });
 
         if (existingRequest) {
+          await prisma.sfa_d_requests.update({
+            where: { id: existingRequest.id },
+            data: {
+              request_data: requestDataPayload,
+              updatedby: userId,
+              updatedate: new Date(),
+            },
+          });
           requestResults.push({
             request_id: existingRequest.id,
             status: existingRequest.status,
@@ -1389,26 +1445,11 @@ export const reconciliationController = {
           continue;
         }
 
-        const reconciliationItems = results
-          .filter((item: any) => item.reconciliation_id === reconciliationId)
-          .map((item: any) => ({
-            id: item.id,
-            actual_qty: item.actual_qty,
-          }));
-
-        const rec = await prisma.reconciliation.findUnique({
-          where: { id: reconciliationId },
-          select: { depot_id: true },
-        });
-
         const createdRequest = await createRequest({
           requester_id: userId,
           request_type: 'RECONCILIATION_APPROVAL',
           reference_id: reconciliationId,
-          request_data: JSON.stringify({
-            reconciliation_items: reconciliationItems,
-            depot_id: rec?.depot_id,
-          }),
+          request_data: requestDataPayload,
           createdby: userId,
           log_inst: 1,
         });
