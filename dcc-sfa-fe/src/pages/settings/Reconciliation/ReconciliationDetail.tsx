@@ -161,8 +161,7 @@ export default function ReconciliationDetail() {
       const isPending =
         !isApproved &&
         !hasEdited &&
-        (row.actualRop === null || row.actualRop === '') &&
-        (row.actualBaseQty === null || row.actualBaseQty === '');
+        (row.actualRop === null || row.actualRop === '');
 
       if (isPending) {
         return {
@@ -244,8 +243,10 @@ export default function ReconciliationDetail() {
           : row.actualBaseQty;
 
       const isPending =
-        (localActual === '' || localActual == null) &&
-        (localActualBase === '' || localActualBase == null);
+        localActual === '' ||
+        localActual == null ||
+        localActualBase === '' ||
+        localActualBase == null;
 
       if (!isBlocked && isPending) {
         const conv = Number(row.conversionRate) || 1;
