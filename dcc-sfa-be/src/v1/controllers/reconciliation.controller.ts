@@ -663,7 +663,8 @@ export const reconciliationController = {
             'Uncategorized',
           subCategoryName:
             item.product?.product_sub_categories_products?.sub_category_name ||
-            '',
+            item.product?.product_categories_products?.category_name ||
+            'Uncategorized',
           conversionRate:
             Number(
               item.product?.product_unit_of_measurement?.conversion_rate

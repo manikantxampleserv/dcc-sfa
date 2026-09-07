@@ -14,6 +14,84 @@ import { useParams } from 'react-router-dom';
 import Button from 'shared/Button';
 import { PopConfirm } from 'shared/DeleteConfirmation';
 import Table, { type TableColumn } from 'shared/Table';
+
+/**
+ * Formats quantity display omitting 0 case or piece values.
+ *
+ * @param cases Number of cases
+ * @param pieces Number of pieces
+ * @param isRGB Whether the item is returnable glass
+ * @param uomCase Unit of measurement for cases
+ * @param uomPcs Unit of measurement for pieces
+ * @returns Formatted quantity string
+ */
+function formatQuantityDisplay(
+  cases: number,
+  pieces: number,
+  isRGB: boolean | undefined,
+  uomCase: string,
+  uomPcs: string
+): string {
+  const c = Math.abs(cases);
+  const p = Math.abs(pieces);
+
+  if (!isRGB) {
+    return `${c} ${uomCase}`;
+  }
+
+  if (c === 0 && p === 0) {
+    return `0 ${uomCase}`;
+  }
+
+  if (c === 0) {
+    return `${p} ${uomPcs}`;
+  }
+
+  if (p === 0) {
+    return `${c} ${uomCase}`;
+  }
+
+  return `${c} ${uomCase} ${p} ${uomPcs}`;
+}
+
+/**
+ * Formats variance quantity display with sign omitting 0 case or piece values.
+ *
+ * @param cases Number of cases
+ * @param pieces Number of pieces
+ * @param isRGB Whether the item is returnable glass
+ * @param uomCase Unit of measurement for cases
+ * @param uomPcs Unit of measurement for pieces
+ * @returns Formatted variance string
+ */
+function formatVarianceDisplay(
+  cases: number,
+  pieces: number,
+  isRGB: boolean | undefined,
+  uomCase: string,
+  uomPcs: string
+): string {
+  const c = Math.abs(cases);
+  const p = Math.abs(pieces);
+  const isZero = c === 0 && (!isRGB || p === 0);
+
+  if (isZero) {
+    return `0 ${uomCase}`;
+  }
+
+  const sign = cases < 0 || pieces < 0 ? '-' : '+';
+
+  if (!isRGB || p === 0) {
+    return `${sign}${c} ${uomCase}`;
+  }
+
+  if (c === 0) {
+    return `${sign}${p} ${uomPcs}`;
+  }
+
+  return `${sign}${c} ${uomCase} ${p} ${uomPcs}`;
+}
+
 export default function SettlementSheetDetail() {
   const { id } = useParams<{ id: string }>();
   const { isRead } = usePermission('settlement-sheet');
@@ -43,7 +121,11 @@ export default function SettlementSheetDetail() {
   const aggregatedItems = useMemo(() => {
     const skuMap = new Map<string, ReconciliationItem>();
     items.forEach(item => {
-      const key = `${item.categoryName}_${item.skuCode}`;
+      const groupName =
+        item.subCategoryName?.trim() ||
+        item.categoryName?.trim() ||
+        'Uncategorized';
+      const key = `${groupName}_${item.skuCode}`;
       if (skuMap.has(key)) {
         const existing = skuMap.get(key)!;
         existing.loadQuantity =
@@ -131,7 +213,7 @@ export default function SettlementSheetDetail() {
       } else if (variancePieces === 0) {
         resAction = 'CLEAN';
       } else {
-        resAction = 'Post to Default Outlet';
+        resAction = 'Posted to D/O';
       }
 
       return {
@@ -144,6 +226,24 @@ export default function SettlementSheetDetail() {
       };
     });
     aggregatedArray.sort((a, b) => {
+      const catA =
+        a.subCategoryName?.trim() || a.categoryName?.trim() || 'Uncategorized';
+      const catB =
+        b.subCategoryName?.trim() || b.categoryName?.trim() || 'Uncategorized';
+
+      const isRgbA =
+        catA.toUpperCase().includes('RGB') ||
+        catA.toUpperCase().includes('RETURNABLE GLASS');
+      const isRgbB =
+        catB.toUpperCase().includes('RGB') ||
+        catB.toUpperCase().includes('RETURNABLE GLASS');
+
+      if (isRgbA && !isRgbB) return -1;
+      if (!isRgbA && isRgbB) return 1;
+
+      const comp = catA.localeCompare(catB);
+      if (comp !== 0) return comp;
+
       const skuA = String(a.skuCode || '');
       const skuB = String(b.skuCode || '');
       return skuA.localeCompare(skuB, undefined, {
@@ -153,18 +253,6 @@ export default function SettlementSheetDetail() {
     });
     return aggregatedArray;
   }, [items]);
-
-  const groupedItems = useMemo(() => {
-    return aggregatedItems.reduce(
-      (acc, item) => {
-        const cat = item.categoryName || 'Uncategorized';
-        if (!acc[cat]) acc[cat] = [];
-        acc[cat].push(item);
-        return acc;
-      },
-      {} as Record<string, ReconciliationItem[]>
-    );
-  }, [aggregatedItems]);
 
   const grandTotal = useMemo(() => {
     let totalSaleValue = 0;
@@ -185,7 +273,7 @@ export default function SettlementSheetDetail() {
       const variance = Number(item.variance) || 0;
       const varianceBase = Number(item.varianceBaseQty) || 0;
       const action = item.resolutionAction || '';
-      if (action.includes('Default Outlet')) {
+      if (action.includes('Default Outlet') || action.includes('D/O')) {
         const isExcess = variance > 0 || varianceBase > 0;
         const sign = isExcess ? -1 : 1;
         const outletValue =
@@ -204,14 +292,144 @@ export default function SettlementSheetDetail() {
     };
   }, [aggregatedItems]);
 
+  const subCategoryTotals = useMemo(() => {
+    const groups: Record<
+      string,
+      {
+        subCategory: string;
+        loadQty: number;
+        saleQty: number;
+        expectedRop: number;
+        actualRop: number;
+        variance: number;
+        saleValue: number;
+        taxAmount: number;
+      }
+    > = {};
+
+    aggregatedItems.forEach(item => {
+      const subCat =
+        item.subCategoryName?.trim() ||
+        item.categoryName?.trim() ||
+        'Uncategorized';
+
+      if (!groups[subCat]) {
+        groups[subCat] = {
+          subCategory: subCat,
+          loadQty: 0,
+          saleQty: 0,
+          expectedRop: 0,
+          actualRop: 0,
+          variance: 0,
+          saleValue: 0,
+          taxAmount: 0,
+        };
+      }
+
+      const conv = Number(item.conversionRate) || 1;
+      const price = Number(item.basePrice) || 0;
+      const basePricePerPc = price / conv;
+
+      const hasActualCases =
+        item.actualRop !== '' &&
+        item.actualRop !== null &&
+        item.actualRop !== undefined;
+      const hasActualPCs =
+        item.actualBaseQty !== '' &&
+        item.actualBaseQty !== null &&
+        item.actualBaseQty !== undefined;
+
+      const actualVal = hasActualCases ? Number(item.actualRop) : 0;
+      const actualBaseVal = hasActualPCs ? Number(item.actualBaseQty) : 0;
+
+      const expectedVal = Number(item.expectedRop) || 0;
+      const expectedBaseVal = Number(item.expectedBaseQty) || 0;
+
+      let varianceVal = 0;
+      let varianceBaseVal = 0;
+
+      if (hasActualCases || hasActualPCs) {
+        const expectedTotalPieces = expectedVal * conv + expectedBaseVal;
+        const actualTotalPieces = actualVal * conv + actualBaseVal;
+        const variancePieces = actualTotalPieces - expectedTotalPieces;
+
+        if (variancePieces !== 0) {
+          const absV = Math.abs(variancePieces);
+          varianceVal = Math.floor(absV / conv) * Math.sign(variancePieces);
+          varianceBaseVal = (absV % conv) * Math.sign(variancePieces);
+        }
+      }
+
+      const saleQty = Number(item.saleQuantity) || 0;
+      const saleBaseQty = Number(item.saleBaseQty) || 0;
+      const saleVal = saleQty * price + saleBaseQty * basePricePerPc;
+
+      const g = groups[subCat];
+      g.loadQty +=
+        (Number(item.loadQuantity) || 0) +
+        (Number(item.loadBaseQty) || 0) / conv;
+      g.saleQty += saleQty + saleBaseQty / conv;
+      g.expectedRop += expectedVal + expectedBaseVal / conv;
+      g.actualRop += actualVal + actualBaseVal / conv;
+      g.variance += varianceVal + varianceBaseVal / conv;
+      g.saleValue += saleVal;
+      g.taxAmount += Number(item.taxAmount) || 0;
+    });
+
+    const list = Object.values(groups);
+    return list.sort((a, b) => {
+      const isRgbA =
+        a.subCategory.toUpperCase().includes('RGB') ||
+        a.subCategory.toUpperCase().includes('RETURNABLE GLASS');
+      const isRgbB =
+        b.subCategory.toUpperCase().includes('RGB') ||
+        b.subCategory.toUpperCase().includes('RETURNABLE GLASS');
+
+      if (isRgbA && !isRgbB) return -1;
+      if (!isRgbA && isRgbB) return 1;
+
+      return a.subCategory.localeCompare(b.subCategory);
+    });
+  }, [aggregatedItems]);
+
+  const subCategoryGrandTotal = useMemo(() => {
+    return subCategoryTotals.reduce(
+      (acc, curr) => ({
+        loadQty: acc.loadQty + curr.loadQty,
+        saleQty: acc.saleQty + curr.saleQty,
+        expectedRop: acc.expectedRop + curr.expectedRop,
+        actualRop: acc.actualRop + curr.actualRop,
+        variance: acc.variance + curr.variance,
+        saleValue: acc.saleValue + curr.saleValue,
+        taxAmount: acc.taxAmount + curr.taxAmount,
+      }),
+      {
+        loadQty: 0,
+        saleQty: 0,
+        expectedRop: 0,
+        actualRop: 0,
+        variance: 0,
+        saleValue: 0,
+        taxAmount: 0,
+      }
+    );
+  }, [subCategoryTotals]);
+
   const columns: TableColumn<ReconciliationItem>[] = [
-    { id: 'skuCode', label: 'SKU Code', sortable: false },
+    {
+      id: 'skuCode',
+      label: 'SKU Code',
+      sortable: false,
+      className: '!p-0.5',
+      render: val => <span className="">{val}</span>,
+    },
     {
       id: 'skuName',
       label: 'SKU Name',
       sortable: true,
-      className: '!px-1',
-      render: val => <span className="font-medium text-left block">{val}</span>,
+      render: val => (
+        <span className="font-medium  text-left block">{val}</span>
+      ),
     },
     {
       id: 'loadQuantity',
@@ -236,7 +454,7 @@ export default function SettlementSheetDetail() {
           row.subCategoryName?.toUpperCase().includes('RETURNABLE GLASS');
         return (
           <span className="block text-center">
-            {load.c} {uomCase} {isRGB && `${load.p} ${uomPcs}`}
+            {formatQuantityDisplay(load.c, load.p, isRGB, uomCase, uomPcs)}
           </span>
         );
       },
@@ -264,7 +482,7 @@ export default function SettlementSheetDetail() {
           row.subCategoryName?.toUpperCase().includes('RETURNABLE GLASS');
         return (
           <span className="block text-center">
-            {sale.c} {uomCase} {isRGB && `${sale.p} ${uomPcs}`}
+            {formatQuantityDisplay(sale.c, sale.p, isRGB, uomCase, uomPcs)}
           </span>
         );
       },
@@ -292,7 +510,13 @@ export default function SettlementSheetDetail() {
           row.subCategoryName?.toUpperCase().includes('RETURNABLE GLASS');
         return (
           <span className="block text-center">
-            {expected.c} {uomCase} {isRGB && `${expected.p} ${uomPcs}`}
+            {formatQuantityDisplay(
+              expected.c,
+              expected.p,
+              isRGB,
+              uomCase,
+              uomPcs
+            )}
           </span>
         );
       },
@@ -330,8 +554,14 @@ export default function SettlementSheetDetail() {
         return (
           <span className="block text-center">
             {hasActualCases || hasActualPCs
-              ? `${actual.c} ${uomCase} ${isRGB ? `${actual.p} ${uomPcs}` : ''}`
-              : `0 ${uomCase} ${isRGB ? `0 ${uomPcs}` : ''}`}
+              ? formatQuantityDisplay(
+                  actual.c,
+                  actual.p,
+                  isRGB,
+                  uomCase,
+                  uomPcs
+                )
+              : `0 ${uomCase}`}
           </span>
         );
       },
@@ -351,7 +581,7 @@ export default function SettlementSheetDetail() {
         if (val === null || val === undefined)
           return (
             <span className="block text-center font-medium text-gray-900">
-              0 {uomCase} {isRGB && `0 ${uomPcs}`}
+              0 {uomCase}
             </span>
           );
 
@@ -374,22 +604,15 @@ export default function SettlementSheetDetail() {
             ? 'text-blue-600'
             : 'text-gray-900';
 
-        const sign = isShort ? '-' : isExcess ? '+' : '';
-        const cases = Math.abs(variance.c);
-        const pcs = Math.abs(variance.p);
-
-        if (cases === 0 && pcs === 0) {
-          return (
-            <span className="block text-center font-medium text-gray-900">
-              0 {uomCase} {isRGB && `0 ${uomPcs}`}
-            </span>
-          );
-        }
-
         return (
           <span className={`block text-center font-medium ${color}`}>
-            {sign}
-            {cases} {uomCase} {isRGB && `${pcs} ${uomPcs}`}
+            {formatVarianceDisplay(
+              variance.c,
+              variance.p,
+              isRGB,
+              uomCase,
+              uomPcs
+            )}
           </span>
         );
       },
@@ -398,14 +621,16 @@ export default function SettlementSheetDetail() {
       id: 'basePrice',
       label: 'Unit Price (TZS)',
       render: val => (
-        <span className="block text-center">{(val || 0).toLocaleString()}</span>
+        <span className="block  text-center">
+          {(val || 0).toLocaleString()}
+        </span>
       ),
     },
     {
       id: 'saleValue',
       label: 'Sale Value',
       render: (_, row) => (
-        <span className="block text-center font-medium">
+        <span className="block  text-center font-medium">
           {(
             (row.saleQuantity || 0) * (row.basePrice || 0) +
             (row.saleBaseQty || 0) *
@@ -421,7 +646,7 @@ export default function SettlementSheetDetail() {
       id: 'taxAmount',
       label: 'Tax Amount',
       render: val => (
-        <span className="block text-center">
+        <span className="block  text-center">
           {(val || 0).toLocaleString(undefined, {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2,
@@ -446,7 +671,7 @@ export default function SettlementSheetDetail() {
         } else if (!hasVariance) {
           displayVal = 'CLEAN';
         } else {
-          displayVal = 'Post to Default Outlet';
+          displayVal = 'Posted to D/O';
         }
 
         let color:
@@ -458,18 +683,21 @@ export default function SettlementSheetDetail() {
           | 'success'
           | 'warning' = 'default';
         if (displayVal === 'CLEAN') color = 'success';
-        else if (displayVal?.includes('Default Outlet')) {
-          const isExcess =
-            (Number(row.variance) || 0) > 0 ||
-            (Number(row.varianceBaseQty) || 0) > 0;
-          color = isExcess ? 'info' : 'error';
+        else if (displayVal === 'Blocked') color = 'error';
+        else if (
+          displayVal?.includes('Default Outlet') ||
+          displayVal?.includes('D/O')
+        ) {
+          const isExcess = v > 0 || vb > 0;
+          color = isExcess ? 'info' : 'warning';
         } else if (displayVal?.includes('Adjust')) color = 'info';
         return (
-          <div className="text-center block">
+          <div className="text-center  block">
             <Chip
               label={displayVal || '-'}
               color={color}
               size="small"
+              className="font-medium"
               variant="outlined"
             />
           </div>
@@ -614,32 +842,197 @@ export default function SettlementSheetDetail() {
               </p>
             </div>
           </div>
-
-          {/* Categories */}
-          {Object.entries(groupedItems).map(([category, catItems]) => (
-            <div key={category} className="overflow-x-auto">
-              <Table
-                data={catItems}
-                actions={<div className="font-bold">{category}</div>}
-                getRowId={row => row.id}
-                tableId={`settlement-items-${category}`}
-                columns={columns}
-                filterColunm={false}
-                loading={isFetching}
-                isPermission={isRead}
-                pagination={false}
-                compact
-                emptyMessage="No items found."
-              />
+          <Table
+            data={aggregatedItems}
+            groupBy={row =>
+              row.subCategoryName?.trim() ||
+              row.categoryName?.trim() ||
+              'Uncategorized'
+            }
+            renderGroupHeader={group => (
+              <span className="text-sm font-semibold uppercase text-gray-800">
+                {group}
+              </span>
+            )}
+            getRowId={row => row.id}
+            tableId="settlement-items-table"
+            columns={columns}
+            sortable={false}
+            filterColunm={false}
+            loading={isFetching}
+            isPermission={isRead}
+            pagination={false}
+            compact
+            emptyMessage="No items found."
+          />
+          {subCategoryTotals.length > 0 && (
+            <div className="border-t border-gray-200">
+              <div className="bg-gray-200 text-gray-800 px-4 py-2 font-semibold text-sm tracking-wider uppercase">
+                Subtotals by Sub-Category
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs text-left border-collapse">
+                  <thead>
+                    <tr className="bg-blue-50 text-gray-700 font-semibold border-b border-gray-200">
+                      <th className="py-2.5 px-4">Sub-Category</th>
+                      <th className="py-2.5 px-4 text-center">
+                        Total Load Qty
+                      </th>
+                      <th className="py-2.5 px-4 text-center">
+                        Total Sales Qty
+                      </th>
+                      <th className="py-2.5 px-4 text-center">Expected ROP</th>
+                      <th className="py-2.5 px-4 text-center">Actual ROP</th>
+                      <th className="py-2.5 px-4 text-center">Variance</th>
+                      <th className="py-2.5 px-4 text-right">Sale Value</th>
+                      <th className="py-2.5 px-4 text-right">Tax Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y text-sm divide-gray-100">
+                    {subCategoryTotals.map(row => (
+                      <tr key={row.subCategory} className="hover:bg-gray-50">
+                        <td className="p-1.5 font-medium text-gray-900">
+                          {row.subCategory}
+                        </td>
+                        <td className="p-1.5 text-center">
+                          {row.loadQty.toLocaleString(undefined, {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}
+                        </td>
+                        <td className="p-1.5 text-center">
+                          {row.saleQty.toLocaleString(undefined, {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}
+                        </td>
+                        <td className="p-1.5 text-center">
+                          {row.expectedRop.toLocaleString(undefined, {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}
+                        </td>
+                        <td className="p-1.5 text-center">
+                          {row.actualRop.toLocaleString(undefined, {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}
+                        </td>
+                        <td
+                          className={`p-1.5 text-center font-medium ${
+                            row.variance < 0
+                              ? 'text-red-600'
+                              : row.variance > 0
+                                ? 'text-blue-600'
+                                : 'text-gray-900'
+                          }`}
+                        >
+                          {row.variance.toLocaleString(undefined, {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}
+                        </td>
+                        <td className="p-1.5 text-right">
+                          {row.saleValue.toLocaleString(undefined, {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}
+                        </td>
+                        <td className="p-1.5 text-right">
+                          {row.taxAmount.toLocaleString(undefined, {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}
+                        </td>
+                      </tr>
+                    ))}
+                    <tr className="bg-amber-100/90 font-semibold border-t border-amber-300 text-gray-900">
+                      <td className="p-1.5 uppercase tracking-wider">
+                        Grand Total
+                      </td>
+                      <td className="p-1.5 text-center">
+                        {subCategoryGrandTotal.loadQty.toLocaleString(
+                          undefined,
+                          {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          }
+                        )}
+                      </td>
+                      <td className="p-1.5 text-center">
+                        {subCategoryGrandTotal.saleQty.toLocaleString(
+                          undefined,
+                          {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          }
+                        )}
+                      </td>
+                      <td className="p-1.5 text-center">
+                        {subCategoryGrandTotal.expectedRop.toLocaleString(
+                          undefined,
+                          {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          }
+                        )}
+                      </td>
+                      <td className="p-1.5 text-center">
+                        {subCategoryGrandTotal.actualRop.toLocaleString(
+                          undefined,
+                          {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          }
+                        )}
+                      </td>
+                      <td
+                        className={`p-1.5 text-center ${
+                          subCategoryGrandTotal.variance < 0
+                            ? 'text-red-600'
+                            : subCategoryGrandTotal.variance > 0
+                              ? 'text-blue-600'
+                              : 'text-gray-900'
+                        }`}
+                      >
+                        {subCategoryGrandTotal.variance.toLocaleString(
+                          undefined,
+                          {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          }
+                        )}
+                      </td>
+                      <td className="p-1.5 text-right">
+                        {subCategoryGrandTotal.saleValue.toLocaleString(
+                          undefined,
+                          {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          }
+                        )}
+                      </td>
+                      <td className="p-1.5 text-right">
+                        {subCategoryGrandTotal.taxAmount.toLocaleString(
+                          undefined,
+                          {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          }
+                        )}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
-          ))}
-
+          )}
           {/* Cash Settlement */}
-          <div className="p-6 border-t border-gray-200 bg-blue-50/50 print:bg-transparent">
-            <h3 className="text-lg font-bold text-gray-900 mb-4">
+          <div className="p-3 border-t border-gray-200 bg-blue-50/50 print:bg-transparent">
+            <h3 className="text-lg font-bold text-gray-900 mb-2">
               CASH SETTLEMENT
             </h3>
-            <div className="space-y-3">
+            <div className="space-y-1 text-sm">
               <div className="flex justify-between items-center py-2 border-b border-gray-200">
                 <span className="text-gray-600">
                   Total Sales Value (Mobile-recorded sales to outlets):
@@ -703,9 +1096,8 @@ export default function SettlementSheetDetail() {
               </div>
             </div>
           </div>
-
           {/* Signatures */}
-          <div className="p-6 border-t border-gray-200">
+          {/* <div className="p-3 border-t border-gray-200">
             <h3 className="text-md font-bold text-gray-900 mb-8 uppercase tracking-wider">
               Signatures
             </h3>
@@ -741,7 +1133,7 @@ export default function SettlementSheetDetail() {
                 </div>
               </div>
             </div>
-          </div>
+          </div> */}
         </div>
       )}
     </div>

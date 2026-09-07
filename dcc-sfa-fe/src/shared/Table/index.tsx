@@ -257,11 +257,11 @@ function TableHead<T>(props: TableHeadProps<T>) {
               orderBy === column.id && order !== 'none' ? order : false
             }
             className={classNames(
-              column.className,
-              '!border-b !px-1.5 !border-gray-200 !bg-blue-50 !font-semibold',
-              '!whitespace-nowrap !text-gray-700 !p-4 !text-sm',
-              compact ? '!py-3 !text-xs' : '',
-              column.numeric && '!justify-end'
+              '!border-b !border-gray-200 !bg-blue-50 !font-semibold',
+              '!whitespace-nowrap !text-gray-700 !text-sm',
+              compact ? '!py-3 !px-1.5 !text-sm' : '!p-4 !px-1.5',
+              column.numeric && '!justify-end',
+              column.className
             )}
             style={{ width: column.width }}
           >
@@ -308,6 +308,7 @@ function TableHead<T>(props: TableHeadProps<T>) {
 interface SkeletonLoaderProps {
   columns: TableColumn[];
   rows?: number;
+  compact?: boolean;
 }
 
 /**
@@ -315,7 +316,7 @@ interface SkeletonLoaderProps {
  * @param props - Component props
  * @returns Skeleton rows JSX elements
  */
-function SkeletonLoader({ columns, rows = 3 }: SkeletonLoaderProps) {
+function SkeletonLoader({ columns, rows = 3, compact }: SkeletonLoaderProps) {
   const skeletonRows = Array.from({ length: rows }, (_, index) => index);
 
   const getSkeletonWidth = (_column: TableColumn, index: number) => {
@@ -334,7 +335,12 @@ function SkeletonLoader({ columns, rows = 3 }: SkeletonLoaderProps) {
               key={`skeleton-${rowIndex}-${String(column.id)}`}
               align={column.numeric ? 'right' : 'left'}
               padding={column.disablePadding ? 'none' : 'normal'}
-              className="!border-b !border-gray-100 !h-[50px]"
+              className={classNames(
+                '!border-b !border-gray-100 !h-[50px]',
+                compact ? '!py-2 !px-1.5' : '!p-1.5',
+                column.className
+              )}
+              style={{ width: column.width }}
             >
               <Box className="!flex !items-center !gap-1.5">
                 <Box className="!flex-1">
@@ -548,7 +554,7 @@ export default function Table<T extends Record<string, any>>(
             sortable={sortable}
           />
           <MuiTableBody>
-            <SkeletonLoader columns={columns} rows={6} />
+            <SkeletonLoader columns={columns} rows={6} compact={compact} />
           </MuiTableBody>
         </MuiTable>
       );
@@ -571,7 +577,11 @@ export default function Table<T extends Record<string, any>>(
         />
         <MuiTableBody>
           {loading ? (
-            <SkeletonLoader columns={columns} rows={rowsPerPage} />
+            <SkeletonLoader
+              columns={columns}
+              rows={rowsPerPage}
+              compact={compact}
+            />
           ) : visibleRows.length === 0 ? (
             <MuiTableRow>
               <MuiTableCell
@@ -599,7 +609,12 @@ export default function Table<T extends Record<string, any>>(
                         key={String(column.id)}
                         align={column.numeric ? 'right' : 'left'}
                         padding={column.disablePadding ? 'none' : 'normal'}
-                        className="!border-b !p-1.5 !border-gray-100 !text-gray-700 !whitespace-nowrap !text-sm"
+                        className={classNames(
+                          '!border-b !border-gray-100 !text-gray-700 !whitespace-nowrap !text-sm',
+                          compact ? '!p-1 !text-sm' : '!p-1.5',
+                          column.className
+                        )}
+                        style={{ width: column.width }}
                       >
                         {column.render
                           ? column.render(row[column.id], row, index)
@@ -631,7 +646,10 @@ export default function Table<T extends Record<string, any>>(
                   <MuiTableRow className="!bg-gray-200">
                     <MuiTableCell
                       colSpan={visibleColumns.length}
-                      className="!py-2 !px-4 !font-bold !text-gray-800"
+                      className={classNames(
+                        '!py-2 !px-4 !font-bold !text-gray-800',
+                        compact && '!text-sm'
+                      )}
                     >
                       {props.renderGroupHeader
                         ? props.renderGroupHeader(group, rows)

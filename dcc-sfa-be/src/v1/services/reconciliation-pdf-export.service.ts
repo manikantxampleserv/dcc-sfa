@@ -27,9 +27,15 @@ export const exportReconciliationPdfService = async (
       const uomPcs = meta?.uomPcs || process.env.DEFAULT_UOM_PCS || 'PCs';
 
       const items = (rawItems || []).reduce((acc: any[], item: any) => {
-        const key = `${item.categoryName}_${item.skuCode}`;
+        const groupName =
+          item.subCategoryName?.trim() ||
+          item.categoryName?.trim() ||
+          'Uncategorized';
+        const key = `${groupName}_${item.skuCode}`;
         const existing = acc.find(
-          i => `${i.categoryName}_${i.skuCode}` === key
+          i =>
+            `${i.subCategoryName?.trim() || i.categoryName?.trim() || 'Uncategorized'}_${i.skuCode}` ===
+            key
         );
         if (existing) {
           existing.loadQuantity =
@@ -109,6 +115,24 @@ export const exportReconciliationPdfService = async (
       }, []);
 
       items.sort((a: any, b: any) => {
+        const catA =
+          a.subCategoryName?.trim() || a.categoryName?.trim() || 'Uncategorized';
+        const catB =
+          b.subCategoryName?.trim() || b.categoryName?.trim() || 'Uncategorized';
+
+        const isRgbA =
+          catA.toUpperCase().includes('RGB') ||
+          catA.toUpperCase().includes('RETURNABLE GLASS');
+        const isRgbB =
+          catB.toUpperCase().includes('RGB') ||
+          catB.toUpperCase().includes('RETURNABLE GLASS');
+
+        if (isRgbA && !isRgbB) return -1;
+        if (!isRgbA && isRgbB) return 1;
+
+        const comp = catA.localeCompare(catB);
+        if (comp !== 0) return comp;
+
         const skuA = String(a.skuCode || '');
         const skuB = String(b.skuCode || '');
         return skuA.localeCompare(skuB, undefined, {
@@ -263,9 +287,12 @@ export const exportReconciliationPdfService = async (
       y = drawRow(y, columns, colWidths, true, colAlignments);
 
       const groupedItems = items.reduce((acc: any, item: any) => {
-        const cat = item.categoryName || 'Uncategorized';
-        if (!acc[cat]) acc[cat] = [];
-        acc[cat].push(item);
+        const subCat =
+          item.subCategoryName?.trim() ||
+          item.categoryName?.trim() ||
+          'Uncategorized';
+        if (!acc[subCat]) acc[subCat] = [];
+        acc[subCat].push(item);
         return acc;
       }, {});
 
@@ -527,17 +554,16 @@ export const exportReconciliationPdfService = async (
       }
       y += 5;
 
-      // --- SUBTOTALS BY CATEGORY ---
       doc.rect(30, y, 534, 13).fill('#203764');
       doc
         .fillColor('white')
         .font('Helvetica-Bold')
         .fontSize(8)
-        .text('SUBTOTALS BY CATEGORY', 35, y + 3);
+        .text('SUBTOTALS BY SUB-CATEGORY', 35, y + 3);
       y += 13;
 
       const subColumns = [
-        'Category',
+        'Sub-Category',
         'Total Load Qty',
         'Total Sales Qty',
         'Expected ROP',

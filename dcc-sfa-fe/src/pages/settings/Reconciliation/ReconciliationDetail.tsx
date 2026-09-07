@@ -1,4 +1,4 @@
-import { Chip, Skeleton, TextField } from '@mui/material';
+import { Chip, Skeleton } from '@mui/material';
 import {
   useReconciliationById,
   useSaveReconciliation,
@@ -12,7 +12,85 @@ import { usePermission } from 'hooks/usePermission';
 import { useResolvedUom } from 'hooks/useUnitOfMeasurement';
 import Button from 'shared/Button';
 import { PopConfirm } from 'shared/DeleteConfirmation';
+import Input from 'shared/Input';
 import Table, { type TableColumn } from 'shared/Table';
+
+/**
+ * Formats quantity display omitting 0 case or piece values.
+ *
+ * @param cases Number of cases
+ * @param pieces Number of pieces
+ * @param isRGB Whether the item is returnable glass
+ * @param uomCase Unit of measurement for cases
+ * @param uomPcs Unit of measurement for pieces
+ * @returns Formatted quantity string
+ */
+function formatQuantityDisplay(
+  cases: number,
+  pieces: number,
+  isRGB: boolean | undefined,
+  uomCase: string,
+  uomPcs: string
+): string {
+  const c = Math.abs(cases);
+  const p = Math.abs(pieces);
+
+  if (!isRGB) {
+    return `${c} ${uomCase}`;
+  }
+
+  if (c === 0 && p === 0) {
+    return `0 ${uomCase}`;
+  }
+
+  if (c === 0) {
+    return `${p} ${uomPcs}`;
+  }
+
+  if (p === 0) {
+    return `${c} ${uomCase}`;
+  }
+
+  return `${c} ${uomCase} ${p} ${uomPcs}`;
+}
+
+/**
+ * Formats variance quantity display with sign omitting 0 case or piece values.
+ *
+ * @param cases Number of cases
+ * @param pieces Number of pieces
+ * @param isRGB Whether the item is returnable glass
+ * @param uomCase Unit of measurement for cases
+ * @param uomPcs Unit of measurement for pieces
+ * @returns Formatted variance string
+ */
+function formatVarianceDisplay(
+  cases: number,
+  pieces: number,
+  isRGB: boolean | undefined,
+  uomCase: string,
+  uomPcs: string
+): string {
+  const c = Math.abs(cases);
+  const p = Math.abs(pieces);
+  const isZero = c === 0 && (!isRGB || p === 0);
+
+  if (isZero) {
+    return `0 ${uomCase}`;
+  }
+
+  const sign = cases < 0 || pieces < 0 ? '-' : '+';
+
+  if (!isRGB || p === 0) {
+    return `${sign}${c} ${uomCase}`;
+  }
+
+  if (c === 0) {
+    return `${sign}${p} ${uomPcs}`;
+  }
+
+  return `${sign}${c} ${uomCase} ${p} ${uomPcs}`;
+}
 
 export default function ReconciliationDetail() {
   const { id } = useParams<{ id: string }>();
@@ -120,18 +198,27 @@ export default function ReconciliationDetail() {
       const absV = Math.abs(variancePieces);
       const vCases = Math.floor(absV / conv);
       const vPcs = absV % conv;
-      const sign = variancePieces > 0 ? '+' : variancePieces < 0 ? '-' : '';
+      const signMultiplier = variancePieces < 0 ? -1 : 1;
 
       const isRGB =
         row.subCategoryName?.toUpperCase().includes('RGB') ||
         row.subCategoryName?.toUpperCase().includes('RETURNABLE GLASS');
 
+      const varianceDisplay =
+        variancePieces === 0
+          ? `0 ${uomCase}`
+          : formatVarianceDisplay(
+              vCases * signMultiplier,
+              vPcs * signMultiplier,
+              isRGB,
+              uomCase,
+              uomPcs
+            );
+
       return {
         actualRop: localActualStr ?? '',
         actualBaseQty: localActualBaseStr ?? '',
-        varianceDisplay: isRGB
-          ? `${sign}${vCases} ${uomCase} ${vPcs} ${uomPcs}`
-          : `${sign}${vCases} ${uomCase}`,
+        varianceDisplay,
         status,
         resolutionAction,
       };
@@ -232,11 +319,134 @@ export default function ReconciliationDetail() {
   }, [editedRecords, editedBaseRecords, saveMutation, refetch]);
 
   const itemsWithDetails = useMemo(() => {
-    return items.map(item => ({
+    const list = items.map(item => ({
       ...item,
       details: getLocalItemDetails(item),
     }));
+    return list.sort((a, b) => {
+      const catA =
+        a.subCategoryName?.trim() || a.categoryName?.trim() || 'Uncategorized';
+      const catB =
+        b.subCategoryName?.trim() || b.categoryName?.trim() || 'Uncategorized';
+
+      const isRgbA =
+        catA.toUpperCase().includes('RGB') ||
+        catA.toUpperCase().includes('RETURNABLE GLASS');
+      const isRgbB =
+        catB.toUpperCase().includes('RGB') ||
+        catB.toUpperCase().includes('RETURNABLE GLASS');
+
+      if (isRgbA && !isRgbB) return -1;
+      if (!isRgbA && isRgbB) return 1;
+
+      const comp = catA.localeCompare(catB);
+      if (comp !== 0) return comp;
+
+      const skuA = String(a.skuCode || '');
+      const skuB = String(b.skuCode || '');
+      return skuA.localeCompare(skuB, undefined, {
+        numeric: true,
+        sensitivity: 'base',
+      });
+    });
   }, [items, getLocalItemDetails]);
+
+  const subCategoryTotals = useMemo(() => {
+    const groups: Record<
+      string,
+      {
+        subCategory: string;
+        expectedRop: number;
+        actualRop: number;
+        variance: number;
+      }
+    > = {};
+
+    itemsWithDetails.forEach(item => {
+      const subCat =
+        item.subCategoryName?.trim() ||
+        item.categoryName?.trim() ||
+        'Uncategorized';
+
+      if (!groups[subCat]) {
+        groups[subCat] = {
+          subCategory: subCat,
+          expectedRop: 0,
+          actualRop: 0,
+          variance: 0,
+        };
+      }
+
+      const conv = Number(item.conversionRate) || 1;
+
+      const hasActualCases =
+        item.details.actualRop !== '' &&
+        item.details.actualRop !== null &&
+        item.details.actualRop !== undefined;
+      const hasActualPCs =
+        item.details.actualBaseQty !== '' &&
+        item.details.actualBaseQty !== null &&
+        item.details.actualBaseQty !== undefined;
+
+      const actualVal = hasActualCases ? Number(item.details.actualRop) : 0;
+      const actualBaseVal = hasActualPCs
+        ? Number(item.details.actualBaseQty)
+        : 0;
+
+      const expectedVal = Number(item.expectedRop) || 0;
+      const expectedBaseVal = Number(item.expectedBaseQty) || 0;
+
+      let varianceVal = 0;
+      let varianceBaseVal = 0;
+
+      if (hasActualCases || hasActualPCs) {
+        const expectedTotalPieces = expectedVal * conv + expectedBaseVal;
+        const actualTotalPieces = actualVal * conv + actualBaseVal;
+        const variancePieces = actualTotalPieces - expectedTotalPieces;
+
+        if (variancePieces !== 0) {
+          const absV = Math.abs(variancePieces);
+          varianceVal = Math.floor(absV / conv) * Math.sign(variancePieces);
+          varianceBaseVal = (absV % conv) * Math.sign(variancePieces);
+        }
+      }
+
+      const g = groups[subCat];
+      g.expectedRop += expectedVal + expectedBaseVal / conv;
+      g.actualRop += actualVal + actualBaseVal / conv;
+      g.variance += varianceVal + varianceBaseVal / conv;
+    });
+
+    const list = Object.values(groups);
+    return list.sort((a, b) => {
+      const isRgbA =
+        a.subCategory.toUpperCase().includes('RGB') ||
+        a.subCategory.toUpperCase().includes('RETURNABLE GLASS');
+      const isRgbB =
+        b.subCategory.toUpperCase().includes('RGB') ||
+        b.subCategory.toUpperCase().includes('RETURNABLE GLASS');
+
+      if (isRgbA && !isRgbB) return -1;
+      if (!isRgbA && isRgbB) return 1;
+
+      return a.subCategory.localeCompare(b.subCategory);
+    });
+  }, [itemsWithDetails]);
+
+  const subCategoryGrandTotal = useMemo(() => {
+    return subCategoryTotals.reduce(
+      (acc, curr) => ({
+        expectedRop: acc.expectedRop + curr.expectedRop,
+        actualRop: acc.actualRop + curr.actualRop,
+        variance: acc.variance + curr.variance,
+      }),
+      {
+        expectedRop: 0,
+        actualRop: 0,
+        variance: 0,
+      }
+    );
+  }, [subCategoryTotals]);
 
   const columns = useMemo<
     TableColumn<
@@ -282,7 +492,13 @@ export default function ReconciliationDetail() {
 
           return (
             <span className="font-semibold text-gray-800">
-              {expected.c} {uomCase} {isRGB && `${expected.p} ${uomPcs}`}
+              {formatQuantityDisplay(
+                expected.c,
+                expected.p,
+                isRGB,
+                uomCase,
+                uomPcs
+              )}
             </span>
           );
         },
@@ -298,34 +514,42 @@ export default function ReconciliationDetail() {
             row.subCategoryName?.toUpperCase().includes('RETURNABLE GLASS');
           return (
             <div className="flex gap-2 items-center">
-              <TextField
+              <Input
+                compact
                 type="number"
                 size="small"
+                fullWidth={false}
                 placeholder={isBlocked ? 'BLOCKED' : uomCase}
                 value={details.actualRop}
                 disabled={isBlocked || !isUpdate || isApproved}
                 onChange={e => handleActualChange(row.id, e.target.value)}
-                inputProps={{
-                  min: 0,
-                  style: { textAlign: 'right', width: '60px' },
+                slotProps={{
+                  htmlInput: {
+                    min: 0,
+                    style: { textAlign: 'right', width: '60px' },
+                  },
                 }}
                 className={isBlocked ? 'bg-red-50/20' : 'bg-yellow-50/30'}
               />
               <span className="text-xs text-gray-500">{uomCase}</span>
               {isRGB && (
                 <>
-                  <TextField
+                  <Input
+                    compact
                     type="number"
                     size="small"
+                    fullWidth={false}
                     placeholder={isBlocked ? 'BLOCKED' : uomPcs}
                     value={details.actualBaseQty}
                     disabled={isBlocked || !isUpdate || isApproved}
                     onChange={e =>
                       handleActualBaseChange(row.id, e.target.value)
                     }
-                    inputProps={{
-                      min: 0,
-                      style: { textAlign: 'right', width: '60px' },
+                    slotProps={{
+                      htmlInput: {
+                        min: 0,
+                        style: { textAlign: 'right', width: '60px' },
+                      },
                     }}
                     className={isBlocked ? 'bg-red-50/20' : 'bg-yellow-50/30'}
                   />
@@ -359,21 +583,40 @@ export default function ReconciliationDetail() {
       },
       {
         id: 'resolutionAction',
-        label: 'Resolution Action',
+        label: 'Action',
         render: (_, row) => {
           const { details } = row;
-          let color = 'default';
-          if (details.resolutionAction === 'CLEAN') color = 'success';
-          else if (details.resolutionAction === 'Post to Default Outlet')
-            color = details.status === 'Excess' ? 'info' : 'error';
-          else if (details.resolutionAction === 'Adjust Unload Upward')
-            color = 'info';
-          else if (details.resolutionAction === 'Awaiting Force-Push')
-            color = 'warning';
+          let displayVal = details.resolutionAction;
+          if (
+            displayVal === 'Blocked - Force-Push Required' ||
+            displayVal === 'Awaiting Force-Push'
+          ) {
+            displayVal = 'Blocked';
+          } else if (displayVal === 'Post to Default Outlet') {
+            displayVal = 'Posted to D/O';
+          } else if (displayVal === 'Awaiting Verification') {
+            displayVal = 'Pending';
+          }
+
+          let color:
+            | 'default'
+            | 'primary'
+            | 'secondary'
+            | 'error'
+            | 'info'
+            | 'success'
+            | 'warning' = 'default';
+          if (displayVal === 'CLEAN') color = 'success';
+          else if (displayVal === 'Blocked') color = 'error';
+          else if (displayVal === 'Posted to D/O')
+            color = details.status === 'Excess' ? 'info' : 'warning';
+          else if (displayVal === 'Adjust Unload Upward') color = 'info';
+          else if (displayVal === 'Pending') color = 'warning';
+
           return (
             <Chip
-              label={details.resolutionAction}
-              color={color as any}
+              label={displayVal || '-'}
+              color={color}
               size="small"
               variant="outlined"
               className="font-medium"
@@ -381,29 +624,29 @@ export default function ReconciliationDetail() {
           );
         },
       },
-      {
-        id: 'status',
-        label: 'Status',
-        sortable: true,
-        render: (_, row) => {
-          const { details } = row;
-          let color: 'warning' | 'success' | 'error' | 'info' = 'warning';
-          if (details.status === 'Matched') color = 'success';
-          else if (details.status === 'Short') color = 'error';
-          else if (details.status === 'Excess') color = 'info';
-          else if (details.status === 'Blocked - Force-Push Required')
-            color = 'error';
-          return (
-            <Chip
-              label={details.status}
-              color={color}
-              size="small"
-              variant="filled"
-              className="!capitalize font-medium"
-            />
-          );
-        },
-      },
+      // {
+      //   id: 'status',
+      //   label: 'Status',
+      //   sortable: true,
+      //   render: (_, row) => {
+      //     const { details } = row;
+      //     let color: 'warning' | 'success' | 'error' | 'info' = 'warning';
+      //     if (details.status === 'Matched') color = 'success';
+      //     else if (details.status === 'Short') color = 'error';
+      //     else if (details.status === 'Excess') color = 'info';
+      //     else if (details.status === 'Blocked - Force-Push Required')
+      //       color = 'error';
+      //     return (
+      //       <Chip
+      //         label={details.status}
+      //         color={color}
+      //         size="small"
+      //         variant="filled"
+      //         className="!capitalize font-medium"
+      //       />
+      //     );
+      //   },
+      // },
     ],
     [handleActualChange, handleActualBaseChange, isUpdate, isApproved]
   );
@@ -481,23 +724,127 @@ export default function ReconciliationDetail() {
           </div>
         ) : null}
       </div>
+      <div>
+        <Table
+          data={itemsWithDetails}
+          groupBy={row =>
+            row.subCategoryName?.trim() ||
+            row.categoryName?.trim() ||
+            'Uncategorized'
+          }
+          renderGroupHeader={group => (
+            <span className="text-sm font-bold uppercase text-gray-800">
+              {group}
+            </span>
+          )}
+          getRowId={row => row.id}
+          tableId="reconciliation-items-table"
+          stickyHeader
+          compact
+          sortable={false}
+          filterColunm={false}
+          columns={columns as any}
+          loading={isFetching}
+          pagination={false}
+          isPermission={isRead}
+          emptyMessage="No items found for this reconciliation."
+        />
 
-      {/* Items Table */}
-      <Table
-        data={itemsWithDetails}
-        getRowId={row => row.id}
-        tableId="reconciliation-items-table"
-        initialOrder="asc"
-        stickyHeader
-        columns={columns as any}
-        loading={isFetching}
-        totalCount={itemsWithDetails.length}
-        page={0}
-        rowsPerPage={itemsWithDetails.length || 10}
-        onPageChange={() => {}}
-        isPermission={isRead}
-        emptyMessage="No items found for this reconciliation."
-      />
+        {subCategoryTotals.length > 0 && (
+          <div className="bg-white rounded-b-md shadow border border-gray-200 overflow-hidden">
+            <div className="bg-gray-200 text-gray-800 px-4 py-2 font-bold text-sm tracking-wider uppercase">
+              Subtotals by Sub-Category
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm text-left border-collapse">
+                <thead>
+                  <tr className="bg-blue-50 text-gray-700 font-semibold border-b border-gray-200">
+                    <th className="py-2.5 px-4">Sub-Category</th>
+                    <th className="py-2.5 px-4 text-center">Expected ROP</th>
+                    <th className="py-2.5 px-4 text-center">Actual ROP</th>
+                    <th className="py-2.5 px-4 text-center">Variance</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {subCategoryTotals.map(row => (
+                    <tr key={row.subCategory} className="hover:bg-gray-50">
+                      <td className="p-2 font-medium text-gray-900">
+                        {row.subCategory}
+                      </td>
+                      <td className="p-2 text-center">
+                        {row.expectedRop.toLocaleString(undefined, {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
+                      </td>
+                      <td className="p-2 text-center">
+                        {row.actualRop.toLocaleString(undefined, {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
+                      </td>
+                      <td
+                        className={`p-2 text-center font-medium ${
+                          row.variance < 0
+                            ? 'text-red-600'
+                            : row.variance > 0
+                              ? 'text-blue-600'
+                              : 'text-gray-900'
+                        }`}
+                      >
+                        {row.variance.toLocaleString(undefined, {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
+                      </td>
+                    </tr>
+                  ))}
+                  <tr className="bg-amber-100/90 font-bold border-t border-amber-300 text-gray-900">
+                    <td className="p-2 uppercase tracking-wider">
+                      Grand Total
+                    </td>
+                    <td className="p-2 text-center">
+                      {subCategoryGrandTotal.expectedRop.toLocaleString(
+                        undefined,
+                        {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        }
+                      )}
+                    </td>
+                    <td className="p-2 text-center">
+                      {subCategoryGrandTotal.actualRop.toLocaleString(
+                        undefined,
+                        {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        }
+                      )}
+                    </td>
+                    <td
+                      className={`p-2 text-center ${
+                        subCategoryGrandTotal.variance < 0
+                          ? 'text-red-600'
+                          : subCategoryGrandTotal.variance > 0
+                            ? 'text-blue-600'
+                            : 'text-gray-900'
+                      }`}
+                    >
+                      {subCategoryGrandTotal.variance.toLocaleString(
+                        undefined,
+                        {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        }
+                      )}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

@@ -603,7 +603,8 @@ exports.reconciliationController = {
                 categoryName: item.product?.product_categories_products?.category_name ||
                     'Uncategorized',
                 subCategoryName: item.product?.product_sub_categories_products?.sub_category_name ||
-                    '',
+                    item.product?.product_categories_products?.category_name ||
+                    'Uncategorized',
                 conversionRate: Number(item.product?.product_unit_of_measurement?.conversion_rate) || 1,
                 subUnit: item.product?.product_unit_of_measurement?.sub_unit || 'PCs',
                 basePrice: item.unit_price !== null

@@ -16,25 +16,30 @@ export const exportReconciliationExcelService = async (
   const uomPcs = meta?.uomPcs || process.env.DEFAULT_UOM_PCS || 'PCs';
 
   const items = (rawItems || []).reduce((acc: any[], item: any) => {
-    const key = `${item.categoryName}_${item.skuCode}`;
-    const existing = acc.find(i => `${i.categoryName}_${i.skuCode}` === key);
+    const groupName =
+      item.subCategoryName?.trim() ||
+      item.categoryName?.trim() ||
+      'Uncategorized';
+    const key = `${groupName}_${item.skuCode}`;
+    const existing = acc.find(
+      i =>
+        `${i.subCategoryName?.trim() || i.categoryName?.trim() || 'Uncategorized'}_${i.skuCode}` ===
+        key
+    );
     if (existing) {
       existing.loadQuantity =
         (Number(existing.loadQuantity) || 0) + (Number(item.loadQuantity) || 0);
       existing.loadBaseQty =
         (Number(existing.loadBaseQty) || 0) + (Number(item.loadBaseQty) || 0);
-
       existing.saleQuantity =
         (Number(existing.saleQuantity) || 0) + (Number(item.saleQuantity) || 0);
       existing.saleBaseQty =
         (Number(existing.saleBaseQty) || 0) + (Number(item.saleBaseQty) || 0);
-
       existing.expectedRop =
         (Number(existing.expectedRop) || 0) + (Number(item.expectedRop) || 0);
       existing.expectedBaseQty =
         (Number(existing.expectedBaseQty) || 0) +
         (Number(item.expectedBaseQty) || 0);
-
       const actualExisting =
         existing.actualRop !== '' && existing.actualRop !== null
           ? Number(existing.actualRop)
@@ -91,6 +96,24 @@ export const exportReconciliationExcelService = async (
   }, []);
 
   items.sort((a: any, b: any) => {
+    const catA =
+      a.subCategoryName?.trim() || a.categoryName?.trim() || 'Uncategorized';
+    const catB =
+      b.subCategoryName?.trim() || b.categoryName?.trim() || 'Uncategorized';
+
+    const isRgbA =
+      catA.toUpperCase().includes('RGB') ||
+      catA.toUpperCase().includes('RETURNABLE GLASS');
+    const isRgbB =
+      catB.toUpperCase().includes('RGB') ||
+      catB.toUpperCase().includes('RETURNABLE GLASS');
+
+    if (isRgbA && !isRgbB) return -1;
+    if (!isRgbA && isRgbB) return 1;
+
+    const comp = catA.localeCompare(catB);
+    if (comp !== 0) return comp;
+
     const skuA = String(a.skuCode || '');
     const skuB = String(b.skuCode || '');
     return skuA.localeCompare(skuB, undefined, {
@@ -230,9 +253,12 @@ export const exportReconciliationExcelService = async (
   currentRow++;
 
   const groupedItems = items.reduce((acc: any, item: any) => {
-    const cat = item.categoryName || 'Uncategorized';
-    if (!acc[cat]) acc[cat] = [];
-    acc[cat].push(item);
+    const subCat =
+      item.subCategoryName?.trim() ||
+      item.categoryName?.trim() ||
+      'Uncategorized';
+    if (!acc[subCat]) acc[subCat] = [];
+    acc[subCat].push(item);
     return acc;
   }, {});
 
@@ -479,13 +505,13 @@ export const exportReconciliationExcelService = async (
   currentRow++;
   sheet.mergeCells(`A${currentRow}:L${currentRow}`);
   const subtotalsHeader = sheet.getCell(`A${currentRow}`);
-  subtotalsHeader.value = 'SUBTOTALS BY CATEGORY';
+  subtotalsHeader.value = 'SUBTOTALS BY SUB-CATEGORY';
   applyFont(subtotalsHeader, { bold: true, color: { argb: 'FFFFFFFF' } });
   applyFill(subtotalsHeader, 'FF203764');
   currentRow++;
 
   const subColHeaders = [
-    'Category',
+    'Sub-Category',
     'SKUs Loaded',
     'Total Load Qty',
     'Total Sales Qty',
@@ -499,7 +525,7 @@ export const exportReconciliationExcelService = async (
 
   sheet.mergeCells(`A${currentRow}:B${currentRow}`);
   const subCatCell = sheet.getCell(`A${currentRow}`);
-  subCatCell.value = 'Category';
+  subCatCell.value = 'Sub-Category';
 
   const subSkuCell = sheet.getCell(`C${currentRow}`);
   subSkuCell.value = 'SKUs Loaded';

@@ -27,8 +27,12 @@ const exportReconciliationPdfService = async (reconciliationData) => {
             const uomCase = meta?.uomCase || process.env.DEFAULT_UOM_CASE || 'Cases';
             const uomPcs = meta?.uomPcs || process.env.DEFAULT_UOM_PCS || 'PCs';
             const items = (rawItems || []).reduce((acc, item) => {
-                const key = `${item.categoryName}_${item.skuCode}`;
-                const existing = acc.find(i => `${i.categoryName}_${i.skuCode}` === key);
+                const groupName = item.subCategoryName?.trim() ||
+                    item.categoryName?.trim() ||
+                    'Uncategorized';
+                const key = `${groupName}_${item.skuCode}`;
+                const existing = acc.find(i => `${i.subCategoryName?.trim() || i.categoryName?.trim() || 'Uncategorized'}_${i.skuCode}` ===
+                    key);
                 if (existing) {
                     existing.loadQuantity =
                         (Number(existing.loadQuantity) || 0) +
@@ -88,6 +92,19 @@ const exportReconciliationPdfService = async (reconciliationData) => {
                 return acc;
             }, []);
             items.sort((a, b) => {
+                const catA = a.subCategoryName?.trim() || a.categoryName?.trim() || 'Uncategorized';
+                const catB = b.subCategoryName?.trim() || b.categoryName?.trim() || 'Uncategorized';
+                const isRgbA = catA.toUpperCase().includes('RGB') ||
+                    catA.toUpperCase().includes('RETURNABLE GLASS');
+                const isRgbB = catB.toUpperCase().includes('RGB') ||
+                    catB.toUpperCase().includes('RETURNABLE GLASS');
+                if (isRgbA && !isRgbB)
+                    return -1;
+                if (!isRgbA && isRgbB)
+                    return 1;
+                const comp = catA.localeCompare(catB);
+                if (comp !== 0)
+                    return comp;
                 const skuA = String(a.skuCode || '');
                 const skuB = String(b.skuCode || '');
                 return skuA.localeCompare(skuB, undefined, {
@@ -220,10 +237,12 @@ const exportReconciliationPdfService = async (reconciliationData) => {
             ];
             y = drawRow(y, columns, colWidths, true, colAlignments);
             const groupedItems = items.reduce((acc, item) => {
-                const cat = item.categoryName || 'Uncategorized';
-                if (!acc[cat])
-                    acc[cat] = [];
-                acc[cat].push(item);
+                const subCat = item.subCategoryName?.trim() ||
+                    item.categoryName?.trim() ||
+                    'Uncategorized';
+                if (!acc[subCat])
+                    acc[subCat] = [];
+                acc[subCat].push(item);
                 return acc;
             }, {});
             const categoryTotalsData = [];
@@ -409,16 +428,15 @@ const exportReconciliationPdfService = async (reconciliationData) => {
                 y = 30;
             }
             y += 5;
-            // --- SUBTOTALS BY CATEGORY ---
             doc.rect(30, y, 534, 13).fill('#203764');
             doc
                 .fillColor('white')
                 .font('Helvetica-Bold')
                 .fontSize(8)
-                .text('SUBTOTALS BY CATEGORY', 35, y + 3);
+                .text('SUBTOTALS BY SUB-CATEGORY', 35, y + 3);
             y += 13;
             const subColumns = [
-                'Category',
+                'Sub-Category',
                 'Total Load Qty',
                 'Total Sales Qty',
                 'Expected ROP',
