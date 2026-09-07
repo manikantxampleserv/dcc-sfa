@@ -868,21 +868,15 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({
                                       let actionLabel =
                                         item.resolution_action || 'CLEAN';
                                       if (
-                                        actionLabel.includes(
-                                          'Default Outlet'
-                                        ) ||
-                                        actionLabel.includes('Adjust')
-                                      ) {
-                                        actionLabel = 'Post to D/O';
-                                      } else if (
                                         actionLabel ===
-                                          'Awaiting Verification' ||
-                                        actionLabel === 'Pending' ||
-                                        actionLabel === '-'
+                                          'Blocked - Force-Push Required' ||
+                                        actionLabel === 'Awaiting Force-Push'
                                       ) {
-                                        actionLabel = isClean
-                                          ? 'CLEAN'
-                                          : 'Post to D/O';
+                                        actionLabel = 'Blocked';
+                                      } else if (isClean) {
+                                        actionLabel = 'CLEAN';
+                                      } else {
+                                        actionLabel = 'Post to D/O';
                                       }
 
                                       return (

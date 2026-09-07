@@ -67,7 +67,16 @@ export const exportReconciliationExcelService = async (
       existing.taxAmount =
         (Number(existing.taxAmount) || 0) + (Number(item.taxAmount) || 0);
 
-      if (
+      const conv = Number(existing.conversionRate) || 1;
+      const totExp =
+        (Number(existing.expectedRop) || 0) * conv +
+        (Number(existing.expectedBaseQty) || 0);
+      const totAct =
+        (Number(existing.actualRop) || 0) * conv +
+        (Number(existing.actualBaseQty) || 0);
+      if (Math.round(totAct - totExp) === 0) {
+        existing.resolutionAction = 'CLEAN';
+      } else if (
         !existing.resolutionAction ||
         existing.resolutionAction === 'CLEAN' ||
         existing.resolutionAction === '-'
@@ -364,20 +373,13 @@ export const exportReconciliationExcelService = async (
         let action = item.resolutionAction || '-';
         const hasVariance = varianceVal !== 0 || varianceBaseVal !== 0;
         if (
-          action.includes('Adjust') ||
-          action.includes('Default Outlet') ||
-          (hasVariance &&
-            (action === '-' ||
-              action === 'Awaiting Verification' ||
-              action === 'Pending' ||
-              action === 'CLEAN'))
+          action === 'Blocked - Force-Push Required' ||
+          action === 'Awaiting Force-Push'
         ) {
+          action = 'Blocked';
+        } else if (hasVariance) {
           action = 'Posted to D/O';
-        } else if (
-          action === 'Awaiting Verification' ||
-          action === 'Pending' ||
-          action === '-'
-        ) {
+        } else {
           action = 'CLEAN';
         }
         row.getCell(12).value = action;

@@ -3656,9 +3656,8 @@ export const createRequest = async (data: {
 
         setImmediate(async () => {
           try {
-            const { vanInventoryController } = await import(
-              './vanInventory.controller'
-            );
+            const { vanInventoryController } =
+              await import('./vanInventory.controller');
 
             let vanInventoryIdToProcess: number | null = null;
             let reqData: any = null;
@@ -4938,8 +4937,9 @@ export const requestsController = {
                     const actual = parsedActual || 0;
                     const actualBase = parsedActualBase || 0;
                     const actualTotalPieces = actual * conv + actualBase;
-                    const variancePieces =
-                      actualTotalPieces - expectedTotalPieces;
+                    const variancePieces = Math.round(
+                      actualTotalPieces - expectedTotalPieces
+                    );
 
                     if (variancePieces === 0) {
                       variance = 0;
@@ -5515,9 +5515,8 @@ export const requestsController = {
             `Approved VAN_INVENTORY request detected: requestId=${result.request.id}, referenceId=${result.request.reference_id}`
           );
           try {
-            const { vanInventoryController } = await import(
-              '../controllers/vanInventory.controller'
-            );
+            const { vanInventoryController } =
+              await import('../controllers/vanInventory.controller');
             await vanInventoryController.processApprovedVanInventoryStock(
               result.request.reference_id,
               userId,
@@ -5570,9 +5569,8 @@ export const requestsController = {
           result.request.reference_id
         ) {
           try {
-            const { vanInventoryController } = await import(
-              '../controllers/vanInventory.controller'
-            );
+            const { vanInventoryController } =
+              await import('../controllers/vanInventory.controller');
 
             const vanInventoryId =
               await vanInventoryController.createVanInventoryFromReconciliation(

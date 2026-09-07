@@ -262,7 +262,6 @@ const VanInventories: React.FC = () => {
           <span className="italic text-gray-400">No Date</span>
         ),
     },
-
     {
       id: 'approval_status',
       label: 'Approval Status',

@@ -643,15 +643,22 @@ exports.reconciliationController = {
                 unloadAdjustmentBaseQty: Number(item.unload_adjustment_base_qty) || 0,
                 taxAmount: item.tax_amount !== null ? Number(item.tax_amount) : 0,
                 stockKey: item.stock_key || '',
-                status: item.resolution_action === 'Awaiting Force-Push'
-                    ? 'Blocked - Force-Push Required'
-                    : item.actual_qty === null
-                        ? 'Pending Verification'
-                        : Number(item.variance) === 0
-                            ? 'Matched'
-                            : Number(item.variance) > 0
-                                ? 'Short'
-                                : 'Excess',
+                status: (() => {
+                    if (item.resolution_action === 'Awaiting Force-Push') {
+                        return 'Blocked - Force-Push Required';
+                    }
+                    const hasActual = item.actual_qty !== null || item.actual_base_qty !== null;
+                    if (!hasActual) {
+                        return 'Pending Verification';
+                    }
+                    const conv = Number(item.product?.product_unit_of_measurement?.conversion_rate) || 1;
+                    const totalVarPieces = Math.round((Number(item.variance) || 0) * conv +
+                        (Number(item.variance_base_qty) || 0));
+                    if (totalVarPieces === 0) {
+                        return 'Matched';
+                    }
+                    return totalVarPieces < 0 ? 'Short' : 'Excess';
+                })(),
                 createdate: item.createdate,
             }));
             res.json({
@@ -1116,7 +1123,7 @@ exports.reconciliationController = {
                         const actual = parsedActual || 0;
                         const actualBase = parsedActualBase || 0;
                         const actualTotalPieces = actual * conv + actualBase;
-                        const variancePieces = actualTotalPieces - expectedTotalPieces;
+                        const variancePieces = Math.round(actualTotalPieces - expectedTotalPieces);
                         if (variancePieces === 0) {
                             variance = 0;
                             variance_base_qty = 0;
@@ -1126,12 +1133,7 @@ exports.reconciliationController = {
                             const absV = Math.abs(variancePieces);
                             variance = Math.floor(absV / conv) * Math.sign(variancePieces);
                             variance_base_qty = (absV % conv) * Math.sign(variancePieces);
-                            if (variancePieces > 0) {
-                                resAction = 'Post to Default Outlet';
-                            }
-                            else {
-                                resAction = 'Post to Default Outlet';
-                            }
+                            resAction = 'Post to Default Outlet';
                         }
                     }
                     const defaultOutletPostingQty = resAction === 'Post to Default Outlet' && variance !== null
@@ -1195,6 +1197,49 @@ exports.reconciliationController = {
             const reconciliationIds = Array.from(new Set(results.map((item) => item.reconciliation_id)));
             const requestResults = [];
             for (const reconciliationId of reconciliationIds) {
+                const previousRequest = await prisma_client_1.default.sfa_d_requests.findFirst({
+                    where: {
+                        request_type: 'RECONCILIATION_APPROVAL',
+                        reference_id: reconciliationId,
+                    },
+                    orderBy: { id: 'desc' },
+                });
+                let vanInventoryId = null;
+                if (previousRequest?.request_data) {
+                    try {
+                        const parsed = JSON.parse(previousRequest.request_data);
+                        if (parsed?.van_inventory_id) {
+                            vanInventoryId = Number(parsed.van_inventory_id);
+                        }
+                    }
+                    catch { }
+                }
+                if (vanInventoryId) {
+                    await prisma_client_1.default.van_inventory.update({
+                        where: { id: vanInventoryId },
+                        data: {
+                            approval_status: 'P',
+                            updatedby: userId,
+                            updatedate: new Date(),
+                        },
+                    });
+                }
+                const reconciliationItems = results
+                    .filter((item) => item.reconciliation_id === reconciliationId)
+                    .map((item) => ({
+                    id: item.id,
+                    actual_qty: item.actual_qty,
+                    actual_base_qty: item.actual_base_qty,
+                }));
+                const rec = await prisma_client_1.default.reconciliation.findUnique({
+                    where: { id: reconciliationId },
+                    select: { depot_id: true },
+                });
+                const requestDataPayload = JSON.stringify({
+                    reconciliation_items: reconciliationItems,
+                    depot_id: rec?.depot_id,
+                    ...(vanInventoryId && { van_inventory_id: vanInventoryId }),
+                });
                 const existingRequest = await prisma_client_1.default.sfa_d_requests.findFirst({
                     where: {
                         request_type: 'RECONCILIATION_APPROVAL',
@@ -1203,6 +1248,14 @@ exports.reconciliationController = {
                     },
                 });
                 if (existingRequest) {
+                    await prisma_client_1.default.sfa_d_requests.update({
+                        where: { id: existingRequest.id },
+                        data: {
+                            request_data: requestDataPayload,
+                            updatedby: userId,
+                            updatedate: new Date(),
+                        },
+                    });
                     requestResults.push({
                         request_id: existingRequest.id,
                         status: existingRequest.status,
@@ -1211,24 +1264,11 @@ exports.reconciliationController = {
                     });
                     continue;
                 }
-                const reconciliationItems = results
-                    .filter((item) => item.reconciliation_id === reconciliationId)
-                    .map((item) => ({
-                    id: item.id,
-                    actual_qty: item.actual_qty,
-                }));
-                const rec = await prisma_client_1.default.reconciliation.findUnique({
-                    where: { id: reconciliationId },
-                    select: { depot_id: true },
-                });
                 const createdRequest = await (0, requests_controller_1.createRequest)({
                     requester_id: userId,
                     request_type: 'RECONCILIATION_APPROVAL',
                     reference_id: reconciliationId,
-                    request_data: JSON.stringify({
-                        reconciliation_items: reconciliationItems,
-                        depot_id: rec?.depot_id,
-                    }),
+                    request_data: requestDataPayload,
                     createdby: userId,
                     log_inst: 1,
                 });

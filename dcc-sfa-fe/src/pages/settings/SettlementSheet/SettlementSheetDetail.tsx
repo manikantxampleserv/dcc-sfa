@@ -124,17 +124,14 @@ export default function SettlementSheetDetail() {
 
       let resAction = item.resolutionAction;
       if (
-        !resAction ||
-        resAction === 'Awaiting Verification' ||
-        resAction === 'Pending' ||
-        resAction === '-' ||
-        (resAction === 'CLEAN' && variancePieces !== 0)
+        resAction === 'Blocked - Force-Push Required' ||
+        resAction === 'Awaiting Force-Push'
       ) {
-        if (variancePieces === 0) {
-          resAction = 'CLEAN';
-        } else {
-          resAction = 'Post to Default Outlet';
-        }
+        resAction = 'Blocked';
+      } else if (variancePieces === 0) {
+        resAction = 'CLEAN';
+      } else {
+        resAction = 'Post to Default Outlet';
       }
 
       return {
@@ -442,15 +439,13 @@ export default function SettlementSheetDetail() {
         const hasVariance = v !== 0 || vb !== 0;
 
         if (
-          displayVal === 'Awaiting Verification' ||
-          displayVal === 'Pending' ||
-          displayVal === '-' ||
-          (displayVal === 'CLEAN' && hasVariance)
+          displayVal === 'Blocked - Force-Push Required' ||
+          displayVal === 'Awaiting Force-Push'
         ) {
-          displayVal = hasVariance ? 'Post to Default Outlet' : 'CLEAN';
-        }
-
-        if (displayVal?.includes('Adjust')) {
+          displayVal = 'Blocked';
+        } else if (!hasVariance) {
+          displayVal = 'CLEAN';
+        } else {
           displayVal = 'Post to Default Outlet';
         }
 

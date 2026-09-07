@@ -1398,7 +1398,7 @@ exports.requestsController = {
         }
     },
     async takeActionOnRequest(req, res) {
-        const { request_id, approval_id, action, remarks } = req.body;
+        const { request_id, approval_id, action, remarks, items, reconciliation_items, } = req.body;
         const userId = req.user?.id || 1;
         try {
             if (!['A', 'R'].includes(action)) {
@@ -1487,96 +1487,8 @@ exports.requestsController = {
                                 updatedby: userId,
                             },
                         });
-                        //new logic
-                        try {
-                            const reconRecord = await tx.reconciliation.findUnique({
-                                where: { id: request.reference_id },
-                                select: { salesman_id: true, depot_id: true },
-                            });
-                            if (reconRecord?.salesman_id) {
-                                const reconItems = await tx.reconciliation_items.findMany({
-                                    where: {
-                                        reconciliation_id: request.reference_id,
-                                        is_active: 'Y',
-                                    },
-                                    select: {
-                                        product_id: true,
-                                        batch_number: true,
-                                        expected_qty: true,
-                                        expected_base_qty: true,
-                                    },
-                                });
-                                const vanLocations = await tx.van_inventory.findMany({
-                                    where: {
-                                        user_id: reconRecord.salesman_id,
-                                        is_active: 'Y',
-                                    },
-                                    select: { location_id: true },
-                                    distinct: ['location_id'],
-                                });
-                                const locationIds = vanLocations
-                                    .map((v) => v.location_id)
-                                    .filter(Boolean);
-                                if (reconRecord.depot_id &&
-                                    !locationIds.includes(reconRecord.depot_id)) {
-                                    locationIds.push(reconRecord.depot_id);
-                                }
-                                for (const item of reconItems) {
-                                    if (!item.product_id)
-                                        continue;
-                                    const restoredQty = Number(item.expected_qty) || 0;
-                                    const restoredBaseQty = Number(item.expected_base_qty) || 0;
-                                    let batchId = null;
-                                    const cleanBatch = item.batch_number
-                                        ? item.batch_number.trim()
-                                        : '';
-                                    if (cleanBatch &&
-                                        cleanBatch !== '-' &&
-                                        cleanBatch.toLowerCase() !== 'null' &&
-                                        cleanBatch.toLowerCase() !== 'none') {
-                                        const batchRecord = await tx.batch_lots.findFirst({
-                                            where: {
-                                                batch_number: cleanBatch,
-                                                productsId: item.product_id,
-                                            },
-                                            select: { id: true },
-                                        });
-                                        batchId = batchRecord?.id ?? null;
-                                    }
-                                    const stockFilter = {
-                                        product_id: item.product_id,
-                                        salesperson_id: reconRecord.salesman_id,
-                                        is_active: 'Y',
-                                        is_unloadAll: 'Y',
-                                    };
-                                    if (locationIds.length > 0) {
-                                        stockFilter.location_id = { in: locationIds };
-                                    }
-                                    if (batchId !== null) {
-                                        stockFilter.batch_id = batchId;
-                                    }
-                                    else {
-                                        stockFilter.batch_id = null;
-                                    }
-                                    await tx.inventory_stock.updateMany({
-                                        where: stockFilter,
-                                        data: {
-                                            current_stock: restoredQty,
-                                            available_stock: restoredQty,
-                                            base_quantity: restoredBaseQty,
-                                            is_unloadAll: 'N',
-                                            updatedate: new Date(),
-                                            updatedby: userId,
-                                        },
-                                    });
-                                }
-                                console.log(` Restored inventory_stock for salesman ${reconRecord.salesman_id} after reconciliation rejection (reconciliation_id=${request.reference_id}).`);
-                            }
-                        }
-                        catch (restoreErr) {
-                            console.error(' Error restoring inventory_stock on reconciliation rejection:', restoreErr);
-                        }
-                        // new logic
+                        // Inventory restoration on reconciliation rejection is disabled.
+                        // Stock remains in reconciliation until resubmitted and approved.
                         if (request.request_data) {
                             try {
                                 const reqData = JSON.parse(request.request_data);
@@ -1730,6 +1642,107 @@ exports.requestsController = {
                                 updatedby: userId,
                             },
                         });
+                        const incomingReconItems = reconciliation_items || items;
+                        if (incomingReconItems &&
+                            Array.isArray(incomingReconItems) &&
+                            incomingReconItems.length > 0) {
+                            for (const itemPayload of incomingReconItems) {
+                                const itemId = Number(itemPayload.id);
+                                if (!itemId)
+                                    continue;
+                                const parsedActual = itemPayload.actual_qty !== null &&
+                                    itemPayload.actual_qty !== '' &&
+                                    itemPayload.actual_qty !== undefined
+                                    ? Number(itemPayload.actual_qty)
+                                    : null;
+                                const parsedActualBase = itemPayload.actual_base_qty !== null &&
+                                    itemPayload.actual_base_qty !== '' &&
+                                    itemPayload.actual_base_qty !== undefined
+                                    ? Number(itemPayload.actual_base_qty)
+                                    : null;
+                                const parsedTax = itemPayload.tax_amount !== null &&
+                                    itemPayload.tax_amount !== '' &&
+                                    itemPayload.tax_amount !== undefined
+                                    ? Number(itemPayload.tax_amount)
+                                    : undefined;
+                                const record = await tx.reconciliation_items.findUnique({
+                                    where: { id: itemId },
+                                    include: {
+                                        product: {
+                                            include: { product_unit_of_measurement: true },
+                                        },
+                                    },
+                                });
+                                if (!record)
+                                    continue;
+                                const conv = Number(record.product?.product_unit_of_measurement
+                                    ?.conversion_rate) || 1;
+                                const loadQty = Number(record.load_qty) || 0;
+                                const loadBaseQty = Number(record.load_base_qty) || 0;
+                                const saleQty = Number(record.sale_qty) || 0;
+                                const saleBaseQty = Number(record.sale_base_qty) || 0;
+                                const freshExpectedQty = loadQty - saleQty;
+                                const freshExpectedBaseQty = loadBaseQty - saleBaseQty;
+                                const expectedTotalPieces = freshExpectedQty * conv + freshExpectedBaseQty;
+                                let variance = null;
+                                let variance_base_qty = null;
+                                let resAction = 'CLEAN';
+                                if (parsedActual !== null || parsedActualBase !== null) {
+                                    const actual = parsedActual || 0;
+                                    const actualBase = parsedActualBase || 0;
+                                    const actualTotalPieces = actual * conv + actualBase;
+                                    const variancePieces = Math.round(actualTotalPieces - expectedTotalPieces);
+                                    if (variancePieces === 0) {
+                                        variance = 0;
+                                        variance_base_qty = 0;
+                                        resAction = 'CLEAN';
+                                    }
+                                    else {
+                                        const absV = Math.abs(variancePieces);
+                                        variance =
+                                            Math.floor(absV / conv) * Math.sign(variancePieces);
+                                        variance_base_qty =
+                                            (absV % conv) * Math.sign(variancePieces);
+                                        resAction = 'Post to Default Outlet';
+                                    }
+                                }
+                                const defaultOutletPostingQty = resAction === 'Post to Default Outlet' && variance !== null
+                                    ? Math.abs(variance)
+                                    : 0;
+                                const defaultOutletPostingBaseQty = resAction === 'Post to Default Outlet' &&
+                                    variance_base_qty !== null
+                                    ? Math.abs(variance_base_qty)
+                                    : 0;
+                                const unloadAdjustmentQty = resAction === 'Adjust Unload Upward' && variance !== null
+                                    ? variance
+                                    : 0;
+                                const unloadAdjustmentBaseQty = resAction === 'Adjust Unload Upward' &&
+                                    variance_base_qty !== null
+                                    ? variance_base_qty
+                                    : 0;
+                                await tx.reconciliation_items.update({
+                                    where: { id: itemId },
+                                    data: {
+                                        actual_qty: parsedActual,
+                                        actual_base_qty: parsedActualBase,
+                                        expected_qty: freshExpectedQty,
+                                        expected_base_qty: freshExpectedBaseQty,
+                                        variance,
+                                        variance_base_qty,
+                                        ...(parsedTax !== undefined && {
+                                            tax_amount: parsedTax,
+                                        }),
+                                        resolution_action: resAction,
+                                        default_outlet_posting_qty: defaultOutletPostingQty,
+                                        default_outlet_posting_base_qty: defaultOutletPostingBaseQty,
+                                        unload_adjustment_qty: unloadAdjustmentQty,
+                                        unload_adjustment_base_qty: unloadAdjustmentBaseQty,
+                                        updatedate: new Date(),
+                                        updatedby: userId,
+                                    },
+                                });
+                            }
+                        }
                         // Zero out inventory_stock rows that were sealed during reconciliation (is_unloadAll='Y').
                         // We do this here (on settlement approval) so stock values remain visible until fully signed off.
                         try {

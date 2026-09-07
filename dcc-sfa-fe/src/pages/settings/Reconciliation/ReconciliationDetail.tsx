@@ -74,9 +74,17 @@ export default function ReconciliationDetail() {
         };
       }
 
-      // Only treat as pending if the value has never been set (null/undefined from server and not yet edited)
-      // If it's already approved, it's not pending.
-      const isPending = !isApproved && localActualStr == null;
+      /** Check if this item has been touched locally */
+      const hasEdited =
+        editedRecords[row.id] !== undefined ||
+        editedBaseRecords[row.id] !== undefined;
+
+      /** Only treat as pending if the value has never been set and not yet edited */
+      const isPending =
+        !isApproved &&
+        !hasEdited &&
+        (row.actualRop === null || row.actualRop === '') &&
+        (row.actualBaseQty === null || row.actualBaseQty === '');
 
       if (isPending) {
         return {
@@ -95,7 +103,9 @@ export default function ReconciliationDetail() {
       const expectedTotalPieces = row.expectedRop * conv + row.expectedBaseQty;
       const actualTotalPieces = actual * conv + actualBase;
 
-      const variancePieces = actualTotalPieces - expectedTotalPieces;
+      const variancePieces = Math.round(
+        actualTotalPieces - expectedTotalPieces
+      );
 
       let status = 'Matched';
       let resolutionAction = 'CLEAN';
@@ -141,8 +151,14 @@ export default function ReconciliationDetail() {
         editedRecords[row.id] !== undefined
           ? editedRecords[row.id]
           : row.actualRop;
+      const localActualBase =
+        editedBaseRecords[row.id] !== undefined
+          ? editedBaseRecords[row.id]
+          : row.actualBaseQty;
 
-      const isPending = localActual === '' || localActual == null;
+      const isPending =
+        (localActual === '' || localActual == null) &&
+        (localActualBase === '' || localActualBase == null);
 
       if (!isBlocked && isPending) {
         const conv = Number(row.conversionRate) || 1;
@@ -215,7 +231,6 @@ export default function ReconciliationDetail() {
     }
   }, [editedRecords, editedBaseRecords, saveMutation, refetch]);
 
-  // Pre-calculate details for all items to avoid doing it multiple times per cell render
   const itemsWithDetails = useMemo(() => {
     return items.map(item => ({
       ...item,

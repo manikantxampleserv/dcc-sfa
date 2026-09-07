@@ -85,7 +85,16 @@ export const exportReconciliationPdfService = async (
           existing.taxAmount =
             (Number(existing.taxAmount) || 0) + (Number(item.taxAmount) || 0);
 
-          if (
+          const conv = Number(existing.conversionRate) || 1;
+          const totExp =
+            (Number(existing.expectedRop) || 0) * conv +
+            (Number(existing.expectedBaseQty) || 0);
+          const totAct =
+            (Number(existing.actualRop) || 0) * conv +
+            (Number(existing.actualBaseQty) || 0);
+          if (Math.round(totAct - totExp) === 0) {
+            existing.resolutionAction = 'CLEAN';
+          } else if (
             !existing.resolutionAction ||
             existing.resolutionAction === 'CLEAN' ||
             existing.resolutionAction === '-'
@@ -406,23 +415,18 @@ export const exportReconciliationPdfService = async (
             (Number(item.saleBaseQty) || 0) * basePricePerPc;
 
           const rawAction = String(item.resolutionAction || '-');
-          let actionText = rawAction;
+          const hasVariance = variance.c !== 0 || variance.p !== 0;
+          let actionText = 'CLEAN';
+
           if (
-            rawAction === 'Posted to Default Outlet' ||
-            rawAction === 'Post to Default Outlet' ||
-            rawAction.includes('Adjust')
+            rawAction === 'Blocked - Force-Push Required' ||
+            rawAction === 'Awaiting Force-Push'
           ) {
+            actionText = 'Blocked';
+          } else if (hasVariance) {
             actionText = 'Posted to D/O';
-          } else if (
-            rawAction === 'Awaiting Verification' ||
-            rawAction === 'Pending' ||
-            rawAction === '-'
-          ) {
-            if (variance.c === 0 && variance.p === 0) {
-              actionText = 'CLEAN';
-            } else {
-              actionText = 'Posted to D/O';
-            }
+          } else {
+            actionText = 'CLEAN';
           }
 
           const actionBg =

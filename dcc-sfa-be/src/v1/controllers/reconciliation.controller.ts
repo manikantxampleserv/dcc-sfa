@@ -717,16 +717,28 @@ export const reconciliationController = {
           unloadAdjustmentBaseQty: Number(item.unload_adjustment_base_qty) || 0,
           taxAmount: item.tax_amount !== null ? Number(item.tax_amount) : 0,
           stockKey: item.stock_key || '',
-          status:
-            item.resolution_action === 'Awaiting Force-Push'
-              ? 'Blocked - Force-Push Required'
-              : item.actual_qty === null
-                ? 'Pending Verification'
-                : Number(item.variance) === 0
-                  ? 'Matched'
-                  : Number(item.variance) > 0
-                    ? 'Short'
-                    : 'Excess',
+          status: (() => {
+            if (item.resolution_action === 'Awaiting Force-Push') {
+              return 'Blocked - Force-Push Required';
+            }
+            const hasActual =
+              item.actual_qty !== null || item.actual_base_qty !== null;
+            if (!hasActual) {
+              return 'Pending Verification';
+            }
+            const conv =
+              Number(
+                item.product?.product_unit_of_measurement?.conversion_rate
+              ) || 1;
+            const totalVarPieces = Math.round(
+              (Number(item.variance) || 0) * conv +
+                (Number(item.variance_base_qty) || 0)
+            );
+            if (totalVarPieces === 0) {
+              return 'Matched';
+            }
+            return totalVarPieces < 0 ? 'Short' : 'Excess';
+          })(),
           createdate: item.createdate,
         })
       );
@@ -1274,7 +1286,9 @@ export const reconciliationController = {
               const actualBase = parsedActualBase || 0;
 
               const actualTotalPieces = actual * conv + actualBase;
-              const variancePieces = actualTotalPieces - expectedTotalPieces;
+              const variancePieces = Math.round(
+                actualTotalPieces - expectedTotalPieces
+              );
 
               if (variancePieces === 0) {
                 variance = 0;
@@ -1284,12 +1298,7 @@ export const reconciliationController = {
                 const absV = Math.abs(variancePieces);
                 variance = Math.floor(absV / conv) * Math.sign(variancePieces);
                 variance_base_qty = (absV % conv) * Math.sign(variancePieces);
-
-                if (variancePieces > 0) {
-                  resAction = 'Post to Default Outlet';
-                } else {
-                  resAction = 'Post to Default Outlet';
-                }
+                resAction = 'Post to Default Outlet';
               }
             }
 
