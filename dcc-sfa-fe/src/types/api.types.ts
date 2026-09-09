@@ -168,7 +168,8 @@ export interface ApiResponse<T = any> {
     total_credit_limit?: string;
     /** Collective outstanding balance due from customers */
     total_outstanding_amount?: string;
-    // Outlet group statistics
+    /** Number of customers visited in the last 30 days */
+    customers_visited_last_30_days?: number;
     /** Total number of outlet groups */
     total_groups: number;
     /** Number of active outlet groups */

@@ -11,13 +11,14 @@ import {
   Typography,
 } from '@mui/material';
 
-import { useTakeActionOnRequest } from 'hooks/useRequests';
+import { Check, Close, Description, ExpandMore } from '@mui/icons-material';
 import { useQueryClient } from '@tanstack/react-query';
-import { Check, ChevronDown, FileText, X } from 'lucide-react';
+import { useTakeActionOnRequest } from 'hooks/useRequests';
+import { useResolvedUom } from 'hooks/useUnitOfMeasurement';
 import React from 'react';
 import type { Request } from 'services/requests';
 import Button from 'shared/Button';
-import { formatCalendarTime } from 'utils/dateUtils';
+import { formatCalendarTime, formatDate } from 'utils/dateUtils';
 import { getSourceSystemLabel } from 'utils/sourceSystem';
 
 interface ApprovalModalProps {
@@ -27,12 +28,90 @@ interface ApprovalModalProps {
   type: 'approve' | 'reject' | 'view';
 }
 
+/**
+ * Formats quantity display omitting 0 case or piece values.
+ *
+ * @param cases - Number of cases
+ * @param pieces - Number of pieces
+ * @param isRGB - Whether the item is returnable glass
+ * @param uomCase - Unit label for cases
+ * @param uomPcs - Unit label for pieces
+ * @returns Formatted quantity string
+ */
+function formatQuantityDisplay(
+  cases: number,
+  pieces: number,
+  isRGB: boolean | undefined,
+  uomCase: string = 'Cs',
+  uomPcs: string = 'Btls'
+): string {
+  const c = Math.abs(cases);
+  const p = Math.abs(pieces);
+
+  if (!isRGB) {
+    return `${c} ${uomCase}`;
+  }
+
+  if (c === 0 && p === 0) {
+    return `0 ${uomCase}`;
+  }
+
+  if (c === 0) {
+    return `${p} ${uomPcs}`;
+  }
+
+  if (p === 0) {
+    return `${c} ${uomCase}`;
+  }
+
+  return `${c} ${uomCase} ${p} ${uomPcs}`;
+}
+
+/**
+ * Formats signed variance quantity in cases and pieces.
+ *
+ * @param cases - Signed cases variance
+ * @param pieces - Signed pieces variance
+ * @param isRGB - Whether the item is returnable glass
+ * @param uomCase - Unit label for cases
+ * @param uomPcs - Unit label for pieces
+ * @returns Formatted signed variance string
+ */
+function formatVarianceDisplay(
+  cases: number,
+  pieces: number,
+  isRGB: boolean | undefined,
+  uomCase: string = 'Cs',
+  uomPcs: string = 'Btls'
+): string {
+  const c = Math.abs(cases);
+  const p = Math.abs(pieces);
+  const isZero = c === 0 && (!isRGB || p === 0);
+
+  if (isZero) {
+    return `0 ${uomCase}`;
+  }
+
+  const sign = cases < 0 || pieces < 0 ? '-' : '+';
+
+  if (!isRGB || p === 0) {
+    return `${sign}${c} ${uomCase}`;
+  }
+
+  if (c === 0) {
+    return `${sign}${p} ${uomPcs}`;
+  }
+
+  return `${sign}${c} ${uomCase} ${p} ${uomPcs}`;
+}
+
 const ApprovalModal: React.FC<ApprovalModalProps> = ({
   open,
   onClose,
   request,
   type,
 }) => {
+  const { uomCase: defaultUomCase, uomPcs: defaultUomPcs } = useResolvedUom();
   const queryClient = useQueryClient();
   const takeActionMutation = useTakeActionOnRequest();
 
@@ -165,9 +244,9 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({
           {type === 'approve' ? (
             <Check className="!w-6 !h-6 !text-green-600" />
           ) : type === 'reject' ? (
-            <X className="!w-6 !h-6 !text-red-600" />
+            <Close className="!w-6 !h-6 !text-red-600" />
           ) : (
-            <FileText className="!w-6 !h-6 !text-blue-600" />
+            <Description className="!w-6 !h-6 !text-blue-600" />
           )}
         </div>
         <div className="!flex-1">
@@ -217,7 +296,7 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({
           className="!absolute !top-2 !right-2 !bg-white !rounded hover:!bg-gray-100 !border !border-gray-200"
           size="small"
         >
-          <X className="!w-4 !h-4 !text-gray-600" />
+          <Close className="!w-4 !h-4 !text-gray-600" />
         </IconButton>
       </DialogTitle>
 
@@ -739,8 +818,9 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({
                           variant="body2"
                           className="!font-semibold !text-gray-900"
                         >
-                          {request.reference_details.reconciliation_date ||
-                            'N/A'}
+                          {formatDate(
+                            request.reference_details.reconciliation_date
+                          ) || 'N/A'}
                         </Typography>
                       </div>
 
@@ -840,18 +920,94 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({
                                 <tbody className="!divide-y !divide-gray-200 !bg-white">
                                   {request.reference_details.items.map(
                                     (item: any, idx: number) => {
-                                      const exp =
-                                        Number(item.expected_rop) || 0;
-                                      const act = Number(item.actual_rop) || 0;
-                                      const v =
-                                        item.variance !== undefined &&
-                                        item.variance !== null
-                                          ? Number(item.variance)
-                                          : act - exp;
+                                      const conv =
+                                        Number(item.conversion_rate) || 1;
+                                      const isRGB =
+                                        item.sub_category_name
+                                          ?.toUpperCase()
+                                          .includes('RGB') ||
+                                        item.sub_category_name
+                                          ?.toUpperCase()
+                                          .includes('RETURNABLE GLASS') ||
+                                        item.stock_name
+                                          ?.toUpperCase()
+                                          .includes('RGB') ||
+                                        item.stock_name
+                                          ?.toUpperCase()
+                                          .includes('RETURNABLE GLASS');
 
-                                      const isShort = v < 0;
-                                      const isExcess = v > 0;
-                                      const isClean = v === 0;
+                                      const uomCase = defaultUomCase;
+                                      const uomPcs = defaultUomPcs;
+
+                                      const normalizeQty = (
+                                        c: number,
+                                        p: number
+                                      ) => {
+                                        if (conv <= 1)
+                                          return { c: c || 0, p: p || 0 };
+                                        const total =
+                                          (c || 0) * conv + (p || 0);
+                                        const sign = total < 0 ? -1 : 1;
+                                        const abs = Math.abs(total);
+                                        return {
+                                          c: Math.floor(abs / conv) * sign,
+                                          p: (abs % conv) * sign,
+                                        };
+                                      };
+
+                                      const expRaw =
+                                        Number(item.expected_rop) || 0;
+                                      const expBaseRaw =
+                                        Number(item.expected_base_qty) || 0;
+                                      const actRaw =
+                                        Number(item.actual_rop) || 0;
+                                      const actBaseRaw =
+                                        Number(item.actual_base_qty) || 0;
+
+                                      const expected = normalizeQty(
+                                        expRaw,
+                                        expBaseRaw
+                                      );
+                                      const actual = normalizeQty(
+                                        actRaw,
+                                        actBaseRaw
+                                      );
+
+                                      const expectedTotalPieces =
+                                        expRaw * conv + expBaseRaw;
+                                      const actualTotalPieces =
+                                        actRaw * conv + actBaseRaw;
+
+                                      let variancePieces = 0;
+                                      if (
+                                        item.variance !== undefined &&
+                                        item.variance !== null &&
+                                        item.variance_base_qty !== undefined &&
+                                        item.variance_base_qty !== null
+                                      ) {
+                                        variancePieces =
+                                          Number(item.variance) * conv +
+                                          Number(item.variance_base_qty);
+                                      } else {
+                                        variancePieces = Math.round(
+                                          actualTotalPieces -
+                                            expectedTotalPieces
+                                        );
+                                      }
+
+                                      const absV = Math.abs(variancePieces);
+                                      const vCases = Math.floor(absV / conv);
+                                      const vPcs = absV % conv;
+                                      const signMultiplier =
+                                        variancePieces < 0 ? -1 : 1;
+                                      const signedCases =
+                                        vCases * signMultiplier;
+                                      const signedPieces =
+                                        vPcs * signMultiplier;
+
+                                      const isShort = variancePieces < 0;
+                                      const isExcess = variancePieces > 0;
+                                      const isClean = variancePieces === 0;
 
                                       const vColor = isShort
                                         ? '!text-red-600'
@@ -859,11 +1015,32 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({
                                           ? '!text-blue-600'
                                           : '!text-gray-800';
 
-                                      const sign = isShort
-                                        ? ''
-                                        : isExcess
-                                          ? '+'
-                                          : '';
+                                      const expectedDisplay =
+                                        formatQuantityDisplay(
+                                          expected.c,
+                                          expected.p,
+                                          isRGB,
+                                          uomCase,
+                                          uomPcs
+                                        );
+                                      const actualDisplay =
+                                        formatQuantityDisplay(
+                                          actual.c,
+                                          actual.p,
+                                          isRGB,
+                                          uomCase,
+                                          uomPcs
+                                        );
+                                      const varianceDisplay =
+                                        variancePieces === 0
+                                          ? `0 ${uomCase}`
+                                          : formatVarianceDisplay(
+                                              signedCases,
+                                              signedPieces,
+                                              isRGB,
+                                              uomCase,
+                                              uomPcs
+                                            );
 
                                       let actionLabel =
                                         item.resolution_action || 'CLEAN';
@@ -873,10 +1050,18 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({
                                         actionLabel === 'Awaiting Force-Push'
                                       ) {
                                         actionLabel = 'Blocked';
+                                      } else if (
+                                        actionLabel === 'Post to Default Outlet'
+                                      ) {
+                                        actionLabel = 'Posted to D/O';
+                                      } else if (
+                                        actionLabel === 'Adjust Unload Upward'
+                                      ) {
+                                        actionLabel = 'Adjust Unload';
                                       } else if (isClean) {
                                         actionLabel = 'CLEAN';
                                       } else {
-                                        actionLabel = 'Post to D/O';
+                                        actionLabel = 'Posted to D/O';
                                       }
 
                                       return (
@@ -902,23 +1087,26 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({
                                             {item.batch_number || '-'}
                                           </td>
                                           <td className="!py-2.5 !px-3 !text-center !font-medium !text-gray-800 !whitespace-nowrap">
-                                            {exp} Cs
+                                            {expectedDisplay}
                                           </td>
                                           <td className="!py-2.5 !px-3 !text-center !font-medium !text-gray-800 !whitespace-nowrap">
-                                            {act} Cs
+                                            {actualDisplay}
                                           </td>
                                           <td
                                             className={`!py-2.5 !px-3 !text-center !font-bold !whitespace-nowrap ${vColor}`}
                                           >
-                                            {sign}
-                                            {v} Cs
+                                            {varianceDisplay}
                                           </td>
                                           <td className="!py-2.5 !px-3 !text-center !whitespace-nowrap">
                                             <Chip
                                               label={actionLabel}
                                               size="small"
                                               color={
-                                                isClean ? 'success' : 'error'
+                                                isClean
+                                                  ? 'success'
+                                                  : actionLabel === 'Blocked'
+                                                    ? 'warning'
+                                                    : 'error'
                                               }
                                               variant="outlined"
                                               className="!text-[11px] !font-semibold !h-6"
@@ -1080,7 +1268,7 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({
                                   >
                                     <AccordionSummary
                                       expandIcon={
-                                        <ChevronDown className="w-5 h-5 text-gray-500" />
+                                        <ExpandMore className="w-5 h-5 text-gray-500" />
                                       }
                                       className="!min-h-0 !py-1"
                                     >
@@ -1290,7 +1478,7 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({
                 type === 'approve' ? (
                   <Check className="!w-4 !h-4" />
                 ) : (
-                  <X className="!w-4 !h-4" />
+                  <Close className="!w-4 !h-4" />
                 )
               }
               onClick={handleSubmit}

@@ -167,3 +167,5 @@ dcc-sfa-be/logs/
 # Prisma
 dcc-sfa-be/prisma/migrations/
 !dcc-sfa-be/prisma/migrations/.gitkeep
+
+dcc-b2b-customer

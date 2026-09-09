@@ -182,6 +182,8 @@ export interface AssetMasterQueryParams {
   search?: string;
   status?: string;
   depot_id?: number;
+  zone_id?: number;
+  route_id?: number;
   outlet_id?: number;
   only_available?: boolean;
 }

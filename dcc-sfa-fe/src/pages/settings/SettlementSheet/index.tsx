@@ -1,4 +1,5 @@
 import { Visibility } from '@mui/icons-material';
+import { Box } from '@mui/material';
 import { useCurrencyCode } from 'hooks/useCurrency';
 import { usePermission } from 'hooks/usePermission';
 import {
@@ -184,16 +185,14 @@ export default function SettlementSheet() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            Settlement Sheets
-          </h1>
-          <p className="mt-1 text-sm text-gray-500">
+      <Box className="!mb-3 !flex !justify-between !items-center">
+        <Box>
+          <p className="!font-bold text-xl !text-gray-900">Settlement Sheets</p>
+          <p className="!text-gray-500 text-sm">
             View daily settlement sheets by salesman and depot.
           </p>
-        </div>
-      </div>
+        </Box>
+      </Box>
 
       {/* Stats Area */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -255,19 +254,19 @@ export default function SettlementSheet() {
         emptyMessage="No reconciliation records found."
         actions={
           isRead ? (
-            <div className="flex justify-between flex-1 items-center flex-wrap gap-3">
-              <div className="flex flex-wrap items-center gap-3">
-                <SearchInput
-                  placeholder="Search by rep name..."
-                  value={searchQuery}
-                  onChange={val => {
-                    setSearchQuery(val);
-                    setPage(1);
-                  }}
-                  debounceMs={300}
-                  showClear={true}
-                  className="!w-64"
-                />
+            <div className="flex flex-wrap justify-between w-full items-center gap-3">
+              <SearchInput
+                placeholder="Search Sales Persons..."
+                value={searchQuery}
+                onChange={val => {
+                  setSearchQuery(val);
+                  setPage(1);
+                }}
+                debounceMs={300}
+                showClear={true}
+                className="!w-64"
+              />
+              <div className="flex items-center gap-2">
                 <Input
                   type="date"
                   value={selectedDate}
@@ -282,7 +281,7 @@ export default function SettlementSheet() {
                   className="!w-44"
                 />
 
-                <div className="w-52">
+                <div className="w-64">
                   <DepotSelect
                     value={depotFilter ? ({ id: depotFilter } as any) : null}
                     onChange={(_, value) => {

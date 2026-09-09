@@ -9,6 +9,7 @@ import api from 'configs/axio.config';
 import type { ApiResponse } from 'types/api.types';
 
 interface User {
+  users_depots_users: { depot_id: number }[];
   id: number;
   name: string;
   email: string;
@@ -34,7 +35,6 @@ interface Zone {
     name: string;
     code: string;
   } | null;
-  // Computed fields can still be used for fallback
   depot_name?: string;
   supervisor_name?: string;
 }

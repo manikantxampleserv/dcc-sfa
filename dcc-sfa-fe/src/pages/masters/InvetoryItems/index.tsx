@@ -6,7 +6,7 @@ import type {
 import { useInventoryItems } from 'hooks/useInventoryItems';
 import { usePermission } from 'hooks/usePermission';
 import { useResolvedUom } from 'hooks/useUnitOfMeasurement';
-import { AlertTriangle, Package, User, Users } from 'lucide-react';
+import { Package, User, Users, Receipt } from 'lucide-react';
 import React, { useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DepotSelect from 'shared/DepotSelect';
@@ -63,6 +63,7 @@ const InventoryItems: React.FC = () => {
     total_serials: number;
     total_products: number;
     helpers?: string | null;
+    today_invoices?: number;
   };
 
   const summaryData: SalespersonSummary[] = useMemo(
@@ -73,16 +74,14 @@ const InventoryItems: React.FC = () => {
   const stats = summaryResponse?.statistics;
 
   const summary = useMemo(() => {
-    const lowStockCount = summaryData.filter(
-      p =>
-        (p.total_quantity > 0 ||
-          (p.total_base_quantity && p.total_base_quantity > 0)) &&
-        p.total_quantity <= 10
-    ).length;
+    const todayInvoiceTotal = summaryData.reduce(
+      (acc, curr) => acc + (curr.today_invoices || 0),
+      0
+    );
 
     return {
       total_items: stats?.total_van_inventories || 0,
-      low_stock_items: lowStockCount,
+      today_invoices: todayInvoiceTotal,
       total_groups: summaryData.filter(p => !!p.helpers).length,
       active_users: summaryData.filter(p => !p.helpers).length,
     };
@@ -202,9 +201,9 @@ const InventoryItems: React.FC = () => {
           isLoading={isLoading}
         />
         <StatsCard
-          title="Low Stock Alert"
-          value={summary.low_stock_items}
-          icon={<AlertTriangle className="w-6 h-6" />}
+          title="Today's Invoices"
+          value={summary.today_invoices}
+          icon={<Receipt className="w-6 h-6" />}
           color="orange"
           isLoading={isLoading}
         />

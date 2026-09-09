@@ -7,13 +7,13 @@ export function getTimeFilter(
     const range: any = {};
     if (start_date) {
       const s = new Date(
-        start_date.includes('T') ? start_date : `${start_date}T00:00:00.000Z`
+        start_date.includes('T') ? start_date : `${start_date}T00:00:00.000`
       );
       if (!isNaN(s.getTime())) range.gte = s;
     }
     if (end_date) {
       const e = new Date(
-        end_date.includes('T') ? end_date : `${end_date}T23:59:59.999Z`
+        end_date.includes('T') ? end_date : `${end_date}T23:59:59.999`
       );
       if (!isNaN(e.getTime())) range.lte = e;
     }

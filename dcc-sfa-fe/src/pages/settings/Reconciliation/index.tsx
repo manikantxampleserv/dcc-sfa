@@ -1,5 +1,5 @@
 import { Visibility } from '@mui/icons-material';
-import { Chip } from '@mui/material';
+import { Box, Chip } from '@mui/material';
 import { usePermission } from 'hooks/usePermission';
 import {
   useReconciliations,
@@ -152,17 +152,17 @@ export default function Reconciliation() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-row justify-between items-center">
-        <div>
-          <h1 className="!font-bold text-xl !text-gray-900">
+      <Box className="!mb-3 !flex !justify-between !items-center">
+        <Box>
+          <p className="!font-bold text-xl !text-gray-900">
             ROP Verification & Reconciliation
-          </h1>
-          <p className="text-sm text-gray-500">
+          </p>
+          <p className="!text-gray-500 text-sm">
             DCC SFA Clerk Portal — Click a row to view loaded products for that
             salesman.
           </p>
-        </div>
-      </div>
+        </Box>
+      </Box>
 
       {/* Stats Area */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -207,7 +207,6 @@ export default function Reconciliation() {
           isLoading={isFetching}
         />
       </div>
-
       {/* Main Table */}
       <Table
         data={records}
@@ -224,19 +223,19 @@ export default function Reconciliation() {
         emptyMessage="No reconciliation records found."
         actions={
           isRead ? (
-            <div className="flex justify-between flex-1 items-center flex-wrap gap-3">
-              <div className="flex flex-wrap items-center gap-3">
-                <SearchInput
-                  placeholder="Search by rep name..."
-                  value={searchQuery}
-                  onChange={val => {
-                    setSearchQuery(val);
-                    setPage(1);
-                  }}
-                  debounceMs={300}
-                  showClear={true}
-                  className="!w-64"
-                />
+            <div className="flex flex-wrap justify-between w-full items-center gap-3">
+              <SearchInput
+                placeholder="Search Sales Persons..."
+                value={searchQuery}
+                onChange={val => {
+                  setSearchQuery(val);
+                  setPage(1);
+                }}
+                debounceMs={300}
+                showClear={true}
+                className="!w-64"
+              />
+              <div className="flex items-center gap-2">
                 <Input
                   type="date"
                   value={selectedDate}

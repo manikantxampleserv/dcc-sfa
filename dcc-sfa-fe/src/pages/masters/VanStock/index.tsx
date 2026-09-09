@@ -23,6 +23,7 @@ import {
   type VanInventory,
 } from '../../../hooks/useVanInventory';
 import UserSelect from '../../../shared/UserSelect';
+import DepotSelect from '../../../shared/DepotSelect';
 import { formatDate, formatDateTime } from '../../../utils/dateUtils';
 import DateRangeFilter from '../../../shared/DateRangeFilter';
 import ImportVanInventory from './ImportVanInventory';
@@ -33,6 +34,7 @@ const VanInventories: React.FC = () => {
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
   const [userFilter, setUserFilter] = useState<number | undefined>(undefined);
+  const [depotFilter, setDepotFilter] = useState<number | undefined>(undefined);
   const [selectedVanInventory, setSelectedVanInventory] =
     useState<VanInventory | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -60,6 +62,7 @@ const VanInventories: React.FC = () => {
       loading_type:
         typeFilter === 'all' ? undefined : typeFilter === 'load' ? 'L' : 'U',
       user_id: userFilter,
+      depot_id: depotFilter,
       time_filter: timeFilter !== 'all' ? timeFilter : undefined,
       start_date:
         timeFilter === 'custom' && customDateRange.start
@@ -108,6 +111,11 @@ const VanInventories: React.FC = () => {
     setPage(1);
   }, []);
 
+  const handleDepotFilterChange = useCallback((_event: any, depot: any) => {
+    setDepotFilter(depot ? depot.id : undefined);
+    setPage(1);
+  }, []);
+
   const handleTypeFilterChange = useCallback((value: string) => {
     setTypeFilter(value);
     setPage(1);
@@ -120,6 +128,7 @@ const VanInventories: React.FC = () => {
       const filters = {
         search,
         user_id: userFilter,
+        depot_id: depotFilter,
         loading_type:
           typeFilter === 'all' ? undefined : typeFilter === 'load' ? 'L' : 'U',
         time_filter: timeFilter !== 'all' ? timeFilter : undefined,
@@ -144,6 +153,7 @@ const VanInventories: React.FC = () => {
     exportToExcelMutation,
     search,
     userFilter,
+    depotFilter,
     typeFilter,
     timeFilter,
     customDateRange,
@@ -401,6 +411,16 @@ const VanInventories: React.FC = () => {
                     <MenuItem value="load">Load</MenuItem>
                     <MenuItem value="unload">Unload</MenuItem>
                   </Select>
+                  <Box className="!w-48">
+                    <DepotSelect
+                      label=""
+                      placeholder="Select Depot"
+                      value={depotFilter}
+                      onChange={handleDepotFilterChange}
+                      fullWidth
+                      size="small"
+                    />
+                  </Box>
                   <Box className="!w-72">
                     <UserSelect
                       label=""

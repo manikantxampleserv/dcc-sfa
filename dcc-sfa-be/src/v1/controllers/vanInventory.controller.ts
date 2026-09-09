@@ -3409,6 +3409,7 @@ export const vanInventoryController = {
         status,
         loading_type,
         user_id,
+        depot_id,
         approval_status,
         time_filter,
         start_date,
@@ -3492,17 +3493,31 @@ export const vanInventoryController = {
 
       if (isScopeRestricted) {
         if (depotIds.length > 0) {
+          const selectedDepotId = depot_id ? parseInt(depot_id as string, 10) : null;
+          const allowedDepots = selectedDepotId && depotIds.includes(selectedDepotId) 
+             ? [selectedDepotId] 
+             : selectedDepotId ? [-1] : depotIds;
+
           filters.van_inventory_users = {
             ...filters.van_inventory_users,
             users_depots_users: {
               some: {
-                depot_id: { in: depotIds },
+                depot_id: { in: allowedDepots },
               },
             },
           };
         } else {
           filters.id = -1;
         }
+      } else if (depot_id) {
+        filters.van_inventory_users = {
+          ...filters.van_inventory_users,
+          users_depots_users: {
+            some: {
+              depot_id: parseInt(depot_id as string, 10),
+            },
+          },
+        };
       }
 
       const { data, pagination } = await paginate({

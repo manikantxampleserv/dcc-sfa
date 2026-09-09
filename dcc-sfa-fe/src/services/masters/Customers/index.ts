@@ -205,6 +205,7 @@ interface CustomerStats {
   wholesellers: number;
   total_credit_limit: string;
   total_outstanding_amount: string;
+  customers_visited_last_30_days: number;
 }
 
 /**

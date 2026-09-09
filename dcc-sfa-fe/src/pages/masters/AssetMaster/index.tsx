@@ -5,8 +5,11 @@ import {
   useDeleteAssetMaster,
   type AssetMaster,
 } from 'hooks/useAssetMaster';
+import { useDepots } from 'hooks/useDepots';
 import { useExportToExcel } from 'hooks/useImportExport';
 import { usePermission } from 'hooks/usePermission';
+import { useRoutes } from 'hooks/useRoutes';
+import { useZones } from 'hooks/useZones';
 import {
   Home,
   MapPin,
@@ -16,7 +19,7 @@ import {
   Tag,
   Wrench,
 } from 'lucide-react';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DeleteButton, EditButton, ViewButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
@@ -32,6 +35,9 @@ const AssetMasterManagement: React.FC = () => {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [depotFilter, setDepotFilter] = useState('all');
+  const [zoneFilter, setZoneFilter] = useState('all');
+  const [routeFilter, setRouteFilter] = useState('all');
   const [selectedAsset, setSelectedAsset] = useState<AssetMaster | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [importModalOpen, setImportModalOpen] = useState(false);
@@ -39,6 +45,29 @@ const AssetMasterManagement: React.FC = () => {
   const [limit] = useState(10);
   const { isCreate, isUpdate, isDelete, isRead } =
     usePermission('asset-master');
+
+  const { data: depotsResponse } = useDepots({ limit: 1000 });
+  const { data: zonesResponse } = useZones({ limit: 1000 });
+  const { data: routesResponse } = useRoutes({ limit: 1000 });
+
+  const depots = depotsResponse?.data || [];
+  const zones = zonesResponse?.data || [];
+  const routes = routesResponse?.data || [];
+
+  const filteredZones = useMemo(() => {
+    if (depotFilter === 'all') return zones;
+    return zones.filter(z => z.parent_id === Number(depotFilter));
+  }, [zones, depotFilter]);
+
+  const filteredRoutes = useMemo(() => {
+    if (zoneFilter !== 'all') {
+      return routes.filter(r => r.parent_id === Number(zoneFilter));
+    }
+    if (depotFilter !== 'all') {
+      return routes.filter(r => r.depot_id === Number(depotFilter));
+    }
+    return routes;
+  }, [routes, zoneFilter, depotFilter]);
 
   const {
     data: assetMasterResponse,
@@ -50,6 +79,9 @@ const AssetMasterManagement: React.FC = () => {
       page,
       limit,
       status: statusFilter === 'all' ? undefined : statusFilter,
+      depot_id: depotFilter === 'all' ? undefined : Number(depotFilter),
+      zone_id: zoneFilter === 'all' ? undefined : Number(zoneFilter),
+      route_id: routeFilter === 'all' ? undefined : Number(routeFilter),
     },
     {
       enabled: isRead,
@@ -110,8 +142,10 @@ const AssetMasterManagement: React.FC = () => {
       const filters = {
         search,
         status: statusFilter === 'all' ? undefined : statusFilter,
+        depot_id: depotFilter === 'all' ? undefined : Number(depotFilter),
+        zone_id: zoneFilter === 'all' ? undefined : Number(zoneFilter),
+        route_id: routeFilter === 'all' ? undefined : Number(routeFilter),
       };
-
       await exportToExcelMutation.mutateAsync({
         tableName: 'asset_master',
         filters,
@@ -119,7 +153,14 @@ const AssetMasterManagement: React.FC = () => {
     } catch (error) {
       console.error('Error exporting assets:', error);
     }
-  }, [exportToExcelMutation, search, statusFilter]);
+  }, [
+    exportToExcelMutation,
+    search,
+    statusFilter,
+    depotFilter,
+    zoneFilter,
+    routeFilter,
+  ]);
 
   const getStatusColor = (
     status: string
@@ -357,16 +398,67 @@ const AssetMasterManagement: React.FC = () => {
                       onChange={handleSearchChange}
                       debounceMs={400}
                       showClear={true}
-                      className="!w-80"
+                      className="!w-64"
                     />
                     <Select
                       value={statusFilter}
-                      onChange={e => setStatusFilter(e.target.value)}
+                      onChange={e => {
+                        setStatusFilter(e.target.value);
+                        setPage(1);
+                      }}
                       disableClearable
                     >
                       <MenuItem value="all">All Status</MenuItem>
                       <MenuItem value="active">Active</MenuItem>
                       <MenuItem value="inactive">Inactive</MenuItem>
+                    </Select>
+                    <Select
+                      value={depotFilter}
+                      onChange={e => {
+                        setDepotFilter(e.target.value);
+                        setZoneFilter('all');
+                        setRouteFilter('all');
+                        setPage(1);
+                      }}
+                      disableClearable
+                    >
+                      <MenuItem value="all">All Depots</MenuItem>
+                      {depots.map(depot => (
+                        <MenuItem key={depot.id} value={depot.id.toString()}>
+                          {depot.name}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                    <Select
+                      value={zoneFilter}
+                      onChange={e => {
+                        setZoneFilter(e.target.value);
+                        setRouteFilter('all');
+                        setPage(1);
+                      }}
+                      disableClearable
+                    >
+                      <MenuItem value="all">All Zones</MenuItem>
+                      {filteredZones.map(zone => (
+                        <MenuItem key={zone.id} value={zone.id.toString()}>
+                          {zone.name}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                    <Select
+                      value={routeFilter}
+                      onChange={e => {
+                        setRouteFilter(e.target.value);
+                        setPage(1);
+                      }}
+                      disableClearable
+                    >
+                      <MenuItem value="all">All Routes</MenuItem>
+                      {filteredRoutes.map(route => (
+                        <MenuItem key={route.id} value={route.id.toString()}>
+                          {route.name}
+                        </MenuItem>
+                      ))}
                     </Select>
                   </>
                 )}

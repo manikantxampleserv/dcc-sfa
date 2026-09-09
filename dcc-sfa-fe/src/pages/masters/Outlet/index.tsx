@@ -8,14 +8,10 @@ import { useDepots } from 'hooks/useDepots';
 import { useDistricts } from 'hooks/useDistrict';
 import { usePermission } from 'hooks/usePermission';
 import { useRegions } from 'hooks/useRegion';
+import { useRoutes } from 'hooks/useRoutes';
 import { useSettings } from 'hooks/useSettings';
-import {
-  AlertCircle,
-  CreditCard,
-  MapPin,
-  Store,
-  UserCheck,
-} from 'lucide-react';
+import { useZones } from 'hooks/useZones';
+import { Calendar, MapPin, Store, UserCheck, UserX } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DeleteButton, EditButton } from 'shared/ActionButton';
@@ -44,6 +40,8 @@ const OutletsManagement: React.FC = () => {
   const [customerTypeFilter, setCustomerTypeFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [channelFilter, setChannelFilter] = useState('all');
+  const [zoneFilter, setZoneFilter] = useState('all');
+  const [routeFilter, setRouteFilter] = useState('all');
   const [selectedOutlet, setSelectedOutlet] = useState<Customer | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [importDrawerOpen, setImportDrawerOpen] = useState(false);
@@ -59,6 +57,8 @@ const OutletsManagement: React.FC = () => {
   const { data: channelsResponse } = useCustomerChannels({ limit: 1000 });
   const { data: regionsResponse } = useRegions({ limit: 1000 });
   const { data: districtsResponse } = useDistricts({ limit: 1000 });
+  const { data: zonesResponse } = useZones({ limit: 1000 });
+  const { data: routesResponse } = useRoutes({ limit: 1000 });
 
   const settings = settingsResponse?.data;
   const defaultCurrencyId = settings?.currency_id || '';
@@ -68,6 +68,8 @@ const OutletsManagement: React.FC = () => {
   const channels = channelsResponse?.data || [];
   const regions = regionsResponse?.data || [];
   const districts = districtsResponse?.data || [];
+  const zones = zonesResponse?.data || [];
+  const routes = routesResponse?.data || [];
 
   const {
     data: customersResponse,
@@ -88,6 +90,8 @@ const OutletsManagement: React.FC = () => {
         categoryFilter === 'all' ? undefined : Number(categoryFilter),
       customer_channel_id:
         channelFilter === 'all' ? undefined : Number(channelFilter),
+      zones_id: zoneFilter === 'all' ? undefined : Number(zoneFilter),
+      route_id: routeFilter === 'all' ? undefined : Number(routeFilter),
     },
     {
       enabled: isRead,
@@ -103,11 +107,14 @@ const OutletsManagement: React.FC = () => {
 
   const totalCustomers = customersResponse?.stats?.total_customers ?? 0;
   const activeCustomers = customersResponse?.stats?.active_customers ?? 0;
+  const inactiveCustomers = customersResponse?.stats?.inactive_customers ?? 0;
 
-  const totalCreditLimit = customersResponse?.stats?.total_credit_limit ?? 0;
-
-  const totalOutstanding =
-    customersResponse?.stats?.total_outstanding_amount ?? 0;
+  const customersVisited =
+    customersResponse?.stats?.customers_visited_last_30_days ?? 0;
+  const visitPercentage =
+    totalCustomers > 0
+      ? ((customersVisited / totalCustomers) * 100).toFixed(1)
+      : '0';
 
   const handleCreateOutlet = useCallback(() => {
     setSelectedOutlet(null);
@@ -149,6 +156,8 @@ const OutletsManagement: React.FC = () => {
           categoryFilter === 'all' ? undefined : Number(categoryFilter),
         customer_channel_id:
           channelFilter === 'all' ? undefined : Number(channelFilter),
+        zones_id: zoneFilter === 'all' ? undefined : Number(zoneFilter),
+        route_id: routeFilter === 'all' ? undefined : Number(routeFilter),
       };
 
       await exportToExcelMutation.mutateAsync({
@@ -437,23 +446,17 @@ const OutletsManagement: React.FC = () => {
           isLoading={isFetching}
         />
         <StatsCard
-          title="Total Credit Limit"
-          value={formatCurrency(totalCreditLimit.toString()).replaceAll(
-            '.00',
-            ''
-          )}
-          icon={<CreditCard className="w-6 h-6" />}
-          color="purple"
+          title="Inactive Outlets"
+          value={inactiveCustomers}
+          icon={<UserX className="w-6 h-6" />}
+          color="red"
           isLoading={isFetching}
         />
         <StatsCard
-          title="Outstanding Amount"
-          value={formatCurrency(totalOutstanding.toString()).replaceAll(
-            '.00',
-            ''
-          )}
-          icon={<AlertCircle className="w-6 h-6" />}
-          color="red"
+          title="Visited (Last 30 Days)"
+          value={`${visitPercentage}%`}
+          icon={<Calendar className="w-6 h-6" />}
+          color="purple"
           isLoading={isFetching}
         />
       </div>
@@ -465,7 +468,7 @@ const OutletsManagement: React.FC = () => {
       )}
 
       {isRead && (
-        <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 mb-4 grid grid-cols-1 md:grid-cols-6 items-center gap-3">
+        <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 mb-4 grid grid-cols-1 md:grid-cols-4 items-center gap-3">
           <Select
             value={depotFilter}
             onChange={e => setDepotFilter(e.target.value)}
@@ -541,6 +544,32 @@ const OutletsManagement: React.FC = () => {
             {districts.map(district => (
               <MenuItem key={district.id} value={district.id.toString()}>
                 {district.name}
+              </MenuItem>
+            ))}
+          </Select>
+          <Select
+            value={zoneFilter}
+            onChange={e => setZoneFilter(e.target.value)}
+            size="small"
+            disableClearable
+          >
+            <MenuItem value="all">All Zones</MenuItem>
+            {zones.map(zone => (
+              <MenuItem key={zone.id} value={zone.id.toString()}>
+                {zone.name}
+              </MenuItem>
+            ))}
+          </Select>
+          <Select
+            value={routeFilter}
+            onChange={e => setRouteFilter(e.target.value)}
+            size="small"
+            disableClearable
+          >
+            <MenuItem value="all">All Routes</MenuItem>
+            {routes.map(route => (
+              <MenuItem key={route.id} value={route.id.toString()}>
+                {route.name}
               </MenuItem>
             ))}
           </Select>

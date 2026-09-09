@@ -124,12 +124,24 @@ const ManageZone: React.FC<ManageZoneProps> = ({
               disabled={supervisorsLoading}
               required
             >
-              {supervisors.map(supervisor => (
-                <MenuItem key={supervisor.id} value={supervisor.id.toString()}>
-                  {supervisor.name}{' '}
-                  {supervisor.employee_id && `(${supervisor.employee_id})`}
-                </MenuItem>
-              ))}
+              {supervisors
+                .filter(supervisor => {
+                  if (!formik.values.parent_id) return true;
+                  return (
+                    supervisor.users_depots_users?.some(
+                      (d: any) => d.depot_id === Number(formik.values.parent_id)
+                    ) ?? false
+                  );
+                })
+                .map(supervisor => (
+                  <MenuItem
+                    key={supervisor.id}
+                    value={supervisor.id.toString()}
+                  >
+                    {supervisor.name}{' '}
+                    {supervisor.employee_id && `(${supervisor.employee_id})`}
+                  </MenuItem>
+                ))}
             </Select>
 
             <ActiveInactiveField

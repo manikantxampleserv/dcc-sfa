@@ -31,7 +31,6 @@ import {
 import {
   Calendar,
   DollarSign,
-  Fingerprint,
   Layers,
   Package,
   Receipt,
@@ -63,37 +62,41 @@ const StatsCardsSkeleton = () => (
     {Array.from({ length: 4 }).map((_, idx) => (
       <div
         key={idx}
-        className="bg-white shadow-sm rounded-lg border border-gray-100 p-6 flex flex-col gap-4"
+        className="bg-white shadow-sm rounded-lg border border-gray-200 p-6"
       >
-        <div className="flex items-center gap-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <Skeleton variant="text" width={100} height={20} className="mb-2" />
+            <Skeleton variant="text" width={60} height={32} />
+          </div>
           <Skeleton variant="circular" width={40} height={40} />
-          <Skeleton variant="rectangular" width={100} height={24} />
         </div>
-        <Skeleton variant="rectangular" width={60} height={28} />
       </div>
     ))}
   </div>
 );
 
 const SalespersonCardSkeleton = () => (
-  <div className="bg-white mb-5 shadow-sm rounded-lg border border-gray-100 p-6">
-    <div className="flex items-start gap-6">
+  <div className="bg-white mb-5 shadow-sm rounded-lg border border-gray-100 p-4">
+    <div className="flex items-center gap-6">
       <Skeleton variant="circular" width={80} height={80} />
       <div className="flex-1">
-        <div className="flex items-start gap-4 mb-4 justify-between">
+        <div className="flex items-start gap-2 mb-2 justify-between">
           <div>
-            <Skeleton variant="text" width={180} height={28} />
-            <Skeleton variant="text" width={120} height={20} />
-          </div>
-          <Skeleton variant="rectangular" width={64} height={28} />
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="flex items-center gap-2">
-              <Skeleton variant="circular" width={20} height={20} />
-              <Skeleton variant="text" width={90} height={18} />
+            <Skeleton variant="text" width={200} height={32} className="mb-1" />
+            <Skeleton variant="text" width={120} height={20} className="mb-2" />
+            <div className="flex flex-wrap gap-2">
+              <Skeleton variant="text" width={80} height={16} />
+              <Skeleton variant="text" width={80} height={16} />
+              <Skeleton variant="text" width={120} height={16} />
             </div>
-          ))}
+          </div>
+          <Skeleton
+            variant="rectangular"
+            width={64}
+            height={24}
+            sx={{ borderRadius: '16px' }}
+          />
         </div>
       </div>
     </div>
@@ -102,59 +105,12 @@ const SalespersonCardSkeleton = () => (
 
 const TabsSkeleton = () => (
   <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 1 }}>
-    <div className="flex gap-2 pb-1">
+    <div className="flex gap-4 px-4 pb-1">
       {Array.from({ length: 6 }).map((_, i) => (
-        <Skeleton
-          key={i}
-          variant="rectangular"
-          width={120}
-          height={40}
-          sx={{ borderRadius: 2 }}
-        />
+        <Skeleton key={i} variant="text" width={100} height={48} />
       ))}
     </div>
   </Box>
-);
-
-const ProductsTabSkeleton = () => (
-  <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5">
-    {Array.from({ length: 6 }).map((_, idx) => (
-      <div
-        key={idx}
-        className="bg-white shadow-sm rounded-lg border border-gray-100 p-4 flex flex-col"
-      >
-        <div className="flex items-start justify-between mb-4 pb-0">
-          <div className="flex items-center gap-3">
-            <Skeleton variant="circular" width={40} height={40} />
-            <div>
-              <Skeleton variant="text" width={90} height={18} />
-              <Skeleton variant="text" width={54} height={14} />
-            </div>
-          </div>
-          <Skeleton
-            variant="rectangular"
-            width={64}
-            height={24}
-            sx={{ borderRadius: 16 }}
-          />
-        </div>
-        <div className="space-y-1 pb-3 px-2">
-          {Array.from({ length: 5 }).map((_, j) => (
-            <div className="flex items-center justify-between my-1" key={j}>
-              <Skeleton variant="text" width={100} height={17} />
-              <Skeleton variant="text" width={32} height={17} />
-            </div>
-          ))}
-        </div>
-        <Skeleton
-          variant="rectangular"
-          width="90%"
-          height={18}
-          sx={{ mx: 2, my: 1, borderRadius: 2 }}
-        />
-      </div>
-    ))}
-  </div>
 );
 
 const TableSkeleton = ({
@@ -1173,7 +1129,7 @@ const InventoryDetail = () => {
           <SalespersonCardSkeleton />
           <StatsCardsSkeleton />
           <TabsSkeleton />
-          {tabValue === 0 && <ProductsTabSkeleton />}
+          {tabValue === 0 && <TableSkeleton columns={5} rows={7} />}
           {tabValue === 1 && <TableSkeleton columns={7} rows={7} />}
           {tabValue === 2 && <TableSkeleton columns={5} rows={7} />}
           {tabValue === 3 && <TableSkeleton columns={7} rows={7} />}
@@ -1316,9 +1272,9 @@ const InventoryDetail = () => {
           color="purple"
         />
         <StatsCard
-          title="Total Serials"
-          value={salespersonData?.total_serials || 0}
-          icon={<Fingerprint className="w-6 h-6" />}
+          title="Today's Invoices"
+          value={salespersonData?.today_invoices || 0}
+          icon={<Receipt className="w-6 h-6" />}
           color="orange"
         />
       </div>
@@ -1415,10 +1371,7 @@ const InventoryDetail = () => {
                   >
                     Loaded Inventory
                   </Typography>
-                  <Typography
-                    variant="h5"
-                    className="text-gray-900 font-black mt-0.5"
-                  >
+                  <Typography className="text-gray-900 !text-xl font-black mt-0.5">
                     {formatQuantityAndBase(totalQtyLoaded, totalBaseQtyLoaded)}
                   </Typography>
                 </div>
@@ -1446,10 +1399,7 @@ const InventoryDetail = () => {
                   >
                     Unloaded Inventory
                   </Typography>
-                  <Typography
-                    variant="h5" // Increased from h6 to h5 to match LOAD card
-                    className="text-gray-900 font-black mt-0.5"
-                  >
+                  <Typography className="text-gray-900 !text-xl font-black mt-0.5">
                     {formatQuantityAndBase(
                       totalQtyUnloaded,
                       totalBaseQtyUnloaded
@@ -1480,10 +1430,7 @@ const InventoryDetail = () => {
                   >
                     Generated Sales
                   </Typography>
-                  <Typography
-                    variant="h6"
-                    className="text-gray-900 font-black mt-0.5"
-                  >
+                  <Typography className="text-gray-900 !text-xl font-black mt-0.5">
                     {formatCompactCurrency(totalRevenue)}
                   </Typography>
                 </div>
@@ -1515,10 +1462,7 @@ const InventoryDetail = () => {
                   >
                     Current Hand Stock
                   </Typography>
-                  <Typography
-                    variant="h6"
-                    className="text-gray-900 font-black mt-0.5"
-                  >
+                  <Typography className="text-gray-900 !text-xl font-black mt-0.5">
                     {formatQuantityAndBase(
                       salespersonData?.total_remaining_quantity,
                       salespersonData?.total_remaining_base_quantity

@@ -385,6 +385,9 @@ export const assetMasterController = {
         search,
         status,
         depot_id,
+        zone_id,
+        zones_id,
+        route_id,
         outlet_id,
         only_available,
       } = req.query;
@@ -408,8 +411,10 @@ export const assetMasterController = {
           .filter((id: any) => id !== null) as number[];
       }
 
-      const filters: any = {
-        ...(search && {
+      const andConditions: any[] = [];
+
+      if (search) {
+        andConditions.push({
           OR: [
             { name: { contains: searchLower } },
             { code: { contains: searchLower } },
@@ -420,21 +425,74 @@ export const assetMasterController = {
             { current_status: { contains: searchLower } },
             { assigned_to: { contains: searchLower } },
           ],
-        }),
-        ...(statusLower === 'active' && { is_active: 'Y' }),
-        ...(statusLower === 'inactive' && { is_active: 'N' }),
-        ...(depot_id && { depot_id: parseInt(depot_id as string, 10) }),
-        ...(outlet_id && { outlet_id: parseInt(outlet_id as string, 10) }),
-        ...(only_available === 'true' && { outlet_id: null }),
-      };
+        });
+      }
+
+      if (statusLower === 'active') andConditions.push({ is_active: 'Y' });
+      if (statusLower === 'inactive') andConditions.push({ is_active: 'N' });
+      if (outlet_id)
+        andConditions.push({ outlet_id: parseInt(outlet_id as string, 10) });
+      if (only_available === 'true') andConditions.push({ outlet_id: null });
 
       if (isScopeRestricted) {
         if (depotIds.length > 0) {
-          filters.depot_id = { in: depotIds };
+          if (depot_id) {
+            const parsedDepotId = parseInt(depot_id as string, 10);
+            if (depotIds.includes(parsedDepotId)) {
+              andConditions.push({
+                OR: [
+                  { depot_id: parsedDepotId },
+                  { asset_master_outlet: { depot_id: parsedDepotId } },
+                ],
+              });
+            } else {
+              andConditions.push({ id: -1 });
+            }
+          } else {
+            andConditions.push({
+              OR: [
+                { depot_id: { in: depotIds } },
+                { asset_master_outlet: { depot_id: { in: depotIds } } },
+              ],
+            });
+          }
         } else {
-          filters.id = -1;
+          andConditions.push({ id: -1 });
         }
+      } else if (depot_id) {
+        const parsedDepotId = parseInt(depot_id as string, 10);
+        andConditions.push({
+          OR: [
+            { depot_id: parsedDepotId },
+            { asset_master_outlet: { depot_id: parsedDepotId } },
+          ],
+        });
       }
+
+      const parsedZoneId = zone_id
+        ? parseInt(zone_id as string, 10)
+        : zones_id
+          ? parseInt(zones_id as string, 10)
+          : undefined;
+      if (parsedZoneId) {
+        andConditions.push({
+          asset_master_outlet: {
+            zones_id: parsedZoneId,
+          },
+        });
+      }
+
+      if (route_id) {
+        const parsedRouteId = parseInt(route_id as string, 10);
+        andConditions.push({
+          asset_master_outlet: {
+            route_id: parsedRouteId,
+          },
+        });
+      }
+
+      const filters: any =
+        andConditions.length > 0 ? { AND: andConditions } : {};
 
       const { data, pagination } = await paginate({
         model: prisma.asset_master,
@@ -494,12 +552,24 @@ export const assetMasterController = {
         },
       });
 
-      const totalAssets = await prisma.asset_master.count();
+      const statsAndConditions = andConditions.filter((c: any) => !c.is_active);
+      const statsFilter: any =
+        statsAndConditions.length > 0 ? { AND: statsAndConditions } : {};
+
+      const totalAssets = await prisma.asset_master.count({
+        where: statsFilter,
+      });
       const activeAssets = await prisma.asset_master.count({
-        where: { is_active: 'Y' },
+        where: {
+          ...statsFilter,
+          is_active: 'Y',
+        },
       });
       const inactiveAssets = await prisma.asset_master.count({
-        where: { is_active: 'N' },
+        where: {
+          ...statsFilter,
+          is_active: 'N',
+        },
       });
 
       const now = new Date();
@@ -507,6 +577,7 @@ export const assetMasterController = {
       const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
       const assetsThisMonth = await prisma.asset_master.count({
         where: {
+          ...statsFilter,
           createdate: {
             gte: startOfMonth,
             lte: endOfMonth,

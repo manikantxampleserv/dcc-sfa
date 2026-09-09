@@ -130,6 +130,7 @@ interface GetVanInventoryParams {
   status?: string;
   loading_type?: string;
   user_id?: number;
+  depot_id?: number;
   product_id?: number;
   vehicle_id?: number;
   location_type?: string;

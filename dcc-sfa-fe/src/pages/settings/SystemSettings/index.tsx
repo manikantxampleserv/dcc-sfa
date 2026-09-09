@@ -1,4 +1,10 @@
 import {
+  Business,
+  CheckCircleOutlined,
+  Close,
+  Upload,
+} from '@mui/icons-material';
+import {
   Avatar,
   Box,
   Divider,
@@ -10,13 +16,7 @@ import {
 import { useFormik } from 'formik';
 import { useCurrencies } from 'hooks/useCurrencies';
 import { useSettings, useUpdateSettings } from 'hooks/useSettings';
-import {
-  Building2,
-  CheckCircle,
-  Settings as SettingsIcon,
-  Upload,
-  X,
-} from 'lucide-react';
+import { Settings as SettingsIcon } from 'lucide-react';
 import React, { useState } from 'react';
 import Button from 'shared/Button';
 import Input from 'shared/Input';
@@ -250,168 +250,168 @@ const SystemSettings: React.FC = () => {
       </Box>
 
       <Box component="form" onSubmit={formik.handleSubmit}>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
-          <Box className="flex items-center gap-2 mb-4">
-            <Building2 className="w-5 h-5 text-primary-600" />
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+          <Box className="flex items-center gap-2 p-3">
+            <Business className="!w-5 !h-5 !text-primary-600" />
             <Typography variant="h6" className="!font-semibold !text-gray-900">
               Company Information
             </Typography>
           </Box>
-          <Divider className="!mb-6" />
-
-          <Box className="mb-6">
-            <Typography
-              variant="body2"
-              className="!font-medium !text-gray-700 !mb-4"
-            >
-              Company Logo
-            </Typography>
-            <Box className="flex items-center gap-4">
-              <Avatar
-                src={logoPreview || settings.logo || undefined}
-                alt={settings.name}
-                className="!w-24 !h-24 !bg-primary-100"
+          <Divider />
+          <div className="p-4">
+            <Box className="mb-6">
+              <Typography
+                variant="body2"
+                className="!font-medium !text-gray-700 !mb-4"
               >
-                <Building2 className="w-12 h-12 text-primary-600" />
-              </Avatar>
-              <Box>
-                <input
-                  id="logo-upload"
-                  type="file"
-                  accept="image/*"
-                  style={{ display: 'none' }}
-                  onChange={handleFileUpload}
-                />
-                <label htmlFor="logo-upload">
-                  <Button
-                    variant="outlined"
-                    component="span"
-                    startIcon={<Upload className="w-4 h-4" />}
-                    size="small"
-                  >
-                    {uploadedFile ? 'Change Logo' : 'Upload Logo'}
-                  </Button>
-                </label>
-                {uploadedFile && (
-                  <IconButton
-                    size="small"
-                    onClick={removeUploadedFile}
-                    className="!ml-2"
-                  >
-                    <X className="w-4 h-4" />
-                  </IconButton>
-                )}
-                <Typography
-                  variant="caption"
-                  className="!block !mt-2 !text-gray-500"
+                Company Logo
+              </Typography>
+              <Box className="flex items-center gap-4">
+                <Avatar
+                  src={logoPreview || settings.logo || undefined}
+                  alt={settings.name}
+                  className="!w-24 !h-24 !rounded-lg !bg-primary-100"
                 >
-                  JPG, PNG or GIF. Max size of 10MB
-                </Typography>
+                  <Business className="!w-12 !h-12 !text-primary-600" />
+                </Avatar>
+                <Box>
+                  <input
+                    id="logo-upload"
+                    type="file"
+                    accept="image/*"
+                    style={{ display: 'none' }}
+                    onChange={handleFileUpload}
+                  />
+                  <label htmlFor="logo-upload">
+                    <Button
+                      variant="outlined"
+                      component="span"
+                      startIcon={<Upload className="!w-4 !h-4" />}
+                      size="small"
+                    >
+                      {uploadedFile ? 'Change Logo' : 'Upload Logo'}
+                    </Button>
+                  </label>
+                  {uploadedFile && (
+                    <IconButton
+                      size="small"
+                      onClick={removeUploadedFile}
+                      className="!ml-2"
+                    >
+                      <Close className="!w-4 !h-4" />
+                    </IconButton>
+                  )}
+                  <Typography
+                    variant="caption"
+                    className="!block !mt-2 !text-gray-500"
+                  >
+                    JPG, PNG or GIF. Max size of 10MB
+                  </Typography>
+                </Box>
               </Box>
             </Box>
-          </Box>
+            <Box className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Input
+                name="name"
+                formik={formik}
+                label="Company Name"
+                placeholder="Enter company name"
+                required
+                fullWidth
+              />
+              <Input
+                name="code"
+                label="Company Code"
+                value={settings.code}
+                disabled
+                fullWidth
+              />
+              <Input
+                name="address"
+                formik={formik}
+                label="Address"
+                placeholder="Enter address"
+                fullWidth
+                className="md:col-span-2"
+              />
+              <Input
+                name="city"
+                formik={formik}
+                label="City"
+                placeholder="Enter city"
+                fullWidth
+              />
+              <Input
+                name="state"
+                formik={formik}
+                label="State"
+                placeholder="Enter state"
+                fullWidth
+              />
+              <Input
+                name="country"
+                formik={formik}
+                label="Country"
+                placeholder="Enter country"
+                fullWidth
+              />
+              <Input
+                name="zipcode"
+                formik={formik}
+                label="Zip Code"
+                placeholder="Enter zip code"
+                fullWidth
+              />
+              <Input
+                name="phone_number"
+                formik={formik}
+                label="Phone Number"
+                placeholder="Enter phone number"
+                fullWidth
+              />
+              <Input
+                name="email"
+                formik={formik}
+                label="Email"
+                placeholder="Enter email address"
+                type="email"
+                fullWidth
+              />
+              <Input
+                name="website"
+                formik={formik}
+                label="Website"
+                placeholder="https://example.com"
+                fullWidth
+              />
 
-          <Box className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Input
-              name="name"
-              formik={formik}
-              label="Company Name"
-              placeholder="Enter company name"
-              required
-              fullWidth
-            />
-            <Input
-              name="code"
-              label="Company Code"
-              value={settings.code}
-              disabled
-              fullWidth
-            />
-            <Input
-              name="address"
-              formik={formik}
-              label="Address"
-              placeholder="Enter address"
-              fullWidth
-              className="md:col-span-2"
-            />
-            <Input
-              name="city"
-              formik={formik}
-              label="City"
-              placeholder="Enter city"
-              fullWidth
-            />
-            <Input
-              name="state"
-              formik={formik}
-              label="State"
-              placeholder="Enter state"
-              fullWidth
-            />
-            <Input
-              name="country"
-              formik={formik}
-              label="Country"
-              placeholder="Enter country"
-              fullWidth
-            />
-            <Input
-              name="zipcode"
-              formik={formik}
-              label="Zip Code"
-              placeholder="Enter zip code"
-              fullWidth
-            />
-            <Input
-              name="phone_number"
-              formik={formik}
-              label="Phone Number"
-              placeholder="Enter phone number"
-              fullWidth
-            />
-            <Input
-              name="email"
-              formik={formik}
-              label="Email"
-              placeholder="Enter email address"
-              type="email"
-              fullWidth
-            />
-            <Input
-              name="website"
-              formik={formik}
-              label="Website"
-              placeholder="https://example.com"
-              fullWidth
-            />
-
-            <Select
-              name="currency_id"
-              formik={formik}
-              label="Currency"
-              fullWidth
-            >
-              <MenuItem value="">Select Currency</MenuItem>
-              {currencies.map(currency => (
-                <MenuItem key={currency.id} value={currency.id}>
-                  {currency.code} - {currency.name}
-                </MenuItem>
-              ))}
-            </Select>
-          </Box>
+              <Select
+                name="currency_id"
+                formik={formik}
+                label="Currency"
+                fullWidth
+              >
+                <MenuItem value="">Select Currency</MenuItem>
+                {currencies.map(currency => (
+                  <MenuItem key={currency.id} value={currency.id}>
+                    {currency.code} - {currency.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </Box>
+          </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
-          <Box className="flex items-center gap-2 mb-4">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+          <Box className="flex items-center p-3 gap-2">
             <SettingsIcon className="w-5 h-5 text-primary-600" />
             <Typography variant="h6" className="!font-semibold !text-gray-900">
               SMTP Configuration
             </Typography>
           </Box>
-          <Divider className="!mb-6" />
+          <Divider />
 
-          <Box className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Box className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
             <Input
               name="smtp_mail_from_name"
               formik={formik}
@@ -461,16 +461,16 @@ const SystemSettings: React.FC = () => {
           </Box>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
-          <Box className="flex items-center gap-2 mb-4">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+          <Box className="flex items-center p-3 gap-2">
             <SettingsIcon className="w-5 h-5 text-primary-600" />
             <Typography variant="h6" className="!font-semibold !text-gray-900">
               Background Jobs
             </Typography>
           </Box>
-          <Divider className="!mb-6" />
+          <Divider />
 
-          <Box className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Box className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
             <Select
               name="customer_grading_cron_time"
               formik={formik}
@@ -503,7 +503,7 @@ const SystemSettings: React.FC = () => {
             type="submit"
             variant="contained"
             loading={updateSettingsMutation.isPending}
-            startIcon={<CheckCircle className="w-4 h-4" />}
+            startIcon={<CheckCircleOutlined />}
           >
             Save Settings
           </Button>
