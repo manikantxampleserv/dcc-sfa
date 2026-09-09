@@ -388,6 +388,11 @@ exports.zonesController = {
                     name: true,
                     email: true,
                     employee_id: true,
+                    users_depots_users: {
+                        select: {
+                            depot_id: true,
+                        },
+                    },
                 },
                 orderBy: {
                     name: 'asc',

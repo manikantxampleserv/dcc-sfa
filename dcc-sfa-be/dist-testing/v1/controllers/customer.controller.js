@@ -1714,6 +1714,16 @@ exports.customerController = {
                     ...statsFilter,
                 },
             });
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+            const customersVisitedLast30Days = await prisma_client_1.default.customers.count({
+                where: {
+                    last_visit_date: {
+                        gte: thirtyDaysAgo,
+                    },
+                    ...statsFilter,
+                },
+            });
             const defaultOutletIdSet = new Set(defaultOutletIds);
             const serializedData = await Promise.all(mergedData.map((c) => serializeCustomer(c, defaultOutletIdSet)));
             res.success('Customers retrieved successfully', serializedData, 200, pagination, {
@@ -1726,6 +1736,7 @@ exports.customerController = {
                 wholesaler: wholesellers,
                 total_credit_limit: totalCreditLimit,
                 total_outstanding_amount: totalOutstandingAmount,
+                customers_visited_last_30_days: customersVisitedLast30Days,
             });
         }
         catch (error) {

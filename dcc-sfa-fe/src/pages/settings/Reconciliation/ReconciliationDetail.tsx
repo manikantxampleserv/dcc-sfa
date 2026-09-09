@@ -751,7 +751,7 @@ export default function ReconciliationDetail() {
           emptyMessage="No items found for this reconciliation."
         />
 
-        {subCategoryTotals.length > 0 && (
+        {!!subCategoryTotals.length && !isFetching && (
           <div className="bg-white rounded-b-md shadow border border-gray-200 overflow-hidden">
             <div className="bg-gray-200 text-gray-800 px-4 py-2 font-bold text-sm tracking-wider uppercase">
               Subtotals by Sub-Category

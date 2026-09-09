@@ -2546,7 +2546,7 @@ exports.vanInventoryController = {
      */
     async getAllVanInventory(req, res) {
         try {
-            const { page, limit, search, status, loading_type, user_id, approval_status, time_filter, start_date, end_date, } = req.query;
+            const { page, limit, search, status, loading_type, user_id, depot_id, approval_status, time_filter, start_date, end_date, } = req.query;
             const pageNum = parseInt(page, 10) || 1;
             const limitNum = parseInt(limit, 10) || 10;
             const searchLower = search ? search.toLowerCase() : '';
@@ -2620,11 +2620,19 @@ exports.vanInventoryController = {
             }
             if (isScopeRestricted) {
                 if (depotIds.length > 0) {
+                    const selectedDepotId = depot_id
+                        ? parseInt(depot_id, 10)
+                        : null;
+                    const allowedDepots = selectedDepotId && depotIds.includes(selectedDepotId)
+                        ? [selectedDepotId]
+                        : selectedDepotId
+                            ? [-1]
+                            : depotIds;
                     filters.van_inventory_users = {
                         ...filters.van_inventory_users,
                         users_depots_users: {
                             some: {
-                                depot_id: { in: depotIds },
+                                depot_id: { in: allowedDepots },
                             },
                         },
                     };
@@ -2632,6 +2640,16 @@ exports.vanInventoryController = {
                 else {
                     filters.id = -1;
                 }
+            }
+            else if (depot_id) {
+                filters.van_inventory_users = {
+                    ...filters.van_inventory_users,
+                    users_depots_users: {
+                        some: {
+                            depot_id: parseInt(depot_id, 10),
+                        },
+                    },
+                };
             }
             const { data, pagination } = await (0, paginate_1.paginate)({
                 model: prisma_client_1.default.van_inventory,
@@ -3663,10 +3681,7 @@ exports.vanInventoryController = {
                     OR: [
                         { document_date: tf },
                         {
-                            AND: [
-                                { document_date: null },
-                                { createdate: tf },
-                            ],
+                            AND: [{ document_date: null }, { createdate: tf }],
                         },
                     ],
                 };
@@ -3691,10 +3706,7 @@ exports.vanInventoryController = {
                     OR: [
                         { document_date: dayRange },
                         {
-                            AND: [
-                                { document_date: null },
-                                { createdate: dayRange },
-                            ],
+                            AND: [{ document_date: null }, { createdate: dayRange }],
                         },
                     ],
                 };
@@ -4316,10 +4328,7 @@ exports.vanInventoryController = {
                     OR: [
                         { document_date: tf },
                         {
-                            AND: [
-                                { document_date: null },
-                                { createdate: tf },
-                            ],
+                            AND: [{ document_date: null }, { createdate: tf }],
                         },
                     ],
                 };
@@ -4344,10 +4353,7 @@ exports.vanInventoryController = {
                     OR: [
                         { document_date: dayRange },
                         {
-                            AND: [
-                                { document_date: null },
-                                { createdate: dayRange },
-                            ],
+                            AND: [{ document_date: null }, { createdate: dayRange }],
                         },
                     ],
                 };
@@ -4848,7 +4854,7 @@ exports.vanInventoryController = {
      * @param req
      * @param res
      */
-    //Stable unload
+    // Stable
     // async unloadVanInventory(req: Request, res: Response) {
     //   try {
     //     const loggedInUserId = (req as any).user?.id;
@@ -5219,16 +5225,77 @@ exports.vanInventoryController = {
     //             },
     //           });
     //           const toCreate: any[] = [];
-    //           const assignedSaleProducts = new Set<number>();
+    //           const totalLoadBaseByProduct = new Map<number, number>();
     //           for (const p of productMap.values()) {
+    //             const loadKey = `${p.product_id}-${p.batch_number || ''}`;
+    //             const load = loadQtyMap.get(loadKey) || { qty: 0, baseQty: 0 };
+    //             const loadBaseUnits =
+    //               p.convRate > 0
+    //                 ? load.qty * p.convRate + load.baseQty
+    //                 : load.qty;
+    //             totalLoadBaseByProduct.set(
+    //               p.product_id,
+    //               (totalLoadBaseByProduct.get(p.product_id) || 0) + loadBaseUnits
+    //             );
+    //           }
+    //           const assignedSaleBaseByProduct = new Map<number, number>();
+    //           const lastBatchKeyByProduct = new Map<number, string>();
+    //           for (const [key, p] of productMap.entries()) {
+    //             lastBatchKeyByProduct.set(p.product_id, key);
+    //           }
+    //           for (const [mapKey, p] of productMap.entries()) {
     //             const expectedQty = p.total_qty;
     //             const expectedBaseQty = p.total_base_qty;
     //             let saleQty = 0;
     //             let saleBaseQty = 0;
-    //             if (!assignedSaleProducts.has(p.product_id)) {
-    //               saleQty = saleQtyMap.get(`${p.product_id}-`)?.qty || 0;
-    //               saleBaseQty = saleQtyMap.get(`${p.product_id}-`)?.baseQty || 0;
-    //               assignedSaleProducts.add(p.product_id);
+    //             const totalSaleEntry = saleQtyMap.get(`${p.product_id}-`);
+    //             if (totalSaleEntry) {
+    //               const totalSaleBaseUnits =
+    //                 p.convRate > 0
+    //                   ? totalSaleEntry.qty * p.convRate + totalSaleEntry.baseQty
+    //                   : totalSaleEntry.qty;
+    //               const totalLoadBaseUnits =
+    //                 totalLoadBaseByProduct.get(p.product_id) || 0;
+    //               const loadKey = `${p.product_id}-${p.batch_number || ''}`;
+    //               const thisBatchLoad = loadQtyMap.get(loadKey) || {
+    //                 qty: 0,
+    //                 baseQty: 0,
+    //               };
+    //               const thisBatchLoadBaseUnits =
+    //                 p.convRate > 0
+    //                   ? thisBatchLoad.qty * p.convRate + thisBatchLoad.baseQty
+    //                   : thisBatchLoad.qty;
+    //               const alreadyAssigned =
+    //                 assignedSaleBaseByProduct.get(p.product_id) || 0;
+    //               const isLastBatch =
+    //                 lastBatchKeyByProduct.get(p.product_id) === mapKey;
+    //               let batchSaleBaseUnits: number;
+    //               if (isLastBatch) {
+    //                 batchSaleBaseUnits = totalSaleBaseUnits - alreadyAssigned;
+    //               } else if (totalLoadBaseUnits > 0) {
+    //                 batchSaleBaseUnits = Math.floor(
+    //                   (thisBatchLoadBaseUnits / totalLoadBaseUnits) *
+    //                     totalSaleBaseUnits
+    //                 );
+    //               } else {
+    //                 batchSaleBaseUnits =
+    //                   alreadyAssigned === 0 ? totalSaleBaseUnits : 0;
+    //               }
+    //               console.log(
+    //                 `DEBUG SALES DIST Product: ${p.product_id}, Batch: ${p.batch_number}, isLastBatch: ${isLastBatch}, totalLoadBaseUnits: ${totalLoadBaseUnits}, thisBatchLoadBaseUnits: ${thisBatchLoadBaseUnits}, totalSaleBaseUnits: ${totalSaleBaseUnits}, batchSaleBaseUnits: ${batchSaleBaseUnits}`
+    //               );
+    //               batchSaleBaseUnits = Math.max(0, batchSaleBaseUnits);
+    //               assignedSaleBaseByProduct.set(
+    //                 p.product_id,
+    //                 alreadyAssigned + batchSaleBaseUnits
+    //               );
+    //               if (p.convRate > 0) {
+    //                 saleQty = Math.floor(batchSaleBaseUnits / p.convRate);
+    //                 saleBaseQty = batchSaleBaseUnits % p.convRate;
+    //               } else {
+    //                 saleQty = batchSaleBaseUnits;
+    //                 saleBaseQty = 0;
+    //               }
     //             }
     //             const loadKey = `${p.product_id}-${p.batch_number || ''}`;
     //             const hasLoadEntry = loadQtyMap.has(loadKey);
@@ -5239,16 +5306,14 @@ exports.vanInventoryController = {
     //             let loadQty = actualLoad.qty;
     //             let loadBaseQty = actualLoad.baseQty;
     //             if (p.convRate > 0) {
-    //               saleQty += Math.floor(saleBaseQty / p.convRate);
-    //               saleBaseQty = saleBaseQty % p.convRate;
     //               loadQty += Math.floor(loadBaseQty / p.convRate);
     //               loadBaseQty = loadBaseQty % p.convRate;
     //               if (!hasLoadEntry) {
-    //                 const totalSaleBaseUnits = saleQty * p.convRate + saleBaseQty;
-    //                 const totalLoadBaseUnits = loadQty * p.convRate + loadBaseQty;
-    //                 if (totalLoadBaseUnits < totalSaleBaseUnits) {
-    //                   loadQty = Math.floor(totalSaleBaseUnits / p.convRate);
-    //                   loadBaseQty = totalSaleBaseUnits % p.convRate;
+    //                 const batchSaleBase = saleQty * p.convRate + saleBaseQty;
+    //                 const batchLoadBase = loadQty * p.convRate + loadBaseQty;
+    //                 if (batchLoadBase < batchSaleBase) {
+    //                   loadQty = Math.floor(batchSaleBase / p.convRate);
+    //                   loadBaseQty = batchSaleBase % p.convRate;
     //                 }
     //               }
     //             } else {
@@ -5335,7 +5400,6 @@ exports.vanInventoryController = {
     //     });
     //   }
     // },
-    //new changes
     async unloadVanInventory(req, res) {
         try {
             const loggedInUserId = req.user?.id;
@@ -5629,18 +5693,76 @@ exports.vanInventoryController = {
                                 },
                             },
                             select: {
+                                parent_id: true,
                                 product_id: true,
                                 quantity: true,
                                 base_quantity: true,
                             },
                         });
-                        console.log('[DEBUG Reconciliation] Found invoice items count:', saleInvoiceItems.length);
-                        for (const item of saleInvoiceItems) {
-                            console.log(`[DEBUG Reconciliation]   Product ID: ${item.product_id} | Qty: ${item.quantity}`);
+                        const sessionInvoiceIds = Array.from(new Set(saleInvoiceItems
+                            .map((item) => item.parent_id)
+                            .filter((id) => typeof id === 'number')));
+                        // --- Primary: stock_movements gives exact batch-level sale quantities ---
+                        // When an invoice is created, it writes a stock_movement record with movement_type='SALE',
+                        // reference_type='INVOICE', reference_id=invoice.id, and batch_id=batch_lot_id.
+                        const saleStockMovements = await tx.stock_movements.findMany({
+                            where: {
+                                movement_type: { in: ['SALE', 'OUT'] },
+                                product_id: {
+                                    in: Array.from(productMap.values()).map(p => p.product_id),
+                                },
+                                is_active: 'Y',
+                                OR: [
+                                    ...(sessionInvoiceIds.length > 0
+                                        ? [
+                                            {
+                                                reference_type: 'INVOICE',
+                                                reference_id: { in: sessionInvoiceIds },
+                                            },
+                                        ]
+                                        : []),
+                                    {
+                                        createdby: userIdNum,
+                                        createdate: { gte: sessionStart, lt: todayEnd },
+                                        reference_type: 'INVOICE',
+                                    },
+                                ],
+                            },
+                            select: {
+                                product_id: true,
+                                batch_id: true,
+                                quantity: true,
+                                base_quantity: true,
+                                batch_lots: { select: { batch_number: true } },
+                            },
+                        });
+                        console.log('[DEBUG Reconciliation] Found stock movements (sales by batch):', saleStockMovements.length);
+                        // batchSaleQtyMap: keyed by `{product_id}-{batch_number}` — exact per-batch sales
+                        const batchSaleQtyMap = new Map();
+                        // Track which product_ids have exact data so we skip the fallback for them
+                        const productsWithExactBatchSale = new Set();
+                        for (const mv of saleStockMovements) {
+                            if (!mv.product_id)
+                                continue;
+                            const batchNum = mv.batch_lots?.batch_number ?? null;
+                            if (!batchNum)
+                                continue;
+                            const key = `${mv.product_id}-${batchNum}`;
+                            const cur = batchSaleQtyMap.get(key) || { qty: 0, baseQty: 0 };
+                            batchSaleQtyMap.set(key, {
+                                qty: cur.qty + (Number(mv.quantity) || 0),
+                                baseQty: cur.baseQty + (Number(mv.base_quantity) || 0),
+                            });
+                            productsWithExactBatchSale.add(mv.product_id);
+                            console.log(`[DEBUG EXACT BATCH SALE] Product: ${mv.product_id}, Batch: ${batchNum}, Qty: ${mv.quantity}`);
                         }
+                        // saleQtyMap: fallback keyed by `{product_id}-` for products with no stock_movement records
                         const saleQtyMap = new Map();
                         for (const record of saleInvoiceItems) {
                             if (!record.product_id)
+                                continue;
+                            // Only add to fallback map if we don't have exact batch data for this product
+                            if (productsWithExactBatchSale.has(record.product_id))
                                 continue;
                             const key = `${record.product_id}-`;
                             const current = saleQtyMap.get(key) || { qty: 0, baseQty: 0 };
@@ -5664,11 +5786,21 @@ exports.vanInventoryController = {
                         const totalLoadBaseByProduct = new Map();
                         for (const p of productMap.values()) {
                             const loadKey = `${p.product_id}-${p.batch_number || ''}`;
+                            const hasEntry = loadQtyMap.has(loadKey);
                             const load = loadQtyMap.get(loadKey) || { qty: 0, baseQty: 0 };
-                            const loadBaseUnits = p.convRate > 0
-                                ? load.qty * p.convRate + load.baseQty
-                                : load.qty;
-                            totalLoadBaseByProduct.set(p.product_id, (totalLoadBaseByProduct.get(p.product_id) || 0) + loadBaseUnits);
+                            // When the integration merged multiple invoices into one van_inventory
+                            // record, some batches may have no van_inventory_items entry (load = 0).
+                            // Fall back to inventory_stock qty so the denominator reflects actual
+                            // stock across all batches, enabling correct proportional distribution.
+                            const effectiveLoadBaseUnits = p.convRate > 0
+                                ? hasEntry
+                                    ? load.qty * p.convRate + load.baseQty
+                                    : p.total_qty * p.convRate + p.total_base_qty
+                                : hasEntry
+                                    ? load.qty
+                                    : p.total_qty;
+                            totalLoadBaseByProduct.set(p.product_id, (totalLoadBaseByProduct.get(p.product_id) || 0) +
+                                effectiveLoadBaseUnits);
                         }
                         const assignedSaleBaseByProduct = new Map();
                         const lastBatchKeyByProduct = new Map();
@@ -5680,20 +5812,32 @@ exports.vanInventoryController = {
                             const expectedBaseQty = p.total_base_qty;
                             let saleQty = 0;
                             let saleBaseQty = 0;
+                            const exactBatchKey = `${p.product_id}-${p.batch_number || ''}`;
+                            const exactBatchSale = batchSaleQtyMap.get(exactBatchKey);
+                            if (exactBatchSale) {
+                                saleQty = exactBatchSale.qty;
+                                saleBaseQty = exactBatchSale.baseQty;
+                                console.log(`EXACT BATCH SALE Product: ${p.product_id}, Batch: ${p.batch_number}, saleQty: ${saleQty}`);
+                            }
                             const totalSaleEntry = saleQtyMap.get(`${p.product_id}-`);
-                            if (totalSaleEntry) {
+                            if (!exactBatchSale && totalSaleEntry) {
                                 const totalSaleBaseUnits = p.convRate > 0
                                     ? totalSaleEntry.qty * p.convRate + totalSaleEntry.baseQty
                                     : totalSaleEntry.qty;
                                 const totalLoadBaseUnits = totalLoadBaseByProduct.get(p.product_id) || 0;
                                 const loadKey = `${p.product_id}-${p.batch_number || ''}`;
+                                const hasBatchEntry = loadQtyMap.has(loadKey);
                                 const thisBatchLoad = loadQtyMap.get(loadKey) || {
                                     qty: 0,
                                     baseQty: 0,
                                 };
                                 const thisBatchLoadBaseUnits = p.convRate > 0
-                                    ? thisBatchLoad.qty * p.convRate + thisBatchLoad.baseQty
-                                    : thisBatchLoad.qty;
+                                    ? hasBatchEntry
+                                        ? thisBatchLoad.qty * p.convRate + thisBatchLoad.baseQty
+                                        : p.total_qty * p.convRate + p.total_base_qty
+                                    : hasBatchEntry
+                                        ? thisBatchLoad.qty
+                                        : p.total_qty;
                                 const alreadyAssigned = assignedSaleBaseByProduct.get(p.product_id) || 0;
                                 const isLastBatch = lastBatchKeyByProduct.get(p.product_id) === mapKey;
                                 let batchSaleBaseUnits;
@@ -5726,8 +5870,10 @@ exports.vanInventoryController = {
                                 qty: 0,
                                 baseQty: 0,
                             };
-                            let loadQty = actualLoad.qty;
-                            let loadBaseQty = actualLoad.baseQty;
+                            let loadQty = hasLoadEntry ? actualLoad.qty : p.total_qty;
+                            let loadBaseQty = hasLoadEntry
+                                ? actualLoad.baseQty
+                                : p.total_base_qty;
                             if (p.convRate > 0) {
                                 loadQty += Math.floor(loadBaseQty / p.convRate);
                                 loadBaseQty = loadBaseQty % p.convRate;
@@ -5751,12 +5897,19 @@ exports.vanInventoryController = {
                             const unitPricePerPc = p.convRate > 0 ? p.price / p.convRate : 0;
                             const saleVal = saleQty * p.price + saleBaseQty * unitPricePerPc;
                             const taxAmount = (saleVal * p.taxRate) / 100;
+                            const calculatedExpectedBase = Math.max(0, loadQty * p.convRate +
+                                loadBaseQty -
+                                (saleQty * p.convRate + saleBaseQty));
+                            const calculatedExpectedQty = p.convRate > 0
+                                ? Math.floor(calculatedExpectedBase / p.convRate)
+                                : Math.max(0, loadQty - saleQty);
+                            const calculatedExpectedBaseQty = p.convRate > 0 ? calculatedExpectedBase % p.convRate : 0;
                             toCreate.push({
                                 reconciliation_id: recon.id,
                                 product_id: p.product_id,
                                 batch_number: p.batch_number,
-                                expected_qty: expectedQty,
-                                expected_base_qty: expectedBaseQty,
+                                expected_qty: calculatedExpectedQty,
+                                expected_base_qty: calculatedExpectedBaseQty,
                                 actual_qty: null,
                                 actual_base_qty: 0,
                                 load_qty: loadQty,

@@ -9,9 +9,6 @@ export declare const reconciliationController: {
      * Get loaded products (items) for a specific reconciliation by ID.
      */
     getReconciliationById: (req: Request, res: Response) => Promise<Response<any, Record<string, any>> | undefined>;
-    /**
-     * Save and reconcile updated actual quantity values
-     */
     saveReconciliations: (req: Request, res: Response) => Promise<Response<any, Record<string, any>> | undefined>;
     /**
      * Export reconciliation sheet to styled Excel

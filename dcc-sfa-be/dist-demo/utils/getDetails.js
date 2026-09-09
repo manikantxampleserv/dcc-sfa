@@ -128,8 +128,15 @@ async function getRequestDetailsByType(request_type, reference_id, request_data)
                                     select: {
                                         name: true,
                                         code: true,
+                                        product_sub_categories_products: {
+                                            select: { sub_category_name: true },
+                                        },
                                         product_unit_of_measurement: {
-                                            select: { conversion_rate: true },
+                                            select: {
+                                                conversion_rate: true,
+                                                name: true,
+                                                sub_unit: true,
+                                            },
                                         },
                                     },
                                 },
@@ -150,20 +157,36 @@ async function getRequestDetailsByType(request_type, reference_id, request_data)
                     salesman_name: reconciliation.salesman?.name || 'N/A',
                     salesman_employee_id: reconciliation.salesman?.employee_id || 'N/A',
                     total_items: reconciliation.reconciliation_items.length,
-                    items: reconciliation.reconciliation_items.map((item) => ({
-                        id: item.id,
-                        stock_name: item.product?.name || 'N/A',
-                        stock_code: item.product?.code || 'N/A',
-                        batch_number: item.batch_number || '',
-                        expected_rop: Number(item.expected_qty) || 0,
-                        expected_base_qty: Number(item.expected_base_qty) || 0,
-                        actual_rop: Number(item.actual_qty) || 0,
-                        actual_base_qty: Number(item.actual_base_qty) || 0,
-                        variance: Number(item.variance) || 0,
-                        variance_base_qty: Number(item.variance_base_qty) || 0,
-                        conversion_rate: Number(item.product?.product_unit_of_measurement?.conversion_rate) || 1,
-                        resolution_action: item.resolution_action || 'CLEAN',
-                    })),
+                    items: reconciliation.reconciliation_items.map((item) => {
+                        const conv = Number(item.product?.product_unit_of_measurement?.conversion_rate) || 1;
+                        const rawUom = item.product?.product_unit_of_measurement?.name || 'Cs';
+                        const rawSubUnit = item.product?.product_unit_of_measurement?.sub_unit || 'Btls';
+                        const uom = rawUom.toLowerCase().includes('case') ||
+                            rawUom.toLowerCase().includes('crate')
+                            ? 'Cs'
+                            : rawUom;
+                        const subUnit = rawSubUnit.toLowerCase().includes('bottle')
+                            ? 'Btls'
+                            : rawSubUnit;
+                        return {
+                            id: item.id,
+                            stock_name: item.product?.name || 'N/A',
+                            stock_code: item.product?.code || 'N/A',
+                            batch_number: item.batch_number || '',
+                            sub_category_name: item.product?.product_sub_categories_products
+                                ?.sub_category_name || '',
+                            uom,
+                            sub_unit: subUnit,
+                            expected_rop: Number(item.expected_qty) || 0,
+                            expected_base_qty: Number(item.expected_base_qty) || 0,
+                            actual_rop: Number(item.actual_qty) || 0,
+                            actual_base_qty: Number(item.actual_base_qty) || 0,
+                            variance: Number(item.variance) || 0,
+                            variance_base_qty: Number(item.variance_base_qty) || 0,
+                            conversion_rate: conv,
+                            resolution_action: item.resolution_action || 'CLEAN',
+                        };
+                    }),
                     message: 'Reconciliation approval request',
                 };
             case 'ASSET_MOVEMENT_APPROVAL':

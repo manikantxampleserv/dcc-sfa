@@ -3493,10 +3493,15 @@ export const vanInventoryController = {
 
       if (isScopeRestricted) {
         if (depotIds.length > 0) {
-          const selectedDepotId = depot_id ? parseInt(depot_id as string, 10) : null;
-          const allowedDepots = selectedDepotId && depotIds.includes(selectedDepotId) 
-             ? [selectedDepotId] 
-             : selectedDepotId ? [-1] : depotIds;
+          const selectedDepotId = depot_id
+            ? parseInt(depot_id as string, 10)
+            : null;
+          const allowedDepots =
+            selectedDepotId && depotIds.includes(selectedDepotId)
+              ? [selectedDepotId]
+              : selectedDepotId
+                ? [-1]
+                : depotIds;
 
           filters.van_inventory_users = {
             ...filters.van_inventory_users,
@@ -3699,7 +3704,6 @@ export const vanInventoryController = {
 
       if (!record)
         return res.status(404).json({ message: 'Van inventory not found' });
-
       res.json({
         message: 'Van inventory fetched successfully',
         data: serializeVanInventory(record),
@@ -3851,7 +3855,6 @@ export const vanInventoryController = {
 
       if (!existing)
         return res.status(404).json({ message: 'Van inventory not found' });
-
       await prisma.$transaction(async tx => {
         if (existing.van_inventory_stock_movements?.length > 0) {
           await tx.stock_movements.deleteMany({
