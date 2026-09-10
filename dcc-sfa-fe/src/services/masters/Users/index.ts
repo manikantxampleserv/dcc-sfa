@@ -283,6 +283,7 @@ export interface GetUsersDropdownParams {
   search?: string;
   user_id?: number;
   role_name?: string;
+  exclude_sub_users?: boolean;
 }
 
 export const fetchUsersDropdown = async (

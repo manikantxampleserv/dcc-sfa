@@ -1064,7 +1064,8 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
               label="Van Inventory User"
               formik={formik}
               required
-              roleName="Salesman,Sales Group"
+              roleName="Salesman,Sales Group,Container Group"
+              excludeSubUsers={true}
               onChange={() => {
                 formik.setFieldValue('location_id', '');
               }}

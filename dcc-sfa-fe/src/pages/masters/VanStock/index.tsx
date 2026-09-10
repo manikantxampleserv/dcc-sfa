@@ -429,7 +429,8 @@ const VanInventories: React.FC = () => {
                       onChange={handleUserFilterChange}
                       fullWidth
                       size="small"
-                      roleName="Salesman"
+                      roleName="Salesman,Sales Group,Container Group"
+                      excludeSubUsers={true}
                     />
                   </Box>
                 </div>

@@ -109,7 +109,6 @@ import zones from '../v1/routes/zones.routes';
 
 const routes = Router();
 
-
 routes.use('/v1/org-chart', orgChart);
 routes.use('/v1', barcode);
 routes.use('/v1', ai);

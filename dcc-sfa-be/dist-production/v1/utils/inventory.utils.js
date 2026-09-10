@@ -752,8 +752,17 @@ async function getContainerOwnerAndSelf(tx, userId) {
         where: { id: userId },
         select: { sub_inventory_parent_id: true, is_active: true },
     });
-    if (user && user.is_active === 'Y' && user.sub_inventory_parent_id) {
-        return Array.from(new Set([user.sub_inventory_parent_id, userId]));
+    if (user && user.is_active === 'Y') {
+        if (user.sub_inventory_parent_id) {
+            return Array.from(new Set([user.sub_inventory_parent_id, userId]));
+        }
+        const subUsers = await tx.users.findMany({
+            where: { sub_inventory_parent_id: userId, is_active: 'Y' },
+            select: { id: true },
+        });
+        if (subUsers.length > 0) {
+            return Array.from(new Set([userId, ...subUsers.map((su) => su.id)]));
+        }
     }
     return [userId];
 }

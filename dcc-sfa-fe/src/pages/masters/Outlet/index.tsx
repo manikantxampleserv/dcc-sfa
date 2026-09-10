@@ -471,7 +471,10 @@ const OutletsManagement: React.FC = () => {
         <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 mb-4 grid grid-cols-1 md:grid-cols-4 items-center gap-3">
           <Select
             value={depotFilter}
-            onChange={e => setDepotFilter(e.target.value)}
+            onChange={e => {
+              setDepotFilter(e.target.value);
+              setPage(1);
+            }}
             size="small"
             disableClearable
           >
@@ -484,7 +487,10 @@ const OutletsManagement: React.FC = () => {
           </Select>
           <Select
             value={customerTypeFilter}
-            onChange={e => setCustomerTypeFilter(e.target.value)}
+            onChange={e => {
+              setCustomerTypeFilter(e.target.value);
+              setPage(1);
+            }}
             size="small"
             disableClearable
           >
@@ -497,7 +503,10 @@ const OutletsManagement: React.FC = () => {
           </Select>
           <Select
             value={categoryFilter}
-            onChange={e => setCategoryFilter(e.target.value)}
+            onChange={e => {
+              setCategoryFilter(e.target.value);
+              setPage(1);
+            }}
             size="small"
             disableClearable
           >
@@ -510,7 +519,10 @@ const OutletsManagement: React.FC = () => {
           </Select>
           <Select
             value={channelFilter}
-            onChange={e => setChannelFilter(e.target.value)}
+            onChange={e => {
+              setChannelFilter(e.target.value);
+              setPage(1);
+            }}
             size="small"
             disableClearable
           >
@@ -523,7 +535,10 @@ const OutletsManagement: React.FC = () => {
           </Select>
           <Select
             value={regionFilter}
-            onChange={e => setRegionFilter(e.target.value)}
+            onChange={e => {
+              setRegionFilter(e.target.value);
+              setPage(1);
+            }}
             size="small"
             disableClearable
           >
@@ -536,7 +551,10 @@ const OutletsManagement: React.FC = () => {
           </Select>
           <Select
             value={districtFilter}
-            onChange={e => setDistrictFilter(e.target.value)}
+            onChange={e => {
+              setDistrictFilter(e.target.value);
+              setPage(1);
+            }}
             size="small"
             disableClearable
           >
@@ -549,7 +567,10 @@ const OutletsManagement: React.FC = () => {
           </Select>
           <Select
             value={zoneFilter}
-            onChange={e => setZoneFilter(e.target.value)}
+            onChange={e => {
+              setZoneFilter(e.target.value);
+              setPage(1);
+            }}
             size="small"
             disableClearable
           >
@@ -562,7 +583,10 @@ const OutletsManagement: React.FC = () => {
           </Select>
           <Select
             value={routeFilter}
-            onChange={e => setRouteFilter(e.target.value)}
+            onChange={e => {
+              setRouteFilter(e.target.value);
+              setPage(1);
+            }}
             size="small"
             disableClearable
           >

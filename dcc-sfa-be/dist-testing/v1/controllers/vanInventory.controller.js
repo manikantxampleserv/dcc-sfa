@@ -1285,9 +1285,10 @@ exports.vanInventoryController = {
             const pageNum = parseInt(page, 10) || 1;
             const limitNum = parseInt(limit, 10) || 50;
             const salespersonIdNum = parseInt(salesperson_id, 10);
+            const targetSalespersonIds = await (0, inventory_utils_1.getContainerOwnerAndSelf)(prisma_client_1.default, salespersonIdNum);
             const stagedStocks = await prisma_client_1.default.inventory_stock.findMany({
                 where: {
-                    salesperson_id: salespersonIdNum,
+                    salesperson_id: { in: targetSalespersonIds },
                     is_unloadAll: 'Y',
                     is_active: 'Y',
                 },
@@ -1317,7 +1318,7 @@ exports.vanInventoryController = {
                 });
             }
             const vans = await prisma_client_1.default.van_inventory.findMany({
-                where: { user_id: salespersonIdNum, is_active: 'Y' },
+                where: { user_id: { in: targetSalespersonIds }, is_active: 'Y' },
                 select: { id: true },
             });
             const vanIds = vans.map(v => v.id);
@@ -1447,9 +1448,10 @@ exports.vanInventoryController = {
                 });
             }
             const salespersonIdNum = parseInt(salesperson_id, 10);
+            const targetSalespersonIds = await (0, inventory_utils_1.getContainerOwnerAndSelf)(prisma_client_1.default, salespersonIdNum);
             const stagedStocks = await prisma_client_1.default.inventory_stock.findMany({
                 where: {
-                    salesperson_id: salespersonIdNum,
+                    salesperson_id: { in: targetSalespersonIds },
                     is_unloadAll: 'Y',
                     is_active: 'Y',
                 },
@@ -1469,7 +1471,7 @@ exports.vanInventoryController = {
                 .filter(s => s.batch_id === null && s.serial_number_id === null)
                 .map(s => s.product_id));
             const vans = await prisma_client_1.default.van_inventory.findMany({
-                where: { user_id: salespersonIdNum, is_active: 'Y' },
+                where: { user_id: { in: targetSalespersonIds }, is_active: 'Y' },
                 select: { id: true },
             });
             const vanIds = vans.map(v => v.id);

@@ -1319,7 +1319,7 @@ exports.customerController = {
     },
     async getAllCustomers(req, res) {
         try {
-            const { page, limit, search, type, salesperson_id, isActive, city_id, district_id, region_id, depot_id, customer_type_id, customer_category_id, customer_channel_id, } = req.query;
+            const { page, limit, search, type, salesperson_id, isActive, city_id, district_id, region_id, depot_id, customer_type_id, customer_category_id, customer_channel_id, zones_id, zone_id, route_id, } = req.query;
             const pageNum = parseInt(page, 10) || 1;
             const limitNum = parseInt(limit, 10) || 10;
             const searchLower = search ? search.toLowerCase() : '';
@@ -1358,6 +1358,10 @@ exports.customerController = {
                 ...(customer_channel_id && {
                     customer_channel_id: Number(customer_channel_id),
                 }),
+                ...((zones_id || zone_id) && {
+                    zones_id: Number(zones_id || zone_id),
+                }),
+                ...(route_id && { route_id: Number(route_id) }),
             };
             if (isScopeRestricted) {
                 if (depotIds.length > 0) {
@@ -1385,7 +1389,16 @@ exports.customerController = {
                     },
                 });
                 routeIds = salespersonRoutes.map(route => route.id);
-                if (routeIds.length > 0) {
+                if (route_id) {
+                    const selectedRouteId = Number(route_id);
+                    if (routeIds.includes(selectedRouteId)) {
+                        filters.route_id = selectedRouteId;
+                    }
+                    else {
+                        filters.route_id = -1;
+                    }
+                }
+                else if (routeIds.length > 0) {
                     filters.route_id = {
                         in: routeIds,
                     };
@@ -1648,82 +1661,60 @@ exports.customerController = {
             const existingIds = new Set(data.map((c) => c.id));
             const uniqueDefaultOutlets = defaultOutlets.filter((outlet) => !existingIds.has(outlet.id));
             const mergedData = [...data, ...uniqueDefaultOutlets];
-            const statsFilter = {};
-            if (salesperson_id) {
-                const salespersonIdNum = parseInt(salesperson_id, 10);
-                const salespersonRoutes = await prisma_client_1.default.routes.findMany({
-                    where: {
-                        is_active: 'Y',
-                        salespersons: {
-                            some: {
-                                user_id: salespersonIdNum,
-                                is_active: 'Y',
-                            },
-                        },
-                    },
-                    select: {
-                        id: true,
-                    },
-                });
-                const routeIds = salespersonRoutes.map(route => route.id);
-                if (routeIds.length > 0) {
-                    filters.route_id = {
-                        in: routeIds,
-                    };
-                }
-                else {
-                    filters.route_id = -1;
-                }
-            }
-            const distributors = await prisma_client_1.default.customers.count({
-                where: { type: 'Distributor', ...statsFilter },
-            });
-            const retailers = await prisma_client_1.default.customers.count({
-                where: { type: 'Retailer', ...statsFilter },
-            });
-            const wholesellers = await prisma_client_1.default.customers.count({
-                where: { type: 'Wholesaler', ...statsFilter },
-            });
-            const totalCustomers = await prisma_client_1.default.customers.count({
-                where: statsFilter,
-            });
-            const activeCustomers = await prisma_client_1.default.customers.count({
-                where: { is_active: 'Y', ...statsFilter },
-            });
-            const inactiveCustomers = await prisma_client_1.default.customers.count({
-                where: { is_active: 'N', ...statsFilter },
-            });
-            const totals = await prisma_client_1.default.customers.aggregate({
-                where: statsFilter,
-                _sum: {
-                    credit_limit: true,
-                    outstanding_amount: true,
-                },
-            });
-            const totalCreditLimit = totals._sum.credit_limit || 0;
-            const totalOutstandingAmount = totals._sum.outstanding_amount || 0;
+            const statsFilter = { ...filters };
+            const { is_active: _statIsActive, ...statsFilterWithoutActive } = statsFilter;
+            const { type: _statType, ...statsFilterWithoutType } = statsFilter;
             const now = new Date();
             const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-            const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-            const newCustomersThisMonth = await prisma_client_1.default.customers.count({
-                where: {
-                    createdate: {
-                        gte: startOfMonth,
-                        lte: endOfMonth,
-                    },
-                    ...statsFilter,
-                },
-            });
+            const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
             const thirtyDaysAgo = new Date();
             thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-            const customersVisitedLast30Days = await prisma_client_1.default.customers.count({
-                where: {
-                    last_visit_date: {
-                        gte: thirtyDaysAgo,
+            const [distributors, retailers, wholesellers, totalCustomers, activeCustomers, inactiveCustomers, totals, newCustomersThisMonth, customersVisitedLast30Days,] = await Promise.all([
+                prisma_client_1.default.customers.count({
+                    where: { ...statsFilterWithoutType, type: 'Distributor' },
+                }),
+                prisma_client_1.default.customers.count({
+                    where: { ...statsFilterWithoutType, type: 'Retailer' },
+                }),
+                prisma_client_1.default.customers.count({
+                    where: { ...statsFilterWithoutType, type: 'Wholesaler' },
+                }),
+                prisma_client_1.default.customers.count({
+                    where: statsFilterWithoutActive,
+                }),
+                prisma_client_1.default.customers.count({
+                    where: { ...statsFilterWithoutActive, is_active: 'Y' },
+                }),
+                prisma_client_1.default.customers.count({
+                    where: { ...statsFilterWithoutActive, is_active: 'N' },
+                }),
+                prisma_client_1.default.customers.aggregate({
+                    where: statsFilter,
+                    _sum: {
+                        credit_limit: true,
+                        outstanding_amount: true,
                     },
-                    ...statsFilter,
-                },
-            });
+                }),
+                prisma_client_1.default.customers.count({
+                    where: {
+                        ...statsFilter,
+                        createdate: {
+                            gte: startOfMonth,
+                            lte: endOfMonth,
+                        },
+                    },
+                }),
+                prisma_client_1.default.customers.count({
+                    where: {
+                        ...statsFilter,
+                        last_visit_date: {
+                            gte: thirtyDaysAgo,
+                        },
+                    },
+                }),
+            ]);
+            const totalCreditLimit = totals._sum.credit_limit || 0;
+            const totalOutstandingAmount = totals._sum.outstanding_amount || 0;
             const defaultOutletIdSet = new Set(defaultOutletIds);
             const serializedData = await Promise.all(mergedData.map((c) => serializeCustomer(c, defaultOutletIdSet)));
             res.success('Customers retrieved successfully', serializedData, 200, pagination, {

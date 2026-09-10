@@ -1306,7 +1306,13 @@ export const userController = {
 
   async getUsersDropdown(req: any, res: any): Promise<void> {
     try {
-      const { search = '', user_id, depot_id, role_name } = req.query;
+      const {
+        search = '',
+        user_id,
+        depot_id,
+        role_name,
+        exclude_sub_users,
+      } = req.query;
       const searchLower = search.toLowerCase().trim();
       const userId = user_id ? Number(user_id) : null;
       const depotId = depot_id ? Number(depot_id) : null;
@@ -1354,17 +1360,37 @@ export const userController = {
 
       if (userId) {
         where.id = userId;
-      } else if (searchLower) {
-        where.OR = [
-          { name: { contains: searchLower } },
-          { email: { contains: searchLower } },
-          { employee_id: { contains: searchLower } },
-        ];
+      } else {
+        if (searchLower) {
+          where.OR = [
+            { name: { contains: searchLower } },
+            { email: { contains: searchLower } },
+            { employee_id: { contains: searchLower } },
+          ];
+        }
+        if (exclude_sub_users === 'true' || exclude_sub_users === true) {
+          where.sub_inventory_parent_id = null;
+        }
       }
 
       if (role_name) {
         const roles = (role_name as string).split(',').map(r => r.trim());
-        if (roles.length > 1) {
+        const hasContainer = roles.some(
+          r =>
+            r.toLowerCase().includes('container') ||
+            r.toLowerCase().includes('group')
+        );
+
+        if (hasContainer) {
+          where.user_role = {
+            OR: [
+              ...(roles.length > 1
+                ? [{ name: { in: roles } }]
+                : [{ name: { contains: roles[0] } }]),
+              { type: 'container' },
+            ],
+          };
+        } else if (roles.length > 1) {
           where.user_role = {
             name: {
               in: roles,

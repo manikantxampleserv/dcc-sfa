@@ -54,6 +54,8 @@ interface UserSelectProps {
   placeholder?: string;
   /** Filter users by role name */
   roleName?: string;
+  /** Exclude sub-users assigned to a container group */
+  excludeSubUsers?: boolean;
 }
 
 /**
@@ -113,6 +115,7 @@ const UserSelect: React.FC<UserSelectProps> = ({
   className,
   placeholder,
   roleName,
+  excludeSubUsers,
 }) => {
   const [inputValue, setInputValue] = useState('');
   const [searchValue, setSearchValue] = useState('');
@@ -164,6 +167,7 @@ const UserSelect: React.FC<UserSelectProps> = ({
     search: effectiveSearch,
     user_id: userId && !effectiveSearch ? userId : undefined,
     role_name: roleName,
+    exclude_sub_users: excludeSubUsers,
   });
 
   const searchResults: User[] = React.useMemo(() => {

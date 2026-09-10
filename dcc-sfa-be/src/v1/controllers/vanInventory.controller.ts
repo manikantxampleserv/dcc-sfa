@@ -1748,9 +1748,13 @@ export const vanInventoryController = {
       const pageNum = parseInt(page as string, 10) || 1;
       const limitNum = parseInt(limit as string, 10) || 50;
       const salespersonIdNum = parseInt(salesperson_id as string, 10);
+      const targetSalespersonIds = await getContainerOwnerAndSelf(
+        prisma,
+        salespersonIdNum
+      );
       const stagedStocks = await prisma.inventory_stock.findMany({
         where: {
-          salesperson_id: salespersonIdNum,
+          salesperson_id: { in: targetSalespersonIds },
           is_unloadAll: 'Y',
           is_active: 'Y',
         },
@@ -1787,7 +1791,7 @@ export const vanInventoryController = {
         });
       }
       const vans = await prisma.van_inventory.findMany({
-        where: { user_id: salespersonIdNum, is_active: 'Y' },
+        where: { user_id: { in: targetSalespersonIds }, is_active: 'Y' },
         select: { id: true },
       });
       const vanIds = vans.map(v => v.id);
@@ -1920,9 +1924,13 @@ export const vanInventoryController = {
         });
       }
       const salespersonIdNum = parseInt(salesperson_id as string, 10);
+      const targetSalespersonIds = await getContainerOwnerAndSelf(
+        prisma,
+        salespersonIdNum
+      );
       const stagedStocks = await prisma.inventory_stock.findMany({
         where: {
-          salesperson_id: salespersonIdNum,
+          salesperson_id: { in: targetSalespersonIds },
           is_unloadAll: 'Y',
           is_active: 'Y',
         },
@@ -1949,7 +1957,7 @@ export const vanInventoryController = {
           .map(s => s.product_id)
       );
       const vans = await prisma.van_inventory.findMany({
-        where: { user_id: salespersonIdNum, is_active: 'Y' },
+        where: { user_id: { in: targetSalespersonIds }, is_active: 'Y' },
         select: { id: true },
       });
       const vanIds = vans.map(v => v.id);
