@@ -154,6 +154,7 @@ exports.routesController = {
                     {
                         user_role: {
                             OR: [
+                                { is_assigned_route: 'Y' },
                                 { name: { contains: 'Salesman' } },
                                 { name: { contains: 'Salesperson' } },
                                 { name: { contains: 'Surveyor' } },
@@ -274,6 +275,7 @@ exports.routesController = {
                     code: rs.route?.code,
                 })) || [],
                 assigned_routes_count: u.route_salespersons?.length || 0,
+                route_assignment_count: u.route_assignment_count ?? null,
             }));
             const totalSalespersons = await prisma_client_1.default.users.count({
                 where: userFilters,
@@ -338,6 +340,7 @@ exports.routesController = {
                 name: user.name,
                 email: user.email,
                 profile_image: user.profile_image,
+                route_assignment_count: user.route_assignment_count ?? null,
                 assigned_routes: user.route_salespersons?.map((rs) => ({
                     id: rs.route?.id,
                     name: rs.route?.name,
@@ -367,9 +370,26 @@ exports.routesController = {
                     .status(400)
                     .json({ message: 'route_ids must be an array of numbers' });
             }
-            const existingUser = await prisma_client_1.default.users.findUnique({ where: { id } });
+            const existingUser = await prisma_client_1.default.users.findUnique({
+                where: { id },
+                include: { user_role: true },
+            });
             if (!existingUser) {
                 return res.status(404).json({ message: 'User not found' });
+            }
+            if (existingUser.user_role?.is_assigned_route === 'N') {
+                return res.status(400).json({
+                    message: `Routes cannot be assigned to users with role "${existingUser.user_role?.name}".`,
+                });
+            }
+            const maxLimit = existingUser.route_assignment_count &&
+                existingUser.route_assignment_count > 0
+                ? existingUser.route_assignment_count
+                : 3;
+            if (route_ids.length > maxLimit) {
+                return res.status(400).json({
+                    message: `Limit reached: A maximum of ${maxLimit} route(s) can be assigned to this user.`,
+                });
             }
             await prisma_client_1.default.route_salespersons.deleteMany({
                 where: { user_id: id },
@@ -403,6 +423,7 @@ exports.routesController = {
                     id: updated?.id,
                     name: updated?.name,
                     email: updated?.email,
+                    route_assignment_count: updated?.route_assignment_count ?? null,
                     assigned_routes: updated?.route_salespersons?.map((rs) => ({
                         id: rs.route?.id,
                         name: rs.route?.name,

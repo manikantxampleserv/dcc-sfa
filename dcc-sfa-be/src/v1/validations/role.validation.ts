@@ -14,4 +14,8 @@ export const validateRole = [
     .optional()
     .isIn(['Y', 'N'])
     .withMessage("is_active must be either 'Y' or 'N'"),
+  body('is_assigned_route')
+    .optional()
+    .isIn(['Y', 'N'])
+    .withMessage("is_assigned_route must be either 'Y' or 'N'"),
 ];

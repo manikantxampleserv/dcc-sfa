@@ -16,5 +16,9 @@ exports.validateRole = [
         .optional()
         .isIn(['Y', 'N'])
         .withMessage("is_active must be either 'Y' or 'N'"),
+    (0, express_validator_1.body)('is_assigned_route')
+        .optional()
+        .isIn(['Y', 'N'])
+        .withMessage("is_assigned_route must be either 'Y' or 'N'"),
 ];
 //# sourceMappingURL=role.validation.js.map

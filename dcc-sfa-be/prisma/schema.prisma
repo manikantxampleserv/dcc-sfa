@@ -97,6 +97,7 @@ model users {
   sub_inventory_parent_id                                           Int?
   sub_inventory_parent                                              users?                       @relation("sub_inventory_users_rel", fields: [sub_inventory_parent_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   sub_inventory_users                                               users[]                      @relation("sub_inventory_users_rel")
+  route_assignment_count                                            Int?                         @default(0)
 }
 
 model user_depots {
@@ -173,6 +174,7 @@ model roles {
   name                    String               @unique @db.NVarChar(100)
   description             String?              @db.NVarChar(500)
   type                    String               @default("normal") @db.NVarChar(50)
+  is_assigned_route       String               @default("N") @db.Char(1)
   is_active               String               @default("Y") @db.Char(1)
   createdate              DateTime?            @default(now()) @db.DateTime
   createdby               Int

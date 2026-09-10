@@ -5,6 +5,7 @@ interface Role {
   id: number;
   name: string;
   type?: string;
+  is_assigned_route?: string;
   description?: string | null;
   user_id?: number | null;
   is_active: string;
@@ -25,6 +26,7 @@ interface RoleDropdown {
   id: number;
   name: string;
   type?: string;
+  is_assigned_route?: string;
 }
 
 interface RolePermission {
@@ -41,6 +43,7 @@ interface RolePermission {
 interface ManageRolePayload {
   name: string;
   type?: string;
+  is_assigned_route?: string;
   description?: string;
   user_id?: number;
   is_active?: string;
@@ -50,6 +53,7 @@ interface ManageRolePayload {
 interface UpdateRolePayload {
   name?: string;
   type?: string;
+  is_assigned_route?: string;
   description?: string;
   user_id?: number;
   is_active?: string;

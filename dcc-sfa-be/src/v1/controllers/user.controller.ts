@@ -35,11 +35,13 @@ const serializeUser = (
   ...(includeCreatedAt && { created_at: user.createdate }),
   ...(includeUpdatedAt && { updated_at: user.updatedate }),
   sub_inventory_users: user.sub_inventory_users || [],
+  route_assignment_count: user.route_assignment_count ?? null,
   role: user.user_role
     ? {
         id: user.user_role.id,
         name: user.user_role.name,
         description: user.user_role.description,
+        is_assigned_route: user.user_role.is_assigned_route,
       }
     : null,
   company: user.companies
@@ -135,6 +137,7 @@ export const userController = {
         is_active,
         platform,
         sub_inventory_user_ids,
+        route_assignment_count,
       } = req.body;
 
       let parsedDepotIds: number[] = [];
@@ -238,6 +241,13 @@ export const userController = {
           reporting_to: Number(reporting_to),
           profile_image: profile_image_url,
           is_active: is_active ?? 'Y',
+          route_assignment_count:
+            route_assignment_count !== undefined &&
+            route_assignment_count !== '' &&
+            route_assignment_count !== null &&
+            !isNaN(Number(route_assignment_count))
+              ? Number(route_assignment_count)
+              : null,
           createdby: req.user?.id ?? 0,
           createdate: new Date(),
           log_inst: 1,
@@ -809,6 +819,15 @@ export const userController = {
 
       if (updateData.role_id) {
         updateData.role_id = Number(updateData.role_id);
+      }
+
+      if (userData.route_assignment_count !== undefined) {
+        updateData.route_assignment_count =
+          userData.route_assignment_count !== '' &&
+          userData.route_assignment_count !== null &&
+          !isNaN(Number(userData.route_assignment_count))
+            ? Number(userData.route_assignment_count)
+            : null;
       }
 
       await prisma.users.update({

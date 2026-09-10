@@ -113,6 +113,17 @@ const ManageAssignRoute: React.FC<ManageAssignRouteProps> = ({
     });
   }, [availableSearch, routes, selectedRouteIds, selectedDepot, selectedZone]);
 
+  const maxRoutes = useMemo(() => {
+    if (
+      user?.route_assignment_count !== undefined &&
+      user?.route_assignment_count !== null &&
+      Number(user.route_assignment_count) > 0
+    ) {
+      return Number(user.route_assignment_count);
+    }
+    return 3;
+  }, [user]);
+
   const handleDragEnd = useCallback(
     (result: DropResult) => {
       const { destination, source, draggableId } = result;
@@ -132,8 +143,12 @@ const ManageAssignRoute: React.FC<ManageAssignRouteProps> = ({
         source.droppableId === 'available-routes' &&
         destination.droppableId === 'assigned-routes'
       ) {
-        if (selectedRouteIds.length >= 3) {
-          toast.warning('Limit reached: A user can have at most 3 routes.');
+        if (selectedRouteIds.length >= maxRoutes) {
+          toast.warning(
+            `Limit reached: A user can have at most ${maxRoutes} route${
+              maxRoutes > 1 ? 's' : ''
+            }.`
+          );
           return;
         }
         if (selectedRouteIds.includes(routeId)) return;
@@ -310,10 +325,10 @@ const ManageAssignRoute: React.FC<ManageAssignRouteProps> = ({
                   variant="subtitle1"
                   className="!font-semibold !text-green-600"
                 >
-                  Assigned Routes ({assignedRoutes.length})
+                  Assigned Routes ({assignedRoutes.length} / {maxRoutes})
                 </Typography>
                 <p className="!text-gray-500 !text-xs !block !mt-1">
-                  Drag routes from the right panel to reorder
+                  Drag routes from the left panel to assign (Limit: {maxRoutes})
                 </p>
               </Box>
               <Box className="!flex-1 !overflow-hidden">

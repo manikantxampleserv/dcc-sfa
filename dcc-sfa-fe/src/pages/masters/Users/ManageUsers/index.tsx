@@ -162,6 +162,7 @@ const ManageUsers: React.FC<ManageUsersProps> = ({
       platform: selectedUser?.platform || 'both',
       password: '',
       is_active: selectedUser?.is_active || 'Y',
+      route_assignment_count: selectedUser?.route_assignment_count ?? '',
       isEdit: !!selectedUser,
     }),
     [selectedUser]
@@ -192,6 +193,21 @@ const ManageUsers: React.FC<ManageUsersProps> = ({
         values.platform !== 'both' ? values.platform : ''
       );
       formData.append('is_active', values.is_active);
+
+      const currentRoleObj = roles.find(r => r.id === values.role_id);
+      if (
+        currentRoleObj?.is_assigned_route === 'Y' &&
+        values.route_assignment_count !== '' &&
+        values.route_assignment_count !== undefined &&
+        values.route_assignment_count !== null
+      ) {
+        formData.append(
+          'route_assignment_count',
+          values.route_assignment_count.toString()
+        );
+      } else {
+        formData.append('route_assignment_count', '');
+      }
 
       if (values.password) {
         formData.append('password', values.password);
@@ -227,6 +243,20 @@ const ManageUsers: React.FC<ManageUsersProps> = ({
         errors.sub_inventory_user_ids =
           'Please assign at least one container member';
       }
+
+      if (selectedRoleObj?.is_assigned_route === 'Y') {
+        if (
+          values.route_assignment_count === '' ||
+          values.route_assignment_count === null ||
+          values.route_assignment_count === undefined
+        ) {
+          errors.route_assignment_count =
+            'Route assignment limit is required';
+        } else if (Number(values.route_assignment_count) < 1) {
+          errors.route_assignment_count = 'Must be at least 1';
+        }
+      }
+
       return errors;
     },
     onSubmit: async values => {
@@ -544,6 +574,19 @@ const ManageUsers: React.FC<ManageUsersProps> = ({
                 ))
               )}
             </Select>
+
+            {roles.find(r => r.id === formik.values.role_id)
+              ?.is_assigned_route === 'Y' && (
+              <Input
+                name="route_assignment_count"
+                formik={formik}
+                label="Route Assignment Limit"
+                placeholder="Enter max routes (e.g. 3)"
+                type="number"
+                required
+              />
+            )}
+
             <Input
               name="employee_id"
               formik={formik}

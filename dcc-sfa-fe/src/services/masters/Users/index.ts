@@ -37,10 +37,12 @@ interface User {
   log_inst?: number | null;
   created_at?: string;
   updated_at?: string;
+  route_assignment_count?: number | null;
   role?: {
     id: number;
     name: string;
     description: string;
+    is_assigned_route?: string;
   } | null;
   company?: {
     id: number;
@@ -105,6 +107,7 @@ interface ManageUserPayload {
   platform?: string;
   profile_image?: string;
   is_active?: string;
+  route_assignment_count?: number | string | null;
 }
 
 interface UpdateUserPayload {
@@ -124,6 +127,7 @@ interface UpdateUserPayload {
   platform?: string;
   profile_image?: string;
   is_active?: string;
+  route_assignment_count?: number | string | null;
 }
 
 interface GetUsersParams {

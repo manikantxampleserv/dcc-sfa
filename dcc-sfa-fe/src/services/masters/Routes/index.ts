@@ -149,6 +149,7 @@ interface RouteAssignment {
     code?: string | null;
   }>;
   assigned_routes_count?: number;
+  route_assignment_count?: number | null;
 }
 
 interface ManageRoutePayload {

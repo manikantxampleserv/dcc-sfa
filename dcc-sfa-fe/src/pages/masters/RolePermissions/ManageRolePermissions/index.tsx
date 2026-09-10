@@ -93,6 +93,7 @@ const ManageRolePermissions: React.FC<ManageRolePermissionsProps> = ({
   const initialValues = {
     name: selectedRole?.name || '',
     type: selectedRole?.type || 'normal',
+    is_assigned_route: selectedRole?.is_assigned_route || 'N',
     description: selectedRole?.description || '',
     is_active: selectedRole?.is_active || 'Y',
     permissions:
@@ -113,6 +114,7 @@ const ManageRolePermissions: React.FC<ManageRolePermissionsProps> = ({
             roleData: {
               name: values.name,
               type: values.type,
+              is_assigned_route: values.is_assigned_route,
               description: values.description,
               is_active: values.is_active,
               permissions: values.permissions,
@@ -122,6 +124,7 @@ const ManageRolePermissions: React.FC<ManageRolePermissionsProps> = ({
           await createRoleMutation.mutateAsync({
             name: values.name,
             type: values.type,
+            is_assigned_route: values.is_assigned_route,
             description: values.description,
             is_active: values.is_active,
             permissions: values.permissions,
@@ -326,13 +329,24 @@ const ManageRolePermissions: React.FC<ManageRolePermissionsProps> = ({
                 <MenuItem value="container">Container Group</MenuItem>
               </Select>
             </div>
-
-            <ActiveInactiveField
-              name="is_active"
-              formik={formik}
-              required
-              className="col-span-2"
-            />
+            <div className="flex justify-between w-full gap-4 col-span-2">
+              <div className="flex justify-start w-1/2">
+                <ActiveInactiveField
+                  name="is_assigned_route"
+                  formik={formik}
+                  required
+                  label="Can Assign Route"
+                  options={['Yes', 'No']}
+                />
+              </div>
+              <div className="flex justify-start w-1/2">
+                <ActiveInactiveField
+                  name="is_active"
+                  formik={formik}
+                  required
+                />
+              </div>
+            </div>
             <Input
               name="description"
               formik={formik}

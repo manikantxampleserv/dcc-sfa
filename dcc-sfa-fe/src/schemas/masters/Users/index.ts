@@ -14,7 +14,10 @@ const validationSchema = Yup.object({
   ),
   employee_id: Yup.string()
     .required('User Code is required')
-    .matches(/^[a-zA-Z0-9]+$/, 'User Code must only contain letters and numbers')
+    .matches(
+      /^[a-zA-Z0-9]+$/,
+      'User Code must only contain letters and numbers'
+    )
     .max(50, 'User Code must not exceed 50 characters'),
   reporting_to: Yup.number().required('Reporting manager is required'),
   depot_ids: Yup.array()
@@ -22,14 +25,21 @@ const validationSchema = Yup.object({
     .required('Depot is required'),
   password: Yup.string().when('isEdit', {
     is: false,
-    then: schema =>
+    then: (schema: Yup.StringSchema) =>
       schema
         .required('Password is required')
         .min(6, 'Password must be at least 6 characters'),
-    otherwise: schema =>
+    otherwise: (schema: Yup.StringSchema) =>
       schema.min(6, 'Password must be at least 6 characters'),
   }),
   is_active: Yup.string().required('Status is required'),
+  route_assignment_count: Yup.number()
+    .transform((value, originalValue) =>
+      originalValue === '' || originalValue === null ? undefined : value
+    )
+    .min(1, 'Must be at least 1')
+    .nullable()
+    .optional(),
 });
 
 export default validationSchema;

@@ -11,6 +11,7 @@ const validationSchema = Yup.object({
     'Description must not exceed 200 characters'
   ),
   is_active: Yup.string().required('Status is required'),
+  is_assigned_route: Yup.string().optional(),
   permissions: Yup.array().min(1, 'At least one permission must be selected'),
 });
 
