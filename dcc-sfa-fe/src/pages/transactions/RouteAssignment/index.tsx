@@ -330,7 +330,7 @@ const RouteAssignmentManagement: React.FC = () => {
                       variant="caption"
                       className="!text-gray-500 !truncate"
                     >
-                      {user.email || user.depot_id}
+                      {user.employee_id || user.code || '—'}
                     </Typography>
                   </div>
                 </div>

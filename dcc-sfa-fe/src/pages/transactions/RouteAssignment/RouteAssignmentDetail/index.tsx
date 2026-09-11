@@ -189,7 +189,7 @@ const RouteAssignmentDetail: React.FC = () => {
                     variant="caption"
                     className="!text-gray-500 !truncate !block"
                   >
-                    {assignment?.email || '—'}
+                    {assignment?.employee_id || assignment?.code || '—'}
                   </Typography>
                 </Box>
               </Box>

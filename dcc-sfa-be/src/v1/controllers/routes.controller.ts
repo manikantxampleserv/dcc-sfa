@@ -334,6 +334,14 @@ export const routesController = {
         limit: limitNum,
         orderBy: { createdate: 'desc' },
         include: {
+          user_role: {
+            select: {
+              id: true,
+              name: true,
+              role_key: true,
+              is_assigned_route: true,
+            },
+          },
           route_salespersons: {
             where: {
               is_active: 'Y',
@@ -363,10 +371,15 @@ export const routesController = {
         id: u.id,
         name: u.name,
         email: u.email,
-        code: u.employee,
+        code: u.employee_id,
+        employee_id: u.employee_id,
         profile_image: u.profile_image,
         depot_id: u.depot_id,
         zone_id: u.zone_id,
+        role: u.user_role?.name || null,
+        role_name: u.user_role?.name || null,
+        role_id: u.role_id,
+        is_assigned_route: u.user_role?.is_assigned_route ?? null,
         assigned_routes:
           u.route_salespersons?.map((rs: any) => ({
             id: rs.route?.id,
@@ -436,6 +449,14 @@ export const routesController = {
       const user = await prisma.users.findUnique({
         where: { id },
         include: {
+          user_role: {
+            select: {
+              id: true,
+              name: true,
+              role_key: true,
+              is_assigned_route: true,
+            },
+          },
           route_salespersons: {
             where: { is_active: 'Y' },
             include: {
@@ -455,7 +476,12 @@ export const routesController = {
         id: user.id,
         name: user.name,
         email: user.email,
+        code: user.employee_id,
+        employee_id: user.employee_id,
         profile_image: user.profile_image,
+        role: user.user_role?.name || null,
+        role_name: user.user_role?.name || null,
+        role_id: user.role_id,
         route_assignment_count: user.route_assignment_count ?? null,
         assigned_routes:
           user.route_salespersons?.map((rs: any) => ({
@@ -498,7 +524,14 @@ export const routesController = {
         return res.status(404).json({ message: 'User not found' });
       }
 
-      if (existingUser.user_role?.is_assigned_route === 'N') {
+      const isRouteAllowed =
+        existingUser.user_role?.is_assigned_route === 'Y' ||
+        existingUser.user_role?.name?.toLowerCase().includes('sales') ||
+        existingUser.user_role?.name?.toLowerCase().includes('survey') ||
+        existingUser.user_role?.role_key?.toLowerCase().includes('sales') ||
+        existingUser.user_role?.role_key?.toLowerCase().includes('survey');
+
+      if (!isRouteAllowed) {
         return res.status(400).json({
           message: `Routes cannot be assigned to users with role "${existingUser.user_role?.name}".`,
         });

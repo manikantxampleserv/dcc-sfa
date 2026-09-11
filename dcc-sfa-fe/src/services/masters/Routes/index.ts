@@ -140,6 +140,8 @@ interface RouteAssignment {
   id: number;
   name: string;
   email: string;
+  code?: string | null;
+  employee_id?: string | null;
   profile_image?: string | null;
   depot_id?: number | null;
   zone_id?: number | null;
@@ -150,6 +152,8 @@ interface RouteAssignment {
   }>;
   assigned_routes_count?: number;
   route_assignment_count?: number | null;
+  role?: string | null;
+  role_name?: string | null;
 }
 
 interface ManageRoutePayload {
