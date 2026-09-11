@@ -250,8 +250,7 @@ const ManageUsers: React.FC<ManageUsersProps> = ({
           values.route_assignment_count === null ||
           values.route_assignment_count === undefined
         ) {
-          errors.route_assignment_count =
-            'Route assignment limit is required';
+          errors.route_assignment_count = 'Route assignment limit is required';
         } else if (Number(values.route_assignment_count) < 1) {
           errors.route_assignment_count = 'Must be at least 1';
         }

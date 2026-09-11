@@ -77,7 +77,9 @@ const RouteAssignmentManagement: React.FC = () => {
     { enabled: isRead }
   );
 
-  const assignments = assignmentsResponse?.data || [];
+  const assignments = (assignmentsResponse?.data || []).filter(
+    user => !user.sub_inventory_parent_id
+  );
   const routes = routesResponse?.data || [];
 
   const totalSalespersons = assignmentsResponse?.stats?.total_salespersons || 0;

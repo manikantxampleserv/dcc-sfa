@@ -152,6 +152,7 @@ interface RouteAssignment {
   }>;
   assigned_routes_count?: number;
   route_assignment_count?: number | null;
+  sub_inventory_parent_id?: number | null;
   role?: string | null;
   role_name?: string | null;
 }

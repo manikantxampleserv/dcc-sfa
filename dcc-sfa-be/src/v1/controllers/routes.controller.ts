@@ -244,6 +244,7 @@ export const routesController = {
       const userFilters: any = {
         AND: [
           { is_active: 'Y' },
+          { sub_inventory_parent_id: null },
           {
             user_role: {
               OR: [
@@ -376,6 +377,7 @@ export const routesController = {
         profile_image: u.profile_image,
         depot_id: u.depot_id,
         zone_id: u.zone_id,
+        sub_inventory_parent_id: u.sub_inventory_parent_id ?? null,
         role: u.user_role?.name || null,
         role_name: u.user_role?.name || null,
         role_id: u.role_id,
@@ -522,6 +524,13 @@ export const routesController = {
       });
       if (!existingUser) {
         return res.status(404).json({ message: 'User not found' });
+      }
+
+      if (existingUser.sub_inventory_parent_id) {
+        return res.status(400).json({
+          message:
+            'Routes cannot be assigned to sub-inventory container members.',
+        });
       }
 
       const isRouteAllowed =
