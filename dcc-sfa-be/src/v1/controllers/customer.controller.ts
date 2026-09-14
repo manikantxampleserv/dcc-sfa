@@ -1586,16 +1586,27 @@ export const customerController = {
         }
       }
 
-      let routeIds: number[] = [];
+      let targetUserIds: number[] = [];
       if (salesperson_id) {
         const salespersonIdNum = parseInt(salesperson_id as string, 10);
+        const userForSalesperson = await prisma.users.findUnique({
+          where: { id: salespersonIdNum },
+          select: { sub_inventory_parent_id: true },
+        });
+        targetUserIds = [salespersonIdNum];
+        if (userForSalesperson?.sub_inventory_parent_id) {
+          targetUserIds.push(userForSalesperson.sub_inventory_parent_id);
+        }
+      }
 
+      let routeIds: number[] = [];
+      if (salesperson_id) {
         const salespersonRoutes = await prisma.routes.findMany({
           where: {
             is_active: 'Y',
             salespersons: {
               some: {
-                user_id: salespersonIdNum,
+                user_id: { in: targetUserIds },
                 is_active: 'Y',
               },
             },
@@ -1630,7 +1641,7 @@ export const customerController = {
       if (salesperson_id) {
         depotFilters.user_depots_depot_id = {
           some: {
-            user_id: parseInt(salesperson_id as string, 10),
+            user_id: { in: targetUserIds },
           },
         };
       }

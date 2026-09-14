@@ -1371,15 +1371,26 @@ exports.customerController = {
                     filters.id = -1;
                 }
             }
-            let routeIds = [];
+            let targetUserIds = [];
             if (salesperson_id) {
                 const salespersonIdNum = parseInt(salesperson_id, 10);
+                const userForSalesperson = await prisma_client_1.default.users.findUnique({
+                    where: { id: salespersonIdNum },
+                    select: { sub_inventory_parent_id: true },
+                });
+                targetUserIds = [salespersonIdNum];
+                if (userForSalesperson?.sub_inventory_parent_id) {
+                    targetUserIds.push(userForSalesperson.sub_inventory_parent_id);
+                }
+            }
+            let routeIds = [];
+            if (salesperson_id) {
                 const salespersonRoutes = await prisma_client_1.default.routes.findMany({
                     where: {
                         is_active: 'Y',
                         salespersons: {
                             some: {
-                                user_id: salespersonIdNum,
+                                user_id: { in: targetUserIds },
                                 is_active: 'Y',
                             },
                         },
@@ -1413,7 +1424,7 @@ exports.customerController = {
             if (salesperson_id) {
                 depotFilters.user_depots_depot_id = {
                     some: {
-                        user_id: parseInt(salesperson_id, 10),
+                        user_id: { in: targetUserIds },
                     },
                 };
             }
