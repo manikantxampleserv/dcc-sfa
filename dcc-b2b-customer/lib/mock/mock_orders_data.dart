@@ -1,0 +1,193 @@
+import '../models/order_model.dart';
+
+/**
+ * Mock customer orders data.
+ */
+abstract final class MockOrdersData {
+  static List<OrderModel> getOrders() {
+    final now = DateTime.now();
+    return [
+      OrderModel(
+        id: 1,
+        orderNumber: 'B2B-2026-0001',
+        customerName: 'Al-Rashid Distributors Ltd',
+        customerSapCode: 'SAP-001234',
+        status: 'delivered',
+        totalAmount: 4850000,
+        createdAt: now.subtract(const Duration(days: 10)).toIso8601String(),
+        updatedAt: now.subtract(const Duration(days: 7)).toIso8601String(),
+        approvedBy: 'Grace Mwangi',
+        approvedAt: now.subtract(const Duration(days: 9)).toIso8601String(),
+        deliveryDate: now
+            .subtract(const Duration(days: 7))
+            .toIso8601String()
+            .substring(0, 10),
+        notes: 'Urgent delivery for festive season stock',
+        items: const [
+          OrderItemModel(
+            id: 1,
+            productId: 1,
+            productName: 'Bonite Water 500ml',
+            productCode: 'BNT-W-500',
+            category: 'Water',
+            quantity: 200,
+            unitPrice: 1500,
+            totalPrice: 300000,
+          ),
+          OrderItemModel(
+            id: 2,
+            productId: 2,
+            productName: 'Bonite Water 1.5L',
+            productCode: 'BNT-W-1500',
+            category: 'Water',
+            quantity: 150,
+            unitPrice: 3000,
+            totalPrice: 450000,
+          ),
+          OrderItemModel(
+            id: 3,
+            productId: 5,
+            productName: 'Bonite Soda Orange 500ml',
+            productCode: 'BNT-S-OR-500',
+            category: 'Soda',
+            quantity: 300,
+            unitPrice: 1800,
+            totalPrice: 540000,
+          ),
+          OrderItemModel(
+            id: 4,
+            productId: 7,
+            productName: 'Bonite Juice Mango 1L',
+            productCode: 'BNT-J-MG-1L',
+            category: 'Juice',
+            quantity: 200,
+            unitPrice: 4200,
+            totalPrice: 840000,
+          ),
+          OrderItemModel(
+            id: 5,
+            productId: 9,
+            productName: 'Bonite Energy Drink 250ml',
+            productCode: 'BNT-E-250',
+            category: 'Energy',
+            quantity: 400,
+            unitPrice: 2800,
+            totalPrice: 1120000,
+          ),
+          OrderItemModel(
+            id: 6,
+            productId: 11,
+            productName: 'Bonite Tonic Water 300ml',
+            productCode: 'BNT-T-300',
+            category: 'Tonic',
+            quantity: 500,
+            unitPrice: 3200,
+            totalPrice: 1600000,
+          ),
+        ],
+      ),
+      OrderModel(
+        id: 2,
+        orderNumber: 'B2B-2026-0002',
+        customerName: 'Al-Rashid Distributors Ltd',
+        customerSapCode: 'SAP-001234',
+        status: 'in_transit',
+        totalAmount: 3120000,
+        createdAt: now.subtract(const Duration(days: 3)).toIso8601String(),
+        updatedAt: now.subtract(const Duration(days: 1)).toIso8601String(),
+        approvedBy: 'Grace Mwangi',
+        approvedAt: now.subtract(const Duration(days: 2)).toIso8601String(),
+        deliveryDate: now
+            .add(const Duration(days: 1))
+            .toIso8601String()
+            .substring(0, 10),
+        notes: 'Deliver to Warehouse 2 gate',
+        items: const [
+          OrderItemModel(
+            id: 7,
+            productId: 1,
+            productName: 'Bonite Water 500ml',
+            productCode: 'BNT-W-500',
+            category: 'Water',
+            quantity: 400,
+            unitPrice: 1500,
+            totalPrice: 600000,
+          ),
+          OrderItemModel(
+            id: 8,
+            productId: 6,
+            productName: 'Bonite Soda Lemon 500ml',
+            productCode: 'BNT-S-LM-500',
+            category: 'Soda',
+            quantity: 400,
+            unitPrice: 1750,
+            totalPrice: 700000,
+          ),
+          OrderItemModel(
+            id: 9,
+            productId: 8,
+            productName: 'Bonite Juice Passion 1L',
+            productCode: 'BNT-J-PS-1L',
+            category: 'Juice',
+            quantity: 300,
+            unitPrice: 4200,
+            totalPrice: 1260000,
+          ),
+          OrderItemModel(
+            id: 10,
+            productId: 10,
+            productName: 'Bonite Energy Drink 500ml',
+            productCode: 'BNT-E-500',
+            category: 'Energy',
+            quantity: 124,
+            unitPrice: 4500,
+            totalPrice: 560000,
+          ),
+        ],
+      ),
+      OrderModel(
+        id: 3,
+        orderNumber: 'B2B-2026-0003',
+        customerName: 'Al-Rashid Distributors Ltd',
+        customerSapCode: 'SAP-001234',
+        status: 'pending_approval',
+        totalAmount: 2450000,
+        createdAt: now.subtract(const Duration(hours: 4)).toIso8601String(),
+        updatedAt: now.subtract(const Duration(hours: 4)).toIso8601String(),
+        notes: 'Regular weekly reorder',
+        items: const [
+          OrderItemModel(
+            id: 11,
+            productId: 3,
+            productName: 'Bonite Water 5L',
+            productCode: 'BNT-W-5000',
+            category: 'Water',
+            quantity: 100,
+            unitPrice: 8500,
+            totalPrice: 850000,
+          ),
+          OrderItemModel(
+            id: 12,
+            productId: 7,
+            productName: 'Bonite Juice Mango 1L',
+            productCode: 'BNT-J-MG-1L',
+            category: 'Juice',
+            quantity: 200,
+            unitPrice: 4200,
+            totalPrice: 840000,
+          ),
+          OrderItemModel(
+            id: 13,
+            productId: 5,
+            productName: 'Bonite Soda Orange 500ml',
+            productCode: 'BNT-S-OR-500',
+            category: 'Soda',
+            quantity: 422,
+            unitPrice: 1800,
+            totalPrice: 760000,
+          ),
+        ],
+      ),
+    ];
+  }
+}
