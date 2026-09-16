@@ -88,6 +88,20 @@ export class AssetMasterImportExportService extends ImportExportService<any> {
       description: 'Asset barcode (optional)',
     },
     {
+      key: 'nfc_tag',
+      header: 'NFC Tag',
+      width: 20,
+      required: false,
+      type: 'string',
+      validation: value => {
+        if (value && value.length > 255)
+          return 'NFC Tag must be less than 255 characters';
+        return true;
+      },
+      transform: value => value?.toString().trim() || null,
+      description: 'Asset NFC Tag (optional)',
+    },
+    {
       key: 'depot_id',
       header: 'Depot ID',
       width: 15,
@@ -288,6 +302,7 @@ export class AssetMasterImportExportService extends ImportExportService<any> {
         asset_brand_name: assetBrand?.name || 'Samsung',
         serial_number: 'COOLER-001-2024',
         barcode: 'BC123456789',
+        nfc_tag: 'NFC123456789',
         depot_id: 1,
         outlet_id: null,
         purchase_date: '2024-01-15',
@@ -331,6 +346,7 @@ export class AssetMasterImportExportService extends ImportExportService<any> {
       asset_brand_name: asset.asset_master_brands?.name || '',
       serial_number: asset.serial_number,
       barcode: asset.barcode || '',
+      nfc_tag: asset.nfc_tag || '',
       depot_id: asset.depot_id || '',
       depot_name: asset.asset_master_depot?.name || '',
       outlet_id: asset.outlet_id || '',
@@ -439,6 +455,7 @@ export class AssetMasterImportExportService extends ImportExportService<any> {
       code: assetCode,
       serial_number: data.serial_number,
       barcode: data.barcode || null,
+      nfc_tag: data.nfc_tag || null,
       purchase_date: data.purchase_date || null,
       warranty_expiry: data.warranty_expiry || null,
       current_location: data.current_location || null,
@@ -506,6 +523,7 @@ export class AssetMasterImportExportService extends ImportExportService<any> {
       name: data.name,
       code: data.code || undefined,
       barcode: data.barcode !== undefined ? data.barcode : undefined,
+      nfc_tag: data.nfc_tag !== undefined ? data.nfc_tag : undefined,
       purchase_date:
         data.purchase_date !== undefined ? data.purchase_date : undefined,
       warranty_expiry:

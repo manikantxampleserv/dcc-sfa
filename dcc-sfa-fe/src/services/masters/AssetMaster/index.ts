@@ -31,7 +31,7 @@ export interface AssetMaster {
   brand_id?: number | null;
   serial_number: string;
   barcode?: string | null;
-  nfc_tag_code?: string | null;
+  nfc_tag?: string | null;
   purchase_date?: string | null;
   warranty_expiry?: string | null;
   current_location?: string | null;

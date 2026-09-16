@@ -77,7 +77,7 @@ const ManageAssetMaster: React.FC<ManageAssetMasterProps> = ({
       asset_brand_id: selectedAsset?.asset_brand_id || 0,
       serial_number: selectedAsset?.serial_number || '',
       barcode: selectedAsset?.barcode || '',
-      nfc_tag_code: selectedAsset?.nfc_tag_code || '',
+      nfc_tag: selectedAsset?.nfc_tag || '',
       purchase_date: selectedAsset?.purchase_date
         ? selectedAsset.purchase_date.split('T')[0]
         : null,
@@ -295,7 +295,7 @@ const ManageAssetMaster: React.FC<ManageAssetMasterProps> = ({
             />
 
             <Input
-              name="nfc_tag_code"
+              name="nfc_tag"
               label="NFC Tag"
               placeholder="Enter NFC Tag"
               formik={formik}

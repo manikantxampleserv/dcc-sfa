@@ -569,9 +569,21 @@ export const reconciliationController = {
 
       const basicRecon = await prisma.reconciliation.findFirst({
         where: whereClause,
-        select: { salesman: { select: { depot_id: true } } },
+        select: {
+          salesman: {
+            select: {
+              depot_id: true,
+              users_depots_users: {
+                where: { is_active: 'Y' },
+                select: { depot_id: true },
+              },
+            },
+          },
+        },
       });
-      const salesmanDepotId = basicRecon?.salesman?.depot_id;
+      const salesmanDepotId =
+        basicRecon?.salesman?.depot_id ||
+        basicRecon?.salesman?.users_depots_users?.[0]?.depot_id;
 
       let targetPricelistId = -1;
       if (salesmanDepotId) {
