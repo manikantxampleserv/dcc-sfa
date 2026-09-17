@@ -1,5 +1,6 @@
 import type { IconType } from 'react-icons';
 import {
+  MdAssessment,
   MdAssignment,
   MdBarChart,
   MdBuild,
@@ -512,6 +513,12 @@ const menuItems: MenuItem[] = [
         label: 'Coolers Report',
         icon: MdBuild,
         href: '/reports/coolers',
+      },
+      {
+        id: 'asset-report',
+        label: 'Asset Report',
+        icon: MdAssessment,
+        href: '/reports/asset-report',
       },
     ],
   },

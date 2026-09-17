@@ -53,6 +53,7 @@ const Layout: React.FC = () => {
   };
 
   const path = '/dashboard/sales-control-tower';
+  const path1 = '/reports/asset-report';
 
   return (
     <CurrencyProvider>
@@ -69,8 +70,10 @@ const Layout: React.FC = () => {
             <main
               ref={mainRef}
               className={classNames('flex-1 overflow-auto', {
-                'p-0': location.pathname === path,
-                'p-5': location.pathname !== path,
+                'p-0':
+                  location.pathname === path || location.pathname === path1,
+                'p-5':
+                  location.pathname !== path && location.pathname !== path1,
               })}
             >
               <Outlet key={outletKey} />

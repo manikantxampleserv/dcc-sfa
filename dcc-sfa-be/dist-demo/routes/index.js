@@ -78,6 +78,7 @@ const promotionProducts_routes_1 = __importDefault(require("../v1/routes/promoti
 const promotions_routes_1 = __importDefault(require("../v1/routes/promotions.routes"));
 const regions_routes_1 = __importDefault(require("../v1/routes/regions.routes"));
 const reports_routes_1 = __importDefault(require("../v1/routes/reports.routes"));
+const coolerTrackingDashboard_routes_1 = __importDefault(require("../v1/routes/coolerTrackingDashboard.routes"));
 const requests_routes_1 = __importDefault(require("../v1/routes/requests.routes"));
 const returnRequests_routes_1 = __importDefault(require("../v1/routes/returnRequests.routes"));
 const rolePermissions_routes_1 = __importDefault(require("../v1/routes/rolePermissions.routes"));
@@ -180,6 +181,7 @@ routes.use('/v1', promotions_routes_1.default);
 routes.use('/v1', promotionProducts_routes_1.default);
 routes.use('/v1', promotionParameters_routes_1.default);
 routes.use('/v1/reports', reports_routes_1.default);
+routes.use('/v1/reports', coolerTrackingDashboard_routes_1.default);
 routes.use('/v1/tracking', gpsTracking_routes_1.default);
 routes.use('/v1', auditLogs_routes_1.default);
 routes.use('/v1', executiveDashboard_routes_1.default);

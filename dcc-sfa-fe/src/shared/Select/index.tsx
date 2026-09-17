@@ -234,7 +234,7 @@ const Select: React.FC<CustomSelectProps> = ({
         sx={{ minWidth: defaultMinWidth }}
         slotProps={{
           popper: {
-            style: { zIndex: 1300 },
+            style: { zIndex: 10000 },
             placement: 'bottom-start',
           },
           listbox: {

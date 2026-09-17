@@ -96,6 +96,7 @@ import SurveyResponseDetail from 'pages/reports/SurveyResponses/SurveyResponseDe
 import VisitFrequencyCompletionReport from 'pages/reports/VisitFrequencyCompletionReport';
 import CoolerInspectionsReport from 'pages/reports/CoolerInspectionsReport';
 import CoolersReport from 'pages/reports/CoolersReport';
+import AssetReport from 'pages/reports/AssetReport';
 import EmailTemplates from 'pages/settings/EmailTemplates';
 import SystemSettings from 'pages/settings/SystemSettings';
 import ErrorLogs from 'pages/settings/ErrorLogs';
@@ -1077,6 +1078,14 @@ const router = createBrowserRouter(
             element: (
               <PermissionGuard module="report" action="read">
                 <CoolersReport />
+              </PermissionGuard>
+            ),
+          },
+          {
+            path: '/reports/asset-report',
+            element: (
+              <PermissionGuard module="report" action="read">
+                <AssetReport />
               </PermissionGuard>
             ),
           },

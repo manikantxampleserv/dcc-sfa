@@ -11,6 +11,7 @@ interface Role {
   is_active: string;
   created_at?: string;
   updated_at?: string;
+  unload_time?: string;
   permissions?: RolePermission[];
   user_role?: {
     id: number;
@@ -47,6 +48,7 @@ interface ManageRolePayload {
   description?: string;
   user_id?: number;
   is_active?: string;
+  unload_time?: string;
   permissions?: number[];
 }
 
@@ -57,6 +59,7 @@ interface UpdateRolePayload {
   description?: string;
   user_id?: number;
   is_active?: string;
+  unload_time?: string;
   permissions?: number[];
 }
 

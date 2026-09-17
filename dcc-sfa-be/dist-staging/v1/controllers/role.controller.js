@@ -13,9 +13,9 @@ const serializeRole = (role, includeCreatedAt = false, includeUpdatedAt = false)
     description: role.description,
     type: role.type,
     is_assigned_route: role.is_assigned_route ?? 'N',
-    // user_id: role.user_id,
     is_active: role.is_active,
     role_key: role.role_key,
+    unload_time: role.unload_time,
     ...(includeCreatedAt && { created_at: role.createdate }),
     ...(includeUpdatedAt && { updated_at: role.updatedate }),
     permissions: role.roles_permission
@@ -50,7 +50,7 @@ exports.rolesController = {
             }
             const { name, description, type, is_assigned_route, 
             // user_id,
-            is_active, permissions = [], } = req.body;
+            is_active, unload_time, permissions = [], } = req.body;
             const existingRole = await prisma_client_1.default.roles.findFirst({
                 where: {
                     name,
@@ -69,6 +69,7 @@ exports.rolesController = {
                         type: type || 'normal',
                         is_assigned_route: is_assigned_route || 'N',
                         is_active: is_active ?? 'Y',
+                        unload_time,
                         createdby: req.user?.id || 1,
                         createdate: new Date(),
                         role_key: name.toLowerCase().replace(/ /g, '_'),

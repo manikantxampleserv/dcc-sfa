@@ -12,6 +12,7 @@ const validationSchema = Yup.object({
   ),
   is_active: Yup.string().required('Status is required'),
   is_assigned_route: Yup.string().optional(),
+  unload_time: Yup.string().optional(),
   permissions: Yup.array().min(1, 'At least one permission must be selected'),
 });
 

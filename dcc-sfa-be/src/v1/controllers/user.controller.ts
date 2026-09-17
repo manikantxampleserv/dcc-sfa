@@ -42,6 +42,7 @@ const serializeUser = (
         name: user.user_role.name,
         description: user.user_role.description,
         is_assigned_route: user.user_role.is_assigned_route,
+        unload_time: user.user_role.unload_time,
       }
     : null,
   company: user.companies
@@ -1150,6 +1151,16 @@ export const userController = {
                   estimated_time: true,
                 },
               },
+            },
+          },
+          sub_inventory_users: {
+            where: { is_active: 'Y' },
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              employee_id: true,
+              profile_image: true,
             },
           },
         },

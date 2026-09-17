@@ -11,7 +11,11 @@ export default defineConfig({
       hotKeys: ['altKey'],
       editor: 'antigravity',
     }),
-    react(),
+    react({
+      babel: {
+        compact: false,
+      },
+    }),
     tailwindcss(),
   ],
   resolve: {

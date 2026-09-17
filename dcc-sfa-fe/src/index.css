@@ -1,6 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
 @import 'tailwindcss';
 @plugin '@tailwindcss/typography';
+@import "./pages/reports/AssetReport/index.css";
 
 /* Tailwind CSS v4 Theme Configuration */
 @theme {
@@ -177,15 +178,20 @@ input[type='number'] {
   animation-delay: 0.8s;
 }
 
-/* AI Assistant Fullscreen Overrides */
-body.ai-fullscreen-active {
+/* Fullscreen Overrides */
+body.ai-fullscreen-active,
+body.fullscreen-active {
   overflow: hidden !important;
 }
 
 body.ai-fullscreen-active header,
 body.ai-fullscreen-active aside,
 body.ai-fullscreen-active .w-72,
-body.ai-fullscreen-active div:has(> .breadcrambs) {
+body.ai-fullscreen-active div:has(> .breadcrambs),
+body.fullscreen-active header,
+body.fullscreen-active aside,
+body.fullscreen-active .w-72,
+body.fullscreen-active div:has(> .breadcrambs) {
   display: none !important;
 }
 

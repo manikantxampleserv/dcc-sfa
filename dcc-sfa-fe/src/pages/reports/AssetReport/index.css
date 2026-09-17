@@ -1,0 +1,84 @@
+/**
+ * Tailwind CSS v4 Theme Configuration and Utilities for AssetReport
+ */
+@theme {
+  --color-r-bg: #F3F5FA;
+  --color-r-card: #FFFFFF;
+  --color-r-border: #EAEDF3;
+  --color-r-line: #F0F1F6;
+  --color-r-text: #16213E;
+  --color-r-muted: #6B7280;
+  --color-r-faint: #98A2B3;
+  --color-r-blue: #3B7CFF;
+  --color-r-blue-bg: #EAF1FF;
+  --color-r-green: #12B76A;
+  --color-r-green-bg: #E7F9F0;
+  --color-r-green-border: #CFF3E1;
+  --color-r-green-text: #067A48;
+  --color-r-red: #F04438;
+  --color-r-red-bg: #FDECEB;
+  --color-r-red-text: #B42318;
+  --color-r-maroon: #B42318;
+  --color-r-maroon-bg: #FBDBD8;
+  --color-r-purple: #7A5CFA;
+  --color-r-purple-bg: #F0ECFE;
+  --color-r-orange: #F79009;
+  --color-r-orange-bg: #FEF2DE;
+  --color-r-orange-border: #FCE3B8;
+  --color-r-orange-text: #93590A;
+  --color-r-amber-bg: #FDEEE3;
+  --color-r-amber-text: #B54708;
+  --color-r-pink: #EE46BC;
+  --color-r-pink-bg: #FDECF9;
+  --color-r-gray-badge-bg: #F1F2F7;
+  --color-r-gray-badge-text: #475467;
+
+  --radius-r: 8px;
+  --radius-r-sm: 4px;
+  --radius-r-md: 5px;
+  --radius-r-lg: 10px;
+
+  --shadow-r: 0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 4px rgba(16, 24, 40, 0.06);
+
+  --animate-r-pulse: assetReportPulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+
+  @keyframes assetReportPulse {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.35;
+    }
+  }
+}
+
+:root {
+  --bg: #F3F5FA;
+  --card: #FFFFFF;
+  --border: #EAEDF3;
+  --line: #F0F1F6;
+  --text: #16213E;
+  --muted: #6B7280;
+  --faint: #98A2B3;
+  --blue: #3B7CFF;
+  --blue-bg: #EAF1FF;
+  --green: #12B76A;
+  --green-bg: #E7F9F0;
+  --red: #F04438;
+  --red-bg: #FDECEB;
+  --maroon: #B42318;
+  --maroon-bg: #FBDBD8;
+  --purple: #7A5CFA;
+  --purple-bg: #F0ECFE;
+  --orange: #F79009;
+  --orange-bg: #FEF2DE;
+  --pink: #EE46BC;
+  --pink-bg: #FDECF9;
+}
+
+/**
+ * Native details marker reset
+ */
+details.devnotes summary::-webkit-details-marker {
+  display: none;
+}

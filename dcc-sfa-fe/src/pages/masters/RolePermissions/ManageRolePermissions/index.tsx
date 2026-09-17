@@ -96,6 +96,7 @@ const ManageRolePermissions: React.FC<ManageRolePermissionsProps> = ({
     is_assigned_route: selectedRole?.is_assigned_route || 'N',
     description: selectedRole?.description || '',
     is_active: selectedRole?.is_active || 'Y',
+    unload_time: selectedRole?.unload_time || '',
     permissions:
       selectedRole?.permissions
         ?.filter(p => p.is_active === 'Y')
@@ -117,6 +118,7 @@ const ManageRolePermissions: React.FC<ManageRolePermissionsProps> = ({
               is_assigned_route: values.is_assigned_route,
               description: values.description,
               is_active: values.is_active,
+              unload_time: values.unload_time,
               permissions: values.permissions,
             },
           });
@@ -127,6 +129,7 @@ const ManageRolePermissions: React.FC<ManageRolePermissionsProps> = ({
             is_assigned_route: values.is_assigned_route,
             description: values.description,
             is_active: values.is_active,
+            unload_time: values.unload_time,
             permissions: values.permissions,
           });
         }
@@ -330,7 +333,7 @@ const ManageRolePermissions: React.FC<ManageRolePermissionsProps> = ({
               </Select>
             </div>
             <div className="flex justify-between w-full gap-4 col-span-2">
-              <div className="flex justify-start w-1/2">
+              <div className="flex justify-start w-1/3">
                 <ActiveInactiveField
                   name="is_assigned_route"
                   formik={formik}
@@ -339,13 +342,21 @@ const ManageRolePermissions: React.FC<ManageRolePermissionsProps> = ({
                   options={['Yes', 'No']}
                 />
               </div>
-              <div className="flex justify-start w-1/2">
+              <div className="flex justify-start w-1/3">
                 <ActiveInactiveField
                   name="is_active"
                   formik={formik}
                   required
                 />
               </div>
+            </div>
+            <div className="flex justify-start w-[48.5%]">
+              <Input
+                type="time"
+                name="unload_time"
+                formik={formik}
+                label="Unload Time"
+              />
             </div>
             <Input
               name="description"

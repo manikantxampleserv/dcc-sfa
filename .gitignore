@@ -167,3 +167,6 @@ dcc-sfa-be/logs/
 # Prisma
 dcc-sfa-be/prisma/migrations/
 !dcc-sfa-be/prisma/migrations/.gitkeep
+
+Cooler_Tracking_Dashboard.html
+Just Downloaded cooler Report_New.xlsx
