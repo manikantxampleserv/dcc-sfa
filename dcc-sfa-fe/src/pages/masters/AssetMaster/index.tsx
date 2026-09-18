@@ -258,7 +258,9 @@ const AssetMasterManagement: React.FC = () => {
       render: (_value, row) => {
         const locationName =
           row.asset_master_depot?.name ||
-          row.asset_master_outlet?.name ||
+          (row.asset_master_outlet
+            ? `${row.asset_master_outlet.name} (${row.asset_master_outlet.code})`
+            : null) ||
           row.current_location;
         const Icon = row.asset_master_depot
           ? Home

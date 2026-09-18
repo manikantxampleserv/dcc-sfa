@@ -2943,7 +2943,7 @@ const AssetReport: React.FC = () => {
                       setDepotPage(1);
                     }}
                     placeholder="Search barcode, serial, brand, model..."
-                    className="border border-r-border rounded px-3 py-2 text-[13px] bg-[#FBFBFD] focus:border-r-blue outline-none w-[200px]"
+                    className="border border-r-border rounded px-3 py-2 text-[13px] bg-[#FBFBFD] focus:border-r-blue outline-none w-[300px]"
                   />
                   <button
                     className="border border-r-border bg-[#FBFBFD] hover:bg-r-line rounded px-3.5 py-2 text-[12.5px] font-bold text-r-text cursor-pointer transition-colors"
