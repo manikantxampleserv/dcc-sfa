@@ -1,0 +1,1 @@
+{"version":3,"file":"mobileErrorLogs.controller.d.ts","sourceRoot":"","sources":["../../../src/v1/controllers/mobileErrorLogs.controller.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,OAAO,EAAE,QAAQ,EAAE,MAAM,SAAS,CAAC;AAI5C,eAAO,MAAM,yBAAyB;4BACN,OAAO,OAAO,QAAQ;6BAyJrB,OAAO,OAAO,QAAQ;CA6EtD,CAAC"}
