@@ -3368,3 +3368,15 @@ model request_logs {
   device_info String?   @db.NVarChar(255)
   createdate  DateTime? @default(now()) @db.DateTime
 }
+
+model mobile_error_logs {
+  id            Int       @id @default(autoincrement())
+  error_message String    @db.NVarChar(Max)
+  stack_trace   String?   @db.NVarChar(Max)
+  error_type    String?   @db.NVarChar(100)
+  screen_name   String?   @db.NVarChar(255)
+  device_info   String?   @db.NVarChar(Max)
+  user_id       Int?
+  is_synced     Int?      @default(0)
+  createdate    DateTime? @default(now())
+}

@@ -74,6 +74,7 @@ import UpdatedPromotionsManagement from 'pages/masters/UpdatedPromotions';
 import UpdatedPromotionDetail from 'pages/masters/UpdatedPromotions/UpdatedPromotionDetail';
 import Users from 'pages/masters/Users';
 import SalesmanControl from 'pages/SalesmanControl';
+import MobileErrorLogs from 'pages/MobileErrorLogs';
 import UserDetail from 'pages/masters/Users/UserDetail';
 import VanStockManagement from 'pages/masters/VanStock';
 import VehiclesManagement from 'pages/masters/Vehicles';
@@ -192,6 +193,14 @@ const router = createBrowserRouter(
           <PermissionGuard module="user" action="read">
             <SalesmanControl />
           </PermissionGuard>
+        </ProtectedRoute>
+      ),
+    },
+    {
+      path: '/mobile-error-logs',
+      element: (
+        <ProtectedRoute>
+          <MobileErrorLogs />
         </ProtectedRoute>
       ),
     },
@@ -1154,6 +1163,10 @@ const router = createBrowserRouter(
               <ErrorLogs />
             </PermissionGuard>
           ),
+        },
+        {
+          path: '/settings/mobile-error-logs',
+          element: <MobileErrorLogs />,
         },
         {
           path: '/profile',
