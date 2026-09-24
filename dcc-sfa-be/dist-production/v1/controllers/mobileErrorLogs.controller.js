@@ -9,8 +9,15 @@ const prisma_client_1 = __importDefault(require("../../configs/prisma.client"));
 exports.mobileErrorLogsController = {
     async getMobileErrorLogs(req, res) {
         try {
+            const model = prisma_client_1.default.mobile_error_logs;
+            if (!model) {
+                return res.status(500).json({
+                    success: false,
+                    message: 'Prisma client was not initialized with mobile_error_logs. Please restart the backend server.',
+                });
+            }
             const { page = 1, limit = 10, search, error_message, error_type, screen_name, device_info, user_id, is_synced, start_date, end_date, } = req.query;
-            console.log('🔍 [MOBILE_ERROR_LOGS] Fetching Logs with query:', req.query);
+            console.log(' Fetching Logs with query:', req.query);
             const where = {};
             const searchTerm = (search || error_message)?.trim();
             if (searchTerm) {
@@ -47,7 +54,7 @@ exports.mobileErrorLogsController = {
             const pageNum = parseInt(page, 10);
             const limitNum = parseInt(limit, 10);
             const { data, pagination } = await (0, paginate_1.paginate)({
-                model: prisma_client_1.default.mobile_error_logs,
+                model,
                 filters: where,
                 page: pageNum,
                 limit: limitNum,
@@ -84,18 +91,30 @@ exports.mobileErrorLogsController = {
             startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
             const startOfMonth = new Date(today);
             startOfMonth.setDate(1);
-            const [total_errors, today_errors, this_week_errors, this_month_errors] = await Promise.all([
-                prisma_client_1.default.mobile_error_logs.count(),
-                prisma_client_1.default.mobile_error_logs.count({
-                    where: { createdate: { gte: today } },
-                }),
-                prisma_client_1.default.mobile_error_logs.count({
-                    where: { createdate: { gte: startOfWeek } },
-                }),
-                prisma_client_1.default.mobile_error_logs.count({
-                    where: { createdate: { gte: startOfMonth } },
-                }),
-            ]);
+            let total_errors = 0;
+            let today_errors = 0;
+            let this_week_errors = 0;
+            let this_month_errors = 0;
+            if (typeof model?.count === 'function') {
+                try {
+                    [total_errors, today_errors, this_week_errors, this_month_errors] =
+                        await Promise.all([
+                            model.count(),
+                            model.count({
+                                where: { createdate: { gte: today } },
+                            }),
+                            model.count({
+                                where: { createdate: { gte: startOfWeek } },
+                            }),
+                            model.count({
+                                where: { createdate: { gte: startOfMonth } },
+                            }),
+                        ]);
+                }
+                catch (countErr) {
+                    console.warn(' Could not calculate count statistics:', countErr);
+                }
+            }
             return res.status(200).json({
                 success: true,
                 data: serializedLogs,
@@ -123,18 +142,21 @@ exports.mobileErrorLogsController = {
     },
     async syncMobileErrorLogs(req, res) {
         try {
+            const model = prisma_client_1.default.mobile_error_logs;
+            if (!model) {
+                return res.status(500).json({
+                    success: false,
+                    message: 'Prisma client was not initialized with mobile_error_logs. Please restart the backend server.',
+                });
+            }
             const body = req.body;
-            console.log('\n========================================');
-            console.log('📥 [MOBILE_ERROR_LOGS] Incoming Sync Request');
-            console.log('📦 Raw Request Body:', JSON.stringify(body, null, 2));
-            console.log('========================================\n');
             const rawLogs = Array.isArray(body)
                 ? body
                 : Array.isArray(body?.logs)
                     ? body.logs
                     : [body];
             if (!rawLogs.length || !rawLogs[0]?.error_message) {
-                console.warn('⚠️ [MOBILE_ERROR_LOGS] Validation Failed: No error_message found in payload.');
+                console.warn(' Validation Failed: No error_message found in payload.');
                 return res.status(400).json({
                     success: false,
                     message: 'Invalid payload. At least one error log with error_message is required.',
@@ -160,9 +182,9 @@ exports.mobileErrorLogsController = {
                     ? new Date(item.createdate || item.created_at)
                     : new Date(),
             }));
-            console.log(`📋 [MOBILE_ERROR_LOGS] Prepared ${logsToInsert.length} log(s) to insert:`);
+            console.log(`Prepared ${logsToInsert.length} log(s) to insert:`);
             console.log(JSON.stringify(logsToInsert, null, 2));
-            const createdLogs = await prisma_client_1.default.$transaction(logsToInsert.map((log) => prisma_client_1.default.mobile_error_logs.create({
+            const createdLogs = await prisma_client_1.default.$transaction(logsToInsert.map((log) => model.create({
                 data: log,
             })));
             return res.status(201).json({
