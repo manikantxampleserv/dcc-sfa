@@ -173,6 +173,7 @@ export const coolerTrackingDashboardController = {
           customer_routes: {
             select: {
               code: true,
+              name: true,
               route_zones: {
                 select: {
                   name: true,
@@ -221,6 +222,7 @@ export const coolerTrackingDashboardController = {
           customer.customer_channel_customer?.channel_name || null;
         const zoneName: string = zone?.name || 'Unassigned';
         const routeCode: string = route?.code || 'Unassigned';
+        const routeName: string = route?.name || 'Unassigned';
         const supervisorName: string =
           zone?.zone_supervisor?.name || 'Unassigned';
         const depotName: string =
@@ -334,6 +336,7 @@ export const coolerTrackingDashboardController = {
         outletRecords.push({
           zone: zoneName,
           route: routeCode,
+          routeName: routeName,
           supervisor: supervisorName,
           depot: depotName,
           category,
@@ -432,6 +435,7 @@ export const coolerTrackingDashboardController = {
           cust.customer_depot?.name || zone?.zone_depots?.name || 'Unassigned';
         const zoneName: string = zone?.name || 'Unassigned';
         const routeCode: string = route?.code || 'Unassigned';
+        const routeName: string = route?.name || 'Unassigned';
         const category =
           cust.customer_category_customer?.category_name || 'General';
         const custType = cust.customer_type_customer?.type_name || 'Standard';
@@ -449,6 +453,7 @@ export const coolerTrackingDashboardController = {
           depot,
           zone: zoneName,
           route: routeCode,
+          routeName: routeName,
           category,
           custType,
           channel,

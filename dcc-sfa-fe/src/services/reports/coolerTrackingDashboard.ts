@@ -37,6 +37,7 @@ export interface OutletMeta {
 export interface OutletRecord {
   zone: string;
   route: string;
+  routeName: string;
   supervisor: string;
   depot: string;
   category: string;
@@ -75,6 +76,7 @@ export interface MasterRecord {
   depot: string;
   zone: string;
   route: string;
+  routeName: string;
   category: string;
   custType: string;
   channel: string | null;
