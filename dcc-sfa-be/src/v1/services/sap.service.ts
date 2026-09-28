@@ -2595,6 +2595,12 @@ export const sapService = {
         `SAP Reconciliation Created new reconciliation ID: ${reconciliationRecord.id} for salesman ${salesman_sap_code} on ${reconciliation_date}`
       );
     } else {
+      if (reconciliationRecord.status?.toUpperCase() === 'A') {
+        throw new Error(
+          `Cannot update reconciliation ID ${reconciliationRecord.id} because it is already approved`
+        );
+      }
+
       console.log(
         `SAP Reconciliation Found existing reconciliation ID: ${reconciliationRecord.id} for salesman ${salesman_sap_code} on ${reconciliation_date}`
       );
