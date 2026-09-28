@@ -174,6 +174,7 @@ exports.coolerTrackingDashboardController = {
                     customer_routes: {
                         select: {
                             code: true,
+                            name: true,
                             route_zones: {
                                 select: {
                                     name: true,
@@ -211,6 +212,7 @@ exports.coolerTrackingDashboardController = {
                 const channel = customer.customer_channel_customer?.channel_name || null;
                 const zoneName = zone?.name || 'Unassigned';
                 const routeCode = route?.code || 'Unassigned';
+                const routeName = route?.name || 'Unassigned';
                 const supervisorName = zone?.zone_supervisor?.name || 'Unassigned';
                 const depotName = zone?.zone_depots?.name ||
                     customer.customer_depot?.name ||
@@ -316,6 +318,7 @@ exports.coolerTrackingDashboardController = {
                 outletRecords.push({
                     zone: zoneName,
                     route: routeCode,
+                    routeName: routeName,
                     supervisor: supervisorName,
                     depot: depotName,
                     category,
@@ -402,6 +405,7 @@ exports.coolerTrackingDashboardController = {
                 const depot = cust.customer_depot?.name || zone?.zone_depots?.name || 'Unassigned';
                 const zoneName = zone?.name || 'Unassigned';
                 const routeCode = route?.code || 'Unassigned';
+                const routeName = route?.name || 'Unassigned';
                 const category = cust.customer_category_customer?.category_name || 'General';
                 const custType = cust.customer_type_customer?.type_name || 'Standard';
                 const channel = cust.customer_channel_customer?.channel_name || null;
@@ -418,6 +422,7 @@ exports.coolerTrackingDashboardController = {
                     depot,
                     zone: zoneName,
                     route: routeCode,
+                    routeName: routeName,
                     category,
                     custType,
                     channel,

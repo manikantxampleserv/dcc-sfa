@@ -44,6 +44,7 @@ interface BarItem {
 interface OutletRecord {
   zone: string;
   route: string;
+  routeName: string;
   supervisor: string;
   depot: string;
   category: string;
@@ -78,6 +79,7 @@ interface MasterRecord {
   depot: string;
   zone: string;
   route: string;
+  routeName: string;
   category: string;
   custType: string;
   channel: string | null;
@@ -1284,6 +1286,7 @@ const AssetReport: React.FC = () => {
       'Supervisor',
       'Zone',
       'Route',
+      'Outlet Code',
       'Outlet',
       'Category',
       'Type',
@@ -1297,7 +1300,8 @@ const AssetReport: React.FC = () => {
     const dataRows = tableRows.map(r => [
       r.supervisor,
       r.zone,
-      r.route,
+      r.routeName || r.route,
+      r.code,
       r.outlet,
       r.category,
       r.custType,
@@ -2172,6 +2176,20 @@ const AssetReport: React.FC = () => {
                       <th
                         className="text-left text-[11px] font-bold uppercase tracking-wider text-r-faint p-2.5 px-3 border-b border-r-border cursor-pointer whitespace-nowrap select-none hover:text-r-text"
                         onClick={() => {
+                          setOutletSortKey('code');
+                          setOutletSortDir(
+                            outletSortKey === 'code' && outletSortDir === 'asc'
+                              ? 'desc'
+                              : 'asc'
+                          );
+                          setOutletPage(1);
+                        }}
+                      >
+                        Outlet Code
+                      </th>
+                      <th
+                        className="text-left text-[11px] font-bold uppercase tracking-wider text-r-faint p-2.5 px-3 border-b border-r-border cursor-pointer whitespace-nowrap select-none hover:text-r-text"
+                        onClick={() => {
                           setOutletSortKey('outlet');
                           setOutletSortDir(
                             outletSortKey === 'outlet' &&
@@ -2320,7 +2338,10 @@ const AssetReport: React.FC = () => {
                               {r.zone}
                             </td>
                             <td className="p-[11px_12px] border-b border-r-line text-r-text whitespace-nowrap">
-                              {r.route}
+                              {r.routeName || r.route}
+                            </td>
+                            <td className="p-[11px_12px] border-b border-r-line text-r-text whitespace-nowrap">
+                              {r.code}
                             </td>
                             <td className="p-[11px_12px] border-b border-r-line text-r-text whitespace-nowrap">
                               {r.outlet}
