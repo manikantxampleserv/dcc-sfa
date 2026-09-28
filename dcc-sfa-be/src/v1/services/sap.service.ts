@@ -2580,36 +2580,25 @@ export const sapService = {
     });
 
     if (!reconciliationRecord) {
-      reconciliationRecord = await prisma.reconciliation.create({
-        data: {
-          salesman_id: spUser.id,
-          depot_id: depotId,
-          reconciliation_date: targetDate,
-          status: 'P',
-          is_active: payload.is_active || 'Y',
-          createdby: userId,
-          updatedby: userId,
-        },
-      });
-      console.log(
-        `SAP Reconciliation Created new reconciliation ID: ${reconciliationRecord.id} for salesman ${salesman_sap_code} on ${document_date}`
+      throw new Error(
+        `Reconciliation not found for salesman ${salesman_sap_code} on ${document_date}. Please ensure salesman has completed unload first.`
       );
-    } else {
-      if (reconciliationRecord.status?.toUpperCase() === 'A') {
-        throw new Error(
-          `Cannot update reconciliation ID ${reconciliationRecord.id} because it is already approved`
-        );
-      }
+    }
 
-      console.log(
-        `SAP Reconciliation Found existing reconciliation ID: ${reconciliationRecord.id} for salesman ${salesman_sap_code} on ${document_date}`
+    if (reconciliationRecord.status?.toUpperCase() !== 'P') {
+      throw new Error(
+        `Reconciliation ID ${reconciliationRecord.id} is not in pending status (current status: '${reconciliationRecord.status}'). Only pending (P) reconciliations can be synced.`
       );
-      if (depotId && !reconciliationRecord.depot_id) {
-        reconciliationRecord = await prisma.reconciliation.update({
-          where: { id: reconciliationRecord.id },
-          data: { depot_id: depotId },
-        });
-      }
+    }
+
+    console.log(
+      `SAP Reconciliation Found existing pending reconciliation ID: ${reconciliationRecord.id} for salesman ${salesman_sap_code} on ${document_date}`
+    );
+    if (depotId && !reconciliationRecord.depot_id) {
+      reconciliationRecord = await prisma.reconciliation.update({
+        where: { id: reconciliationRecord.id },
+        data: { depot_id: depotId },
+      });
     }
 
     const reconId: number = reconciliationRecord.id;
