@@ -2499,15 +2499,15 @@ export const sapService = {
   },
 
   async createOrUpdateReconciliationSAP(payload: any, userId: number) {
-    const { salesman_sap_code, depot_sap_code, reconciliation_date } = payload;
+    const { salesman_sap_code, depot_sap_code, document_date } = payload;
 
     const items = payload.reconciliation_items || payload.items;
 
     if (!salesman_sap_code) {
       throw new Error('salesman_sap_code is required');
     }
-    if (!reconciliation_date) {
-      throw new Error('reconciliation_date is required');
+    if (!document_date) {
+      throw new Error('document_date is required');
     }
     if (!items || !Array.isArray(items) || items.length === 0) {
       throw new Error(
@@ -2522,10 +2522,10 @@ export const sapService = {
       throw new Error(`Salesman with SAP code ${salesman_sap_code} not found`);
     }
 
-    if (reconciliation_date) {
-      const parsedDate = new Date(reconciliation_date);
+    if (document_date) {
+      const parsedDate = new Date(document_date);
       if (isNaN(parsedDate.getTime())) {
-        throw new Error(`Invalid reconciliation_date: ${reconciliation_date}`);
+        throw new Error(`Invalid document_date: ${document_date}`);
       }
       const today = new Date();
       const todayUTC = Date.UTC(
@@ -2554,7 +2554,7 @@ export const sapService = {
       depotId = depot.id;
     }
 
-    const targetDate = new Date(reconciliation_date);
+    const targetDate = new Date(document_date);
     const dayStart = new Date(
       Date.UTC(
         targetDate.getUTCFullYear(),
@@ -2592,7 +2592,7 @@ export const sapService = {
         },
       });
       console.log(
-        `SAP Reconciliation Created new reconciliation ID: ${reconciliationRecord.id} for salesman ${salesman_sap_code} on ${reconciliation_date}`
+        `SAP Reconciliation Created new reconciliation ID: ${reconciliationRecord.id} for salesman ${salesman_sap_code} on ${document_date}`
       );
     } else {
       if (reconciliationRecord.status?.toUpperCase() === 'A') {
@@ -2602,7 +2602,7 @@ export const sapService = {
       }
 
       console.log(
-        `SAP Reconciliation Found existing reconciliation ID: ${reconciliationRecord.id} for salesman ${salesman_sap_code} on ${reconciliation_date}`
+        `SAP Reconciliation Found existing reconciliation ID: ${reconciliationRecord.id} for salesman ${salesman_sap_code} on ${document_date}`
       );
       if (depotId && !reconciliationRecord.depot_id) {
         reconciliationRecord = await prisma.reconciliation.update({
@@ -2707,16 +2707,16 @@ export const sapService = {
           }
 
           const parsedActual =
-            itemPayload.actual_qty !== undefined &&
-            itemPayload.actual_qty !== null &&
-            itemPayload.actual_qty !== ''
-              ? Number(itemPayload.actual_qty)
+            itemPayload.quantity !== undefined &&
+            itemPayload.quantity !== null &&
+            itemPayload.quantity !== ''
+              ? Number(itemPayload.quantity)
               : null;
           const parsedActualBase =
-            itemPayload.actual_base_qty !== undefined &&
-            itemPayload.actual_base_qty !== null &&
-            itemPayload.actual_base_qty !== ''
-              ? Number(itemPayload.actual_base_qty)
+            itemPayload.base_quantity !== undefined &&
+            itemPayload.base_quantity !== null &&
+            itemPayload.base_quantity !== ''
+              ? Number(itemPayload.base_quantity)
               : null;
 
           const payloadLoadQty =

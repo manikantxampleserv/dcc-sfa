@@ -11,17 +11,6 @@ import {
   validateAndGetLocationId,
 } from '../utils/inventory.utils';
 
-function calculateUnitConversion(
-  quantity: number,
-  unit: string,
-  conversionRate: number
-): number {
-  if (unit?.toUpperCase() === 'PCS') {
-    return quantity / (conversionRate || 1);
-  }
-  return quantity;
-}
-
 interface InvoiceSerialized {
   id: number;
   invoice_number: string;
@@ -283,7 +272,6 @@ export const invoicesController = {
               },
             },
             invoices_salesperson: true,
-
             currencies: true,
             orders: true,
           },
@@ -1649,7 +1637,6 @@ export const invoicesController = {
   async getInvoiceItems(req: Request, res: Response) {
     try {
       const { invoiceId } = req.params;
-
       const invoiceItems = await prisma.invoice_items.findMany({
         where: { parent_id: Number(invoiceId) },
         include: {
