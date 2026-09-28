@@ -10,6 +10,7 @@ const sap_controller_1 = require("../controllers/sap.controller");
 const router = express_1.default.Router();
 router.use((0, requestLogger_middleware_1.createRequestLogger)('sap'));
 router.post('/sap/van-inventory', auth_middleware_1.authenticateToken, sap_controller_1.sapController.syncVanInventory);
+router.post('/sap/reconciliation', auth_middleware_1.authenticateToken, sap_controller_1.sapController.syncReconciliation);
 router.get('/sap/search/users', auth_middleware_1.authenticateToken, sap_controller_1.sapController.searchUsers);
 router.get('/sap/search/locations', auth_middleware_1.authenticateToken, sap_controller_1.sapController.searchLocations);
 router.get('/sap/search/vehicles', auth_middleware_1.authenticateToken, sap_controller_1.sapController.searchVehicles);

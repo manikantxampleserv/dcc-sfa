@@ -9,12 +9,6 @@ const prisma_client_1 = __importDefault(require("../../configs/prisma.client"));
 const dateFilters_1 = require("../../utils/dateFilters");
 const permissions_config_1 = require("../../configs/permissions.config");
 const inventory_utils_1 = require("../utils/inventory.utils");
-function calculateUnitConversion(quantity, unit, conversionRate) {
-    if (unit?.toUpperCase() === 'PCS') {
-        return quantity / (conversionRate || 1);
-    }
-    return quantity;
-}
 const serializeInvoice = (invoice) => ({
     id: invoice.id,
     invoice_number: invoice.invoice_number,

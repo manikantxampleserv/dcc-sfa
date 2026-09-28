@@ -125,5 +125,10 @@ export declare const sapService: {
         wasUpdate: boolean;
     }>;
     processApprovedVanInventoryStock(inventoryId: number, userId?: number): Promise<void>;
+    createOrUpdateReconciliationSAP(payload: any, userId: number): Promise<{
+        reconciliation_id: number;
+        updated_items: number;
+        items: any[];
+    }>;
 };
 //# sourceMappingURL=sap.service.d.ts.map

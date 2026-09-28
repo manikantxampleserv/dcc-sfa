@@ -7,5 +7,6 @@ export declare const sapController: {
     searchProduct(req: Request, res: Response): Promise<Response<any, Record<string, any>>>;
     updateVanInventoryCancellation(req: any, res: any): Promise<any>;
     updateVanInventoryItemCancellation(req: any, res: any): Promise<any>;
+    syncReconciliation(req: Request, res: Response): Promise<Response<any, Record<string, any>>>;
 };
 //# sourceMappingURL=sap.controller.d.ts.map
