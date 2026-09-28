@@ -3309,6 +3309,11 @@ model reconciliation {
 model reconciliation_items {
   id                              Int       @id @default(autoincrement())
   reconciliation_id               Int
+  sap_item_code                   String?   @db.NVarChar(150)
+  sap_docnum                      String?   @db.NVarChar(150)
+  sap_docentry                    String?   @db.NVarChar(150)
+  source_system                   String?   @db.NVarChar(50)
+  sap_lineid                      String?   @db.NVarChar(100)
   product_id                      Int?
   batch_number                    String?   @db.NVarChar(100)
   expected_qty                    Decimal?  @db.Decimal(18, 4)

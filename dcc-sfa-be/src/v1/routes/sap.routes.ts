@@ -15,6 +15,12 @@ router.post(
   sapController.syncVanInventory
 );
 
+router.post(
+  '/sap/reconciliation',
+  authenticateToken,
+  sapController.syncReconciliation
+);
+
 router.get('/sap/search/users', authenticateToken, sapController.searchUsers);
 
 router.get(

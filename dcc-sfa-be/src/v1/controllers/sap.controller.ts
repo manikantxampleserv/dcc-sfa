@@ -259,4 +259,45 @@ export const sapController = {
       });
     }
   },
+
+  async syncReconciliation(req: Request, res: Response) {
+    const { salesman_sap_code } = req.body;
+
+    if (!salesman_sap_code) {
+      return res.status(400).json({
+        success: false,
+        message: 'salesman_sap_code is required',
+      });
+    }
+
+    const user = await prisma.users.findFirst({
+      where: { sap_code: salesman_sap_code },
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: `Salesman with SAP code ${salesman_sap_code} not found`,
+      });
+    }
+
+    try {
+      const result = await sapService.createOrUpdateReconciliationSAP(
+        req.body,
+        user.id
+      );
+
+      return res.status(200).json({
+        success: true,
+        message: 'SAP reconciliation synced successfully',
+        data: result,
+      });
+    } catch (error: any) {
+      console.error(error.stack);
+      return res.status(400).json({
+        success: false,
+        message: error.message,
+      });
+    }
+  },
 };

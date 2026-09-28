@@ -532,10 +532,10 @@ export const sapService = {
                 sap_lineid: sapLineid,
                 ...(isUpdate && inventoryId
                   ? {
-                    NOT: {
-                      parent_id: Number(inventoryId),
-                    },
-                  }
+                      NOT: {
+                        parent_id: Number(inventoryId),
+                      },
+                    }
                   : {}),
               },
             });
@@ -723,10 +723,10 @@ export const sapService = {
                           expiry_date: batchInput.expiry_date
                             ? new Date(batchInput.expiry_date)
                             : new Date(
-                              new Date().setFullYear(
-                                new Date().getFullYear() + 2
-                              )
-                            ),
+                                new Date().setFullYear(
+                                  new Date().getFullYear() + 2
+                                )
+                              ),
 
                           quantity: batchQty,
                           remaining_quantity: batchQty,
@@ -796,10 +796,10 @@ export const sapService = {
                           expiry_date: batchInput.expiry_date
                             ? new Date(batchInput.expiry_date)
                             : new Date(
-                              new Date().setFullYear(
-                                new Date().getFullYear() + 2
-                              )
-                            ),
+                                new Date().setFullYear(
+                                  new Date().getFullYear() + 2
+                                )
+                              ),
 
                           quantity: 0,
                           remaining_quantity: 0,
@@ -2095,10 +2095,10 @@ export const sapService = {
                         expiry_date: batchInput.expiry_date
                           ? new Date(batchInput.expiry_date)
                           : new Date(
-                            new Date().setFullYear(
-                              new Date().getFullYear() + 2
-                            )
-                          ),
+                              new Date().setFullYear(
+                                new Date().getFullYear() + 2
+                              )
+                            ),
 
                         quantity: batchQty,
                         remaining_quantity: batchQty,
@@ -2496,5 +2496,524 @@ export const sapService = {
     console.log(
       `Successfully processed stock operations for van inventory ID: ${inventoryId}`
     );
+  },
+
+  async createOrUpdateReconciliationSAP(payload: any, userId: number) {
+    const { salesman_sap_code, depot_sap_code, reconciliation_date } = payload;
+
+    const items = payload.reconciliation_items || payload.items;
+
+    if (!salesman_sap_code) {
+      throw new Error('salesman_sap_code is required');
+    }
+    if (!reconciliation_date) {
+      throw new Error('reconciliation_date is required');
+    }
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      throw new Error(
+        'reconciliation_items array is required and must not be empty'
+      );
+    }
+
+    const spUser = await prisma.users.findFirst({
+      where: { sap_code: salesman_sap_code },
+    });
+    if (!spUser) {
+      throw new Error(`Salesman with SAP code ${salesman_sap_code} not found`);
+    }
+
+    if (reconciliation_date) {
+      const parsedDate = new Date(reconciliation_date);
+      if (isNaN(parsedDate.getTime())) {
+        throw new Error(`Invalid reconciliation_date: ${reconciliation_date}`);
+      }
+      const today = new Date();
+      const todayUTC = Date.UTC(
+        today.getUTCFullYear(),
+        today.getUTCMonth(),
+        today.getUTCDate()
+      );
+      const dateUTC = Date.UTC(
+        parsedDate.getUTCFullYear(),
+        parsedDate.getUTCMonth(),
+        parsedDate.getUTCDate()
+      );
+      if (dateUTC > todayUTC) {
+        throw new Error('Future date will not be allowed');
+      }
+    }
+
+    let depotId: number | null = null;
+    if (depot_sap_code) {
+      const depot = await prisma.depots.findFirst({
+        where: { sap_code: depot_sap_code },
+      });
+      if (!depot) {
+        throw new Error(`Depot with SAP code ${depot_sap_code} not found`);
+      }
+      depotId = depot.id;
+    }
+
+    const targetDate = new Date(reconciliation_date);
+    const dayStart = new Date(
+      Date.UTC(
+        targetDate.getUTCFullYear(),
+        targetDate.getUTCMonth(),
+        targetDate.getUTCDate()
+      )
+    );
+    const dayEnd = new Date(
+      Date.UTC(
+        targetDate.getUTCFullYear(),
+        targetDate.getUTCMonth(),
+        targetDate.getUTCDate() + 1
+      )
+    );
+
+    let reconciliationRecord: any = await prisma.reconciliation.findFirst({
+      where: {
+        salesman_id: spUser.id,
+        is_active: 'Y',
+        reconciliation_date: { gte: dayStart, lt: dayEnd },
+      },
+      orderBy: { id: 'desc' },
+    });
+
+    if (!reconciliationRecord) {
+      reconciliationRecord = await prisma.reconciliation.create({
+        data: {
+          salesman_id: spUser.id,
+          depot_id: depotId,
+          reconciliation_date: targetDate,
+          status: 'P',
+          is_active: payload.is_active || 'Y',
+          createdby: userId,
+          updatedby: userId,
+        },
+      });
+      console.log(
+        `SAP Reconciliation Created new reconciliation ID: ${reconciliationRecord.id} for salesman ${salesman_sap_code} on ${reconciliation_date}`
+      );
+    } else {
+      console.log(
+        `SAP Reconciliation Found existing reconciliation ID: ${reconciliationRecord.id} for salesman ${salesman_sap_code} on ${reconciliation_date}`
+      );
+      if (depotId && !reconciliationRecord.depot_id) {
+        reconciliationRecord = await prisma.reconciliation.update({
+          where: { id: reconciliationRecord.id },
+          data: { depot_id: depotId },
+        });
+      }
+    }
+
+    const reconId: number = reconciliationRecord.id;
+
+    const results = await prisma.$transaction(
+      async tx => {
+        const processedItems: any[] = [];
+        const seenSapDocs = new Set<string>();
+
+        for (const itemPayload of items) {
+          const itemCode =
+            itemPayload.product_sap_code || itemPayload.sap_item_code;
+
+          if (!itemCode) {
+            throw new Error(
+              'product_sap_code is required for each reconciliation item'
+            );
+          }
+
+          const product = await tx.products.findFirst({
+            where: { sap_code: itemCode },
+            include: {
+              product_unit_of_measurement: true,
+            },
+          });
+          if (!product) {
+            throw new Error(`Product with SAP code ${itemCode} not found`);
+          }
+
+          if (
+            itemPayload.source_system === undefined ||
+            itemPayload.source_system === null ||
+            itemPayload.source_system === ''
+          ) {
+            throw new Error(
+              'source_system is required for each reconciliation item'
+            );
+          }
+
+          if (
+            itemPayload.sap_docentry === undefined ||
+            itemPayload.sap_docentry === null ||
+            itemPayload.sap_docentry === ''
+          ) {
+            throw new Error(
+              'sap_docentry is required for each reconciliation item'
+            );
+          }
+
+          if (
+            itemPayload.sap_docnum === undefined ||
+            itemPayload.sap_docnum === null ||
+            itemPayload.sap_docnum === ''
+          ) {
+            throw new Error(
+              'sap_docnum is required for each reconciliation item'
+            );
+          }
+
+          if (
+            itemPayload.sap_lineid === undefined ||
+            itemPayload.sap_lineid === null ||
+            itemPayload.sap_lineid === ''
+          ) {
+            throw new Error(
+              'sap_lineid is required for each reconciliation item'
+            );
+          }
+
+          const sourceSystem = itemPayload.source_system.toString();
+          const sapDocEntry = itemPayload.sap_docentry.toString();
+          const sapDocNum = itemPayload.sap_docnum.toString();
+          const sapLineId = itemPayload.sap_lineid.toString();
+          const batchNumber = itemPayload.batch_number || null;
+
+          const compositeKey = `${sourceSystem}_${sapDocEntry}_${sapLineId}`;
+          if (seenSapDocs.has(compositeKey)) {
+            throw new Error(
+              `Duplicate SAP document line in payload: ${compositeKey}`
+            );
+          }
+          seenSapDocs.add(compositeKey);
+
+          const existingSapDoc = await tx.reconciliation_items.findFirst({
+            where: {
+              source_system: sourceSystem,
+              sap_docentry: sapDocEntry,
+              sap_lineid: sapLineId,
+              is_active: 'Y',
+            },
+          });
+
+          if (existingSapDoc) {
+            throw new Error(`SAP document already imported: ${compositeKey}`);
+          }
+
+          const parsedActual =
+            itemPayload.actual_qty !== undefined &&
+            itemPayload.actual_qty !== null &&
+            itemPayload.actual_qty !== ''
+              ? Number(itemPayload.actual_qty)
+              : null;
+          const parsedActualBase =
+            itemPayload.actual_base_qty !== undefined &&
+            itemPayload.actual_base_qty !== null &&
+            itemPayload.actual_base_qty !== ''
+              ? Number(itemPayload.actual_base_qty)
+              : null;
+
+          const payloadLoadQty =
+            itemPayload.load_qty !== undefined &&
+            itemPayload.load_qty !== null &&
+            itemPayload.load_qty !== ''
+              ? Number(itemPayload.load_qty)
+              : undefined;
+          const payloadLoadBaseQty =
+            itemPayload.load_base_qty !== undefined &&
+            itemPayload.load_base_qty !== null &&
+            itemPayload.load_base_qty !== ''
+              ? Number(itemPayload.load_base_qty)
+              : undefined;
+          const payloadSaleQty =
+            itemPayload.sale_qty !== undefined &&
+            itemPayload.sale_qty !== null &&
+            itemPayload.sale_qty !== ''
+              ? Number(itemPayload.sale_qty)
+              : undefined;
+          const payloadSaleBaseQty =
+            itemPayload.sale_base_qty !== undefined &&
+            itemPayload.sale_base_qty !== null &&
+            itemPayload.sale_base_qty !== ''
+              ? Number(itemPayload.sale_base_qty)
+              : undefined;
+          const payloadExpectedQty =
+            itemPayload.expected_qty !== undefined &&
+            itemPayload.expected_qty !== null &&
+            itemPayload.expected_qty !== ''
+              ? Number(itemPayload.expected_qty)
+              : undefined;
+          const payloadExpectedBaseQty =
+            itemPayload.expected_base_qty !== undefined &&
+            itemPayload.expected_base_qty !== null &&
+            itemPayload.expected_base_qty !== ''
+              ? Number(itemPayload.expected_base_qty)
+              : undefined;
+
+          let record: any = await tx.reconciliation_items.findFirst({
+            where: {
+              reconciliation_id: reconId,
+              product_id: product.id,
+              ...(batchNumber ? { batch_number: batchNumber } : {}),
+              is_active: 'Y',
+            },
+            include: {
+              reconciliation: { include: { salesman: true, depot: true } },
+              product: { include: { product_unit_of_measurement: true } },
+            },
+          });
+
+          const conv =
+            Number(product.product_unit_of_measurement?.conversion_rate) || 1;
+
+          const loadQty =
+            payloadLoadQty !== undefined
+              ? payloadLoadQty
+              : record?.load_qty !== null && record?.load_qty !== undefined
+                ? Number(record.load_qty)
+                : 0;
+          const loadBaseQty =
+            payloadLoadBaseQty !== undefined
+              ? payloadLoadBaseQty
+              : record?.load_base_qty !== null &&
+                  record?.load_base_qty !== undefined
+                ? Number(record.load_base_qty)
+                : 0;
+
+          let saleQty =
+            payloadSaleQty !== undefined
+              ? payloadSaleQty
+              : record?.sale_qty !== null && record?.sale_qty !== undefined
+                ? Number(record.sale_qty)
+                : 0;
+          let saleBaseQty =
+            payloadSaleBaseQty !== undefined
+              ? payloadSaleBaseQty
+              : record?.sale_base_qty !== null &&
+                  record?.sale_base_qty !== undefined
+                ? Number(record.sale_base_qty)
+                : 0;
+
+          const salesmanId = record?.reconciliation?.salesman_id || spUser.id;
+          const recCreatedate =
+            record?.reconciliation?.createdate ||
+            reconciliationRecord.createdate;
+
+          if (
+            payloadSaleQty === undefined &&
+            record?.sale_qty === null &&
+            salesmanId &&
+            product.id &&
+            recCreatedate
+          ) {
+            const prevReconciliation = await tx.reconciliation.findFirst({
+              where: {
+                salesman_id: salesmanId,
+                createdate: { lt: recCreatedate },
+                id: { lt: reconId },
+              },
+              orderBy: { createdate: 'desc' },
+            });
+            const sessionStart = prevReconciliation?.createdate ?? new Date(0);
+
+            const batchMovements = await tx.stock_movements.findMany({
+              where: {
+                movement_type: { in: ['SALE', 'OUT'] },
+                product_id: product.id,
+                is_active: 'Y',
+                createdate: { gte: sessionStart, lt: recCreatedate },
+                ...(batchNumber
+                  ? { batch_lots: { batch_number: batchNumber } }
+                  : {}),
+              },
+              select: { quantity: true, base_quantity: true },
+            });
+
+            if (batchMovements.length > 0) {
+              saleQty = batchMovements.reduce(
+                (sum: number, m: any) => sum + (Number(m.quantity) || 0),
+                0
+              );
+              saleBaseQty = batchMovements.reduce(
+                (sum: number, m: any) => sum + (Number(m.base_quantity) || 0),
+                0
+              );
+            }
+          }
+
+          let expectedQty: number;
+          let expectedBaseQty: number;
+          let expectedTotalPieces: number;
+
+          if (payloadExpectedQty !== undefined) {
+            expectedQty = payloadExpectedQty;
+            expectedBaseQty = payloadExpectedBaseQty ?? 0;
+            expectedTotalPieces = expectedQty * conv + expectedBaseQty;
+            console.log(
+              `[SAP Reconciliation] Using payload expected_qty=${expectedQty}, expected_base_qty=${expectedBaseQty} for ${itemCode}`
+            );
+          } else if (
+            record?.expected_qty !== null &&
+            record?.expected_qty !== undefined
+          ) {
+            expectedQty = Number(record.expected_qty);
+            expectedBaseQty = Number(record.expected_base_qty ?? 0);
+            expectedTotalPieces = expectedQty * conv + expectedBaseQty;
+            console.log(
+              `[SAP Reconciliation] Using existing record expected_qty=${expectedQty}, expected_base_qty=${expectedBaseQty} for ${itemCode}`
+            );
+          } else {
+            expectedTotalPieces = Math.max(
+              0,
+              loadQty * conv + loadBaseQty - (saleQty * conv + saleBaseQty)
+            );
+            expectedQty =
+              conv > 1
+                ? Math.floor(expectedTotalPieces / conv)
+                : Math.max(0, loadQty - saleQty);
+            expectedBaseQty =
+              conv > 1
+                ? expectedTotalPieces % conv
+                : Math.max(0, loadBaseQty - saleBaseQty);
+            console.log(
+              `[SAP Reconciliation] Auto-computed expected_qty=${expectedQty}, expected_base_qty=${expectedBaseQty} for ${itemCode}`
+            );
+          }
+
+          let variance: number | null = null;
+          let variance_base_qty: number | null = null;
+          let resAction = 'Awaiting Verification';
+
+          const effectiveActual =
+            parsedActual !== null
+              ? parsedActual
+              : record?.actual_qty !== null && record?.actual_qty !== undefined
+                ? Number(record.actual_qty)
+                : null;
+          const effectiveActualBase =
+            parsedActualBase !== null
+              ? parsedActualBase
+              : record?.actual_base_qty !== null &&
+                  record?.actual_base_qty !== undefined
+                ? Number(record.actual_base_qty)
+                : null;
+
+          if (effectiveActual !== null || effectiveActualBase !== null) {
+            const actual = effectiveActual || 0;
+            const actualBase = effectiveActualBase || 0;
+
+            const actualTotalPieces = actual * conv + actualBase;
+            const variancePieces = Math.round(
+              actualTotalPieces - expectedTotalPieces
+            );
+
+            if (variancePieces === 0) {
+              variance = 0;
+              variance_base_qty = 0;
+              resAction = 'CLEAN';
+            } else {
+              const absV = Math.abs(variancePieces);
+              variance = Math.floor(absV / conv) * Math.sign(variancePieces);
+              variance_base_qty = (absV % conv) * Math.sign(variancePieces);
+              resAction = 'Post to Default Outlet';
+            }
+          }
+
+          const defaultOutletPostingQty =
+            resAction === 'Post to Default Outlet' && variance !== null
+              ? Math.abs(variance)
+              : 0;
+          const defaultOutletPostingBaseQty =
+            resAction === 'Post to Default Outlet' && variance_base_qty !== null
+              ? Math.abs(variance_base_qty)
+              : 0;
+
+          const unloadAdjustmentQty =
+            resAction === 'Adjust Unload Upward' && variance !== null
+              ? variance
+              : 0;
+          const unloadAdjustmentBaseQty =
+            resAction === 'Adjust Unload Upward' && variance_base_qty !== null
+              ? variance_base_qty
+              : 0;
+
+          const itemData: any = {
+            reconciliation_id: reconId,
+            product_id: product.id,
+            sap_item_code: itemCode,
+            sap_docnum: sapDocNum,
+            sap_docentry: sapDocEntry,
+            sap_lineid: sapLineId,
+            source_system: sourceSystem,
+            batch_number: batchNumber,
+            load_qty: loadQty,
+            load_base_qty: loadBaseQty,
+            sale_qty: saleQty,
+            sale_base_qty: saleBaseQty,
+            expected_qty: expectedQty,
+            expected_base_qty: expectedBaseQty,
+            actual_qty: effectiveActual,
+            actual_base_qty: effectiveActualBase,
+            variance,
+            variance_base_qty,
+            resolution_action: resAction,
+            default_outlet_posting_qty: defaultOutletPostingQty,
+            default_outlet_posting_base_qty: defaultOutletPostingBaseQty,
+            unload_adjustment_qty: unloadAdjustmentQty,
+            unload_adjustment_base_qty: unloadAdjustmentBaseQty,
+            is_active: itemPayload.is_active || 'Y',
+            stock_key: `${salesman_sap_code} | ${itemCode}${batchNumber ? ` | ${batchNumber}` : ''}`,
+            updatedate: new Date(),
+            updatedby: userId,
+          };
+
+          let savedItem: any;
+          if (record) {
+            savedItem = await (tx as any).reconciliation_items.update({
+              where: { id: record.id },
+              data: itemData,
+            });
+          } else {
+            itemData.createdate = new Date();
+            itemData.createdby = userId;
+            savedItem = await (tx as any).reconciliation_items.create({
+              data: itemData,
+            });
+          }
+
+          processedItems.push({
+            ...savedItem,
+            reconciliation_id: reconId,
+          });
+        }
+
+        if (processedItems.length > 0) {
+          await tx.reconciliation.update({
+            where: { id: reconId },
+            data: {
+              status: 'P',
+              updatedate: new Date(),
+              updatedby: userId,
+            },
+          });
+        }
+
+        return processedItems;
+      },
+      {
+        maxWait: 1500000,
+        timeout: 3000000,
+      }
+    );
+
+    console.log(
+      `[SAP Reconciliation] Processed ${results.length} items for reconciliation ID: ${reconId}`
+    );
+
+    return {
+      reconciliation_id: reconId,
+      updated_items: results.length,
+      items: results,
+    };
   },
 };
