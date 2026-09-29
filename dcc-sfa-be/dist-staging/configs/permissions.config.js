@@ -104,6 +104,7 @@ const MODULE_DISPLAY_NAMES = {
     currency: 'Currency',
     route: 'Route',
     'route-type': 'Route Type',
+    'route-assignment': 'Route Assignment',
     outlet: 'Outlet Master',
     'outlet-group': 'Outlet Group',
     'asset-type': 'Asset Type',

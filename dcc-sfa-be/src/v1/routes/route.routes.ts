@@ -23,21 +23,30 @@ router.get(
 router.get(
   '/routes',
   authenticateToken,
-  requirePermission([{ module: 'route', action: 'read' }]),
+  requirePermission([
+    { module: 'route', action: 'read' },
+    { module: 'route-assignment', action: 'read' },
+  ]),
   routesController.getRoutes
 );
 
 router.get(
   '/route-assignments',
   authenticateToken,
-  requirePermission([{ module: 'route', action: 'read' }]),
+  requirePermission([
+    { module: 'route-assignment', action: 'read' },
+    { module: 'route', action: 'read' },
+  ]),
   routesController.getRouteAssignments
 );
 
 router.get(
   '/route-assignments/:userId',
   authenticateToken,
-  requirePermission([{ module: 'route', action: 'read' }]),
+  requirePermission([
+    { module: 'route-assignment', action: 'read' },
+    { module: 'route', action: 'read' },
+  ]),
   routesController.getRouteAssignmentsByUser
 );
 
@@ -45,7 +54,10 @@ router.post(
   '/route-assignments/:userId',
   authenticateToken,
   auditUpdate('route_salespersons'),
-  requirePermission([{ module: 'route', action: 'update' }]),
+  requirePermission([
+    { module: 'route-assignment', action: 'update' },
+    { module: 'route', action: 'update' },
+  ]),
   routesController.setRouteAssignmentsForUser
 );
 

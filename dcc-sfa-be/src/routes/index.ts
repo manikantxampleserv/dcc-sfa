@@ -88,6 +88,7 @@ import salesTargetGroups from '../v1/routes/salesTargetGroups.routes';
 import salesTargetOverrides from '../v1/routes/salesTargetOverrides.routes';
 import salesTargets from '../v1/routes/salesTargets.routes';
 import sapRoutes from '../v1/routes/sap.routes';
+import salesManager from '../v1/routes/salesManager.routes';
 import settings from '../v1/routes/settings.routes';
 import stockMovements from '../v1/routes/stockMovements.routes';
 import stockTransferLines from '../v1/routes/stockTransferLines.routes';
@@ -222,6 +223,8 @@ routes.use('/v1', alerts);
 routes.use('/v1', customerCategoryGrading);
 routes.use('/v1', assetMasterBrands);
 routes.use('/v1', sapRoutes);
+routes.use('/v1', salesManager);
+
 routes.get('/', (_: any, res: any) => {
   res.json({
     name: 'DCC-SFA API',

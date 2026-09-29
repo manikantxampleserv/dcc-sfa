@@ -124,6 +124,7 @@ export type Modules =
   | 'currency'
   | 'route'
   | 'route-type'
+  | 'route-assignment'
   | 'outlet'
   | 'outlet-group'
   | 'asset-type'
@@ -209,6 +210,7 @@ const MODULE_DISPLAY_NAMES: Record<string, string> = {
   currency: 'Currency',
   route: 'Route',
   'route-type': 'Route Type',
+  'route-assignment': 'Route Assignment',
   outlet: 'Outlet Master',
   'outlet-group': 'Outlet Group',
   'asset-type': 'Asset Type',
