@@ -5,6 +5,7 @@ const auth_middleware_1 = require("../../middlewares/auth.middleware");
 const salesManager_controller_1 = require("../controllers/salesManager.controller");
 const router = (0, express_1.Router)();
 router.get('/sales-manager/territory/summary', auth_middleware_1.authenticateToken, salesManager_controller_1.salesManagerController.getTerritorySummary);
+router.get('/sales-manager/teams', auth_middleware_1.authenticateToken, salesManager_controller_1.salesManagerController.getTeamMembers);
 router.get('/sales-manager/territory/zones-and-routes', auth_middleware_1.authenticateToken, salesManager_controller_1.salesManagerController.getZonesAndRoutes);
 router.get('/sales-manager/zones/:zoneId/routes', auth_middleware_1.authenticateToken, salesManager_controller_1.salesManagerController.getZoneRoutes);
 // Today summaru of saleperson

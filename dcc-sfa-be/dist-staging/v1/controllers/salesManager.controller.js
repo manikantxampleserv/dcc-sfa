@@ -434,7 +434,7 @@ const computeManagerTerritoryTargetAnalytics = async (user, zoneIdQuery, depotId
                     progress_label: `${catActual.toLocaleString('en-US')} / ${catTarget.toLocaleString('en-US')} cs  ${catPct}%`,
                 };
                 if (cat.code === 'Water') {
-                    const skus = waterSkusConfig.map((sku) => {
+                    const skus = waterSkusConfig.map(sku => {
                         const skuTarget = Math.round(catTarget * sku.targetRatio);
                         const skuActual = Math.round(catActual * sku.targetRatio);
                         const skuPct = skuTarget > 0 ? Math.round((skuActual / skuTarget) * 100) : 0;
@@ -633,7 +633,7 @@ const computeManagerTerritoryTargetAnalytics = async (user, zoneIdQuery, depotId
             progress_label: `${catActual.toLocaleString('en-US')} / ${catTarget.toLocaleString('en-US')} cs  ${catPct}%`,
         };
         if (cat.code === 'Water') {
-            const skus = waterSkusConfig.map((wSku) => {
+            const skus = waterSkusConfig.map(wSku => {
                 const skuTarget = Math.round(catTarget * wSku.targetRatio);
                 const skuActual = Math.round(catActual * wSku.targetRatio);
                 const skuPct = skuTarget > 0 ? Math.round((skuActual / skuTarget) * 100) : 0;
@@ -779,9 +779,7 @@ const computeManagerTerritoryTargetAnalytics = async (user, zoneIdQuery, depotId
             .sort((a, b) => a.achievement_percent - b.achievement_percent);
         const zTarget = childRoutes.reduce((sum, r) => sum + r.target_quantity, 0);
         const zActual = childRoutes.reduce((sum, r) => sum + r.actual_quantity, 0);
-        const zPct = zTarget > 0
-            ? parseFloat(((zActual / zTarget) * 100).toFixed(1))
-            : 0;
+        const zPct = zTarget > 0 ? parseFloat(((zActual / zTarget) * 100).toFixed(1)) : 0;
         return {
             zone_id: z.id,
             name: z.name,
@@ -1093,6 +1091,279 @@ exports.salesManagerController = {
         catch (error) {
             console.error('Error in getZonesAndRoutes:', error);
             res.error(error.message || 'Failed to retrieve territory zones and routes');
+        }
+    },
+    async getTeamMembers(req, res) {
+        try {
+            const user = req.user;
+            const { depot_id, zone_id, search, page = '1', limit = '50' } = req.query;
+            const pageNum = Math.max(1, parseInt(page, 10) || 1);
+            const limitNum = Math.max(1, parseInt(limit, 10) || 50);
+            const { zoneIds } = await getManagerTerritoryScope(user, zone_id, depot_id);
+            // Find all active routes in manager's territory
+            const territoryRoutes = await prisma_client_1.default.routes.findMany({
+                where: {
+                    is_active: 'Y',
+                    ...(zoneIds.length > 0 ? { parent_id: { in: zoneIds } } : {}),
+                },
+                select: {
+                    id: true,
+                    name: true,
+                    code: true,
+                    description: true,
+                    parent_id: true,
+                    route_zones: {
+                        select: { id: true, name: true, code: true },
+                    },
+                    salespersons: {
+                        where: { is_active: 'Y' },
+                        select: {
+                            role: true,
+                            user_id: true,
+                        },
+                    },
+                },
+            });
+            // Collect salesperson IDs assigned to routes
+            const assignedSalespersonIds = new Set();
+            territoryRoutes.forEach(r => {
+                r.salespersons.forEach(sp => {
+                    if (sp.user_id)
+                        assignedSalespersonIds.add(sp.user_id);
+                });
+            });
+            // Also collect direct reports if user is manager
+            if (user?.id) {
+                const directReports = await prisma_client_1.default.users.findMany({
+                    where: {
+                        reporting_to: user.id,
+                        is_active: 'Y',
+                    },
+                    select: { id: true },
+                });
+                directReports.forEach(dr => assignedSalespersonIds.add(dr.id));
+            }
+            // If manager has depots, also look for users in those depots
+            const userDepots = await prisma_client_1.default.user_depots.findMany({
+                where: { user_id: user?.id, is_active: 'Y' },
+                select: { depot_id: true },
+            });
+            const depotIds = userDepots.map(ud => ud.depot_id).filter(Boolean);
+            if (user?.depot_id && !depotIds.includes(user.depot_id)) {
+                depotIds.push(user.depot_id);
+            }
+            if (depotIds.length > 0) {
+                const depotSalespersons = await prisma_client_1.default.users.findMany({
+                    where: {
+                        is_active: 'Y',
+                        depot_id: { in: depotIds },
+                        user_role: {
+                            name: {
+                                contains: 'sales',
+                            },
+                        },
+                    },
+                    select: { id: true },
+                });
+                depotSalespersons.forEach(ds => assignedSalespersonIds.add(ds.id));
+            }
+            // Base query for team member users
+            const userWhere = {
+                is_active: 'Y',
+            };
+            if (assignedSalespersonIds.size > 0) {
+                userWhere.id = { in: Array.from(assignedSalespersonIds) };
+            }
+            else if (zoneIds.length > 0) {
+                userWhere.OR = [
+                    { zone_id: { in: zoneIds } },
+                    ...(depotIds.length > 0 ? [{ depot_id: { in: depotIds } }] : []),
+                ];
+            }
+            if (search && typeof search === 'string' && search.trim()) {
+                const term = search.trim();
+                userWhere.AND = [
+                    {
+                        OR: [
+                            { name: { contains: term } },
+                            { email: { contains: term } },
+                            { employee_id: { contains: term } },
+                            { phone_number: { contains: term } },
+                            {
+                                route_salespersons: {
+                                    some: {
+                                        is_active: 'Y',
+                                        route: {
+                                            name: { contains: term },
+                                        },
+                                    },
+                                },
+                            },
+                        ],
+                    },
+                ];
+            }
+            const teamUsers = await prisma_client_1.default.users.findMany({
+                where: userWhere,
+                select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    employee_id: true,
+                    phone_number: true,
+                    profile_image: true,
+                    joining_date: true,
+                    last_login: true,
+                    is_active: true,
+                    user_role: {
+                        select: { id: true, name: true, role_key: true },
+                    },
+                    user_depot: {
+                        select: { id: true, name: true, code: true },
+                    },
+                    users: {
+                        select: { id: true, name: true, email: true },
+                    },
+                    route_salespersons: {
+                        where: { is_active: 'Y' },
+                        select: {
+                            id: true,
+                            role: true,
+                            assigned_at: true,
+                            route: {
+                                select: {
+                                    id: true,
+                                    name: true,
+                                    code: true,
+                                    description: true,
+                                    parent_id: true,
+                                    route_zones: {
+                                        select: { id: true, name: true, code: true },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+                orderBy: { name: 'asc' },
+            });
+            const startOfDay = new Date();
+            startOfDay.setHours(0, 0, 0, 0);
+            const endOfDay = new Date();
+            endOfDay.setHours(23, 59, 59, 999);
+            const allUserIds = teamUsers.map(u => u.id);
+            const allAssignedRouteIds = Array.from(new Set(teamUsers.flatMap(u => u.route_salespersons
+                .map(rs => rs.route?.id)
+                .filter((id) => typeof id === 'number'))));
+            const customerCountsByRoute = await prisma_client_1.default.customers.groupBy({
+                by: ['route_id'],
+                where: {
+                    is_active: 'Y',
+                    route_id: { in: allAssignedRouteIds },
+                },
+                _count: { id: true },
+            });
+            const routeOutletsMap = new Map();
+            customerCountsByRoute.forEach(c => {
+                if (c.route_id)
+                    routeOutletsMap.set(c.route_id, c._count.id);
+            });
+            const todayVisits = await prisma_client_1.default.visits.findMany({
+                where: {
+                    is_active: 'Y',
+                    sales_person_id: { in: allUserIds },
+                    visit_date: { gte: startOfDay, lte: endOfDay },
+                },
+                select: {
+                    id: true,
+                    sales_person_id: true,
+                    status: true,
+                    orders_created: true,
+                    route_id: true,
+                },
+            });
+            const todayVisitsMap = new Map();
+            todayVisits.forEach(v => {
+                const current = todayVisitsMap.get(v.sales_person_id) || {
+                    total: 0,
+                    completed: 0,
+                    ordersCount: 0,
+                };
+                current.total += 1;
+                if (v.status === 'completed' || v.status === 'visited') {
+                    current.completed += 1;
+                }
+                if (v.orders_created && v.orders_created > 0) {
+                    current.ordersCount += 1;
+                }
+                todayVisitsMap.set(v.sales_person_id, current);
+            });
+            const members = teamUsers.map(u => {
+                const assignedRoutes = u.route_salespersons.map((rs, idx) => {
+                    const r = rs.route;
+                    const day = extractRouteDay(r?.name || '', r?.description || '', r?.code || '', idx);
+                    const outlets = r ? routeOutletsMap.get(r.id) || 0 : 0;
+                    return {
+                        route_id: r?.id,
+                        route_name: r?.name,
+                        route_code: r?.code,
+                        zone_id: r?.parent_id,
+                        zone_name: r?.route_zones?.name || null,
+                        day: day,
+                        role: rs.role || 'PRIMARY',
+                        total_outlets: outlets,
+                    };
+                });
+                const totalOutlets = assignedRoutes.reduce((sum, r) => sum + r.total_outlets, 0);
+                const vStats = todayVisitsMap.get(u.id) || {
+                    total: 0,
+                    completed: 0,
+                    ordersCount: 0,
+                };
+                const strikeRate = vStats.completed > 0
+                    ? Math.round((vStats.ordersCount / vStats.completed) * 100)
+                    : 0;
+                const visitProgressLabel = vStats.total > 0
+                    ? `${vStats.completed}/${vStats.total} visited`
+                    : 'No visits today';
+                return {
+                    id: u.id,
+                    name: u.name,
+                    email: u.email,
+                    employee_id: u.employee_id,
+                    phone_number: u.phone_number,
+                    profile_image: u.profile_image,
+                    role: u.user_role?.name || 'Salesperson',
+                    depot_name: u.user_depot?.name || null,
+                    reporting_to: u.users?.name || null,
+                    is_active: u.is_active === 'Y',
+                    last_login: u.last_login,
+                    assigned_routes_count: assignedRoutes.length,
+                    total_assigned_outlets: totalOutlets,
+                    assigned_routes: assignedRoutes,
+                    today_performance: {
+                        planned_visits: vStats.total,
+                        completed_visits: vStats.completed,
+                        progress_label: visitProgressLabel,
+                        strike_rate_percent: strikeRate,
+                        orders_taken: vStats.ordersCount,
+                    },
+                };
+            });
+            const totalMembers = members.length;
+            const totalPages = Math.ceil(totalMembers / limitNum) || 1;
+            const paginatedMembers = members.slice((pageNum - 1) * limitNum, pageNum * limitNum);
+            res.success('Team members retrieved successfully', {
+                total_team_members: totalMembers,
+                page: pageNum,
+                limit: limitNum,
+                total_pages: totalPages,
+                team_members: paginatedMembers,
+            });
+        }
+        catch (error) {
+            console.error('Error in getTeamMembers:', error);
+            res.error(error.message || 'Failed to retrieve team members');
         }
     },
     async getZoneRoutes(req, res) {
@@ -2070,7 +2341,11 @@ exports.salesManagerController = {
             if (!zone) {
                 const dbZone = await prisma_client_1.default.zones.findUnique({
                     where: { id: zoneId },
-                    select: { id: true, name: true, zone_depots: { select: { name: true } } },
+                    select: {
+                        id: true,
+                        name: true,
+                        zone_depots: { select: { name: true } },
+                    },
                 });
                 if (!dbZone) {
                     res.error('Zone not found');

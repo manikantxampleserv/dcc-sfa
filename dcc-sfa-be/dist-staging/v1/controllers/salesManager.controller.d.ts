@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 export declare const salesManagerController: {
     getTerritorySummary(req: Request, res: Response): Promise<void>;
     getZonesAndRoutes(req: Request, res: Response): Promise<void>;
+    getTeamMembers(req: Request, res: Response): Promise<void>;
     getZoneRoutes(req: Request, res: Response): Promise<void>;
     getTodaySummary(req: Request, res: Response): Promise<void>;
     getOutlets(req: Request, res: Response): Promise<void>;
