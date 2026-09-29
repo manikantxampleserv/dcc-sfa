@@ -15,6 +15,7 @@ interface AssetMovementSerialized {
   to_depot_id?: number | null;
   to_customer_id?: number | null;
   movement_type?: string | null;
+  return_reason?: string | null;
   movement_date: Date;
   performed_by: number;
   notes?: string | null;
@@ -81,6 +82,7 @@ const serializeAssetMovement = (
     to_depot_id: movement.to_depot_id,
     to_customer_id: movement.to_customer_id,
     movement_type: movement.movement_type,
+    return_reason: movement.return_reason,
     movement_date: movement.movement_date,
     performed_by: movement.performed_by,
     notes: movement.notes,
@@ -483,6 +485,7 @@ export const assetMovementsController = {
             to_depot_id: toDepotId,
             to_customer_id: toCustomerId,
             movement_type: data.movement_type,
+            return_reason: data.return_reason,
             movement_date: new Date(data.movement_date),
             performed_by: data.performed_by,
             notes: data.notes,
@@ -933,6 +936,7 @@ export const assetMovementsController = {
         'to_depot_id',
         'to_customer_id',
         'is_active',
+        'return_reason',
         'updatedby',
         'updatedate',
       ];

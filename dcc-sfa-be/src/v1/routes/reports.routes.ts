@@ -317,4 +317,28 @@ router.get(
   reportsController.exportCoolersReport
 );
 
+/**
+ * @route GET /api/v1/reports/promotion-materials-issued
+ * @description Get Promotion Materials Issued Report
+ * @access Private (requires authentication)
+ */
+router.get(
+  '/promotion-materials-issued',
+  authenticateToken,
+  requirePermission([{ module: 'report', action: 'read' }]),
+  reportsController.getPromotionMaterialsIssuedReport
+);
+
+/**
+ * @route GET /api/v1/reports/promotion-materials-issued/export
+ * @description Export Promotion Materials Issued Report to Excel
+ * @access Private (requires authentication)
+ */
+router.get(
+  '/promotion-materials-issued/export',
+  authenticateToken,
+  requirePermission([{ module: 'report', action: 'read' }]),
+  reportsController.exportPromotionMaterialsIssuedReport
+);
+
 export default router;

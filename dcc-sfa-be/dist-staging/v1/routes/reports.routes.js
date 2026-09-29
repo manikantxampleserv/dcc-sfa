@@ -170,5 +170,17 @@ router.get('/coolers', auth_middleware_1.authenticateToken, (0, auth_middleware_
  * @access Private (requires authentication)
  */
 router.get('/coolers/export', auth_middleware_1.authenticateToken, (0, auth_middleware_1.requirePermission)([{ module: 'report', action: 'read' }]), reports_controller_1.reportsController.exportCoolersReport);
+/**
+ * @route GET /api/v1/reports/promotion-materials-issued
+ * @description Get Promotion Materials Issued Report
+ * @access Private (requires authentication)
+ */
+router.get('/promotion-materials-issued', auth_middleware_1.authenticateToken, (0, auth_middleware_1.requirePermission)([{ module: 'report', action: 'read' }]), reports_controller_1.reportsController.getPromotionMaterialsIssuedReport);
+/**
+ * @route GET /api/v1/reports/promotion-materials-issued/export
+ * @description Export Promotion Materials Issued Report to Excel
+ * @access Private (requires authentication)
+ */
+router.get('/promotion-materials-issued/export', auth_middleware_1.authenticateToken, (0, auth_middleware_1.requirePermission)([{ module: 'report', action: 'read' }]), reports_controller_1.reportsController.exportPromotionMaterialsIssuedReport);
 exports.default = router;
 //# sourceMappingURL=reports.routes.js.map

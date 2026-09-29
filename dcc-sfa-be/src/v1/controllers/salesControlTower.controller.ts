@@ -421,7 +421,7 @@ export const salesControlTowerController = {
             const baseQty = Number(item.base_quantity) || 0;
             const conv = Number(item.conversion_factor) || 1;
             const pc = qty + (conv > 0 ? baseQty / conv : 0);
-            
+
             const uc =
               pc *
               Number(
@@ -844,15 +844,21 @@ export const salesControlTowerController = {
             SKU: product?.name || '',
             Pack:
               product?.product_sub_categories_products?.sub_category_name || '',
-            PhyCase: 
-              (Number(item.quantity) || 0) + 
-              ((Number(item.base_quantity) || 0) / (Number(item.conversion_factor) || 1)),
+            PhyCase:
+              (Number(item.quantity) || 0) +
+              (Number(item.base_quantity) || 0) /
+                (Number(item.conversion_factor) || 1),
             UnitCase:
-              ((Number(item.quantity) || 0) + ((Number(item.base_quantity) || 0) / (Number(item.conversion_factor) || 1))) *
+              ((Number(item.quantity) || 0) +
+                (Number(item.base_quantity) || 0) /
+                  (Number(item.conversion_factor) || 1)) *
               Number(product?.unit_case_conversion_rate || 1),
             Turnover:
               Number(item.total_amount) ||
-              ((Number(item.quantity) || 0) + ((Number(item.base_quantity) || 0) / (Number(item.conversion_factor) || 1))) * Number(item.unit_price || 0),
+              ((Number(item.quantity) || 0) +
+                (Number(item.base_quantity) || 0) /
+                  (Number(item.conversion_factor) || 1)) *
+                Number(item.unit_price || 0),
           });
         }
       }
@@ -931,7 +937,6 @@ export const salesControlTowerController = {
         'Content-Disposition',
         `attachment; filename="${filename}"`
       );
-
       const buffer = await workbook.xlsx.writeBuffer();
       res.setHeader('Content-Length', buffer.byteLength.toString());
       return res.send(Buffer.from(buffer));

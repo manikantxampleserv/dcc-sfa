@@ -65,6 +65,12 @@ import {
   type CoolersReportFilters,
   type CoolersReportData,
 } from '../services/reports/coolersReport';
+import {
+  fetchPromotionMaterialsIssuedReport,
+  exportPromotionMaterialsIssuedReport,
+  type PromotionMaterialsIssuedReportFilters,
+  type PromotionMaterialsIssuedReportData,
+} from '../services/reports/promotionMaterialsIssued';
 
 import { useApiMutation } from './useApiMutation';
 
@@ -95,6 +101,8 @@ export const reportKeys = {
     ['reports', 'coolers', filters] as const,
   coolerInspections: (filters?: CoolerInspectionsReportFilters) =>
     [...reportKeys.lists(), 'cooler-inspections', filters] as const,
+  promotionMaterialsIssued: (filters?: PromotionMaterialsIssuedReportFilters) =>
+    [...reportKeys.lists(), 'promotion-materials-issued', filters] as const,
 };
 
 /**
@@ -318,6 +326,35 @@ export const useCoolersReport = (
 export const useExportCoolersReport = () => {
   return useApiMutation({
     mutationFn: exportCoolersReport,
+    loadingMessage: 'Exporting report...',
+    successMessage: 'Report exported successfully!',
+  });
+};
+
+/**
+ * Hook to fetch Promotion Materials Issued Report
+ */
+export const usePromotionMaterialsIssuedReport = (
+  filters?: PromotionMaterialsIssuedReportFilters,
+  options?: Omit<
+    UseQueryOptions<PromotionMaterialsIssuedReportData>,
+    'queryKey' | 'queryFn'
+  >
+) => {
+  return useQuery<PromotionMaterialsIssuedReportData>({
+    queryKey: reportKeys.promotionMaterialsIssued(filters),
+    queryFn: () => fetchPromotionMaterialsIssuedReport(filters),
+    staleTime: 3 * 60 * 1000,
+    ...options,
+  });
+};
+
+/**
+ * Hook to export Promotion Materials Issued Report to Excel
+ */
+export const useExportPromotionMaterialsIssuedReport = () => {
+  return useApiMutation({
+    mutationFn: exportPromotionMaterialsIssuedReport,
     loadingMessage: 'Exporting report...',
     successMessage: 'Report exported successfully!',
   });

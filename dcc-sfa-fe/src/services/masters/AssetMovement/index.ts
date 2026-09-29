@@ -11,6 +11,7 @@ export interface AssetMovement {
   to_depot_id?: number | null;
   to_customer_id?: number | null;
   movement_type?: string | null;
+  return_reason?: string | null;
   movement_date: string;
   performed_by: number;
   notes?: string | null;

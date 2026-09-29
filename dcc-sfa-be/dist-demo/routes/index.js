@@ -112,9 +112,11 @@ const visitTasks_routes_1 = __importDefault(require("../v1/routes/visitTasks.rou
 const warehouses_routes_1 = __importDefault(require("../v1/routes/warehouses.routes"));
 const workflow_routes_1 = __importDefault(require("../v1/routes/workflow.routes"));
 const zones_routes_1 = __importDefault(require("../v1/routes/zones.routes"));
+const promotionMaterialsIssue_routes_1 = __importDefault(require("../v1/routes/promotionMaterialsIssue.routes"));
 const routes = (0, express_1.Router)();
 routes.use('/v1/org-chart', orgChart_routes_1.default);
 routes.use('/v1', barcode_routes_1.default);
+routes.use('/v1', promotionMaterialsIssue_routes_1.default);
 routes.use('/v1', ai_routes_1.default);
 routes.use('/v1', auth_routes_1.default);
 routes.use('/v1', user_routes_1.default);

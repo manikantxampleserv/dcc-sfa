@@ -3082,5 +3082,53 @@
     "createdby": 1,
     "updatedate": "2026-07-03T07:10:43.313Z",
     "updatedby": null
+  },
+  {
+    "id": 569,
+    "name": "promotion_material_issue_read",
+    "module": "Promotion Materials Issue",
+    "action": "READ",
+    "description": "View and access data for Promotion Materials Issue",
+    "is_active": "Y",
+    "createdate": "2026-09-29T10:00:00.000Z",
+    "createdby": 1,
+    "updatedate": "2026-09-29T10:00:00.000Z",
+    "updatedby": null
+  },
+  {
+    "id": 570,
+    "name": "promotion_material_issue_create",
+    "module": "Promotion Materials Issue",
+    "action": "CREATE",
+    "description": "Create new records for Promotion Materials Issue",
+    "is_active": "Y",
+    "createdate": "2026-09-29T10:00:00.000Z",
+    "createdby": 1,
+    "updatedate": "2026-09-29T10:00:00.000Z",
+    "updatedby": null
+  },
+  {
+    "id": 571,
+    "name": "promotion_material_issue_update",
+    "module": "Promotion Materials Issue",
+    "action": "UPDATE",
+    "description": "Modify existing records for Promotion Materials Issue",
+    "is_active": "Y",
+    "createdate": "2026-09-29T10:00:00.000Z",
+    "createdby": 1,
+    "updatedate": "2026-09-29T10:00:00.000Z",
+    "updatedby": null
+  },
+  {
+    "id": 572,
+    "name": "promotion_material_issue_delete",
+    "module": "Promotion Materials Issue",
+    "action": "DELETE",
+    "description": "Remove records for Promotion Materials Issue",
+    "is_active": "Y",
+    "createdate": "2026-09-29T10:00:00.000Z",
+    "createdby": 1,
+    "updatedate": "2026-09-29T10:00:00.000Z",
+    "updatedby": null
   }
 ]

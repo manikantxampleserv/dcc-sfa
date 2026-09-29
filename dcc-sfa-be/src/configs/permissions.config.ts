@@ -142,6 +142,7 @@ export type Modules =
   | 'kpi-target'
   | 'survey'
   | 'promotions'
+  | 'promotion-materials'
   | 'order'
   | 'return'
   | 'payment'
@@ -227,6 +228,7 @@ const MODULE_DISPLAY_NAMES: Record<string, string> = {
   'kpi-target': 'KPI Target',
   survey: 'Survey',
   promotions: 'Promotions',
+  'promotion-materials': 'Promotion Materials Issue',
   order: 'Order',
   return: 'Return',
   payment: 'Payment',

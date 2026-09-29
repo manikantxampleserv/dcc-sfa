@@ -5713,4 +5713,391 @@ export const reportsController = {
       });
     }
   },
+  /**
+   * Get Promotion Materials Issued Report
+   * GET /api/v1/reports/promotion-materials-issued
+   */
+  async getPromotionMaterialsIssuedReport(req: Request, res: Response) {
+    try {
+      const { start_date, end_date, depot_id, outlet_id, asset_id, group_by } = req.query;
+
+      const dateFilter: any = {};
+      if (start_date) {
+        dateFilter.gte = new Date(start_date as string);
+      }
+      if (end_date) {
+        dateFilter.lte = new Date(end_date as string);
+      }
+
+      const where: any = {
+        is_active: 'Y',
+        approval_status: 'A', // Only approved issues as per screenshot
+        ...(Object.keys(dateFilter).length > 0 && { issue_date: dateFilter }),
+        ...(depot_id && { depot_id: parseInt(depot_id as string) }),
+        ...(outlet_id && { outlet_id: parseInt(outlet_id as string) }),
+      };
+
+      const reqUser = (req as any).user;
+      if (reqUser && !isAdminRole(reqUser.role)) {
+        const userDepots = await prisma.user_depots.findMany({
+          where: { user_id: reqUser.id },
+          select: { depot_id: true },
+        });
+        const depotIds = userDepots
+          .map((ud: any) => ud.depot_id)
+          .filter((id: any) => id !== null) as number[];
+
+        if (depotIds.length > 0) {
+          where.depot_id = { in: depotIds };
+        } else {
+          where.id = -1;
+        }
+      }
+
+      const issues = await prisma.promotion_materials_issue.findMany({
+        where,
+        orderBy: { issue_date: 'desc' },
+        include: {
+          depot: true,
+          outlet: true,
+          items: {
+            where: { 
+              is_active: 'Y',
+              ...(asset_id && { asset_id: parseInt(asset_id as string) })
+            },
+            include: { asset: true },
+          },
+        },
+      });
+
+      // Compute Summary Stats
+      let totalExpense = 0;
+      let piecesIssued = 0;
+      const uniqueOutlets = new Set<number>();
+      
+      const validIssues = issues.filter(issue => issue.items.length > 0);
+      const approvedIssues = validIssues.length;
+
+      validIssues.forEach((issue: any) => {
+        uniqueOutlets.add(issue.outlet_id);
+        issue.items.forEach((item: any) => {
+          totalExpense += Number(item.total_value || 0);
+          piecesIssued += Number(item.quantity || 0);
+        });
+      });
+
+      const outletsReached = uniqueOutlets.size;
+
+      // Grouping Data
+      let groupedData: any[] = [];
+
+      if (group_by === 'item') {
+        const itemMap = new Map<number, any>();
+        validIssues.forEach((issue: any) => {
+          issue.items.forEach((item: any) => {
+            if (!itemMap.has(item.asset_id)) {
+              itemMap.set(item.asset_id, {
+                item_name: item.asset?.name || 'Unknown',
+                item_code: item.asset?.code || 'Unknown',
+                issues_count: 0,
+                unique_outlets: new Set<number>(),
+                qty_issued: 0,
+                total_value: 0,
+              });
+            }
+            const data = itemMap.get(item.asset_id);
+            data.issues_count += 1; // Assuming one issue per item line
+            data.unique_outlets.add(issue.outlet_id);
+            data.qty_issued += Number(item.quantity || 0);
+            data.total_value += Number(item.total_value || 0);
+          });
+        });
+
+        groupedData = Array.from(itemMap.values()).map(data => ({
+          item_name: data.item_name,
+          item_code: data.item_code,
+          issues: data.issues_count,
+          outlets: data.unique_outlets.size,
+          qty_issued: data.qty_issued,
+          total_value: data.total_value,
+          share_of_value: totalExpense > 0 ? (data.total_value / totalExpense) * 100 : 0,
+        }));
+      } else if (group_by === 'outlet') {
+        const outletMap = new Map<number, any>();
+        validIssues.forEach((issue: any) => {
+          if (!outletMap.has(issue.outlet_id)) {
+            outletMap.set(issue.outlet_id, {
+              outlet_name: issue.outlet?.name || 'Unknown',
+              outlet_code: issue.outlet?.code || 'Unknown',
+              issues_count: 0,
+              qty_issued: 0,
+              total_value: 0,
+            });
+          }
+          const data = outletMap.get(issue.outlet_id);
+          data.issues_count += 1;
+          issue.items.forEach((item: any) => {
+            data.qty_issued += Number(item.quantity || 0);
+            data.total_value += Number(item.total_value || 0);
+          });
+        });
+
+        groupedData = Array.from(outletMap.values()).map(data => ({
+          outlet_name: data.outlet_name,
+          outlet_code: data.outlet_code,
+          issues: data.issues_count,
+          qty_issued: data.qty_issued,
+          total_value: data.total_value,
+          share_of_value: totalExpense > 0 ? (data.total_value / totalExpense) * 100 : 0,
+        }));
+      } else if (group_by === 'depot') {
+        const depotMap = new Map<number, any>();
+        validIssues.forEach((issue: any) => {
+          if (!depotMap.has(issue.depot_id)) {
+            depotMap.set(issue.depot_id, {
+              depot_name: issue.depot?.name || 'Unknown',
+              depot_code: issue.depot?.code || 'Unknown',
+              issues_count: 0,
+              unique_outlets: new Set<number>(),
+              qty_issued: 0,
+              total_value: 0,
+            });
+          }
+          const data = depotMap.get(issue.depot_id);
+          data.issues_count += 1;
+          data.unique_outlets.add(issue.outlet_id);
+          issue.items.forEach((item: any) => {
+            data.qty_issued += Number(item.quantity || 0);
+            data.total_value += Number(item.total_value || 0);
+          });
+        });
+
+        groupedData = Array.from(depotMap.values()).map(data => ({
+          depot_name: data.depot_name,
+          depot_code: data.depot_code,
+          issues: data.issues_count,
+          outlets: data.unique_outlets.size,
+          qty_issued: data.qty_issued,
+          total_value: data.total_value,
+          share_of_value: totalExpense > 0 ? (data.total_value / totalExpense) * 100 : 0,
+        }));
+      } else if (group_by === 'month') {
+        const monthMap = new Map<string, any>();
+        validIssues.forEach((issue: any) => {
+          const monthKey = issue.issue_date ? new Date(issue.issue_date).toISOString().slice(0, 7) : 'Unknown';
+          if (!monthMap.has(monthKey)) {
+            monthMap.set(monthKey, {
+              month: monthKey,
+              issues_count: 0,
+              unique_outlets: new Set<number>(),
+              qty_issued: 0,
+              total_value: 0,
+            });
+          }
+          const data = monthMap.get(monthKey);
+          data.issues_count += 1;
+          data.unique_outlets.add(issue.outlet_id);
+          issue.items.forEach((item: any) => {
+            data.qty_issued += Number(item.quantity || 0);
+            data.total_value += Number(item.total_value || 0);
+          });
+        });
+
+        groupedData = Array.from(monthMap.values()).map(data => ({
+          month: data.month,
+          issues: data.issues_count,
+          outlets: data.unique_outlets.size,
+          qty_issued: data.qty_issued,
+          total_value: data.total_value,
+          share_of_value: totalExpense > 0 ? (data.total_value / totalExpense) * 100 : 0,
+        }));
+      } else {
+        // Detailed
+        validIssues.forEach((issue: any) => {
+          issue.items.forEach((item: any) => {
+            groupedData.push({
+              gin_number: issue.gin_number,
+              issue_date: issue.issue_date?.toISOString(),
+              depot_name: issue.depot?.name || 'Unknown',
+              outlet_name: issue.outlet?.name || 'Unknown',
+              item_name: item.asset?.name || 'Unknown',
+              item_code: item.asset?.code || 'Unknown',
+              quantity: Number(item.quantity || 0),
+              total_value: Number(item.total_value || 0),
+            });
+          });
+        });
+      }
+
+      res.json({
+        success: true,
+        message: 'Report generated successfully',
+        data: {
+          summary: {
+            total_expense: totalExpense,
+            approved_issues: approvedIssues,
+            outlets_reached: outletsReached,
+            pieces_issued: piecesIssued,
+          },
+          data: groupedData,
+        },
+      });
+    } catch (error: any) {
+      console.error('Get Promotion Materials Issued Report Error:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Failed to generate report',
+      });
+    }
+  },
+
+  /**
+   * Export Promotion Materials Issued Report
+   * GET /api/v1/reports/promotion-materials-issued/export
+   */
+  async exportPromotionMaterialsIssuedReport(req: Request, res: Response) {
+    try {
+      const { start_date, end_date, depot_id, outlet_id } = req.query;
+
+      const dateFilter: any = {};
+      if (start_date) {
+        dateFilter.gte = new Date(start_date as string);
+      }
+      if (end_date) {
+        dateFilter.lte = new Date(end_date as string);
+      }
+
+      const where: any = {
+        is_active: 'Y',
+        ...(Object.keys(dateFilter).length > 0 && { issue_date: dateFilter }),
+        ...(depot_id && { depot_id: parseInt(depot_id as string) }),
+        ...(outlet_id && { outlet_id: parseInt(outlet_id as string) }),
+      };
+
+      const reqUser = (req as any).user;
+      if (reqUser && !isAdminRole(reqUser.role)) {
+        const userDepots = await prisma.user_depots.findMany({
+          where: { user_id: reqUser.id },
+          select: { depot_id: true },
+        });
+        const depotIds = userDepots
+          .map((ud: any) => ud.depot_id)
+          .filter((id: any) => id !== null) as number[];
+
+        if (depotIds.length > 0) {
+          where.depot_id = { in: depotIds };
+        } else {
+          where.id = -1;
+        }
+      }
+
+      const issues = await prisma.promotion_materials_issue.findMany({
+        where,
+        orderBy: { issue_date: 'desc' },
+        include: {
+          depot: true,
+          outlet: true,
+          issued_by: true,
+          items: {
+            where: { is_active: 'Y' },
+            include: { asset: true },
+          },
+        },
+      });
+
+      const ExcelJS = await import('exceljs');
+      const workbook = new ExcelJS.Workbook();
+      const sheet = workbook.addWorksheet('Promotion Materials Issued');
+
+      sheet.columns = [
+        { header: 'GIN Number', key: 'gin_number', width: 25 },
+        { header: 'Issue Date', key: 'issue_date', width: 15 },
+        { header: 'Depot Name', key: 'depot_name', width: 25 },
+        { header: 'Outlet Name', key: 'outlet_name', width: 25 },
+        { header: 'Issued By Name', key: 'issued_by_name', width: 25 },
+        { header: 'Issued By Code', key: 'issued_by_code', width: 15 },
+        { header: 'Total Value', key: 'total_value', width: 15 },
+        { header: 'Status', key: 'status', width: 15 },
+        { header: 'Item Code', key: 'item_code', width: 20 },
+        { header: 'Item Name', key: 'item_name', width: 30 },
+        { header: 'Quantity', key: 'quantity', width: 10 },
+        { header: 'Unit Value', key: 'unit_value', width: 15 },
+      ];
+
+      issues.forEach((issue: any) => {
+        const baseRow = {
+          gin_number: issue.gin_number,
+          issue_date: issue.issue_date
+            ? new Date(issue.issue_date).toLocaleDateString()
+            : 'N/A',
+          depot_name: issue.depot?.name || 'N/A',
+          outlet_name: issue.outlet?.name || 'N/A',
+          issued_by_name: issue.issued_by?.name || 'N/A',
+          issued_by_code:
+            issue.issued_by?.employee_id || issue.issued_by?.sap_code || 'N/A',
+          total_value: Number(issue.total_value || 0),
+          status:
+            issue.approval_status === 'A'
+              ? 'Approved'
+              : issue.approval_status === 'P'
+                ? 'Pending'
+                : issue.approval_status,
+        };
+
+        if (issue.items && issue.items.length > 0) {
+          issue.items.forEach((item: any) => {
+            sheet.addRow({
+              ...baseRow,
+              item_code: item.asset?.code || 'N/A',
+              item_name: item.asset?.name || 'N/A',
+              quantity: item.quantity,
+              unit_value: Number(item.unit_value || 0),
+            });
+          });
+        } else {
+          sheet.addRow({
+            ...baseRow,
+            item_code: 'N/A',
+            item_name: 'N/A',
+            quantity: 0,
+            unit_value: 0,
+          });
+        }
+      });
+
+      const headerRow = sheet.getRow(1);
+      if (headerRow) {
+        headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        headerRow.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FF4472C4' },
+        };
+        headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
+        headerRow.height = 25;
+      }
+
+      const buffer = await workbook.xlsx.writeBuffer();
+
+      res.setHeader(
+        'Content-Type',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      );
+      res.setHeader(
+        'Content-Disposition',
+        'attachment; filename=Promotion_Materials_Issued_Report_' +
+          Date.now() +
+          '.xlsx'
+      );
+      res.setHeader('Content-Length', buffer.byteLength.toString());
+
+      res.send(Buffer.from(buffer));
+    } catch (error: any) {
+      console.error('Export Promotion Materials Issued Report Error:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Failed to export report',
+      });
+    }
+  },
 };

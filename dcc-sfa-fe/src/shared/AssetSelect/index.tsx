@@ -294,7 +294,6 @@ const AssetSelect: React.FC<AssetSelectProps> = ({
             {option.serial_number && (
               <p className="!text-gray-500 !text-xs">
                 SN: {option.serial_number}{' '}
-                {option.code ? `| Code: ${option.code}` : ''}
               </p>
             )}
           </Box>

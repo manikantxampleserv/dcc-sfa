@@ -108,11 +108,14 @@ import visitTasks from '../v1/routes/visitTasks.routes';
 import warehouses from '../v1/routes/warehouses.routes';
 import workflow from '../v1/routes/workflow.routes';
 import zones from '../v1/routes/zones.routes';
-
+import promotionMaterialsIssue from '../v1/routes/promotionMaterialsIssue.routes';
+import systemEnums from '../v1/routes/systemEnums.routes';
 const routes = Router();
 
 routes.use('/v1/org-chart', orgChart);
 routes.use('/v1', barcode);
+routes.use('/v1', promotionMaterialsIssue);
+routes.use('/v1/system-enums', systemEnums);
 routes.use('/v1', ai);
 routes.use('/v1', auth);
 routes.use('/v1', user);
@@ -219,7 +222,6 @@ routes.use('/v1', alerts);
 routes.use('/v1', customerCategoryGrading);
 routes.use('/v1', assetMasterBrands);
 routes.use('/v1', sapRoutes);
-
 routes.get('/', (_: any, res: any) => {
   res.json({
     name: 'DCC-SFA API',

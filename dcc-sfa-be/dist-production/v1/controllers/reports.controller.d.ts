@@ -119,5 +119,15 @@ export declare const reportsController: {
      */
     getCoolersReport(req: Request, res: Response): Promise<void>;
     exportCoolersReport(req: Request, res: Response): Promise<void>;
+    /**
+     * Get Promotion Materials Issued Report
+     * GET /api/v1/reports/promotion-materials-issued
+     */
+    getPromotionMaterialsIssuedReport(req: Request, res: Response): Promise<void>;
+    /**
+     * Export Promotion Materials Issued Report
+     * GET /api/v1/reports/promotion-materials-issued/export
+     */
+    exportPromotionMaterialsIssuedReport(req: Request, res: Response): Promise<void>;
 };
 //# sourceMappingURL=reports.controller.d.ts.map

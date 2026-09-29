@@ -110,7 +110,14 @@ const DeleteButton: React.FC<DeleteButtonProps> = ({
       {tooltipButton}
     </DeleteConfirmation>
   ) : (
-    <div onClick={e => e.stopPropagation()}>{tooltipButton}</div>
+    <div
+      onClick={e => {
+        e.stopPropagation();
+        onClick?.();
+      }}
+    >
+      {tooltipButton}
+    </div>
   );
 };
 

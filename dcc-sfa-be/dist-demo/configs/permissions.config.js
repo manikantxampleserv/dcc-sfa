@@ -123,6 +123,7 @@ const MODULE_DISPLAY_NAMES = {
     'kpi-target': 'KPI Target',
     survey: 'Survey',
     promotions: 'Promotions',
+    'promotion-materials': 'Promotion Materials Issue',
     order: 'Order',
     return: 'Return',
     payment: 'Payment',

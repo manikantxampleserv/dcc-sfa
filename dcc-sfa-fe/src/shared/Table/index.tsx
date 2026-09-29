@@ -142,6 +142,8 @@ export interface TableProps<T = any> {
   groupBy?: (row: T) => string;
   /** Function to render the group header content */
   renderGroupHeader?: (group: string, rows: T[]) => ReactNode;
+  /** Optional custom footer to render at the bottom of the table */
+  footer?: ReactNode;
 }
 
 /** Sort order type with three states */
@@ -773,6 +775,9 @@ export default function Table<T extends Record<string, any>>(
             rowsPerPage={rowsPerPage}
             className="!border-t !border-gray-200 [&_.MuiTablePagination-toolbar]:!text-gray-700 [&_.MuiTablePagination-selectIcon]:!text-gray-500"
           />
+        )}
+        {props.footer && (
+          <Box className="!bg-gray-50 !rounded-b-lg">{props.footer}</Box>
         )}
       </Paper>
     </Box>

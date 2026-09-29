@@ -12,6 +12,7 @@ import {
   useUpdateAssetMovement,
   type AssetMovement,
 } from 'hooks/useAssetMovement';
+import { useSystemEnum } from 'hooks/useSystemEnums';
 import { GripVertical, Package } from 'lucide-react';
 import React, { useCallback, useMemo, useState, useEffect } from 'react';
 import { assetMovementValidationSchema } from 'schemas/assetMovement.schema';
@@ -52,6 +53,9 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
 
   const createAssetMovementMutation = useCreateAssetMovement();
   const updateAssetMovementMutation = useUpdateAssetMovement();
+  
+  const { data: returnReasonEnum } = useSystemEnum('asset_movement_return_reason');
+  const returnReasons = returnReasonEnum?.data?.values || [];
 
   const handleCancel = () => {
     setSelectedMovement(null);
@@ -82,6 +86,7 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
       to_outlet: selectedMovement?.to_customer_id?.toString() || '',
       to_depot: selectedMovement?.to_depot_id?.toString() || '',
       movement_type: selectedMovement?.movement_type || '',
+      return_reason: selectedMovement?.return_reason || '',
       movement_date: formatForDateInput(selectedMovement?.movement_date),
       performed_by:
         selectedMovement?.performed_by?.toString() ||
@@ -117,6 +122,7 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
           to_depot_id:
             values.to_direction === 'depot' ? Number(values.to_depot) : null,
           movement_type: values.movement_type,
+          return_reason: values.return_reason,
           movement_date: values.movement_date,
           performed_by: Number(values.performed_by),
           notes: values.notes,
@@ -381,6 +387,21 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
                 )
               )}
             </Select>
+
+            {formik.values.movement_type === 'return' && (
+              <Select
+                name="return_reason"
+                label="Return Reason"
+                formik={formik}
+                required
+              >
+                {returnReasons.map((reason: string) => (
+                  <MenuItem key={reason} value={reason}>
+                    {reason}
+                  </MenuItem>
+                ))}
+              </Select>
+            )}
 
             <Select name="priority" label="Priority" formik={formik}>
               <MenuItem value="low">Low</MenuItem>

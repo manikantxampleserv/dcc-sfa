@@ -98,6 +98,7 @@ import VisitFrequencyCompletionReport from 'pages/reports/VisitFrequencyCompleti
 import CoolerInspectionsReport from 'pages/reports/CoolerInspectionsReport';
 import CoolersReport from 'pages/reports/CoolersReport';
 import AssetReport from 'pages/reports/AssetReport';
+import PromotionMaterialsIssuedReport from 'pages/reports/PromotionMaterialsIssuedReport';
 import EmailTemplates from 'pages/settings/EmailTemplates';
 import SystemSettings from 'pages/settings/SystemSettings';
 import ErrorLogs from 'pages/settings/ErrorLogs';
@@ -128,6 +129,7 @@ import AlertsReminders from 'pages/workflows/AlertsReminders';
 import ApprovalSetup from 'pages/workflows/ApprovalSetup';
 import ApprovalWorkflows from 'pages/workflows/ApprovalWorkflows';
 import RouteExceptions from 'pages/workflows/RouteExceptions';
+import PromotionMaterialsIssueManagement from 'pages/transactions/PromotionMaterialsIssue';
 import AIAssistant from 'pages/ai-assistant';
 import React from 'react';
 import {
@@ -891,6 +893,14 @@ const router = createBrowserRouter(
           ),
         },
         {
+          path: '/transactions/promotion-materials-issue',
+          element: (
+            <PermissionGuard module="promotion-materials" action="read">
+              <PromotionMaterialsIssueManagement />
+            </PermissionGuard>
+          ),
+        },
+        {
           path: '/transactions/maintenance',
           element: (
             <PermissionGuard module="maintenance" action="read">
@@ -1082,22 +1092,30 @@ const router = createBrowserRouter(
             </PermissionGuard>
           ),
         },
-          {
-            path: '/reports/coolers',
-            element: (
-              <PermissionGuard module="report" action="read">
-                <CoolersReport />
-              </PermissionGuard>
-            ),
-          },
-          {
-            path: '/reports/asset-report',
-            element: (
-              <PermissionGuard module="report" action="read">
-                <AssetReport />
-              </PermissionGuard>
-            ),
-          },
+        {
+          path: '/reports/coolers',
+          element: (
+            <PermissionGuard module="report" action="read">
+              <CoolersReport />
+            </PermissionGuard>
+          ),
+        },
+        {
+          path: '/reports/asset-report',
+          element: (
+            <PermissionGuard module="report" action="read">
+              <AssetReport />
+            </PermissionGuard>
+          ),
+        },
+        {
+          path: '/reports/promotion-materials-issued',
+          element: (
+            <PermissionGuard module="report" action="read">
+              <PromotionMaterialsIssuedReport />
+            </PermissionGuard>
+          ),
+        },
         {
           path: '/workflows/approvals',
           element: (
@@ -1192,4 +1210,3 @@ const AppRouter: React.FC = () => {
 };
 
 export default AppRouter;
-

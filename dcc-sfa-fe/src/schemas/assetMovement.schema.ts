@@ -13,18 +13,18 @@ export const assetMovementValidationSchema = Yup.object({
     .nullable()
     .when('from_direction', {
       is: 'outlet',
-      then: schema =>
+      then: (schema: Yup.NumberSchema) =>
         schema.required('From outlet is required when direction is outlet'),
-      otherwise: schema => schema.notRequired(),
+      otherwise: (schema: Yup.NumberSchema) => schema.notRequired(),
     }),
   from_depot: Yup.number()
     .positive('From depot must be a positive number')
     .nullable()
     .when('from_direction', {
       is: 'depot',
-      then: schema =>
+      then: (schema: Yup.NumberSchema) =>
         schema.required('From depot is required when direction is depot'),
-      otherwise: schema => schema.notRequired(),
+      otherwise: (schema: Yup.NumberSchema) => schema.notRequired(),
     }),
   to_direction: Yup.string()
     .oneOf(['outlet', 'depot'], 'To direction must be outlet or depot')
@@ -34,18 +34,18 @@ export const assetMovementValidationSchema = Yup.object({
     .nullable()
     .when('to_direction', {
       is: 'outlet',
-      then: schema =>
+      then: (schema: Yup.NumberSchema) =>
         schema.required('To outlet is required when direction is outlet'),
-      otherwise: schema => schema.notRequired(),
+      otherwise: (schema: Yup.NumberSchema) => schema.notRequired(),
     }),
   to_depot: Yup.number()
     .positive('To depot must be a positive number')
     .nullable()
     .when('to_direction', {
       is: 'depot',
-      then: schema =>
+      then: (schema: Yup.NumberSchema) =>
         schema.required('To depot is required when direction is depot'),
-      otherwise: schema => schema.notRequired(),
+      otherwise: (schema: Yup.NumberSchema) => schema.notRequired(),
     }),
   movement_type: Yup.string()
     .oneOf(
@@ -60,6 +60,16 @@ export const assetMovementValidationSchema = Yup.object({
       'Movement type must be one of: transfer, maintenance, repair, disposal, return, installation'
     )
     .nullable(),
+  return_reason: Yup.string()
+    .nullable()
+    .when('movement_type', {
+      is: 'return',
+      then: (schema: Yup.StringSchema) =>
+        schema.required(
+          'Return reason is required when movement type is return'
+        ),
+      otherwise: (schema: Yup.StringSchema) => schema.notRequired(),
+    }),
   movement_date: Yup.date()
     .required('Movement date is required')
     .max(new Date(), 'Movement date cannot be in the future'),
