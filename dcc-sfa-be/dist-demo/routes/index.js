@@ -92,6 +92,7 @@ const salesTargetGroups_routes_1 = __importDefault(require("../v1/routes/salesTa
 const salesTargetOverrides_routes_1 = __importDefault(require("../v1/routes/salesTargetOverrides.routes"));
 const salesTargets_routes_1 = __importDefault(require("../v1/routes/salesTargets.routes"));
 const sap_routes_1 = __importDefault(require("../v1/routes/sap.routes"));
+const salesManager_routes_1 = __importDefault(require("../v1/routes/salesManager.routes"));
 const settings_routes_1 = __importDefault(require("../v1/routes/settings.routes"));
 const stockMovements_routes_1 = __importDefault(require("../v1/routes/stockMovements.routes"));
 const stockTransferLines_routes_1 = __importDefault(require("../v1/routes/stockTransferLines.routes"));
@@ -113,10 +114,12 @@ const warehouses_routes_1 = __importDefault(require("../v1/routes/warehouses.rou
 const workflow_routes_1 = __importDefault(require("../v1/routes/workflow.routes"));
 const zones_routes_1 = __importDefault(require("../v1/routes/zones.routes"));
 const promotionMaterialsIssue_routes_1 = __importDefault(require("../v1/routes/promotionMaterialsIssue.routes"));
+const systemEnums_routes_1 = __importDefault(require("../v1/routes/systemEnums.routes"));
 const routes = (0, express_1.Router)();
 routes.use('/v1/org-chart', orgChart_routes_1.default);
 routes.use('/v1', barcode_routes_1.default);
 routes.use('/v1', promotionMaterialsIssue_routes_1.default);
+routes.use('/v1/system-enums', systemEnums_routes_1.default);
 routes.use('/v1', ai_routes_1.default);
 routes.use('/v1', auth_routes_1.default);
 routes.use('/v1', user_routes_1.default);
@@ -223,6 +226,7 @@ routes.use('/v1', alerts_routes_1.default);
 routes.use('/v1', customerCategoryGrading_routes_1.default);
 routes.use('/v1', assetMaterBrands_routes_1.default);
 routes.use('/v1', sap_routes_1.default);
+routes.use('/v1', salesManager_routes_1.default);
 routes.get('/', (_, res) => {
     res.json({
         name: 'DCC-SFA API',

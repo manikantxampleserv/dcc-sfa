@@ -20,6 +20,7 @@ const serializeAssetMovement = (movement, currentApprover = null) => {
         to_depot_id: movement.to_depot_id,
         to_customer_id: movement.to_customer_id,
         movement_type: movement.movement_type,
+        return_reason: movement.return_reason,
         movement_date: movement.movement_date,
         performed_by: movement.performed_by,
         notes: movement.notes,
@@ -331,6 +332,7 @@ exports.assetMovementsController = {
                         to_depot_id: toDepotId,
                         to_customer_id: toCustomerId,
                         movement_type: data.movement_type,
+                        return_reason: data.return_reason,
                         movement_date: new Date(data.movement_date),
                         performed_by: data.performed_by,
                         notes: data.notes,
@@ -723,6 +725,7 @@ exports.assetMovementsController = {
                 'to_depot_id',
                 'to_customer_id',
                 'is_active',
+                'return_reason',
                 'updatedby',
                 'updatedate',
             ];
