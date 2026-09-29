@@ -11,6 +11,12 @@ router.get(
 );
 
 router.get(
+  '/sales-manager/teams',
+  authenticateToken,
+  salesManagerController.getTeamMembers
+);
+
+router.get(
   '/sales-manager/territory/zones-and-routes',
   authenticateToken,
   salesManagerController.getZonesAndRoutes
