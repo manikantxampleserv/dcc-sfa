@@ -357,7 +357,7 @@ const router = createBrowserRouter(
         {
           path: '/masters/route-assignments',
           element: (
-            <PermissionGuard module="route" action="read">
+            <PermissionGuard module="route-assignment" action="read">
               <RouteAssignmentManagement />
             </PermissionGuard>
           ),
@@ -365,7 +365,7 @@ const router = createBrowserRouter(
         {
           path: '/masters/route-assignments/:id',
           element: (
-            <PermissionGuard module="route" action="read">
+            <PermissionGuard module="route-assignment" action="read">
               <RouteAssignmentDetail />
             </PermissionGuard>
           ),
