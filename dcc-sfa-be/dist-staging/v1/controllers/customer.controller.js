@@ -1869,13 +1869,33 @@ exports.customerController = {
                         },
                         orderBy: { createdate: 'desc' },
                     },
+                    customer_assets_customers: {
+                        where: { is_active: 'Y' },
+                        include: {
+                            customer_asset_types: {
+                                select: { id: true, name: true },
+                            },
+                            customer_asset_brand: {
+                                select: { id: true, name: true },
+                            },
+                            customers_assets_history: {
+                                orderBy: { change_date: 'desc' },
+                                include: {
+                                    users_customer_assets_history_changed_byTousers: {
+                                        select: { id: true, name: true, email: true },
+                                    },
+                                },
+                            },
+                        },
+                        orderBy: { createdate: 'desc' },
+                    },
                 },
             });
             if (!customer) {
                 return res.status(404).json({ message: 'Customer not found' });
             }
             const serializedCustomer = await serializeCustomer(customer);
-            const mappedAssets = (customer.coolers_customers || []).map((cooler) => {
+            const coolerAssets = (customer.coolers_customers || []).map((cooler) => {
                 const assetMaster = cooler.cooler_asset_master;
                 const resolvedBrand = cooler.brand ||
                     assetMaster?.brand ||
@@ -1931,6 +1951,43 @@ exports.customerController = {
                     })),
                 };
             });
+            const existingSerialNumbers = new Set(coolerAssets.map((a) => a.serial_number).filter(Boolean));
+            const directCustomerAssets = (customer.customer_assets_customers || [])
+                .filter((ca) => !ca.serial_number || !existingSerialNumbers.has(ca.serial_number))
+                .map((ca) => {
+                const resolvedBrand = ca.customer_asset_brand?.name || null;
+                const resolvedType = ca.customer_asset_types
+                    ? { id: ca.customer_asset_types.id, name: ca.customer_asset_types.name }
+                    : null;
+                const resolvedInstallDate = ca.install_date || ca.createdate || null;
+                return {
+                    id: ca.id,
+                    code: ca.serial_number || `AST-${ca.id}`,
+                    brand: resolvedBrand,
+                    asset_brand: resolvedBrand,
+                    model: ca.model || null,
+                    serial_number: ca.serial_number || null,
+                    capacity: ca.capacity || null,
+                    status: ca.status === 'working' ? 'Installed' : ca.status || 'Installed',
+                    install_date: resolvedInstallDate,
+                    installed_date: resolvedInstallDate,
+                    createdate: ca.createdate,
+                    asset_type: resolvedType,
+                    asset_types: resolvedType,
+                    asset_sub_type: null,
+                    asset_sub_types: null,
+                    customer_assets_history: (ca.customers_assets_history || []).map((hist) => ({
+                        id: hist.id,
+                        change_date: hist.change_date || hist.createdate,
+                        change_type: hist.change_type || 'Status Change',
+                        old_status: hist.old_status,
+                        new_status: hist.new_status,
+                        remarks: hist.remarks || '',
+                        users_customer_assets_history_changed_byTousers: hist.users_customer_assets_history_changed_byTousers,
+                    })),
+                };
+            });
+            const mappedAssets = [...coolerAssets, ...directCustomerAssets];
             res.json({
                 success: true,
                 message: 'Customer fetched successfully',

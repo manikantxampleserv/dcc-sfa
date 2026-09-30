@@ -26,13 +26,14 @@ const generateTokens = (user) => {
         depot_id: user.depot_id,
         zone_id: user.zone_id,
     };
+    const { expiresAt, expiresInSeconds } = jwt_config_1.jwtConfig.getNext1130PM();
     const accessToken = jsonwebtoken_1.default.sign(payload, jwt_config_1.jwtConfig.secret, {
-        expiresIn: jwt_config_1.jwtConfig.expiresIn,
+        expiresIn: expiresInSeconds,
     });
     const refreshToken = jsonwebtoken_1.default.sign({ id: user.id }, jwt_config_1.jwtConfig.secret, {
         expiresIn: jwt_config_1.jwtConfig.refreshExpiresIn,
     });
-    return { accessToken, refreshToken };
+    return { accessToken, refreshToken, expiresAt, expiresInSeconds };
 };
 const register = async (req, res) => {
     try {
@@ -178,15 +179,47 @@ const login = async (req, res) => {
                     },
                 },
             });
-            if (existingSession && !req.body.confirmLogin) {
-                return res.status(409).json({
-                    success: false,
-                    code: 'ACTIVE_SESSION_EXISTS',
-                    message: 'You are already logged in on another device.',
+            const confirmLogin = req.body.confirmLogin === true || req.body.confirmLogin === 'true';
+            if (existingSession) {
+                if (!confirmLogin) {
+                    return res.status(409).json({
+                        success: false,
+                        code: 'ACTIVE_SESSION_EXISTS',
+                        message: 'You are already logged in on another device.',
+                        data: {
+                            device_id: existingSession.device_id,
+                            issued_at: existingSession.issued_at,
+                        },
+                    });
+                }
+                await prisma_client_1.default.api_tokens.updateMany({
+                    where: {
+                        user_id: user.id,
+                        is_active: 'Y',
+                        is_revoked: false,
+                    },
+                    data: {
+                        is_revoked: true,
+                        is_active: 'N',
+                        updated_date: new Date(),
+                        updated_by: user.id,
+                    },
+                });
+                await prisma_client_1.default.login_history.updateMany({
+                    where: {
+                        user_id: user.id,
+                        logout_time: null,
+                        login_status: 'success',
+                    },
+                    data: {
+                        logout_time: new Date(),
+                        updatedate: new Date(),
+                        updatedby: user.id,
+                    },
                 });
             }
         }
-        const { accessToken, refreshToken } = generateTokens(user);
+        const { accessToken, refreshToken, expiresAt, expiresInSeconds } = generateTokens(user);
         const userAgent = req.get('User-Agent') || 'Unknown';
         const clientIP = (0, ipUtils_1.getClientIP)(req);
         await prisma_client_1.default.api_tokens.create({
@@ -195,7 +228,7 @@ const login = async (req, res) => {
                 token: accessToken,
                 token_type: 'Bearer',
                 issued_at: new Date(),
-                expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000),
+                expires_at: expiresAt,
                 device_id: truncateString(userAgent, 100),
                 ip_address: truncateString(clientIP, 50),
                 is_active: 'Y',
@@ -238,7 +271,7 @@ const login = async (req, res) => {
             accessToken,
             refreshToken,
             tokenType: 'Bearer',
-            expiresIn: jwt_config_1.jwtConfig.expiresIn,
+            expiresIn: expiresInSeconds,
         });
     }
     catch (error) {
@@ -311,14 +344,14 @@ const refresh = async (req, res) => {
         });
         if (!user)
             return res.error('User not found', 404);
-        const { accessToken } = generateTokens(user);
+        const { accessToken, expiresAt, expiresInSeconds } = generateTokens(user);
         await prisma_client_1.default.api_tokens.create({
             data: {
                 user_id: user.id,
                 token: accessToken,
                 token_type: 'Bearer',
                 issued_at: new Date(),
-                expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000),
+                expires_at: expiresAt,
                 is_active: 'Y',
                 created_by: user.id,
                 created_date: new Date(),
@@ -326,7 +359,7 @@ const refresh = async (req, res) => {
         });
         return res.success('Token refreshed', {
             accessToken,
-            expiresIn: jwt_config_1.jwtConfig.expiresIn,
+            expiresIn: expiresInSeconds,
         });
     }
     catch (error) {

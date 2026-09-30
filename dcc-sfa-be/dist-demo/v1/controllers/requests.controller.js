@@ -1,13 +1,4 @@
 "use strict";
-// import { Request, Response } from 'express';
-// import { generateEmailContent } from '../../utils/emailTemplates';
-// import templateKeyMap from '../../utils/templateKeyMap';
-// import { sendEmail } from '../../utils/mailer';
-// import getRequestDetailsByType from '../../utils/getDetails';
-// import { paginate } from '../../utils/paginate';
-// import { requestTypes } from '../../mock/requestTypes';
-// import prisma from '../../configs/prisma.client';
-// import { generateContractOnApproval } from '../../helpers/approvalWorkflow.helper';
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     var desc = Object.getOwnPropertyDescriptor(m, k);
@@ -924,6 +915,87 @@ const createRequest = async (data) => {
                     },
                 });
             }
+            if (data.request_type === 'PROMOTION_MATERIAL_ISSUE' &&
+                data.reference_id) {
+                try {
+                    const updatedIssue = await prisma_client_1.default.promotion_materials_issue.update({
+                        where: { id: data.reference_id },
+                        data: {
+                            approval_status: 'A',
+                            updatedby: data.createdby,
+                            updatedate: new Date(),
+                        },
+                    });
+                    console.log(`promotional issud item auto aprove Updated issue #${updatedIssue.id} approval_status to 'A'`);
+                    const autoApprovedIssue = await prisma_client_1.default.promotion_materials_issue.findUnique({
+                        where: { id: data.reference_id },
+                        include: {
+                            items: {
+                                where: { is_active: 'Y' },
+                                include: {
+                                    asset: {
+                                        include: { asset_master_asset_types: true },
+                                    },
+                                },
+                            },
+                        },
+                    });
+                    if (autoApprovedIssue) {
+                        console.log(`[PROMOTION_MATERIAL_ISSUE AUTO-APPROVE] Processing ${autoApprovedIssue.items.length} item(s) for GIN ${autoApprovedIssue.gin_number}, Outlet ID: ${autoApprovedIssue.outlet_id}`);
+                        for (const item of autoApprovedIssue.items) {
+                            // Create customer_assets entry
+                            const createdCustomerAsset = await prisma_client_1.default.customer_assets.create({
+                                data: {
+                                    customer_id: autoApprovedIssue.outlet_id,
+                                    asset_type_id: item.asset.asset_type_id,
+                                    brand_id: item.asset.brand_id || item.asset.asset_brand_id || null,
+                                    model: item.asset.name,
+                                    serial_number: item.asset.serial_number,
+                                    install_date: new Date(),
+                                    status: 'Installed',
+                                    remarks: `Auto-approved. Issued via GIN: ${autoApprovedIssue.gin_number}`,
+                                    is_active: 'Y',
+                                    createdby: data.createdby,
+                                    createdate: new Date(),
+                                    log_inst: 1,
+                                },
+                            });
+                            console.log(`[PROMOTION_MATERIAL_ISSUE AUTO-APPROVE] Created customer_assets entry:`, {
+                                id: createdCustomerAsset.id,
+                                customer_id: createdCustomerAsset.customer_id,
+                                asset_type_id: createdCustomerAsset.asset_type_id,
+                                model: createdCustomerAsset.model,
+                                serial_number: createdCustomerAsset.serial_number,
+                                status: createdCustomerAsset.status,
+                            });
+                            // Update asset_master — mark Installed at the outlet
+                            const updatedAsset = await prisma_client_1.default.asset_master.update({
+                                where: { id: item.asset_id },
+                                data: {
+                                    current_status: 'Installed',
+                                    outlet_id: autoApprovedIssue.outlet_id,
+                                    installation_date: new Date(),
+                                    current_location: `Outlet (${autoApprovedIssue.outlet_id})`,
+                                    updatedby: data.createdby,
+                                    updatedate: new Date(),
+                                },
+                            });
+                            console.log(`[PROMOTION_MATERIAL_ISSUE AUTO-APPROVE] Updated asset_master entry:`, {
+                                asset_id: updatedAsset.id,
+                                name: updatedAsset.name,
+                                current_status: updatedAsset.current_status,
+                                outlet_id: updatedAsset.outlet_id,
+                                installation_date: updatedAsset.installation_date,
+                                current_location: updatedAsset.current_location,
+                            });
+                        }
+                        console.log(`[PROMOTION_MATERIAL_ISSUE AUTO-APPROVE] Auto-approval completed for issue #${data.reference_id} (${autoApprovedIssue.gin_number}) — ${autoApprovedIssue.items.length} customer_assets created, asset_master updated to 'Installed'.`);
+                    }
+                }
+                catch (promoAutoApproveErr) {
+                    console.error('[PROMOTION_MATERIAL_ISSUE AUTO-APPROVE] Error during auto-approve side-effects:', promoAutoApproveErr);
+                }
+            }
             return approvedRequest;
         }
         console.log(` Using ${workflowType} workflow with ${workflowSteps.length} steps`);
@@ -1571,6 +1643,18 @@ exports.requestsController = {
                         });
                         console.log(`Asset Movement ${request.reference_id} status updated to REJECTED`);
                     }
+                    if (request.request_type === 'PROMOTION_MATERIAL_ISSUE' &&
+                        request.reference_id) {
+                        const rejectedIssue = await tx.promotion_materials_issue.update({
+                            where: { id: request.reference_id },
+                            data: {
+                                approval_status: 'R',
+                                updatedby: userId,
+                                updatedate: new Date(),
+                            },
+                        });
+                        console.log(`promotonal material issued Updated issue #${rejectedIssue.id} (${rejectedIssue.gin_number}) approval_status to 'R' (REJECTED)`);
+                    }
                     if (request.request_type === 'VAN_INVENTORY' &&
                         request.reference_id) {
                         await tx.van_inventory.update({
@@ -2131,6 +2215,89 @@ exports.requestsController = {
                                 }
                                 console.log(`Rejected ${inventoryIds.length} pending VAN_INVENTORY request(s) for SAP AR Invoice`);
                             }
+                        }
+                    }
+                    if (request.request_type === 'PROMOTION_MATERIAL_ISSUE' &&
+                        request.reference_id) {
+                        try {
+                            const updatedIssue = await tx.promotion_materials_issue.update({
+                                where: { id: request.reference_id },
+                                data: {
+                                    approval_status: 'A',
+                                    updatedby: userId,
+                                    updatedate: new Date(),
+                                },
+                            });
+                            console.log(`promotonal material issued  Updated issue #${updatedIssue.id} approval_status to 'A'`);
+                            const approvedIssue = await tx.promotion_materials_issue.findUnique({
+                                where: { id: request.reference_id },
+                                include: {
+                                    items: {
+                                        where: { is_active: 'Y' },
+                                        include: {
+                                            asset: {
+                                                include: {
+                                                    asset_master_asset_types: true,
+                                                },
+                                            },
+                                        },
+                                    },
+                                },
+                            });
+                            if (approvedIssue) {
+                                console.log(`[PROMOTION_MATERIAL_ISSUE] Processing ${approvedIssue.items.length} item(s) for GIN ${approvedIssue.gin_number}, Outlet ID: ${approvedIssue.outlet_id}`);
+                                for (const item of approvedIssue.items) {
+                                    const createdCustomerAsset = await tx.customer_assets.create({
+                                        data: {
+                                            customer_id: approvedIssue.outlet_id,
+                                            asset_type_id: item.asset.asset_type_id,
+                                            brand_id: item.asset.brand_id ||
+                                                item.asset.asset_brand_id ||
+                                                null,
+                                            model: item.asset.name,
+                                            serial_number: item.asset.serial_number,
+                                            install_date: new Date(),
+                                            status: 'Installed',
+                                            remarks: `Issued via GIN: ${approvedIssue.gin_number}`,
+                                            is_active: 'Y',
+                                            createdby: userId,
+                                            createdate: new Date(),
+                                            log_inst: 1,
+                                        },
+                                    });
+                                    console.log(`promotonal material issued Created customer_assets entry:`, {
+                                        id: createdCustomerAsset.id,
+                                        customer_id: createdCustomerAsset.customer_id,
+                                        asset_type_id: createdCustomerAsset.asset_type_id,
+                                        model: createdCustomerAsset.model,
+                                        serial_number: createdCustomerAsset.serial_number,
+                                        status: createdCustomerAsset.status,
+                                    });
+                                    // Update asset_master — mark as Installed at the outlet
+                                    const updatedAsset = await tx.asset_master.update({
+                                        where: { id: item.asset_id },
+                                        data: {
+                                            current_status: 'Installed',
+                                            outlet_id: approvedIssue.outlet_id,
+                                            installation_date: new Date(),
+                                            current_location: `Outlet (${approvedIssue.outlet_id})`,
+                                            updatedby: userId,
+                                            updatedate: new Date(),
+                                        },
+                                    });
+                                    console.log(`promotonal material issued  Updated asset_master entry:`, {
+                                        asset_id: updatedAsset.id,
+                                        name: updatedAsset.name,
+                                        current_status: updatedAsset.current_status,
+                                        outlet_id: updatedAsset.outlet_id,
+                                        installation_date: updatedAsset.installation_date,
+                                        current_location: updatedAsset.current_location,
+                                    });
+                                }
+                            }
+                        }
+                        catch (promoErr) {
+                            console.error('promotonal material issued  Error processing approval side-effects:', promoErr);
                         }
                     }
                     if (request.request_type === 'CUSTOMER_CREATION' &&
