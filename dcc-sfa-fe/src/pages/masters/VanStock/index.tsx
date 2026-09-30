@@ -33,6 +33,7 @@ import VanInventoryDetail from './VanInventoryDetail';
 const VanInventories: React.FC = () => {
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
+  const [approvalStatusFilter, setApprovalStatusFilter] = useState('all');
   const [userFilter, setUserFilter] = useState<number | undefined>(undefined);
   const [depotFilter, setDepotFilter] = useState<number | undefined>(undefined);
   const [selectedVanInventory, setSelectedVanInventory] =
@@ -61,6 +62,8 @@ const VanInventories: React.FC = () => {
       limit,
       loading_type:
         typeFilter === 'all' ? undefined : typeFilter === 'load' ? 'L' : 'U',
+      approval_status:
+        approvalStatusFilter === 'all' ? undefined : approvalStatusFilter,
       user_id: userFilter,
       depot_id: depotFilter,
       time_filter: timeFilter !== 'all' ? timeFilter : undefined,
@@ -121,6 +124,11 @@ const VanInventories: React.FC = () => {
     setPage(1);
   }, []);
 
+  const handleApprovalStatusFilterChange = useCallback((value: string) => {
+    setApprovalStatusFilter(value);
+    setPage(1);
+  }, []);
+
   const handlePageChange = (newPage: number) => setPage(newPage + 1);
 
   const handleExportToExcel = useCallback(async () => {
@@ -131,6 +139,8 @@ const VanInventories: React.FC = () => {
         depot_id: depotFilter,
         loading_type:
           typeFilter === 'all' ? undefined : typeFilter === 'load' ? 'L' : 'U',
+        approval_status:
+          approvalStatusFilter === 'all' ? undefined : approvalStatusFilter,
         time_filter: timeFilter !== 'all' ? timeFilter : undefined,
         start_date:
           timeFilter === 'custom' && customDateRange.start
@@ -155,6 +165,7 @@ const VanInventories: React.FC = () => {
     userFilter,
     depotFilter,
     typeFilter,
+    approvalStatusFilter,
     timeFilter,
     customDateRange,
   ]);
@@ -410,6 +421,19 @@ const VanInventories: React.FC = () => {
                     <MenuItem value="all">All Types</MenuItem>
                     <MenuItem value="load">Load</MenuItem>
                     <MenuItem value="unload">Unload</MenuItem>
+                  </Select>
+
+                  <Select
+                    value={approvalStatusFilter}
+                    onChange={e =>
+                      handleApprovalStatusFilterChange(e.target.value)
+                    }
+                    disableClearable
+                  >
+                    <MenuItem value="all">All Status</MenuItem>
+                    <MenuItem value="A">Approved</MenuItem>
+                    <MenuItem value="P">Pending</MenuItem>
+                    <MenuItem value="R">Rejected</MenuItem>
                   </Select>
                   <Box className="!w-48">
                     <DepotSelect

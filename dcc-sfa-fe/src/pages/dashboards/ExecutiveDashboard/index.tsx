@@ -1,4 +1,10 @@
-import { Button, Skeleton, Avatar } from '@mui/material';
+import {
+  Assignment as AssignmentIcon,
+  AttachMoney as AttachMoneyIcon,
+  People as PeopleIcon,
+  Receipt as ReceiptIcon,
+} from '@mui/icons-material';
+import { Avatar, Button, Skeleton } from '@mui/material';
 import {
   ArcElement,
   BarElement,
@@ -23,12 +29,6 @@ import {
 import { useRequestsByUsersWithoutPermission } from 'hooks/useRequests';
 import React, { useState } from 'react';
 import { Chart, Doughnut, Line } from 'react-chartjs-2';
-import {
-  FaClipboardList,
-  FaFileInvoice,
-  FaMoneyBillWave,
-  FaUsers,
-} from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import type { Request } from 'services/requests';
 import ApprovalModal from 'shared/ApprovalModal';
@@ -105,6 +105,7 @@ const ExecutiveDashboard: React.FC = () => {
         bg: string;
         text: string;
         icon: string;
+        iconText: string;
         progress: string;
       };
     } = {
@@ -112,36 +113,42 @@ const ExecutiveDashboard: React.FC = () => {
         bg: 'bg-blue-50',
         text: 'text-blue-600',
         icon: 'bg-blue-100',
+        iconText: 'text-blue-600',
         progress: 'bg-blue-500',
       },
       pink: {
         bg: 'bg-pink-50',
         text: 'text-pink-600',
         icon: 'bg-pink-100',
+        iconText: 'text-pink-600',
         progress: 'bg-pink-500',
       },
       cyan: {
         bg: 'bg-cyan-50',
         text: 'text-cyan-600',
         icon: 'bg-cyan-100',
+        iconText: 'text-cyan-600',
         progress: 'bg-cyan-500',
       },
       green: {
         bg: 'bg-green-50',
         text: 'text-green-600',
         icon: 'bg-green-100',
+        iconText: 'text-green-600',
         progress: 'bg-green-500',
       },
       purple: {
         bg: 'bg-purple-50',
         text: 'text-purple-600',
         icon: 'bg-purple-100',
+        iconText: 'text-purple-600',
         progress: 'bg-purple-500',
       },
       orange: {
         bg: 'bg-orange-50',
         text: 'text-orange-600',
         icon: 'bg-orange-100',
+        iconText: 'text-orange-600',
         progress: 'bg-orange-500',
       },
     };
@@ -153,7 +160,7 @@ const ExecutiveDashboard: React.FC = () => {
       title: 'Total Invoices',
       value: stats?.totalInvoices.value.toLocaleString() || '0',
       description: `${stats?.totalInvoices.growthPercentage || '0'}% This Month`,
-      icon: FaFileInvoice,
+      icon: ReceiptIcon,
       color: 'blue',
       progress: stats
         ? Math.min(
@@ -169,23 +176,15 @@ const ExecutiveDashboard: React.FC = () => {
         stats?.salesRevenue.formatted
       ),
       description: `${stats?.salesRevenue.growthPercentage || '0'}% vs Target`,
-      icon: FaMoneyBillWave,
+      icon: AttachMoneyIcon,
       color: 'green',
       progress: stats ? parseFloat(stats.salesRevenue.targetProgress) : 0,
     },
-    // {
-    //   title: 'Deliveries',
-    //   value: stats?.deliveries.value.toLocaleString() || '0',
-    //   description: `${stats?.deliveries.successRate || '0'}% Success Rate`,
-    //   icon: FaTruck,
-    //   color: 'cyan',
-    //   progress: stats ? parseFloat(stats.deliveries.successRate) : 0,
-    // },
     {
       title: 'Active Outlets',
       value: stats?.activeOutlets.value.toLocaleString() || '0',
       description: `${stats?.activeOutlets.thisWeek || 0} New This Week`,
-      icon: FaUsers,
+      icon: PeopleIcon,
       color: 'pink',
       progress: stats
         ? Math.min(
@@ -545,7 +544,6 @@ const ExecutiveDashboard: React.FC = () => {
     </div>
   );
 
-  // Doughnut Chart Skeleton Component
   const DoughnutChartSkeleton = () => (
     <div className="h-72 w-full flex flex-col items-center justify-center">
       <div className="relative mb-4">
@@ -735,7 +733,7 @@ const ExecutiveDashboard: React.FC = () => {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="bg-white shadow-sm p-5 rounded-lg border border-gray-100">
+      {/* <div className="bg-white shadow-sm p-5 rounded-lg border border-gray-100">
         <div className="lg:flex justify-between items-center">
           <div>
             <h2 className="text-2xl font-semibold text-blue-600 mb-1">
@@ -758,7 +756,7 @@ const ExecutiveDashboard: React.FC = () => {
             </span>
           </div>
         </div>
-      </div>
+      </div> */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {stats_cards.map(stat => {
           const colors = getColorClasses(stat.color);
@@ -772,9 +770,9 @@ const ExecutiveDashboard: React.FC = () => {
                   {stat.title}
                 </span>
                 <div
-                  className={`flex items-center justify-center w-8 h-8 rounded-lg ${colors.icon}`}
+                  className={`flex items-center justify-center w-10 h-10 rounded-lg ${colors.icon} ${colors.iconText}`}
                 >
-                  <stat.icon size={16} />
+                  <stat.icon sx={{ fontSize: 20 }} />
                 </div>
               </div>
 
@@ -834,7 +832,7 @@ const ExecutiveDashboard: React.FC = () => {
               <div className="h-72 flex items-center justify-center bg-gray-50 rounded-lg">
                 <div className="text-center">
                   <div className="text-gray-400 mx-auto mb-2 flex justify-center">
-                    <FaClipboardList size={48} />
+                    <AssignmentIcon sx={{ fontSize: 48 }} />
                   </div>
                   <span className="text-gray-500">
                     No invoice data available
@@ -1068,7 +1066,7 @@ const ExecutiveDashboard: React.FC = () => {
             <div className="h-72 flex items-center justify-center bg-gray-50 rounded-lg">
               <div className="text-center">
                 <div className="text-gray-400 mx-auto mb-2 flex justify-center">
-                  <FaClipboardList size={48} />
+                  <AssignmentIcon sx={{ fontSize: 48 }} />
                 </div>
                 <span className="text-gray-500">No pending approvals</span>
               </div>

@@ -27,15 +27,17 @@ const generateTokens = (user: any) => {
     zone_id: user.zone_id,
   };
 
+  const { expiresAt, expiresInSeconds } = jwtConfig.getNext1130PM();
+
   const accessToken = jwt.sign(payload, jwtConfig.secret, {
-    expiresIn: jwtConfig.expiresIn,
+    expiresIn: expiresInSeconds,
   });
 
   const refreshToken = jwt.sign({ id: user.id }, jwtConfig.secret, {
     expiresIn: jwtConfig.refreshExpiresIn,
   });
 
-  return { accessToken, refreshToken };
+  return { accessToken, refreshToken, expiresAt, expiresInSeconds };
 };
 
 export const register = async (req: any, res: any) => {
@@ -224,7 +226,7 @@ export const login = async (req: any, res: any) => {
         });
       }
     }
-    const { accessToken, refreshToken } = generateTokens(user);
+    const { accessToken, refreshToken, expiresAt, expiresInSeconds } = generateTokens(user);
 
     const userAgent = req.get('User-Agent') || 'Unknown';
     const clientIP = getClientIP(req);
@@ -235,7 +237,7 @@ export const login = async (req: any, res: any) => {
         token: accessToken,
         token_type: 'Bearer',
         issued_at: new Date(),
-        expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000),
+        expires_at: expiresAt,
         device_id: truncateString(userAgent, 100),
         ip_address: truncateString(clientIP, 50),
         is_active: 'Y',
@@ -280,7 +282,7 @@ export const login = async (req: any, res: any) => {
       accessToken,
       refreshToken,
       tokenType: 'Bearer',
-      expiresIn: jwtConfig.expiresIn,
+      expiresIn: expiresInSeconds,
     });
   } catch (error: any) {
     console.error('Login error:', error);
@@ -367,7 +369,7 @@ export const refresh = async (req: any, res: any) => {
     });
     if (!user) return res.error('User not found', 404);
 
-    const { accessToken } = generateTokens(user);
+    const { accessToken, expiresAt, expiresInSeconds } = generateTokens(user);
 
     await prisma.api_tokens.create({
       data: {
@@ -375,7 +377,7 @@ export const refresh = async (req: any, res: any) => {
         token: accessToken,
         token_type: 'Bearer',
         issued_at: new Date(),
-        expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000),
+        expires_at: expiresAt,
         is_active: 'Y',
         created_by: user.id,
         created_date: new Date(),
@@ -384,7 +386,7 @@ export const refresh = async (req: any, res: any) => {
 
     return res.success('Token refreshed', {
       accessToken,
-      expiresIn: jwtConfig.expiresIn,
+      expiresIn: expiresInSeconds,
     });
   } catch (error) {
     console.error(error);

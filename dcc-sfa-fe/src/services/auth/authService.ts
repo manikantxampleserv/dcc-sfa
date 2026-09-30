@@ -33,7 +33,7 @@ export interface LoginResponse {
     accessToken: string;
     refreshToken: string;
     tokenType: string;
-    expiresIn: string;
+    expiresIn: string | number;
   };
 }
 
@@ -135,12 +135,20 @@ class AuthService {
   }
 
   /**
-   * Parses expiresIn string to seconds
+   * Parses expiresIn to seconds
    * @private
-   * @param {string} expiresIn - Expiration string (e.g., "24h", "1d", "3600s")
+   * @param {string | number} expiresIn - Expiration string (e.g., "24h", "1d", "3600s") or seconds number
    * @returns {number} Expiration time in seconds
    */
-  private parseExpiresIn(expiresIn: string): number {
+  private parseExpiresIn(expiresIn: string | number): number {
+    if (typeof expiresIn === 'number') {
+      return expiresIn;
+    }
+
+    if (!expiresIn || typeof expiresIn !== 'string') {
+      return 24 * 60 * 60;
+    }
+
     // Handle different formats: "24h", "1d", "3600s", "3600"
     const match = expiresIn.match(/^(\d+)([hdms]?)$/);
 
