@@ -2515,6 +2515,43 @@ export const sapService = {
       );
     }
 
+    const normalizedItems: any[] = [];
+    for (const item of items) {
+      if (
+        item.batches &&
+        Array.isArray(item.batches) &&
+        item.batches.length > 0
+      ) {
+        for (let bIdx = 0; bIdx < item.batches.length; bIdx++) {
+          const b = item.batches[bIdx];
+          normalizedItems.push({
+            ...item,
+            ...b,
+            sap_lineid:
+              b.sap_lineid !== undefined &&
+              b.sap_lineid !== null &&
+              b.sap_lineid !== ''
+                ? b.sap_lineid
+                : item.sap_lineid !== undefined &&
+                    item.sap_lineid !== null &&
+                    item.sap_lineid !== ''
+                  ? item.sap_lineid
+                  : `${bIdx + 1}`,
+            batch_number: b.batch_number ?? item.batch_number ?? null,
+            quantity:
+              b.quantity ?? b.actual_qty ?? item.quantity ?? item.actual_qty,
+            base_quantity:
+              b.base_quantity ??
+              b.actual_base_qty ??
+              item.base_quantity ??
+              item.actual_base_qty,
+          });
+        }
+      } else {
+        normalizedItems.push(item);
+      }
+    }
+
     const spUser = await prisma.users.findFirst({
       where: { sap_code: salesman_sap_code },
     });
@@ -2608,7 +2645,7 @@ export const sapService = {
         const processedItems: any[] = [];
         const seenSapDocs = new Set<string>();
 
-        for (const itemPayload of items) {
+        for (const itemPayload of normalizedItems) {
           const itemCode =
             itemPayload.product_sap_code || itemPayload.sap_item_code;
 
@@ -2674,10 +2711,12 @@ export const sapService = {
           const sapLineId = itemPayload.sap_lineid.toString();
           const batchNumber = itemPayload.batch_number || null;
 
-          const compositeKey = `${sourceSystem}_${sapDocEntry}_${sapLineId}`;
+          const compositeKey = batchNumber
+            ? `${sourceSystem}_${sapDocEntry}_${sapLineId}_${batchNumber}`
+            : `${sourceSystem}_${sapDocEntry}_${sapLineId}`;
           if (seenSapDocs.has(compositeKey)) {
             throw new Error(
-              `Duplicate SAP document line in payload: ${compositeKey}`
+              `Duplicate SAP document line/batch in payload: ${compositeKey}`
             );
           }
           seenSapDocs.add(compositeKey);
@@ -2687,6 +2726,7 @@ export const sapService = {
               source_system: sourceSystem,
               sap_docentry: sapDocEntry,
               sap_lineid: sapLineId,
+              ...(batchNumber ? { batch_number: batchNumber } : {}),
               is_active: 'Y',
             },
           });
@@ -2695,17 +2735,17 @@ export const sapService = {
             throw new Error(`SAP document already imported: ${compositeKey}`);
           }
 
+          const rawQty = itemPayload.quantity ?? itemPayload.actual_qty;
           const parsedActual =
-            itemPayload.quantity !== undefined &&
-            itemPayload.quantity !== null &&
-            itemPayload.quantity !== ''
-              ? Number(itemPayload.quantity)
+            rawQty !== undefined && rawQty !== null && rawQty !== ''
+              ? Number(rawQty)
               : null;
+
+          const rawBaseQty =
+            itemPayload.base_quantity ?? itemPayload.actual_base_qty;
           const parsedActualBase =
-            itemPayload.base_quantity !== undefined &&
-            itemPayload.base_quantity !== null &&
-            itemPayload.base_quantity !== ''
-              ? Number(itemPayload.base_quantity)
+            rawBaseQty !== undefined && rawBaseQty !== null && rawBaseQty !== ''
+              ? Number(rawBaseQty)
               : null;
 
           const payloadLoadQty =
@@ -2949,6 +2989,16 @@ export const sapService = {
             expected_base_qty: expectedBaseQty,
             actual_qty: effectiveActual,
             actual_base_qty: effectiveActualBase,
+            unit_price:
+              itemPayload.purchase_price !== undefined &&
+              itemPayload.purchase_price !== null &&
+              itemPayload.purchase_price !== ''
+                ? Number(itemPayload.purchase_price)
+                : itemPayload.unit_price !== undefined &&
+                    itemPayload.unit_price !== null &&
+                    itemPayload.unit_price !== ''
+                  ? Number(itemPayload.unit_price)
+                  : record?.unit_price ?? null,
             variance,
             variance_base_qty,
             resolution_action: resAction,
