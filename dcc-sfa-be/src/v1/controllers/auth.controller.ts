@@ -216,11 +216,47 @@ export const login = async (req: any, res: any) => {
         },
       });
 
-      if (existingSession && !req.body.confirmLogin) {
-        return res.status(409).json({
-          success: false,
-          code: 'ACTIVE_SESSION_EXISTS',
-          message: 'You are already logged in on another device.',
+      const confirmLogin =
+        req.body.confirmLogin === true || req.body.confirmLogin === 'true';
+
+      if (existingSession) {
+        if (!confirmLogin) {
+          return res.status(409).json({
+            success: false,
+            code: 'ACTIVE_SESSION_EXISTS',
+            message: 'You are already logged in on another device.',
+            data: {
+              device_id: existingSession.device_id,
+              issued_at: existingSession.issued_at,
+            },
+          });
+        }
+
+        await prisma.api_tokens.updateMany({
+          where: {
+            user_id: user.id,
+            is_active: 'Y',
+            is_revoked: false,
+          },
+          data: {
+            is_revoked: true,
+            is_active: 'N',
+            updated_date: new Date(),
+            updated_by: user.id,
+          },
+        });
+
+        await prisma.login_history.updateMany({
+          where: {
+            user_id: user.id,
+            logout_time: null,
+            login_status: 'success',
+          },
+          data: {
+            logout_time: new Date(),
+            updatedate: new Date(),
+            updatedby: user.id,
+          },
         });
       }
     }
