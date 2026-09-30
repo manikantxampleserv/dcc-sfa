@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import prisma from '../../configs/prisma.client';
 import { paginate } from '../../utils/paginate';
+import { createRequest } from './requests.controller';
 
 interface PromotionMaterialsIssueSerialized {
   id: number;
@@ -162,10 +163,34 @@ export const promotionMaterialsIssueController = {
           .json({ success: false, message: 'Issue not found' });
       }
 
+      const linkedRequest = await prisma.sfa_d_requests.findFirst({
+        where: {
+          request_type: 'PROMOTION_MATERIAL_ISSUE',
+          reference_id: issue.id,
+          status: 'P',
+        },
+        include: {
+          sfa_d_requests_approvals_request: {
+            where: { status: 'P' },
+            orderBy: { sequence: 'asc' },
+            take: 1,
+            include: {
+              sfa_d_requests_approvals_approver: {
+                select: { id: true, name: true, email: true },
+              },
+            },
+          },
+        },
+      });
+
+      const currentApprover =
+        linkedRequest?.sfa_d_requests_approvals_request?.[0]
+          ?.sfa_d_requests_approvals_approver?.name || null;
+
       res.json({
         success: true,
         message: 'Issue retrieved successfully',
-        data: serializePromotionMaterialsIssue(issue),
+        data: serializePromotionMaterialsIssue(issue, currentApprover),
       });
     } catch (error: any) {
       console.error('getPromotionMaterialsIssueById Error:', error);
@@ -235,7 +260,7 @@ export const promotionMaterialsIssueController = {
           campaign_reference,
           notes,
           total_value,
-          approval_status: 'A',
+          approval_status: 'P',
           createdby: userId,
           items: {
             create: items.map((item: any) => ({
@@ -250,10 +275,39 @@ export const promotionMaterialsIssueController = {
         include: { items: true },
       });
 
+      console.log(
+        `promotonal material issued Created issue #${issue.id} (${issue.gin_number}) with status '${issue.approval_status}', ${issue.items.length} item(s) for outlet #${issue.outlet_id}`
+      );
+
+      try {
+        await createRequest({
+          requester_id: Number(issued_by_id),
+          request_type: 'PROMOTION_MATERIAL_ISSUE',
+          reference_id: issue.id,
+          request_data: JSON.stringify({
+            gin_number: ginNumber,
+            depot_id: Number(depot_id),
+            outlet_id: Number(outlet_id),
+            total_value,
+            items_count: items.length,
+          }),
+          createdby: userId,
+          log_inst: 1,
+        });
+
+        console.log(
+          `promotonal material issued Approval workflow created for issue ${issue.id} (${ginNumber})`
+        );
+      } catch (workflowErr: any) {
+        console.warn(
+          `promotonal material issued  No approval workflow defined for PROMOTION_MATERIAL_ISSUE — issue ${issue.id} will remain in pending status until approved manually. ${workflowErr.message}`
+        );
+      }
+
       res.status(201).json({
         success: true,
         data: serializePromotionMaterialsIssue(issue),
-        message: 'Issue created successfully',
+        message: 'Issue created successfully and sent for approval',
       });
     } catch (error: any) {
       console.error('createPromotionMaterialsIssue Error:', error);

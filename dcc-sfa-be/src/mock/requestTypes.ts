@@ -5,4 +5,5 @@ export const requestTypes = [
   { label: 'Location Reset', value: 'LOCATION_RESET' },
   { label: 'Customer Creation', value: 'CUSTOMER_CREATION' },
   { label: 'Van Inventory', value: 'VAN_INVENTORY' },
+  { label: 'Promotion Material Issue', value: 'PROMOTION_MATERIAL_ISSUE' },
 ];
