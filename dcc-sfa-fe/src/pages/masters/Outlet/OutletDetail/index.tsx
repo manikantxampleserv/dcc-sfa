@@ -114,7 +114,7 @@ const OutletDetail: React.FC = () => {
               key={index}
               className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm"
             >
-              <div className="flex items-center justify-between">
+              <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <Skeleton variant="text" width={100} height={16} />
                   <Skeleton
@@ -193,11 +193,11 @@ const OutletDetail: React.FC = () => {
           {/* Barcode Skeleton */}
           <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm flex flex-col justify-between min-h-[220px]">
             <div className="flex justify-between items-center w-full mb-3">
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-start gap-1.5">
                 <Skeleton variant="circular" width={16} height={16} />
                 <Skeleton variant="text" width={80} height={16} />
               </div>
-              <div className="flex items-center gap-1">
+              <div className="flex items-start gap-1">
                 <Skeleton variant="circular" width={24} height={24} />
                 <Skeleton variant="circular" width={24} height={24} />
                 <Skeleton variant="circular" width={24} height={24} />
@@ -575,16 +575,18 @@ const OutletDetail: React.FC = () => {
           {/* Detailed Information */}
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
             {/* Contact Information */}
-            <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+            <div className="rounded-lg border border-gray-200 bg-white py-4 px-5 shadow-sm">
               <Typography
                 variant="h6"
-                className="!mb-4 !font-semibold !text-gray-900"
+                className="!mb-3 !font-semibold !text-gray-900"
               >
                 Contact Information
               </Typography>
               <div className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <PhoneCall className="h-4 w-4 text-gray-400" />
+                <div className="flex items-start gap-3">
+                  <div className="rounded-md border border-gray-200 bg-white p-3">
+                    <PhoneCall className="h-4 w-4 text-gray-400" />
+                  </div>
                   <div>
                     <Typography variant="body2" className="!text-gray-500">
                       Phone Number
@@ -598,8 +600,10 @@ const OutletDetail: React.FC = () => {
                     </Typography>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <Building2 className="h-4 w-4 text-gray-400" />
+                <div className="flex items-start gap-3">
+                  <div className="rounded-md border border-gray-200 bg-white p-3">
+                    <Building2 className="h-4 w-4 text-gray-400" />
+                  </div>
                   <div>
                     <Typography variant="body2" className="!text-gray-500">
                       Outlet Channel
@@ -614,8 +618,10 @@ const OutletDetail: React.FC = () => {
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
-                  <MapPin className="mt-1 h-4 w-4 text-gray-400" />
-                  <div className="space-y-1">
+                  <div className="rounded-md border border-gray-200 bg-white p-3">
+                    <MapPin className="h-4 w-4 text-gray-400" />
+                  </div>
+                  <div>
                     <Typography variant="body2" className="!text-gray-500">
                       Address & Location
                     </Typography>
@@ -640,7 +646,7 @@ const OutletDetail: React.FC = () => {
                     {(customer.latitude || customer.longitude) && (
                       <Typography
                         variant="body2"
-                        className="!text-xs !text-gray-400 italic"
+                        className="!text-xs !text-gray-400"
                       >
                         Coordinates: {customer.latitude}, {customer.longitude}
                       </Typography>
@@ -651,16 +657,18 @@ const OutletDetail: React.FC = () => {
             </div>
 
             {/* Business Information */}
-            <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+            <div className="rounded-lg border border-gray-200 bg-white py-4 px-5 shadow-sm">
               <Typography
                 variant="h6"
-                className="!mb-4 !font-semibold !text-gray-900"
+                className="!mb-3 !font-semibold !text-gray-900"
               >
                 Business Information
               </Typography>
               <div className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <CreditCard className="h-4 w-4 text-gray-400" />
+                <div className="flex items-start gap-3">
+                  <div className="rounded-md border border-gray-200 bg-white p-3">
+                    <CreditCard className="h-4 w-4 text-gray-400" />
+                  </div>
                   <div>
                     <Typography variant="body2" className="!text-gray-500">
                       Credit Limit
@@ -672,8 +680,10 @@ const OutletDetail: React.FC = () => {
                     </Typography>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <DollarSign className="h-4 w-4 text-gray-400" />
+                <div className="flex items-start gap-3">
+                  <div className="rounded-md border border-gray-200 bg-white p-3">
+                    <DollarSign className="h-4 w-4 text-gray-400" />
+                  </div>
                   <div>
                     <Typography variant="body2" className="!text-gray-500">
                       Outstanding Amount
@@ -685,8 +695,10 @@ const OutletDetail: React.FC = () => {
                     </Typography>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <Calendar className="h-4 w-4 text-gray-400" />
+                <div className="flex items-start gap-3">
+                  <div className="rounded-md border border-gray-200 bg-white p-3">
+                    <Calendar className="h-4 w-4 text-gray-400" />
+                  </div>
                   <div>
                     <Typography variant="body2" className="!text-gray-500">
                       Last Visit Date
@@ -703,7 +715,7 @@ const OutletDetail: React.FC = () => {
                   </div>
                 </div>
                 {customer.depot && (
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-start gap-3">
                     <Building2 className="h-4 w-4 text-gray-400" />
                     <div>
                       <Typography variant="body2" className="!text-gray-500">
@@ -733,7 +745,7 @@ const OutletDetail: React.FC = () => {
           {(customer.latitude || customer.longitude) && (
             <div className="mb-6 rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
               <div className="mb-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
+                <div className="flex items-start gap-3">
                   <MapPin className="h-5 w-5 text-blue-600" />
                   <Typography
                     variant="h6"
