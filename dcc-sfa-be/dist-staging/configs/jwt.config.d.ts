@@ -8,7 +8,6 @@ export declare const getNext1130PM: () => {
 };
 export declare const jwtConfig: {
     secret: string;
-    expiresIn: "24h";
     refreshExpiresIn: "7d";
     getNext1130PM: () => {
         expiresAt: Date;

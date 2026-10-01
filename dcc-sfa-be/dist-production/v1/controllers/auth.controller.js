@@ -30,7 +30,13 @@ const generateTokens = (user) => {
     const accessToken = jsonwebtoken_1.default.sign(payload, jwt_config_1.jwtConfig.secret, {
         expiresIn: expiresInSeconds,
     });
-    const refreshToken = jsonwebtoken_1.default.sign({ id: user.id }, jwt_config_1.jwtConfig.secret, {
+    // const refreshToken = jwt.sign({ id: user.id }, jwtConfig.secret, {
+    //   expiresIn: jwtConfig.refreshExpiresIn,
+    // });
+    const refreshToken = jsonwebtoken_1.default.sign({
+        id: user.id,
+        sessionExpiresAt: expiresAt.getTime(),
+    }, jwt_config_1.jwtConfig.secret, {
         expiresIn: jwt_config_1.jwtConfig.refreshExpiresIn,
     });
     return { accessToken, refreshToken, expiresAt, expiresInSeconds };
@@ -82,7 +88,7 @@ const register = async (req, res) => {
 exports.register = register;
 const login = async (req, res) => {
     try {
-        const { email, username, password, platform } = req.body;
+        const { email, username, password, platform, version, app_version } = req.body;
         if (!password) {
             return res.error('Password is required', 400);
         }
@@ -111,6 +117,9 @@ const login = async (req, res) => {
             console.log(`Failed login attempt for unknown user: ${identifier} from IP: ${(0, ipUtils_1.getClientIP)(req)}`);
             return res.error('User not found', 404);
         }
+        const incomingVersion = version || app_version || req.get('X-App-Version');
+        const appVersionStr = incomingVersion ? truncateString(incomingVersion, 50) : '1.0.0';
+        const userVersionStr = incomingVersion ? truncateString(incomingVersion, 100) : user.version;
         if (user.platform) {
             if (!platform) {
                 return res.error('Platform is required for this account. This account is restricted to specific platform access.', 400);
@@ -129,7 +138,7 @@ const login = async (req, res) => {
                         ip_address: truncateString((0, ipUtils_1.getClientIP)(req), 50),
                         device_info: truncateString(userAgent, 255),
                         os_info: truncateString(userAgent, 100),
-                        app_version: truncateString(req.get('X-App-Version'), 50) || '1.0.0',
+                        app_version: appVersionStr,
                         login_status: 'failed',
                         failure_reason: 'Account inactive',
                         is_active: 'Y',
@@ -154,7 +163,7 @@ const login = async (req, res) => {
                         ip_address: truncateString((0, ipUtils_1.getClientIP)(req), 50),
                         device_info: truncateString(userAgent, 255),
                         os_info: truncateString(userAgent, 100),
-                        app_version: truncateString(req.get('X-App-Version'), 50) || '1.0.0',
+                        app_version: appVersionStr,
                         login_status: 'failed',
                         failure_reason: 'Invalid credentials',
                         is_active: 'Y',
@@ -241,6 +250,7 @@ const login = async (req, res) => {
                 where: { id: user.id },
                 data: {
                     last_login: new Date(),
+                    ...(incomingVersion ? { version: userVersionStr } : {}),
                 },
             });
             await prisma_client_1.default.login_history.create({
@@ -250,7 +260,7 @@ const login = async (req, res) => {
                     ip_address: truncateString(clientIP, 50),
                     device_info: truncateString(userAgent, 255),
                     os_info: truncateString(userAgent, 100),
-                    app_version: truncateString(req.get('X-App-Version'), 50) || '1.0.0',
+                    app_version: appVersionStr,
                     login_status: 'success',
                     is_active: 'Y',
                     createdate: new Date(),
@@ -267,7 +277,9 @@ const login = async (req, res) => {
                 email: user.email,
                 role: user.user_role.name,
                 name: user.name,
+                version: userVersionStr,
             },
+            version: userVersionStr,
             accessToken,
             refreshToken,
             tokenType: 'Bearer',
@@ -336,6 +348,13 @@ const refresh = async (req, res) => {
         if (!refreshToken)
             return res.error('Refresh token required', 400);
         const decoded = jsonwebtoken_1.default.verify(refreshToken, jwt_config_1.jwtConfig.secret);
+        if (Date.now() >= decoded.sessionExpiresAt) {
+            return res.status(401).json({
+                success: false,
+                error: 'session_expired',
+                message: 'Your session expired at 11:30 PM. Please login again.',
+            });
+        }
         const user = await prisma_client_1.default.users.findUnique({
             where: { id: decoded.id, is_active: 'Y' },
             include: {

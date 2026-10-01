@@ -1,16 +1,13 @@
-import { Visibility } from '@mui/icons-material';
+import { Cancel, CheckCircle, Pending, Visibility } from '@mui/icons-material';
 import { Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
 import { usePermission } from 'hooks/usePermission';
 import { useRequestsByUsers, useRequestTypes } from 'hooks/useRequests';
-import {
-  AlertTriangle,
-  Check,
-  CheckCircle,
-  FileText,
-  X,
-  XCircle,
-} from 'lucide-react';
-import React, { useState } from 'react';
+import { AlertTriangle, Check, FileText, X, XCircle } from 'lucide-react';
+import React, {
+  useState,
+  type JSXElementConstructor,
+  type ReactElement,
+} from 'react';
 import type { Request } from 'services/requests';
 import { ActionButton } from 'shared/ActionButton';
 import ApprovalModal from 'shared/ApprovalModal';
@@ -152,7 +149,7 @@ const ApprovalWorkflows: React.FC = () => {
     }
   };
 
-  const getStatusLabel = (status: string | null) => {
+  const getStatusLabel = (status: 'A' | 'R' | 'P' | null) => {
     if (!status) return 'N/A';
     const normalizedStatus = status.toUpperCase();
     switch (normalizedStatus) {
@@ -167,6 +164,25 @@ const ApprovalWorkflows: React.FC = () => {
         return 'Pending';
       default:
         return status;
+    }
+  };
+  const getStatusIcon = (
+    status: string | null
+  ): ReactElement<unknown, string | JSXElementConstructor<any>> | undefined => {
+    if (!status) return <Pending fontSize="small" />;
+    const normalizedStatus = status.toUpperCase();
+    switch (normalizedStatus) {
+      case 'A':
+      case 'APPROVED':
+        return <CheckCircle fontSize="small" />;
+      case 'R':
+      case 'REJECTED':
+        return <Cancel fontSize="small" />;
+      case 'P':
+      case 'PENDING':
+        return <Pending fontSize="small" />;
+      default:
+        return <Pending fontSize="small" />;
     }
   };
 
@@ -239,7 +255,8 @@ const ApprovalWorkflows: React.FC = () => {
         const chipEl = (
           <Chip
             label={getStatusLabel(approvalStatus)}
-            color={getStatusColor(approvalStatus) as any}
+            color={getStatusColor(approvalStatus)}
+            icon={getStatusIcon(approvalStatus)}
             size="small"
             className="!capitalize"
           />

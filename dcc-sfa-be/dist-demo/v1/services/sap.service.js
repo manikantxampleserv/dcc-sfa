@@ -1966,6 +1966,57 @@ exports.sapService = {
         if (!items || !Array.isArray(items) || items.length === 0) {
             throw new Error('reconciliation_items array is required and must not be empty');
         }
+        const normalizedItems = [];
+        for (const item of items) {
+            if (item.batches &&
+                Array.isArray(item.batches) &&
+                item.batches.length > 0) {
+                const rawItemQty = item.quantity ?? item.actual_qty;
+                if (rawItemQty !== undefined &&
+                    rawItemQty !== null &&
+                    rawItemQty !== '') {
+                    const expectedQty = Number(rawItemQty);
+                    const totalBatchQty = item.batches.reduce((sum, b) => {
+                        const bQty = b.quantity ?? b.actual_qty;
+                        return (sum +
+                            (bQty !== undefined && bQty !== null && bQty !== ''
+                                ? Number(bQty)
+                                : 0));
+                    }, 0);
+                    if (Math.abs(expectedQty - totalBatchQty) > 0.0001) {
+                        const productRef = item.product_sap_code ||
+                            item.product_id ||
+                            (item.sap_lineid ? `line ${item.sap_lineid}` : 'item');
+                        throw new Error(`Item quantity (${expectedQty}) does not match the combined batch quantity (${totalBatchQty}) for ${productRef}`);
+                    }
+                }
+                for (let bIdx = 0; bIdx < item.batches.length; bIdx++) {
+                    const b = item.batches[bIdx];
+                    normalizedItems.push({
+                        ...item,
+                        ...b,
+                        sap_lineid: b.sap_lineid !== undefined &&
+                            b.sap_lineid !== null &&
+                            b.sap_lineid !== ''
+                            ? b.sap_lineid
+                            : item.sap_lineid !== undefined &&
+                                item.sap_lineid !== null &&
+                                item.sap_lineid !== ''
+                                ? item.sap_lineid
+                                : `${bIdx + 1}`,
+                        batch_number: b.batch_number ?? item.batch_number ?? null,
+                        quantity: b.quantity ?? b.actual_qty ?? item.quantity ?? item.actual_qty,
+                        base_quantity: b.base_quantity ??
+                            b.actual_base_qty ??
+                            item.base_quantity ??
+                            item.actual_base_qty,
+                    });
+                }
+            }
+            else {
+                normalizedItems.push(item);
+            }
+        }
         const spUser = await prisma_client_1.default.users.findFirst({
             where: { sap_code: salesman_sap_code },
         });
@@ -2022,7 +2073,7 @@ exports.sapService = {
         const results = await prisma_client_1.default.$transaction(async (tx) => {
             const processedItems = [];
             const seenSapDocs = new Set();
-            for (const itemPayload of items) {
+            for (const itemPayload of normalizedItems) {
                 const itemCode = itemPayload.product_sap_code || itemPayload.sap_item_code;
                 if (!itemCode) {
                     throw new Error('product_sap_code is required for each reconciliation item');
@@ -2061,9 +2112,11 @@ exports.sapService = {
                 const sapDocNum = itemPayload.sap_docnum.toString();
                 const sapLineId = itemPayload.sap_lineid.toString();
                 const batchNumber = itemPayload.batch_number || null;
-                const compositeKey = `${sourceSystem}_${sapDocEntry}_${sapLineId}`;
+                const compositeKey = batchNumber
+                    ? `${sourceSystem}_${sapDocEntry}_${sapLineId}_${batchNumber}`
+                    : `${sourceSystem}_${sapDocEntry}_${sapLineId}`;
                 if (seenSapDocs.has(compositeKey)) {
-                    throw new Error(`Duplicate SAP document line in payload: ${compositeKey}`);
+                    throw new Error(`Duplicate SAP document line/batch in payload: ${compositeKey}`);
                 }
                 seenSapDocs.add(compositeKey);
                 const existingSapDoc = await tx.reconciliation_items.findFirst({
@@ -2071,21 +2124,20 @@ exports.sapService = {
                         source_system: sourceSystem,
                         sap_docentry: sapDocEntry,
                         sap_lineid: sapLineId,
+                        ...(batchNumber ? { batch_number: batchNumber } : {}),
                         is_active: 'Y',
                     },
                 });
                 if (existingSapDoc) {
                     throw new Error(`SAP document already imported: ${compositeKey}`);
                 }
-                const parsedActual = itemPayload.quantity !== undefined &&
-                    itemPayload.quantity !== null &&
-                    itemPayload.quantity !== ''
-                    ? Number(itemPayload.quantity)
+                const rawQty = itemPayload.quantity ?? itemPayload.actual_qty;
+                const parsedActual = rawQty !== undefined && rawQty !== null && rawQty !== ''
+                    ? Number(rawQty)
                     : null;
-                const parsedActualBase = itemPayload.base_quantity !== undefined &&
-                    itemPayload.base_quantity !== null &&
-                    itemPayload.base_quantity !== ''
-                    ? Number(itemPayload.base_quantity)
+                const rawBaseQty = itemPayload.base_quantity ?? itemPayload.actual_base_qty;
+                const parsedActualBase = rawBaseQty !== undefined && rawBaseQty !== null && rawBaseQty !== ''
+                    ? Number(rawBaseQty)
                     : null;
                 const payloadLoadQty = itemPayload.load_qty !== undefined &&
                     itemPayload.load_qty !== null &&
@@ -2274,6 +2326,15 @@ exports.sapService = {
                     expected_base_qty: expectedBaseQty,
                     actual_qty: effectiveActual,
                     actual_base_qty: effectiveActualBase,
+                    unit_price: itemPayload.purchase_price !== undefined &&
+                        itemPayload.purchase_price !== null &&
+                        itemPayload.purchase_price !== ''
+                        ? Number(itemPayload.purchase_price)
+                        : itemPayload.unit_price !== undefined &&
+                            itemPayload.unit_price !== null &&
+                            itemPayload.unit_price !== ''
+                            ? Number(itemPayload.unit_price)
+                            : record?.unit_price ?? null,
                     variance,
                     variance_base_qty,
                     resolution_action: resAction,

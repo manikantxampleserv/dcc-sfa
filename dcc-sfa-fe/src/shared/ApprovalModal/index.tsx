@@ -189,6 +189,12 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({
       if (request.request_type === 'VAN_INVENTORY') {
         return `VAN-${request.reference_id || request.id}`;
       }
+      if (
+        request.request_type === 'PROMOTION_MATERIAL_ISSUE' &&
+        request.reference_details.gin_number
+      ) {
+        return request.reference_details.gin_number;
+      }
     }
 
     if (request.request_data) {
@@ -209,6 +215,13 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({
             data.customer_code ||
             request.reference_details?.customer_code ||
             `LOC-${request.reference_id || request.id}`
+          );
+        }
+        if (request.request_type === 'PROMOTION_MATERIAL_ISSUE') {
+          return (
+            data.gin_number ||
+            request.reference_details?.gin_number ||
+            `GIN-${request.reference_id || request.id}`
           );
         }
       } catch (e) {
@@ -1447,6 +1460,188 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({
                         )}
                       </div>
                     </div>
+                  </div>
+                )}
+
+                {request.request_type === 'PROMOTION_MATERIAL_ISSUE' && (
+                  <div className="!space-y-4">
+                    <div className="!grid !grid-cols-1 md:!grid-cols-2 !gap-4">
+                      {request.reference_details.gin_number && (
+                        <div className="!space-y-1">
+                          <Typography
+                            variant="caption"
+                            className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                          >
+                            GIN Number
+                          </Typography>
+                          <Typography
+                            variant="body2"
+                            className="!font-semibold !text-gray-900"
+                          >
+                            {request.reference_details.gin_number}
+                          </Typography>
+                        </div>
+                      )}
+                      {request.reference_details.issue_date && (
+                        <div className="!space-y-1">
+                          <Typography
+                            variant="caption"
+                            className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                          >
+                            Issue Date
+                          </Typography>
+                          <Typography
+                            variant="body2"
+                            className="!font-semibold !text-gray-900"
+                          >
+                            {request.reference_details.issue_date}
+                          </Typography>
+                        </div>
+                      )}
+                      <div className="!space-y-1">
+                        <Typography
+                          variant="caption"
+                          className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                        >
+                          Depot
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          className="!font-semibold !text-gray-900"
+                        >
+                          {request.reference_details.depot_name}{' '}
+                          {request.reference_details.depot_code
+                            ? `(${request.reference_details.depot_code})`
+                            : ''}
+                        </Typography>
+                      </div>
+                      <div className="!space-y-1">
+                        <Typography
+                          variant="caption"
+                          className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                        >
+                          Outlet
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          className="!font-semibold !text-gray-900"
+                        >
+                          {request.reference_details.outlet_name}{' '}
+                          {request.reference_details.outlet_code
+                            ? `(${request.reference_details.outlet_code})`
+                            : ''}
+                        </Typography>
+                      </div>
+                      <div className="!space-y-1">
+                        <Typography
+                          variant="caption"
+                          className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                        >
+                          Issued By
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          className="!font-semibold !text-gray-900"
+                        >
+                          {request.reference_details.issued_by_name}{' '}
+                          {request.reference_details.issued_by_employee_id
+                            ? `(${request.reference_details.issued_by_employee_id})`
+                            : ''}
+                        </Typography>
+                      </div>
+                      <div className="!space-y-1">
+                        <Typography
+                          variant="caption"
+                          className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                        >
+                          Total Value
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          className="!font-bold !text-primary-600"
+                        >
+                          TZS {request.reference_details.total_value}
+                        </Typography>
+                      </div>
+                      {request.reference_details.campaign_reference &&
+                        request.reference_details.campaign_reference !==
+                          'N/A' && (
+                          <div className="!space-y-1 md:!col-span-2">
+                            <Typography
+                              variant="caption"
+                              className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                            >
+                              Campaign Reference
+                            </Typography>
+                            <Typography
+                              variant="body2"
+                              className="!font-semibold !text-gray-900"
+                            >
+                              {request.reference_details.campaign_reference}
+                            </Typography>
+                          </div>
+                        )}
+                    </div>
+
+                    {Array.isArray(request.reference_details.items) &&
+                      request.reference_details.items.length > 0 && (
+                        <div className="!space-y-2 !pt-2 !border-t !border-gray-200">
+                          <div className="!border !border-gray-200 !rounded-lg !overflow-hidden !shadow-sm">
+                            <table className="!w-full !text-left !border-collapse !text-xs">
+                              <thead className="!bg-gray-100 !sticky !top-0 !z-10 !border-b !border-gray-200">
+                                <tr>
+                                  <th className="!py-2 !px-3 !font-semibold !text-gray-700">
+                                    Item Name
+                                  </th>
+
+                                  <th className="!py-2 !px-3 !font-semibold !text-gray-700 !text-center">
+                                    Qty
+                                  </th>
+                                  <th className="!py-2 !px-3 !font-semibold !text-gray-700 !text-right">
+                                    Unit Val
+                                  </th>
+                                  <th className="!py-2 !px-3 !font-semibold !text-gray-700 !text-right">
+                                    Total
+                                  </th>
+                                </tr>
+                              </thead>
+                              <tbody className="!divide-y !divide-gray-200 !bg-white">
+                                {request.reference_details.items.map(
+                                  (item: any, idx: number) => (
+                                    <tr
+                                      key={idx}
+                                      className="hover:!bg-gray-50 !transition-colors"
+                                    >
+                                      <td className="!py-2 !px-3">
+                                        <div className="!font-semibold !text-gray-900">
+                                          {item.asset_name}
+                                        </div>
+                                        <div className="!text-[10px] !text-gray-500">
+                                          {item.asset_code}
+                                        </div>
+                                      </td>
+
+                                      <td className="!py-2 !px-3 !text-center !font-medium !text-gray-800">
+                                        {item.quantity}
+                                      </td>
+                                      <td className="!py-2 !px-3 !text-right !text-gray-600">
+                                        {Number(
+                                          item.unit_value
+                                        ).toLocaleString()}
+                                      </td>
+                                      <td className="!py-2 !px-3 !text-right !font-medium !text-gray-900">
+                                        {Number(
+                                          item.total_value
+                                        ).toLocaleString()}
+                                      </td>
+                                    </tr>
+                                  )
+                                )}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      )}
                   </div>
                 )}
               </div>

@@ -146,7 +146,9 @@ const ManagePromotionalIssue: React.FC<ManagePromotionalIssueProps> = ({
       : undefined,
     only_available: true,
     limit: 1000,
+    asset_type: 'Promotion Materials',
   });
+
   const assets = assetsResponse?.data || [];
 
   const handleCancel = () => {

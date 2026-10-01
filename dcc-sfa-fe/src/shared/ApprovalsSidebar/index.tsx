@@ -103,6 +103,12 @@ const ApprovalsSidebar: React.FC<ApprovalsSidebarProps> = ({
       if (request.request_type === 'VAN_INVENTORY') {
         return `VAN-${request.reference_id || request.id}`;
       }
+      if (
+        request.request_type === 'PROMOTION_MATERIAL_ISSUE' &&
+        request.reference_details.gin_number
+      ) {
+        return request.reference_details.gin_number;
+      }
     }
 
     if (request.request_data) {
@@ -123,6 +129,13 @@ const ApprovalsSidebar: React.FC<ApprovalsSidebarProps> = ({
             data.customer_code ||
             request.reference_details?.customer_code ||
             `LOC-${request.reference_id || request.id}`
+          );
+        }
+        if (request.request_type === 'PROMOTION_MATERIAL_ISSUE') {
+          return (
+            data.gin_number ||
+            request.reference_details?.gin_number ||
+            `GIN-${request.reference_id || request.id}`
           );
         }
       } catch (e) {
@@ -294,6 +307,15 @@ const ApprovalsSidebar: React.FC<ApprovalsSidebarProps> = ({
                             <>
                               for van stock{' '}
                               <span className="!font-semibold !text-teal-600">
+                                {referenceNumber}
+                              </span>
+                            </>
+                          )}
+                          {request.request_type === 'PROMOTION_MATERIAL_ISSUE' && (
+                            <>
+                              {' '}
+                              with reference{' '}
+                              <span className="!font-semibold !text-pink-600">
                                 {referenceNumber}
                               </span>
                             </>

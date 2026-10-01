@@ -549,7 +549,7 @@ const ExecutiveDashboard: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-3">
         {/* Stats Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {[1, 2, 3].map(i => (
@@ -700,30 +700,6 @@ const ExecutiveDashboard: React.FC = () => {
 
   return (
     <div className="flex flex-col gap-4">
-      {/* <div className="bg-white shadow-sm p-5 rounded-lg border border-gray-100">
-        <div className="lg:flex justify-between items-center">
-          <div>
-            <h2 className="text-2xl font-semibold text-blue-600 mb-1">
-              Executive Dashboard
-            </h2>
-            <p className="text-gray-500 text-sm">
-              Track your sales performance, invoices, and field operations
-            </p>
-          </div>
-          <div className="flex lg:mt-0 mt-3 gap-3">
-            <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
-              {formatCurrency(
-                stats?.salesRevenue.value || 0,
-                stats?.salesRevenue.formatted
-              )}{' '}
-              Revenue MTD
-            </span>
-            <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
-              {stats?.totalInvoices.value.toLocaleString() || '0'} Invoices
-            </span>
-          </div>
-        </div>
-      </div> */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {stats_cards.map(stat => {
           const colors = getColorClasses(stat.color);

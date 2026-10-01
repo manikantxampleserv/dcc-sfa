@@ -26,6 +26,7 @@ const serializeUser = (user, includeCreatedAt = false, includeUpdatedAt = false)
     profile_image: user.profile_image,
     last_login: user.last_login,
     platform: user.platform || null,
+    version: user.version ?? null,
     is_active: user.is_active,
     log_inst: user.log_inst ?? null,
     sub_inventory_parent_id: user.sub_inventory_parent_id,
@@ -116,7 +117,7 @@ exports.userController = {
                 res.validationError(errors.array(), 400);
                 return;
             }
-            const { email, password, name, role_id, parent_id, depot_ids, zone_id, phone_number, address, sap_code, employee_id, joining_date, reporting_to, is_active, platform, sub_inventory_user_ids, route_assignment_count, } = req.body;
+            const { email, password, name, role_id, parent_id, depot_ids, zone_id, phone_number, address, sap_code, employee_id, joining_date, reporting_to, is_active, platform, version, sub_inventory_user_ids, route_assignment_count, } = req.body;
             let parsedDepotIds = [];
             if (typeof depot_ids === 'string') {
                 if (depot_ids.startsWith('[')) {
@@ -203,6 +204,7 @@ exports.userController = {
                     phone_number,
                     sap_code,
                     platform: platform || null,
+                    version: version || null,
                     address,
                     employee_id,
                     joining_date: joining_date ? new Date(joining_date) : null,
@@ -1238,6 +1240,7 @@ exports.userController = {
                     email: true,
                     employee_id: true,
                     sap_code: true,
+                    version: true,
                     user_role: {
                         select: {
                             name: true,
@@ -1256,6 +1259,7 @@ exports.userController = {
                 sap_code: u.sap_code,
                 role: u.user_role?.name,
                 email: u.email,
+                version: u.version ?? null,
             })), 200);
         }
         catch (error) {

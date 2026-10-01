@@ -13,7 +13,7 @@ export interface Request {
   requester_id: number;
   request_type: string;
   request_data: string | null;
-  status: string;
+  status: 'A' | 'R' | 'P' | null;
   reference_id: number | null;
   overall_status: string | null;
   createdate: Date | null;
@@ -77,7 +77,7 @@ export interface Request {
     id: number;
     approver_id: number;
     sequence: number;
-    status: string;
+    status: 'A' | 'R' | 'P';
     remarks: string | null;
     action_at: Date | null;
     approver: {

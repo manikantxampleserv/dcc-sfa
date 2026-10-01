@@ -186,6 +186,7 @@ export interface AssetMasterQueryParams {
   route_id?: number;
   outlet_id?: number;
   only_available?: boolean;
+  asset_type?: string;
 }
 
 export interface AssetMasterStats {
