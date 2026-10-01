@@ -24,8 +24,7 @@ export const getNext1130PM = (): {
 };
 
 export const jwtConfig = {
-  secret: (process.env.JWT_SECRET as string) || 'SFA_SECRET_KEY',
-  expiresIn: '24h' as const,
+  secret: process.env.JWT_SECRET || 'SFA_SECRET_KEY',
   refreshExpiresIn: '7d' as const,
   getNext1130PM,
 };

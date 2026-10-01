@@ -25,6 +25,7 @@ const serializeUser = (
   profile_image: user.profile_image,
   last_login: user.last_login,
   platform: user.platform || null,
+  version: user.version ?? null,
   is_active: user.is_active,
   log_inst: user.log_inst ?? null,
   sub_inventory_parent_id: user.sub_inventory_parent_id,
@@ -137,6 +138,7 @@ export const userController = {
         reporting_to,
         is_active,
         platform,
+        version,
         sub_inventory_user_ids,
         route_assignment_count,
       } = req.body;
@@ -236,6 +238,7 @@ export const userController = {
           phone_number,
           sap_code,
           platform: platform || null,
+          version: version || null,
           address,
           employee_id,
           joining_date: joining_date ? new Date(joining_date) : null,
@@ -1443,6 +1446,7 @@ export const userController = {
           email: true,
           employee_id: true,
           sap_code: true,
+          version: true,
           user_role: {
             select: {
               name: true,
@@ -1464,6 +1468,7 @@ export const userController = {
           sap_code: u.sap_code,
           role: u.user_role?.name,
           email: u.email,
+          version: u.version ?? null,
         })),
         200
       );
