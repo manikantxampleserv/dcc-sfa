@@ -93,6 +93,7 @@ export const authenticateToken = async (req: any, res: any, next: any) => {
       employee_id: user.employee_id,
       name: user.name,
       role: user.user_role.name,
+      version: user.version ?? null,
       permissions: user.user_role.roles_permission
         .filter(rp => rp.is_active === 'Y' && rp.permission?.is_active === 'Y')
         .map(rp => rp.permission!.name),
@@ -212,6 +213,7 @@ export const authenticateApiToken = async (req: any, res: any, next: any) => {
       employee_id: user.employee_id,
       name: user.name,
       role: user.user_role.name,
+      version: user.version ?? null,
       permissions: user.user_role.roles_permission
         .filter(rp => rp.is_active === 'Y' && rp.permission?.is_active === 'Y')
         .map(rp => rp.permission!.name),

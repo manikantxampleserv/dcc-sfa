@@ -33,9 +33,20 @@ const generateTokens = (user: any) => {
     expiresIn: expiresInSeconds,
   });
 
-  const refreshToken = jwt.sign({ id: user.id }, jwtConfig.secret, {
-    expiresIn: jwtConfig.refreshExpiresIn,
-  });
+  // const refreshToken = jwt.sign({ id: user.id }, jwtConfig.secret, {
+  //   expiresIn: jwtConfig.refreshExpiresIn,
+  // });
+
+  const refreshToken = jwt.sign(
+    {
+      id: user.id,
+      sessionExpiresAt: expiresAt.getTime(),
+    },
+    jwtConfig.secret,
+    {
+      expiresIn: jwtConfig.refreshExpiresIn,
+    }
+  );
 
   return { accessToken, refreshToken, expiresAt, expiresInSeconds };
 };
@@ -95,7 +106,7 @@ export const register = async (req: any, res: any) => {
 
 export const login = async (req: any, res: any) => {
   try {
-    const { email, username, password, platform } = req.body;
+    const { email, username, password, platform, version, app_version } = req.body;
 
     if (!password) {
       return res.error('Password is required', 400);
@@ -135,6 +146,10 @@ export const login = async (req: any, res: any) => {
       return res.error('User not found', 404);
     }
 
+    const incomingVersion = version || app_version || req.get('X-App-Version');
+    const appVersionStr = incomingVersion ? truncateString(incomingVersion, 50) : '1.0.0';
+    const userVersionStr = incomingVersion ? truncateString(incomingVersion, 100) : user.version;
+
     if (user.platform) {
       if (!platform) {
         return res.error(
@@ -161,8 +176,7 @@ export const login = async (req: any, res: any) => {
             ip_address: truncateString(getClientIP(req), 50),
             device_info: truncateString(userAgent, 255),
             os_info: truncateString(userAgent, 100),
-            app_version:
-              truncateString(req.get('X-App-Version'), 50) || '1.0.0',
+            app_version: appVersionStr,
             login_status: 'failed',
             failure_reason: 'Account inactive',
             is_active: 'Y',
@@ -191,8 +205,7 @@ export const login = async (req: any, res: any) => {
             ip_address: truncateString(getClientIP(req), 50),
             device_info: truncateString(userAgent, 255),
             os_info: truncateString(userAgent, 100),
-            app_version:
-              truncateString(req.get('X-App-Version'), 50) || '1.0.0',
+            app_version: appVersionStr,
             login_status: 'failed',
             failure_reason: 'Invalid credentials',
             is_active: 'Y',
@@ -262,7 +275,8 @@ export const login = async (req: any, res: any) => {
         });
       }
     }
-    const { accessToken, refreshToken, expiresAt, expiresInSeconds } = generateTokens(user);
+    const { accessToken, refreshToken, expiresAt, expiresInSeconds } =
+      generateTokens(user);
 
     const userAgent = req.get('User-Agent') || 'Unknown';
     const clientIP = getClientIP(req);
@@ -287,6 +301,7 @@ export const login = async (req: any, res: any) => {
         where: { id: user.id },
         data: {
           last_login: new Date(),
+          ...(incomingVersion ? { version: userVersionStr } : {}),
         },
       });
 
@@ -297,7 +312,7 @@ export const login = async (req: any, res: any) => {
           ip_address: truncateString(clientIP, 50),
           device_info: truncateString(userAgent, 255),
           os_info: truncateString(userAgent, 100),
-          app_version: truncateString(req.get('X-App-Version'), 50) || '1.0.0',
+          app_version: appVersionStr,
           login_status: 'success',
           is_active: 'Y',
           createdate: new Date(),
@@ -314,7 +329,9 @@ export const login = async (req: any, res: any) => {
         email: user.email,
         role: user.user_role.name,
         name: user.name,
+        version: userVersionStr,
       },
+      version: userVersionStr,
       accessToken,
       refreshToken,
       tokenType: 'Bearer',
@@ -395,7 +412,16 @@ export const refresh = async (req: any, res: any) => {
 
     const decoded = jwt.verify(refreshToken, jwtConfig.secret) as {
       id: number;
+      sessionExpiresAt: number;
     };
+
+    if (Date.now() >= decoded.sessionExpiresAt) {
+      return res.status(401).json({
+        success: false,
+        error: 'session_expired',
+        message: 'Your session expired at 11:30 PM. Please login again.',
+      });
+    }
 
     const user = await prisma.users.findUnique({
       where: { id: decoded.id, is_active: 'Y' },
