@@ -324,7 +324,7 @@ const ImportProductCategory: React.FC<ImportProductCategoryProps> = ({
                 disabled={!uploadedFile || importDataMutation.isPending}
                 loading={importDataMutation.isPending}
               >
-                {importDataMutation.isPending ? 'Importing...' : 'Import Data'}
+                {importDataMutation.isPending ? 'Importing...' : 'Import'}
               </Button>
             )}
 

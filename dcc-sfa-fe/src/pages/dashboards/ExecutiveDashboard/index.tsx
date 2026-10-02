@@ -437,37 +437,6 @@ const ExecutiveDashboard: React.FC = () => {
     approvalsLoading ||
     auditLogsLoading;
 
-  const HeaderSkeleton = () => (
-    <div className="bg-white shadow-sm p-5 rounded-lg border border-gray-100">
-      <div className="lg:flex justify-between items-center">
-        <div className="flex-1">
-          <Skeleton variant="text" width={280} height={32} className="!mb-2" />
-          <Skeleton variant="text" width={400} height={20} />
-        </div>
-        <div className="flex lg:mt-0 mt-3 gap-3">
-          <Skeleton
-            variant="rectangular"
-            width={140}
-            height={28}
-            className="!rounded-full"
-          />
-          <Skeleton
-            variant="rectangular"
-            width={100}
-            height={28}
-            className="!rounded-full"
-          />
-          <Skeleton
-            variant="rectangular"
-            width={150}
-            height={28}
-            className="!rounded-full"
-          />
-        </div>
-      </div>
-    </div>
-  );
-
   // Stats Card Skeleton Component
   const StatsCardSkeleton = () => (
     <div className="bg-white shadow-sm p-5 rounded-lg border border-gray-100">
@@ -580,9 +549,7 @@ const ExecutiveDashboard: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col gap-4">
-        <HeaderSkeleton />
-
+      <div className="flex flex-col gap-3">
         {/* Stats Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {[1, 2, 3].map(i => (
@@ -733,30 +700,6 @@ const ExecutiveDashboard: React.FC = () => {
 
   return (
     <div className="flex flex-col gap-4">
-      {/* <div className="bg-white shadow-sm p-5 rounded-lg border border-gray-100">
-        <div className="lg:flex justify-between items-center">
-          <div>
-            <h2 className="text-2xl font-semibold text-blue-600 mb-1">
-              Executive Dashboard
-            </h2>
-            <p className="text-gray-500 text-sm">
-              Track your sales performance, invoices, and field operations
-            </p>
-          </div>
-          <div className="flex lg:mt-0 mt-3 gap-3">
-            <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
-              {formatCurrency(
-                stats?.salesRevenue.value || 0,
-                stats?.salesRevenue.formatted
-              )}{' '}
-              Revenue MTD
-            </span>
-            <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
-              {stats?.totalInvoices.value.toLocaleString() || '0'} Invoices
-            </span>
-          </div>
-        </div>
-      </div> */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {stats_cards.map(stat => {
           const colors = getColorClasses(stat.color);
@@ -1115,7 +1058,7 @@ const ExecutiveDashboard: React.FC = () => {
         {/* Audit Logs Section */}
         {auditLogs?.logs && auditLogs.logs.length > 0 && (
           <div className="bg-white shadow-sm p-5 rounded-lg border border-gray-100">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
               Recent Activity Logs
             </h3>
             {auditLogsLoading ? (

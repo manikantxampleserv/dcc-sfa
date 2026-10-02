@@ -390,6 +390,7 @@ export const assetMasterController = {
         route_id,
         outlet_id,
         only_available,
+        asset_type,
       } = req.query;
       const pageNum = parseInt(page as string, 10) || 1;
       const limitNum = parseInt(limit as string, 10) || 10;
@@ -433,6 +434,14 @@ export const assetMasterController = {
       if (outlet_id)
         andConditions.push({ outlet_id: parseInt(outlet_id as string, 10) });
       if (only_available === 'true') andConditions.push({ outlet_id: null });
+      if (asset_type) {
+        andConditions.push({
+          OR: [
+            { asset_master_asset_types: { name: asset_type as string } },
+            { asset_master_asset_types: { category: asset_type as string } },
+          ],
+        });
+      }
 
       if (isScopeRestricted) {
         if (depotIds.length > 0) {

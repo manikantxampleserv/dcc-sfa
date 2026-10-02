@@ -276,7 +276,7 @@ exports.assetMasterController = {
     },
     async getAllAssetMaster(req, res) {
         try {
-            const { page, limit, search, status, depot_id, zone_id, zones_id, route_id, outlet_id, only_available, } = req.query;
+            const { page, limit, search, status, depot_id, zone_id, zones_id, route_id, outlet_id, only_available, asset_type, } = req.query;
             const pageNum = parseInt(page, 10) || 1;
             const limitNum = parseInt(limit, 10) || 10;
             const searchLower = search ? search.toLowerCase() : '';
@@ -317,6 +317,14 @@ exports.assetMasterController = {
                 andConditions.push({ outlet_id: parseInt(outlet_id, 10) });
             if (only_available === 'true')
                 andConditions.push({ outlet_id: null });
+            if (asset_type) {
+                andConditions.push({
+                    OR: [
+                        { asset_master_asset_types: { name: asset_type } },
+                        { asset_master_asset_types: { category: asset_type } },
+                    ],
+                });
+            }
             if (isScopeRestricted) {
                 if (depotIds.length > 0) {
                     if (depot_id) {

@@ -1971,6 +1971,25 @@ exports.sapService = {
             if (item.batches &&
                 Array.isArray(item.batches) &&
                 item.batches.length > 0) {
+                const rawItemQty = item.quantity ?? item.actual_qty;
+                if (rawItemQty !== undefined &&
+                    rawItemQty !== null &&
+                    rawItemQty !== '') {
+                    const expectedQty = Number(rawItemQty);
+                    const totalBatchQty = item.batches.reduce((sum, b) => {
+                        const bQty = b.quantity ?? b.actual_qty;
+                        return (sum +
+                            (bQty !== undefined && bQty !== null && bQty !== ''
+                                ? Number(bQty)
+                                : 0));
+                    }, 0);
+                    if (Math.abs(expectedQty - totalBatchQty) > 0.0001) {
+                        const productRef = item.product_sap_code ||
+                            item.product_id ||
+                            (item.sap_lineid ? `line ${item.sap_lineid}` : 'item');
+                        throw new Error(`Item quantity (${expectedQty}) does not match the combined batch quantity (${totalBatchQty}) for ${productRef}`);
+                    }
+                }
                 for (let bIdx = 0; bIdx < item.batches.length; bIdx++) {
                     const b = item.batches[bIdx];
                     normalizedItems.push({

@@ -336,6 +336,23 @@ const UserDetail: React.FC = () => {
                 )}
               </Typography>
             </div>
+
+            {user.version && (
+              <div className="!p-1 !bg-gray-50 !rounded-md">
+                <Typography
+                  variant="caption"
+                  className="!text-gray-500 !text-xs !uppercase !tracking-wide !mb-0.5"
+                >
+                  App Version
+                </Typography>
+                <Typography
+                  variant="body2"
+                  className="!font-bold !text-gray-900"
+                >
+                  {user.version}
+                </Typography>
+              </div>
+            )}
           </div>
         </div>
         <InfoCard title="Role & Organization" icon={Security}>

@@ -1,12 +1,13 @@
+import { Add, CheckCircle } from '@mui/icons-material';
 import { Alert, Chip, MenuItem, Typography } from '@mui/material';
-import { Check, CheckCircle, Settings, Users, XCircle } from 'lucide-react';
-import React, { useCallback, useState } from 'react';
 import {
   useApprovalWorkflowSetups,
   useDeleteApprovalWorkflowSetupByRequestType,
 } from 'hooks/useApprovalWorkflowSetup';
 import { usePermission } from 'hooks/usePermission';
 import { useRequestTypes } from 'hooks/useRequests';
+import { Settings, Users, XCircle } from 'lucide-react';
+import React, { useCallback, useState } from 'react';
 import type { ApprovalWorkflowSetupGrouped } from 'services/approvalWorkflowSetup';
 import { DeleteButton, EditButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
@@ -15,7 +16,6 @@ import Select from 'shared/Select';
 import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
 import ManageApprovalSetup from './ManageApprovalSetup';
-import { Add } from '@mui/icons-material';
 
 const ApprovalSetup: React.FC = () => {
   const [search, setSearch] = useState('');
@@ -176,7 +176,7 @@ const ApprovalSetup: React.FC = () => {
           variant="outlined"
           icon={
             row.is_active === 'Y' ? (
-              <Check fontSize="small" />
+              <CheckCircle fontSize="small" />
             ) : (
               <XCircle fontSize="small" />
             )
