@@ -85,7 +85,6 @@ export class ContractGenerationService {
       throw new Error('Asset movement not found');
     }
 
-    // Fetch company details dynamically from companies table
     let company = null;
     const depotId =
       assetMovement.from_depot_id ||
@@ -259,10 +258,6 @@ export class ContractGenerationService {
       const midX = startX + 245;
       const infoBottomY = titleBottomY + infoH;
 
-      doc
-        .rect(leftCol1X, titleBottomY, midX - leftCol1X, infoH)
-        .fill('#FFFFCC');
-
       const leftY = titleBottomY + 7;
       doc.fillColor('#000000').font('Helvetica-Bold').fontSize(8);
       doc.text('Issued to:', startX + 6, leftY);
@@ -284,9 +279,6 @@ export class ContractGenerationService {
 
       const rightValX = midX + 188;
       const rightValW = startX + pageWidth - rightValX;
-
-      doc.rect(rightValX, titleBottomY, rightValW, 42).fill('#FFFFCC');
-      doc.rect(rightValX, titleBottomY + 54, rightValW, 18).fill('#FFFFCC');
 
       const rRow1Y = titleBottomY + 8;
       const rRow2Y = titleBottomY + 24;
@@ -376,9 +368,6 @@ export class ContractGenerationService {
             'Cooler';
           const sNo = asset?.serial_number || '-';
 
-          doc.rect(colX[1], rowY, colWidths[1], rowCellH).fill('#FFFFCC');
-          doc.rect(colX[2], rowY, colWidths[2], rowCellH).fill('#FFFFCC');
-
           doc.fillColor('#000000').font('Helvetica').fontSize(8);
           doc.text(String(idx + 1), colX[0], rowY + 5, {
             width: colWidths[0],
@@ -402,9 +391,6 @@ export class ContractGenerationService {
           rowY += rowCellH;
         });
       } else {
-        doc.rect(colX[1], rowY, colWidths[1], rowCellH).fill('#FFFFCC');
-        doc.rect(colX[2], rowY, colWidths[2], rowCellH).fill('#FFFFCC');
-
         doc.fillColor('#000000').font('Helvetica').fontSize(8);
         doc.text('1', colX[0], rowY + 5, {
           width: colWidths[0],
@@ -433,25 +419,24 @@ export class ContractGenerationService {
           .stroke();
       }
 
-      // 6. Signatures (inside outer border)
-      const sigY = tableTopY + tableH + 35;
+      const p1SigY = tableTopY + tableH + 35;
       doc.font('Helvetica-Bold').fontSize(8.5);
       doc.text(
         'Issued by :_________________________________________',
         startX + 8,
-        sigY
+        p1SigY
       );
       doc
         .font('Helvetica')
         .fontSize(8.5)
-        .text('Store Keeper', startX + 115, sigY + 13);
+        .text('Store Keeper', startX + 115, p1SigY + 13);
       doc
         .font('Helvetica-Bold')
         .fontSize(8.5)
         .text(
           'Approved by :______________________________',
           startX + pageWidth - 235,
-          sigY
+          p1SigY
         );
 
       doc.addPage();
@@ -498,9 +483,7 @@ export class ContractGenerationService {
         .font('Helvetica-Bold')
         .fontSize(8.5)
         .text('Issue Date:', startX + 4, startY + 44);
-      doc
-        .rect(dateBoxX, startY + 41, dateBoxW, 16)
-        .fillAndStroke('#FEF9C3', '#9CA3AF');
+      doc.rect(dateBoxX, startY + 41, dateBoxW, 16).stroke('#9CA3AF');
       doc
         .fillColor('#000000')
         .font('Helvetica-Bold')
@@ -550,43 +533,32 @@ export class ContractGenerationService {
         .text('TAARIFA ZA MWAZIMAJI / OWNER INFORMATION', startX + 4, p2Y + 3);
       p2Y += sec1H + 4;
 
-      const renderInfoRow = (
-        label: string,
-        value: string,
-        isYellowBox = false
-      ) => {
+      const renderFieldRow = (label: string, value: string) => {
         doc
+          .fillColor('#000000')
           .font('Helvetica-Bold')
           .fontSize(8)
           .text(label, startX + 4, p2Y + 2);
         const valX = startX + 160;
         const valW = pageWidth - 164;
-        if (isYellowBox) {
-          doc.rect(valX, p2Y, valW, 14).fillAndStroke('#FEF9C3', '#9CA3AF');
+        doc
+          .moveTo(valX, p2Y + 12)
+          .lineTo(valX + valW, p2Y + 12)
+          .stroke('#6B7280');
+        if (value) {
           doc
             .fillColor('#000000')
             .font('Helvetica-Bold')
             .fontSize(8)
-            .text(value || '', valX + 6, p2Y + 2);
-        } else {
-          doc
-            .moveTo(valX, p2Y + 12)
-            .lineTo(valX + valW, p2Y + 12)
-            .stroke('#6B7280');
-          if (value) {
-            doc
-              .font('Helvetica')
-              .fontSize(8)
-              .text(value, valX + 4, p2Y + 1);
-          }
+            .text(value, valX + 4, p2Y + 1);
         }
         p2Y += 17;
       };
 
-      renderInfoRow('Jina la Biashara / Business Name :', customerName, true);
-      renderInfoRow('Aina ya Biashara / Business Type :', businessType, true);
-      renderInfoRow('Mahali / Mtaa / Address:', customerAddress, false);
-      renderInfoRow('Namba ya Simu / Mobile No:', customerPhone, false);
+      renderFieldRow('Jina la Biashara / Business Name :', customerName);
+      renderFieldRow('Aina ya Biashara / Business Type :', businessType);
+      renderFieldRow('Mahali / Mtaa / Address:', customerAddress);
+      renderFieldRow('Namba ya Simu / Mobile No:', customerPhone);
 
       p2Y += 3;
 
@@ -598,31 +570,14 @@ export class ContractGenerationService {
         .text('TAARIFA ZA CHOMBO (EQUIPMENT DETAILS)', startX + 4, p2Y + 3);
       p2Y += sec1H + 4;
 
-      const renderEquipRow = (label: string, value: string) => {
-        doc
-          .font('Helvetica-Bold')
-          .fontSize(8)
-          .text(label, startX + 4, p2Y + 2);
-        const valX = startX + 160;
-        const valW = pageWidth - 164;
-        doc.rect(valX, p2Y, valW, 14).fillAndStroke('#FEF9C3', '#9CA3AF');
-        doc
-          .fillColor('#000000')
-          .font('Helvetica-Bold')
-          .fontSize(8)
-          .text(value || '', valX + 6, p2Y + 2);
-        p2Y += 17;
-      };
-
-      renderEquipRow('Aina ya Chombo / Equipment Type', equipmentType);
-      renderEquipRow('Namba ya Utambulisho / Seriel No.', serialNo);
-      renderEquipRow('Namba ya Mali / Asset No.', assetNo);
-      renderEquipRow('Namba ya Barcode / Barcode No.', barcodeNo);
-      renderEquipRow('Namba ya GIN / GIN Number', clNumber);
+      renderFieldRow('Aina ya Chombo / Equipment Type', equipmentType);
+      renderFieldRow('Namba ya Utambulisho / Seriel No.', serialNo);
+      renderFieldRow('Namba ya Mali / Asset No.', assetNo);
+      renderFieldRow('Namba ya Barcode / Barcode No.', barcodeNo);
+      renderFieldRow('Namba ya GIN / GIN Number', clNumber);
 
       p2Y += 3;
 
-      // 5. Section 3: MASHARTI YA MKATABA
       doc.rect(startX, p2Y, pageWidth, sec1H).fill('#E2E8F0');
       doc
         .fillColor('#000000')
@@ -654,37 +609,58 @@ export class ContractGenerationService {
         p2Y = doc.y + 4;
       });
 
-      p2Y += 4;
+      let p2SigY = p2Y + 10;
 
       const halfW = (pageWidth - 10) / 2;
-      doc.rect(startX, p2Y, halfW, 14).fill('#E2E8F0');
-      doc.rect(startX + halfW + 10, p2Y, halfW, 14).fill('#E2E8F0');
+      doc.rect(startX, p2SigY, halfW, 14).fill('#E2E8F0');
+      doc.rect(startX + halfW + 10, p2SigY, halfW, 14).fill('#E2E8F0');
       doc.fillColor('#000000').font('Helvetica-Bold').fontSize(8);
-      doc.text('Kwania ya kampuni :', startX + 4, p2Y + 3);
-      doc.text('Kwa niaba ya Mwazimishaji:', startX + halfW + 14, p2Y + 3);
-      p2Y += 19;
+      doc.text('Kwania ya kampuni :', startX + 4, p2SigY + 3);
+      doc.text('Kwa niaba ya Mwazimishaji:', startX + halfW + 14, p2SigY + 3);
+      p2SigY += 18;
 
       doc.font('Helvetica-Bold').fontSize(8);
-      doc.text('Jina Kamili:', startX + 4, p2Y);
-      doc.text('Jina Kamili:', startX + halfW + 14, p2Y);
+      doc.text(
+        'Jina Kamili: ................................................................',
+        startX + 4,
+        p2SigY
+      );
+      doc.text(
+        'Jina Kamili: ................................................................',
+        startX + halfW + 14,
+        p2SigY
+      );
+      p2SigY += 15;
 
-      doc.addPage();
+      doc.text(
+        'Wadhifa : ...................................................................',
+        startX + 4,
+        p2SigY
+      );
+      doc.text(
+        'Wadhifa: ...................................................................',
+        startX + halfW + 14,
+        p2SigY
+      );
+      p2SigY += 15;
 
-      let p3Y = startY + 16;
-      doc.font('Helvetica-Bold').fontSize(8);
-      doc.text('Wadhifa :', startX + 4, p3Y);
-      doc.text('Wadhifa:', startX + halfW + 14, p3Y);
-      p3Y += 18;
-
-      doc.text('Sahihi :', startX + 4, p3Y);
-      doc.text('Sahihi:', startX + halfW + 14, p3Y);
-      p3Y += 28;
+      doc.text(
+        'Sahihi : .....................................................................',
+        startX + 4,
+        p2SigY
+      );
+      doc.text(
+        'Sahihi: .....................................................................',
+        startX + halfW + 14,
+        p2SigY
+      );
+      p2SigY += 20;
 
       doc.font('Helvetica').fontSize(8);
       doc.text(
         'Chombo/Jokofu limewekwa na ......................................... Sahihi.......................................................... Wadhifa..................',
         startX + 4,
-        p3Y
+        p2SigY
       );
 
       doc.end();
@@ -784,7 +760,6 @@ export class ContractGenerationService {
         }
       }
 
-      // Delete existing contracts from database
       const deleteResult = await prisma.asset_movement_contracts.deleteMany({
         where: { asset_movement_id: assetMovementId },
       });
