@@ -21,6 +21,7 @@ interface RequestSerialized {
   updatedate: Date | null;
   updatedby: number | null;
   log_inst: number | null;
+  reference_details?: any;
   requester?: {
     id: number;
     name: string;
@@ -55,6 +56,7 @@ const serializeRequest = (request: any): RequestSerialized => ({
   updatedate: request.updatedate,
   updatedby: request.updatedby,
   log_inst: request.log_inst,
+  reference_details: request.reference_details || null,
   requester: request.sfa_d_requests_requester
     ? {
         id: request.sfa_d_requests_requester.id,
@@ -84,6 +86,7 @@ const serializeRequest = (request: any): RequestSerialized => ({
       reference_details: request.reference_details || null,
     })) || [],
 });
+
 
 const isDisposalMovementOutletToDepot = (movement: {
   movement_type?: string | null;
@@ -1223,6 +1226,29 @@ export const createRequest = async (data: {
         }
       }
 
+      if (
+        data.request_type === 'SAP_CREDITMEMO_APPROVAL' &&
+        data.reference_id
+      ) {
+        setImmediate(async () => {
+          try {
+            const { sapService } = await import('../services/sap.service');
+            await sapService.commitCreditMemoToReconciliation(
+              Number(data.reference_id),
+              data.createdby
+            );
+            console.log(
+              `[SAP_CREDITMEMO_APPROVAL AUTO-APPROVE] Committed credit memo #${data.reference_id} to reconciliation.`
+            );
+          } catch (err) {
+            console.error(
+              '[SAP_CREDITMEMO_APPROVAL AUTO-APPROVE] Error committing credit memo:',
+              err
+            );
+          }
+        });
+      }
+
       return approvedRequest;
     }
 
@@ -2060,6 +2086,31 @@ export const requestsController = {
                 `Van Inventory ${request.reference_id} status updated to REJECTED`
               );
             }
+
+            if (
+              request.request_type === 'SAP_CREDITMEMO_APPROVAL' &&
+              request.reference_id
+            ) {
+              await (tx as any).sap_creditmemo_header.update({
+                where: { id: request.reference_id },
+                data: {
+                  status: 'R',
+                  updatedate: new Date(),
+                  updatedby: userId,
+                },
+              });
+              await (tx as any).sap_creditmemo_line.updateMany({
+                where: { header_id: request.reference_id },
+                data: {
+                  status: 'R',
+                  updatedate: new Date(),
+                  updatedby: userId,
+                },
+              });
+              console.log(
+                `SAP Credit Memo ${request.reference_id} status updated to REJECTED`
+              );
+            }
             return { status: 'rejected', request };
           }
 
@@ -2875,6 +2926,31 @@ export const requestsController = {
               );
             }
 
+            if (
+              request.request_type === 'SAP_CREDITMEMO_APPROVAL' &&
+              request.reference_id
+            ) {
+              await (tx as any).sap_creditmemo_header.update({
+                where: { id: request.reference_id },
+                data: {
+                  status: 'A',
+                  updatedate: new Date(),
+                  updatedby: userId,
+                },
+              });
+              await (tx as any).sap_creditmemo_line.updateMany({
+                where: { header_id: request.reference_id },
+                data: {
+                  status: 'A',
+                  updatedate: new Date(),
+                  updatedby: userId,
+                },
+              });
+              console.log(
+                `SAP Credit Memo ${request.reference_id} status updated to APPROVED`
+              );
+            }
+
             return { status: 'fully_approved', request };
           }
 
@@ -3026,6 +3102,27 @@ export const requestsController = {
           } catch (err) {
             console.error(
               'Error creating/processing van inventory from approved reconciliation:',
+              err
+            );
+          }
+        }
+
+        if (
+          result.request.request_type === 'SAP_CREDITMEMO_APPROVAL' &&
+          result.request.reference_id
+        ) {
+          try {
+            const { sapService } = await import('../services/sap.service');
+            await sapService.commitCreditMemoToReconciliation(
+              Number(result.request.reference_id),
+              userId
+            );
+            console.log(
+              `Completed committing approved SAP Credit Memo ${result.request.reference_id} to reconciliation`
+            );
+          } catch (err) {
+            console.error(
+              'Error committing approved SAP Credit Memo to reconciliation:',
               err
             );
           }

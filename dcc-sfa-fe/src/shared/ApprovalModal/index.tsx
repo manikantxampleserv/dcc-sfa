@@ -151,6 +151,7 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({
   const requestData = getParsedRequestData();
 
   const formatRequestType = (type: string): string => {
+    if (type === 'SAP_CREDITMEMO_APPROVAL') return 'SAP Credit Memo Approval';
     return type
       .replace(/_/g, ' ')
       .replace(
@@ -167,6 +168,16 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({
         request.reference_details.order_number
       ) {
         return request.reference_details.order_number;
+      }
+      if (
+        request.request_type === 'SAP_CREDITMEMO_APPROVAL' &&
+        (request.reference_details.batch_ref ||
+          request.reference_details.sap_docnum)
+      ) {
+        return (
+          request.reference_details.batch_ref ||
+          request.reference_details.sap_docnum
+        );
       }
       if (
         request.request_type === 'ASSET_MOVEMENT_APPROVAL' &&
@@ -200,6 +211,14 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({
     if (request.request_data) {
       try {
         const data = JSON.parse(request.request_data);
+        if (request.request_type === 'SAP_CREDITMEMO_APPROVAL') {
+          return (
+            data.batch_ref ||
+            data.sap_docnum ||
+            request.reference_details?.batch_ref ||
+            `CM-${request.reference_id || request.id}`
+          );
+        }
         if (request.request_type === 'VAN_INVENTORY') {
           return `VAN-${request.reference_id || request.id}`;
         }
@@ -239,7 +258,10 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({
       open={open}
       onClose={handleCancel}
       maxWidth={
-        request?.request_type === 'RECONCILIATION_APPROVAL' ? 'md' : 'sm'
+        request?.request_type === 'RECONCILIATION_APPROVAL' ||
+        request?.request_type === 'SAP_CREDITMEMO_APPROVAL'
+          ? 'md'
+          : 'sm'
       }
       fullWidth
       className="!rounded-lg"
@@ -1636,6 +1658,260 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({
                                       </td>
                                     </tr>
                                   )
+                                )}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      )}
+                  </div>
+                )}
+
+                {request.request_type === 'SAP_CREDITMEMO_APPROVAL' && (
+                  <div className="!space-y-4">
+                    {/* Header Details Grid */}
+                    <div className="!grid !grid-cols-1 md:!grid-cols-2 !gap-4">
+                      <div className="!space-y-1">
+                        <Typography
+                          variant="caption"
+                          className="!text-gray-500 !text-xs !uppercase !tracking-wide !font-medium"
+                        >
+                          Batch / Reference Number
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          className="!font-semibold !text-gray-900"
+                        >
+                          {request.reference_details?.batch_ref ||
+                            requestData?.batch_ref ||
+                            'N/A'}
+                        </Typography>
+                      </div>
+
+                      <div className="!space-y-1">
+                        <Typography
+                          variant="caption"
+                          className="!text-gray-500 !text-xs !uppercase !tracking-wide !font-medium"
+                        >
+                          SAP Document Number
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          className="!font-semibold !text-cyan-800"
+                        >
+                          {request.reference_details?.sap_docnum ||
+                            requestData?.sap_docnum ||
+                            request.reference_details?.items?.[0]?.sap_docnum ||
+                            'N/A'}
+                        </Typography>
+                      </div>
+
+                      <div className="!space-y-1">
+                        <Typography
+                          variant="caption"
+                          className="!text-gray-500 !text-xs !uppercase !tracking-wide !font-medium"
+                        >
+                          Salesman
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          className="!font-semibold !text-gray-900"
+                        >
+                          {request.reference_details?.salesman?.name
+                            ? `${request.reference_details.salesman.name} (${
+                                request.reference_details.salesman_sap_code ||
+                                request.reference_details.salesman.employee_id ||
+                                ''
+                              })`
+                            : request.reference_details?.salesman_sap_code ||
+                              requestData?.salesman_sap_code ||
+                              request.requester?.name ||
+                              'N/A'}
+                        </Typography>
+                      </div>
+
+                      <div className="!space-y-1">
+                        <Typography
+                          variant="caption"
+                          className="!text-gray-500 !text-xs !uppercase !tracking-wide !font-medium"
+                        >
+                          Depot
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          className="!font-semibold !text-gray-900"
+                        >
+                          {request.reference_details?.depot?.name
+                            ? `${request.reference_details.depot.name} (${
+                                request.reference_details.depot.code ||
+                                request.reference_details.depot_sap_code ||
+                                ''
+                              })`
+                            : request.reference_details?.depot_sap_code ||
+                              requestData?.depot_sap_code ||
+                              'N/A'}
+                        </Typography>
+                      </div>
+
+                      <div className="!space-y-1">
+                        <Typography
+                          variant="caption"
+                          className="!text-gray-500 !text-xs !uppercase !tracking-wide !font-medium"
+                        >
+                          Document Date
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          className="!font-semibold !text-gray-900"
+                        >
+                          {request.reference_details?.document_date ||
+                          requestData?.document_date
+                            ? formatDate(
+                                request.reference_details?.document_date ||
+                                  requestData?.document_date
+                              )
+                            : 'N/A'}
+                        </Typography>
+                      </div>
+
+                      <div className="!space-y-1">
+                        <Typography
+                          variant="caption"
+                          className="!text-gray-500 !text-xs !uppercase !tracking-wide !font-medium"
+                        >
+                          Total Items
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          className="!font-semibold !text-gray-900"
+                        >
+                          {request.reference_details?.items?.length ||
+                            requestData?.item_count ||
+                            0}{' '}
+                          item(s)
+                        </Typography>
+                      </div>
+                    </div>
+
+                    {/* Credit Memo Line Items Table */}
+                    {Array.isArray(request.reference_details?.items) &&
+                      request.reference_details.items.length > 0 && (
+                        <div className="!space-y-2 !pt-3 !border-t !border-gray-200">
+                          <div className="!flex !items-center !justify-between">
+                            <Typography
+                              variant="caption"
+                              className="!text-gray-600 !font-semibold !uppercase !tracking-wide"
+                            >
+                              Line Items ({request.reference_details.items.length})
+                            </Typography>
+                            {request.reference_details.items.some(
+                              (i: any) => i.purchase_price != null
+                            ) && (
+                              <Typography
+                                variant="caption"
+                                className="!text-primary-700 !font-semibold"
+                              >
+                                Total Value:{' '}
+                                TZS{' '}
+                                {request.reference_details.items
+                                  .reduce(
+                                    (sum: number, item: any) =>
+                                      sum +
+                                      (Number(item.quantity) || 0) *
+                                        (Number(item.purchase_price) || 0),
+                                    0
+                                  )
+                                  .toLocaleString(undefined, {
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2,
+                                  })}
+                              </Typography>
+                            )}
+                          </div>
+
+                          <div className="!border !border-gray-200 !rounded-lg !overflow-hidden !shadow-sm !max-h-64 !overflow-y-auto">
+                            <table className="!w-full !text-left !border-collapse !text-xs">
+                              <thead className="!bg-gray-100 !sticky !top-0 !z-10 !border-b !border-gray-200">
+                                <tr>
+                                  <th className="!py-2 !px-3 !font-semibold !text-gray-700">
+                                    #
+                                  </th>
+                                  <th className="!py-2 !px-3 !font-semibold !text-gray-700">
+                                    Product
+                                  </th>
+                                  <th className="!py-2 !px-3 !font-semibold !text-gray-700">
+                                    Batch No
+                                  </th>
+                                  <th className="!py-2 !px-3 !font-semibold !text-gray-700">
+                                    Location
+                                  </th>
+                                  <th className="!py-2 !px-3 !font-semibold !text-gray-700 !text-center">
+                                    Qty
+                                  </th>
+                                  <th className="!py-2 !px-3 !font-semibold !text-gray-700 !text-right">
+                                    Unit Price
+                                  </th>
+                                  <th className="!py-2 !px-3 !font-semibold !text-gray-700 !text-right">
+                                    Total (TZS)
+                                  </th>
+                                </tr>
+                              </thead>
+                              <tbody className="!divide-y !divide-gray-200 !bg-white">
+                                {request.reference_details.items.map(
+                                  (item: any, idx: number) => {
+                                    const qty = Number(item.quantity) || 0;
+                                    const price =
+                                      item.purchase_price != null
+                                        ? Number(item.purchase_price)
+                                        : null;
+                                    const total =
+                                      price != null ? qty * price : null;
+
+                                    return (
+                                      <tr
+                                        key={item.id || idx}
+                                        className="hover:!bg-gray-50 !transition-colors"
+                                      >
+                                        <td className="!py-2 !px-3 !text-gray-400 !font-mono">
+                                          {idx + 1}
+                                        </td>
+                                        <td className="!py-2 !px-3">
+                                          <div className="!font-semibold !text-gray-900">
+                                            {item.product_name ||
+                                              item.product_sap_code}
+                                          </div>
+                                          {item.product_name &&
+                                            item.product_sap_code && (
+                                              <div className="!text-[10px] !text-gray-500 font-mono">
+                                                SAP: {item.product_sap_code}
+                                              </div>
+                                            )}
+                                        </td>
+                                        <td className="!py-2 !px-3 !font-mono !text-gray-700">
+                                          {item.batch_number || '-'}
+                                        </td>
+                                        <td className="!py-2 !px-3 !text-gray-700">
+                                          {item.storage_location || '-'}
+                                        </td>
+                                        <td className="!py-2 !px-3 !text-center !font-bold !text-gray-900">
+                                          {qty.toLocaleString()}
+                                        </td>
+                                        <td className="!py-2 !px-3 !text-right !text-gray-600">
+                                          {price != null
+                                            ? price.toLocaleString()
+                                            : '-'}
+                                        </td>
+                                        <td className="!py-2 !px-3 !text-right !font-semibold !text-gray-900">
+                                          {total != null
+                                            ? total.toLocaleString(undefined, {
+                                                minimumFractionDigits: 2,
+                                                maximumFractionDigits: 2,
+                                              })
+                                            : '-'}
+                                        </td>
+                                      </tr>
+                                    );
+                                  }
                                 )}
                               </tbody>
                             </table>

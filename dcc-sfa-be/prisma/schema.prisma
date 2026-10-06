@@ -3352,6 +3352,50 @@ model reconciliation_items {
   product        products?      @relation(fields: [product_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }
 
+model sap_creditmemo_header {
+  id                    Int                   @id @default(autoincrement())
+  batch_ref             String                @db.NVarChar(100)
+  salesman_sap_code     String                @db.NVarChar(100)
+  depot_sap_code        String?               @db.NVarChar(100)
+  document_date         DateTime              @db.Date
+  status                String                @default("P") @db.NVarChar(20)
+  reconciliation_id     Int?
+  is_active             String                @default("Y") @db.Char(1)
+  createdate            DateTime?             @default(now()) @db.DateTime
+  createdby             Int?
+  updatedate            DateTime?             @db.DateTime
+  updatedby             Int?
+  log_inst              Int?
+  sap_creditmemo_header sap_creditmemo_line[]
+}
+
+model sap_creditmemo_line {
+  id                     Int                   @id @default(autoincrement())
+  header_id              Int
+  source_system          String                @default("sap_ar_creditmemo") @db.NVarChar(50)
+  sap_docnum             String?               @db.NVarChar(150)
+  sap_docentry           String?               @db.NVarChar(150)
+  sap_lineid             String                @db.NVarChar(100)
+  product_sap_code       String                @db.NVarChar(150)
+  batch_number           String?               @db.NVarChar(100)
+  quantity               Decimal?              @db.Decimal(18, 4)
+  base_quantity          Int?
+  purchase_price         Decimal?              @db.Decimal(18, 4)
+  quality_grade          String?               @db.NVarChar(50)
+  storage_location       String?               @db.NVarChar(100)
+  supplier_name          String?               @db.NVarChar(255)
+  manufacturing_date     DateTime?             @db.Date
+  expiry_date            DateTime?             @db.Date
+  status                 String?               @default("P") @db.NVarChar(20)
+  reconciliation_item_id Int?
+  createdate             DateTime?             @default(now()) @db.DateTime
+  createdby              Int?
+  updatedate             DateTime?             @db.DateTime
+  updatedby              Int?
+  log_inst               Int?
+  sap_creditmemo_header  sap_creditmemo_header @relation(fields: [header_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
 model error_logs {
   id          Int       @id @default(autoincrement())
   message     String

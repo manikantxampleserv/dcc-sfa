@@ -109,6 +109,12 @@ const ApprovalsSidebar: React.FC<ApprovalsSidebarProps> = ({
       ) {
         return request.reference_details.gin_number;
       }
+      if (
+        request.request_type === 'SAP_CREDITMEMO_APPROVAL' &&
+        request.reference_details.batch_ref
+      ) {
+        return request.reference_details.reference_id;
+      }
     }
 
     if (request.request_data) {
@@ -136,6 +142,14 @@ const ApprovalsSidebar: React.FC<ApprovalsSidebarProps> = ({
             data.gin_number ||
             request.reference_details?.gin_number ||
             `GIN-${request.reference_id || request.id}`
+          );
+        }
+        if (request.request_type === 'SAP_CREDITMEMO_APPROVAL') {
+          return (
+            data.batch_ref ||
+            data.sap_docnum ||
+            request.reference_details?.batch_ref ||
+            `CM-${request.reference_id || request.id}`
           );
         }
       } catch (e) {
@@ -311,11 +325,22 @@ const ApprovalsSidebar: React.FC<ApprovalsSidebarProps> = ({
                               </span>
                             </>
                           )}
-                          {request.request_type === 'PROMOTION_MATERIAL_ISSUE' && (
+                          {request.request_type ===
+                            'PROMOTION_MATERIAL_ISSUE' && (
                             <>
                               {' '}
                               with reference{' '}
                               <span className="!font-semibold !text-pink-600">
+                                {referenceNumber}
+                              </span>
+                            </>
+                          )}
+                          {request.request_type ===
+                            'SAP_CREDITMEMO_APPROVAL' && (
+                            <>
+                              {' '}
+                              for credit memo{' '}
+                              <span className="!font-semibold !text-cyan-700">
                                 {referenceNumber}
                               </span>
                             </>

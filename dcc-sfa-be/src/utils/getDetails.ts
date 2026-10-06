@@ -401,14 +401,19 @@ async function getRequestDetailsByType(
         return {};
 
       case 'PROMOTION_MATERIAL_ISSUE':
-        const promotionIssue = await prisma.promotion_materials_issue.findUnique(
-          {
+        const promotionIssue =
+          await prisma.promotion_materials_issue.findUnique({
             where: { id: reference_id || 0 },
             include: {
               depot: { select: { id: true, name: true, code: true } },
               outlet: { select: { id: true, name: true, code: true } },
               issued_by: {
-                select: { id: true, name: true, email: true, employee_id: true },
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                  employee_id: true,
+                },
               },
               items: {
                 where: { is_active: 'Y' },
@@ -425,8 +430,7 @@ async function getRequestDetailsByType(
                 },
               },
             },
-          }
-        );
+          });
 
         if (!promotionIssue) return {};
 
@@ -453,10 +457,128 @@ async function getRequestDetailsByType(
             asset_serial: item.asset?.serial_number || 'N/A',
             asset_type: item.asset?.asset_master_asset_types?.name || 'N/A',
             quantity: item.quantity,
-            unit_value: item.unit_value ? Number(item.unit_value).toFixed(2) : '0.00',
-            total_value: item.total_value ? Number(item.total_value).toFixed(2) : '0.00',
+            unit_value: item.unit_value
+              ? Number(item.unit_value).toFixed(2)
+              : '0.00',
+            total_value: item.total_value
+              ? Number(item.total_value).toFixed(2)
+              : '0.00',
           })),
         };
+
+      case 'SAP_CREDITMEMO_APPROVAL':
+        console.log(
+          '[getDetails] SAP_CREDITMEMO_APPROVAL case hit, reference_id:',
+          reference_id
+        );
+        let creditMemoHeader = await (
+          prisma as any
+        ).sap_creditmemo_header.findUnique({
+          where: { id: reference_id || 0 },
+          include: {
+            sap_creditmemo_header: true,
+          },
+        });
+
+        if (!creditMemoHeader && request_data) {
+          try {
+            const parsed =
+              typeof request_data === 'string'
+                ? JSON.parse(request_data)
+                : request_data;
+            if (parsed.header_id) {
+              creditMemoHeader = await (
+                prisma as any
+              ).sap_creditmemo_header.findUnique({
+                where: { id: Number(parsed.header_id) },
+                include: { sap_creditmemo_header: true },
+              });
+            }
+            if (!creditMemoHeader && parsed.batch_ref) {
+              creditMemoHeader = await (
+                prisma as any
+              ).sap_creditmemo_header.findFirst({
+                where: { batch_ref: parsed.batch_ref },
+                include: { sap_creditmemo_header: true },
+              });
+            }
+          } catch (e) {
+            console.error(
+              '[getDetails] Error parsing request_data for fallback:',
+              e
+            );
+          }
+        }
+
+        console.log(
+          '[getDetails] creditMemoHeader:',
+          creditMemoHeader
+            ? `id=${creditMemoHeader.id}, lines=${creditMemoHeader.sap_creditmemo_header?.length}`
+            : 'NOT FOUND'
+        );
+
+        if (!creditMemoHeader) return {};
+
+        const salesmanUser = await prisma.users.findFirst({
+          where: { sap_code: creditMemoHeader.salesman_sap_code },
+          select: { id: true, name: true, employee_id: true, email: true },
+        });
+
+        const depotData = creditMemoHeader.depot_sap_code
+          ? await prisma.depots.findFirst({
+              where: { sap_code: creditMemoHeader.depot_sap_code },
+              select: { id: true, name: true, code: true },
+            })
+          : null;
+
+        const rawLines = creditMemoHeader.sap_creditmemo_header || [];
+        const sapCodes = rawLines
+          .map((l: any) => l.product_sap_code)
+          .filter(Boolean);
+
+        let productMap: Record<
+          string,
+          { id: number; name: string; code: string }
+        > = {};
+        if (sapCodes.length > 0) {
+          try {
+            const prods = await prisma.products.findMany({
+              where: {
+                OR: [
+                  { sap_code: { in: sapCodes } },
+                  { code: { in: sapCodes } },
+                ],
+              },
+              select: { id: true, name: true, code: true, sap_code: true },
+            });
+            prods.forEach(p => {
+              if (p.sap_code) productMap[p.sap_code] = p;
+              if (p.code) productMap[p.code] = p;
+            });
+          } catch (err) {
+            console.error(
+              '[getDetails] Error fetching products for credit memo lines:',
+              err
+            );
+          }
+        }
+
+        const itemsWithProducts = rawLines.map((line: any) => ({
+          ...line,
+          product_name: productMap[line.product_sap_code]?.name || null,
+        }));
+
+        const result_cm = {
+          ...creditMemoHeader,
+          salesman: salesmanUser,
+          depot: depotData,
+          items: itemsWithProducts,
+        };
+        console.log(
+          '[getDetails] returning items count:',
+          result_cm.items.length
+        );
+        return result_cm;
 
       default:
         return {};

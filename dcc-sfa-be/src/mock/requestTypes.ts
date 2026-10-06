@@ -6,4 +6,5 @@ export const requestTypes = [
   { label: 'Customer Creation', value: 'CUSTOMER_CREATION' },
   { label: 'Van Inventory', value: 'VAN_INVENTORY' },
   { label: 'Promotion Material Issue', value: 'PROMOTION_MATERIAL_ISSUE' },
+  { label: 'SAP Credit Memo Approval', value: 'SAP_CREDITMEMO_APPROVAL' },
 ];
