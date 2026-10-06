@@ -189,14 +189,25 @@ const approveCoolerInstallationsForMovement = async (movementId, assetIds, appro
         console.log(`[approveCoolerInstallations] No coolers linked to movement ${movementId} – nothing to approve`);
         return;
     }
+    const movement = await prisma_client_1.default.asset_movements.findUnique({
+        where: { id: movementId },
+        select: { to_customer_id: true, to_direction: true },
+    });
     const updateResult = await prisma_client_1.default.coolers.updateMany({
         where: {
-            asset_movement_id: movementId,
+            OR: [
+                { asset_movement_id: movementId },
+                { asset_master_id: { in: assetIds } },
+            ],
             approval_status: { in: [...COOLER_PENDING_VALUES] },
         },
         data: {
             status: 'Installed',
             approval_status: COOLER_APPROVAL_STATUS.APPROVED,
+            ...(movement?.to_customer_id
+                ? { customer_id: movement.to_customer_id }
+                : {}),
+            asset_movement_id: movementId,
             install_date: new Date(),
             updatedate: new Date(),
             updatedby: approvedByUserId,
