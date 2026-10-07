@@ -117,18 +117,20 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({
 
   const handleSubmit = async () => {
     if (type === 'view') return;
-    if (!request || !request.approvals?.[0]) return;
+    const approval =
+      request?.approvals?.find(a => a.status === 'P') ||
+      request?.approvals?.[0];
+    if (!request || !approval) return;
 
     try {
       await takeActionMutation.mutateAsync({
         request_id: request.id,
-        approval_id: request.approvals[0].id,
+        approval_id: approval.id,
         action: type === 'approve' ? 'A' : 'R',
         remarks: type === 'approve' ? 'Approved' : 'Rejected',
       });
-      await queryClient.invalidateQueries({ queryKey: ['requests'] });
-      await queryClient.refetchQueries({ queryKey: ['requests'] });
       onClose();
+      queryClient.invalidateQueries({ queryKey: ['requests'] });
     } catch (error) {
       console.error('Error taking action on request:', error);
     }
@@ -1720,7 +1722,8 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({
                           {request.reference_details?.salesman?.name
                             ? `${request.reference_details.salesman.name} (${
                                 request.reference_details.salesman_sap_code ||
-                                request.reference_details.salesman.employee_id ||
+                                request.reference_details.salesman
+                                  .employee_id ||
                                 ''
                               })`
                             : request.reference_details?.salesman_sap_code ||
@@ -1802,7 +1805,8 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({
                               variant="caption"
                               className="!text-gray-600 !font-semibold !uppercase !tracking-wide"
                             >
-                              Line Items ({request.reference_details.items.length})
+                              Line Items (
+                              {request.reference_details.items.length})
                             </Typography>
                             {request.reference_details.items.some(
                               (i: any) => i.purchase_price != null
@@ -1811,8 +1815,7 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({
                                 variant="caption"
                                 className="!text-primary-700 !font-semibold"
                               >
-                                Total Value:{' '}
-                                TZS{' '}
+                                Total Value: TZS{' '}
                                 {request.reference_details.items
                                   .reduce(
                                     (sum: number, item: any) =>
@@ -1842,30 +1845,30 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({
                                   <th className="!py-2 !px-3 !font-semibold !text-gray-700">
                                     Batch No
                                   </th>
-                                  <th className="!py-2 !px-3 !font-semibold !text-gray-700">
+                                  {/* <th className="!py-2 !px-3 !font-semibold !text-gray-700">
                                     Location
-                                  </th>
+                                  </th> */}
                                   <th className="!py-2 !px-3 !font-semibold !text-gray-700 !text-center">
                                     Qty
                                   </th>
-                                  <th className="!py-2 !px-3 !font-semibold !text-gray-700 !text-right">
+                                  {/* <th className="!py-2 !px-3 !font-semibold !text-gray-700 !text-right">
                                     Unit Price
                                   </th>
                                   <th className="!py-2 !px-3 !font-semibold !text-gray-700 !text-right">
                                     Total (TZS)
-                                  </th>
+                                  </th> */}
                                 </tr>
                               </thead>
                               <tbody className="!divide-y !divide-gray-200 !bg-white">
                                 {request.reference_details.items.map(
                                   (item: any, idx: number) => {
                                     const qty = Number(item.quantity) || 0;
-                                    const price =
-                                      item.purchase_price != null
-                                        ? Number(item.purchase_price)
-                                        : null;
-                                    const total =
-                                      price != null ? qty * price : null;
+                                    // const price =
+                                    //   item.purchase_price != null
+                                    //     ? Number(item.purchase_price)
+                                    //     : null;
+                                    // const total =
+                                    //   price != null ? qty * price : null;
 
                                     return (
                                       <tr
@@ -1890,13 +1893,13 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({
                                         <td className="!py-2 !px-3 !font-mono !text-gray-700">
                                           {item.batch_number || '-'}
                                         </td>
-                                        <td className="!py-2 !px-3 !text-gray-700">
+                                        {/* <td className="!py-2 !px-3 !text-gray-700">
                                           {item.storage_location || '-'}
-                                        </td>
+                                        </td> */}
                                         <td className="!py-2 !px-3 !text-center !font-bold !text-gray-900">
                                           {qty.toLocaleString()}
                                         </td>
-                                        <td className="!py-2 !px-3 !text-right !text-gray-600">
+                                        {/* <td className="!py-2 !px-3 !text-right !text-gray-600">
                                           {price != null
                                             ? price.toLocaleString()
                                             : '-'}
@@ -1908,7 +1911,7 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({
                                                 maximumFractionDigits: 2,
                                               })
                                             : '-'}
-                                        </td>
+                                        </td> */}
                                       </tr>
                                     );
                                   }

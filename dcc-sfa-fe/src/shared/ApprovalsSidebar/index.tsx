@@ -65,6 +65,7 @@ const ApprovalsSidebar: React.FC<ApprovalsSidebarProps> = ({
   };
 
   const formatRequestType = (type: string): string => {
+    if (type === 'SAP_CREDITMEMO_APPROVAL') return 'SAP Credit Memo Approval';
     return type
       .replace(/_/g, ' ')
       .replace(/\w\S*/g, txt => txt.charAt(0) + txt.substr(1).toLowerCase());
@@ -111,9 +112,13 @@ const ApprovalsSidebar: React.FC<ApprovalsSidebarProps> = ({
       }
       if (
         request.request_type === 'SAP_CREDITMEMO_APPROVAL' &&
-        request.reference_details.batch_ref
+        (request.reference_details.batch_ref ||
+          request.reference_details.sap_docnum)
       ) {
-        return request.reference_details.reference_id;
+        return (
+          request.reference_details.batch_ref ||
+          request.reference_details.sap_docnum
+        );
       }
     }
 
