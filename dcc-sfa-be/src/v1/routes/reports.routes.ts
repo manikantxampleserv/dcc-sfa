@@ -341,4 +341,40 @@ router.get(
   reportsController.exportPromotionMaterialsIssuedReport
 );
 
+/**
+ * @route GET /api/v1/reports/credit-memo
+ * @description Get Credit Memo Report
+ * @access Private (requires authentication)
+ */
+router.get(
+  '/credit-memo',
+  authenticateToken,
+  requirePermission([{ module: 'report', action: 'read' }]),
+  reportsController.getCreditMemoReport
+);
+
+/**
+ * @route GET /api/v1/reports/credit-memo/export
+ * @description Export Credit Memo Report to Excel
+ * @access Private (requires authentication)
+ */
+router.get(
+  '/credit-memo/export',
+  authenticateToken,
+  requirePermission([{ module: 'report', action: 'read' }]),
+  reportsController.exportCreditMemoReport
+);
+
+/**
+ * @route GET /api/v1/reports/credit-memo/:id
+ * @description Get Credit Memo Report By ID with lines and details
+ * @access Private (requires authentication)
+ */
+router.get(
+  '/credit-memo/:id',
+  authenticateToken,
+  requirePermission([{ module: 'report', action: 'read' }]),
+  reportsController.getCreditMemoReportById
+);
+
 export default router;

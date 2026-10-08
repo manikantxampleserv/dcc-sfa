@@ -99,6 +99,8 @@ import CoolerInspectionsReport from 'pages/reports/CoolerInspectionsReport';
 import CoolersReport from 'pages/reports/CoolersReport';
 import AssetReport from 'pages/reports/AssetReport';
 import PromotionMaterialsIssuedReport from 'pages/reports/PromotionMaterialsIssuedReport';
+import CreditMemoReport from 'pages/reports/CreditMemoReport';
+import CreditMemoDetail from 'pages/reports/CreditMemoReport/CreditMemoDetail';
 import EmailTemplates from 'pages/settings/EmailTemplates';
 import SystemSettings from 'pages/settings/SystemSettings';
 import ErrorLogs from 'pages/settings/ErrorLogs';
@@ -1113,6 +1115,22 @@ const router = createBrowserRouter(
           element: (
             <PermissionGuard module="report" action="read">
               <PromotionMaterialsIssuedReport />
+            </PermissionGuard>
+          ),
+        },
+        {
+          path: '/reports/credit-memo',
+          element: (
+            <PermissionGuard module="report" action="read">
+              <CreditMemoReport />
+            </PermissionGuard>
+          ),
+        },
+        {
+          path: '/reports/credit-memo/:id',
+          element: (
+            <PermissionGuard module="report" action="read">
+              <CreditMemoDetail />
             </PermissionGuard>
           ),
         },

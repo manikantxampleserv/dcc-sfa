@@ -532,6 +532,12 @@ const menuItems: MenuItem[] = [
         icon: MdAssessment,
         href: '/reports/promotion-materials-issued',
       },
+      {
+        id: 'credit-memo-report',
+        label: 'Credit Memo Report',
+        icon: MdReceipt,
+        href: '/reports/credit-memo',
+      },
     ],
   },
   {

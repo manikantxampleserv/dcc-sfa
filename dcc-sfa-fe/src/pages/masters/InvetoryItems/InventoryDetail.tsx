@@ -610,13 +610,13 @@ const InventoryDetail = () => {
                 },
               }}
             >
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
                 <Avatar
-                  className="!bg-blue-100 !rounded-md !text-blue-600"
-                  src=""
-                >
-                  {row.product_name?.charAt(0) || 'P'}
-                </Avatar>
+                  alt={row.product_name || 'Product'}
+                  src={'mkx'}
+                  className="!rounded !bg-primary-100 !text-primary-600"
+                />
+
                 <div className="flex flex-col">
                   <span className="font-medium text-gray-900">
                     {row.product_name || 'Unknown Product'}
@@ -1004,7 +1004,7 @@ const InventoryDetail = () => {
             <Avatar
               alt={row.salesperson?.name}
               src="mkx"
-              className="!rounded !bg-primary-100 !text-primary-500"
+              className="!rounded !capitalize !bg-primary-100 !text-primary-500"
             />
             <div>
               <Typography
@@ -1200,7 +1200,7 @@ const InventoryDetail = () => {
     <div className="flex flex-col">
       {renderHeader()}
 
-      <div className="bg-white mb-5 shadow-sm rounded-lg border border-gray-100 p-4">
+      <div className="bg-white mb-4 shadow-sm rounded-lg border border-gray-100 p-4">
         <div className="flex items-center gap-6">
           <Avatar
             src={salespersonData?.salesperson_profile_image || undefined}
@@ -1249,7 +1249,7 @@ const InventoryDetail = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
         <StatsCard
           title="Total Products"
           value={salespersonData?.total_products || 0}
@@ -1279,7 +1279,10 @@ const InventoryDetail = () => {
         />
       </div>
 
-      <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+      <Box
+        sx={{ borderBottom: 1, borderColor: 'divider' }}
+        className="bg-white rounded-lg shadow border border-gray-200 px-2"
+      >
         <Tabs value={tabValue} onChange={handleTabChange}>
           <Tab
             label={`Products (${Array.isArray(products) ? products.length : 0})`}

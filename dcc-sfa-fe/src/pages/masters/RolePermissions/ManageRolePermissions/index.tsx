@@ -333,16 +333,16 @@ const ManageRolePermissions: React.FC<ManageRolePermissionsProps> = ({
               </Select>
             </div>
             <div className="flex justify-between w-full gap-4 col-span-2">
-              <div className="flex justify-start w-1/3">
+              <div className="flex justify-start w-1/2">
                 <ActiveInactiveField
                   name="is_assigned_route"
                   formik={formik}
                   required
-                  label="Can Assign Route"
+                  label="Can Assign Route?"
                   options={['Yes', 'No']}
                 />
               </div>
-              <div className="flex justify-start w-1/3">
+              <div className="flex justify-start w-1/2">
                 <ActiveInactiveField
                   name="is_active"
                   formik={formik}

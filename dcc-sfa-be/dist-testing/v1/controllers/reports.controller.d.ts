@@ -129,5 +129,23 @@ export declare const reportsController: {
      * GET /api/v1/reports/promotion-materials-issued/export
      */
     exportPromotionMaterialsIssuedReport(req: Request, res: Response): Promise<void>;
+    /**
+     * Get Credit Memo Report
+     * @param req Express request
+     * @param res Express response
+     */
+    getCreditMemoReport(req: Request, res: Response): Promise<void>;
+    /**
+     * Get Credit Memo Report By ID with lines and details
+     * @param req Express request
+     * @param res Express response
+     */
+    getCreditMemoReportById(req: Request, res: Response): Promise<Response<any, Record<string, any>> | undefined>;
+    /**
+     * Export Credit Memo Report to Excel
+     * @param req Express request
+     * @param res Express response
+     */
+    exportCreditMemoReport(req: Request, res: Response): Promise<void>;
 };
 //# sourceMappingURL=reports.controller.d.ts.map

@@ -71,6 +71,14 @@ import {
   type PromotionMaterialsIssuedReportFilters,
   type PromotionMaterialsIssuedReportData,
 } from '../services/reports/promotionMaterialsIssued';
+import {
+  fetchCreditMemoReport,
+  fetchCreditMemoReportById,
+  exportCreditMemoReport,
+  type CreditMemoReportFilters,
+  type CreditMemoReportData,
+  type CreditMemoDetailData,
+} from '../services/reports/creditMemo';
 
 import { useApiMutation } from './useApiMutation';
 
@@ -103,6 +111,10 @@ export const reportKeys = {
     [...reportKeys.lists(), 'cooler-inspections', filters] as const,
   promotionMaterialsIssued: (filters?: PromotionMaterialsIssuedReportFilters) =>
     [...reportKeys.lists(), 'promotion-materials-issued', filters] as const,
+  creditMemo: (filters?: CreditMemoReportFilters) =>
+    [...reportKeys.lists(), 'credit-memo', filters] as const,
+  creditMemoDetail: (id: number) =>
+    [...reportKeys.all, 'credit-memo', id] as const,
 };
 
 /**
@@ -355,6 +367,54 @@ export const usePromotionMaterialsIssuedReport = (
 export const useExportPromotionMaterialsIssuedReport = () => {
   return useApiMutation({
     mutationFn: exportPromotionMaterialsIssuedReport,
+    loadingMessage: 'Exporting report...',
+    successMessage: 'Report exported successfully!',
+  });
+};
+
+/**
+ * Hook to fetch Credit Memo Report
+ */
+export const useCreditMemoReport = (
+  filters?: CreditMemoReportFilters,
+  options?: Omit<
+    UseQueryOptions<CreditMemoReportData>,
+    'queryKey' | 'queryFn'
+  >
+) => {
+  return useQuery<CreditMemoReportData>({
+    queryKey: reportKeys.creditMemo(filters),
+    queryFn: () => fetchCreditMemoReport(filters),
+    staleTime: 2 * 60 * 1000,
+    ...options,
+  });
+};
+
+/**
+ * Hook to fetch Credit Memo Report Details by ID
+ */
+export const useCreditMemoReportById = (
+  id: number,
+  options?: Omit<
+    UseQueryOptions<CreditMemoDetailData>,
+    'queryKey' | 'queryFn'
+  >
+) => {
+  return useQuery<CreditMemoDetailData>({
+    queryKey: reportKeys.creditMemoDetail(id),
+    queryFn: () => fetchCreditMemoReportById(id),
+    staleTime: 2 * 60 * 1000,
+    enabled: Boolean(id),
+    ...options,
+  });
+};
+
+/**
+ * Hook to export Credit Memo Report to Excel
+ */
+export const useExportCreditMemoReport = () => {
+  return useApiMutation({
+    mutationFn: exportCreditMemoReport,
     loadingMessage: 'Exporting report...',
     successMessage: 'Report exported successfully!',
   });

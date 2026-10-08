@@ -154,7 +154,7 @@ const ApprovalsSidebar: React.FC<ApprovalsSidebarProps> = ({
             data.batch_ref ||
             data.sap_docnum ||
             request.reference_details?.batch_ref ||
-            `CM-${request.reference_id || request.id}`
+            `${request.reference_id || request.id}`
           );
         }
       } catch (e) {

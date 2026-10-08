@@ -136,6 +136,7 @@ export declare const sapService: {
         status: string;
         message: string;
         items_count: number;
+        wasUpdate: boolean;
     } | {
         reconciliation_id: number;
         updated_items: number;
@@ -159,6 +160,7 @@ export declare const sapService: {
         status: string;
         message: string;
         items_count: number;
+        wasUpdate: boolean;
     }>;
     commitCreditMemoToReconciliation(headerId: number, approvedBy: number): Promise<any>;
 };

@@ -171,6 +171,29 @@ class AttendanceCronService {
             logger_1.default.error(`Error logs cleanup error: ${error}`);
         }
     }
+    static async performMobileErrorLogsCleanup() {
+        logger_1.default.info(`Running mobile_error_logs cleanup... Time: ${new Date().toISOString()}`);
+        try {
+            const oneDayAgo = new Date();
+            oneDayAgo.setDate(oneDayAgo.getDate() - 1);
+            const model = prisma_client_1.default.mobile_error_logs;
+            if (!model) {
+                logger_1.default.warn('Prisma mobile_error_logs model not found, skipping cleanup.');
+                return;
+            }
+            const result = await model.deleteMany({
+                where: {
+                    createdate: {
+                        lt: oneDayAgo,
+                    },
+                },
+            });
+            logger_1.default.info(`Mobile error logs cleanup completed. Deleted ${result.count} records.`);
+        }
+        catch (error) {
+            logger_1.default.error(`Mobile error logs cleanup error: ${error}`);
+        }
+    }
     static startRequestLogsCleanup() {
         AttendanceCronService.performRequestLogsCleanup().catch(error => {
             logger_1.default.error(`Initial request_logs cleanup error: ${error}`);
@@ -178,9 +201,13 @@ class AttendanceCronService {
         AttendanceCronService.performErrorLogsCleanup().catch(error => {
             logger_1.default.error(`Initial error_logs cleanup error: ${error}`);
         });
+        AttendanceCronService.performMobileErrorLogsCleanup().catch(error => {
+            logger_1.default.error(`Initial mobile_error_logs cleanup error: ${error}`);
+        });
         node_cron_1.default.schedule('0 * * * *', async () => {
             await AttendanceCronService.performRequestLogsCleanup();
             await AttendanceCronService.performErrorLogsCleanup();
+            await AttendanceCronService.performMobileErrorLogsCleanup();
         });
     }
     static stopAllCronJobs() {

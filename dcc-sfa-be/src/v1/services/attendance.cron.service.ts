@@ -5,7 +5,9 @@ import logger from '../../configs/logger';
 export class AttendanceCronService {
   static startAutoPunchOut() {
     cron.schedule('0 0 * * *', async () => {
-      logger.info(`Running auto punch-out check... Time: ${new Date().toISOString()}`);
+      logger.info(
+        `Running auto punch-out check... Time: ${new Date().toISOString()}`
+      );
       try {
         const yesterday = new Date();
         yesterday.setDate(yesterday.getDate() - 1);
@@ -44,7 +46,7 @@ export class AttendanceCronService {
             Math.round(
               ((autoPunchOutTime.getTime() - punchInTime.getTime()) /
                 (1000 * 60 * 60)) *
-              100
+                100
             ) / 100;
 
           const oldData = {
@@ -146,9 +148,10 @@ export class AttendanceCronService {
     });
   }
 
-
   static async performRequestLogsCleanup() {
-    logger.info(`Running request_logs cleanup... Time: ${new Date().toISOString()}`);
+    logger.info(
+      `Running request_logs cleanup... Time: ${new Date().toISOString()}`
+    );
     try {
       const oneDayAgo = new Date();
       oneDayAgo.setDate(oneDayAgo.getDate() - 1);
@@ -170,7 +173,9 @@ export class AttendanceCronService {
   }
 
   static async performErrorLogsCleanup() {
-    logger.info(`Running error_logs cleanup... Time: ${new Date().toISOString()}`);
+    logger.info(
+      `Running error_logs cleanup... Time: ${new Date().toISOString()}`
+    );
     try {
       const oneDayAgo = new Date();
       oneDayAgo.setDate(oneDayAgo.getDate() - 1);
@@ -191,6 +196,38 @@ export class AttendanceCronService {
     }
   }
 
+  static async performMobileErrorLogsCleanup() {
+    logger.info(
+      `Running mobile_error_logs cleanup... Time: ${new Date().toISOString()}`
+    );
+    try {
+      const oneDayAgo = new Date();
+      oneDayAgo.setDate(oneDayAgo.getDate() - 1);
+
+      const model = (prisma as any).mobile_error_logs;
+      if (!model) {
+        logger.warn(
+          'Prisma mobile_error_logs model not found, skipping cleanup.'
+        );
+        return;
+      }
+
+      const result = await model.deleteMany({
+        where: {
+          createdate: {
+            lt: oneDayAgo,
+          },
+        },
+      });
+
+      logger.info(
+        `Mobile error logs cleanup completed. Deleted ${result.count} records.`
+      );
+    } catch (error) {
+      logger.error(`Mobile error logs cleanup error: ${error}`);
+    }
+  }
+
   static startRequestLogsCleanup() {
     AttendanceCronService.performRequestLogsCleanup().catch(error => {
       logger.error(`Initial request_logs cleanup error: ${error}`);
@@ -198,13 +235,16 @@ export class AttendanceCronService {
     AttendanceCronService.performErrorLogsCleanup().catch(error => {
       logger.error(`Initial error_logs cleanup error: ${error}`);
     });
+    AttendanceCronService.performMobileErrorLogsCleanup().catch(error => {
+      logger.error(`Initial mobile_error_logs cleanup error: ${error}`);
+    });
 
     cron.schedule('0 * * * *', async () => {
       await AttendanceCronService.performRequestLogsCleanup();
       await AttendanceCronService.performErrorLogsCleanup();
+      await AttendanceCronService.performMobileErrorLogsCleanup();
     });
   }
-
 
   static stopAllCronJobs() {
     cron.getTasks().forEach(task => task.stop());

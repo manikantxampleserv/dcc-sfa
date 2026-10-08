@@ -4807,7 +4807,7 @@ exports.reportsController = {
                     items: {
                         where: {
                             is_active: 'Y',
-                            ...(asset_id && { asset_id: parseInt(asset_id) })
+                            ...(asset_id && { asset_id: parseInt(asset_id) }),
                         },
                         include: { asset: true },
                     },
@@ -4922,7 +4922,9 @@ exports.reportsController = {
             else if (group_by === 'month') {
                 const monthMap = new Map();
                 validIssues.forEach((issue) => {
-                    const monthKey = issue.issue_date ? new Date(issue.issue_date).toISOString().slice(0, 7) : 'Unknown';
+                    const monthKey = issue.issue_date
+                        ? new Date(issue.issue_date).toISOString().slice(0, 7)
+                        : 'Unknown';
                     if (!monthMap.has(monthKey)) {
                         monthMap.set(monthKey, {
                             month: monthKey,
@@ -5116,6 +5118,728 @@ exports.reportsController = {
             res.status(500).json({
                 success: false,
                 message: error.message || 'Failed to export report',
+            });
+        }
+    },
+    /**
+     * Get Credit Memo Report
+     * @param req Express request
+     * @param res Express response
+     */
+    async getCreditMemoReport(req, res) {
+        try {
+            const { start_date, end_date, depot_id, salesman_sap_code, status, search, page = '1', limit = '20', } = req.query;
+            const pageNum = Math.max(1, parseInt(page) || 1);
+            const limitNum = Math.max(1, parseInt(limit) || 20);
+            const where = {
+                is_active: 'Y',
+            };
+            const dateFilter = {};
+            if (start_date) {
+                dateFilter.gte = new Date(start_date);
+            }
+            if (end_date) {
+                const end = new Date(end_date);
+                end.setHours(23, 59, 59, 999);
+                dateFilter.lte = end;
+            }
+            if (Object.keys(dateFilter).length > 0) {
+                where.document_date = dateFilter;
+            }
+            if (status && status !== 'all') {
+                where.status = status;
+            }
+            if (salesman_sap_code) {
+                where.salesman_sap_code = salesman_sap_code;
+            }
+            if (depot_id) {
+                const depotRecord = await prisma_client_1.default.depots.findUnique({
+                    where: { id: parseInt(depot_id) },
+                    select: { sap_code: true },
+                });
+                if (depotRecord?.sap_code) {
+                    where.depot_sap_code = depotRecord.sap_code;
+                }
+            }
+            const reqUser = req.user;
+            if (reqUser && !(0, permissions_config_1.isAdminRole)(reqUser.role)) {
+                const userDepots = await prisma_client_1.default.user_depots.findMany({
+                    where: { user_id: reqUser.id },
+                    select: { depot_id: true },
+                });
+                const depotIds = userDepots
+                    .map((ud) => ud.depot_id)
+                    .filter((id) => id !== null);
+                let allowedDepotCodes = [];
+                if (depotIds.length > 0) {
+                    const userDepotRecords = await prisma_client_1.default.depots.findMany({
+                        where: { id: { in: depotIds } },
+                        select: { sap_code: true },
+                    });
+                    allowedDepotCodes = userDepotRecords
+                        .map((d) => d.sap_code)
+                        .filter(Boolean);
+                }
+                if (allowedDepotCodes.length > 0) {
+                    if (where.depot_sap_code) {
+                        if (!allowedDepotCodes.includes(where.depot_sap_code)) {
+                            where.id = -1;
+                        }
+                    }
+                    else {
+                        where.depot_sap_code = { in: allowedDepotCodes };
+                    }
+                }
+                else {
+                    where.id = -1;
+                }
+            }
+            const searchStr = typeof search === 'string' ? search.trim() : '';
+            if (searchStr) {
+                where.OR = [
+                    { batch_ref: { contains: searchStr } },
+                    { salesman_sap_code: { contains: searchStr } },
+                    { depot_sap_code: { contains: searchStr } },
+                    {
+                        sap_creditmemo_header: {
+                            some: {
+                                OR: [
+                                    { sap_docnum: { contains: searchStr } },
+                                    { product_sap_code: { contains: searchStr } },
+                                    { batch_number: { contains: searchStr } },
+                                ],
+                            },
+                        },
+                    },
+                ];
+            }
+            const [{ data: headers, pagination }, allMatching] = await Promise.all([
+                (0, paginate_1.paginate)({
+                    model: prisma_client_1.default.sap_creditmemo_header,
+                    filters: where,
+                    page: pageNum,
+                    limit: limitNum,
+                    orderBy: { document_date: 'desc' },
+                    include: {
+                        sap_creditmemo_header: true,
+                    },
+                }),
+                prisma_client_1.default.sap_creditmemo_header.findMany({
+                    where,
+                    select: {
+                        id: true,
+                        status: true,
+                        sap_creditmemo_header: {
+                            select: {
+                                quantity: true,
+                                purchase_price: true,
+                            },
+                        },
+                    },
+                }),
+            ]);
+            let totalCreditMemos = allMatching.length;
+            let approvedMemos = 0;
+            let pendingMemos = 0;
+            let rejectedMemos = 0;
+            let totalLines = 0;
+            let totalQuantity = 0;
+            let totalValue = 0;
+            allMatching.forEach((h) => {
+                if (h.status === 'A')
+                    approvedMemos += 1;
+                else if (h.status === 'P')
+                    pendingMemos += 1;
+                else if (h.status === 'R')
+                    rejectedMemos += 1;
+                const lines = h.sap_creditmemo_header || [];
+                totalLines += lines.length;
+                lines.forEach((l) => {
+                    const qty = Number(l.quantity || 0);
+                    const price = Number(l.purchase_price || 0);
+                    totalQuantity += qty;
+                    totalValue += qty * price;
+                });
+            });
+            const salesmanCodes = Array.from(new Set(headers.map((h) => h.salesman_sap_code).filter(Boolean)));
+            const depotCodes = Array.from(new Set(headers.map((h) => h.depot_sap_code).filter(Boolean)));
+            const allLineProductCodes = new Set();
+            headers.forEach((h) => {
+                (h.sap_creditmemo_header || []).forEach((l) => {
+                    if (l.product_sap_code)
+                        allLineProductCodes.add(l.product_sap_code);
+                });
+            });
+            const [salesmen, depots, products] = await Promise.all([
+                salesmanCodes.length > 0
+                    ? prisma_client_1.default.users.findMany({
+                        where: {
+                            OR: [
+                                { sap_code: { in: salesmanCodes } },
+                                { employee_id: { in: salesmanCodes } },
+                            ],
+                        },
+                        select: {
+                            id: true,
+                            name: true,
+                            employee_id: true,
+                            sap_code: true,
+                            email: true,
+                        },
+                    })
+                    : [],
+                depotCodes.length > 0
+                    ? prisma_client_1.default.depots.findMany({
+                        where: {
+                            OR: [
+                                { sap_code: { in: depotCodes } },
+                                { code: { in: depotCodes } },
+                            ],
+                        },
+                        select: { id: true, name: true, code: true, sap_code: true },
+                    })
+                    : [],
+                allLineProductCodes.size > 0
+                    ? prisma_client_1.default.products.findMany({
+                        where: {
+                            OR: [
+                                { sap_code: { in: Array.from(allLineProductCodes) } },
+                                { code: { in: Array.from(allLineProductCodes) } },
+                            ],
+                        },
+                        select: {
+                            id: true,
+                            name: true,
+                            code: true,
+                            sap_code: true,
+                            unit_case_conversion_rate: true,
+                            product_sub_categories_products: {
+                                select: { sub_category_name: true },
+                            },
+                            product_categories_products: {
+                                select: { category_name: true },
+                            },
+                        },
+                    })
+                    : [],
+            ]);
+            const salesmanMap = new Map();
+            salesmen.forEach((s) => {
+                if (s.sap_code)
+                    salesmanMap.set(s.sap_code, s);
+                if (s.employee_id)
+                    salesmanMap.set(s.employee_id, s);
+            });
+            const depotMap = new Map();
+            depots.forEach((d) => {
+                if (d.sap_code)
+                    depotMap.set(d.sap_code, d);
+                if (d.code)
+                    depotMap.set(d.code, d);
+            });
+            const productMap = new Map();
+            products.forEach((p) => {
+                if (p.sap_code)
+                    productMap.set(p.sap_code, p);
+                if (p.code)
+                    productMap.set(p.code, p);
+            });
+            const formattedData = headers.map((h) => {
+                const rawLines = h.sap_creditmemo_header || [];
+                const lines = rawLines.map((l) => {
+                    const prod = productMap.get(l.product_sap_code);
+                    return {
+                        ...l,
+                        product_name: prod?.name || null,
+                        product_code: prod?.code || l.product_sap_code,
+                        conversion_rate: prod?.unit_case_conversion_rate ?? 1,
+                        unit_case_conversion_rate: prod?.unit_case_conversion_rate ?? 1,
+                        sub_category_name: prod?.product_sub_categories_products?.sub_category_name || null,
+                        category_name: prod?.product_categories_products?.category_name || null,
+                        total_amount: Number(l.quantity || 0) * Number(l.purchase_price || 0),
+                    };
+                });
+                const memoTotalQty = lines.reduce((acc, cur) => acc + Number(cur.quantity || 0), 0);
+                const memoTotalVal = lines.reduce((acc, cur) => acc + Number(cur.total_amount || 0), 0);
+                const docnums = Array.from(new Set(lines.map((l) => l.sap_docnum).filter(Boolean)));
+                return {
+                    id: h.id,
+                    batch_ref: h.batch_ref,
+                    salesman_sap_code: h.salesman_sap_code,
+                    depot_sap_code: h.depot_sap_code,
+                    document_date: h.document_date,
+                    status: h.status,
+                    reconciliation_id: h.reconciliation_id,
+                    is_active: h.is_active,
+                    createdate: h.createdate,
+                    salesman: salesmanMap.get(h.salesman_sap_code) || null,
+                    depot: depotMap.get(h.depot_sap_code) || null,
+                    sap_docnums: docnums.join(', '),
+                    total_lines: lines.length,
+                    total_quantity: memoTotalQty,
+                    total_value: memoTotalVal,
+                    lines,
+                };
+            });
+            res.json({
+                success: true,
+                message: 'Credit memo report fetched successfully',
+                data: {
+                    summary: {
+                        total_credit_memos: totalCreditMemos,
+                        approved_memos: approvedMemos,
+                        pending_memos: pendingMemos,
+                        rejected_memos: rejectedMemos,
+                        total_lines: totalLines,
+                        total_quantity: totalQuantity,
+                        total_value: totalValue,
+                    },
+                    data: formattedData,
+                    pagination: {
+                        ...pagination,
+                        total: pagination.total_count,
+                        page: pagination.current_page,
+                        limit: limitNum,
+                        totalPages: pagination.total_pages,
+                    },
+                },
+                pagination,
+            });
+        }
+        catch (error) {
+            console.error('Get Credit Memo Report Error:', error);
+            res.status(500).json({
+                success: false,
+                message: error.message || 'Failed to fetch credit memo report',
+            });
+        }
+    },
+    /**
+     * Get Credit Memo Report By ID with lines and details
+     * @param req Express request
+     * @param res Express response
+     */
+    async getCreditMemoReportById(req, res) {
+        try {
+            const { id } = req.params;
+            const header = await prisma_client_1.default.sap_creditmemo_header.findUnique({
+                where: { id: parseInt(id) },
+                include: { sap_creditmemo_header: true },
+            });
+            if (!header) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Credit memo not found',
+                });
+            }
+            const [salesman, depot] = await Promise.all([
+                prisma_client_1.default.users.findFirst({
+                    where: {
+                        OR: [
+                            { sap_code: header.salesman_sap_code },
+                            { employee_id: header.salesman_sap_code },
+                        ],
+                    },
+                    select: {
+                        id: true,
+                        name: true,
+                        employee_id: true,
+                        sap_code: true,
+                        email: true,
+                    },
+                }),
+                header.depot_sap_code
+                    ? prisma_client_1.default.depots.findFirst({
+                        where: {
+                            OR: [
+                                { sap_code: header.depot_sap_code },
+                                { code: header.depot_sap_code },
+                            ],
+                        },
+                        select: { id: true, name: true, code: true, sap_code: true },
+                    })
+                    : null,
+            ]);
+            const rawLines = header.sap_creditmemo_header || [];
+            const sapCodes = Array.from(new Set(rawLines.map((l) => l.product_sap_code).filter(Boolean)));
+            const productMap = new Map();
+            if (sapCodes.length > 0) {
+                const prods = await prisma_client_1.default.products.findMany({
+                    where: {
+                        OR: [
+                            { sap_code: { in: sapCodes } },
+                            { code: { in: sapCodes } },
+                        ],
+                    },
+                    select: {
+                        id: true,
+                        name: true,
+                        code: true,
+                        sap_code: true,
+                        unit_case_conversion_rate: true,
+                        product_sub_categories_products: {
+                            select: { sub_category_name: true },
+                        },
+                        product_categories_products: {
+                            select: { category_name: true },
+                        },
+                    },
+                });
+                prods.forEach((p) => {
+                    if (p.sap_code)
+                        productMap.set(p.sap_code, p);
+                    if (p.code)
+                        productMap.set(p.code, p);
+                });
+            }
+            const lines = rawLines.map((l) => {
+                const prod = productMap.get(l.product_sap_code);
+                return {
+                    ...l,
+                    product_name: prod?.name || null,
+                    product_code: prod?.code || l.product_sap_code,
+                    conversion_rate: prod?.unit_case_conversion_rate ?? 1,
+                    unit_case_conversion_rate: prod?.unit_case_conversion_rate ?? 1,
+                    sub_category_name: prod?.product_sub_categories_products?.sub_category_name || null,
+                    category_name: prod?.product_categories_products?.category_name || null,
+                    total_amount: Number(l.quantity || 0) * Number(l.purchase_price || 0),
+                };
+            });
+            const totalQuantity = lines.reduce((acc, cur) => acc + Number(cur.quantity || 0), 0);
+            const totalValue = lines.reduce((acc, cur) => acc + Number(cur.total_amount || 0), 0);
+            const docnums = Array.from(new Set(lines.map((l) => l.sap_docnum).filter(Boolean)));
+            res.json({
+                success: true,
+                message: 'Credit memo details fetched successfully',
+                data: {
+                    ...header,
+                    salesman,
+                    depot,
+                    sap_docnums: docnums.join(', '),
+                    total_lines: lines.length,
+                    total_quantity: totalQuantity,
+                    total_value: totalValue,
+                    lines,
+                },
+            });
+        }
+        catch (error) {
+            console.error('Get Credit Memo Details Error:', error);
+            res.status(500).json({
+                success: false,
+                message: error.message || 'Failed to fetch credit memo details',
+            });
+        }
+    },
+    /**
+     * Export Credit Memo Report to Excel
+     * @param req Express request
+     * @param res Express response
+     */
+    async exportCreditMemoReport(req, res) {
+        try {
+            const { start_date, end_date, depot_id, salesman_sap_code, status, search, } = req.query;
+            const where = {
+                is_active: 'Y',
+            };
+            const dateFilter = {};
+            if (start_date) {
+                dateFilter.gte = new Date(start_date);
+            }
+            if (end_date) {
+                const end = new Date(end_date);
+                end.setHours(23, 59, 59, 999);
+                dateFilter.lte = end;
+            }
+            if (Object.keys(dateFilter).length > 0) {
+                where.document_date = dateFilter;
+            }
+            if (status && status !== 'all') {
+                where.status = status;
+            }
+            if (salesman_sap_code) {
+                where.salesman_sap_code = salesman_sap_code;
+            }
+            if (depot_id) {
+                const depotRecord = await prisma_client_1.default.depots.findUnique({
+                    where: { id: parseInt(depot_id) },
+                    select: { sap_code: true },
+                });
+                if (depotRecord?.sap_code) {
+                    where.depot_sap_code = depotRecord.sap_code;
+                }
+            }
+            const reqUser = req.user;
+            if (reqUser && !(0, permissions_config_1.isAdminRole)(reqUser.role)) {
+                const userDepots = await prisma_client_1.default.user_depots.findMany({
+                    where: { user_id: reqUser.id },
+                    select: { depot_id: true },
+                });
+                const depotIds = userDepots
+                    .map((ud) => ud.depot_id)
+                    .filter((id) => id !== null);
+                let allowedDepotCodes = [];
+                if (depotIds.length > 0) {
+                    const userDepotRecords = await prisma_client_1.default.depots.findMany({
+                        where: { id: { in: depotIds } },
+                        select: { sap_code: true },
+                    });
+                    allowedDepotCodes = userDepotRecords
+                        .map((d) => d.sap_code)
+                        .filter(Boolean);
+                }
+                if (allowedDepotCodes.length > 0) {
+                    if (where.depot_sap_code) {
+                        if (!allowedDepotCodes.includes(where.depot_sap_code)) {
+                            where.id = -1;
+                        }
+                    }
+                    else {
+                        where.depot_sap_code = { in: allowedDepotCodes };
+                    }
+                }
+                else {
+                    where.id = -1;
+                }
+            }
+            const searchStr = typeof search === 'string' ? search.trim() : '';
+            if (searchStr) {
+                where.OR = [
+                    { batch_ref: { contains: searchStr } },
+                    { salesman_sap_code: { contains: searchStr } },
+                    { depot_sap_code: { contains: searchStr } },
+                    {
+                        sap_creditmemo_header: {
+                            some: {
+                                OR: [
+                                    { sap_docnum: { contains: searchStr } },
+                                    { product_sap_code: { contains: searchStr } },
+                                    { batch_number: { contains: searchStr } },
+                                ],
+                            },
+                        },
+                    },
+                ];
+            }
+            const headers = await prisma_client_1.default.sap_creditmemo_header.findMany({
+                where,
+                orderBy: { document_date: 'desc' },
+                include: {
+                    sap_creditmemo_header: true,
+                },
+            });
+            const salesmanCodes = Array.from(new Set(headers.map((h) => h.salesman_sap_code).filter(Boolean)));
+            const depotCodes = Array.from(new Set(headers.map((h) => h.depot_sap_code).filter(Boolean)));
+            const allLineProductCodes = new Set();
+            headers.forEach((h) => {
+                (h.sap_creditmemo_header || []).forEach((l) => {
+                    if (l.product_sap_code)
+                        allLineProductCodes.add(l.product_sap_code);
+                });
+            });
+            const [salesmen, depots, products] = await Promise.all([
+                salesmanCodes.length > 0
+                    ? prisma_client_1.default.users.findMany({
+                        where: {
+                            OR: [
+                                { sap_code: { in: salesmanCodes } },
+                                { employee_id: { in: salesmanCodes } },
+                            ],
+                        },
+                        select: {
+                            id: true,
+                            name: true,
+                            employee_id: true,
+                            sap_code: true,
+                        },
+                    })
+                    : [],
+                depotCodes.length > 0
+                    ? prisma_client_1.default.depots.findMany({
+                        where: {
+                            OR: [
+                                { sap_code: { in: depotCodes } },
+                                { code: { in: depotCodes } },
+                            ],
+                        },
+                        select: { id: true, name: true, code: true, sap_code: true },
+                    })
+                    : [],
+                allLineProductCodes.size > 0
+                    ? prisma_client_1.default.products.findMany({
+                        where: {
+                            OR: [
+                                { sap_code: { in: Array.from(allLineProductCodes) } },
+                                { code: { in: Array.from(allLineProductCodes) } },
+                            ],
+                        },
+                        select: {
+                            id: true,
+                            name: true,
+                            code: true,
+                            sap_code: true,
+                            unit_case_conversion_rate: true,
+                            product_sub_categories_products: {
+                                select: { sub_category_name: true },
+                            },
+                            product_categories_products: {
+                                select: { category_name: true },
+                            },
+                        },
+                    })
+                    : [],
+            ]);
+            const salesmanMap = new Map();
+            salesmen.forEach((s) => {
+                if (s.sap_code)
+                    salesmanMap.set(s.sap_code, s);
+                if (s.employee_id)
+                    salesmanMap.set(s.employee_id, s);
+            });
+            const depotMap = new Map();
+            depots.forEach((d) => {
+                if (d.sap_code)
+                    depotMap.set(d.sap_code, d);
+                if (d.code)
+                    depotMap.set(d.code, d);
+            });
+            const productMap = new Map();
+            products.forEach((p) => {
+                if (p.sap_code)
+                    productMap.set(p.sap_code, p);
+                if (p.code)
+                    productMap.set(p.code, p);
+            });
+            const ExcelJS = await Promise.resolve().then(() => __importStar(require('exceljs')));
+            const workbook = new ExcelJS.Workbook();
+            const summarySheet = workbook.addWorksheet('Credit Memos');
+            summarySheet.columns = [
+                { header: 'Memo ID', key: 'id', width: 12 },
+                { header: 'Batch Reference', key: 'batch_ref', width: 35 },
+                { header: 'SAP Doc Numbers', key: 'sap_docnums', width: 30 },
+                { header: 'Document Date', key: 'document_date', width: 15 },
+                { header: 'Salesman Name', key: 'salesman_name', width: 25 },
+                { header: 'Salesman SAP Code', key: 'salesman_sap_code', width: 20 },
+                { header: 'Depot Name', key: 'depot_name', width: 25 },
+                { header: 'Depot Code', key: 'depot_code', width: 15 },
+                { header: 'Status', key: 'status', width: 15 },
+                { header: 'Total Items', key: 'total_lines', width: 15 },
+                { header: 'Total Quantity', key: 'total_quantity', width: 15 },
+                { header: 'Total Value (TZS)', key: 'total_value', width: 20 },
+                { header: 'Created Date', key: 'createdate', width: 18 },
+            ];
+            const detailSheet = workbook.addWorksheet('Line Items Detail');
+            detailSheet.columns = [
+                { header: 'Memo ID', key: 'header_id', width: 12 },
+                { header: 'Batch Reference', key: 'batch_ref', width: 35 },
+                { header: 'SAP Doc Num', key: 'sap_docnum', width: 20 },
+                { header: 'SAP Doc Entry', key: 'sap_docentry', width: 18 },
+                { header: 'SAP Line ID', key: 'sap_lineid', width: 15 },
+                { header: 'Product SAP Code', key: 'product_sap_code', width: 20 },
+                { header: 'Product Name', key: 'product_name', width: 30 },
+                { header: 'Batch Number', key: 'batch_number', width: 20 },
+                { header: 'Storage Location', key: 'storage_location', width: 18 },
+                { header: 'Quantity', key: 'quantity', width: 15 },
+                { header: 'Base Quantity', key: 'base_quantity', width: 15 },
+                { header: 'Purchase Price (TZS)', key: 'purchase_price', width: 20 },
+                { header: 'Total Amount (TZS)', key: 'total_amount', width: 20 },
+                { header: 'Quality Grade', key: 'quality_grade', width: 15 },
+                { header: 'Supplier Name', key: 'supplier_name', width: 25 },
+                { header: 'Status', key: 'status', width: 15 },
+                { header: 'Manufacturing Date', key: 'manufacturing_date', width: 18 },
+                { header: 'Expiry Date', key: 'expiry_date', width: 18 },
+            ];
+            headers.forEach((h) => {
+                const rawLines = h.sap_creditmemo_header || [];
+                const lines = rawLines.map((l) => ({
+                    ...l,
+                    product_name: productMap.get(l.product_sap_code)?.name || 'N/A',
+                    total_amount: Number(l.quantity || 0) * Number(l.purchase_price || 0),
+                }));
+                const memoTotalQty = lines.reduce((acc, cur) => acc + Number(cur.quantity || 0), 0);
+                const memoTotalVal = lines.reduce((acc, cur) => acc + Number(cur.total_amount || 0), 0);
+                const docnums = Array.from(new Set(lines.map((l) => l.sap_docnum).filter(Boolean)));
+                const statusLabel = h.status === 'A'
+                    ? 'Approved'
+                    : h.status === 'P'
+                        ? 'Pending'
+                        : h.status === 'R'
+                            ? 'Rejected'
+                            : h.status;
+                summarySheet.addRow({
+                    id: h.id,
+                    batch_ref: h.batch_ref,
+                    sap_docnums: docnums.join(', ') || 'N/A',
+                    document_date: h.document_date
+                        ? new Date(h.document_date).toISOString().split('T')[0]
+                        : 'N/A',
+                    salesman_name: salesmanMap.get(h.salesman_sap_code)?.name || 'N/A',
+                    salesman_sap_code: h.salesman_sap_code || 'N/A',
+                    depot_name: depotMap.get(h.depot_sap_code)?.name || 'N/A',
+                    depot_code: depotMap.get(h.depot_sap_code)?.code || h.depot_sap_code || 'N/A',
+                    status: statusLabel,
+                    total_lines: lines.length,
+                    total_quantity: memoTotalQty,
+                    total_value: memoTotalVal,
+                    createdate: h.createdate
+                        ? new Date(h.createdate).toISOString().split('T')[0]
+                        : 'N/A',
+                });
+                lines.forEach((l) => {
+                    detailSheet.addRow({
+                        header_id: h.id,
+                        batch_ref: h.batch_ref,
+                        sap_docnum: l.sap_docnum || 'N/A',
+                        sap_docentry: l.sap_docentry || 'N/A',
+                        sap_lineid: l.sap_lineid || 'N/A',
+                        product_sap_code: l.product_sap_code || 'N/A',
+                        product_name: l.product_name || 'N/A',
+                        batch_number: l.batch_number || 'N/A',
+                        storage_location: l.storage_location || 'N/A',
+                        quantity: Number(l.quantity || 0),
+                        base_quantity: l.base_quantity ?? 'N/A',
+                        purchase_price: Number(l.purchase_price || 0),
+                        total_amount: l.total_amount,
+                        quality_grade: l.quality_grade || 'N/A',
+                        supplier_name: l.supplier_name || 'N/A',
+                        status: l.status === 'A'
+                            ? 'Approved'
+                            : l.status === 'P'
+                                ? 'Pending'
+                                : l.status === 'R'
+                                    ? 'Rejected'
+                                    : l.status || 'N/A',
+                        manufacturing_date: l.manufacturing_date
+                            ? new Date(l.manufacturing_date).toISOString().split('T')[0]
+                            : 'N/A',
+                        expiry_date: l.expiry_date
+                            ? new Date(l.expiry_date).toISOString().split('T')[0]
+                            : 'N/A',
+                    });
+                });
+            });
+            [summarySheet, detailSheet].forEach(sheet => {
+                const headerRow = sheet.getRow(1);
+                headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+                headerRow.fill = {
+                    type: 'pattern',
+                    pattern: 'solid',
+                    fgColor: { argb: 'FF4472C4' },
+                };
+                headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
+                headerRow.height = 25;
+            });
+            const buffer = await workbook.xlsx.writeBuffer();
+            res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+            res.setHeader('Content-Disposition', 'attachment; filename=Credit_Memo_Report_' + Date.now() + '.xlsx');
+            res.setHeader('Content-Length', buffer.byteLength.toString());
+            res.send(Buffer.from(buffer));
+        }
+        catch (error) {
+            console.error('Export Credit Memo Report Error:', error);
+            res.status(500).json({
+                success: false,
+                message: error.message || 'Failed to export credit memo report',
             });
         }
     },

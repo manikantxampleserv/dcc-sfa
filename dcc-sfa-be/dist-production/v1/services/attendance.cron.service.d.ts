@@ -3,6 +3,7 @@ export declare class AttendanceCronService {
     static startMidnightStatusReset(): void;
     static performRequestLogsCleanup(): Promise<void>;
     static performErrorLogsCleanup(): Promise<void>;
+    static performMobileErrorLogsCleanup(): Promise<void>;
     static startRequestLogsCleanup(): void;
     static stopAllCronJobs(): void;
 }

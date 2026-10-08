@@ -182,5 +182,23 @@ router.get('/promotion-materials-issued', auth_middleware_1.authenticateToken, (
  * @access Private (requires authentication)
  */
 router.get('/promotion-materials-issued/export', auth_middleware_1.authenticateToken, (0, auth_middleware_1.requirePermission)([{ module: 'report', action: 'read' }]), reports_controller_1.reportsController.exportPromotionMaterialsIssuedReport);
+/**
+ * @route GET /api/v1/reports/credit-memo
+ * @description Get Credit Memo Report
+ * @access Private (requires authentication)
+ */
+router.get('/credit-memo', auth_middleware_1.authenticateToken, (0, auth_middleware_1.requirePermission)([{ module: 'report', action: 'read' }]), reports_controller_1.reportsController.getCreditMemoReport);
+/**
+ * @route GET /api/v1/reports/credit-memo/export
+ * @description Export Credit Memo Report to Excel
+ * @access Private (requires authentication)
+ */
+router.get('/credit-memo/export', auth_middleware_1.authenticateToken, (0, auth_middleware_1.requirePermission)([{ module: 'report', action: 'read' }]), reports_controller_1.reportsController.exportCreditMemoReport);
+/**
+ * @route GET /api/v1/reports/credit-memo/:id
+ * @description Get Credit Memo Report By ID with lines and details
+ * @access Private (requires authentication)
+ */
+router.get('/credit-memo/:id', auth_middleware_1.authenticateToken, (0, auth_middleware_1.requirePermission)([{ module: 'report', action: 'read' }]), reports_controller_1.reportsController.getCreditMemoReportById);
 exports.default = router;
 //# sourceMappingURL=reports.routes.js.map
