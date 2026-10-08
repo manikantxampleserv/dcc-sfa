@@ -125,10 +125,41 @@ export declare const sapService: {
         wasUpdate: boolean;
     }>;
     processApprovedVanInventoryStock(inventoryId: number, userId?: number): Promise<void>;
-    createOrUpdateReconciliationSAP(payload: any, userId: number): Promise<{
+    createOrUpdateReconciliationSAP(payload: any, userId: number, options?: {
+        isApprovedCommit?: boolean;
+        headerId?: number;
+    }): Promise<{
+        staged: boolean;
+        batch_ref: any;
+        header_id: any;
+        request_id: any;
+        status: string;
+        message: string;
+        items_count: number;
+    } | {
         reconciliation_id: number;
         updated_items: number;
         items: any[];
     }>;
+    stageCreditMemoForApproval(params: {
+        payload: any;
+        salesman_sap_code: string;
+        depot_sap_code?: string;
+        document_date: string;
+        creditMemoItems: any[];
+        spUser: any;
+        depotId: number | null;
+        userId: number;
+        reconciliationId?: number;
+    }): Promise<{
+        staged: boolean;
+        batch_ref: any;
+        header_id: any;
+        request_id: any;
+        status: string;
+        message: string;
+        items_count: number;
+    }>;
+    commitCreditMemoToReconciliation(headerId: number, approvedBy: number): Promise<any>;
 };
 //# sourceMappingURL=sap.service.d.ts.map
