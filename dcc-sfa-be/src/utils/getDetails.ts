@@ -467,10 +467,6 @@ async function getRequestDetailsByType(
         };
 
       case 'SAP_CREDITMEMO_APPROVAL':
-        console.log(
-          '[getDetails] SAP_CREDITMEMO_APPROVAL case hit, reference_id:',
-          reference_id
-        );
         let creditMemoHeader = await (
           prisma as any
         ).sap_creditmemo_header.findUnique({
@@ -503,15 +499,12 @@ async function getRequestDetailsByType(
               });
             }
           } catch (e) {
-            console.error(
-              '[getDetails] Error parsing request_data for fallback:',
-              e
-            );
+            console.error('Error parsing request_data for fallback:', e);
           }
         }
 
         console.log(
-          '[getDetails] creditMemoHeader:',
+          ' creditMemoHeader:',
           creditMemoHeader
             ? `id=${creditMemoHeader.id}, lines=${creditMemoHeader.sap_creditmemo_header?.length}`
             : 'NOT FOUND'
@@ -574,10 +567,7 @@ async function getRequestDetailsByType(
           depot: depotData,
           items: itemsWithProducts,
         };
-        console.log(
-          '[getDetails] returning items count:',
-          result_cm.items.length
-        );
+
         return result_cm;
 
       default:
