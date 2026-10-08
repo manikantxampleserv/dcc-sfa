@@ -4183,7 +4183,43 @@ export const sapService = {
             );
           }, 0);
 
-          if (Math.abs(expectedQty - totalBatchQty) > 0.0001) {
+          let isMatch = Math.abs(expectedQty - totalBatchQty) <= 0.0001;
+
+          if (!isMatch) {
+            const itemCode =
+              item.product_sap_code ||
+              item.sap_item_code;
+            let conv = 1;
+            if (itemCode || item.product_id) {
+              const prod = await prisma.products.findFirst({
+                where: itemCode
+                  ? { sap_code: String(itemCode) }
+                  : { id: Number(item.product_id) },
+                include: { product_unit_of_measurement: true },
+              });
+              if (prod?.product_unit_of_measurement?.conversion_rate) {
+                conv =
+                  Number(prod.product_unit_of_measurement.conversion_rate) || 1;
+              }
+            }
+
+            const totalBatchWithBase = item.batches.reduce(
+              (sum: number, b: any) => {
+                const bQty = Number(b.quantity ?? b.actual_qty ?? 0);
+                const bBaseQty = Number(
+                  b.base_quantity ?? b.actual_base_qty ?? 0
+                );
+                return sum + bQty + (conv > 1 ? bBaseQty / conv : 0);
+              },
+              0
+            );
+
+            if (Math.abs(expectedQty - totalBatchWithBase) <= 0.0001) {
+              isMatch = true;
+            }
+          }
+
+          if (!isMatch) {
             const productRef =
               item.product_sap_code ||
               item.product_id ||
@@ -4639,21 +4675,35 @@ export const sapService = {
 
           const effectiveActual =
             parsedActual !== null
-              ? parsedActual
+              ? (record?.actual_qty !== null && record?.actual_qty !== undefined
+                  ? Number(record.actual_qty) + parsedActual
+                  : parsedActual)
               : record?.actual_qty !== null && record?.actual_qty !== undefined
                 ? Number(record.actual_qty)
                 : null;
           const effectiveActualBase =
             parsedActualBase !== null
-              ? parsedActualBase
+              ? (record?.actual_base_qty !== null && record?.actual_base_qty !== undefined
+                  ? Number(record.actual_base_qty) + parsedActualBase
+                  : parsedActualBase)
               : record?.actual_base_qty !== null &&
                   record?.actual_base_qty !== undefined
                 ? Number(record.actual_base_qty)
                 : null;
 
-          if (effectiveActual !== null || effectiveActualBase !== null) {
-            const actual = effectiveActual || 0;
-            const actualBase = effectiveActualBase || 0;
+          let finalActual = effectiveActual;
+          let finalActualBase = effectiveActualBase;
+          if (conv > 1 && finalActualBase !== null && finalActualBase !== undefined) {
+            const extraCases = Math.floor(finalActualBase / conv);
+            if (extraCases > 0) {
+              finalActual = (finalActual || 0) + extraCases;
+              finalActualBase = finalActualBase % conv;
+            }
+          }
+
+          if (finalActual !== null || finalActualBase !== null) {
+            const actual = finalActual || 0;
+            const actualBase = finalActualBase || 0;
 
             const actualTotalPieces = actual * conv + actualBase;
             const variancePieces = Math.round(
@@ -4705,8 +4755,8 @@ export const sapService = {
             sale_base_qty: saleBaseQty,
             expected_qty: expectedQty,
             expected_base_qty: expectedBaseQty,
-            actual_qty: effectiveActual,
-            actual_base_qty: effectiveActualBase,
+            actual_qty: finalActual,
+            actual_base_qty: finalActualBase,
             unit_price:
               itemPayload.purchase_price !== undefined &&
               itemPayload.purchase_price !== null &&
@@ -4942,7 +4992,9 @@ export const sapService = {
       }
 
       if (isUpdate && header) {
-        await (prisma as any).sap_creditmemo_line.deleteMany({
+        const existingHeaderLine = await (
+          prisma as any
+        ).sap_creditmemo_line.findFirst({
           where: {
             header_id: header.id,
             source_system: sourceSystem,
@@ -4951,6 +5003,39 @@ export const sapService = {
             ...(batchNumber ? { batch_number: batchNumber } : {}),
           },
         });
+        if (existingHeaderLine) {
+          const prevQty = Number(existingHeaderLine.quantity) || 0;
+          const prevBaseQty = Number(existingHeaderLine.base_quantity) || 0;
+          const incomingQty =
+            item.quantity !== undefined &&
+            item.quantity !== null &&
+            item.quantity !== ''
+              ? Number(item.quantity)
+              : item.actual_qty !== undefined &&
+                  item.actual_qty !== null &&
+                  item.actual_qty !== ''
+                ? Number(item.actual_qty)
+                : 0;
+          const incomingBaseQty =
+            item.base_quantity !== undefined &&
+            item.base_quantity !== null &&
+            item.base_quantity !== ''
+              ? Number(item.base_quantity)
+              : item.actual_base_qty !== undefined &&
+                  item.actual_base_qty !== null &&
+                  item.actual_base_qty !== ''
+                ? Number(item.actual_base_qty)
+                : 0;
+
+          item._accumulated_qty = prevQty + incomingQty;
+          item._accumulated_base_qty = prevBaseQty + incomingBaseQty;
+
+          await (prisma as any).sap_creditmemo_line.deleteMany({
+            where: {
+              id: existingHeaderLine.id,
+            },
+          });
+        }
       }
     }
 
@@ -5021,21 +5106,29 @@ export const sapService = {
       ),
       batch_number: item.batch_number ? String(item.batch_number) : null,
       quantity:
-        item.quantity !== undefined &&
-        item.quantity !== null &&
-        item.quantity !== ''
-          ? Number(item.quantity)
-          : item.actual_qty !== undefined &&
-              item.actual_qty !== null &&
-              item.actual_qty !== ''
-            ? Number(item.actual_qty)
-            : null,
+        item._accumulated_qty !== undefined
+          ? item._accumulated_qty
+          : item.quantity !== undefined &&
+            item.quantity !== null &&
+            item.quantity !== ''
+            ? Number(item.quantity)
+            : item.actual_qty !== undefined &&
+                item.actual_qty !== null &&
+                item.actual_qty !== ''
+              ? Number(item.actual_qty)
+              : null,
       base_quantity:
-        item.base_quantity !== undefined &&
-        item.base_quantity !== null &&
-        item.base_quantity !== ''
-          ? Number(item.base_quantity)
-          : null,
+        item._accumulated_base_qty !== undefined
+          ? item._accumulated_base_qty
+          : item.base_quantity !== undefined &&
+            item.base_quantity !== null &&
+            item.base_quantity !== ''
+            ? Number(item.base_quantity)
+            : item.actual_base_qty !== undefined &&
+                item.actual_base_qty !== null &&
+                item.actual_base_qty !== ''
+              ? Number(item.actual_base_qty)
+              : null,
       purchase_price:
         item.purchase_price !== undefined &&
         item.purchase_price !== null &&
