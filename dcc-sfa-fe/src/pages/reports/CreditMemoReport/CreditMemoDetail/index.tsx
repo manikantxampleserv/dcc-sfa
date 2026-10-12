@@ -36,11 +36,13 @@ function formatQuantityDisplay(
   uomCase: string,
   uomPcs: string
 ): string {
+  const isNegative = cases < 0 || pieces < 0;
+  const sign = isNegative ? '-' : '';
   const c = Math.abs(cases);
   const p = Math.abs(pieces);
 
   if (!isRGB) {
-    return `${c} ${uomCase}`;
+    return `${sign}${c} ${uomCase}`;
   }
 
   if (c === 0 && p === 0) {
@@ -48,14 +50,14 @@ function formatQuantityDisplay(
   }
 
   if (c === 0) {
-    return `${p} ${uomPcs}`;
+    return `${sign}${p} ${uomPcs}`;
   }
 
   if (p === 0) {
-    return `${c} ${uomCase}`;
+    return `${sign}${c} ${uomCase}`;
   }
 
-  return `${c} ${uomCase} ${p} ${uomPcs}`;
+  return `${sign}${c} ${uomCase} ${p} ${uomPcs}`;
 }
 
 const CreditMemoDetail: React.FC = () => {
@@ -170,7 +172,17 @@ const CreditMemoDetail: React.FC = () => {
           const total = (c || 0) * conv + (p || 0);
           const sign = total < 0 ? -1 : 1;
           const abs = Math.abs(total);
-          return { c: Math.floor(abs / conv) * sign, p: (abs % conv) * sign };
+
+          // Use toFixed to eliminate float math inaccuracies (e.g., 41.412 / 1.479)
+          const rawC = Number((abs / conv).toFixed(6));
+          const finalC = Math.floor(rawC);
+          const rawP = Number((abs - finalC * conv).toFixed(6));
+          const finalP = Math.round(rawP);
+
+          return {
+            c: finalC * sign,
+            p: finalP * sign,
+          };
         };
 
         const qty = normalizeQty(

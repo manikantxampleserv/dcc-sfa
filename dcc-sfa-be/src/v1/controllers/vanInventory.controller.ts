@@ -6180,8 +6180,9 @@ export const vanInventoryController = {
               },
             });
             if (!user) return null;
-            
-            const actualDepotId = user.depot_id || user.users_depots_users?.[0]?.depot_id;
+
+            const actualDepotId =
+              user.depot_id || user.users_depots_users?.[0]?.depot_id;
 
             const productIdsInStock = stockToUnload
               .map(s => s.product_id)
@@ -6739,7 +6740,7 @@ export const vanInventoryController = {
                 resolution_action: 'Awaiting Verification',
                 default_outlet_posting_qty: 0,
                 unload_adjustment_qty: 0,
-                stock_key: `${user.sap_code ?? user.id} | ${p.product_code}${p.batch_number ? ` | ${p.batch_number}` : ''}`,
+                stock_key: `${user.sap_code ?? user.id} | ${p.product_code}${p.batch_number && p.batch_number !== '-' && p.batch_number !== 'null' ? ` | ${p.batch_number}` : ''}`,
                 is_active: 'Y',
                 createdate: new Date(),
                 createdby: userIdNum,

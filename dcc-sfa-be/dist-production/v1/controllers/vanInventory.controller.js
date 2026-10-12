@@ -5359,7 +5359,7 @@ exports.vanInventoryController = {
                                 resolution_action: 'Awaiting Verification',
                                 default_outlet_posting_qty: 0,
                                 unload_adjustment_qty: 0,
-                                stock_key: `${user.sap_code ?? user.id} | ${p.product_code}${p.batch_number ? ` | ${p.batch_number}` : ''}`,
+                                stock_key: `${user.sap_code ?? user.id} | ${p.product_code}${p.batch_number && p.batch_number !== '-' && p.batch_number !== 'null' ? ` | ${p.batch_number}` : ''}`,
                                 is_active: 'Y',
                                 createdate: new Date(),
                                 createdby: userIdNum,

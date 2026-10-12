@@ -284,6 +284,7 @@ exports.userController = {
             }
             const filters = {
                 is_active: isActive,
+                name: { notIn: ['iuser', 'IUSER'] },
                 ...(search && {
                     OR: [
                         {
@@ -384,12 +385,14 @@ exports.userController = {
                     },
                 },
             });
-            const totalUsers = await prisma_client_1.default.users.count();
+            const totalUsers = await prisma_client_1.default.users.count({
+                where: { name: { notIn: ['iuser', 'IUSER'] } },
+            });
             const activeUsers = await prisma_client_1.default.users.count({
-                where: { is_active: 'Y' },
+                where: { is_active: 'Y', name: { notIn: ['iuser', 'IUSER'] } },
             });
             const inactiveUsers = await prisma_client_1.default.users.count({
-                where: { is_active: 'N' },
+                where: { is_active: 'N', name: { notIn: ['iuser', 'IUSER'] } },
             });
             const now = new Date();
             const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -400,9 +403,12 @@ exports.userController = {
                         gte: startOfMonth,
                         lt: endOfMonth,
                     },
+                    name: { notIn: ['iuser', 'IUSER'] },
                 },
             });
-            res.success('Users retrieved successfully', data.map((user) => serializeUser(user, true, true)), 200, pagination, {
+            res.success('Users retrieved successfully', data
+                .filter((user) => user.name?.trim().toLowerCase() !== 'iuser')
+                .map((user) => serializeUser(user, true, true)), 200, pagination, {
                 total_users: totalUsers,
                 active_users: activeUsers,
                 inactive_users: inactiveUsers,
@@ -435,7 +441,10 @@ exports.userController = {
                     .map((ud) => ud.depot_id)
                     .filter((id) => id !== null);
             }
-            const whereClause = { id };
+            const whereClause = {
+                id,
+                name: { notIn: ['iuser', 'IUSER'] },
+            };
             if (isScopeRestricted) {
                 if (depotIds.length > 0) {
                     whereClause.users_depots_users = {
@@ -1167,6 +1176,7 @@ exports.userController = {
             const where = {
                 is_active: 'Y',
                 id: { not: 27 },
+                name: { notIn: ['iuser', 'IUSER'] },
             };
             if (isScopeRestricted) {
                 if (depotIds.length > 0) {
@@ -1252,7 +1262,9 @@ exports.userController = {
                 },
                 take: 50,
             });
-            res.success('Users dropdown fetched successfully', users?.map(u => ({
+            res.success('Users dropdown fetched successfully', users
+                ?.filter(u => u.name?.trim().toLowerCase() !== 'iuser')
+                .map(u => ({
                 id: u.id,
                 name: u.name,
                 code: u.employee_id,
