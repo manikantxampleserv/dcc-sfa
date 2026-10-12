@@ -25,6 +25,9 @@ const userWithRoleAndPermissions = {
   },
 };
 
+const INACTIVITY_TIMEOUT_MS =
+  Number(process.env.SESSION_INACTIVITY_TIMEOUT_MS) || 2 * 60 * 60 * 1000;
+
 export const authenticateToken = async (req: any, res: any, next: any) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
@@ -62,6 +65,33 @@ export const authenticateToken = async (req: any, res: any, next: any) => {
         return res.status(401).json({
           error: 'token_expired',
           message: 'This token has expired. Please login again.',
+        });
+      }
+
+      const lastActive = dbToken.updated_date
+        ? new Date(dbToken.updated_date).getTime()
+        : new Date(
+            dbToken.issued_at || dbToken.created_date || Date.now()
+          ).getTime();
+
+      if (Date.now() - lastActive > INACTIVITY_TIMEOUT_MS) {
+        try {
+          await prisma.api_tokens.update({
+            where: { id: dbToken.id },
+            data: {
+              is_active: 'N',
+              is_revoked: true,
+              updated_date: new Date(),
+            },
+          });
+        } catch (updateErr) {
+          console.error('Error revoking inactive token:', updateErr);
+        }
+
+        return res.status(401).json({
+          error: 'session_inactive_timeout',
+          message:
+            'Session expired due to 2 hours of inactivity. Please login again.',
         });
       }
 
@@ -174,6 +204,34 @@ export const authenticateApiToken = async (req: any, res: any, next: any) => {
         success: false,
         error: 'token_expired',
         message: 'This API token has expired',
+      });
+    }
+
+    const lastActiveApiToken = apiToken.updated_date
+      ? new Date(apiToken.updated_date).getTime()
+      : new Date(
+          apiToken.issued_at || apiToken.created_date || Date.now()
+        ).getTime();
+
+    if (Date.now() - lastActiveApiToken > INACTIVITY_TIMEOUT_MS) {
+      try {
+        await prisma.api_tokens.update({
+          where: { id: apiToken.id },
+          data: {
+            is_active: 'N',
+            is_revoked: true,
+            updated_date: new Date(),
+          },
+        });
+      } catch (updateErr) {
+        console.error('Error revoking inactive API token:', updateErr);
+      }
+
+      return res.status(401).json({
+        success: false,
+        error: 'session_inactive_timeout',
+        message:
+          'Session expired due to 2 hours of inactivity. Please login again.',
       });
     }
 
