@@ -12,5 +12,8 @@ export declare const salesManagerController: {
     getZoneTargetRoutes(req: Request, res: Response): Promise<void>;
     getAttentionRoutes(req: Request, res: Response): Promise<void>;
     getCommissionDetails(req: Request, res: Response): Promise<void>;
+    getCoolerReport(req: Request, res: Response): Promise<void>;
+    getVisitsReport(req: Request, res: Response): Promise<void>;
+    getTeamReport(req: Request, res: Response): Promise<void>;
 };
 //# sourceMappingURL=salesManager.controller.d.ts.map
