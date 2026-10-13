@@ -4186,9 +4186,7 @@ export const sapService = {
           let isMatch = Math.abs(expectedQty - totalBatchQty) <= 0.0001;
 
           if (!isMatch) {
-            const itemCode =
-              item.product_sap_code ||
-              item.sap_item_code;
+            const itemCode = item.product_sap_code || item.sap_item_code;
             let conv = 1;
             if (itemCode || item.product_id) {
               const prod = await prisma.products.findFirst({
@@ -4675,17 +4673,18 @@ export const sapService = {
 
           const effectiveActual =
             parsedActual !== null
-              ? (record?.actual_qty !== null && record?.actual_qty !== undefined
-                  ? Number(record.actual_qty) + parsedActual
-                  : parsedActual)
+              ? record?.actual_qty !== null && record?.actual_qty !== undefined
+                ? Number(record.actual_qty) + parsedActual
+                : parsedActual
               : record?.actual_qty !== null && record?.actual_qty !== undefined
                 ? Number(record.actual_qty)
                 : null;
           const effectiveActualBase =
             parsedActualBase !== null
-              ? (record?.actual_base_qty !== null && record?.actual_base_qty !== undefined
-                  ? Number(record.actual_base_qty) + parsedActualBase
-                  : parsedActualBase)
+              ? record?.actual_base_qty !== null &&
+                record?.actual_base_qty !== undefined
+                ? Number(record.actual_base_qty) + parsedActualBase
+                : parsedActualBase
               : record?.actual_base_qty !== null &&
                   record?.actual_base_qty !== undefined
                 ? Number(record.actual_base_qty)
@@ -4693,7 +4692,11 @@ export const sapService = {
 
           let finalActual = effectiveActual;
           let finalActualBase = effectiveActualBase;
-          if (conv > 1 && finalActualBase !== null && finalActualBase !== undefined) {
+          if (
+            conv > 1 &&
+            finalActualBase !== null &&
+            finalActualBase !== undefined
+          ) {
             const extraCases = Math.floor(finalActualBase / conv);
             if (extraCases > 0) {
               finalActual = (finalActual || 0) + extraCases;
@@ -4775,7 +4778,7 @@ export const sapService = {
             unload_adjustment_qty: unloadAdjustmentQty,
             unload_adjustment_base_qty: unloadAdjustmentBaseQty,
             is_active: itemPayload.is_active || 'Y',
-            stock_key: `${salesman_sap_code} | ${itemCode}${batchNumber ? ` | ${batchNumber}` : ''}`,
+            stock_key: `${salesman_sap_code} | ${itemCode}${batchNumber && batchNumber !== '-' && batchNumber !== 'null' ? ` | ${batchNumber}` : ''}`,
             updatedate: new Date(),
             updatedby: userId,
           };
@@ -5109,8 +5112,8 @@ export const sapService = {
         item._accumulated_qty !== undefined
           ? item._accumulated_qty
           : item.quantity !== undefined &&
-            item.quantity !== null &&
-            item.quantity !== ''
+              item.quantity !== null &&
+              item.quantity !== ''
             ? Number(item.quantity)
             : item.actual_qty !== undefined &&
                 item.actual_qty !== null &&
@@ -5121,8 +5124,8 @@ export const sapService = {
         item._accumulated_base_qty !== undefined
           ? item._accumulated_base_qty
           : item.base_quantity !== undefined &&
-            item.base_quantity !== null &&
-            item.base_quantity !== ''
+              item.base_quantity !== null &&
+              item.base_quantity !== ''
             ? Number(item.base_quantity)
             : item.actual_base_qty !== undefined &&
                 item.actual_base_qty !== null &&
@@ -5161,9 +5164,8 @@ export const sapService = {
 
     let approvalRequest: any = null;
     try {
-      const { createRequest } = await import(
-        '../controllers/requests.controller'
-      );
+      const { createRequest } =
+        await import('../controllers/requests.controller');
 
       const allLines = await (prisma as any).sap_creditmemo_line.findMany({
         where: { header_id: header.id },

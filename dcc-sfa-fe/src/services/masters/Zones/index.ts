@@ -64,6 +64,7 @@ interface GetZonesParams {
   search?: string;
   isActive?: string;
   parent_id?: number;
+  supervisor_id?: number;
 }
 
 interface PaginationMeta {

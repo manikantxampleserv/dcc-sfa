@@ -18,6 +18,7 @@ import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
+import UserSelect from 'shared/UserSelect';
 import { formatDateTime } from 'utils/dateUtils';
 import { useDepots } from '../../../hooks/useDepots';
 import { useExportToExcel } from '../../../hooks/useImportExport';
@@ -27,7 +28,7 @@ import ManageZone from './ManageZone';
 
 const ZonesManagement: React.FC = () => {
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [supervisorFilter, setSupervisorFilter] = useState('');
   const [depotFilter, setDepotFilter] = useState('all');
   const [selectedZone, setSelectedZone] = useState<Zone | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -45,12 +46,7 @@ const ZonesManagement: React.FC = () => {
       search,
       page,
       limit,
-      isActive:
-        statusFilter === 'all'
-          ? undefined
-          : statusFilter === 'active'
-            ? 'Y'
-            : 'N',
+      supervisor_id: supervisorFilter ? Number(supervisorFilter) : undefined,
       parent_id: depotFilter === 'all' ? undefined : Number(depotFilter),
     },
     {
@@ -103,6 +99,11 @@ const ZonesManagement: React.FC = () => {
     setPage(1);
   }, []);
 
+  const handleSupervisorFilterChange = useCallback((_event: any, user: any) => {
+    setSupervisorFilter(user ? String(user.id) : '');
+    setPage(1);
+  }, []);
+
   const handlePageChange = (newPage: number) => {
     setPage(newPage + 1);
   };
@@ -111,12 +112,7 @@ const ZonesManagement: React.FC = () => {
     try {
       const filters = {
         search,
-        isActive:
-          statusFilter === 'all'
-            ? undefined
-            : statusFilter === 'active'
-              ? 'Y'
-              : 'N',
+        supervisor_id: supervisorFilter ? Number(supervisorFilter) : undefined,
         parent_id: depotFilter === 'all' ? undefined : Number(depotFilter),
       };
 
@@ -127,7 +123,7 @@ const ZonesManagement: React.FC = () => {
     } catch (error) {
       console.error('Error exporting zones:', error);
     }
-  }, [exportToExcelMutation, search, statusFilter, depotFilter]);
+  }, [exportToExcelMutation, search, supervisorFilter, depotFilter]);
 
   const zoneColumns: TableColumn<Zone>[] = [
     {
@@ -334,18 +330,8 @@ const ZonesManagement: React.FC = () => {
                       debounceMs={400}
                       showClear={true}
                       fullWidth={false}
-                      className="!min-w-80"
+                      className="!min-w-40"
                     />
-                    <Select
-                      value={statusFilter}
-                      onChange={e => setStatusFilter(e.target.value)}
-                      size="small"
-                      disableClearable
-                    >
-                      <MenuItem value="all">All Status</MenuItem>
-                      <MenuItem value="active">Active</MenuItem>
-                      <MenuItem value="inactive">Inactive</MenuItem>
-                    </Select>
                     <Select
                       value={depotFilter}
                       onChange={e => setDepotFilter(e.target.value)}
@@ -360,6 +346,22 @@ const ZonesManagement: React.FC = () => {
                         </MenuItem>
                       ))}
                     </Select>
+                    <Box className="!min-w-64">
+                      <UserSelect
+                        name="supervisor_id"
+                        label=""
+                        placeholder="Select Sales Supervisor"
+                        value={supervisorFilter}
+                        setValue={val => {
+                          setSupervisorFilter(val || '');
+                          setPage(1);
+                        }}
+                        onChange={handleSupervisorFilterChange}
+                        roleName="Area Sales Supervisor"
+                        size="small"
+                        fullWidth
+                      />
+                    </Box>
                   </>
                 )}
               </div>

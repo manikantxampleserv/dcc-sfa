@@ -1,5 +1,5 @@
 import { Visibility } from '@mui/icons-material';
-import { Box, Chip } from '@mui/material';
+import { Box, Chip, MenuItem } from '@mui/material';
 import { usePermission } from 'hooks/usePermission';
 import {
   useReconciliations,
@@ -12,6 +12,7 @@ import { ActionButton } from 'shared/ActionButton';
 import DepotSelect from 'shared/DepotSelect';
 import Input from 'shared/Input';
 import SearchInput from 'shared/SearchInput';
+import Select from 'shared/Select';
 import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
 import { formatDate, formatDateTime } from 'utils/dateUtils';
@@ -24,8 +25,9 @@ export default function Reconciliation() {
       new Date().toISOString().split('T')[0]
   );
   const [depotFilter, setDepotFilter] = useState<number | undefined>(undefined);
+  const [approvalStatusFilter, setApprovalStatusFilter] = useState('all');
   const [page, setPage] = useState(1);
-  const [limit] = useState(10);
+  const [limit] = useState(20);
 
   const { isRead } = usePermission('reconciliation');
 
@@ -37,6 +39,10 @@ export default function Reconciliation() {
       depot_id: depotFilter,
       date: selectedDate || undefined,
       status: 'all',
+      rec_status:
+        approvalStatusFilter === 'all' ? undefined : approvalStatusFilter,
+      approval_status:
+        approvalStatusFilter === 'all' ? undefined : approvalStatusFilter,
     },
     {
       enabled: isRead,
@@ -249,6 +255,21 @@ export default function Reconciliation() {
                   }}
                   className="!w-44"
                 />
+                <Select
+                  value={approvalStatusFilter}
+                  onChange={e => {
+                    setApprovalStatusFilter(e.target.value);
+                    setPage(1);
+                  }}
+                  size="small"
+                  disableClearable
+                  className="!w-44"
+                >
+                  <MenuItem value="all">All Status</MenuItem>
+                  <MenuItem value="A">Approved</MenuItem>
+                  <MenuItem value="P">Pending</MenuItem>
+                  <MenuItem value="R">Rejected</MenuItem>
+                </Select>
 
                 <div className="w-64">
                   <DepotSelect

@@ -3513,8 +3513,7 @@ exports.sapService = {
                     }, 0);
                     let isMatch = Math.abs(expectedQty - totalBatchQty) <= 0.0001;
                     if (!isMatch) {
-                        const itemCode = item.product_sap_code ||
-                            item.sap_item_code;
+                        const itemCode = item.product_sap_code || item.sap_item_code;
                         let conv = 1;
                         if (itemCode || item.product_id) {
                             const prod = await prisma_client_1.default.products.findFirst({
@@ -3861,23 +3860,26 @@ exports.sapService = {
                 let variance_base_qty = null;
                 let resAction = 'Awaiting Verification';
                 const effectiveActual = parsedActual !== null
-                    ? (record?.actual_qty !== null && record?.actual_qty !== undefined
+                    ? record?.actual_qty !== null && record?.actual_qty !== undefined
                         ? Number(record.actual_qty) + parsedActual
-                        : parsedActual)
+                        : parsedActual
                     : record?.actual_qty !== null && record?.actual_qty !== undefined
                         ? Number(record.actual_qty)
                         : null;
                 const effectiveActualBase = parsedActualBase !== null
-                    ? (record?.actual_base_qty !== null && record?.actual_base_qty !== undefined
+                    ? record?.actual_base_qty !== null &&
+                        record?.actual_base_qty !== undefined
                         ? Number(record.actual_base_qty) + parsedActualBase
-                        : parsedActualBase)
+                        : parsedActualBase
                     : record?.actual_base_qty !== null &&
                         record?.actual_base_qty !== undefined
                         ? Number(record.actual_base_qty)
                         : null;
                 let finalActual = effectiveActual;
                 let finalActualBase = effectiveActualBase;
-                if (conv > 1 && finalActualBase !== null && finalActualBase !== undefined) {
+                if (conv > 1 &&
+                    finalActualBase !== null &&
+                    finalActualBase !== undefined) {
                     const extraCases = Math.floor(finalActualBase / conv);
                     if (extraCases > 0) {
                         finalActual = (finalActual || 0) + extraCases;
@@ -3947,7 +3949,7 @@ exports.sapService = {
                     unload_adjustment_qty: unloadAdjustmentQty,
                     unload_adjustment_base_qty: unloadAdjustmentBaseQty,
                     is_active: itemPayload.is_active || 'Y',
-                    stock_key: `${salesman_sap_code} | ${itemCode}${batchNumber ? ` | ${batchNumber}` : ''}`,
+                    stock_key: `${salesman_sap_code} | ${itemCode}${batchNumber && batchNumber !== '-' && batchNumber !== 'null' ? ` | ${batchNumber}` : ''}`,
                     updatedate: new Date(),
                     updatedby: userId,
                 };

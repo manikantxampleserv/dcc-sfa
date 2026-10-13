@@ -465,7 +465,19 @@ export default function ReconciliationDetail() {
           </span>
         ),
       },
-      { id: 'stockKey', label: 'Stock Key', sortable: true },
+      {
+        id: 'stockKey',
+        label: 'Stock Key',
+        sortable: true,
+        render: val =>
+          typeof val === 'string'
+            ? val
+                .replace(/\s*\|\s*null\b/gi, '')
+                .replace(/\s*\|\s*undefined\b/gi, '')
+                .replace(/\s*\|\s*-\s*$/gi, '')
+                .trim() || '-'
+            : '-',
+      },
       { id: 'skuCode', label: 'SKU Code', sortable: true },
       { id: 'skuName', label: 'SKU Name', sortable: true },
       { id: 'batchNumber', label: 'Batch', sortable: true },
