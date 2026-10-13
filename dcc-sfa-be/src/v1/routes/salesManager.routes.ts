@@ -74,11 +74,28 @@ router.get(
 );
 // Target Dashboard & Details
 
-// Commission Dashboard & Details
 router.get(
   '/sales-manager/commission',
   authenticateToken,
   salesManagerController.getCommissionDetails
+);
+
+router.get(
+  '/sales-manager/reports/coolers',
+  authenticateToken,
+  salesManagerController.getCoolerReport
+);
+
+router.get(
+  '/sales-manager/reports/visits',
+  authenticateToken,
+  salesManagerController.getVisitsReport
+);
+
+router.get(
+  '/sales-manager/reports/team',
+  authenticateToken,
+  salesManagerController.getTeamReport
 );
 
 export default router;
