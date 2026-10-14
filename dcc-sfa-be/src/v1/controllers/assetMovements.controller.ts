@@ -1270,12 +1270,15 @@ export const assetMovementsController = {
         });
       }
 
+      const force =
+        req.query.regenerate === 'true' || req.query.force === 'true';
       const existingContract =
         await contractService.getContractByAssetMovementId(Number(id));
-      if (existingContract) {
-        return res
-          .status(400)
-          .json({ message: 'Contract already exists for this asset movement' });
+      if (existingContract && !force) {
+        return res.status(400).json({
+          message:
+            'Contract already exists for this asset movement. Add ?force=true to regenerate.',
+        });
       }
 
       const contractRecord = await contractService.generateContractOnApproval(

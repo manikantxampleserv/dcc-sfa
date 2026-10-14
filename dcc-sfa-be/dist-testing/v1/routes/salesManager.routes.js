@@ -19,7 +19,9 @@ router.get('/sales-manager/target/details', auth_middleware_1.authenticateToken,
 router.get('/sales-manager/target/attention-routes', auth_middleware_1.authenticateToken, salesManager_controller_1.salesManagerController.getAttentionRoutes);
 router.get('/sales-manager/target/zones/:zoneId/routes', auth_middleware_1.authenticateToken, salesManager_controller_1.salesManagerController.getZoneTargetRoutes);
 // Target Dashboard & Details
-// Commission Dashboard & Details
 router.get('/sales-manager/commission', auth_middleware_1.authenticateToken, salesManager_controller_1.salesManagerController.getCommissionDetails);
+router.get('/sales-manager/reports/coolers', auth_middleware_1.authenticateToken, salesManager_controller_1.salesManagerController.getCoolerReport);
+router.get('/sales-manager/reports/visits', auth_middleware_1.authenticateToken, salesManager_controller_1.salesManagerController.getVisitsReport);
+router.get('/sales-manager/reports/team', auth_middleware_1.authenticateToken, salesManager_controller_1.salesManagerController.getTeamReport);
 exports.default = router;
 //# sourceMappingURL=salesManager.routes.js.map
