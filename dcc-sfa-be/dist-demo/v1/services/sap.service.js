@@ -1987,7 +1987,11 @@ exports.sapService = {
         });
         console.log(`Successfully processed stock operations for van inventory ID: ${inventoryId}`);
     },
-    // async createOrUpdateReconciliationSAP(payload: any, userId: number) {
+    // async createOrUpdateReconciliationSAP(
+    //   payload: any,
+    //   userId: number,
+    //   options?: { isApprovedCommit?: boolean; headerId?: number }
+    // ) {
     //   const { salesman_sap_code, depot_sap_code, document_date } = payload;
     //   const items = payload.reconciliation_items || payload.items;
     //   if (!salesman_sap_code) {
@@ -2001,7 +2005,7 @@ exports.sapService = {
     //       'reconciliation_items array is required and must not be empty'
     //     );
     //   }
-    //   const normalizedItems: any[] = [];
+    //   let normalizedItems: any[] = [];
     //   for (const item of items) {
     //     if (
     //       item.batches &&
@@ -2024,7 +2028,37 @@ exports.sapService = {
     //               : 0)
     //           );
     //         }, 0);
-    //         if (Math.abs(expectedQty - totalBatchQty) > 0.0001) {
+    //         let isMatch = Math.abs(expectedQty - totalBatchQty) <= 0.0001;
+    //         if (!isMatch) {
+    //           const itemCode = item.product_sap_code || item.sap_item_code;
+    //           let conv = 1;
+    //           if (itemCode || item.product_id) {
+    //             const prod = await prisma.products.findFirst({
+    //               where: itemCode
+    //                 ? { sap_code: String(itemCode) }
+    //                 : { id: Number(item.product_id) },
+    //               include: { product_unit_of_measurement: true },
+    //             });
+    //             if (prod?.product_unit_of_measurement?.conversion_rate) {
+    //               conv =
+    //                 Number(prod.product_unit_of_measurement.conversion_rate) || 1;
+    //             }
+    //           }
+    //           const totalBatchWithBase = item.batches.reduce(
+    //             (sum: number, b: any) => {
+    //               const bQty = Number(b.quantity ?? b.actual_qty ?? 0);
+    //               const bBaseQty = Number(
+    //                 b.base_quantity ?? b.actual_base_qty ?? 0
+    //               );
+    //               return sum + bQty + (conv > 1 ? bBaseQty / conv : 0);
+    //             },
+    //             0
+    //           );
+    //           if (Math.abs(expectedQty - totalBatchWithBase) <= 0.0001) {
+    //             isMatch = true;
+    //           }
+    //         }
+    //         if (!isMatch) {
     //           const productRef =
     //             item.product_sap_code ||
     //             item.product_id ||
@@ -2123,9 +2157,27 @@ exports.sapService = {
     //     orderBy: { id: 'desc' },
     //   });
     //   if (!reconciliationRecord) {
-    //     throw new Error(
-    //       `Reconciliation not found for salesman ${salesman_sap_code} on ${document_date}. Please ensure salesman has completed unload first.`
-    //     );
+    //     if (options?.isApprovedCommit) {
+    //       reconciliationRecord = await prisma.reconciliation.create({
+    //         data: {
+    //           salesman_id: spUser.id,
+    //           depot_id: depotId || spUser.depot_id || null,
+    //           reconciliation_date: new Date(document_date),
+    //           status: 'P',
+    //           is_active: 'Y',
+    //           createdate: new Date(),
+    //           createdby: userId,
+    //           log_inst: 1,
+    //         },
+    //       });
+    //       console.log(
+    //         `sap reconilation Created new pending reconciliation #${reconciliationRecord.id} for salesman ${salesman_sap_code} on ${document_date} for approved credit memo.`
+    //       );
+    //     } else {
+    //       throw new Error(
+    //         `Reconciliation not found for salesman ${salesman_sap_code} on ${document_date}. Please ensure salesman has completed unload first.`
+    //       );
+    //     }
     //   }
     //   if (reconciliationRecord.status?.toUpperCase() !== 'P') {
     //     throw new Error(
@@ -2142,6 +2194,30 @@ exports.sapService = {
     //     });
     //   }
     //   const reconId: number = reconciliationRecord.id;
+    //   if (!options?.isApprovedCommit) {
+    //     const creditMemoItems = normalizedItems.filter(
+    //       item => item.source_system?.toLowerCase() === 'sap_ar_creditmemo'
+    //     );
+    //     if (creditMemoItems.length > 0) {
+    //       const stagedResult = await this.stageCreditMemoForApproval({
+    //         payload,
+    //         salesman_sap_code,
+    //         depot_sap_code,
+    //         document_date,
+    //         creditMemoItems,
+    //         spUser,
+    //         depotId,
+    //         userId,
+    //         reconciliationId: reconId,
+    //       });
+    //       if (creditMemoItems.length === normalizedItems.length) {
+    //         return stagedResult;
+    //       }
+    //       normalizedItems = normalizedItems.filter(
+    //         item => item.source_system?.toLowerCase() !== 'sap_ar_creditmemo'
+    //       );
+    //     }
+    //   }
     //   const results = await prisma.$transaction(
     //     async tx => {
     //       const processedItems: any[] = [];
@@ -2397,20 +2473,38 @@ exports.sapService = {
     //         let resAction = 'Awaiting Verification';
     //         const effectiveActual =
     //           parsedActual !== null
-    //             ? parsedActual
+    //             ? record?.actual_qty !== null && record?.actual_qty !== undefined
+    //               ? Number(record.actual_qty) + parsedActual
+    //               : parsedActual
     //             : record?.actual_qty !== null && record?.actual_qty !== undefined
     //               ? Number(record.actual_qty)
     //               : null;
     //         const effectiveActualBase =
     //           parsedActualBase !== null
-    //             ? parsedActualBase
+    //             ? record?.actual_base_qty !== null &&
+    //               record?.actual_base_qty !== undefined
+    //               ? Number(record.actual_base_qty) + parsedActualBase
+    //               : parsedActualBase
     //             : record?.actual_base_qty !== null &&
     //                 record?.actual_base_qty !== undefined
     //               ? Number(record.actual_base_qty)
     //               : null;
-    //         if (effectiveActual !== null || effectiveActualBase !== null) {
-    //           const actual = effectiveActual || 0;
-    //           const actualBase = effectiveActualBase || 0;
+    //         let finalActual = effectiveActual;
+    //         let finalActualBase = effectiveActualBase;
+    //         if (
+    //           conv > 1 &&
+    //           finalActualBase !== null &&
+    //           finalActualBase !== undefined
+    //         ) {
+    //           const extraCases = Math.floor(finalActualBase / conv);
+    //           if (extraCases > 0) {
+    //             finalActual = (finalActual || 0) + extraCases;
+    //             finalActualBase = finalActualBase % conv;
+    //           }
+    //         }
+    //         if (finalActual !== null || finalActualBase !== null) {
+    //           const actual = finalActual || 0;
+    //           const actualBase = finalActualBase || 0;
     //           const actualTotalPieces = actual * conv + actualBase;
     //           const variancePieces = Math.round(
     //             actualTotalPieces - expectedTotalPieces
@@ -2457,8 +2551,8 @@ exports.sapService = {
     //           sale_base_qty: saleBaseQty,
     //           expected_qty: expectedQty,
     //           expected_base_qty: expectedBaseQty,
-    //           actual_qty: effectiveActual,
-    //           actual_base_qty: effectiveActualBase,
+    //           actual_qty: finalActual,
+    //           actual_base_qty: finalActualBase,
     //           unit_price:
     //             itemPayload.purchase_price !== undefined &&
     //             itemPayload.purchase_price !== null &&
@@ -2468,7 +2562,7 @@ exports.sapService = {
     //                   itemPayload.unit_price !== null &&
     //                   itemPayload.unit_price !== ''
     //                 ? Number(itemPayload.unit_price)
-    //                 : record?.unit_price ?? null,
+    //                 : (record?.unit_price ?? null),
     //           variance,
     //           variance_base_qty,
     //           resolution_action: resAction,
@@ -2477,7 +2571,7 @@ exports.sapService = {
     //           unload_adjustment_qty: unloadAdjustmentQty,
     //           unload_adjustment_base_qty: unloadAdjustmentBaseQty,
     //           is_active: itemPayload.is_active || 'Y',
-    //           stock_key: `${salesman_sap_code} | ${itemCode}${batchNumber ? ` | ${batchNumber}` : ''}`,
+    //           stock_key: `${salesman_sap_code} | ${itemCode}${batchNumber && batchNumber !== '-' && batchNumber !== 'null' ? ` | ${batchNumber}` : ''}`,
     //           updatedate: new Date(),
     //           updatedby: userId,
     //         };
@@ -2525,754 +2619,232 @@ exports.sapService = {
     //     items: results,
     //   };
     // },
-    //Test 2 -With no logic for pending check
-    //   async createOrUpdateReconciliationSAP(
-    //     payload: any,
-    //     userId: number,
-    //     options?: { isApprovedCommit?: boolean; headerId?: number }
-    //   ) {
-    //     const { salesman_sap_code, depot_sap_code, document_date } = payload;
-    //     const items = payload.reconciliation_items || payload.items;
-    //     if (!salesman_sap_code) {
-    //       throw new Error('salesman_sap_code is required');
-    //     }
-    //     if (!document_date) {
-    //       throw new Error('document_date is required');
-    //     }
-    //     if (!items || !Array.isArray(items) || items.length === 0) {
-    //       throw new Error(
-    //         'reconciliation_items array is required and must not be empty'
-    //       );
-    //     }
-    //     let normalizedItems: any[] = [];
-    //     for (const item of items) {
-    //       if (
-    //         item.batches &&
-    //         Array.isArray(item.batches) &&
-    //         item.batches.length > 0
-    //       ) {
-    //         const rawItemQty = item.quantity ?? item.actual_qty;
-    //         if (
-    //           rawItemQty !== undefined &&
-    //           rawItemQty !== null &&
-    //           rawItemQty !== ''
-    //         ) {
-    //           const expectedQty = Number(rawItemQty);
-    //           const totalBatchQty = item.batches.reduce((sum: number, b: any) => {
-    //             const bQty = b.quantity ?? b.actual_qty;
-    //             return (
-    //               sum +
-    //               (bQty !== undefined && bQty !== null && bQty !== ''
-    //                 ? Number(bQty)
-    //                 : 0)
-    //             );
-    //           }, 0);
-    //           if (Math.abs(expectedQty - totalBatchQty) > 0.0001) {
-    //             const productRef =
-    //               item.product_sap_code ||
-    //               item.product_id ||
-    //               (item.sap_lineid ? `line ${item.sap_lineid}` : 'item');
-    //             throw new Error(
-    //               `Item quantity (${expectedQty}) does not match the combined batch quantity (${totalBatchQty}) for ${productRef}`
-    //             );
-    //           }
-    //         }
-    //         for (let bIdx = 0; bIdx < item.batches.length; bIdx++) {
-    //           const b = item.batches[bIdx];
-    //           normalizedItems.push({
-    //             ...item,
-    //             ...b,
-    //             sap_lineid:
-    //               b.sap_lineid !== undefined &&
-    //               b.sap_lineid !== null &&
-    //               b.sap_lineid !== ''
-    //                 ? b.sap_lineid
-    //                 : item.sap_lineid !== undefined &&
-    //                     item.sap_lineid !== null &&
-    //                     item.sap_lineid !== ''
-    //                   ? item.sap_lineid
-    //                   : `${bIdx + 1}`,
-    //             batch_number: b.batch_number ?? item.batch_number ?? null,
-    //             quantity:
-    //               b.quantity ?? b.actual_qty ?? item.quantity ?? item.actual_qty,
-    //             base_quantity:
-    //               b.base_quantity ??
-    //               b.actual_base_qty ??
-    //               item.base_quantity ??
-    //               item.actual_base_qty,
-    //           });
-    //         }
-    //       } else {
-    //         normalizedItems.push(item);
-    //       }
-    //     }
-    //     const spUser = await prisma.users.findFirst({
-    //       where: { sap_code: salesman_sap_code },
-    //     });
-    //     if (!spUser) {
-    //       throw new Error(`Salesman with SAP code ${salesman_sap_code} not found`);
-    //     }
-    //     if (document_date) {
-    //       const parsedDate = new Date(document_date);
-    //       if (isNaN(parsedDate.getTime())) {
-    //         throw new Error(`Invalid document_date: ${document_date}`);
-    //       }
-    //       const today = new Date();
-    //       const todayUTC = Date.UTC(
-    //         today.getUTCFullYear(),
-    //         today.getUTCMonth(),
-    //         today.getUTCDate()
-    //       );
-    //       const dateUTC = Date.UTC(
-    //         parsedDate.getUTCFullYear(),
-    //         parsedDate.getUTCMonth(),
-    //         parsedDate.getUTCDate()
-    //       );
-    //       if (dateUTC > todayUTC) {
-    //         throw new Error('Future date will not be allowed');
-    //       }
-    //     }
-    //     let depotId: number | null = null;
-    //     if (depot_sap_code) {
-    //       const depot = await prisma.depots.findFirst({
-    //         where: { sap_code: depot_sap_code },
-    //       });
-    //       if (!depot) {
-    //         throw new Error(`Depot with SAP code ${depot_sap_code} not found`);
-    //       }
-    //       depotId = depot.id;
-    //     }
-    //     const targetDate = new Date(document_date);
-    //     const dayStart = new Date(
-    //       Date.UTC(
-    //         targetDate.getUTCFullYear(),
-    //         targetDate.getUTCMonth(),
-    //         targetDate.getUTCDate()
-    //       )
-    //     );
-    //     const dayEnd = new Date(
-    //       Date.UTC(
-    //         targetDate.getUTCFullYear(),
-    //         targetDate.getUTCMonth(),
-    //         targetDate.getUTCDate() + 1
-    //       )
-    //     );
-    //     let reconciliationRecord: any = await prisma.reconciliation.findFirst({
-    //       where: {
-    //         salesman_id: spUser.id,
-    //         is_active: 'Y',
-    //         reconciliation_date: { gte: dayStart, lt: dayEnd },
+    // async stageCreditMemoForApproval(params: {
+    //   payload: any;
+    //   salesman_sap_code: string;
+    //   depot_sap_code?: string;
+    //   document_date: string;
+    //   creditMemoItems: any[];
+    //   spUser: any;
+    //   depotId: number | null;
+    //   userId: number;
+    //   reconciliationId?: number;
+    // }) {
+    //   const {
+    //     payload,
+    //     salesman_sap_code,
+    //     depot_sap_code,
+    //     document_date,
+    //     creditMemoItems,
+    //     spUser,
+    //     depotId,
+    //     userId,
+    //     reconciliationId,
+    //   } = params;
+    //   const sapDocNum = creditMemoItems[0]?.sap_docnum
+    //     ? String(creditMemoItems[0].sap_docnum)
+    //     : '';
+    //   const sapDocEntry = creditMemoItems[0]?.sap_docentry
+    //     ? String(creditMemoItems[0].sap_docentry)
+    //     : '';
+    //   const targetDate = new Date(document_date);
+    //   const dayStart = new Date(
+    //     Date.UTC(
+    //       targetDate.getUTCFullYear(),
+    //       targetDate.getUTCMonth(),
+    //       targetDate.getUTCDate()
+    //     )
+    //   );
+    //   const dayEnd = new Date(
+    //     Date.UTC(
+    //       targetDate.getUTCFullYear(),
+    //       targetDate.getUTCMonth(),
+    //       targetDate.getUTCDate() + 1
+    //     )
+    //   );
+    //   let isUpdate = false;
+    //   let header: any = await (prisma as any).sap_creditmemo_header.findFirst({
+    //     where: {
+    //       salesman_sap_code,
+    //       status: 'P',
+    //       is_active: 'Y',
+    //       document_date: {
+    //         gte: dayStart,
+    //         lt: dayEnd,
     //       },
-    //       orderBy: { id: 'desc' },
+    //     },
+    //     orderBy: { createdate: 'desc' },
+    //   });
+    //   if (header) {
+    //     isUpdate = true;
+    //   }
+    //   const seenSapDocs = new Set<string>();
+    //   for (const item of creditMemoItems) {
+    //     const itemCode = item.product_sap_code || item.sap_item_code;
+    //     if (!itemCode) {
+    //       throw new Error(
+    //         'product_sap_code is required for each reconciliation item'
+    //       );
+    //     }
+    //     const product = await prisma.products.findFirst({
+    //       where: { sap_code: itemCode },
     //     });
-    //     if (!reconciliationRecord) {
-    //       if (options?.isApprovedCommit) {
-    //         reconciliationRecord = await prisma.reconciliation.create({
-    //           data: {
-    //             salesman_id: spUser.id,
-    //             depot_id: depotId || spUser.depot_id || null,
-    //             reconciliation_date: new Date(document_date),
-    //             status: 'P',
-    //             is_active: 'Y',
-    //             createdate: new Date(),
-    //             createdby: userId,
-    //             log_inst: 1,
+    //     if (!product) {
+    //       throw new Error(`Product with SAP code ${itemCode} not found`);
+    //     }
+    //     const itemDocEntry = item.sap_docentry?.toString();
+    //     const itemDocNum = item.sap_docnum?.toString();
+    //     const itemLineId = item.sap_lineid?.toString();
+    //     if (!itemDocEntry) {
+    //       throw new Error(
+    //         'sap_docentry is required for each reconciliation item'
+    //       );
+    //     }
+    //     if (!itemDocNum) {
+    //       throw new Error('sap_docnum is required for each reconciliation item');
+    //     }
+    //     if (
+    //       itemLineId === undefined ||
+    //       itemLineId === null ||
+    //       itemLineId === ''
+    //     ) {
+    //       throw new Error('sap_lineid is required for each reconciliation item');
+    //     }
+    //     const sourceSystem =
+    //       item.source_system?.toString() || 'sap_ar_creditmemo';
+    //     const batchNumber = item.batch_number ? String(item.batch_number) : null;
+    //     const compositeKey = batchNumber
+    //       ? `${sourceSystem}_${itemDocEntry}_${itemLineId}_${batchNumber}`
+    //       : `${sourceSystem}_${itemDocEntry}_${itemLineId}`;
+    //     if (seenSapDocs.has(compositeKey)) {
+    //       throw new Error(
+    //         `Duplicate SAP document line/batch in payload: ${compositeKey}`
+    //       );
+    //     }
+    //     seenSapDocs.add(compositeKey);
+    //     // Check if already committed in reconciliation_items
+    //     const existingSapDoc = await prisma.reconciliation_items.findFirst({
+    //       where: {
+    //         source_system: sourceSystem,
+    //         sap_docentry: itemDocEntry,
+    //         sap_lineid: itemLineId,
+    //         ...(batchNumber ? { batch_number: batchNumber } : {}),
+    //         is_active: 'Y',
+    //       },
+    //     });
+    //     if (existingSapDoc) {
+    //       throw new Error(`SAP document already imported: ${compositeKey}`);
+    //     }
+    //     const existingLine = await (prisma as any).sap_creditmemo_line.findFirst({
+    //       where: {
+    //         source_system: sourceSystem,
+    //         sap_docentry: itemDocEntry,
+    //         sap_lineid: itemLineId,
+    //         ...(batchNumber ? { batch_number: batchNumber } : {}),
+    //         status: { in: ['P', 'A'] },
+    //         ...(isUpdate && header
+    //           ? {
+    //               NOT: {
+    //                 header_id: header.id,
+    //               },
+    //             }
+    //           : {}),
+    //       },
+    //       include: {
+    //         sap_creditmemo_header: true,
+    //       },
+    //     });
+    //     if (existingLine) {
+    //       if (existingLine.sap_creditmemo_header?.status === 'A') {
+    //         throw new Error(
+    //           `SAP document line already approved: ${compositeKey}`
+    //         );
+    //       } else {
+    //         throw new Error(
+    //           `SAP document line is already pending approval: ${compositeKey} (Header #${existingLine.header_id})`
+    //         );
+    //       }
+    //     }
+    //     if (isUpdate && header) {
+    //       const existingHeaderLine = await (
+    //         prisma as any
+    //       ).sap_creditmemo_line.findFirst({
+    //         where: {
+    //           header_id: header.id,
+    //           source_system: sourceSystem,
+    //           sap_docentry: itemDocEntry,
+    //           sap_lineid: itemLineId,
+    //           ...(batchNumber ? { batch_number: batchNumber } : {}),
+    //         },
+    //       });
+    //       if (existingHeaderLine) {
+    //         const prevQty = Number(existingHeaderLine.quantity) || 0;
+    //         const prevBaseQty = Number(existingHeaderLine.base_quantity) || 0;
+    //         const incomingQty =
+    //           item.quantity !== undefined &&
+    //           item.quantity !== null &&
+    //           item.quantity !== ''
+    //             ? Number(item.quantity)
+    //             : item.actual_qty !== undefined &&
+    //                 item.actual_qty !== null &&
+    //                 item.actual_qty !== ''
+    //               ? Number(item.actual_qty)
+    //               : 0;
+    //         const incomingBaseQty =
+    //           item.base_quantity !== undefined &&
+    //           item.base_quantity !== null &&
+    //           item.base_quantity !== ''
+    //             ? Number(item.base_quantity)
+    //             : item.actual_base_qty !== undefined &&
+    //                 item.actual_base_qty !== null &&
+    //                 item.actual_base_qty !== ''
+    //               ? Number(item.actual_base_qty)
+    //               : 0;
+    //         item._accumulated_qty = prevQty + incomingQty;
+    //         item._accumulated_base_qty = prevBaseQty + incomingBaseQty;
+    //         await (prisma as any).sap_creditmemo_line.deleteMany({
+    //           where: {
+    //             id: existingHeaderLine.id,
     //           },
     //         });
-    //         console.log(
-    //           `sap reconilation Created new pending reconciliation #${reconciliationRecord.id} for salesman ${salesman_sap_code} on ${document_date} for approved credit memo.`
-    //         );
-    //       } else {
-    //         throw new Error(
-    //           `Reconciliation not found for salesman ${salesman_sap_code} on ${document_date}. Please ensure salesman has completed unload first.`
-    //         );
     //       }
     //     }
-    //     if (reconciliationRecord.status?.toUpperCase() !== 'P') {
-    //       throw new Error(
-    //         `Reconciliation ID ${reconciliationRecord.id} is not in pending status (current status: '${reconciliationRecord.status}'). Only pending (P) reconciliations can be synced.`
-    //       );
-    //     }
-    //     console.log(
-    //       `SAP Reconciliation Found existing pending reconciliation ID: ${reconciliationRecord.id} for salesman ${salesman_sap_code} on ${document_date}`
-    //     );
-    //     if (depotId && !reconciliationRecord.depot_id) {
-    //       reconciliationRecord = await prisma.reconciliation.update({
-    //         where: { id: reconciliationRecord.id },
-    //         data: { depot_id: depotId },
-    //       });
-    //     }
-    //     const reconId: number = reconciliationRecord.id;
-    //     if (!options?.isApprovedCommit) {
-    //       const creditMemoItems = normalizedItems.filter(
-    //         item => item.source_system?.toLowerCase() === 'sap_ar_creditmemo'
-    //       );
-    //       if (creditMemoItems.length > 0) {
-    //         const stagedResult = await this.stageCreditMemoForApproval({
-    //           payload,
-    //           salesman_sap_code,
-    //           depot_sap_code,
-    //           document_date,
-    //           creditMemoItems,
-    //           spUser,
-    //           depotId,
-    //           userId,
-    //           reconciliationId: reconId,
-    //         });
-    //         if (creditMemoItems.length === normalizedItems.length) {
-    //           return stagedResult;
-    //         }
-    //         normalizedItems = normalizedItems.filter(
-    //           item => item.source_system?.toLowerCase() !== 'sap_ar_creditmemo'
-    //         );
-    //       }
-    //     }
-    //     const results = await prisma.$transaction(
-    //       async tx => {
-    //         const processedItems: any[] = [];
-    //         const seenSapDocs = new Set<string>();
-    //         for (const itemPayload of normalizedItems) {
-    //           const itemCode =
-    //             itemPayload.product_sap_code || itemPayload.sap_item_code;
-    //           if (!itemCode) {
-    //             throw new Error(
-    //               'product_sap_code is required for each reconciliation item'
-    //             );
-    //           }
-    //           const product = await tx.products.findFirst({
-    //             where: { sap_code: itemCode },
-    //             include: {
-    //               product_unit_of_measurement: true,
-    //             },
-    //           });
-    //           if (!product) {
-    //             throw new Error(`Product with SAP code ${itemCode} not found`);
-    //           }
-    //           if (
-    //             itemPayload.source_system === undefined ||
-    //             itemPayload.source_system === null ||
-    //             itemPayload.source_system === ''
-    //           ) {
-    //             throw new Error(
-    //               'source_system is required for each reconciliation item'
-    //             );
-    //           }
-    //           if (
-    //             itemPayload.sap_docentry === undefined ||
-    //             itemPayload.sap_docentry === null ||
-    //             itemPayload.sap_docentry === ''
-    //           ) {
-    //             throw new Error(
-    //               'sap_docentry is required for each reconciliation item'
-    //             );
-    //           }
-    //           if (
-    //             itemPayload.sap_docnum === undefined ||
-    //             itemPayload.sap_docnum === null ||
-    //             itemPayload.sap_docnum === ''
-    //           ) {
-    //             throw new Error(
-    //               'sap_docnum is required for each reconciliation item'
-    //             );
-    //           }
-    //           if (
-    //             itemPayload.sap_lineid === undefined ||
-    //             itemPayload.sap_lineid === null ||
-    //             itemPayload.sap_lineid === ''
-    //           ) {
-    //             throw new Error(
-    //               'sap_lineid is required for each reconciliation item'
-    //             );
-    //           }
-    //           const sourceSystem = itemPayload.source_system.toString();
-    //           const sapDocEntry = itemPayload.sap_docentry.toString();
-    //           const sapDocNum = itemPayload.sap_docnum.toString();
-    //           const sapLineId = itemPayload.sap_lineid.toString();
-    //           const batchNumber = itemPayload.batch_number || null;
-    //           const compositeKey = batchNumber
-    //             ? `${sourceSystem}_${sapDocEntry}_${sapLineId}_${batchNumber}`
-    //             : `${sourceSystem}_${sapDocEntry}_${sapLineId}`;
-    //           if (seenSapDocs.has(compositeKey)) {
-    //             throw new Error(
-    //               `Duplicate SAP document line/batch in payload: ${compositeKey}`
-    //             );
-    //           }
-    //           seenSapDocs.add(compositeKey);
-    //           const existingSapDoc = await tx.reconciliation_items.findFirst({
-    //             where: {
-    //               source_system: sourceSystem,
-    //               sap_docentry: sapDocEntry,
-    //               sap_lineid: sapLineId,
-    //               ...(batchNumber ? { batch_number: batchNumber } : {}),
-    //               is_active: 'Y',
-    //             },
-    //           });
-    //           if (existingSapDoc) {
-    //             throw new Error(`SAP document already imported: ${compositeKey}`);
-    //           }
-    //           const rawQty = itemPayload.quantity ?? itemPayload.actual_qty;
-    //           const parsedActual =
-    //             rawQty !== undefined && rawQty !== null && rawQty !== ''
-    //               ? Number(rawQty)
-    //               : null;
-    //           const rawBaseQty =
-    //             itemPayload.base_quantity ?? itemPayload.actual_base_qty;
-    //           const parsedActualBase =
-    //             rawBaseQty !== undefined && rawBaseQty !== null && rawBaseQty !== ''
-    //               ? Number(rawBaseQty)
-    //               : null;
-    //           const payloadLoadQty =
-    //             itemPayload.load_qty !== undefined &&
-    //             itemPayload.load_qty !== null &&
-    //             itemPayload.load_qty !== ''
-    //               ? Number(itemPayload.load_qty)
-    //               : undefined;
-    //           const payloadLoadBaseQty =
-    //             itemPayload.load_base_qty !== undefined &&
-    //             itemPayload.load_base_qty !== null &&
-    //             itemPayload.load_base_qty !== ''
-    //               ? Number(itemPayload.load_base_qty)
-    //               : undefined;
-    //           const payloadSaleQty =
-    //             itemPayload.sale_qty !== undefined &&
-    //             itemPayload.sale_qty !== null &&
-    //             itemPayload.sale_qty !== ''
-    //               ? Number(itemPayload.sale_qty)
-    //               : undefined;
-    //           const payloadSaleBaseQty =
-    //             itemPayload.sale_base_qty !== undefined &&
-    //             itemPayload.sale_base_qty !== null &&
-    //             itemPayload.sale_base_qty !== ''
-    //               ? Number(itemPayload.sale_base_qty)
-    //               : undefined;
-    //           const payloadExpectedQty =
-    //             itemPayload.expected_qty !== undefined &&
-    //             itemPayload.expected_qty !== null &&
-    //             itemPayload.expected_qty !== ''
-    //               ? Number(itemPayload.expected_qty)
-    //               : undefined;
-    //           const payloadExpectedBaseQty =
-    //             itemPayload.expected_base_qty !== undefined &&
-    //             itemPayload.expected_base_qty !== null &&
-    //             itemPayload.expected_base_qty !== ''
-    //               ? Number(itemPayload.expected_base_qty)
-    //               : undefined;
-    //           let record: any = await tx.reconciliation_items.findFirst({
-    //             where: {
-    //               reconciliation_id: reconId,
-    //               product_id: product.id,
-    //               ...(batchNumber ? { batch_number: batchNumber } : {}),
-    //               is_active: 'Y',
-    //             },
-    //             include: {
-    //               reconciliation: { include: { salesman: true, depot: true } },
-    //               product: { include: { product_unit_of_measurement: true } },
-    //             },
-    //           });
-    //           const conv =
-    //             Number(product.product_unit_of_measurement?.conversion_rate) || 1;
-    //           const loadQty =
-    //             payloadLoadQty !== undefined
-    //               ? payloadLoadQty
-    //               : record?.load_qty !== null && record?.load_qty !== undefined
-    //                 ? Number(record.load_qty)
-    //                 : 0;
-    //           const loadBaseQty =
-    //             payloadLoadBaseQty !== undefined
-    //               ? payloadLoadBaseQty
-    //               : record?.load_base_qty !== null &&
-    //                   record?.load_base_qty !== undefined
-    //                 ? Number(record.load_base_qty)
-    //                 : 0;
-    //           let saleQty =
-    //             payloadSaleQty !== undefined
-    //               ? payloadSaleQty
-    //               : record?.sale_qty !== null && record?.sale_qty !== undefined
-    //                 ? Number(record.sale_qty)
-    //                 : 0;
-    //           let saleBaseQty =
-    //             payloadSaleBaseQty !== undefined
-    //               ? payloadSaleBaseQty
-    //               : record?.sale_base_qty !== null &&
-    //                   record?.sale_base_qty !== undefined
-    //                 ? Number(record.sale_base_qty)
-    //                 : 0;
-    //           const salesmanId = record?.reconciliation?.salesman_id || spUser.id;
-    //           const recCreatedate =
-    //             record?.reconciliation?.createdate ||
-    //             reconciliationRecord.createdate;
-    //           if (
-    //             payloadSaleQty === undefined &&
-    //             record?.sale_qty === null &&
-    //             salesmanId &&
-    //             product.id &&
-    //             recCreatedate
-    //           ) {
-    //             const prevReconciliation = await tx.reconciliation.findFirst({
-    //               where: {
-    //                 salesman_id: salesmanId,
-    //                 createdate: { lt: recCreatedate },
-    //                 id: { lt: reconId },
-    //               },
-    //               orderBy: { createdate: 'desc' },
-    //             });
-    //             const sessionStart = prevReconciliation?.createdate ?? new Date(0);
-    //             const batchMovements = await tx.stock_movements.findMany({
-    //               where: {
-    //                 movement_type: { in: ['SALE', 'OUT'] },
-    //                 product_id: product.id,
-    //                 is_active: 'Y',
-    //                 createdate: { gte: sessionStart, lt: recCreatedate },
-    //                 ...(batchNumber
-    //                   ? { batch_lots: { batch_number: batchNumber } }
-    //                   : {}),
-    //               },
-    //               select: { quantity: true, base_quantity: true },
-    //             });
-    //             if (batchMovements.length > 0) {
-    //               saleQty = batchMovements.reduce(
-    //                 (sum: number, m: any) => sum + (Number(m.quantity) || 0),
-    //                 0
-    //               );
-    //               saleBaseQty = batchMovements.reduce(
-    //                 (sum: number, m: any) => sum + (Number(m.base_quantity) || 0),
-    //                 0
-    //               );
-    //             }
-    //           }
-    //           let expectedQty: number;
-    //           let expectedBaseQty: number;
-    //           let expectedTotalPieces: number;
-    //           if (payloadExpectedQty !== undefined) {
-    //             expectedQty = payloadExpectedQty;
-    //             expectedBaseQty = payloadExpectedBaseQty ?? 0;
-    //             expectedTotalPieces = expectedQty * conv + expectedBaseQty;
-    //             console.log(
-    //               `sap reconilation Using payload expected_qty=${expectedQty}, expected_base_qty=${expectedBaseQty} for ${itemCode}`
-    //             );
-    //           } else if (
-    //             record?.expected_qty !== null &&
-    //             record?.expected_qty !== undefined
-    //           ) {
-    //             expectedQty = Number(record.expected_qty);
-    //             expectedBaseQty = Number(record.expected_base_qty ?? 0);
-    //             expectedTotalPieces = expectedQty * conv + expectedBaseQty;
-    //             console.log(
-    //               `sap reconilation Using existing record expected_qty=${expectedQty}, expected_base_qty=${expectedBaseQty} for ${itemCode}`
-    //             );
-    //           } else {
-    //             expectedTotalPieces = Math.max(
-    //               0,
-    //               loadQty * conv + loadBaseQty - (saleQty * conv + saleBaseQty)
-    //             );
-    //             expectedQty =
-    //               conv > 1
-    //                 ? Math.floor(expectedTotalPieces / conv)
-    //                 : Math.max(0, loadQty - saleQty);
-    //             expectedBaseQty =
-    //               conv > 1
-    //                 ? expectedTotalPieces % conv
-    //                 : Math.max(0, loadBaseQty - saleBaseQty);
-    //             console.log(
-    //               `sap reconilation Auto-computed expected_qty=${expectedQty}, expected_base_qty=${expectedBaseQty} for ${itemCode}`
-    //             );
-    //           }
-    //           let variance: number | null = null;
-    //           let variance_base_qty: number | null = null;
-    //           let resAction = 'Awaiting Verification';
-    //           const effectiveActual =
-    //             parsedActual !== null
-    //               ? parsedActual
-    //               : record?.actual_qty !== null && record?.actual_qty !== undefined
-    //                 ? Number(record.actual_qty)
-    //                 : null;
-    //           const effectiveActualBase =
-    //             parsedActualBase !== null
-    //               ? parsedActualBase
-    //               : record?.actual_base_qty !== null &&
-    //                   record?.actual_base_qty !== undefined
-    //                 ? Number(record.actual_base_qty)
-    //                 : null;
-    //           if (effectiveActual !== null || effectiveActualBase !== null) {
-    //             const actual = effectiveActual || 0;
-    //             const actualBase = effectiveActualBase || 0;
-    //             const actualTotalPieces = actual * conv + actualBase;
-    //             const variancePieces = Math.round(
-    //               actualTotalPieces - expectedTotalPieces
-    //             );
-    //             if (variancePieces === 0) {
-    //               variance = 0;
-    //               variance_base_qty = 0;
-    //               resAction = 'CLEAN';
-    //             } else {
-    //               const absV = Math.abs(variancePieces);
-    //               variance = Math.floor(absV / conv) * Math.sign(variancePieces);
-    //               variance_base_qty = (absV % conv) * Math.sign(variancePieces);
-    //               resAction = 'Post to Default Outlet';
-    //             }
-    //           }
-    //           const defaultOutletPostingQty =
-    //             resAction === 'Post to Default Outlet' && variance !== null
-    //               ? Math.abs(variance)
-    //               : 0;
-    //           const defaultOutletPostingBaseQty =
-    //             resAction === 'Post to Default Outlet' && variance_base_qty !== null
-    //               ? Math.abs(variance_base_qty)
-    //               : 0;
-    //           const unloadAdjustmentQty =
-    //             resAction === 'Adjust Unload Upward' && variance !== null
-    //               ? variance
-    //               : 0;
-    //           const unloadAdjustmentBaseQty =
-    //             resAction === 'Adjust Unload Upward' && variance_base_qty !== null
-    //               ? variance_base_qty
-    //               : 0;
-    //           const itemData: any = {
-    //             reconciliation_id: reconId,
-    //             product_id: product.id,
-    //             sap_item_code: itemCode,
-    //             sap_docnum: sapDocNum,
-    //             sap_docentry: sapDocEntry,
-    //             sap_lineid: sapLineId,
-    //             source_system: sourceSystem,
-    //             batch_number: batchNumber,
-    //             load_qty: loadQty,
-    //             load_base_qty: loadBaseQty,
-    //             sale_qty: saleQty,
-    //             sale_base_qty: saleBaseQty,
-    //             expected_qty: expectedQty,
-    //             expected_base_qty: expectedBaseQty,
-    //             actual_qty: effectiveActual,
-    //             actual_base_qty: effectiveActualBase,
-    //             unit_price:
-    //               itemPayload.purchase_price !== undefined &&
-    //               itemPayload.purchase_price !== null &&
-    //               itemPayload.purchase_price !== ''
-    //                 ? Number(itemPayload.purchase_price)
-    //                 : itemPayload.unit_price !== undefined &&
-    //                     itemPayload.unit_price !== null &&
-    //                     itemPayload.unit_price !== ''
-    //                   ? Number(itemPayload.unit_price)
-    //                   : (record?.unit_price ?? null),
-    //             variance,
-    //             variance_base_qty,
-    //             resolution_action: resAction,
-    //             default_outlet_posting_qty: defaultOutletPostingQty,
-    //             default_outlet_posting_base_qty: defaultOutletPostingBaseQty,
-    //             unload_adjustment_qty: unloadAdjustmentQty,
-    //             unload_adjustment_base_qty: unloadAdjustmentBaseQty,
-    //             is_active: itemPayload.is_active || 'Y',
-    //             stock_key: `${salesman_sap_code} | ${itemCode}${batchNumber ? ` | ${batchNumber}` : ''}`,
-    //             updatedate: new Date(),
-    //             updatedby: userId,
-    //           };
-    //           let savedItem: any;
-    //           if (record) {
-    //             savedItem = await (tx as any).reconciliation_items.update({
-    //               where: { id: record.id },
-    //               data: itemData,
-    //             });
-    //           } else {
-    //             itemData.createdate = new Date();
-    //             itemData.createdby = userId;
-    //             savedItem = await (tx as any).reconciliation_items.create({
-    //               data: itemData,
-    //             });
-    //           }
-    //           processedItems.push({
-    //             ...savedItem,
-    //             reconciliation_id: reconId,
-    //           });
-    //         }
-    //         if (processedItems.length > 0) {
-    //           await tx.reconciliation.update({
-    //             where: { id: reconId },
-    //             data: {
-    //               status: 'P',
-    //               updatedate: new Date(),
-    //               updatedby: userId,
-    //             },
-    //           });
-    //         }
-    //         return processedItems;
+    //   }
+    //   const distinctDocNums = Array.from(
+    //     new Set(
+    //       creditMemoItems
+    //         .map(i => (i.sap_docnum ? String(i.sap_docnum) : ''))
+    //         .filter(Boolean)
+    //     )
+    //   );
+    //   const distinctDocEntries = Array.from(
+    //     new Set(
+    //       creditMemoItems
+    //         .map(i => (i.sap_docentry ? String(i.sap_docentry) : ''))
+    //         .filter(Boolean)
+    //     )
+    //   );
+    //   const headerDocNum = distinctDocNums.join(', ') || null;
+    //   const headerDocEntry = distinctDocEntries.join(', ') || null;
+    //   const batchRef =
+    //     payload.batch_ref ||
+    //     (distinctDocNums.length === 1
+    //       ? `CM-${distinctDocNums[0]}-${document_date}`
+    //       : `CM-${salesman_sap_code}-${document_date}-${Date.now()}`);
+    //   if (isUpdate && header) {
+    //     header = await (prisma as any).sap_creditmemo_header.update({
+    //       where: { id: header.id },
+    //       data: {
+    //         batch_ref: batchRef,
+    //         depot_sap_code: depot_sap_code || header.depot_sap_code,
+    //         reconciliation_id: reconciliationId || header.reconciliation_id,
+    //         updatedate: new Date(),
+    //         updatedby: userId,
+    //         log_inst: { increment: 1 },
     //       },
-    //       {
-    //         maxWait: 1500000,
-    //         timeout: 3000000,
-    //       }
-    //     );
-    //     console.log(
-    //       `sap reconilation Processed ${results.length} items for reconciliation ID: ${reconId}`
-    //     );
-    //     return {
-    //       reconciliation_id: reconId,
-    //       updated_items: results.length,
-    //       items: results,
-    //     };
-    //   },
-    //   async stageCreditMemoForApproval(params: {
-    //     payload: any;
-    //     salesman_sap_code: string;
-    //     depot_sap_code?: string;
-    //     document_date: string;
-    //     creditMemoItems: any[];
-    //     spUser: any;
-    //     depotId: number | null;
-    //     userId: number;
-    //     reconciliationId?: number;
-    //   }) {
-    //     const {
-    //       payload,
-    //       salesman_sap_code,
-    //       depot_sap_code,
-    //       document_date,
-    //       creditMemoItems,
-    //       spUser,
-    //       depotId,
-    //       userId,
-    //       reconciliationId,
-    //     } = params;
-    //     const sapDocNum = creditMemoItems[0]?.sap_docnum
-    //       ? String(creditMemoItems[0].sap_docnum)
-    //       : '';
-    //     const sapDocEntry = creditMemoItems[0]?.sap_docentry
-    //       ? String(creditMemoItems[0].sap_docentry)
-    //       : '';
-    //     // 1. Check if credit memo header was already approved or is pending
-    //     // if (sapDocNum || sapDocEntry) {
-    //     //   const existingHeader = await (prisma as any).sap_creditmemo_header.findFirst({
-    //     //     where: {
-    //     //       source_system: 'sap_ar_creditmemo',
-    //     //       OR: [
-    //     //         ...(sapDocNum ? [{ sap_docnum: sapDocNum }] : []),
-    //     //         ...(sapDocEntry ? [{ sap_docentry: sapDocEntry }] : []),
-    //     //       ],
-    //     //       is_active: 'Y',
-    //     //       status: { in: ['P', 'A'] },
-    //     //     },
-    //     //   });
-    //     //   if (existingHeader) {
-    //     //     if (existingHeader.status === 'A') {
-    //     //       throw new Error(
-    //     //         `SAP credit memo document ${sapDocNum || sapDocEntry} has already been approved.`
-    //     //       );
-    //     //     } else {
-    //     //       throw new Error(
-    //     //         `SAP credit memo document ${sapDocNum || sapDocEntry} is already pending approval (Request #${existingHeader.id}).`
-    //     //       );
-    //     //     }
-    //     //   }
-    //     // }
-    //     // 2. Upfront item-level validation:
-    //     // - Check product existence
-    //     // - Check required fields
-    //     // - Check in-payload duplicates
-    //     // - Check if line was already imported in reconciliation_items
-    //     // - Check if line is already pending/approved in sap_creditmemo_line
-    //     const seenSapDocs = new Set<string>();
-    //     for (const item of creditMemoItems) {
-    //       const itemCode = item.product_sap_code || item.sap_item_code;
-    //       if (!itemCode) {
-    //         throw new Error(
-    //           'product_sap_code is required for each reconciliation item'
-    //         );
-    //       }
-    //       const product = await prisma.products.findFirst({
-    //         where: { sap_code: itemCode },
-    //       });
-    //       if (!product) {
-    //         throw new Error(`Product with SAP code ${itemCode} not found`);
-    //       }
-    //       const itemDocEntry = item.sap_docentry?.toString();
-    //       const itemDocNum = item.sap_docnum?.toString();
-    //       const itemLineId = item.sap_lineid?.toString();
-    //       if (!itemDocEntry) {
-    //         throw new Error(
-    //           'sap_docentry is required for each reconciliation item'
-    //         );
-    //       }
-    //       if (!itemDocNum) {
-    //         throw new Error('sap_docnum is required for each reconciliation item');
-    //       }
-    //       if (
-    //         itemLineId === undefined ||
-    //         itemLineId === null ||
-    //         itemLineId === ''
-    //       ) {
-    //         throw new Error('sap_lineid is required for each reconciliation item');
-    //       }
-    //       const sourceSystem =
-    //         item.source_system?.toString() || 'sap_ar_creditmemo';
-    //       const batchNumber = item.batch_number ? String(item.batch_number) : null;
-    //       const compositeKey = batchNumber
-    //         ? `${sourceSystem}_${itemDocEntry}_${itemLineId}_${batchNumber}`
-    //         : `${sourceSystem}_${itemDocEntry}_${itemLineId}`;
-    //       if (seenSapDocs.has(compositeKey)) {
-    //         throw new Error(
-    //           `Duplicate SAP document line/batch in payload: ${compositeKey}`
-    //         );
-    //       }
-    //       seenSapDocs.add(compositeKey);
-    //       // Check if already committed in reconciliation_items
-    //       const existingSapDoc = await prisma.reconciliation_items.findFirst({
-    //         where: {
-    //           source_system: sourceSystem,
-    //           sap_docentry: itemDocEntry,
-    //           sap_lineid: itemLineId,
-    //           ...(batchNumber ? { batch_number: batchNumber } : {}),
-    //           is_active: 'Y',
-    //         },
-    //       });
-    //       if (existingSapDoc) {
-    //         throw new Error(`SAP document already imported: ${compositeKey}`);
-    //       }
-    //       // Check if already in another pending or approved credit memo line
-    //       const existingLine = await (prisma as any).sap_creditmemo_line.findFirst({
-    //         where: {
-    //           source_system: sourceSystem,
-    //           sap_docentry: itemDocEntry,
-    //           sap_lineid: itemLineId,
-    //           ...(batchNumber ? { batch_number: batchNumber } : {}),
-    //           status: { in: ['P', 'A'] },
-    //         },
-    //         include: {
-    //           sap_creditmemo_header: true,
-    //         },
-    //       });
-    //       if (existingLine) {
-    //         if (existingLine.sap_creditmemo_header?.status === 'A') {
-    //           throw new Error(
-    //             `SAP document line already approved: ${compositeKey}`
-    //           );
-    //         } else {
-    //           throw new Error(
-    //             `SAP document line is already pending approval: ${compositeKey} (Header #${existingLine.header_id})`
-    //           );
-    //         }
-    //       }
-    //     }
-    //     const distinctDocNums = Array.from(
-    //       new Set(
-    //         creditMemoItems
-    //           .map(i => (i.sap_docnum ? String(i.sap_docnum) : ''))
-    //           .filter(Boolean)
-    //       )
-    //     );
-    //     const distinctDocEntries = Array.from(
-    //       new Set(
-    //         creditMemoItems
-    //           .map(i => (i.sap_docentry ? String(i.sap_docentry) : ''))
-    //           .filter(Boolean)
-    //       )
-    //     );
-    //     const headerDocNum = distinctDocNums.join(', ') || null;
-    //     const headerDocEntry = distinctDocEntries.join(', ') || null;
-    //     const batchRef =
-    //       payload.batch_ref ||
-    //       (distinctDocNums.length === 1
-    //         ? `CM-${distinctDocNums[0]}-${document_date}`
-    //         : `CM-${salesman_sap_code}-${document_date}-${Date.now()}`);
-    //     const header = await (prisma as any).sap_creditmemo_header.create({
+    //     });
+    //   } else {
+    //     header = await (prisma as any).sap_creditmemo_header.create({
     //       data: {
     //         batch_ref: batchRef,
     //         salesman_sap_code,
@@ -3288,77 +2860,111 @@ exports.sapService = {
     //         log_inst: 1,
     //       },
     //     });
-    //     const linesData = creditMemoItems.map((item: any) => ({
-    //       header_id: header.id,
-    //       source_system: item.source_system
-    //         ? String(item.source_system)
-    //         : 'sap_ar_creditmemo',
-    //       sap_docnum: item.sap_docnum ? String(item.sap_docnum) : null,
-    //       sap_docentry: item.sap_docentry ? String(item.sap_docentry) : null,
-    //       sap_lineid: String(item.sap_lineid || item.line_id || '0'),
-    //       product_sap_code: String(
-    //         item.product_sap_code || item.sap_item_code || ''
-    //       ),
-    //       batch_number: item.batch_number ? String(item.batch_number) : null,
-    //       quantity:
-    //         item.quantity !== undefined &&
-    //         item.quantity !== null &&
-    //         item.quantity !== ''
+    //   }
+    //   const linesData = creditMemoItems.map((item: any) => ({
+    //     header_id: header.id,
+    //     source_system: item.source_system
+    //       ? String(item.source_system)
+    //       : 'sap_ar_creditmemo',
+    //     sap_docnum: item.sap_docnum ? String(item.sap_docnum) : null,
+    //     sap_docentry: item.sap_docentry ? String(item.sap_docentry) : null,
+    //     sap_lineid: String(item.sap_lineid || item.line_id || '0'),
+    //     product_sap_code: String(
+    //       item.product_sap_code || item.sap_item_code || ''
+    //     ),
+    //     batch_number: item.batch_number ? String(item.batch_number) : null,
+    //     quantity:
+    //       item._accumulated_qty !== undefined
+    //         ? item._accumulated_qty
+    //         : item.quantity !== undefined &&
+    //             item.quantity !== null &&
+    //             item.quantity !== ''
     //           ? Number(item.quantity)
     //           : item.actual_qty !== undefined &&
     //               item.actual_qty !== null &&
     //               item.actual_qty !== ''
     //             ? Number(item.actual_qty)
     //             : null,
-    //       base_quantity:
-    //         item.base_quantity !== undefined &&
-    //         item.base_quantity !== null &&
-    //         item.base_quantity !== ''
+    //     base_quantity:
+    //       item._accumulated_base_qty !== undefined
+    //         ? item._accumulated_base_qty
+    //         : item.base_quantity !== undefined &&
+    //             item.base_quantity !== null &&
+    //             item.base_quantity !== ''
     //           ? Number(item.base_quantity)
-    //           : null,
-    //       purchase_price:
-    //         item.purchase_price !== undefined &&
-    //         item.purchase_price !== null &&
-    //         item.purchase_price !== ''
-    //           ? Number(item.purchase_price)
-    //           : item.unit_price !== undefined &&
-    //               item.unit_price !== null &&
-    //               item.unit_price !== ''
-    //             ? Number(item.unit_price)
+    //           : item.actual_base_qty !== undefined &&
+    //               item.actual_base_qty !== null &&
+    //               item.actual_base_qty !== ''
+    //             ? Number(item.actual_base_qty)
     //             : null,
-    //       quality_grade: item.quality_grade || null,
-    //       storage_location: item.storage_location || null,
-    //       supplier_name: item.supplier_name || null,
-    //       manufacturing_date: item.manufacturing_date
-    //         ? new Date(item.manufacturing_date)
-    //         : null,
-    //       expiry_date: item.expiry_date ? new Date(item.expiry_date) : null,
-    //       status: 'P',
-    //       reconciliation_item_id: null,
-    //       createdate: new Date(),
-    //       createdby: userId,
-    //       updatedate: new Date(),
-    //       updatedby: userId,
-    //       log_inst: 1,
-    //     }));
-    //     await (prisma as any).sap_creditmemo_line.createMany({
-    //       data: linesData,
+    //     purchase_price:
+    //       item.purchase_price !== undefined &&
+    //       item.purchase_price !== null &&
+    //       item.purchase_price !== ''
+    //         ? Number(item.purchase_price)
+    //         : item.unit_price !== undefined &&
+    //             item.unit_price !== null &&
+    //             item.unit_price !== ''
+    //           ? Number(item.unit_price)
+    //           : null,
+    //     quality_grade: item.quality_grade || null,
+    //     storage_location: item.storage_location || null,
+    //     supplier_name: item.supplier_name || null,
+    //     manufacturing_date: item.manufacturing_date
+    //       ? new Date(item.manufacturing_date)
+    //       : null,
+    //     expiry_date: item.expiry_date ? new Date(item.expiry_date) : null,
+    //     status: 'P',
+    //     reconciliation_item_id: null,
+    //     createdate: new Date(),
+    //     createdby: userId,
+    //     updatedate: new Date(),
+    //     updatedby: userId,
+    //     log_inst: 1,
+    //   }));
+    //   await (prisma as any).sap_creditmemo_line.createMany({
+    //     data: linesData,
+    //   });
+    //   let approvalRequest: any = null;
+    //   try {
+    //     const { createRequest } =
+    //       await import('../controllers/requests.controller');
+    //     const allLines = await (prisma as any).sap_creditmemo_line.findMany({
+    //       where: { header_id: header.id },
     //     });
-    //     let approvalRequest: any = null;
-    //     try {
-    //       const { createRequest } = await import(
-    //         '../controllers/requests.controller'
+    //     const allDocNums = Array.from(
+    //       new Set(allLines.map((l: any) => l.sap_docnum).filter(Boolean))
+    //     );
+    //     const totalItemCount = allLines.length;
+    //     const requestPayload = {
+    //       batch_ref: header.batch_ref,
+    //       header_id: header.id,
+    //       salesman_sap_code,
+    //       depot_sap_code: depot_sap_code || header.depot_sap_code,
+    //       document_date,
+    //       sap_docnum: allDocNums.join(', ') || headerDocNum,
+    //       item_count: totalItemCount,
+    //       depot_id: depotId || spUser.depot_id || null,
+    //     };
+    //     const existingRequest = await prisma.sfa_d_requests.findFirst({
+    //       where: {
+    //         request_type: 'SAP_CREDITMEMO_APPROVAL',
+    //         reference_id: header.id,
+    //         status: 'P',
+    //       },
+    //     });
+    //     if (existingRequest) {
+    //       approvalRequest = await prisma.sfa_d_requests.update({
+    //         where: { id: existingRequest.id },
+    //         data: {
+    //           request_data: JSON.stringify(requestPayload),
+    //           updatedate: new Date(),
+    //         },
+    //       });
+    //       console.log(
+    //         `sap credit memo Updated existing pending request #${existingRequest.id} for header #${header.id}`
     //       );
-    //       const requestPayload = {
-    //         batch_ref: batchRef,
-    //         header_id: header.id,
-    //         salesman_sap_code,
-    //         depot_sap_code: depot_sap_code || null,
-    //         document_date,
-    //         sap_docnum: headerDocNum,
-    //         item_count: creditMemoItems.length,
-    //         depot_id: depotId || spUser.depot_id || null,
-    //       };
+    //     } else {
     //       approvalRequest = await createRequest({
     //         requester_id: userId || spUser.id,
     //         request_type: 'SAP_CREDITMEMO_APPROVAL',
@@ -3367,121 +2973,123 @@ exports.sapService = {
     //         createdby: userId || spUser.id,
     //         log_inst: 1,
     //       });
-    //     } catch (err) {
-    //       console.error(
-    //         'sap credit memo Failed to create approval request in sfa_d_requests:',
-    //         err
-    //       );
     //     }
-    //     return {
-    //       staged: true,
-    //       batch_ref: batchRef,
-    //       header_id: header.id,
-    //       request_id: approvalRequest?.id || null,
-    //       status: approvalRequest?.status === 'A' ? 'APPROVED' : 'PENDING',
-    //       message: 'Credit memo received and pending approval',
-    //       items_count: creditMemoItems.length,
-    //     };
-    //   },
-    //   async commitCreditMemoToReconciliation(headerId: number, approvedBy: number) {
-    //     const header = await (prisma as any).sap_creditmemo_header.findUnique({
-    //       where: { id: headerId },
-    //       include: {
-    //         sap_creditmemo_header: true,
-    //       },
-    //     });
-    //     if (!header) {
-    //       throw new Error(`SAP credit memo header ID ${headerId} not found`);
-    //     }
-    //     const lines = header.sap_creditmemo_header || [];
-    //     if (lines.length === 0) {
-    //       console.warn(
-    //         `sap credit memo Header #${headerId} has no lines to commit.`
-    //       );
-    //       return { success: true, message: 'No lines to commit', updated_items: 0 };
-    //     }
-    //     const reconstructedItems = lines.map((line: any) => ({
-    //       product_sap_code: line.product_sap_code,
-    //       sap_lineid: line.sap_lineid,
-    //       source_system: line.source_system || 'sap_ar_creditmemo',
-    //       sap_docnum: line.sap_docnum,
-    //       sap_docentry: line.sap_docentry,
-    //       batch_number: line.batch_number,
-    //       quantity: line.quantity ? Number(line.quantity) : undefined,
-    //       base_quantity:
-    //         line.base_quantity !== null && line.base_quantity !== undefined
-    //           ? Number(line.base_quantity)
-    //           : undefined,
-    //       purchase_price:
-    //         line.purchase_price !== null && line.purchase_price !== undefined
-    //           ? Number(line.purchase_price)
-    //           : undefined,
-    //       quality_grade: line.quality_grade,
-    //       storage_location: line.storage_location,
-    //       supplier_name: line.supplier_name,
-    //       manufacturing_date: line.manufacturing_date,
-    //       expiry_date: line.expiry_date,
-    //     }));
-    //     const dateStr =
-    //       header.document_date instanceof Date
-    //         ? header.document_date.toISOString().split('T')[0]
-    //         : String(header.document_date).split('T')[0];
-    //     const commitPayload = {
-    //       salesman_sap_code: header.salesman_sap_code,
-    //       depot_sap_code: header.depot_sap_code,
-    //       document_date: dateStr,
-    //       reconciliation_items: reconstructedItems,
-    //     };
-    //     const result: any = await this.createOrUpdateReconciliationSAP(
-    //       commitPayload,
-    //       approvedBy,
-    //       { isApprovedCommit: true, headerId: header.id }
+    //   } catch (err) {
+    //     console.error(
+    //       'sap credit memo Failed to create or update approval request in sfa_d_requests:',
+    //       err
     //     );
-    //     await (prisma as any).sap_creditmemo_header.update({
-    //       where: { id: header.id },
-    //       data: {
-    //         status: 'A',
-    //         reconciliation_id: result.reconciliation_id,
-    //         updatedate: new Date(),
-    //         updatedby: approvedBy,
-    //       },
-    //     });
-    //     if (result.items && Array.isArray(result.items)) {
-    //       for (const line of lines) {
-    //         const matchedItem =
-    //           result.items.find(
-    //             (saved: any) =>
-    //               saved.sap_lineid === line.sap_lineid &&
-    //               (line.sap_docentry
-    //                 ? String(saved.sap_docentry) === String(line.sap_docentry)
-    //                 : true) &&
-    //               (!line.batch_number || saved.batch_number === line.batch_number)
-    //           ) ||
-    //           result.items.find(
-    //             (saved: any) =>
-    //               saved.sap_lineid === line.sap_lineid &&
-    //               (!line.batch_number || saved.batch_number === line.batch_number)
-    //           ) ||
-    //           result.items.find(
-    //             (saved: any) => saved.sap_lineid === line.sap_lineid
-    //           );
-    //         if (matchedItem) {
-    //           await (prisma as any).sap_creditmemo_line.update({
-    //             where: { id: line.id },
-    //             data: {
-    //               status: 'A',
-    //               reconciliation_item_id: matchedItem.id,
-    //               updatedate: new Date(),
-    //               updatedby: approvedBy,
-    //             },
-    //           });
-    //         }
+    //   }
+    //   return {
+    //     staged: true,
+    //     batch_ref: batchRef,
+    //     header_id: header.id,
+    //     request_id: approvalRequest?.id || null,
+    //     status: approvalRequest?.status === 'A' ? 'APPROVED' : 'PENDING',
+    //     message: isUpdate
+    //       ? 'Credit memo updated and pending approval'
+    //       : 'Credit memo received and pending approval',
+    //     items_count: creditMemoItems.length,
+    //     wasUpdate: isUpdate,
+    //   };
+    // },
+    // async commitCreditMemoToReconciliation(headerId: number, approvedBy: number) {
+    //   const header = await (prisma as any).sap_creditmemo_header.findUnique({
+    //     where: { id: headerId },
+    //     include: {
+    //       sap_creditmemo_header: true,
+    //     },
+    //   });
+    //   if (!header) {
+    //     throw new Error(`SAP credit memo header ID ${headerId} not found`);
+    //   }
+    //   const lines = header.sap_creditmemo_header || [];
+    //   if (lines.length === 0) {
+    //     console.warn(
+    //       `sap credit memo Header #${headerId} has no lines to commit.`
+    //     );
+    //     return { success: true, message: 'No lines to commit', updated_items: 0 };
+    //   }
+    //   const reconstructedItems = lines.map((line: any) => ({
+    //     product_sap_code: line.product_sap_code,
+    //     sap_lineid: line.sap_lineid,
+    //     source_system: line.source_system || 'sap_ar_creditmemo',
+    //     sap_docnum: line.sap_docnum,
+    //     sap_docentry: line.sap_docentry,
+    //     batch_number: line.batch_number,
+    //     quantity: line.quantity ? Number(line.quantity) : undefined,
+    //     base_quantity:
+    //       line.base_quantity !== null && line.base_quantity !== undefined
+    //         ? Number(line.base_quantity)
+    //         : undefined,
+    //     purchase_price:
+    //       line.purchase_price !== null && line.purchase_price !== undefined
+    //         ? Number(line.purchase_price)
+    //         : undefined,
+    //     quality_grade: line.quality_grade,
+    //     storage_location: line.storage_location,
+    //     supplier_name: line.supplier_name,
+    //     manufacturing_date: line.manufacturing_date,
+    //     expiry_date: line.expiry_date,
+    //   }));
+    //   const dateStr =
+    //     header.document_date instanceof Date
+    //       ? header.document_date.toISOString().split('T')[0]
+    //       : String(header.document_date).split('T')[0];
+    //   const commitPayload = {
+    //     salesman_sap_code: header.salesman_sap_code,
+    //     depot_sap_code: header.depot_sap_code,
+    //     document_date: dateStr,
+    //     reconciliation_items: reconstructedItems,
+    //   };
+    //   const result: any = await this.createOrUpdateReconciliationSAP(
+    //     commitPayload,
+    //     approvedBy,
+    //     { isApprovedCommit: true, headerId: header.id }
+    //   );
+    //   await (prisma as any).sap_creditmemo_header.update({
+    //     where: { id: header.id },
+    //     data: {
+    //       status: 'A',
+    //       reconciliation_id: result.reconciliation_id,
+    //       updatedate: new Date(),
+    //       updatedby: approvedBy,
+    //     },
+    //   });
+    //   if (result.items && Array.isArray(result.items)) {
+    //     for (const line of lines) {
+    //       const matchedItem =
+    //         result.items.find(
+    //           (saved: any) =>
+    //             saved.sap_lineid === line.sap_lineid &&
+    //             (line.sap_docentry
+    //               ? String(saved.sap_docentry) === String(line.sap_docentry)
+    //               : true) &&
+    //             (!line.batch_number || saved.batch_number === line.batch_number)
+    //         ) ||
+    //         result.items.find(
+    //           (saved: any) =>
+    //             saved.sap_lineid === line.sap_lineid &&
+    //             (!line.batch_number || saved.batch_number === line.batch_number)
+    //         ) ||
+    //         result.items.find(
+    //           (saved: any) => saved.sap_lineid === line.sap_lineid
+    //         );
+    //       if (matchedItem) {
+    //         await (prisma as any).sap_creditmemo_line.update({
+    //           where: { id: line.id },
+    //           data: {
+    //             status: 'A',
+    //             reconciliation_item_id: matchedItem.id,
+    //             updatedate: new Date(),
+    //             updatedby: approvedBy,
+    //           },
+    //         });
     //       }
     //     }
-    //     return result;
-    //   },
-    // };
-    // Test 3 - With logic of pending check
+    //   }
+    //   return result;
+    // },
     async createOrUpdateReconciliationSAP(payload, userId, options) {
         const { salesman_sap_code, depot_sap_code, document_date } = payload;
         const items = payload.reconciliation_items || payload.items;
@@ -3496,6 +3104,19 @@ exports.sapService = {
         }
         let normalizedItems = [];
         for (const item of items) {
+            const itemCode = item.product_sap_code || item.sap_item_code;
+            let conv = 1;
+            if (itemCode || item.product_id) {
+                const prod = await prisma_client_1.default.products.findFirst({
+                    where: itemCode
+                        ? { sap_code: String(itemCode) }
+                        : { id: Number(item.product_id) },
+                    include: { product_unit_of_measurement: true },
+                });
+                if (prod?.product_unit_of_measurement?.conversion_rate) {
+                    conv = Number(prod.product_unit_of_measurement.conversion_rate) || 1;
+                }
+            }
             if (item.batches &&
                 Array.isArray(item.batches) &&
                 item.batches.length > 0) {
@@ -3504,35 +3125,30 @@ exports.sapService = {
                     rawItemQty !== null &&
                     rawItemQty !== '') {
                     const expectedQty = Number(rawItemQty);
-                    const totalBatchQty = item.batches.reduce((sum, b) => {
+                    const totalBatchQty = item.batches
+                        .reduce((sum, b) => {
                         const bQty = b.quantity ?? b.actual_qty;
                         return (sum +
                             (bQty !== undefined && bQty !== null && bQty !== ''
                                 ? Number(bQty)
                                 : 0));
-                    }, 0);
-                    let isMatch = Math.abs(expectedQty - totalBatchQty) <= 0.0001;
+                    }, 0)
+                        .toFixed(2);
+                    let isMatch = Math.abs(expectedQty - Number(totalBatchQty)) <= 0.0001;
                     if (!isMatch) {
-                        const itemCode = item.product_sap_code || item.sap_item_code;
-                        let conv = 1;
-                        if (itemCode || item.product_id) {
-                            const prod = await prisma_client_1.default.products.findFirst({
-                                where: itemCode
-                                    ? { sap_code: String(itemCode) }
-                                    : { id: Number(item.product_id) },
-                                include: { product_unit_of_measurement: true },
-                            });
-                            if (prod?.product_unit_of_measurement?.conversion_rate) {
-                                conv =
-                                    Number(prod.product_unit_of_measurement.conversion_rate) || 1;
-                            }
-                        }
                         const totalBatchWithBase = item.batches.reduce((sum, b) => {
                             const bQty = Number(b.quantity ?? b.actual_qty ?? 0);
                             const bBaseQty = Number(b.base_quantity ?? b.actual_base_qty ?? 0);
                             return sum + bQty + (conv > 1 ? bBaseQty / conv : 0);
                         }, 0);
-                        if (Math.abs(expectedQty - totalBatchWithBase) <= 0.0001) {
+                        const expectedTotalPieces = Math.round(expectedQty * conv);
+                        const totalBatchPieces = Math.round(item.batches.reduce((sum, b) => {
+                            const bQty = Number(b.quantity ?? b.actual_qty ?? 0);
+                            const bBaseQty = Number(b.base_quantity ?? b.actual_base_qty ?? 0);
+                            return sum + bQty * conv + bBaseQty;
+                        }, 0));
+                        if (Math.abs(expectedQty - totalBatchWithBase) <= 0.0001 ||
+                            expectedTotalPieces === totalBatchPieces) {
                             isMatch = true;
                         }
                     }
@@ -3545,6 +3161,35 @@ exports.sapService = {
                 }
                 for (let bIdx = 0; bIdx < item.batches.length; bIdx++) {
                     const b = item.batches[bIdx];
+                    const rawBatchQty = b.quantity ?? b.actual_qty ?? item.quantity ?? item.actual_qty;
+                    let batchQty = rawBatchQty !== undefined &&
+                        rawBatchQty !== null &&
+                        rawBatchQty !== ''
+                        ? Number(rawBatchQty)
+                        : undefined;
+                    let batchBaseQty = b.base_quantity ??
+                        b.actual_base_qty ??
+                        item.base_quantity ??
+                        item.actual_base_qty;
+                    let parsedBatchBaseQty = batchBaseQty !== undefined &&
+                        batchBaseQty !== null &&
+                        batchBaseQty !== ''
+                        ? Number(batchBaseQty)
+                        : undefined;
+                    // Split decimal batch quantity into whole packages and base pieces
+                    if (batchQty !== undefined && conv > 1 && batchQty % 1 !== 0) {
+                        const wholeQty = Math.floor(batchQty);
+                        const decimalPart = batchQty - wholeQty;
+                        const rawBaseUnits = decimalPart * conv;
+                        const extraBase = Math.round(rawBaseUnits);
+                        batchQty = wholeQty;
+                        parsedBatchBaseQty = (parsedBatchBaseQty || 0) + extraBase;
+                        if (parsedBatchBaseQty >= conv) {
+                            const extraPackages = Math.floor(parsedBatchBaseQty / conv);
+                            batchQty += extraPackages;
+                            parsedBatchBaseQty = parsedBatchBaseQty % conv;
+                        }
+                    }
                     normalizedItems.push({
                         ...item,
                         ...b,
@@ -3558,16 +3203,42 @@ exports.sapService = {
                                 ? item.sap_lineid
                                 : `${bIdx + 1}`,
                         batch_number: b.batch_number ?? item.batch_number ?? null,
-                        quantity: b.quantity ?? b.actual_qty ?? item.quantity ?? item.actual_qty,
-                        base_quantity: b.base_quantity ??
-                            b.actual_base_qty ??
-                            item.base_quantity ??
-                            item.actual_base_qty,
+                        quantity: batchQty,
+                        base_quantity: parsedBatchBaseQty,
                     });
                 }
             }
             else {
-                normalizedItems.push(item);
+                const rawItemQty = item.quantity ?? item.actual_qty;
+                let itemQty = rawItemQty !== undefined && rawItemQty !== null && rawItemQty !== ''
+                    ? Number(rawItemQty)
+                    : undefined;
+                let itemBaseQty = item.base_quantity ?? item.actual_base_qty;
+                let parsedItemBaseQty = itemBaseQty !== undefined &&
+                    itemBaseQty !== null &&
+                    itemBaseQty !== ''
+                    ? Number(itemBaseQty)
+                    : undefined;
+                if (itemQty !== undefined && conv > 1 && itemQty % 1 !== 0) {
+                    const wholeQty = Math.floor(itemQty);
+                    const decimalPart = itemQty - wholeQty;
+                    const rawBaseUnits = decimalPart * conv;
+                    const extraBase = Math.round(rawBaseUnits);
+                    itemQty = wholeQty;
+                    parsedItemBaseQty = (parsedItemBaseQty || 0) + extraBase;
+                    if (parsedItemBaseQty >= conv) {
+                        const extraPackages = Math.floor(parsedItemBaseQty / conv);
+                        itemQty += extraPackages;
+                        parsedItemBaseQty = parsedItemBaseQty % conv;
+                    }
+                }
+                normalizedItems.push({
+                    ...item,
+                    quantity: itemQty !== undefined ? itemQty : item.quantity,
+                    base_quantity: parsedItemBaseQty !== undefined
+                        ? parsedItemBaseQty
+                        : item.base_quantity,
+                });
             }
         }
         const spUser = await prisma_client_1.default.users.findFirst({
@@ -3878,6 +3549,18 @@ exports.sapService = {
                 let finalActual = effectiveActual;
                 let finalActualBase = effectiveActualBase;
                 if (conv > 1 &&
+                    finalActual !== null &&
+                    finalActual !== undefined &&
+                    finalActual % 1 !== 0) {
+                    const rawBatchQty = finalActual;
+                    const batchQty = Math.floor(rawBatchQty);
+                    const decimalPart = rawBatchQty - batchQty;
+                    const rawBaseUnits = decimalPart * conv;
+                    const batchBaseQty = Math.round(rawBaseUnits);
+                    finalActual = batchQty;
+                    finalActualBase = (finalActualBase || 0) + batchBaseQty;
+                }
+                if (conv > 1 &&
                     finalActualBase !== null &&
                     finalActualBase !== undefined) {
                     const extraCases = Math.floor(finalActualBase / conv);
@@ -3969,6 +3652,90 @@ exports.sapService = {
                 }
                 processedItems.push({
                     ...savedItem,
+                    reconciliation_id: reconId,
+                });
+            }
+            const processedIds = processedItems
+                .map(p => p.id)
+                .filter((id) => typeof id === 'number');
+            const missingItems = await tx.reconciliation_items.findMany({
+                where: {
+                    reconciliation_id: reconId,
+                    ...(processedIds.length > 0 ? { id: { notIn: processedIds } } : {}),
+                    is_active: 'Y',
+                },
+                include: {
+                    product: { include: { product_unit_of_measurement: true } },
+                },
+            });
+            for (const missingItem of missingItems) {
+                const conv = Number(missingItem.product?.product_unit_of_measurement?.conversion_rate) || 1;
+                const loadQty = Number(missingItem.load_qty || 0);
+                const loadBaseQty = Number(missingItem.load_base_qty || 0);
+                const saleQty = Number(missingItem.sale_qty || 0);
+                const saleBaseQty = Number(missingItem.sale_base_qty || 0);
+                let expectedQty;
+                let expectedBaseQty;
+                let expectedTotalPieces;
+                if (missingItem.expected_qty !== null &&
+                    missingItem.expected_qty !== undefined) {
+                    expectedQty = Number(missingItem.expected_qty);
+                    expectedBaseQty = Number(missingItem.expected_base_qty ?? 0);
+                    expectedTotalPieces = expectedQty * conv + expectedBaseQty;
+                }
+                else {
+                    expectedTotalPieces = Math.max(0, loadQty * conv + loadBaseQty - (saleQty * conv + saleBaseQty));
+                    expectedQty =
+                        conv > 1
+                            ? Math.floor(expectedTotalPieces / conv)
+                            : Math.max(0, loadQty - saleQty);
+                    expectedBaseQty =
+                        conv > 1
+                            ? expectedTotalPieces % conv
+                            : Math.max(0, loadBaseQty - saleBaseQty);
+                }
+                const finalActual = 0;
+                const finalActualBase = 0;
+                const actualTotalPieces = 0;
+                const variancePieces = Math.round(actualTotalPieces - expectedTotalPieces);
+                let variance = null;
+                let variance_base_qty = null;
+                let resAction = 'Awaiting Verification';
+                if (variancePieces === 0) {
+                    variance = 0;
+                    variance_base_qty = 0;
+                    resAction = 'CLEAN';
+                }
+                else {
+                    const absV = Math.abs(variancePieces);
+                    variance = Math.floor(absV / conv) * Math.sign(variancePieces);
+                    variance_base_qty = (absV % conv) * Math.sign(variancePieces);
+                    resAction = 'Post to Default Outlet';
+                }
+                const defaultOutletPostingQty = resAction === 'Post to Default Outlet' && variance !== null
+                    ? Math.abs(variance)
+                    : 0;
+                const defaultOutletPostingBaseQty = resAction === 'Post to Default Outlet' && variance_base_qty !== null
+                    ? Math.abs(variance_base_qty)
+                    : 0;
+                const updatedMissing = await tx.reconciliation_items.update({
+                    where: { id: missingItem.id },
+                    data: {
+                        actual_qty: finalActual,
+                        actual_base_qty: finalActualBase,
+                        expected_qty: expectedQty,
+                        expected_base_qty: expectedBaseQty,
+                        variance,
+                        variance_base_qty,
+                        resolution_action: resAction,
+                        default_outlet_posting_qty: defaultOutletPostingQty,
+                        default_outlet_posting_base_qty: defaultOutletPostingBaseQty,
+                        updatedate: new Date(),
+                        updatedby: userId,
+                    },
+                });
+                processedItems.push({
+                    ...updatedMissing,
                     reconciliation_id: reconId,
                 });
             }

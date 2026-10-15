@@ -37,9 +37,13 @@ export interface AssetMovementContractData {
     notes?: string | null;
 }
 export declare class ContractGenerationService {
+    private formatDate;
+    private fetchAssetMovementDetails;
     generateCoolerIssuanceContract(assetMovementId: number): Promise<Buffer>;
-    uploadContractToBackblaze(assetMovementId: number, contractBuffer: Buffer): Promise<string>;
-    saveContractUrlToDatabase(assetMovementId: number, contractUrl: string): Promise<any>;
+    generateCoolerRetrievalNote(assetMovementId: number): Promise<Buffer>;
+    generateCoolerTransferDocument(assetMovementId: number): Promise<Buffer>;
+    uploadContractToBackblaze(assetMovementId: number, contractBuffer: Buffer, filePrefix?: string): Promise<string>;
+    saveContractUrlToDatabase(assetMovementId: number, contractUrl: string, contractNumber?: string): Promise<any>;
     getContractByAssetMovementId(assetMovementId: number): Promise<any>;
     generateContractOnApproval(assetMovementId: number): Promise<any>;
 }

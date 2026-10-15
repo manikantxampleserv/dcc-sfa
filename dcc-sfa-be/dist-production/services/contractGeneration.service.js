@@ -8,7 +8,32 @@ const pdfkit_1 = __importDefault(require("pdfkit"));
 const prisma_client_1 = __importDefault(require("../configs/prisma.client"));
 const blackbaze_1 = require("../utils/blackbaze");
 class ContractGenerationService {
-    async generateCoolerIssuanceContract(assetMovementId) {
+    formatDate(date) {
+        if (!date)
+            return '';
+        const d = new Date(date);
+        if (isNaN(d.getTime()))
+            return '';
+        const months = [
+            'Jan',
+            'Feb',
+            'Mar',
+            'Apr',
+            'May',
+            'Jun',
+            'Jul',
+            'Aug',
+            'Sep',
+            'Oct',
+            'Nov',
+            'Dec',
+        ];
+        const day = d.getDate().toString().padStart(2, '0');
+        const month = months[d.getMonth()];
+        const year = d.getFullYear().toString().slice(-2);
+        return `${day}-${month}-${year}`;
+    }
+    async fetchAssetMovementDetails(assetMovementId) {
         const assetMovement = await prisma_client_1.default.asset_movements.findUnique({
             where: { id: assetMovementId },
             include: {
@@ -18,6 +43,14 @@ class ContractGenerationService {
                             include: {
                                 asset_master_asset_types: true,
                                 asset_master_asset_sub_types: true,
+                                asset_master_outlet: {
+                                    include: {
+                                        customer_zones: true,
+                                        customer_routes: true,
+                                        customer_depot: true,
+                                        customer_type_customer: true,
+                                    },
+                                },
                             },
                         },
                     },
@@ -50,7 +83,8 @@ class ContractGenerationService {
         let company = null;
         const depotId = assetMovement.from_depot_id ||
             assetMovement.to_depot_id ||
-            assetMovement.asset_movement_to_customer?.depot_id;
+            assetMovement.asset_movement_to_customer?.depot_id ||
+            assetMovement.asset_movement_from_customer?.depot_id;
         if (depotId) {
             const depot = await prisma_client_1.default.depots.findUnique({
                 where: { id: depotId },
@@ -80,31 +114,16 @@ class ContractGenerationService {
         const companyPhone = company?.phone_number
             ? `Tel: ${company.phone_number}`
             : 'Tel: +255 27 54422/7';
-        const formatDate = (date) => {
-            if (!date)
-                return '';
-            const d = new Date(date);
-            if (isNaN(d.getTime()))
-                return '';
-            const months = [
-                'Jan',
-                'Feb',
-                'Mar',
-                'Apr',
-                'May',
-                'Jun',
-                'Jul',
-                'Aug',
-                'Sep',
-                'Oct',
-                'Nov',
-                'Dec',
-            ];
-            const day = d.getDate().toString().padStart(2, '0');
-            const month = months[d.getMonth()];
-            const year = d.getFullYear().toString().slice(-2);
-            return `${day}-${month}-${year}`;
+        return {
+            assetMovement,
+            companyName,
+            companyAddress,
+            companyPhone,
         };
+    }
+    async generateCoolerIssuanceContract(assetMovementId) {
+        const { assetMovement, companyName, companyAddress, companyPhone } = await this.fetchAssetMovementDetails(assetMovementId);
+        const formatDate = this.formatDate.bind(this);
         return new Promise((resolve, reject) => {
             const doc = new pdfkit_1.default({
                 margin: 36,
@@ -331,7 +350,7 @@ class ContractGenerationService {
             doc.font('Helvetica-Bold').fontSize(8.5);
             doc.text('Issued by :_________________________________________', startX + 8, p1SigY);
             doc
-                .font('Helvetica')
+                .font('Helvetica-Bold')
                 .fontSize(8.5)
                 .text('Store Keeper', startX + 115, p1SigY + 13);
             doc
@@ -510,8 +529,430 @@ class ContractGenerationService {
             doc.end();
         });
     }
-    async uploadContractToBackblaze(assetMovementId, contractBuffer) {
-        const fileName = `contracts/cooler-contract-${assetMovementId}-${Date.now()}.pdf`;
+    async generateCoolerRetrievalNote(assetMovementId) {
+        const { assetMovement, companyName, companyAddress, companyPhone } = await this.fetchAssetMovementDetails(assetMovementId);
+        return new Promise((resolve, reject) => {
+            const doc = new pdfkit_1.default({
+                margin: 36,
+                size: 'A4',
+                autoFirstPage: false,
+            });
+            const chunks = [];
+            doc.on('data', chunk => chunks.push(chunk));
+            doc.on('end', () => resolve(Buffer.concat(chunks)));
+            doc.on('error', reject);
+            const startX = 36;
+            const startY = 36;
+            const pageWidth = 595.28 - 72;
+            const pageHeight = 841.89 - 72;
+            const customer = assetMovement.asset_movement_from_customer ||
+                assetMovement.asset_movement_assets?.[0]?.asset_movement_assets_asset
+                    ?.asset_master_outlet ||
+                assetMovement.asset_movement_to_customer;
+            const customerCode = customer?.code || 'N/A';
+            const customerName = customer?.name || 'N/A';
+            const zoneName = customer?.customer_zones?.name || 'N/A';
+            const routeName = customer?.customer_routes?.code ||
+                customer?.customer_routes?.name ||
+                'N/A';
+            const fromDepotName = customer?.customer_depot?.name ||
+                assetMovement.asset_movement_from_depot?.name ||
+                'Moshi';
+            const receivingDepot = assetMovement.asset_movement_to_depot?.name ||
+                customer?.customer_depot?.name ||
+                'Moshi';
+            const firstAssetItem = assetMovement.asset_movement_assets?.[0]?.asset_movement_assets_asset;
+            const barcodeNo = firstAssetItem?.barcode || assetMovement.id.toString().padStart(5, '0');
+            const receiptNoteNumber = `CR${assetMovement.id.toString().padStart(7, '0')}`;
+            const movementDateStr = this.formatDate(assetMovement.movement_date || new Date());
+            const retrievalReason = assetMovement.return_reason || assetMovement.notes || 'Repairs';
+            doc.addPage();
+            doc.lineWidth(1).strokeColor('#000000');
+            doc.rect(startX, startY, pageWidth, pageHeight).stroke();
+            const headerH = 55;
+            doc
+                .font('Helvetica-Bold')
+                .fontSize(11)
+                .text(companyName.toUpperCase(), startX, startY + 12, {
+                align: 'center',
+                width: pageWidth,
+            });
+            doc
+                .font('Helvetica')
+                .fontSize(8.5)
+                .text(companyAddress, startX, startY + 26, {
+                align: 'center',
+                width: pageWidth,
+            });
+            doc
+                .font('Helvetica')
+                .fontSize(8.5)
+                .text(companyPhone, startX, startY + 38, {
+                align: 'center',
+                width: pageWidth,
+            });
+            const headerBottomY = startY + headerH;
+            doc
+                .moveTo(startX, headerBottomY)
+                .lineTo(startX + pageWidth, headerBottomY)
+                .stroke();
+            const titleH = 28;
+            doc
+                .font('Helvetica-Bold')
+                .fontSize(11)
+                .text('COOLER RETRIEVAL NOTE', startX, headerBottomY + 8, {
+                align: 'center',
+                width: pageWidth,
+            });
+            const titleBottomY = headerBottomY + titleH;
+            doc
+                .moveTo(startX, titleBottomY)
+                .lineTo(startX + pageWidth, titleBottomY)
+                .stroke();
+            const infoH = 80;
+            const leftCol1W = 95;
+            const leftCol1X = startX + leftCol1W;
+            const midX = startX + 250;
+            const infoBottomY = titleBottomY + infoH;
+            const leftY = titleBottomY + 6;
+            doc.fillColor('#000000').font('Helvetica-Bold').fontSize(8);
+            doc.text('Received From:', startX + 6, leftY);
+            doc.text('Outlet Zone', startX + 6, titleBottomY + 32);
+            doc.text('Outlet Route', startX + 6, titleBottomY + 48);
+            doc.text('Depot', startX + 6, titleBottomY + 64);
+            const valW = midX - leftCol1X - 10;
+            doc.fillColor('#000000').font('Helvetica').fontSize(8);
+            doc.text(customerCode, leftCol1X + 6, leftY, { width: valW });
+            doc.text(customerName, leftCol1X + 6, leftY + 12, {
+                width: valW,
+                lineBreak: false,
+                ellipsis: true,
+            });
+            doc.text(zoneName, leftCol1X + 6, titleBottomY + 32, { width: valW });
+            doc.text(routeName, leftCol1X + 6, titleBottomY + 48, { width: valW });
+            doc.text(fromDepotName, leftCol1X + 6, titleBottomY + 64, {
+                width: valW,
+            });
+            const rightValX = startX + pageWidth - 105;
+            const rRow1Y = titleBottomY + 6;
+            const rRow2Y = titleBottomY + 20;
+            const rRow3Y = titleBottomY + 34;
+            const rRowDateY = titleBottomY + 64;
+            doc.fillColor('#000000').font('Helvetica-Bold').fontSize(8);
+            doc.text('Barcode No: ', midX, rRow1Y, {
+                width: rightValX - midX - 6,
+                align: 'right',
+            });
+            doc.text(barcodeNo, rightValX + 6, rRow1Y);
+            doc.text('Receipt Note Number: ', midX, rRow2Y, {
+                width: rightValX - midX - 6,
+                align: 'right',
+            });
+            doc.text(receiptNoteNumber, rightValX + 6, rRow2Y);
+            doc.text('Receiving Depot: ', midX, rRow3Y, {
+                width: rightValX - midX - 6,
+                align: 'right',
+            });
+            doc.text(receivingDepot, rightValX + 6, rRow3Y);
+            doc.text('Date: ', midX, rRowDateY, {
+                width: rightValX - midX - 6,
+                align: 'right',
+            });
+            doc.text(movementDateStr, rightValX + 6, rRowDateY);
+            // Info borders
+            doc.lineWidth(1).strokeColor('#000000');
+            doc
+                .moveTo(leftCol1X, titleBottomY)
+                .lineTo(leftCol1X, infoBottomY)
+                .stroke();
+            doc.moveTo(midX, titleBottomY).lineTo(midX, infoBottomY).stroke();
+            doc
+                .moveTo(startX, infoBottomY)
+                .lineTo(startX + pageWidth, infoBottomY)
+                .stroke();
+            const reasonH = 22;
+            const reasonBottomY = infoBottomY + reasonH;
+            doc.font('Helvetica-Bold').fontSize(8.5);
+            doc.text('Retrieval Reason: ', startX, infoBottomY + 6, {
+                width: midX - startX - 6,
+                align: 'right',
+            });
+            doc.font('Helvetica').fontSize(8.5);
+            doc.text(retrievalReason, midX + 6, infoBottomY + 6);
+            doc.moveTo(midX, infoBottomY).lineTo(midX, reasonBottomY).stroke();
+            doc
+                .moveTo(startX, reasonBottomY)
+                .lineTo(startX + pageWidth, reasonBottomY)
+                .stroke();
+            // Subtitle
+            const subH = 26;
+            doc
+                .font('Helvetica-Bold')
+                .fontSize(8.5)
+                .text('We have received the following goods in good condition UNLESS STATED OTHERWISE', startX, reasonBottomY + 8, { align: 'center', width: pageWidth });
+            const tableTopY = reasonBottomY + subH;
+            const colWidths = [35, 125, 315, 48];
+            const colX = [
+                startX,
+                startX + colWidths[0],
+                startX + colWidths[0] + colWidths[1],
+                startX + colWidths[0] + colWidths[1] + colWidths[2],
+            ];
+            const headerRowH = 20;
+            doc.fillColor('#000000').font('Helvetica-Bold').fontSize(8);
+            doc.text('S.No', colX[0], tableTopY + 6, {
+                width: colWidths[0],
+                align: 'center',
+            });
+            doc.text('Cooler Type', colX[1] + 6, tableTopY + 6, {
+                width: colWidths[1] - 12,
+            });
+            doc.text('Cooler Seriel No.', colX[2] + 6, tableTopY + 6, {
+                width: colWidths[2] - 12,
+            });
+            doc.text('Qty', colX[3], tableTopY + 6, {
+                width: colWidths[3],
+                align: 'center',
+            });
+            const assets = assetMovement.asset_movement_assets || [];
+            const rowCellH = 20;
+            assets.forEach((am, idx) => {
+                const rowY = tableTopY + headerRowH + idx * rowCellH;
+                const asset = am?.asset_movement_assets_asset;
+                if (asset) {
+                    const cType = asset.name ||
+                        asset.asset_master_asset_sub_types?.name ||
+                        asset.code ||
+                        asset.asset_master_asset_types?.name ||
+                        'Cooler';
+                    const sNo = asset.serial_number || '-';
+                    doc.fillColor('#000000').font('Helvetica').fontSize(8);
+                    doc.text(String(idx + 1), colX[0], rowY + 6, {
+                        width: colWidths[0],
+                        align: 'center',
+                    });
+                    doc.text(cType, colX[1] + 6, rowY + 6, {
+                        width: colWidths[1] - 12,
+                        lineBreak: false,
+                        ellipsis: true,
+                    });
+                    doc.text(sNo, colX[2] + 6, rowY + 6, {
+                        width: colWidths[2] - 12,
+                        lineBreak: false,
+                        ellipsis: true,
+                    });
+                    doc.text('1', colX[3], rowY + 6, {
+                        width: colWidths[3],
+                        align: 'center',
+                    });
+                }
+            });
+            // Table Borders & Signatures
+            const bottomLimit = startY + pageHeight;
+            const sigY2 = bottomLimit - 40;
+            const sigY1 = sigY2 - 32;
+            const tableBottomY = sigY1 - 18;
+            const tableH = tableBottomY - tableTopY;
+            doc.lineWidth(1).strokeColor('#000000');
+            doc.rect(startX, tableTopY, pageWidth, tableH).stroke();
+            doc
+                .moveTo(startX, tableTopY + headerRowH)
+                .lineTo(startX + pageWidth, tableTopY + headerRowH)
+                .stroke();
+            for (let i = 1; i < colX.length; i++) {
+                doc
+                    .moveTo(colX[i], tableTopY)
+                    .lineTo(colX[i], tableTopY + tableH)
+                    .stroke();
+            }
+            doc.font('Helvetica-Bold').fontSize(8.5);
+            doc.text('Received by : _________________________________________', startX + 8, sigY1);
+            doc.text('Store Keeper', startX + 115, sigY1 + 13);
+            doc.text('Approved by : ______________________________', startX + pageWidth - 235, sigY1);
+            doc.text('Examined by : _________________________________________', startX + 8, sigY2);
+            doc.text('Designation', startX + 115, sigY2 + 13);
+            doc.text('Approved Date : ______________________________', startX + pageWidth - 235, sigY2);
+            doc.end();
+        });
+    }
+    async generateCoolerTransferDocument(assetMovementId) {
+        const { assetMovement, companyName, companyAddress, companyPhone } = await this.fetchAssetMovementDetails(assetMovementId);
+        return new Promise((resolve, reject) => {
+            const doc = new pdfkit_1.default({
+                margin: 36,
+                size: 'A4',
+                autoFirstPage: false,
+            });
+            const chunks = [];
+            doc.on('data', chunk => chunks.push(chunk));
+            doc.on('end', () => resolve(Buffer.concat(chunks)));
+            doc.on('error', reject);
+            const startX = 36;
+            const startY = 36;
+            const pageWidth = 595.28 - 72;
+            const pageHeight = 841.89 - 72;
+            const fromDepotName = assetMovement.asset_movement_from_depot?.name ||
+                assetMovement.asset_movement_from_customer?.customer_depot?.name ||
+                'Moshi';
+            const toDepotName = assetMovement.asset_movement_to_depot?.name ||
+                assetMovement.asset_movement_to_customer?.customer_depot?.name ||
+                'Arusha';
+            const movementDateStr = this.formatDate(assetMovement.movement_date || new Date());
+            doc.addPage();
+            doc.lineWidth(1).strokeColor('#000000');
+            doc.rect(startX, startY, pageWidth, pageHeight).stroke();
+            const headerH = 55;
+            doc
+                .font('Helvetica-Bold')
+                .fontSize(11)
+                .text(companyName.toUpperCase(), startX, startY + 12, {
+                align: 'center',
+                width: pageWidth,
+            });
+            doc
+                .font('Helvetica')
+                .fontSize(8.5)
+                .text(companyAddress, startX, startY + 26, {
+                align: 'center',
+                width: pageWidth,
+            });
+            doc
+                .font('Helvetica')
+                .fontSize(8.5)
+                .text(companyPhone, startX, startY + 38, {
+                align: 'center',
+                width: pageWidth,
+            });
+            const headerBottomY = startY + headerH;
+            doc
+                .moveTo(startX, headerBottomY)
+                .lineTo(startX + pageWidth, headerBottomY)
+                .stroke();
+            // Title
+            const titleH = 28;
+            doc
+                .font('Helvetica-Bold')
+                .fontSize(11)
+                .text('COOLER TRANSFER DOCUMENT', startX, headerBottomY + 8, {
+                align: 'center',
+                width: pageWidth,
+            });
+            const titleBottomY = headerBottomY + titleH;
+            doc
+                .moveTo(startX, titleBottomY)
+                .lineTo(startX + pageWidth, titleBottomY)
+                .stroke();
+            const infoH = 56;
+            const midX = startX + 250;
+            const infoBottomY = titleBottomY + infoH;
+            const rightMidY = titleBottomY + 28;
+            doc.fillColor('#000000').font('Helvetica-Bold').fontSize(8.5);
+            doc.text('Transferred From', startX + 8, titleBottomY + 22);
+            doc.text(fromDepotName, startX + 140, titleBottomY + 22);
+            doc.text('Date: ', midX + 155, titleBottomY + 9, {
+                width: 50,
+                align: 'right',
+            });
+            doc.text(movementDateStr, midX + 210, titleBottomY + 9);
+            doc.text('Transferred To - Depot:', midX + 8, rightMidY + 9);
+            doc.text(toDepotName, midX + 150, rightMidY + 9);
+            doc.lineWidth(1).strokeColor('#000000');
+            doc.moveTo(midX, titleBottomY).lineTo(midX, infoBottomY).stroke();
+            doc
+                .moveTo(startX, infoBottomY)
+                .lineTo(startX + pageWidth, infoBottomY)
+                .stroke();
+            const subH = 26;
+            doc
+                .font('Helvetica-Bold')
+                .fontSize(8.5)
+                .text('We have received the following goods in good condition UNLESS STATED OTHERWISE', startX, infoBottomY + 8, { align: 'center', width: pageWidth });
+            const tableTopY = infoBottomY + subH;
+            const colWidths = [35, 125, 315, 48];
+            const colX = [
+                startX,
+                startX + colWidths[0],
+                startX + colWidths[0] + colWidths[1],
+                startX + colWidths[0] + colWidths[1] + colWidths[2],
+            ];
+            const headerRowH = 20;
+            const rowCellH = 20;
+            const assets = assetMovement.asset_movement_assets || [];
+            doc.fillColor('#000000').font('Helvetica-Bold').fontSize(8);
+            doc.text('S.No', colX[0], tableTopY + 6, {
+                width: colWidths[0],
+                align: 'center',
+            });
+            doc.text('Cooler Type', colX[1] + 6, tableTopY + 6, {
+                width: colWidths[1] - 12,
+            });
+            doc.text('Cooler Seriel No.', colX[2] + 6, tableTopY + 6, {
+                width: colWidths[2] - 12,
+            });
+            doc.text('Qty', colX[3], tableTopY + 6, {
+                width: colWidths[3],
+                align: 'center',
+            });
+            assets.forEach((am, idx) => {
+                const rowY = tableTopY + headerRowH + idx * rowCellH;
+                const assetItem = am?.asset_movement_assets_asset;
+                if (assetItem) {
+                    const cType = assetItem.name ||
+                        assetItem.asset_master_asset_sub_types?.name ||
+                        assetItem.code ||
+                        assetItem.asset_master_asset_types?.name ||
+                        'Cooler';
+                    const sNo = assetItem.serial_number || '-';
+                    doc.fillColor('#000000').font('Helvetica').fontSize(8);
+                    doc.text(String(idx + 1), colX[0], rowY + 6, {
+                        width: colWidths[0],
+                        align: 'center',
+                    });
+                    doc.text(cType, colX[1] + 6, rowY + 6, {
+                        width: colWidths[1] - 12,
+                        lineBreak: false,
+                        ellipsis: true,
+                    });
+                    doc.text(sNo, colX[2] + 6, rowY + 6, {
+                        width: colWidths[2] - 12,
+                        lineBreak: false,
+                        ellipsis: true,
+                    });
+                    doc.text('1', colX[3], rowY + 6, {
+                        width: colWidths[3],
+                        align: 'center',
+                    });
+                }
+            });
+            const bottomLimit = startY + pageHeight;
+            const sigY2 = bottomLimit - 40;
+            const sigY1 = sigY2 - 32;
+            const tableBottomY = sigY1 - 18;
+            const tableH = tableBottomY - tableTopY;
+            doc.lineWidth(1).strokeColor('#000000');
+            doc.rect(startX, tableTopY, pageWidth, tableH).stroke();
+            doc
+                .moveTo(startX, tableTopY + headerRowH)
+                .lineTo(startX + pageWidth, tableTopY + headerRowH)
+                .stroke();
+            for (let i = 1; i < colX.length; i++) {
+                doc
+                    .moveTo(colX[i], tableTopY)
+                    .lineTo(colX[i], tableTopY + tableH)
+                    .stroke();
+            }
+            doc.font('Helvetica-Bold').fontSize(8.5);
+            doc.text('Issued by : _________________________________________', startX + 8, sigY1);
+            doc.text('Store Keeper', startX + 115, sigY1 + 13);
+            doc.text('Approved by : ______________________________', startX + pageWidth - 235, sigY1);
+            doc.text('Received by : _________________________________________', startX + 8, sigY2);
+            doc.text('Designation', startX + 115, sigY2 + 13);
+            doc.text('Approved Date : ______________________________', startX + pageWidth - 235, sigY2);
+            doc.end();
+        });
+    }
+    async uploadContractToBackblaze(assetMovementId, contractBuffer, filePrefix = 'contracts/cooler-contract') {
+        const fileName = `${filePrefix}-${assetMovementId}-${Date.now()}.pdf`;
         try {
             const fileUrl = await (0, blackbaze_1.uploadFile)(contractBuffer, fileName, 'application/pdf');
             console.log(`Contract uploaded to Backblaze: ${fileUrl}`);
@@ -522,11 +963,12 @@ class ContractGenerationService {
             throw new Error(`Failed to upload contract: ${error.message}`);
         }
     }
-    async saveContractUrlToDatabase(assetMovementId, contractUrl) {
+    async saveContractUrlToDatabase(assetMovementId, contractUrl, contractNumber) {
         const contractRecord = await prisma_client_1.default.asset_movement_contracts.create({
             data: {
                 asset_movement_id: assetMovementId,
-                contract_number: `COOL-${assetMovementId.toString().padStart(6, '0')}`,
+                contract_number: contractNumber ||
+                    `COOL-${assetMovementId.toString().padStart(6, '0')}`,
                 contract_date: new Date(),
                 contract_url: contractUrl,
                 createdby: 1,
@@ -580,10 +1022,35 @@ class ContractGenerationService {
                 where: { asset_movement_id: assetMovementId },
             });
             console.log(`Deleted ${deleteResult.count} contracts from database for asset movement: ${assetMovementId}`);
-            const contractBuffer = await this.generateCoolerIssuanceContract(assetMovementId);
-            const contractUrl = await this.uploadContractToBackblaze(assetMovementId, contractBuffer);
-            const contractRecord = await this.saveContractUrlToDatabase(assetMovementId, contractUrl);
-            console.log(`Contract generated and uploaded for asset movement: ${assetMovementId}`);
+            const assetMovement = await prisma_client_1.default.asset_movements.findUnique({
+                where: { id: assetMovementId },
+                select: { movement_type: true },
+            });
+            const movementType = assetMovement?.movement_type?.toLowerCase() || '';
+            let contractBuffer;
+            let filePrefix;
+            let contractNumberPrefix;
+            if (movementType === 'return') {
+                contractBuffer =
+                    await this.generateCoolerRetrievalNote(assetMovementId);
+                filePrefix = 'contracts/cooler-retrieval';
+                contractNumberPrefix = 'CR';
+            }
+            else if (movementType === 'transfer') {
+                contractBuffer =
+                    await this.generateCoolerTransferDocument(assetMovementId);
+                filePrefix = 'contracts/cooler-transfer';
+                contractNumberPrefix = 'TR';
+            }
+            else {
+                contractBuffer =
+                    await this.generateCoolerIssuanceContract(assetMovementId);
+                filePrefix = 'contracts/cooler-contract';
+                contractNumberPrefix = 'COOL';
+            }
+            const contractUrl = await this.uploadContractToBackblaze(assetMovementId, contractBuffer, filePrefix);
+            const contractRecord = await this.saveContractUrlToDatabase(assetMovementId, contractUrl, `${contractNumberPrefix}-${assetMovementId.toString().padStart(6, '0')}`);
+            console.log(`Document generated and uploaded for asset movement: ${assetMovementId}`);
             return contractRecord;
         }
         catch (error) {
