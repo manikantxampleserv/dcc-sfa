@@ -189,14 +189,16 @@ export class ContractGenerationService {
 
       const customer =
         assetMovement.asset_movement_to_customer ||
-        assetMovement.asset_movement_from_customer;
+        assetMovement.asset_movement_from_customer ||
+        assetMovement.asset_movement_assets?.[0]?.asset_movement_assets_asset
+          ?.asset_master_outlet;
       const customerCode = customer?.code || 'N/A';
       const customerName =
         customer?.name || assetMovement.asset_movement_to_depot?.name || 'N/A';
       const zoneName = customer?.customer_zones?.name || 'N/A';
       const routeName =
-        customer?.customer_routes?.code ||
         customer?.customer_routes?.name ||
+        customer?.customer_routes?.code ||
         'N/A';
       const depotName =
         customer?.customer_depot?.name ||
@@ -719,8 +721,8 @@ export class ContractGenerationService {
       const customerName = customer?.name || 'N/A';
       const zoneName = customer?.customer_zones?.name || 'N/A';
       const routeName =
-        customer?.customer_routes?.code ||
         customer?.customer_routes?.name ||
+        customer?.customer_routes?.code ||
         'N/A';
       const fromDepotName =
         customer?.customer_depot?.name ||

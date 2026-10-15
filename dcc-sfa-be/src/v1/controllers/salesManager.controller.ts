@@ -96,6 +96,21 @@ const getManagerTerritoryScope = async (
     select: { id: true },
   });
 
+  if (supervisedZones.length > 0) {
+    return {
+      zoneIds: supervisedZones.map(z => z.id),
+      isRestricted: true,
+    };
+  }
+
+  const directZoneIds = user.zone_id ? [user.zone_id] : [];
+  if (directZoneIds.length > 0) {
+    return {
+      zoneIds: directZoneIds,
+      isRestricted: true,
+    };
+  }
+
   const userDepots = await prisma.user_depots.findMany({
     where: { user_id: userId, is_active: 'Y' },
     select: { depot_id: true },
@@ -118,18 +133,8 @@ const getManagerTerritoryScope = async (
     depotZoneIds = zones.map(z => z.id);
   }
 
-  const directZoneIds = user.zone_id ? [user.zone_id] : [];
-
-  const combinedZoneIds = Array.from(
-    new Set([
-      ...supervisedZones.map(z => z.id),
-      ...depotZoneIds,
-      ...directZoneIds,
-    ])
-  );
-
-  if (combinedZoneIds.length > 0) {
-    return { zoneIds: combinedZoneIds, isRestricted: true };
+  if (depotZoneIds.length > 0) {
+    return { zoneIds: depotZoneIds, isRestricted: true };
   }
 
   const fallbackZones = await prisma.zones.findMany({
@@ -1352,7 +1357,7 @@ export const salesManagerController = {
       const pageNum = Math.max(1, parseInt(page as string, 10) || 1);
       const limitNum = Math.max(1, parseInt(limit as string, 10) || 50);
 
-      const { zoneIds } = await getManagerTerritoryScope(
+      const { zoneIds, isRestricted } = await getManagerTerritoryScope(
         user,
         zone_id as string,
         depot_id as string
@@ -1413,7 +1418,7 @@ export const salesManagerController = {
         depotIds.push(user.depot_id);
       }
 
-      if (depotIds.length > 0) {
+      if (!isRestricted && depotIds.length > 0) {
         const depotSalespersons = await prisma.users.findMany({
           where: {
             is_active: 'Y',
@@ -2017,7 +2022,6 @@ export const salesManagerController = {
       });
 
       const zonesFilter = [
-        { id: null, name: 'All zones' },
         ...territoryZones.map(z => ({ id: z.id, name: z.name })),
       ];
 

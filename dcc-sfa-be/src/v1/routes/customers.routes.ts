@@ -91,4 +91,11 @@ router.get(
   customerController.getCustomerRelations
 );
 
+router.get(
+  '/customers/:id/associated-details',
+  authenticateToken,
+  requirePermission([{ module: 'outlet', action: 'read' }]),
+  customerController.getCustomerAssociatedDetails
+);
+
 export default router;
