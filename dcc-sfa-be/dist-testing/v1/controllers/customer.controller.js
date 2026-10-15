@@ -1957,7 +1957,10 @@ exports.customerController = {
                 .map((ca) => {
                 const resolvedBrand = ca.customer_asset_brand?.name || null;
                 const resolvedType = ca.customer_asset_types
-                    ? { id: ca.customer_asset_types.id, name: ca.customer_asset_types.name }
+                    ? {
+                        id: ca.customer_asset_types.id,
+                        name: ca.customer_asset_types.name,
+                    }
                     : null;
                 const resolvedInstallDate = ca.install_date || ca.createdate || null;
                 return {
@@ -2287,6 +2290,799 @@ exports.customerController = {
         }
         catch (error) {
             console.error('Get Customer Relations Error:', error);
+            res.status(500).json({
+                success: false,
+                message: error.message,
+            });
+        }
+    },
+    async getCustomerAssociatedDetails(req, res) {
+        try {
+            const customerId = Number(req.params.id ||
+                req.query.customer_id ||
+                req.query.customerId ||
+                req.query.id);
+            if (!customerId || isNaN(customerId)) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Valid customer ID is required',
+                });
+            }
+            const user = req.user;
+            let isScopeRestricted = false;
+            let depotIds = [];
+            if (user && !(0, permissions_config_1.isAdminRole)(user.role)) {
+                isScopeRestricted = true;
+                const userDepots = await prisma_client_1.default.user_depots.findMany({
+                    where: { user_id: user.id },
+                    select: { depot_id: true },
+                });
+                depotIds = userDepots
+                    .map((ud) => ud.depot_id)
+                    .filter((id) => id !== null);
+            }
+            const customer = await prisma_client_1.default.customers.findUnique({
+                where: { id: customerId },
+                include: {
+                    customer_zones: {
+                        select: {
+                            id: true,
+                            name: true,
+                            code: true,
+                            description: true,
+                            supervisor_id: true,
+                            is_active: true,
+                            zone_supervisor: {
+                                select: {
+                                    id: true,
+                                    name: true,
+                                    email: true,
+                                    phone_number: true,
+                                    employee_id: true,
+                                },
+                            },
+                        },
+                    },
+                    customer_depot: {
+                        select: {
+                            id: true,
+                            name: true,
+                            code: true,
+                            is_active: true,
+                            coordinator_id: true,
+                            manager_id: true,
+                            supervisor_id: true,
+                            depots_manager: {
+                                select: {
+                                    id: true,
+                                    name: true,
+                                    email: true,
+                                    phone_number: true,
+                                    employee_id: true,
+                                },
+                            },
+                            depots_supervisior: {
+                                select: {
+                                    id: true,
+                                    name: true,
+                                    email: true,
+                                    phone_number: true,
+                                    employee_id: true,
+                                },
+                            },
+                        },
+                    },
+                    default_for_depots: {
+                        select: {
+                            id: true,
+                            name: true,
+                            code: true,
+                            is_active: true,
+                        },
+                    },
+                    customer_routes: {
+                        select: {
+                            id: true,
+                            name: true,
+                            code: true,
+                            description: true,
+                            route_type: true,
+                            parent_id: true,
+                            depot_id: true,
+                            is_active: true,
+                            route_zones: {
+                                select: {
+                                    id: true,
+                                    name: true,
+                                    code: true,
+                                    is_active: true,
+                                },
+                            },
+                            route_depots: {
+                                select: {
+                                    id: true,
+                                    name: true,
+                                    code: true,
+                                    is_active: true,
+                                },
+                            },
+                            salespersons: {
+                                where: { is_active: 'Y' },
+                                include: {
+                                    user: {
+                                        select: {
+                                            id: true,
+                                            name: true,
+                                            email: true,
+                                            phone_number: true,
+                                            employee_id: true,
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                    customer_users: {
+                        select: {
+                            id: true,
+                            name: true,
+                            email: true,
+                            phone_number: true,
+                            employee_id: true,
+                            user_role: {
+                                select: {
+                                    id: true,
+                                    name: true,
+                                },
+                            },
+                        },
+                    },
+                    customer_type_customer: {
+                        select: {
+                            id: true,
+                            type_name: true,
+                            type_code: true,
+                        },
+                    },
+                },
+            });
+            if (!customer) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Customer not found',
+                });
+            }
+            if (isScopeRestricted) {
+                if (depotIds.length === 0 ||
+                    (customer.depot_id && !depotIds.includes(customer.depot_id))) {
+                    return res.status(403).json({
+                        success: false,
+                        message: 'You do not have permission to access records for this customer',
+                    });
+                }
+            }
+            const [customerAssets, coolers, assetMaster, visits, orders, payments, directSurveys, surveyResponses, applicableSurveys,] = await Promise.all([
+                prisma_client_1.default.customer_assets.findMany({
+                    where: { customer_id: customerId, is_active: 'Y' },
+                    include: {
+                        customer_asset_types: {
+                            select: { id: true, name: true },
+                        },
+                        customer_asset_brand: {
+                            select: { id: true, name: true },
+                        },
+                        customer_assets_users: {
+                            select: { id: true, name: true, email: true },
+                        },
+                    },
+                    orderBy: { createdate: 'desc' },
+                }),
+                prisma_client_1.default.coolers.findMany({
+                    where: { customer_id: customerId, is_active: 'Y' },
+                    include: {
+                        cooler_types: {
+                            select: { id: true, name: true, description: true },
+                        },
+                        cooler_sub_types: {
+                            select: { id: true, name: true },
+                        },
+                        cooler_asset_master: {
+                            select: {
+                                id: true,
+                                name: true,
+                                serial_number: true,
+                                asset_master_brands: {
+                                    select: { id: true, name: true },
+                                },
+                            },
+                        },
+                    },
+                    orderBy: { createdate: 'desc' },
+                }),
+                prisma_client_1.default.asset_master.findMany({
+                    where: { outlet_id: customerId, is_active: 'Y' },
+                    include: {
+                        asset_master_asset_types: {
+                            select: { id: true, name: true },
+                        },
+                        asset_master_asset_sub_types: {
+                            select: { id: true, name: true },
+                        },
+                        asset_master_brands: {
+                            select: { id: true, name: true },
+                        },
+                    },
+                    orderBy: { createdate: 'desc' },
+                }),
+                prisma_client_1.default.visits.findMany({
+                    where: { customer_id: customerId, is_active: 'Y' },
+                    include: {
+                        visits_salesperson: {
+                            select: {
+                                id: true,
+                                name: true,
+                                email: true,
+                                phone_number: true,
+                            },
+                        },
+                        visit_routes: {
+                            select: {
+                                id: true,
+                                name: true,
+                                code: true,
+                            },
+                        },
+                    },
+                    orderBy: { visit_date: 'desc' },
+                    take: 100,
+                }),
+                prisma_client_1.default.orders.findMany({
+                    where: { parent_id: customerId, is_active: 'Y' },
+                    include: {
+                        orders_salesperson_users: {
+                            select: {
+                                id: true,
+                                name: true,
+                                email: true,
+                            },
+                        },
+                        orders_currencies: {
+                            select: {
+                                id: true,
+                                name: true,
+                                code: true,
+                                symbol: true,
+                            },
+                        },
+                        _count: {
+                            select: { order_items: true },
+                        },
+                    },
+                    orderBy: { order_date: 'desc' },
+                    take: 100,
+                }),
+                prisma_client_1.default.payments.findMany({
+                    where: { customer_id: customerId, is_active: 'Y' },
+                    include: {
+                        users_payments_collected_byTousers: {
+                            select: {
+                                id: true,
+                                name: true,
+                                email: true,
+                            },
+                        },
+                        currencies: {
+                            select: {
+                                id: true,
+                                name: true,
+                                code: true,
+                                symbol: true,
+                            },
+                        },
+                        payment_lines: {
+                            select: {
+                                id: true,
+                                invoice_id: true,
+                                invoice_number: true,
+                            },
+                        },
+                    },
+                    orderBy: { payment_date: 'desc' },
+                    take: 100,
+                }),
+                prisma_client_1.default.survey_customers.findMany({
+                    where: { customer_id: customerId, is_active: 'Y' },
+                    include: {
+                        surveys: {
+                            include: {
+                                survey_fields: {
+                                    orderBy: { sort_order: 'asc' },
+                                },
+                            },
+                        },
+                    },
+                }),
+                prisma_client_1.default.survey_responses.findMany({
+                    where: { customer_id: customerId, is_active: 'Y' },
+                    include: {
+                        surveys: {
+                            select: {
+                                id: true,
+                                title: true,
+                                category: true,
+                                description: true,
+                            },
+                        },
+                        survey_responses_submitted_by_users: {
+                            select: {
+                                id: true,
+                                name: true,
+                                email: true,
+                            },
+                        },
+                        survey_answer_responses: {
+                            include: {
+                                survey_fields: {
+                                    select: {
+                                        id: true,
+                                        label: true,
+                                        field_type: true,
+                                    },
+                                },
+                            },
+                        },
+                    },
+                    orderBy: { submitted_at: 'desc' },
+                    take: 100,
+                }),
+                prisma_client_1.default.surveys.findMany({
+                    where: {
+                        is_active: 'Y',
+                        OR: [
+                            ...(customer.depot_id
+                                ? [
+                                    {
+                                        survey_depots: {
+                                            some: { depot_id: customer.depot_id, is_active: 'Y' },
+                                        },
+                                    },
+                                ]
+                                : []),
+                            ...(customer.zones_id
+                                ? [
+                                    {
+                                        survey_zones: {
+                                            some: { zone_id: customer.zones_id, is_active: 'Y' },
+                                        },
+                                    },
+                                ]
+                                : []),
+                            ...(customer.route_id
+                                ? [
+                                    {
+                                        survey_routes: {
+                                            some: { route_id: customer.route_id, is_active: 'Y' },
+                                        },
+                                    },
+                                ]
+                                : []),
+                            ...(customer.customer_type_id
+                                ? [
+                                    {
+                                        survey_customer_types: {
+                                            some: {
+                                                customer_type_id: customer.customer_type_id,
+                                                is_active: 'Y',
+                                            },
+                                        },
+                                    },
+                                ]
+                                : []),
+                            ...(customer.customer_category_id
+                                ? [
+                                    {
+                                        survey_customer_categories: {
+                                            some: {
+                                                customer_category_id: customer.customer_category_id,
+                                                is_active: 'Y',
+                                            },
+                                        },
+                                    },
+                                ]
+                                : []),
+                            ...(customer.customer_channel_id
+                                ? [
+                                    {
+                                        survey_customer_channels: {
+                                            some: {
+                                                customer_channel_id: customer.customer_channel_id,
+                                                is_active: 'Y',
+                                            },
+                                        },
+                                    },
+                                ]
+                                : []),
+                        ],
+                    },
+                    include: {
+                        survey_fields: {
+                            orderBy: { sort_order: 'asc' },
+                        },
+                    },
+                    take: 50,
+                }),
+            ]);
+            // 1. Associated Users
+            const usersMap = new Map();
+            if (customer.customer_users) {
+                usersMap.set(customer.customer_users.id, {
+                    id: customer.customer_users.id,
+                    name: customer.customer_users.name,
+                    email: customer.customer_users.email,
+                    phone_number: customer.customer_users.phone_number,
+                    employee_id: customer.customer_users.employee_id,
+                    role: customer.customer_users.user_role?.name || 'Salesperson',
+                    relation_type: 'assigned_salesperson',
+                });
+            }
+            (customer.customer_routes?.salespersons || []).forEach((sp) => {
+                if (sp.user && !usersMap.has(sp.user.id)) {
+                    usersMap.set(sp.user.id, {
+                        id: sp.user.id,
+                        name: sp.user.name,
+                        email: sp.user.email,
+                        phone_number: sp.user.phone_number,
+                        employee_id: sp.user.employee_id,
+                        role: sp.role || 'Route Salesperson',
+                        relation_type: 'route_salesperson',
+                    });
+                }
+            });
+            if (customer.customer_zones?.zone_supervisor &&
+                !usersMap.has(customer.customer_zones.zone_supervisor.id)) {
+                const zs = customer.customer_zones.zone_supervisor;
+                usersMap.set(zs.id, {
+                    id: zs.id,
+                    name: zs.name,
+                    email: zs.email,
+                    phone_number: zs.phone_number,
+                    employee_id: zs.employee_id,
+                    role: 'Zone Supervisor',
+                    relation_type: 'zone_supervisor',
+                });
+            }
+            if (customer.customer_depot?.depots_manager &&
+                !usersMap.has(customer.customer_depot.depots_manager.id)) {
+                const dm = customer.customer_depot.depots_manager;
+                usersMap.set(dm.id, {
+                    id: dm.id,
+                    name: dm.name,
+                    email: dm.email,
+                    phone_number: dm.phone_number,
+                    employee_id: dm.employee_id,
+                    role: 'Depot Manager',
+                    relation_type: 'depot_manager',
+                });
+            }
+            if (customer.customer_depot?.depots_supervisior &&
+                !usersMap.has(customer.customer_depot.depots_supervisior.id)) {
+                const ds = customer.customer_depot.depots_supervisior;
+                usersMap.set(ds.id, {
+                    id: ds.id,
+                    name: ds.name,
+                    email: ds.email,
+                    phone_number: ds.phone_number,
+                    employee_id: ds.employee_id,
+                    role: 'Depot Supervisor',
+                    relation_type: 'depot_supervisor',
+                });
+            }
+            const associatedUsers = Array.from(usersMap.values());
+            // 2. Associated Zones
+            const zonesMap = new Map();
+            if (customer.customer_zones) {
+                zonesMap.set(customer.customer_zones.id, {
+                    id: customer.customer_zones.id,
+                    name: customer.customer_zones.name,
+                    code: customer.customer_zones.code,
+                    description: customer.customer_zones.description,
+                    is_active: customer.customer_zones.is_active,
+                    relation_type: 'primary_zone',
+                });
+            }
+            if (customer.customer_routes?.route_zones &&
+                !zonesMap.has(customer.customer_routes.route_zones.id)) {
+                const rz = customer.customer_routes.route_zones;
+                zonesMap.set(rz.id, {
+                    id: rz.id,
+                    name: rz.name,
+                    code: rz.code,
+                    is_active: rz.is_active,
+                    relation_type: 'route_zone',
+                });
+            }
+            const associatedZones = Array.from(zonesMap.values());
+            // 3. Associated Depots
+            const depotsMap = new Map();
+            if (customer.customer_depot) {
+                depotsMap.set(customer.customer_depot.id, {
+                    id: customer.customer_depot.id,
+                    name: customer.customer_depot.name,
+                    code: customer.customer_depot.code,
+                    is_active: customer.customer_depot.is_active,
+                    relation_type: 'primary_depot',
+                });
+            }
+            if (customer.customer_routes?.route_depots &&
+                !depotsMap.has(customer.customer_routes.route_depots.id)) {
+                const rd = customer.customer_routes.route_depots;
+                depotsMap.set(rd.id, {
+                    id: rd.id,
+                    name: rd.name,
+                    code: rd.code,
+                    is_active: rd.is_active,
+                    relation_type: 'route_depot',
+                });
+            }
+            (customer.default_for_depots || []).forEach((dfd) => {
+                if (!depotsMap.has(dfd.id)) {
+                    depotsMap.set(dfd.id, {
+                        id: dfd.id,
+                        name: dfd.name,
+                        code: dfd.code,
+                        is_active: dfd.is_active,
+                        relation_type: 'default_for_depot',
+                    });
+                }
+            });
+            const associatedDepots = Array.from(depotsMap.values());
+            // 4. Associated Assets
+            const unifiedAssets = [
+                ...customerAssets.map(ca => ({
+                    id: ca.id,
+                    source: 'customer_assets',
+                    name: ca.model || `Asset #${ca.id}`,
+                    model: ca.model,
+                    code: ca.serial_number || `AST-${ca.id}`,
+                    serial_number: ca.serial_number,
+                    asset_type: ca.customer_asset_types?.name || null,
+                    asset_sub_type: null,
+                    brand: ca.customer_asset_brand?.name || null,
+                    status: ca.status,
+                    install_date: ca.install_date,
+                    capacity: ca.capacity,
+                    technician: ca.customer_assets_users
+                        ? {
+                            id: ca.customer_assets_users.id,
+                            name: ca.customer_assets_users.name,
+                            email: ca.customer_assets_users.email,
+                        }
+                        : null,
+                })),
+                ...coolers.map(c => ({
+                    id: c.id,
+                    source: 'coolers',
+                    name: c.model || c.cooler_asset_master?.name || `Cooler #${c.id}`,
+                    model: c.model || c.cooler_asset_master?.name,
+                    code: c.code || c.serial_number,
+                    serial_number: c.serial_number || c.cooler_asset_master?.serial_number,
+                    asset_type: c.cooler_types?.name || 'Cooler',
+                    asset_sub_type: c.cooler_sub_types?.name || null,
+                    brand: c.brand || c.cooler_asset_master?.asset_master_brands?.name || null,
+                    status: c.status,
+                    install_date: c.install_date,
+                    capacity: c.capacity,
+                    technician: null,
+                })),
+                ...assetMaster.map(am => ({
+                    id: am.id,
+                    source: 'asset_master',
+                    name: am.name,
+                    model: null,
+                    code: am.code,
+                    serial_number: am.serial_number,
+                    asset_type: am.asset_master_asset_types?.name || null,
+                    asset_sub_type: am.asset_master_asset_sub_types?.name || null,
+                    brand: am.brand || am.asset_master_brands?.name || null,
+                    status: am.current_status,
+                    install_date: am.installation_date,
+                    capacity: null,
+                    technician: null,
+                })),
+            ];
+            // 5. Associated Visits
+            const mappedVisits = visits.map(v => ({
+                id: v.id,
+                visit_date: v.visit_date,
+                visit_time: v.visit_time,
+                purpose: v.purpose,
+                status: v.status,
+                start_time: v.start_time,
+                end_time: v.end_time,
+                duration: v.duration,
+                amount_collected: v.amount_collected ? Number(v.amount_collected) : 0,
+                orders_created: v.orders_created || 0,
+                salesperson: v.visits_salesperson
+                    ? {
+                        id: v.visits_salesperson.id,
+                        name: v.visits_salesperson.name,
+                        email: v.visits_salesperson.email,
+                        phone_number: v.visits_salesperson.phone_number,
+                    }
+                    : null,
+                route: v.visit_routes
+                    ? {
+                        id: v.visit_routes.id,
+                        name: v.visit_routes.name,
+                        code: v.visit_routes.code,
+                    }
+                    : null,
+            }));
+            // 6. Associated Orders
+            const mappedOrders = orders.map(o => ({
+                id: o.id,
+                order_number: o.order_number,
+                order_date: o.order_date,
+                delivery_date: o.delivery_date,
+                status: o.status,
+                priority: o.priority,
+                order_type: o.order_type,
+                payment_method: o.payment_method,
+                payment_terms: o.payment_terms,
+                subtotal: o.subtotal ? Number(o.subtotal) : 0,
+                discount_amount: o.discount_amount ? Number(o.discount_amount) : 0,
+                tax_amount: o.tax_amount ? Number(o.tax_amount) : 0,
+                total_amount: o.total_amount ? Number(o.total_amount) : 0,
+                items_count: o._count?.order_items || 0,
+                currency: o.orders_currencies
+                    ? {
+                        id: o.orders_currencies.id,
+                        name: o.orders_currencies.name,
+                        code: o.orders_currencies.code,
+                        symbol: o.orders_currencies.symbol,
+                    }
+                    : null,
+                salesperson: o.orders_salesperson_users
+                    ? {
+                        id: o.orders_salesperson_users.id,
+                        name: o.orders_salesperson_users.name,
+                        email: o.orders_salesperson_users.email,
+                    }
+                    : null,
+            }));
+            // 7. Associated Payments
+            const mappedPayments = payments.map(p => ({
+                id: p.id,
+                payment_number: p.payment_number,
+                payment_date: p.payment_date,
+                method: p.method,
+                reference_number: p.reference_number,
+                slip_number: p.slip_number,
+                total_amount: p.total_amount ? Number(p.total_amount) : 0,
+                notes: p.notes,
+                is_auto: p.is_auto,
+                is_synced: p.is_synced,
+                currency: p.currencies
+                    ? {
+                        id: p.currencies.id,
+                        name: p.currencies.name,
+                        code: p.currencies.code,
+                        symbol: p.currencies.symbol,
+                    }
+                    : null,
+                collected_by: p.users_payments_collected_byTousers
+                    ? {
+                        id: p.users_payments_collected_byTousers.id,
+                        name: p.users_payments_collected_byTousers.name,
+                        email: p.users_payments_collected_byTousers.email,
+                    }
+                    : null,
+                invoices: (p.payment_lines || []).map(pl => ({
+                    id: pl.id,
+                    invoice_id: pl.invoice_id,
+                    invoice_number: pl.invoice_number,
+                })),
+            }));
+            // 8. Associated Surveys
+            const surveyMap = new Map();
+            directSurveys.forEach(sc => {
+                if (sc.surveys) {
+                    surveyMap.set(sc.surveys.id, {
+                        ...sc.surveys,
+                        assignment_type: 'direct',
+                    });
+                }
+            });
+            applicableSurveys.forEach(s => {
+                if (!surveyMap.has(s.id)) {
+                    surveyMap.set(s.id, {
+                        ...s,
+                        assignment_type: 'targeted_hierarchy',
+                    });
+                }
+            });
+            const responsesBySurveyId = new Map();
+            const mappedResponses = surveyResponses.map(sr => {
+                const responseItem = {
+                    id: sr.id,
+                    survey_id: sr.parent_id,
+                    survey_title: sr.surveys?.title,
+                    survey_category: sr.surveys?.category,
+                    submitted_at: sr.submitted_at,
+                    submitted_by: sr.survey_responses_submitted_by_users
+                        ? {
+                            id: sr.survey_responses_submitted_by_users.id,
+                            name: sr.survey_responses_submitted_by_users.name,
+                            email: sr.survey_responses_submitted_by_users.email,
+                        }
+                        : null,
+                    location: sr.location,
+                    photo_url: sr.photo_url,
+                    visit_id: sr.visit_id,
+                    answers: sr.survey_answer_responses,
+                    answers_count: sr.survey_answer_responses?.length || 0,
+                };
+                const existingList = responsesBySurveyId.get(sr.parent_id) || [];
+                existingList.push(responseItem);
+                responsesBySurveyId.set(sr.parent_id, existingList);
+                return responseItem;
+            });
+            // Include surveys that were submitted ad-hoc for this customer even if not previously targeted
+            surveyResponses.forEach(sr => {
+                if (sr.surveys && !surveyMap.has(sr.surveys.id)) {
+                    surveyMap.set(sr.surveys.id, {
+                        ...sr.surveys,
+                        assignment_type: 'ad_hoc_response',
+                    });
+                }
+            });
+            const flatSurveys = Array.from(surveyMap.values()).map(s => ({
+                ...s,
+                customer_responses: responsesBySurveyId.get(s.id) || [],
+                customer_responses_count: (responsesBySurveyId.get(s.id) || []).length,
+            }));
+            res.json({
+                success: true,
+                message: 'Customer associated details fetched successfully',
+                data: {
+                    customer_id: customer.id,
+                    customer_name: customer.name,
+                    customer_code: customer.code,
+                    zones_id: customer.zones_id,
+                    route_id: customer.route_id,
+                    salesperson_id: customer.salesperson_id,
+                    customer_type_id: customer.customer_type_id,
+                    depot_id: customer.depot_id,
+                    users: associatedUsers,
+                    zones: associatedZones,
+                    depots: associatedDepots,
+                    assets: unifiedAssets,
+                    visits: mappedVisits,
+                    orders: mappedOrders,
+                    payments: mappedPayments,
+                    surveys: flatSurveys,
+                    details: {
+                        customer_assets: customerAssets,
+                        coolers: coolers,
+                        asset_master: assetMaster,
+                        survey_responses: mappedResponses,
+                    },
+                    summary: {
+                        total_users: associatedUsers.length,
+                        total_zones: associatedZones.length,
+                        total_depots: associatedDepots.length,
+                        total_assets: unifiedAssets.length,
+                        total_visits: visits.length,
+                        total_orders: orders.length,
+                        total_payments: payments.length,
+                        total_surveys: flatSurveys.length,
+                        total_survey_responses: mappedResponses.length,
+                    },
+                },
+            });
+        }
+        catch (error) {
+            console.error('Get Customer Associated Details Error:', error);
             res.status(500).json({
                 success: false,
                 message: error.message,

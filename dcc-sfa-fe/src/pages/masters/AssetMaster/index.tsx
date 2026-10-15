@@ -5,6 +5,7 @@ import {
   useDeleteAssetMaster,
   type AssetMaster,
 } from 'hooks/useAssetMaster';
+import { useAssetTypes } from 'hooks/useAssetTypes';
 import { useDepots } from 'hooks/useDepots';
 import { useExportToExcel } from 'hooks/useImportExport';
 import { usePermission } from 'hooks/usePermission';
@@ -35,6 +36,7 @@ const AssetMasterManagement: React.FC = () => {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [assetTypeFilter, setAssetTypeFilter] = useState('all');
   const [depotFilter, setDepotFilter] = useState('all');
   const [zoneFilter, setZoneFilter] = useState('all');
   const [routeFilter, setRouteFilter] = useState('all');
@@ -46,10 +48,15 @@ const AssetMasterManagement: React.FC = () => {
   const { isCreate, isUpdate, isDelete, isRead } =
     usePermission('asset-master');
 
+  const { data: assetTypesResponse } = useAssetTypes({
+    limit: 1000,
+    isActive: 'Y',
+  });
   const { data: depotsResponse } = useDepots({ limit: 1000 });
   const { data: zonesResponse } = useZones({ limit: 1000 });
   const { data: routesResponse } = useRoutes({ limit: 1000 });
 
+  const assetTypes = assetTypesResponse?.data || [];
   const depots = depotsResponse?.data || [];
   const zones = zonesResponse?.data || [];
   const routes = routesResponse?.data || [];
@@ -82,6 +89,10 @@ const AssetMasterManagement: React.FC = () => {
       depot_id: depotFilter === 'all' ? undefined : Number(depotFilter),
       zone_id: zoneFilter === 'all' ? undefined : Number(zoneFilter),
       route_id: routeFilter === 'all' ? undefined : Number(routeFilter),
+      asset_type_id:
+        assetTypeFilter === 'all' ? undefined : Number(assetTypeFilter),
+      asset_type:
+        assetTypeFilter === 'all' ? undefined : assetTypeFilter,
     },
     {
       enabled: isRead,
@@ -145,6 +156,8 @@ const AssetMasterManagement: React.FC = () => {
         depot_id: depotFilter === 'all' ? undefined : Number(depotFilter),
         zone_id: zoneFilter === 'all' ? undefined : Number(zoneFilter),
         route_id: routeFilter === 'all' ? undefined : Number(routeFilter),
+        asset_type_id:
+          assetTypeFilter === 'all' ? undefined : Number(assetTypeFilter),
       };
       await exportToExcelMutation.mutateAsync({
         tableName: 'asset_master',
@@ -160,6 +173,7 @@ const AssetMasterManagement: React.FC = () => {
     depotFilter,
     zoneFilter,
     routeFilter,
+    assetTypeFilter,
   ]);
 
   const getStatusColor = (
@@ -413,6 +427,21 @@ const AssetMasterManagement: React.FC = () => {
                       <MenuItem value="all">All Status</MenuItem>
                       <MenuItem value="active">Active</MenuItem>
                       <MenuItem value="inactive">Inactive</MenuItem>
+                    </Select>
+                    <Select
+                      value={assetTypeFilter}
+                      onChange={e => {
+                        setAssetTypeFilter(e.target.value);
+                        setPage(1);
+                      }}
+                      disableClearable
+                    >
+                      <MenuItem value="all">All Asset Types</MenuItem>
+                      {assetTypes.map(type => (
+                        <MenuItem key={type.id} value={type.id.toString()}>
+                          {type.name}
+                        </MenuItem>
+                      ))}
                     </Select>
                     <Select
                       value={depotFilter}

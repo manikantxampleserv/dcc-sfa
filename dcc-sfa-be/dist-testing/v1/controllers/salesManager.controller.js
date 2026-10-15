@@ -77,6 +77,19 @@ const getManagerTerritoryScope = async (user, queryZoneId, queryDepotId) => {
         where: { is_active: 'Y', supervisor_id: userId },
         select: { id: true },
     });
+    if (supervisedZones.length > 0) {
+        return {
+            zoneIds: supervisedZones.map(z => z.id),
+            isRestricted: true,
+        };
+    }
+    const directZoneIds = user.zone_id ? [user.zone_id] : [];
+    if (directZoneIds.length > 0) {
+        return {
+            zoneIds: directZoneIds,
+            isRestricted: true,
+        };
+    }
     const userDepots = await prisma_client_1.default.user_depots.findMany({
         where: { user_id: userId, is_active: 'Y' },
         select: { depot_id: true },
@@ -96,14 +109,8 @@ const getManagerTerritoryScope = async (user, queryZoneId, queryDepotId) => {
         });
         depotZoneIds = zones.map(z => z.id);
     }
-    const directZoneIds = user.zone_id ? [user.zone_id] : [];
-    const combinedZoneIds = Array.from(new Set([
-        ...supervisedZones.map(z => z.id),
-        ...depotZoneIds,
-        ...directZoneIds,
-    ]));
-    if (combinedZoneIds.length > 0) {
-        return { zoneIds: combinedZoneIds, isRestricted: true };
+    if (depotZoneIds.length > 0) {
+        return { zoneIds: depotZoneIds, isRestricted: true };
     }
     const fallbackZones = await prisma_client_1.default.zones.findMany({
         where: { is_active: 'Y' },
@@ -1099,7 +1106,7 @@ exports.salesManagerController = {
             const { depot_id, zone_id, search, page = '1', limit = '50' } = req.query;
             const pageNum = Math.max(1, parseInt(page, 10) || 1);
             const limitNum = Math.max(1, parseInt(limit, 10) || 50);
-            const { zoneIds } = await getManagerTerritoryScope(user, zone_id, depot_id);
+            const { zoneIds, isRestricted } = await getManagerTerritoryScope(user, zone_id, depot_id);
             // Find all active routes in manager's territory
             const territoryRoutes = await prisma_client_1.default.routes.findMany({
                 where: {
@@ -1152,7 +1159,7 @@ exports.salesManagerController = {
             if (user?.depot_id && !depotIds.includes(user.depot_id)) {
                 depotIds.push(user.depot_id);
             }
-            if (depotIds.length > 0) {
+            if (!isRestricted && depotIds.length > 0) {
                 const depotSalespersons = await prisma_client_1.default.users.findMany({
                     where: {
                         is_active: 'Y',
@@ -1654,7 +1661,6 @@ exports.salesManagerController = {
                 orderBy: { name: 'asc' },
             });
             const zonesFilter = [
-                { id: null, name: 'All zones' },
                 ...territoryZones.map(z => ({ id: z.id, name: z.name })),
             ];
             const totalInZones = await prisma_client_1.default.customers.count({

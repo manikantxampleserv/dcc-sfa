@@ -276,7 +276,7 @@ exports.assetMasterController = {
     },
     async getAllAssetMaster(req, res) {
         try {
-            const { page, limit, search, status, depot_id, zone_id, zones_id, route_id, outlet_id, only_available, asset_type, } = req.query;
+            const { page, limit, search, status, depot_id, zone_id, zones_id, route_id, outlet_id, only_available, asset_type, asset_type_id, } = req.query;
             const pageNum = parseInt(page, 10) || 1;
             const limitNum = parseInt(limit, 10) || 10;
             const searchLower = search ? search.toLowerCase() : '';
@@ -317,13 +317,26 @@ exports.assetMasterController = {
                 andConditions.push({ outlet_id: parseInt(outlet_id, 10) });
             if (only_available === 'true')
                 andConditions.push({ outlet_id: null });
-            if (asset_type) {
+            if (asset_type_id) {
                 andConditions.push({
-                    OR: [
-                        { asset_master_asset_types: { name: asset_type } },
-                        { asset_master_asset_types: { category: asset_type } },
-                    ],
+                    asset_type_id: parseInt(asset_type_id, 10),
                 });
+            }
+            else if (asset_type) {
+                const isNumeric = !isNaN(Number(asset_type));
+                if (isNumeric) {
+                    andConditions.push({
+                        asset_type_id: parseInt(asset_type, 10),
+                    });
+                }
+                else {
+                    andConditions.push({
+                        OR: [
+                            { asset_master_asset_types: { name: asset_type } },
+                            { asset_master_asset_types: { category: asset_type } },
+                        ],
+                    });
+                }
             }
             if (isScopeRestricted) {
                 if (depotIds.length > 0) {

@@ -144,7 +144,6 @@ const ManagePromotionalIssue: React.FC<ManagePromotionalIssueProps> = ({
     depot_id: formik.values.depot_id
       ? Number(formik.values.depot_id)
       : undefined,
-    only_available: true,
     limit: 1000,
     asset_type: 'Promotion Materials',
   });
