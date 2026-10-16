@@ -5,8 +5,7 @@ import { body } from 'express-validator';
  */
 export const createPromotionalMaterialValidation = [
   body('code')
-    .notEmpty()
-    .withMessage('Item code is required')
+    .optional({ nullable: true, checkFalsy: true })
     .isString()
     .withMessage('Item code must be a string')
     .trim(),

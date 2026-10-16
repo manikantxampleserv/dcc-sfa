@@ -117,11 +117,13 @@ const ManagePromotionalMaterial: React.FC<ManagePromotionalMaterialProps> = ({
             <Input
               name="code"
               label="Item Code"
-              placeholder="Auto-generated"
+              placeholder={isEdit ? '' : 'Leave blank to auto-generate'}
               formik={formik}
-              disabled
+              disabled={isEdit}
               helperText={
-                isEdit ? undefined : 'Item code will be auto-generated'
+                isEdit
+                  ? undefined
+                  : 'Optional: leave blank to auto-generate (e.g. PM-0001)'
               }
             />
 

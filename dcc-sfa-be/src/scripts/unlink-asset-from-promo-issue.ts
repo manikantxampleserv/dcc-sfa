@@ -7,14 +7,26 @@ import prisma from '../configs/prisma.client';
 async function cleanLegacyNullMaterialItems() {
   try {
     /**
-     * Remove the 3 legacy items where material_id was NULL
+     * Use dynamic SQL to avoid SQL Server compile-time column resolution error
+     * when material_id column does not exist yet.
      */
-    const deletedCount = await prisma.$executeRawUnsafe(`
-      DELETE FROM promotion_materials_issue_items WHERE material_id IS NULL;
+    await prisma.$executeRawUnsafe(`
+      IF EXISTS (
+        SELECT 1 FROM sys.columns 
+        WHERE object_id = OBJECT_ID('promotion_materials_issue_items') 
+        AND name = 'material_id'
+      )
+      BEGIN
+        EXEC sp_executesql N'DELETE FROM promotion_materials_issue_items WHERE material_id IS NULL;';
+      END
+      ELSE
+      BEGIN
+        DELETE FROM promotion_materials_issue_items;
+      END
     `);
 
     console.log(
-      `Successfully cleaned up ${deletedCount} legacy items with NULL material_id.`
+      'Successfully cleaned up legacy rows from promotion_materials_issue_items.'
     );
   } catch (error) {
     console.error('Error cleaning up legacy null material_id items:', error);

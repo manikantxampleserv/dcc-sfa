@@ -7,8 +7,7 @@ const express_validator_1 = require("express-validator");
  */
 exports.createPromotionalMaterialValidation = [
     (0, express_validator_1.body)('code')
-        .notEmpty()
-        .withMessage('Item code is required')
+        .optional({ nullable: true, checkFalsy: true })
         .isString()
         .withMessage('Item code must be a string')
         .trim(),
