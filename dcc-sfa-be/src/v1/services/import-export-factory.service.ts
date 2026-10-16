@@ -65,6 +65,7 @@ import { AuditLogsImportExportService } from './implementations/auditLogs-import
 import { RegionsImportExportService } from './implementations/regions-import-export.service';
 import { DistrictsImportExportService } from './implementations/districts-import-export.service';
 import { CitiesImportExportService } from './implementations/cities-import-export.service';
+import { PromotionalMaterialsImportExportService } from './implementations/promotionalMaterials-import-export.service';
 
 type ServiceConstructor = new () => ImportExportService<any>;
 
@@ -142,6 +143,7 @@ export class ImportExportFactory {
     ['districts', DistrictsImportExportService],
     ['cities', CitiesImportExportService],
     ['audit_logs', AuditLogsImportExportService],
+    ['promotional_materials', PromotionalMaterialsImportExportService],
   ]);
 
   static getService(tableName: string): ImportExportService<any> | null {

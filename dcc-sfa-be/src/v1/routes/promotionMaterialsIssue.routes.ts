@@ -42,6 +42,13 @@ router.get(
   promotionMaterialsIssueController.getPromotionMaterialsIssueById
 );
 
+router.get(
+  '/promotion-materials-issue/:id/issue-note',
+  authenticateToken,
+  requirePermission([{ module: 'promotion-materials', action: 'read' }]),
+  promotionMaterialsIssueController.getGoodsIssueNote
+);
+
 router.put(
   '/promotion-materials-issue/:id',
   authenticateToken,

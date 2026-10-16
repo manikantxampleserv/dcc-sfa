@@ -47,6 +47,7 @@ export const BACKEND_MODULES = [
   'kpi-target',
   'survey',
   'promotions',
+  'promotion-materials',
   'order',
   'delivery',
   'return',
@@ -170,6 +171,8 @@ const MANUAL_PERMISSION_OVERRIDES: Record<string, BackendModule> = {
   'api-tokens': 'token',
   'system-settings': 'setting',
   'email-templates': 'templates',
+  'promotion-materials-issue': 'promotion-materials',
+  'promotional-materials': 'promotion-materials',
 };
 
 /**

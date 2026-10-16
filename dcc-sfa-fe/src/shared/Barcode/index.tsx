@@ -1,12 +1,12 @@
-import React, { useState } from 'react';
+import { CircularProgress, IconButton, Tooltip } from '@mui/material';
 import {
-  Copy,
-  Check,
-  Printer,
-  Download,
   Barcode as BarcodeIcon,
+  Check,
+  Copy,
+  Download,
+  Printer,
 } from 'lucide-react';
-import { Tooltip, IconButton, CircularProgress } from '@mui/material';
+import React, { useState } from 'react';
 
 export interface BarcodeProps {
   value: string;

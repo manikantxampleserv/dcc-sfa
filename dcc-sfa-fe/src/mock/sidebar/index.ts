@@ -148,6 +148,11 @@ const menuItems: MenuItem[] = [
             href: '/masters/asset-master',
           },
           {
+            id: 'promotional-materials',
+            label: 'Promotional Materials',
+            href: '/masters/promotional-materials',
+          },
+          {
             id: 'route-types',
             label: 'Route Types',
             href: '/masters/route-types',

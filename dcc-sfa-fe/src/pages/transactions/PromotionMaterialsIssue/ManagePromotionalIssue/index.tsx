@@ -2,7 +2,7 @@ import { Alert, Box, MenuItem, Typography } from '@mui/material';
 import { useAuth } from 'context/AuthContext';
 import dayjs from 'dayjs';
 import { useFormik } from 'formik';
-import { useAssetMaster } from 'hooks/useAssetMaster';
+import { usePromotionalMaterials } from 'hooks/usePromotionalMaterials';
 import {
   useCreatePromotionMaterialsIssue,
   usePromotionMaterialsIssue,
@@ -27,11 +27,14 @@ interface ManagePromotionalIssueProps {
   open: boolean;
   onClose: () => void;
   issue?: PromotionMaterialsIssue | null;
+  initialOutletId?: number;
+  initialDepotId?: number;
 }
 
 export interface PromoItemFormData {
-  asset_id: number | '';
+  material_id: number | '';
   item_code?: string;
+  item_name?: string;
   uom?: string;
   quantity: string;
   unit_value: string;
@@ -52,6 +55,8 @@ const ManagePromotionalIssue: React.FC<ManagePromotionalIssueProps> = ({
   open,
   onClose,
   issue,
+  initialOutletId,
+  initialDepotId,
 }) => {
   const isEdit = !!issue;
   const { user } = useAuth();
@@ -62,10 +67,22 @@ const ManagePromotionalIssue: React.FC<ManagePromotionalIssueProps> = ({
   const createMutation = useCreatePromotionMaterialsIssue();
   const updateMutation = useUpdatePromotionMaterialsIssue();
 
+  const { data: materialsResponse } = usePromotionalMaterials({
+    limit: 1000,
+    status: 'active',
+  });
+  const materials = materialsResponse?.data || [];
+
   const formik = useFormik({
     initialValues: {
-      depot_id: issueData?.depot_id?.toString() || '',
-      outlet_id: issueData?.outlet_id?.toString() || '',
+      depot_id:
+        issueData?.depot_id?.toString() ||
+        initialDepotId?.toString() ||
+        '',
+      outlet_id:
+        issueData?.outlet_id?.toString() ||
+        initialOutletId?.toString() ||
+        '',
       issue_date: issueData?.issue_date
         ? dayjs(issueData.issue_date).format('YYYY-MM-DD')
         : dayjs().format('YYYY-MM-DD'),
@@ -78,9 +95,10 @@ const ManagePromotionalIssue: React.FC<ManagePromotionalIssueProps> = ({
       notes: issueData?.notes || '',
       items: issueData?.items
         ? issueData.items.map((item: any) => ({
-            asset_id: item.asset_id,
-            item_code: item.asset?.code || '-',
-            uom: 'pcs',
+            material_id: item.material_id || '',
+            item_code: item.material?.code || '-',
+            item_name: item.material?.name || '-',
+            uom: item.material?.uom || 'Pcs',
             quantity: item.quantity.toString(),
             unit_value: (item.unit_value || 0).toString(),
             total_value: (item.total_value || 0).toString(),
@@ -99,8 +117,8 @@ const ManagePromotionalIssue: React.FC<ManagePromotionalIssueProps> = ({
 
         for (let i = 0; i < values.items.length; i++) {
           const item = values.items[i];
-          if (!item.asset_id) {
-            toast.error(`Item ${i + 1}: Please select an item.`);
+          if (!item.material_id) {
+            toast.error(`Item ${i + 1}: Please select a promotional material.`);
             return;
           }
           if (!item.quantity || Number(item.quantity) <= 0) {
@@ -117,7 +135,7 @@ const ManagePromotionalIssue: React.FC<ManagePromotionalIssueProps> = ({
           campaign_reference: values.campaign_reference,
           notes: values.notes,
           items: values.items.map(item => ({
-            asset_id: Number(item.asset_id),
+            material_id: Number(item.material_id),
             quantity: Number(item.quantity),
             unit_value: Number(item.unit_value) || 0,
             total_value: Number(item.total_value) || 0,
@@ -140,16 +158,6 @@ const ManagePromotionalIssue: React.FC<ManagePromotionalIssueProps> = ({
     },
   });
 
-  const { data: assetsResponse } = useAssetMaster({
-    depot_id: formik.values.depot_id
-      ? Number(formik.values.depot_id)
-      : undefined,
-    limit: 1000,
-    asset_type: 'Promotion Materials',
-  });
-
-  const assets = assetsResponse?.data || [];
-
   const handleCancel = () => {
     onClose();
     formik.resetForm();
@@ -157,9 +165,10 @@ const ManagePromotionalIssue: React.FC<ManagePromotionalIssueProps> = ({
 
   const addItem = () => {
     const newItem: PromoItemFormData = {
-      asset_id: '',
+      material_id: '',
       item_code: '-',
-      uom: 'pcs',
+      item_name: '',
+      uom: 'Pcs',
       quantity: '',
       unit_value: '',
       total_value: '0',
@@ -180,20 +189,28 @@ const ManagePromotionalIssue: React.FC<ManagePromotionalIssueProps> = ({
     const updatedItems = [...formik.values.items];
     const item = { ...updatedItems[index], [field]: value };
 
-    if (field === 'asset_id') {
-      const selectedAsset = assets.find((a: any) => a.id === value);
-      if (selectedAsset) {
-        item.item_code = selectedAsset.code || '-';
-        item.unit_value = '';
+    if (field === 'material_id') {
+      const selectedMat = materials.find((m: any) => m.id === value);
+      if (selectedMat) {
+        item.item_code = selectedMat.code || '-';
+        item.item_name = selectedMat.name;
+        item.uom = selectedMat.uom || 'Pcs';
+        item.unit_value =
+          selectedMat.default_unit_value !== null &&
+          selectedMat.default_unit_value !== undefined
+            ? selectedMat.default_unit_value.toString()
+            : '';
       } else {
         item.item_code = '-';
+        item.item_name = '';
+        item.uom = 'Pcs';
         item.quantity = '';
         item.unit_value = '';
         item.total_value = '0';
       }
     }
 
-    if (field === 'quantity' || field === 'unit_value') {
+    if (field === 'quantity' || field === 'unit_value' || field === 'material_id') {
       const qty = Number(field === 'quantity' ? value : item.quantity) || 0;
       const unitVal =
         Number(field === 'unit_value' ? value : item.unit_value) || 0;
@@ -219,23 +236,23 @@ const ManagePromotionalIssue: React.FC<ManagePromotionalIssueProps> = ({
 
   const itemsColumns: TableColumn<PromoItemFormData & { _index: number }>[] = [
     {
-      id: 'asset_id',
+      id: 'material_id',
       label: 'Item',
       render: (_value, row) => (
         <Select
-          name={`items.${row._index}.asset_id`}
-          value={row.asset_id}
+          name={`items.${row._index}.material_id`}
+          value={row.material_id || ''}
           onChange={(e: any) =>
-            updateItem(row._index, 'asset_id', e.target.value)
+            updateItem(row._index, 'material_id', e.target.value)
           }
           size="small"
           label=""
           className="!min-w-72"
           compact
         >
-          {assets.map((a: any) => (
-            <MenuItem key={a.id} value={a.id}>
-              {a.name}
+          {materials.map((m: any) => (
+            <MenuItem key={m.id} value={m.id}>
+              {m.name} ({m.code})
             </MenuItem>
           ))}
         </Select>
@@ -245,7 +262,9 @@ const ManagePromotionalIssue: React.FC<ManagePromotionalIssueProps> = ({
       id: 'item_code',
       label: 'Item Code',
       render: (_value, row) => (
-        <Typography variant="body2">{row.item_code}</Typography>
+        <Typography variant="body2" className="font-mono text-xs">
+          {row.item_code}
+        </Typography>
       ),
     },
     {

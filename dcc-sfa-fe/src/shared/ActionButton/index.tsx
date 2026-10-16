@@ -1,4 +1,4 @@
-import { Delete, Edit, Visibility } from '@mui/icons-material';
+import { Delete, Edit, Receipt, Visibility } from '@mui/icons-material';
 import { IconButton, Tooltip } from '@mui/material';
 import React from 'react';
 import { DeleteConfirmation } from '../DeleteConfirmation';
@@ -16,9 +16,13 @@ interface ViewButtonProps extends ActionButtonProps {}
 
 interface EditButtonProps extends ActionButtonProps {}
 
+interface PrintButtonProps extends ActionButtonProps {}
+
 interface DeleteButtonProps extends ActionButtonProps {
   confirmDelete?: boolean;
   itemName?: string;
+  title?: string;
+  description?: string;
 }
 
 const ViewButton: React.FC<ViewButtonProps> = ({
@@ -79,6 +83,35 @@ const EditButton: React.FC<EditButtonProps> = ({
   );
 };
 
+const PrintButton: React.FC<PrintButtonProps> = ({
+  onClick,
+  disabled = false,
+  tooltip = 'Print',
+  size = 'medium',
+}) => {
+  const button = (
+    <IconButton
+      size={size}
+      onClick={e => {
+        e.stopPropagation();
+        onClick?.();
+      }}
+      disabled={disabled}
+      className="!bg-purple-100 !rounded hover:!bg-purple-200 !text-purple-600"
+    >
+      <Receipt fontSize="small" />
+    </IconButton>
+  );
+
+  return tooltip ? (
+    <Tooltip placement="top" title={tooltip} arrow>
+      {button}
+    </Tooltip>
+  ) : (
+    button
+  );
+};
+
 const DeleteButton: React.FC<DeleteButtonProps> = ({
   onClick,
   disabled = false,
@@ -86,6 +119,8 @@ const DeleteButton: React.FC<DeleteButtonProps> = ({
   size = 'medium',
   confirmDelete = true,
   itemName = 'this item',
+  title,
+  description,
 }) => {
   const button = (
     <IconButton
@@ -106,14 +141,21 @@ const DeleteButton: React.FC<DeleteButtonProps> = ({
   );
 
   return confirmDelete ? (
-    <DeleteConfirmation itemName={itemName} onConfirm={onClick}>
+    <DeleteConfirmation
+      itemName={itemName}
+      title={title}
+      description={description}
+      onConfirm={onClick}
+    >
       {tooltipButton}
     </DeleteConfirmation>
   ) : (
     <div
       onClick={e => {
-        e.stopPropagation();
-        onClick?.();
+        if (onClick) {
+          e.stopPropagation();
+          onClick();
+        }
       }}
     >
       {tooltipButton}
@@ -164,10 +206,11 @@ const ActionButton: React.FC<ActionButtonProps> = ({
   );
 };
 
-export { DeleteButton, EditButton, ViewButton, ActionButton };
+export { ActionButton, DeleteButton, EditButton, PrintButton, ViewButton };
 export type {
   ActionButtonProps,
   DeleteButtonProps,
   EditButtonProps,
+  PrintButtonProps,
   ViewButtonProps,
 };

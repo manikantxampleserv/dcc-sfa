@@ -4767,7 +4767,7 @@ exports.reportsController = {
      */
     async getPromotionMaterialsIssuedReport(req, res) {
         try {
-            const { start_date, end_date, depot_id, outlet_id, asset_id, group_by } = req.query;
+            const { start_date, end_date, depot_id, outlet_id, material_id, asset_id, group_by, } = req.query;
             const dateFilter = {};
             if (start_date) {
                 dateFilter.gte = new Date(start_date);
@@ -4807,9 +4807,11 @@ exports.reportsController = {
                     items: {
                         where: {
                             is_active: 'Y',
-                            ...(asset_id && { asset_id: parseInt(asset_id) }),
+                            ...((material_id || asset_id) && {
+                                material_id: parseInt((material_id || asset_id)),
+                            }),
                         },
-                        include: { asset: true },
+                        include: { material: true },
                     },
                 },
             });
@@ -4833,17 +4835,18 @@ exports.reportsController = {
                 const itemMap = new Map();
                 validIssues.forEach((issue) => {
                     issue.items.forEach((item) => {
-                        if (!itemMap.has(item.asset_id)) {
-                            itemMap.set(item.asset_id, {
-                                item_name: item.asset?.name || 'Unknown',
-                                item_code: item.asset?.code || 'Unknown',
+                        const key = item.material_id;
+                        if (!itemMap.has(key)) {
+                            itemMap.set(key, {
+                                item_name: item.material?.name || 'Unknown',
+                                item_code: item.material?.code || 'Unknown',
                                 issues_count: 0,
                                 unique_outlets: new Set(),
                                 qty_issued: 0,
                                 total_value: 0,
                             });
                         }
-                        const data = itemMap.get(item.asset_id);
+                        const data = itemMap.get(key);
                         data.issues_count += 1; // Assuming one issue per item line
                         data.unique_outlets.add(issue.outlet_id);
                         data.qty_issued += Number(item.quantity || 0);
@@ -5035,7 +5038,7 @@ exports.reportsController = {
                     issued_by: true,
                     items: {
                         where: { is_active: 'Y' },
-                        include: { asset: true },
+                        include: { material: true },
                     },
                 },
             });
@@ -5077,8 +5080,8 @@ exports.reportsController = {
                     issue.items.forEach((item) => {
                         sheet.addRow({
                             ...baseRow,
-                            item_code: item.asset?.code || 'N/A',
-                            item_name: item.asset?.name || 'N/A',
+                            item_code: item.material?.code || 'N/A',
+                            item_name: item.material?.name || 'N/A',
                             quantity: item.quantity,
                             unit_value: Number(item.unit_value || 0),
                         });

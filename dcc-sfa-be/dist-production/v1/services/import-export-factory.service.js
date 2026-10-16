@@ -67,6 +67,7 @@ const auditLogs_import_export_service_1 = require("./implementations/auditLogs-i
 const regions_import_export_service_1 = require("./implementations/regions-import-export.service");
 const districts_import_export_service_1 = require("./implementations/districts-import-export.service");
 const cities_import_export_service_1 = require("./implementations/cities-import-export.service");
+const promotionalMaterials_import_export_service_1 = require("./implementations/promotionalMaterials-import-export.service");
 class ImportExportFactory {
     static services = new Map([
         ['zones', zones_import_export_service_1.ZonesImportExportService],
@@ -138,6 +139,7 @@ class ImportExportFactory {
         ['districts', districts_import_export_service_1.DistrictsImportExportService],
         ['cities', cities_import_export_service_1.CitiesImportExportService],
         ['audit_logs', auditLogs_import_export_service_1.AuditLogsImportExportService],
+        ['promotional_materials', promotionalMaterials_import_export_service_1.PromotionalMaterialsImportExportService],
     ]);
     static getService(tableName) {
         const ServiceClass = this.services.get(tableName);

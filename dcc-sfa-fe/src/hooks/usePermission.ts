@@ -83,7 +83,16 @@ const hasModulePermission = (
   action: Action
 ): boolean => {
   const permissionName = buildPermissionName(module, action);
-  return hasPermission(userPermissions, permissionName);
+  if (hasPermission(userPermissions, permissionName)) {
+    return true;
+  }
+  if (module === 'promotion-materials') {
+    return hasPermission(
+      userPermissions,
+      buildPermissionName('asset-master' as Module, action)
+    );
+  }
+  return false;
 };
 
 /**

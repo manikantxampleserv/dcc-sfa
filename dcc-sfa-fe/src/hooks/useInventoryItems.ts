@@ -51,6 +51,7 @@ export const useInventoryItems = (
       const apiParams: GetSalespersonInventoryParams = {
         page: params?.page,
         limit: params?.limit,
+        search: params?.search,
         product_id: params?.product_id,
         include_expired_batches: params?.include_expired_batches,
         batch_status: params?.batch_status,

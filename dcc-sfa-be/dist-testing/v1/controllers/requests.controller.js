@@ -935,9 +935,7 @@ const createRequest = async (data) => {
                             items: {
                                 where: { is_active: 'Y' },
                                 include: {
-                                    asset: {
-                                        include: { asset_master_asset_types: true },
-                                    },
+                                    material: true,
                                 },
                             },
                         },
@@ -945,53 +943,28 @@ const createRequest = async (data) => {
                     if (autoApprovedIssue) {
                         console.log(`[PROMOTION_MATERIAL_ISSUE AUTO-APPROVE] Processing ${autoApprovedIssue.items.length} item(s) for GIN ${autoApprovedIssue.gin_number}, Outlet ID: ${autoApprovedIssue.outlet_id}`);
                         for (const item of autoApprovedIssue.items) {
-                            // Create customer_assets entry
-                            const createdCustomerAsset = await prisma_client_1.default.customer_assets.create({
-                                data: {
-                                    customer_id: autoApprovedIssue.outlet_id,
-                                    asset_type_id: item.asset.asset_type_id,
-                                    brand_id: item.asset.brand_id || item.asset.asset_brand_id || null,
-                                    model: item.asset.name,
-                                    serial_number: item.asset.serial_number,
-                                    install_date: new Date(),
-                                    status: 'Installed',
-                                    remarks: `Auto-approved. Issued via GIN: ${autoApprovedIssue.gin_number}`,
-                                    is_active: 'Y',
-                                    createdby: data.createdby,
-                                    createdate: new Date(),
-                                    log_inst: 1,
-                                },
-                            });
-                            console.log(`[PROMOTION_MATERIAL_ISSUE AUTO-APPROVE] Created customer_assets entry:`, {
-                                id: createdCustomerAsset.id,
-                                customer_id: createdCustomerAsset.customer_id,
-                                asset_type_id: createdCustomerAsset.asset_type_id,
-                                model: createdCustomerAsset.model,
-                                serial_number: createdCustomerAsset.serial_number,
-                                status: createdCustomerAsset.status,
-                            });
-                            // Update asset_master — mark Installed at the outlet
-                            const updatedAsset = await prisma_client_1.default.asset_master.update({
-                                where: { id: item.asset_id },
-                                data: {
-                                    current_status: 'Installed',
-                                    outlet_id: autoApprovedIssue.outlet_id,
-                                    installation_date: new Date(),
-                                    current_location: `Outlet (${autoApprovedIssue.outlet_id})`,
-                                    updatedby: data.createdby,
-                                    updatedate: new Date(),
-                                },
-                            });
-                            console.log(`[PROMOTION_MATERIAL_ISSUE AUTO-APPROVE] Updated asset_master entry:`, {
-                                asset_id: updatedAsset.id,
-                                name: updatedAsset.name,
-                                current_status: updatedAsset.current_status,
-                                outlet_id: updatedAsset.outlet_id,
-                                installation_date: updatedAsset.installation_date,
-                                current_location: updatedAsset.current_location,
-                            });
+                            if (item.material_id) {
+                                await prisma_client_1.default.customers_promotional_materials.create({
+                                    data: {
+                                        customer_id: autoApprovedIssue.outlet_id,
+                                        material_id: item.material_id,
+                                        issue_id: autoApprovedIssue.id,
+                                        gin_number: autoApprovedIssue.gin_number,
+                                        quantity: item.quantity,
+                                        unit_value: item.unit_value,
+                                        total_value: item.total_value,
+                                        issued_date: autoApprovedIssue.issue_date || new Date(),
+                                        status: 'Active',
+                                        remarks: autoApprovedIssue.campaign_reference ||
+                                            `Auto-approved. Issued via GIN: ${autoApprovedIssue.gin_number}`,
+                                        is_active: 'Y',
+                                        createdby: data.createdby,
+                                        createdate: new Date(),
+                                    },
+                                });
+                            }
                         }
-                        console.log(`[PROMOTION_MATERIAL_ISSUE AUTO-APPROVE] Auto-approval completed for issue #${data.reference_id} (${autoApprovedIssue.gin_number}) — ${autoApprovedIssue.items.length} customer_assets created, asset_master updated to 'Installed'.`);
+                        console.log(`[PROMOTION_MATERIAL_ISSUE AUTO-APPROVE] Auto-approval completed for issue #${data.reference_id} (${autoApprovedIssue.gin_number}) — ${autoApprovedIssue.items.length} promotional material records created in customers_promotional_materials.`);
                     }
                 }
                 catch (promoAutoApproveErr) {
@@ -2271,11 +2244,7 @@ exports.requestsController = {
                                     items: {
                                         where: { is_active: 'Y' },
                                         include: {
-                                            asset: {
-                                                include: {
-                                                    asset_master_asset_types: true,
-                                                },
-                                            },
+                                            material: true,
                                         },
                                     },
                                 },
@@ -2283,52 +2252,30 @@ exports.requestsController = {
                             if (approvedIssue) {
                                 console.log(`[PROMOTION_MATERIAL_ISSUE] Processing ${approvedIssue.items.length} item(s) for GIN ${approvedIssue.gin_number}, Outlet ID: ${approvedIssue.outlet_id}`);
                                 for (const item of approvedIssue.items) {
-                                    const createdCustomerAsset = await tx.customer_assets.create({
-                                        data: {
-                                            customer_id: approvedIssue.outlet_id,
-                                            asset_type_id: item.asset.asset_type_id,
-                                            brand_id: item.asset.brand_id ||
-                                                item.asset.asset_brand_id ||
-                                                null,
-                                            model: item.asset.name,
-                                            serial_number: item.asset.serial_number,
-                                            install_date: new Date(),
-                                            status: 'Installed',
-                                            remarks: `Issued via GIN: ${approvedIssue.gin_number}`,
-                                            is_active: 'Y',
-                                            createdby: userId,
-                                            createdate: new Date(),
-                                            log_inst: 1,
-                                        },
-                                    });
-                                    console.log(`promotonal material issued Created customer_assets entry:`, {
-                                        id: createdCustomerAsset.id,
-                                        customer_id: createdCustomerAsset.customer_id,
-                                        asset_type_id: createdCustomerAsset.asset_type_id,
-                                        model: createdCustomerAsset.model,
-                                        serial_number: createdCustomerAsset.serial_number,
-                                        status: createdCustomerAsset.status,
-                                    });
-                                    // Update asset_master — mark as Installed at the outlet
-                                    const updatedAsset = await tx.asset_master.update({
-                                        where: { id: item.asset_id },
-                                        data: {
-                                            current_status: 'Installed',
-                                            outlet_id: approvedIssue.outlet_id,
-                                            installation_date: new Date(),
-                                            current_location: `Outlet (${approvedIssue.outlet_id})`,
-                                            updatedby: userId,
-                                            updatedate: new Date(),
-                                        },
-                                    });
-                                    console.log(`promotonal material issued  Updated asset_master entry:`, {
-                                        asset_id: updatedAsset.id,
-                                        name: updatedAsset.name,
-                                        current_status: updatedAsset.current_status,
-                                        outlet_id: updatedAsset.outlet_id,
-                                        installation_date: updatedAsset.installation_date,
-                                        current_location: updatedAsset.current_location,
-                                    });
+                                    if (item.material_id) {
+                                        /**
+                                         * Insert into dedicated customers_promotional_materials table
+                                         */
+                                        await tx.customers_promotional_materials.create({
+                                            data: {
+                                                customer_id: approvedIssue.outlet_id,
+                                                material_id: Number(item.material_id),
+                                                issue_id: approvedIssue.id,
+                                                gin_number: approvedIssue.gin_number,
+                                                quantity: item.quantity,
+                                                unit_value: item.unit_value,
+                                                total_value: item.total_value,
+                                                issued_date: approvedIssue.issue_date || new Date(),
+                                                status: 'Active',
+                                                remarks: approvedIssue.notes ||
+                                                    `Issued via GIN: ${approvedIssue.gin_number}`,
+                                                is_active: 'Y',
+                                                createdby: userId,
+                                                createdate: new Date(),
+                                            },
+                                        });
+                                        console.log(`promotonal material issued Created customers_promotional_materials entry for material #${item.material_id}`);
+                                    }
                                 }
                             }
                         }
