@@ -28,6 +28,7 @@ router.post(
 router.post(
   '/customers/location-change-request',
   authenticateToken,
+  upload.array('images'),
   customerController.createLocationChangeRequest
 );
 router.get(

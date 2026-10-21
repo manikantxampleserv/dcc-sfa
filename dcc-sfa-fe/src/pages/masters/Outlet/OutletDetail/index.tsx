@@ -787,6 +787,11 @@ const OutletDetail: React.FC = () => {
                   </span>{' '}
                   {customer.longitude}
                 </p>
+                {customer.freeze_location && (
+                  <span className="rounded bg-blue-100 px-2.5 py-1 text-xs font-semibold text-blue-800">
+                    Location Frozen
+                  </span>
+                )}
               </div>
             </div>
           )}

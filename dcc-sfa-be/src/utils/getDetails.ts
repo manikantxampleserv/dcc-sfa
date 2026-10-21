@@ -63,6 +63,15 @@ async function getRequestDetailsByType(
           return {};
         }
 
+        let parsedResetData: any = {};
+        if (request_data) {
+          try {
+            parsedResetData = JSON.parse(request_data);
+          } catch (e) {
+            parsedResetData = {};
+          }
+        }
+
         const result = {
           customer_id: customer.id,
           customer_code: customer.code || 'N/A',
@@ -77,6 +86,11 @@ async function getRequestDetailsByType(
           customer_type: customer.type || 'N/A',
           current_latitude: customer.latitude,
           current_longitude: customer.longitude,
+          new_latitude: parsedResetData.latitude,
+          new_longitude: parsedResetData.longitude,
+          old_latitude: parsedResetData.old_latitude || customer.latitude,
+          old_longitude: parsedResetData.old_longitude || customer.longitude,
+          reason: parsedResetData.reason || 'N/A',
           customer_status: customer.is_active || 'N/A',
           created_date: customer.createdate
             ? new Date(customer.createdate).toLocaleDateString()

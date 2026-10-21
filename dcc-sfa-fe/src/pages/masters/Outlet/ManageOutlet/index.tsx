@@ -111,6 +111,7 @@ const ManageOutlet: React.FC<ManageOutletProps> = ({
       is_default_for_depot: selectedOutlet?.default_for_depots
         ? selectedOutlet.default_for_depots.length > 0
         : false,
+      freeze_location: Boolean(selectedOutlet?.freeze_location),
     },
     validationSchema: customerValidationSchema,
     enableReinitialize: true,
@@ -152,6 +153,7 @@ const ManageOutlet: React.FC<ManageOutletProps> = ({
             : undefined,
           is_active: values.is_active,
           is_default_for_depot: values.is_default_for_depot,
+          freeze_location: values.freeze_location,
         };
 
         if (isEdit && selectedOutlet) {
@@ -443,6 +445,7 @@ const ManageOutlet: React.FC<ManageOutletProps> = ({
               label="Latitude"
               placeholder="Enter latitude"
               formik={formik}
+              disabled={Boolean(formik.values.freeze_location)}
             />
 
             <Input
@@ -450,7 +453,33 @@ const ManageOutlet: React.FC<ManageOutletProps> = ({
               label="Longitude"
               placeholder="Enter longitude"
               formik={formik}
+              disabled={Boolean(formik.values.freeze_location)}
             />
+
+            <Box className="md:!col-span-2 !flex !items-center !p-2.5 !bg-gray-50 !border !border-gray-200 !rounded-md">
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    id="freeze_location"
+                    name="freeze_location"
+                    checked={Boolean(formik.values.freeze_location)}
+                    onChange={formik.handleChange}
+                    color="primary"
+                  />
+                }
+                label={
+                  <Box className="!flex !flex-col">
+                    <span className="!text-sm !font-semibold !text-gray-700 select-none">
+                      Freeze Location
+                    </span>
+                    <span className="!text-xs !text-gray-500 select-none">
+                      When checked, coordinates are locked and cannot be modified.
+                    </span>
+                  </Box>
+                }
+                className="!m-0"
+              />
+            </Box>
 
             <Input
               name="credit_limit"

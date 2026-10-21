@@ -31,6 +31,7 @@ interface Customer {
   zipcode?: string | null;
   latitude?: string | null;
   longitude?: string | null;
+  freeze_location?: boolean | null;
   credit_limit?: string | null;
   outstanding_amount: string;
   region_id?: number | null;
@@ -146,6 +147,7 @@ interface ManageCustomerPayload {
   last_visit_date?: string;
   is_active?: string;
   is_default_for_depot?: boolean;
+  freeze_location?: boolean;
 }
 
 /**

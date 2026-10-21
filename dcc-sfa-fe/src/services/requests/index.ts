@@ -88,6 +88,11 @@ export interface Request {
       employee_id?: string | null;
     } | null;
   }[];
+  request_images?: {
+    id: number;
+    image_url: string;
+    caption?: string | null;
+  }[];
 }
 
 export interface GetRequestsByUsersParams {

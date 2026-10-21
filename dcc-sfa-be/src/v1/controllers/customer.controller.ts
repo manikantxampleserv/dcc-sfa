@@ -72,6 +72,13 @@ const serializeCustomer = async (
     zipcode: customer.zipcode || null,
     latitude: customer.latitude?.toString() || null,
     longitude: customer.longitude?.toString() || null,
+    freeze_location:
+      customer.freeze_location === true ||
+      customer.freeze_location === 'true' ||
+      customer.freeze_location === 'Y' ||
+      customer.freeze_location === 1 ||
+      customer.freeze_location === '1' ||
+      false,
     credit_limit: customer.credit_limit?.toString() || null,
     outstanding_amount: customer.outstanding_amount?.toString() || '0',
     route_id: customer.route_id || null,
@@ -208,6 +215,7 @@ const checkIfCustomerChanged = (existing: any, incoming: any): boolean => {
     'zipcode',
     'latitude',
     'longitude',
+    'freeze_location',
     'credit_limit',
     'outstanding_amount',
     'route_id',
@@ -228,6 +236,25 @@ const checkIfCustomerChanged = (existing: any, incoming: any): boolean => {
 
     let existingValue = existing[field];
     let incomingValue = incoming[field];
+
+    if (field === 'freeze_location') {
+      const existingFrozen =
+        existing.freeze_location === true ||
+        existing.freeze_location === 'true' ||
+        existing.freeze_location === 'Y' ||
+        existing.freeze_location === 1 ||
+        existing.freeze_location === '1';
+      const incomingFrozen =
+        incomingValue === true ||
+        incomingValue === 'true' ||
+        incomingValue === 'Y' ||
+        incomingValue === 1 ||
+        incomingValue === '1';
+      if (existingFrozen !== incomingFrozen) {
+        hasAnyChange = true;
+      }
+      continue;
+    }
 
     if (
       ['latitude', 'longitude', 'credit_limit', 'outstanding_amount'].includes(
@@ -279,6 +306,36 @@ const convertIsActive = (isActiveParam: any): string | undefined => {
     return undefined;
   }
   return isActiveParam === '1' || isActiveParam === 1 ? 'Y' : 'N';
+};
+
+const isLocationFrozen = (customer: any): boolean => {
+  if (!customer) return false;
+  return (
+    customer.freeze_location === true ||
+    customer.freeze_location === 'true' ||
+    customer.freeze_location === 'Y' ||
+    customer.freeze_location === 1 ||
+    customer.freeze_location === '1' ||
+    customer.is_freeze_location === true ||
+    customer.is_freeze_location === 'true' ||
+    customer.is_freeze_location === 'Y' ||
+    customer.is_freeze_location === 1 ||
+    customer.is_freeze_location === '1'
+  );
+};
+
+const parseFreezeLocation = (value: any): boolean | undefined => {
+  if (value === undefined || value === null || value === '') return undefined;
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'string') {
+    const lower = value.trim().toLowerCase();
+    if (lower === 'true' || lower === 'y' || lower === '1') return true;
+    if (lower === 'false' || lower === 'n' || lower === '0') return false;
+  }
+  if (typeof value === 'number') {
+    return value === 1;
+  }
+  return Boolean(value);
 };
 
 export const customerController = {
@@ -911,6 +968,22 @@ export const customerController = {
                 updatedby: req.user?.id || 1,
               };
 
+              const parsedBulkFreeze = parseFreezeLocation(
+                updateData.freeze_location ?? updateData.is_freeze_location
+              );
+              if (parsedBulkFreeze !== undefined) {
+                updateData.freeze_location = parsedBulkFreeze;
+              }
+              delete updateData.is_freeze_location;
+
+              if (
+                isLocationFrozen(existingCustomer) &&
+                parsedBulkFreeze !== false
+              ) {
+                delete updateData.latitude;
+                delete updateData.longitude;
+              }
+
               if (route_id !== undefined) {
                 if (route_id === null) {
                   updateData.customer_routes = { disconnect: true };
@@ -1192,6 +1265,10 @@ export const customerController = {
         latitude,
         longitude,
         reason,
+        images,
+        image_urls,
+        image,
+        image_url,
         request_type = 'LOCATION_RESET',
       } = req.body;
 
@@ -1212,7 +1289,7 @@ export const customerController = {
       let existingCustomer;
       if (customer_id) {
         existingCustomer = await prisma.customers.findUnique({
-          where: { id: customer_id },
+          where: { id: Number(customer_id) },
           select: {
             id: true,
             code: true,
@@ -1221,6 +1298,7 @@ export const customerController = {
             phone_number: true,
             latitude: true,
             longitude: true,
+            freeze_location: true,
             address: true,
             city: true,
             state: true,
@@ -1237,6 +1315,7 @@ export const customerController = {
             phone_number: true,
             latitude: true,
             longitude: true,
+            freeze_location: true,
             address: true,
             city: true,
             state: true,
@@ -1250,6 +1329,69 @@ export const customerController = {
           message: 'Customer not found',
         });
       }
+
+      if (isLocationFrozen(existingCustomer)) {
+        return res.status(400).json({
+          success: false,
+          message:
+            'Customer location is frozen. Location coordinates cannot be changed while location is frozen.',
+        });
+      }
+
+      // 1. Process files uploaded directly via multipart/form-data to Backblaze B2
+      const uploadedFileItems: Array<{ image_url: string; caption?: string }> =
+        [];
+      const files = req.files as Express.Multer.File[] | undefined;
+      if (files && Array.isArray(files) && files.length > 0) {
+        for (const file of files) {
+          const timestamp = Date.now();
+          const cleanName = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
+          const fileName = `location-requests/${timestamp}-${cleanName}`;
+          const fileUrl = await uploadFile(
+            file.buffer,
+            fileName,
+            file.mimetype
+          );
+          uploadedFileItems.push({
+            image_url: fileUrl,
+            caption: file.originalname,
+          });
+        }
+      } else if ((req as any).file) {
+        const file = (req as any).file as Express.Multer.File;
+        const timestamp = Date.now();
+        const cleanName = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
+        const fileName = `location-requests/${timestamp}-${cleanName}`;
+        const fileUrl = await uploadFile(file.buffer, fileName, file.mimetype);
+        uploadedFileItems.push({
+          image_url: fileUrl,
+          caption: file.originalname,
+        });
+      }
+
+      // 2. Also accept URL strings/objects passed in body
+      const rawImages = images || image_urls || image || image_url || [];
+      const urlImageItems: Array<{ image_url: string; caption?: string }> = (
+        Array.isArray(rawImages) ? rawImages : [rawImages]
+      )
+        .map((img: any) => {
+          if (typeof img === 'string') {
+            return { image_url: img.trim(), caption: 'Location Reset Proof' };
+          }
+          if (typeof img === 'object' && img?.image_url) {
+            return {
+              image_url: img.image_url.trim(),
+              caption: img.caption || 'Location Reset Proof',
+            };
+          }
+          return null;
+        })
+        .filter(
+          (img): img is { image_url: string; caption: string } =>
+            !!img && !!img.image_url
+        );
+
+      const imageList = [...uploadedFileItems, ...urlImageItems];
 
       const resetData = {
         latitude: parseFloat(latitude),
@@ -1310,6 +1452,12 @@ export const customerController = {
           },
         });
 
+        if (imageList.length > 0) {
+          await Promise.allSettled(
+            imageList.map(img => deleteFile(img.image_url))
+          );
+        }
+
         return res.status(200).json({
           success: true,
           message: 'Customer location updated directly (no approval required)',
@@ -1330,6 +1478,19 @@ export const customerController = {
             approval_required: false,
             updated_date: new Date(),
           },
+        });
+      }
+
+      if (imageList.length > 0) {
+        await prisma.sfa_d_request_images.createMany({
+          data: imageList.map(img => ({
+            request_id: locationResetRequest.id,
+            image_url: img.image_url,
+            caption: img.caption,
+            createdby: req.user?.id || 1,
+            createdate: new Date(),
+            is_active: 'Y',
+          })),
         });
       }
 
@@ -1407,8 +1568,22 @@ export const customerController = {
         latitude,
         longitude,
         is_default_for_depot,
+        freeze_location,
+        is_freeze_location,
+        freezeLocation,
         ...otherData
       } = data;
+
+      const incomingFreezeRaw =
+        freeze_location !== undefined
+          ? freeze_location
+          : is_freeze_location !== undefined
+            ? is_freeze_location
+            : freezeLocation;
+
+      const parsedFreezeLocation =
+        parseFreezeLocation(incomingFreezeRaw) ?? false;
+
       const processedData = {
         ...otherData,
         credit_limit: credit_limit === '' ? null : credit_limit,
@@ -1416,6 +1591,7 @@ export const customerController = {
           outstanding_amount === '' ? null : outstanding_amount,
         latitude: latitude === '' ? null : latitude,
         longitude: longitude === '' ? null : longitude,
+        freeze_location: parsedFreezeLocation,
       };
 
       const newCode = await generateCustomerCode(depotId);
@@ -1462,7 +1638,6 @@ export const customerController = {
         });
       }
 
-      // Re-fetch to get correct relations
       const finalCustomer = await prisma.customers.findUnique({
         where: { id: customer.id },
         include: {
@@ -2317,19 +2492,97 @@ export const customerController = {
         latitude,
         longitude,
         is_default_for_depot,
+        freeze_location,
+        is_freeze_location,
+        freezeLocation,
         ...otherData
       } = req.body;
 
-      const data = {
+      const incomingFreezeRaw =
+        freeze_location !== undefined
+          ? freeze_location
+          : is_freeze_location !== undefined
+            ? is_freeze_location
+            : freezeLocation;
+
+      const parsedFreezeLocation = parseFreezeLocation(incomingFreezeRaw);
+      const currentlyFrozen = isLocationFrozen(existingCustomer);
+      const willBeFrozen =
+        parsedFreezeLocation !== undefined
+          ? parsedFreezeLocation
+          : currentlyFrozen;
+
+      const isLatProvided = latitude !== undefined;
+      const isLongProvided = longitude !== undefined;
+
+      const newLat =
+        latitude === '' || latitude === null ? null : parseFloat(latitude);
+      const oldLat =
+        existingCustomer.latitude !== null &&
+        existingCustomer.latitude !== undefined
+          ? parseFloat(existingCustomer.latitude.toString())
+          : null;
+
+      const latChanged =
+        isLatProvided &&
+        ((newLat === null && oldLat !== null) ||
+          (newLat !== null && oldLat === null) ||
+          (newLat !== null &&
+            oldLat !== null &&
+            !isNaN(newLat) &&
+            !isNaN(oldLat) &&
+            Math.abs(newLat - oldLat) > 0.0000001));
+
+      const newLong =
+        longitude === '' || longitude === null ? null : parseFloat(longitude);
+      const oldLong =
+        existingCustomer.longitude !== null &&
+        existingCustomer.longitude !== undefined
+          ? parseFloat(existingCustomer.longitude.toString())
+          : null;
+
+      const longChanged =
+        isLongProvided &&
+        ((newLong === null && oldLong !== null) ||
+          (newLong !== null && oldLong === null) ||
+          (newLong !== null &&
+            oldLong !== null &&
+            !isNaN(newLong) &&
+            !isNaN(oldLong) &&
+            Math.abs(newLong - oldLong) > 0.0000001));
+
+      if (currentlyFrozen && willBeFrozen && (latChanged || longChanged)) {
+        return res.status(400).json({
+          success: false,
+          message:
+            'Customer location is frozen. Latitude and longitude cannot be changed while location is frozen.',
+        });
+      }
+
+      const data: any = {
         ...otherData,
         credit_limit: credit_limit === '' ? null : credit_limit,
         outstanding_amount:
           outstanding_amount === '' ? null : outstanding_amount,
-        latitude: latitude === '' ? null : latitude,
-        longitude: longitude === '' ? null : longitude,
+        latitude:
+          currentlyFrozen && willBeFrozen
+            ? existingCustomer.latitude
+            : latitude === ''
+              ? null
+              : latitude,
+        longitude:
+          currentlyFrozen && willBeFrozen
+            ? existingCustomer.longitude
+            : longitude === ''
+              ? null
+              : longitude,
         updatedate: new Date(),
         updatedby: req.user?.id || 1,
       };
+
+      if (parsedFreezeLocation !== undefined) {
+        data.freeze_location = parsedFreezeLocation;
+      }
       const customer = await prisma.customers.update({
         where: { id: Number(id) },
         data,
@@ -3241,7 +3494,8 @@ export const customerController = {
           name: c.model || c.cooler_asset_master?.name || `Cooler #${c.id}`,
           model: c.model || c.cooler_asset_master?.name,
           code: c.code || c.serial_number,
-          serial_number: c.serial_number || c.cooler_asset_master?.serial_number,
+          serial_number:
+            c.serial_number || c.cooler_asset_master?.serial_number,
           asset_type: c.cooler_types?.name || 'Cooler',
           asset_sub_type: c.cooler_sub_types?.name || null,
           brand:

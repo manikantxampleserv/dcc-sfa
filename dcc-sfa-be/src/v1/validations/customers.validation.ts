@@ -132,4 +132,24 @@ export const createCustomerValidation = [
     .optional({ checkFalsy: true })
     .isIn(['Y', 'N'])
     .withMessage('is_active must be Y or N'),
+
+  body('freeze_location')
+    .optional()
+    .custom((val) => {
+      if (val === undefined || val === null || val === '') return true;
+      if (
+        typeof val === 'boolean' ||
+        val === 'true' ||
+        val === 'false' ||
+        val === 'Y' ||
+        val === 'N' ||
+        val === 1 ||
+        val === 0 ||
+        val === '1' ||
+        val === '0'
+      ) {
+        return true;
+      }
+      throw new Error('freeze_location must be a valid boolean or boolean-like value');
+    }),
 ];

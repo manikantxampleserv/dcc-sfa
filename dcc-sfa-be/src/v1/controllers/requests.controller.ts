@@ -7,6 +7,7 @@ import { paginate } from '../../utils/paginate';
 import { requestTypes } from '../../mock/requestTypes';
 import prisma from '../../configs/prisma.client';
 import { generateContractOnApproval } from '../../helpers/approvalWorkflow.helper';
+import { deleteFile } from '../../utils/blackbaze';
 
 interface RequestSerialized {
   id: number;
@@ -22,6 +23,7 @@ interface RequestSerialized {
   updatedby: number | null;
   log_inst: number | null;
   reference_details?: any;
+  request_images?: any[];
   requester?: {
     id: number;
     name: string;
@@ -57,6 +59,14 @@ const serializeRequest = (request: any): RequestSerialized => ({
   updatedby: request.updatedby,
   log_inst: request.log_inst,
   reference_details: request.reference_details || null,
+  request_images:
+    request.status === 'P'
+      ? (request.sfa_d_request_images_sfa_d_request || []).map((img: any) => ({
+          id: img.id,
+          image_url: img.image_url,
+          caption: img.caption,
+        }))
+      : [],
   requester: request.sfa_d_requests_requester
     ? {
         id: request.sfa_d_requests_requester.id,
@@ -1082,6 +1092,19 @@ export const createRequest = async (data: {
           data: updateData,
         });
 
+        const reqImages = await prisma.sfa_d_request_images.findMany({
+          where: { request_id: request.id },
+          select: { image_url: true },
+        });
+        if (reqImages.length > 0) {
+          await Promise.allSettled(
+            reqImages.map(img => deleteFile(img.image_url))
+          );
+          await prisma.sfa_d_request_images.deleteMany({
+            where: { request_id: request.id },
+          });
+        }
+
         console.log(
           `Customer ${data.reference_id} location updated successfully`
         );
@@ -1659,6 +1682,10 @@ export const requestsController = {
           sfa_d_requests_requester: {
             select: { id: true, name: true, email: true, employee_id: true },
           },
+          sfa_d_request_images_sfa_d_request: {
+            where: { is_active: 'Y' },
+            select: { id: true, image_url: true, caption: true },
+          },
           sfa_d_requests_approvals_request: {
             select: {
               id: true,
@@ -1741,6 +1768,10 @@ export const requestsController = {
           sfa_d_requests_requester: {
             select: { id: true, name: true, email: true, employee_id: true },
           },
+          sfa_d_request_images_sfa_d_request: {
+            where: { is_active: 'Y' },
+            select: { id: true, image_url: true, caption: true },
+          },
           sfa_d_requests_approvals_request: {
             select: {
               id: true,
@@ -1809,6 +1840,24 @@ export const requestsController = {
           sfa_d_requests_approvals_request: true,
         },
       });
+
+      if (
+        existingRequest.request_type === 'LOCATION_RESET' &&
+        (data.status === 'A' || data.status === 'R')
+      ) {
+        const reqImages = await prisma.sfa_d_request_images.findMany({
+          where: { request_id: Number(id) },
+          select: { image_url: true },
+        });
+        if (reqImages.length > 0) {
+          await Promise.allSettled(
+            reqImages.map(img => deleteFile(img.image_url))
+          );
+          await prisma.sfa_d_request_images.deleteMany({
+            where: { request_id: Number(id) },
+          });
+        }
+      }
 
       res.json({
         message: 'Request updated successfully',
@@ -1944,6 +1993,21 @@ export const requestsController = {
                 updatedate: new Date(),
               },
             });
+
+            if (request.request_type === 'LOCATION_RESET') {
+              const requestImages = await tx.sfa_d_request_images.findMany({
+                where: { request_id: Number(request_id) },
+                select: { image_url: true },
+              });
+              if (requestImages.length > 0) {
+                await Promise.allSettled(
+                  requestImages.map(img => deleteFile(img.image_url))
+                );
+                await tx.sfa_d_request_images.deleteMany({
+                  where: { request_id: Number(request_id) },
+                });
+              }
+            }
 
             if (
               request.request_type === 'RECONCILIATION_APPROVAL' &&
@@ -2111,6 +2175,21 @@ export const requestsController = {
                 `SAP Credit Memo ${request.reference_id} status updated to REJECTED`
               );
             }
+            if (request.request_type === 'LOCATION_RESET') {
+              const requestImages = await tx.sfa_d_request_images.findMany({
+                where: { request_id: Number(request_id) },
+                select: { image_url: true },
+              });
+              if (requestImages.length > 0) {
+                await Promise.allSettled(
+                  requestImages.map(img => deleteFile(img.image_url))
+                );
+                await tx.sfa_d_request_images.deleteMany({
+                  where: { request_id: Number(request_id) },
+                });
+              }
+            }
+
             return { status: 'rejected', request };
           }
 
@@ -2132,32 +2211,6 @@ export const requestsController = {
             },
           });
 
-          if (
-            request.request_type === 'LOCATION_RESET' &&
-            request.reference_id &&
-            action === 'A'
-          ) {
-            const requestData = JSON.parse(request.request_data || '{}');
-            const updateData: any = { updatedate: new Date() };
-
-            if (requestData.latitude !== undefined) {
-              updateData.latitude = requestData.latitude;
-            }
-
-            if (requestData.longitude !== undefined) {
-              updateData.longitude = requestData.longitude;
-            }
-
-            await tx.customers.update({
-              where: { id: request.reference_id },
-              data: updateData,
-            });
-
-            console.log(
-              `Customer ${request.reference_id} location updated successfully`
-            );
-          }
-
           if (!nextApprover) {
             await tx.sfa_d_requests.update({
               where: { id: Number(request_id) },
@@ -2168,6 +2221,58 @@ export const requestsController = {
                 updatedate: new Date(),
               },
             });
+
+            if (
+              request.request_type === 'LOCATION_RESET' &&
+              request.reference_id
+            ) {
+              const requestData = JSON.parse(request.request_data || '{}');
+              const updateData: any = { updatedate: new Date() };
+
+              if (requestData.latitude !== undefined) {
+                const parsedLat = parseFloat(requestData.latitude);
+                if (isNaN(parsedLat) || parsedLat < -90 || parsedLat > 90) {
+                  throw new Error(
+                    `Cannot approve location reset: Latitude must be between -90 and 90 (received ${requestData.latitude})`
+                  );
+                }
+                updateData.latitude = parsedLat;
+              }
+
+              if (requestData.longitude !== undefined) {
+                const parsedLng = parseFloat(requestData.longitude);
+                if (isNaN(parsedLng) || parsedLng < -180 || parsedLng > 180) {
+                  throw new Error(
+                    `Cannot approve location reset: Longitude must be between -180 and 180 (received ${requestData.longitude})`
+                  );
+                }
+                updateData.longitude = parsedLng;
+              }
+
+              await tx.customers.update({
+                where: { id: request.reference_id },
+                data: updateData,
+              });
+
+              console.log(
+                `Customer ${request.reference_id} location updated successfully`
+              );
+            }
+
+            if (request.request_type === 'LOCATION_RESET') {
+              const requestImages = await tx.sfa_d_request_images.findMany({
+                where: { request_id: Number(request_id) },
+                select: { image_url: true },
+              });
+              if (requestImages.length > 0) {
+                await Promise.allSettled(
+                  requestImages.map(img => deleteFile(img.image_url))
+                );
+                await tx.sfa_d_request_images.deleteMany({
+                  where: { request_id: Number(request_id) },
+                });
+              }
+            }
 
             if (
               request.request_type === 'ORDER_APPROVAL' &&
@@ -3453,6 +3558,10 @@ export const requestsController = {
                   employee_id: true,
                 },
               },
+              sfa_d_request_images_sfa_d_request: {
+                where: { is_active: 'Y' },
+                select: { id: true, image_url: true, caption: true },
+              },
             },
           },
           sfa_d_requests_approvals_approver: {
@@ -3524,6 +3633,14 @@ export const requestsController = {
             log_inst: request.log_inst,
             requester: request.sfa_d_requests_requester,
             reference_details: referenceDetails,
+            request_images:
+              request.status === 'P'
+                ? (request.sfa_d_request_images_sfa_d_request || []).map((img: any) => ({
+                    id: img.id,
+                    image_url: img.image_url,
+                    caption: img.caption,
+                  }))
+                : [],
             approvals: [
               {
                 id: approval.id,

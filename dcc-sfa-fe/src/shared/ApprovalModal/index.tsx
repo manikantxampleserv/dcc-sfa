@@ -699,6 +699,43 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({
                           'No reason provided'}
                       </Typography>
                     </div>
+
+                    {request.request_images && request.request_images.length > 0 && (
+                      <div className="!space-y-2 md:!col-span-2">
+                        <Typography
+                          variant="caption"
+                          className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                        >
+                          Location Proof Images ({request.request_images.length})
+                        </Typography>
+                        <div className="!flex !flex-wrap !gap-3 !mt-1">
+                          {request.request_images.map((img, idx) => (
+                            <a
+                              key={img.id || idx}
+                              href={img.image_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="!block !relative !rounded-lg !overflow-hidden !border !border-gray-200 hover:!border-primary-500 !transition-all !shadow-sm hover:!shadow-md"
+                            >
+                              <img
+                                src={img.image_url}
+                                alt={img.caption || `Location Proof ${idx + 1}`}
+                                className="!w-24 !h-24 !object-cover hover:!scale-105 !transition-transform"
+                                onError={e => {
+                                  (e.target as HTMLImageElement).src =
+                                    'https://via.placeholder.com/100?text=No+Image';
+                                }}
+                              />
+                              {img.caption && (
+                                <span className="!block !text-[10px] !text-gray-600 !p-1 !text-center !truncate !max-w-[96px] !bg-white">
+                                  {img.caption}
+                                </span>
+                              )}
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 
