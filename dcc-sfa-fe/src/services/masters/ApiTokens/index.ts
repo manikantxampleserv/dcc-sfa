@@ -22,6 +22,11 @@ export interface ApiToken {
     id: number;
     name: string;
     email: string;
+    user_role?: {
+      id: number;
+      name: string;
+      role_key?: string;
+    } | null;
   };
 }
 
@@ -114,6 +119,22 @@ export const revokeAllUserTokens = async (
   return response.data;
 };
 
+export const revokeAllTokens = async (): Promise<
+  ApiResponse<{ revokedCount: number }>
+> => {
+  const response = await axiosInstance.patch('/api-tokens/revoke-all');
+  return response.data;
+};
+
+export const revokeAllSalespersonTokens = async (): Promise<
+  ApiResponse<{ revokedCount: number }>
+> => {
+  const response = await axiosInstance.patch(
+    '/api-tokens/revoke-salespersons'
+  );
+  return response.data;
+};
+
 export default {
   fetchApiTokens,
   fetchApiTokenById,
@@ -122,4 +143,6 @@ export default {
   deactivateApiToken,
   deleteApiToken,
   revokeAllUserTokens,
+  revokeAllTokens,
+  revokeAllSalespersonTokens,
 };

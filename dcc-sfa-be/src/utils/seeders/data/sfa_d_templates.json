@@ -206,5 +206,18 @@
     "createdby": 1,
     "updatedate": null,
     "updatedby": null
+  },
+  {
+    "id": 23,
+    "name": "Monthly Active Users Report",
+    "key": "monthly_active_users_report",
+    "channel": "email",
+    "type": "report",
+    "subject": "Monthly Active Users Report - ${month_year} | ${company_name}",
+    "body": "<div style=\"font-family: Arial, sans-serif; max-width: 750px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px; color: #333333;\">\r\n  <div style=\"background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); color: #ffffff; padding: 24px; border-radius: 8px 8px 0 0; text-align: center;\">\r\n    <h1 style=\"margin: 0; font-size: 22px; font-weight: 600;\">Monthly Active Users Report</h1>\r\n    <p style=\"margin: 8px 0 0 0; font-size: 14px; opacity: 0.9;\">Summary Period: ${month_year}</p>\r\n  </div>\r\n  <div style=\"padding: 24px; background-color: #f9fafb;\">\r\n    <p style=\"font-size: 15px; margin-top: 0;\">Dear <strong>${client_name}</strong>,</p>\r\n    <p style=\"font-size: 14px; line-height: 1.5; color: #4b5563;\">Below is the monthly active users summary for <strong>${company_name}</strong>. An Excel sheet containing complete details is also attached to this email.</p>\r\n    <div style=\"background: #ffffff; border: 1px solid #e5e7eb; border-radius: 6px; padding: 16px; margin: 20px 0;\">\r\n      <h3 style=\"margin: 0 0 12px 0; font-size: 15px; color: #111827;\">Report Summary</h3>\r\n      <table style=\"width: 100%; border-collapse: collapse; font-size: 14px;\">\r\n        <tr>\r\n          <td style=\"padding: 6px 0; color: #6b7280; width: 180px;\">Company Name:</td>\r\n          <td style=\"padding: 6px 0; font-weight: 600; color: #111827;\">${company_name}</td>\r\n        </tr>\r\n        <tr>\r\n          <td style=\"padding: 6px 0; color: #6b7280;\">Total Active Users:</td>\r\n          <td style=\"padding: 6px 0; font-weight: 600; color: #16a34a;\">${total_active_users}</td>\r\n        </tr>\r\n        <tr>\r\n          <td style=\"padding: 6px 0; color: #6b7280;\">Report Date:</td>\r\n          <td style=\"padding: 6px 0; color: #374151;\">${generated_date}</td>\r\n        </tr>\r\n      </table>\r\n    </div>\r\n    <h3 style=\"margin: 20px 0 10px 0; font-size: 15px; color: #111827;\">Active Users Roster</h3>\r\n    <div style=\"overflow-x: auto; margin-bottom: 20px; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 6px;\">\r\n      ${users_table}\r\n    </div>\r\n    <p style=\"font-size: 12px; color: #6b7280; margin-top: 25px; border-top: 1px solid #e5e7eb; padding-top: 15px;\">\r\n      This is an automated monthly notification sent from the DCC SFA System. Please contact support if you have any questions.\r\n    </p>\r\n  </div>\r\n</div>",
+    "createdate": "2026-10-21T12:00:00.000Z",
+    "createdby": 1,
+    "updatedate": null,
+    "updatedby": null
   }
 ]

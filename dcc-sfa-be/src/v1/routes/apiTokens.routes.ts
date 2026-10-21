@@ -10,6 +10,8 @@ import {
   deleteApiToken,
   getApiTokenById,
   getApiTokens,
+  revokeAllSalespersonTokens,
+  revokeAllTokens,
   revokeAllUserTokens,
   revokeApiToken,
 } from '../controllers/apiTokens.controller';
@@ -22,6 +24,24 @@ router.get(
   '/api-tokens',
   requirePermission([{ module: 'token', action: 'read' }]),
   getApiTokens
+);
+router.patch(
+  '/api-tokens/revoke-all',
+  auditUpdate('api_tokens'),
+  requirePermission([{ module: 'token', action: 'update' }]),
+  revokeAllTokens
+);
+router.patch(
+  '/api-tokens/revoke-salespersons',
+  auditUpdate('api_tokens'),
+  requirePermission([{ module: 'token', action: 'update' }]),
+  revokeAllSalespersonTokens
+);
+router.patch(
+  '/api-tokens/user/:userId/revoke-all',
+  auditUpdate('api_tokens'),
+  requirePermission([{ module: 'token', action: 'update' }]),
+  revokeAllUserTokens
 );
 router.get(
   '/api-tokens/:id',
@@ -51,12 +71,6 @@ router.delete(
   auditDelete('api_tokens'),
   requirePermission([{ module: 'token', action: 'delete' }]),
   deleteApiToken
-);
-router.patch(
-  '/api-tokens/user/:userId/revoke-all',
-  auditUpdate('api_tokens'),
-  requirePermission([{ module: 'token', action: 'update' }]),
-  revokeAllUserTokens
 );
 
 export default router;

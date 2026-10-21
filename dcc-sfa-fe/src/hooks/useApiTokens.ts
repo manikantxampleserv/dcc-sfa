@@ -7,6 +7,8 @@ import {
   deactivateApiToken,
   deleteApiToken,
   revokeAllUserTokens,
+  revokeAllTokens,
+  revokeAllSalespersonTokens,
   type GetApiTokensParams,
   type ApiToken,
 } from '../services/masters/ApiTokens';
@@ -132,6 +134,40 @@ export const useRevokeAllUserTokens = (options?: {
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: apiTokenKeys.lists() });
       options?.onSuccess?.(data, variables);
+    },
+    onError: options?.onError,
+  });
+};
+
+export const useRevokeAllTokens = (options?: {
+  onSuccess?: (data: any) => void;
+  onError?: (error: any) => void;
+}) => {
+  const queryClient = useQueryClient();
+
+  return useApiMutation<ApiResponse<{ revokedCount: number }>, any, void>({
+    mutationFn: () => revokeAllTokens(),
+    loadingMessage: 'Revoking all tokens...',
+    onSuccess: data => {
+      queryClient.invalidateQueries({ queryKey: apiTokenKeys.lists() });
+      options?.onSuccess?.(data);
+    },
+    onError: options?.onError,
+  });
+};
+
+export const useRevokeAllSalespersonTokens = (options?: {
+  onSuccess?: (data: any) => void;
+  onError?: (error: any) => void;
+}) => {
+  const queryClient = useQueryClient();
+
+  return useApiMutation<ApiResponse<{ revokedCount: number }>, any, void>({
+    mutationFn: () => revokeAllSalespersonTokens(),
+    loadingMessage: 'Revoking all salesperson tokens...',
+    onSuccess: data => {
+      queryClient.invalidateQueries({ queryKey: apiTokenKeys.lists() });
+      options?.onSuccess?.(data);
     },
     onError: options?.onError,
   });

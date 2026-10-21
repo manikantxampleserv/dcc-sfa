@@ -67,6 +67,13 @@ export const getApiTokens = async (req: Request, res: Response) => {
               id: true,
               name: true,
               email: true,
+              user_role: {
+                select: {
+                  id: true,
+                  name: true,
+                  role_key: true,
+                },
+              },
             },
           },
         },
@@ -471,6 +478,113 @@ export const revokeAllUserTokens = async (req: Request, res: Response) => {
       success: false,
       message: 'Internal server error',
       error: 'Failed to revoke all user tokens',
+    });
+  }
+};
+
+export const revokeAllTokens = async (req: Request, res: Response) => {
+  try {
+    const currentUserId = (req as any).user?.id;
+
+    if (!currentUserId) {
+      return res.status(401).json({
+        success: false,
+        message: 'User not authenticated',
+      });
+    }
+
+    const result = await prisma.api_tokens.updateMany({
+      where: {
+        is_revoked: false,
+      },
+      data: {
+        is_revoked: true,
+        updated_by: currentUserId,
+        updated_date: new Date(),
+      },
+    });
+
+    res.status(200).json({
+      success: true,
+      message: `${result.count} API tokens revoked successfully`,
+      data: { revokedCount: result.count },
+    });
+  } catch (error) {
+    console.error('Error revoking all tokens:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error:
+        error instanceof Error ? error.message : 'Failed to revoke all tokens',
+    });
+  }
+};
+
+export const revokeAllSalespersonTokens = async (
+  req: Request,
+  res: Response
+) => {
+  try {
+    const currentUserId = (req as any).user?.id;
+
+    if (!currentUserId) {
+      return res.status(401).json({
+        success: false,
+        message: 'User not authenticated',
+      });
+    }
+
+    const salespersonUsers = await prisma.users.findMany({
+      where: {
+        user_role: {
+          OR: [
+            { is_assigned_route: 'Y' },
+            { name: { contains: 'Salesman' } },
+            { name: { contains: 'Salesperson' } },
+            { role_key: { contains: 'salesman' } },
+            { role_key: { contains: 'salesperson' } },
+          ],
+        },
+      },
+      select: { id: true },
+    });
+
+    const userIds = salespersonUsers.map(u => u.id);
+
+    if (userIds.length === 0) {
+      return res.status(200).json({
+        success: true,
+        message: 'No salesperson users found',
+        data: { revokedCount: 0 },
+      });
+    }
+
+    const result = await prisma.api_tokens.updateMany({
+      where: {
+        user_id: { in: userIds },
+        is_revoked: false,
+      },
+      data: {
+        is_revoked: true,
+        updated_by: currentUserId,
+        updated_date: new Date(),
+      },
+    });
+
+    res.status(200).json({
+      success: true,
+      message: `${result.count} salesperson API tokens revoked successfully`,
+      data: { revokedCount: result.count },
+    });
+  } catch (error) {
+    console.error('Error revoking all salesperson tokens:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error:
+        error instanceof Error
+          ? error.message
+          : 'Failed to revoke salesperson tokens',
     });
   }
 };

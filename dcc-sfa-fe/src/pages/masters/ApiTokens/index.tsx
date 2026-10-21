@@ -12,6 +12,7 @@ import { Key, Shield } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { ActionButton, DeleteButton } from 'shared/ActionButton';
 import { PopConfirm } from 'shared/DeleteConfirmation';
+import Button from 'shared/Button';
 import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import StatsCard from 'shared/StatsCard';
@@ -19,6 +20,8 @@ import Table, { type TableColumn } from 'shared/Table';
 import {
   useApiTokens,
   useDeleteApiToken,
+  useRevokeAllSalespersonTokens,
+  useRevokeAllTokens,
   useRevokeApiToken,
 } from '../../../hooks/useApiTokens';
 import { usePermission } from '../../../hooks/usePermission';
@@ -65,6 +68,8 @@ const ApiTokensPage: React.FC = () => {
   const currentPage = (tokensResponse?.meta?.current_page || 1) - 1;
 
   const revokeTokenMutation = useRevokeApiToken();
+  const revokeAllTokensMutation = useRevokeAllTokens();
+  const revokeSalespersonTokensMutation = useRevokeAllSalespersonTokens();
 
   const deleteTokenMutation = useDeleteApiToken();
   const stats = (tokensResponse?.stats as any) || {};
@@ -91,6 +96,22 @@ const ApiTokensPage: React.FC = () => {
     },
     [revokeTokenMutation]
   );
+
+  const handleRevokeAllTokens = useCallback(async () => {
+    try {
+      await revokeAllTokensMutation.mutateAsync();
+    } catch (error) {
+      console.error('Error revoking all tokens:', error);
+    }
+  }, [revokeAllTokensMutation]);
+
+  const handleRevokeSalespersonTokens = useCallback(async () => {
+    try {
+      await revokeSalespersonTokensMutation.mutateAsync();
+    } catch (error) {
+      console.error('Error revoking salesperson tokens:', error);
+    }
+  }, [revokeSalespersonTokensMutation]);
 
   const handleDeleteToken = useCallback(
     async (id: number) => {
@@ -147,6 +168,14 @@ const ApiTokensPage: React.FC = () => {
               >
                 {user?.email || `ID: ${row.user_id}`}
               </Typography>
+              {user?.user_role?.name && (
+                <Chip
+                  label={user.user_role.name}
+                  size="small"
+                  variant="outlined"
+                  className="!text-[10px] !h-4 !mt-1 !border-gray-200 !text-gray-600"
+                />
+              )}
             </Box>
           </Box>
         );
@@ -293,7 +322,7 @@ const ApiTokensPage: React.FC = () => {
 
   return (
     <>
-      <Box className="!mb-3 !flex !justify-between !items-center">
+      <Box className="!mb-3 !flex !justify-between !items-center !flex-wrap !gap-3">
         <Box>
           <p className="!font-bold text-xl !text-gray-900">
             API Tokens Management
@@ -302,6 +331,49 @@ const ApiTokensPage: React.FC = () => {
             Manage and monitor API tokens for all users
           </p>
         </Box>
+        {isUpdate && (
+          <Box className="!flex !items-center !gap-2 !flex-wrap">
+            <PopConfirm
+              title="Revoke Salesperson Tokens"
+              description="Are you sure you want to revoke all active tokens for salesperson / salesman users?"
+              confirmText="Revoke All"
+              confirmColor="warning"
+              disabled={revokeSalespersonTokensMutation.isPending}
+              onConfirm={handleRevokeSalespersonTokens}
+            >
+              <Button
+                variant="outlined"
+                color="warning"
+                size="small"
+                startIcon={<Block />}
+                loading={revokeSalespersonTokensMutation.isPending}
+                disabled={revokeSalespersonTokensMutation.isPending}
+              >
+                Revoke Salesperson Tokens
+              </Button>
+            </PopConfirm>
+
+            <PopConfirm
+              title="Revoke All Tokens"
+              description="Are you sure you want to revoke all active tokens for ALL users? This will invalidate all active sessions."
+              confirmText="Revoke All"
+              confirmColor="error"
+              disabled={revokeAllTokensMutation.isPending}
+              onConfirm={handleRevokeAllTokens}
+            >
+              <Button
+                variant="contained"
+                color="error"
+                size="small"
+                startIcon={<Block />}
+                loading={revokeAllTokensMutation.isPending}
+                disabled={revokeAllTokensMutation.isPending}
+              >
+                Revoke All Tokens
+              </Button>
+            </PopConfirm>
+          </Box>
+        )}
       </Box>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
