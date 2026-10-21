@@ -391,6 +391,7 @@ export const assetMasterController = {
         outlet_id,
         only_available,
         asset_type,
+        asset_type_id,
       } = req.query;
       const pageNum = parseInt(page as string, 10) || 1;
       const limitNum = parseInt(limit as string, 10) || 10;
@@ -434,13 +435,24 @@ export const assetMasterController = {
       if (outlet_id)
         andConditions.push({ outlet_id: parseInt(outlet_id as string, 10) });
       if (only_available === 'true') andConditions.push({ outlet_id: null });
-      if (asset_type) {
+      if (asset_type_id) {
         andConditions.push({
-          OR: [
-            { asset_master_asset_types: { name: asset_type as string } },
-            { asset_master_asset_types: { category: asset_type as string } },
-          ],
+          asset_type_id: parseInt(asset_type_id as string, 10),
         });
+      } else if (asset_type) {
+        const isNumeric = !isNaN(Number(asset_type));
+        if (isNumeric) {
+          andConditions.push({
+            asset_type_id: parseInt(asset_type as string, 10),
+          });
+        } else {
+          andConditions.push({
+            OR: [
+              { asset_master_asset_types: { name: asset_type as string } },
+              { asset_master_asset_types: { category: asset_type as string } },
+            ],
+          });
+        }
       }
 
       if (isScopeRestricted) {

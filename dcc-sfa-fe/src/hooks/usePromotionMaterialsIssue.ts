@@ -58,7 +58,12 @@ export const useCreatePromotionMaterialsIssue = () => {
   return useApiMutation({
     mutationFn: (data: CreatePromotionMaterialsIssuePayload) =>
       createPromotionMaterialsIssue(data),
-    invalidateQueries: ['promotionMaterialsIssues'],
+    invalidateQueries: [
+      'promotionMaterialsIssues',
+      'customers',
+      'promotional-materials',
+      'requests',
+    ],
     loadingMessage: 'Creating Promotion Materials Issue...',
   });
 };
@@ -72,7 +77,12 @@ export const useUpdatePromotionMaterialsIssue = () => {
       id: number;
       data: UpdatePromotionMaterialsIssuePayload;
     }) => updatePromotionMaterialsIssue(id, data),
-    invalidateQueries: ['promotionMaterialsIssues'],
+    invalidateQueries: [
+      'promotionMaterialsIssues',
+      'customers',
+      'promotional-materials',
+      'requests',
+    ],
     loadingMessage: 'Updating Promotion Materials Issue...',
   });
 };
@@ -80,7 +90,12 @@ export const useUpdatePromotionMaterialsIssue = () => {
 export const useDeletePromotionMaterialsIssue = () => {
   return useApiMutation({
     mutationFn: (id: number) => deletePromotionMaterialsIssue(id),
-    invalidateQueries: ['promotionMaterialsIssues'],
+    invalidateQueries: [
+      'promotionMaterialsIssues',
+      'customers',
+      'promotional-materials',
+      'requests',
+    ],
     loadingMessage: 'Deleting Promotion Materials Issue...',
   });
 };

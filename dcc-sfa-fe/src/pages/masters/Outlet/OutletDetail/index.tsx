@@ -19,6 +19,7 @@ import {
   Typography,
 } from '@mui/material';
 import { useCustomer } from 'hooks/useCustomers';
+import { useOutletPromotionalMaterials } from 'hooks/usePromotionalMaterials';
 import {
   Building2,
   Calendar,
@@ -26,6 +27,7 @@ import {
   DollarSign,
   ExternalLink,
   MapPin,
+  Megaphone,
   Package,
   PhoneCall,
   Receipt,
@@ -39,6 +41,7 @@ import Table, { type TableColumn } from 'shared/Table';
 import { formatDate } from 'utils/dateUtils';
 import { getBusinessTypeIcon } from '../utils';
 import CustomerInvoices from './CustomerInvoices';
+import PromotionalMaterials from './PromotionalMaterials';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -66,12 +69,16 @@ const OutletDetail: React.FC = () => {
   const [tabValue, setTabValue] = useState(0);
 
   const { data: customerData, isLoading, error } = useCustomer(Number(id));
+  const { data: promoMaterialsData } = useOutletPromotionalMaterials(
+    Number(id)
+  );
 
   const responseData = customerData?.data;
   const customer = responseData?.customer || ({} as Customer);
   const documents = responseData?.documents || [];
   const assets = responseData?.assets || [];
   const invoices = responseData?.invoices || [];
+  const promoCount = promoMaterialsData?.stats?.approved_issues_count ?? 0;
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
@@ -209,29 +216,45 @@ const OutletDetail: React.FC = () => {
           </div>
         </div>
 
-        {/* Tabs Skeleton */}
+        {/**
+         * Tabs Skeleton
+         */}
         <div className="rounded-lg border border-gray-200 bg-white shadow-sm">
           <Box>
-            <Tabs value={0}>
+            <Tabs value={0} className="!min-h-10">
+              <Tab
+                icon={<Receipt className="h-5 w-5" />}
+                label="INVOICES (0)"
+                iconPosition="start"
+                className="!min-h-12 !py-0"
+                disabled
+              />
               <Tab
                 icon={<Inventory />}
                 label="Assets (0)"
                 iconPosition="start"
-                className="!min-h-14 !py-0"
+                className="!min-h-12 !py-0"
+                disabled
+              />
+              <Tab
+                icon={<Megaphone className="h-5 w-5" />}
+                label="PROMOTION MATERIALS (0)"
+                iconPosition="start"
+                className="!min-h-12 !py-0"
                 disabled
               />
               <Tab
                 icon={<History />}
                 label="Asset History (0)"
                 iconPosition="start"
-                className="!min-h-14 !py-0"
+                className="!min-h-12 !py-0"
                 disabled
               />
               <Tab
                 icon={<Description />}
                 label="Attachments (0)"
                 iconPosition="start"
-                className="!min-h-14 !py-0"
+                className="!min-h-12 !py-0"
                 disabled
               />
             </Tabs>
@@ -743,9 +766,9 @@ const OutletDetail: React.FC = () => {
 
           {/* Map Section */}
           {(customer.latitude || customer.longitude) && (
-            <div className="mb-6 rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+            <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
               <div className="mb-4 flex items-center justify-between">
-                <div className="flex items-start gap-3">
+                <div className="flex items-center gap-3">
                   <MapPin className="h-5 w-5 text-blue-600" />
                   <Typography
                     variant="h6"
@@ -829,6 +852,17 @@ const OutletDetail: React.FC = () => {
               }}
             />
             <Tab
+              icon={<Megaphone className="h-5 w-5" />}
+              label={`PROMOTION MATERIALS (${promoCount})`}
+              iconPosition="start"
+              className="!min-h-12 !py-0"
+              sx={{
+                '& .MuiButtonBase-root': {
+                  padding: 1,
+                },
+              }}
+            />
+            <Tab
               icon={<History />}
               label={`Asset History (${allAssetHistory.length})`}
               iconPosition="start"
@@ -869,6 +903,13 @@ const OutletDetail: React.FC = () => {
         </TabPanel>
 
         <TabPanel value={tabValue} index={2}>
+          <PromotionalMaterials
+            outletId={Number(id)}
+            depotId={customer?.depot_id || customer?.depot?.id}
+          />
+        </TabPanel>
+
+        <TabPanel value={tabValue} index={3}>
           <Table
             data={allAssetHistory}
             columns={historyColumns}
@@ -879,7 +920,7 @@ const OutletDetail: React.FC = () => {
           />
         </TabPanel>
 
-        <TabPanel value={tabValue} index={3}>
+        <TabPanel value={tabValue} index={4}>
           <Table
             data={documents}
             columns={documentColumns}

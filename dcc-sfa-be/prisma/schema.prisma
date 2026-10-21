@@ -400,7 +400,6 @@ model asset_master {
   cooler_asset_master             coolers[]
   asset_master_depot              depots?                           @relation(fields: [depot_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   asset_master_outlet             customers?                        @relation(fields: [outlet_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  promotion_materials_issue_items promotion_materials_issue_items[]
 }
 
 model asset_sub_types {
@@ -1023,6 +1022,7 @@ model customers {
   asset_master_outlet                    asset_master[]
   default_for_depots                     depots[]                        @relation("DepotDefaultOutlet")
   promotion_materials_issued             promotion_materials_issue[]
+  customers_promotional_materials        customers_promotional_materials[]
 }
 
 model customer_image {
@@ -3475,12 +3475,13 @@ model promotion_materials_issue {
   issued_by users     @relation(fields: [issued_by_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   items promotion_materials_issue_items[]
+  customer_materials customers_promotional_materials[]
 }
 
 model promotion_materials_issue_items {
   id          Int      @id @default(autoincrement())
   issue_id    Int
-  asset_id    Int
+  material_id Int
   quantity    Int
   unit_value  Decimal? @db.Decimal(18, 2)
   total_value Decimal? @db.Decimal(18, 2)
@@ -3491,8 +3492,49 @@ model promotion_materials_issue_items {
   updatedate DateTime? @db.DateTime
   updatedby  Int?
 
-  issue promotion_materials_issue @relation(fields: [issue_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  asset asset_master              @relation(fields: [asset_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  issue    promotion_materials_issue @relation(fields: [issue_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  material promotional_materials     @relation(fields: [material_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model promotional_materials {
+  id                 Int       @id @default(autoincrement())
+  code               String    @unique @db.NVarChar(50)
+  name               String    @db.NVarChar(255)
+  uom                String    @default("Pcs") @db.NVarChar(20)
+  default_unit_value Decimal?  @db.Decimal(18, 2)
+  description        String?   @db.NVarChar(500)
+  is_active          String    @default("Y") @db.Char(1)
+  createdate         DateTime? @default(now()) @db.DateTime
+  createdby          Int
+  updatedate         DateTime? @db.DateTime
+  updatedby          Int?
+
+  items              promotion_materials_issue_items[]
+  customer_materials customers_promotional_materials[]
+}
+
+model customers_promotional_materials {
+  id           Int       @id @default(autoincrement())
+  customer_id  Int
+  material_id  Int
+  issue_id     Int?
+  gin_number   String?   @db.NVarChar(100)
+  quantity     Int
+  unit_value   Decimal?  @db.Decimal(18, 2)
+  total_value  Decimal?  @db.Decimal(18, 2)
+  issued_date  DateTime? @db.Date
+  status       String    @default("Active") @db.NVarChar(50)
+  remarks      String?   @db.NVarChar(500)
+
+  is_active    String    @default("Y") @db.Char(1)
+  createdate   DateTime? @default(now()) @db.DateTime
+  createdby    Int
+  updatedate   DateTime? @db.DateTime
+  updatedby    Int?
+
+  customer     customers                  @relation(fields: [customer_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  material     promotional_materials      @relation(fields: [material_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  issue        promotion_materials_issue? @relation(fields: [issue_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
 model system_enums {

@@ -3,73 +3,100 @@ import prisma from '../configs/prisma.client';
 async function main() {
   const permissions = [
     {
-      id: 569,
-      name: 'promotion_material_issue_read',
-      module: 'Promotion Materials Issue',
+      name: 'promotion_materials_read',
+      module: 'Promotion Materials',
       action: 'READ',
-      description: 'View and access data for Promotion Materials Issue',
+      description: 'View and access data for Promotional Materials',
       is_active: 'Y',
-      createdate: new Date(),
       createdby: 1,
-      updatedate: new Date(),
     },
     {
-      id: 570,
-      name: 'promotion_material_issue_create',
-      module: 'Promotion Materials Issue',
+      name: 'promotion_materials_create',
+      module: 'Promotion Materials',
       action: 'CREATE',
-      description: 'Create new records for Promotion Materials Issue',
+      description: 'Create new records for Promotional Materials',
       is_active: 'Y',
-      createdate: new Date(),
       createdby: 1,
-      updatedate: new Date(),
     },
     {
-      id: 571,
-      name: 'promotion_material_issue_update',
-      module: 'Promotion Materials Issue',
+      name: 'promotion_materials_update',
+      module: 'Promotion Materials',
       action: 'UPDATE',
-      description: 'Modify existing records for Promotion Materials Issue',
+      description: 'Modify existing records for Promotional Materials',
       is_active: 'Y',
-      createdate: new Date(),
       createdby: 1,
-      updatedate: new Date(),
     },
     {
-      id: 572,
-      name: 'promotion_material_issue_delete',
-      module: 'Promotion Materials Issue',
+      name: 'promotion_materials_delete',
+      module: 'Promotion Materials',
       action: 'DELETE',
-      description: 'Remove records for Promotion Materials Issue',
+      description: 'Remove records for Promotional Materials',
       is_active: 'Y',
-      createdate: new Date(),
       createdby: 1,
-      updatedate: new Date(),
     },
   ];
 
   try {
-    let sqlBatch = 'SET IDENTITY_INSERT permissions ON;\n';
-
     for (const p of permissions) {
-      const createdate = p.createdate.toISOString().slice(0, 19).replace('T', ' ');
-      const updatedate = p.updatedate.toISOString().slice(0, 19).replace('T', ' ');
-      
-      sqlBatch += `
-        IF NOT EXISTS (SELECT 1 FROM permissions WHERE id = ${p.id})
-        BEGIN
-          INSERT INTO permissions (id, name, module, action, description, is_active, createdate, createdby, updatedate)
-          VALUES (${p.id}, '${p.name}', '${p.module}', '${p.action}', '${p.description}', '${p.is_active}', '${createdate}', ${p.createdby}, '${updatedate}');
-        END
-      `;
+      /**
+       * Upsert permission by unique name
+       */
+      const perm = await prisma.permissions.upsert({
+        where: { name: p.name },
+        update: {
+          module: p.module,
+          action: p.action,
+          description: p.description,
+          is_active: p.is_active,
+          updatedate: new Date(),
+        },
+        create: {
+          name: p.name,
+          module: p.module,
+          action: p.action,
+          description: p.description,
+          is_active: p.is_active,
+          createdby: p.createdby,
+          createdate: new Date(),
+          updatedate: new Date(),
+        },
+      });
+
+      console.log(`Permission ensured: ${perm.name} (ID: ${perm.id})`);
+
+      /**
+       * Assign to Admin role (id: 1) if not already assigned
+       */
+      const adminRole = await prisma.roles.findFirst({
+        where: { id: 1 },
+      });
+
+      if (adminRole) {
+        const existingRolePerm = await prisma.role_permissions.findFirst({
+          where: {
+            role_id: adminRole.id,
+            permission_id: perm.id,
+          },
+        });
+
+        if (!existingRolePerm) {
+          await prisma.role_permissions.create({
+            data: {
+              role_id: adminRole.id,
+              permission_id: perm.id,
+              is_active: 'Y',
+              createdby: 1,
+              createdate: new Date(),
+            },
+          });
+          console.log(`   -> Linked to Admin role`);
+        }
+      }
     }
 
-    sqlBatch += '\nSET IDENTITY_INSERT permissions OFF;';
-
-    await prisma.$executeRawUnsafe(sqlBatch);
-    console.log('Successfully seeded Promotion Materials Issue permissions.');
+    console.log('Successfully configured Promotion Materials permissions.');
   } catch (error) {
-    console.error('Error seeding permissions:', error);
+    console.error('Error configuring permissions:', error);
   } finally {
     await prisma.$disconnect();
   }

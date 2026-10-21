@@ -26,12 +26,12 @@ export const createPromotionMaterialsIssueValidation = [
     .withMessage('Issued By must be a valid integer'),
 
   body('campaign_reference')
-    .optional()
+    .optional({ nullable: true })
     .isString()
     .withMessage('Campaign reference must be a string'),
 
   body('notes')
-    .optional()
+    .optional({ nullable: true })
     .isString()
     .withMessage('Notes must be a string'),
 
@@ -39,11 +39,11 @@ export const createPromotionMaterialsIssueValidation = [
     .isArray({ min: 1 })
     .withMessage('At least one item is required'),
 
-  body('items.*.asset_id')
+  body('items.*.material_id')
     .notEmpty()
-    .withMessage('Item Asset is required')
+    .withMessage('Item Material is required')
     .isInt()
-    .withMessage('Item Asset must be a valid integer'),
+    .withMessage('Item Material must be a valid integer'),
 
   body('items.*.quantity')
     .notEmpty()
@@ -52,49 +52,69 @@ export const createPromotionMaterialsIssueValidation = [
     .withMessage('Item quantity must be greater than 0'),
 
   body('items.*.unit_value')
-    .optional()
+    .optional({ nullable: true })
     .isNumeric()
     .withMessage('Unit value must be a valid number'),
 
   body('items.*.total_value')
-    .optional()
+    .optional({ nullable: true })
     .isNumeric()
     .withMessage('Total value must be a valid number'),
 ];
 
 export const updatePromotionMaterialsIssueValidation = [
   body('depot_id')
-    .optional()
+    .optional({ nullable: true })
     .isInt()
     .withMessage('Depot must be a valid integer'),
 
   body('outlet_id')
-    .optional()
+    .optional({ nullable: true })
     .isInt()
     .withMessage('Outlet must be a valid integer'),
 
   body('issue_date')
-    .optional()
+    .optional({ nullable: true })
     .isISO8601()
     .withMessage('Issue Date must be a valid date'),
 
   body('issued_by_id')
-    .optional()
+    .optional({ nullable: true })
     .isInt()
     .withMessage('Issued By must be a valid integer'),
+
+  body('campaign_reference')
+    .optional({ nullable: true })
+    .isString()
+    .withMessage('Campaign reference must be a string'),
+
+  body('notes')
+    .optional({ nullable: true })
+    .isString()
+    .withMessage('Notes must be a string'),
 
   body('items')
     .optional()
     .isArray()
     .withMessage('Items must be an array'),
 
-  body('items.*.asset_id')
-    .optional()
+  body('items.*.material_id')
+    .optional({ nullable: true })
     .isInt()
-    .withMessage('Item Asset must be a valid integer'),
+    .withMessage('Item Material must be a valid integer'),
 
   body('items.*.quantity')
-    .optional()
+    .optional({ nullable: true })
     .isFloat({ min: 0.01 })
     .withMessage('Item quantity must be greater than 0'),
+
+  body('items.*.unit_value')
+    .optional({ nullable: true })
+    .isNumeric()
+    .withMessage('Unit value must be a valid number'),
+
+  body('items.*.total_value')
+    .optional({ nullable: true })
+    .isNumeric()
+    .withMessage('Total value must be a valid number'),
 ];

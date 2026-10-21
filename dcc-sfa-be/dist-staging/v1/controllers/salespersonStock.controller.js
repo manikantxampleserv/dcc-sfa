@@ -584,7 +584,7 @@ exports.salespersonStockController = {
     },
 };
 async function handleAllSalespersons(req, res, pageNum, limitNum) {
-    const { product_id, batch_status, serial_status, depot_id, supervisor_id } = req.query;
+    const { product_id, batch_status, serial_status, depot_id, supervisor_id, search, } = req.query;
     const usersWhere = {
         AND: [
             {
@@ -657,6 +657,25 @@ async function handleAllSalespersons(req, res, pageNum, limitNum) {
             sub_inventory_users: {
                 where: { is_active: 'Y' },
                 select: { name: true },
+            },
+            user_depot: {
+                select: {
+                    id: true,
+                    name: true,
+                    code: true,
+                },
+            },
+            users_depots_users: {
+                select: {
+                    is_active: true,
+                    user_depots_depot_id: {
+                        select: {
+                            id: true,
+                            name: true,
+                            code: true,
+                        },
+                    },
+                },
             },
         },
     });
@@ -758,6 +777,33 @@ async function handleAllSalespersons(req, res, pageNum, limitNum) {
         overallVanInventories += vanInventoriesCount;
         overallBatches += batchIds.size;
         overallSerials += serialIds.size;
+        const depotsList = [];
+        const seenDepotIds = new Set();
+        if (sp.users_depots_users && sp.users_depots_users.length > 0) {
+            const activeUserDepots = sp.users_depots_users.filter((ud) => ud.is_active === 'Y');
+            const targetUserDepots = activeUserDepots.length > 0 ? activeUserDepots : sp.users_depots_users;
+            for (const ud of targetUserDepots) {
+                const d = ud.user_depots_depot_id;
+                if (d && !seenDepotIds.has(d.id)) {
+                    depotsList.push({
+                        id: d.id,
+                        name: d.name,
+                        code: d.code,
+                    });
+                    seenDepotIds.add(d.id);
+                }
+            }
+        }
+        if (sp.user_depot && !seenDepotIds.has(sp.user_depot.id)) {
+            depotsList.push({
+                id: sp.user_depot.id,
+                name: sp.user_depot.name,
+                code: sp.user_depot.code,
+            });
+            seenDepotIds.add(sp.user_depot.id);
+        }
+        const primaryDepot = depotsList[0] || null;
+        const depotNameStr = primaryDepot?.name || null;
         consolidated.push({
             salesperson_id: sp.id,
             salesperson_name: sp.name,
@@ -767,6 +813,8 @@ async function handleAllSalespersons(req, res, pageNum, limitNum) {
             salesperson_sap_code: sp.sap_code || null,
             salesperson_address: sp.address,
             helpers: sp.sub_inventory_users?.map((u) => u.name).join(', ') || null,
+            depots: depotsList,
+            depot_name: depotNameStr,
             total_van_inventories: vanInventoriesCount,
             today_invoices: todayInvoicesCount,
             total_products: productStockMap.size,
@@ -777,8 +825,43 @@ async function handleAllSalespersons(req, res, pageNum, limitNum) {
             total_serials: serialIds.size,
         });
     }
+    let overallTodayInvoices = 0;
+    let overallGroups = 0;
+    let overallActiveSalesmen = 0;
+    for (const item of consolidated) {
+        overallTodayInvoices += item.today_invoices || 0;
+        if (item.helpers) {
+            overallGroups++;
+        }
+        else {
+            overallActiveSalesmen++;
+        }
+    }
+    const searchStr = typeof search === 'string' ? search.trim().toLowerCase() : '';
+    let filteredData = consolidated;
+    if (searchStr) {
+        filteredData = consolidated.filter(sp => sp.salesperson_name?.toLowerCase().includes(searchStr) ||
+            sp.salesperson_email?.toLowerCase().includes(searchStr) ||
+            sp.salesperson_sap_code?.toLowerCase().includes(searchStr) ||
+            sp.helpers?.toLowerCase().includes(searchStr) ||
+            sp.depot_name?.toLowerCase().includes(searchStr));
+    }
     const startIndex = (pageNum - 1) * limitNum;
-    const paginatedData = consolidated.slice(startIndex, startIndex + limitNum);
+    const paginatedData = filteredData.slice(startIndex, startIndex + limitNum);
+    const statsPayload = {
+        total_salespersons: consolidated.length,
+        total_van_inventories: overallVanInventories,
+        total_items: overallVanInventories,
+        today_invoices: overallTodayInvoices,
+        total_groups: overallGroups,
+        active_users: overallActiveSalesmen,
+        total_active_salesmen: overallActiveSalesmen,
+        total_unique_products: overallProducts.size,
+        total_quantity: overallTotalQty,
+        total_remaining_quantity: overallTotalQty,
+        total_batches: overallBatches,
+        total_serials: overallSerials,
+    };
     return res.json({
         success: true,
         message: 'All salesperson inventory data retrieved successfully',
@@ -787,17 +870,11 @@ async function handleAllSalespersons(req, res, pageNum, limitNum) {
             product_id: product_id || null,
             batch_status: batch_status || null,
             serial_status: serial_status || null,
+            search: searchStr || null,
         },
-        statistics: {
-            total_salespersons: consolidated.length,
-            total_van_inventories: overallVanInventories,
-            total_unique_products: overallProducts.size,
-            total_quantity: overallTotalQty,
-            total_remaining_quantity: overallTotalQty,
-            total_batches: overallBatches,
-            total_serials: overallSerials,
-        },
-        pagination: buildPagination(pageNum, limitNum, consolidated.length),
+        statistics: statsPayload,
+        stats: statsPayload,
+        pagination: buildPagination(pageNum, limitNum, filteredData.length),
     });
 }
 function buildPagination(page, limit, total) {
@@ -806,6 +883,9 @@ function buildPagination(page, limit, total) {
         per_page: limit,
         total_pages: Math.ceil(total / limit) || 0,
         total_count: total,
+        total: total,
+        page: page,
+        limit: limit,
         has_next: page < Math.ceil(total / limit),
         has_prev: page > 1,
     };

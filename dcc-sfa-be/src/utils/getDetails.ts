@@ -432,13 +432,12 @@ async function getRequestDetailsByType(
               items: {
                 where: { is_active: 'Y' },
                 include: {
-                  asset: {
+                  material: {
                     select: {
                       id: true,
                       name: true,
                       code: true,
-                      serial_number: true,
-                      asset_master_asset_types: { select: { name: true } },
+                      uom: true,
                     },
                   },
                 },
@@ -466,10 +465,13 @@ async function getRequestDetailsByType(
           approval_status: promotionIssue.approval_status,
           items_count: promotionIssue.items.length,
           items: promotionIssue.items.map((item: any) => ({
-            asset_name: item.asset?.name || 'N/A',
-            asset_code: item.asset?.code || 'N/A',
-            asset_serial: item.asset?.serial_number || 'N/A',
-            asset_type: item.asset?.asset_master_asset_types?.name || 'N/A',
+            item_name: item.material?.name || 'N/A',
+            name: item.material?.name || 'N/A',
+            asset_name: item.material?.name || 'N/A',
+            item_code: item.material?.code || 'N/A',
+            code: item.material?.code || 'N/A',
+            asset_code: item.material?.code || 'N/A',
+            uom: item.material?.uom || 'Pcs',
             quantity: item.quantity,
             unit_value: item.unit_value
               ? Number(item.unit_value).toFixed(2)

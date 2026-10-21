@@ -26,5 +26,6 @@ router.post('/customers/bulk-upsert', auth_middleware_1.authenticateToken, multe
 ]), (0, audit_middleware_1.auditCreate)('customers'), customer_controller_1.customerController.bulkUpsertCustomers);
 router.get('/customers-dropdown', auth_middleware_1.authenticateToken, customer_controller_1.customerController.getCustomersDropdown);
 router.get('/customers/:id/relations', auth_middleware_1.authenticateToken, (0, auth_middleware_1.requirePermission)([{ module: 'outlet', action: 'read' }]), customer_controller_1.customerController.getCustomerRelations);
+router.get('/customers/:id/associated-details', auth_middleware_1.authenticateToken, (0, auth_middleware_1.requirePermission)([{ module: 'outlet', action: 'read' }]), customer_controller_1.customerController.getCustomerAssociatedDetails);
 exports.default = router;
 //# sourceMappingURL=customers.routes.js.map

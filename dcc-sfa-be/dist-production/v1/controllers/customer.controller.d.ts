@@ -10,5 +10,6 @@ export declare const customerController: {
     deleteCustomers(req: Request, res: Response): Promise<Response<any, Record<string, any>> | undefined>;
     getCustomersDropdown(req: any, res: any): Promise<void>;
     getCustomerRelations(req: Request, res: Response): Promise<Response<any, Record<string, any>> | undefined>;
+    getCustomerAssociatedDetails(req: Request, res: Response): Promise<Response<any, Record<string, any>> | undefined>;
 };
 //# sourceMappingURL=customer.controller.d.ts.map

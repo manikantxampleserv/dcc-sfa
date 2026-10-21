@@ -88,6 +88,8 @@ export interface SalespersonSummary {
   total_quantity: number;
   total_batches: number;
   total_serials: number;
+  depots?: { id: number; name: string; code?: string }[];
+  depot_name?: string | null;
 }
 
 export interface SalespersonInventoryData {
@@ -127,6 +129,24 @@ export interface AllSalespersonsResponse {
   statistics: {
     total_salespersons: number;
     total_van_inventories: number;
+    total_items?: number;
+    today_invoices?: number;
+    total_groups?: number;
+    active_users?: number;
+    total_active_salesmen?: number;
+    total_unique_products: number;
+    total_quantity: number;
+    total_batches: number;
+    total_serials: number;
+  };
+  stats?: {
+    total_salespersons: number;
+    total_van_inventories: number;
+    total_items?: number;
+    today_invoices?: number;
+    total_groups?: number;
+    active_users?: number;
+    total_active_salesmen?: number;
     total_unique_products: number;
     total_quantity: number;
     total_batches: number;
@@ -137,6 +157,9 @@ export interface AllSalespersonsResponse {
     per_page: number;
     total_pages: number;
     total_count: number;
+    total?: number;
+    page?: number;
+    limit?: number;
     has_next: boolean;
     has_prev: boolean;
   };
@@ -157,6 +180,9 @@ export interface SingleSalespersonResponse {
     per_page: number;
     total_pages: number;
     total_count: number;
+    total?: number;
+    page?: number;
+    limit?: number;
     has_next: boolean;
     has_prev: boolean;
   };
@@ -165,6 +191,7 @@ export interface SingleSalespersonResponse {
 export interface GetSalespersonInventoryParams {
   page?: number;
   limit?: number;
+  search?: string;
   product_id?: number;
   include_expired_batches?: boolean;
   batch_status?: 'active' | 'expiring_soon' | 'expired';
@@ -182,6 +209,7 @@ export const fetchAllSalespersonsInventory = async (
     queryParams.append('page', params.page.toString());
   if (params?.limit !== undefined)
     queryParams.append('limit', params.limit.toString());
+  if (params?.search) queryParams.append('search', params.search);
   if (params?.product_id !== undefined)
     queryParams.append('product_id', params.product_id.toString());
   if (params?.include_expired_batches !== undefined)
@@ -275,10 +303,8 @@ export const fetchSalespersonSummary = async (
 
   if (params?.time_filter)
     queryParams.append('time_filter', params.time_filter);
-  if (params?.start_date)
-    queryParams.append('start_date', params.start_date);
-  if (params?.end_date)
-    queryParams.append('end_date', params.end_date);
+  if (params?.start_date) queryParams.append('start_date', params.start_date);
+  if (params?.end_date) queryParams.append('end_date', params.end_date);
 
   const qs = queryParams.toString();
   const url = `/inventory-item-salesperson-summary/${salespersonId}${qs ? `?${qs}` : ''}`;

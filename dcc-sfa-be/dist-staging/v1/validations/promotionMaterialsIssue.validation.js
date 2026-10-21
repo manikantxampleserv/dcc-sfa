@@ -24,63 +24,79 @@ exports.createPromotionMaterialsIssueValidation = [
         .isInt()
         .withMessage('Issued By must be a valid integer'),
     (0, express_validator_1.body)('campaign_reference')
-        .optional()
+        .optional({ nullable: true })
         .isString()
         .withMessage('Campaign reference must be a string'),
     (0, express_validator_1.body)('notes')
-        .optional()
+        .optional({ nullable: true })
         .isString()
         .withMessage('Notes must be a string'),
     (0, express_validator_1.body)('items')
         .isArray({ min: 1 })
         .withMessage('At least one item is required'),
-    (0, express_validator_1.body)('items.*.asset_id')
+    (0, express_validator_1.body)('items.*.material_id')
         .notEmpty()
-        .withMessage('Item Asset is required')
+        .withMessage('Item Material is required')
         .isInt()
-        .withMessage('Item Asset must be a valid integer'),
+        .withMessage('Item Material must be a valid integer'),
     (0, express_validator_1.body)('items.*.quantity')
         .notEmpty()
         .withMessage('Item quantity is required')
         .isFloat({ min: 0.01 })
         .withMessage('Item quantity must be greater than 0'),
     (0, express_validator_1.body)('items.*.unit_value')
-        .optional()
+        .optional({ nullable: true })
         .isNumeric()
         .withMessage('Unit value must be a valid number'),
     (0, express_validator_1.body)('items.*.total_value')
-        .optional()
+        .optional({ nullable: true })
         .isNumeric()
         .withMessage('Total value must be a valid number'),
 ];
 exports.updatePromotionMaterialsIssueValidation = [
     (0, express_validator_1.body)('depot_id')
-        .optional()
+        .optional({ nullable: true })
         .isInt()
         .withMessage('Depot must be a valid integer'),
     (0, express_validator_1.body)('outlet_id')
-        .optional()
+        .optional({ nullable: true })
         .isInt()
         .withMessage('Outlet must be a valid integer'),
     (0, express_validator_1.body)('issue_date')
-        .optional()
+        .optional({ nullable: true })
         .isISO8601()
         .withMessage('Issue Date must be a valid date'),
     (0, express_validator_1.body)('issued_by_id')
-        .optional()
+        .optional({ nullable: true })
         .isInt()
         .withMessage('Issued By must be a valid integer'),
+    (0, express_validator_1.body)('campaign_reference')
+        .optional({ nullable: true })
+        .isString()
+        .withMessage('Campaign reference must be a string'),
+    (0, express_validator_1.body)('notes')
+        .optional({ nullable: true })
+        .isString()
+        .withMessage('Notes must be a string'),
     (0, express_validator_1.body)('items')
         .optional()
         .isArray()
         .withMessage('Items must be an array'),
-    (0, express_validator_1.body)('items.*.asset_id')
-        .optional()
+    (0, express_validator_1.body)('items.*.material_id')
+        .optional({ nullable: true })
         .isInt()
-        .withMessage('Item Asset must be a valid integer'),
+        .withMessage('Item Material must be a valid integer'),
     (0, express_validator_1.body)('items.*.quantity')
-        .optional()
+        .optional({ nullable: true })
         .isFloat({ min: 0.01 })
         .withMessage('Item quantity must be greater than 0'),
+    (0, express_validator_1.body)('items.*.unit_value')
+        .optional({ nullable: true })
+        .isNumeric()
+        .withMessage('Unit value must be a valid number'),
+    (0, express_validator_1.body)('items.*.total_value')
+        .optional({ nullable: true })
+        .isNumeric()
+        .withMessage('Total value must be a valid number'),
 ];
 //# sourceMappingURL=promotionMaterialsIssue.validation.js.map

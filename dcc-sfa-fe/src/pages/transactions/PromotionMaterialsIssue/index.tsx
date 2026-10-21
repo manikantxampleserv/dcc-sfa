@@ -11,17 +11,25 @@ import {
   Hourglass,
   Plus,
   TrendingUp,
+  XCircle,
 } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import type { PromotionMaterialsIssue } from 'services/transactions/PromotionMaterialsIssue';
-import { DeleteButton, EditButton, ViewButton } from 'shared/ActionButton';
+import { type PromotionMaterialsIssue } from 'services/transactions/PromotionMaterialsIssue';
+import {
+  DeleteButton,
+  EditButton,
+  PrintButton,
+  ViewButton,
+} from 'shared/ActionButton';
 import Button from 'shared/Button';
+import { PopConfirm } from 'shared/DeleteConfirmation';
 import DepotSelect from 'shared/DepotSelect';
 import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
+import GoodsIssueNoteModal from './GoodsIssueNote';
 import ManagePromotionalIssue from './ManagePromotionalIssue';
 
 const PromotionMaterialsIssueList = () => {
@@ -34,6 +42,9 @@ const PromotionMaterialsIssueList = () => {
   const [isManageOpen, setIsManageOpen] = useState(false);
   const [selectedIssue, setSelectedIssue] =
     useState<PromotionMaterialsIssue | null>(null);
+  const [printIssue, setPrintIssue] = useState<PromotionMaterialsIssue | null>(
+    null
+  );
 
   const navigate = useNavigate();
 
@@ -64,7 +75,12 @@ const PromotionMaterialsIssueList = () => {
             <FileText className="!text-blue-500 !w-4 !h-4" />
           </Avatar>
           <Box className="!flex !flex-col">
-            <span className="!text-gray-900 text-sm !font-semibold">
+            <span
+              className="!text-gray-900 text-sm !font-semibold cursor-pointer hover:!text-blue-600 transition-colors"
+              onClick={() =>
+                navigate(`/transactions/promotion-materials-issue/${row.id}`)
+              }
+            >
               {row.gin_number}
             </span>
             <span className="!text-gray-500 !text-xs">
@@ -176,6 +192,7 @@ const PromotionMaterialsIssueList = () => {
         } else if (row.approval_status === 'R') {
           color = 'error';
           label = 'Rejected';
+          icon = <XCircle size={14} className="!mr-1" />;
         }
 
         return (
@@ -192,7 +209,9 @@ const PromotionMaterialsIssueList = () => {
             className={`!font-medium ${
               color === 'success'
                 ? '!bg-green-50 !text-green-700 !border-green-200'
-                : ''
+                : color === 'error'
+                  ? '!bg-red-50 !text-red-700 !border-red-200'
+                  : '!bg-yellow-50 !text-yellow-700 !border-yellow-200'
             }`}
           />
         );
@@ -203,32 +222,50 @@ const PromotionMaterialsIssueList = () => {
       label: 'Actions',
       sortable: false,
       render: (_value, row) => (
-        <Box className="!flex !items-center !gap-1">
+        <div className="flex items-center justify-center gap-1">
           <ViewButton
-            onClick={() => {
-              setSelectedIssue(row);
-              setIsManageOpen(true);
-            }}
+            onClick={() =>
+              navigate(`/transactions/promotion-materials-issue/${row.id}`)
+            }
             tooltip="View Issue"
             size="small"
           />
 
-          <EditButton
-            onClick={() => {
-              setSelectedIssue(row);
-              setIsManageOpen(true);
-            }}
-            tooltip="Edit Issue"
-            size="small"
-          />
-          <DeleteButton
-            size="small"
-            onClick={() => deleteMutation.mutateAsync(row.id)}
-            tooltip={`Delete Issue ${row.gin_number}`}
-            itemName={row.gin_number}
-            confirmDelete={true}
-          />
-        </Box>
+          {row.approval_status !== 'P' && (
+            <PrintButton
+              onClick={() => setPrintIssue(row)}
+              tooltip="Print Goods Issue Note"
+              size="small"
+            />
+          )}
+
+          {row.approval_status === 'P' && (
+            <EditButton
+              onClick={() => {
+                setSelectedIssue(row);
+                setIsManageOpen(true);
+              }}
+              tooltip="Edit Issue"
+              size="small"
+            />
+          )}
+          {row.approval_status === 'P' && (
+            <PopConfirm
+              title={`Delete ${row.gin_number}?`}
+              description="This issue is pending approval. Deleting it removes it from the list and the outlet page."
+              onConfirm={() => deleteMutation.mutateAsync(row.id)}
+              confirmText="Delete"
+              cancelText="Cancel"
+              placement="top"
+            >
+              <DeleteButton
+                size="small"
+                tooltip={`Delete Issue ${row.gin_number}`}
+                confirmDelete={false}
+              />
+            </PopConfirm>
+          )}
+        </div>
       ),
     },
   ];
@@ -356,6 +393,13 @@ const PromotionMaterialsIssueList = () => {
         open={isManageOpen}
         onClose={() => setIsManageOpen(false)}
         issue={selectedIssue}
+      />
+
+      <GoodsIssueNoteModal
+        open={Boolean(printIssue)}
+        onClose={() => setPrintIssue(null)}
+        issueId={printIssue?.id ?? null}
+        ginNumber={printIssue?.gin_number}
       />
     </>
   );

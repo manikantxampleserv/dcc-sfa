@@ -1,4 +1,4 @@
-import { Avatar, Chip } from '@mui/material';
+import { Avatar, Box, Typography } from '@mui/material';
 import type {
   AllSalespersonsResponse,
   SingleSalespersonResponse,
@@ -6,20 +6,22 @@ import type {
 import { useInventoryItems } from 'hooks/useInventoryItems';
 import { usePermission } from 'hooks/usePermission';
 import { useResolvedUom } from 'hooks/useUnitOfMeasurement';
-import { Package, User, Users, Receipt } from 'lucide-react';
+import { Package, Receipt, User, Users } from 'lucide-react';
 import React, { useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { ViewButton } from 'shared/ActionButton';
 import DepotSelect from 'shared/DepotSelect';
 import SearchInput from 'shared/SearchInput';
 import StatsCard from 'shared/StatsCard';
-import UserSelect from 'shared/UserSelect';
 import Table, { type TableColumn } from 'shared/Table';
-import { ViewButton } from 'shared/ActionButton';
+import UserSelect from 'shared/UserSelect';
 
 const InventoryItems: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [depotId, setDepotId] = useState<string>('');
   const [supervisorId, setSupervisorId] = useState<string>('');
+  const [page, setPage] = useState<number>(1);
+  const [limit] = useState<number>(50);
   const navigate = useNavigate();
 
   const { isRead } = usePermission('inventory-items');
@@ -28,8 +30,9 @@ const InventoryItems: React.FC = () => {
   const { data: inventoryResponse, isLoading: isLoadingInventory } =
     useInventoryItems(
       {
-        page: 1,
-        limit: 50,
+        page,
+        limit,
+        search: searchTerm || undefined,
         depot_id: depotId ? Number(depotId) : undefined,
         supervisor_id: supervisorId ? Number(supervisorId) : undefined,
       },
@@ -41,7 +44,7 @@ const InventoryItems: React.FC = () => {
   const isAllSalespersonsResponse = (
     response?: AllSalespersonsResponse | SingleSalespersonResponse | null
   ): response is AllSalespersonsResponse => {
-    return !!response && 'statistics' in response;
+    return !!response && ('statistics' in response || 'stats' in response);
   };
 
   const summaryResponse = useMemo(
@@ -64,6 +67,8 @@ const InventoryItems: React.FC = () => {
     total_products: number;
     helpers?: string | null;
     today_invoices?: number;
+    depots?: { id: number; name: string; code?: string }[];
+    depot_name?: string | null;
   };
 
   const summaryData: SalespersonSummary[] = useMemo(
@@ -71,21 +76,16 @@ const InventoryItems: React.FC = () => {
     [summaryResponse]
   );
 
-  const stats = summaryResponse?.statistics;
+  const stats = summaryResponse?.statistics || summaryResponse?.stats;
 
   const summary = useMemo(() => {
-    const todayInvoiceTotal = summaryData.reduce(
-      (acc, curr) => acc + (curr.today_invoices || 0),
-      0
-    );
-
     return {
-      total_items: stats?.total_van_inventories || 0,
-      today_invoices: todayInvoiceTotal,
-      total_groups: summaryData.filter(p => !!p.helpers).length,
-      active_users: summaryData.filter(p => !p.helpers).length,
+      total_items: stats?.total_items ?? stats?.total_van_inventories ?? 0,
+      today_invoices: stats?.today_invoices ?? 0,
+      total_groups: stats?.total_groups ?? 0,
+      active_users: stats?.active_users ?? stats?.total_active_salesmen ?? 0,
     };
-  }, [stats?.total_van_inventories, summaryData]);
+  }, [stats]);
 
   const handleItemClick = useCallback(
     (item: Pick<SalespersonSummary, 'salesperson_id'>) => {
@@ -94,12 +94,39 @@ const InventoryItems: React.FC = () => {
     [navigate]
   );
 
+  const handleSearchChange = useCallback((value: string) => {
+    setSearchTerm(value);
+    setPage(1);
+  }, []);
+
+  const handleDepotChange = useCallback((value: string) => {
+    setDepotId(value);
+    setPage(1);
+  }, []);
+
+  const handleSupervisorChange = useCallback((value: string) => {
+    setSupervisorId(value);
+    setPage(1);
+  }, []);
+
   const filteredSummaryData = useMemo(() => {
     if (!searchTerm) return summaryData;
-    return summaryData.filter(person =>
-      person.salesperson_name?.toLowerCase().includes(searchTerm.toLowerCase())
+    const term = searchTerm.toLowerCase();
+    return summaryData.filter(
+      person =>
+        person.salesperson_name?.toLowerCase().includes(term) ||
+        person.salesperson_sap_code?.toLowerCase().includes(term) ||
+        person.salesperson_email?.toLowerCase().includes(term) ||
+        person.helpers?.toLowerCase().includes(term) ||
+        person.depot_name?.toLowerCase().includes(term) ||
+        person.depots?.some(d => d.name?.toLowerCase().includes(term))
     );
   }, [searchTerm, summaryData]);
+
+  const totalCount =
+    summaryResponse?.pagination?.total_count ??
+    summaryResponse?.pagination?.total ??
+    filteredSummaryData.length;
 
   const columns = useMemo<TableColumn<any>[]>(
     () => [
@@ -125,16 +152,46 @@ const InventoryItems: React.FC = () => {
         ),
       },
       {
-        id: 'type',
-        label: 'Type',
-        render: (_value, row) => (
-          <Chip
-            label={row.helpers ? 'Container' : 'Salesman'}
-            size="small"
-            variant="outlined"
-            color={row.helpers ? 'success' : 'primary'}
-          />
-        ),
+        id: 'depot',
+        label: 'Depot & Code',
+        render: (_value, row) => {
+          const depot =
+            row.depots?.[0] ||
+            (row as any).depot ||
+            (row.depot_name ? { name: row.depot_name, code: '' } : null);
+
+          if (!depot || !depot.name) {
+            return (
+              <span className="italic text-xs text-gray-400">No Depot</span>
+            );
+          }
+
+          return (
+            <Box className="!flex !gap-2 !items-center">
+              <Avatar
+                alt={depot.name}
+                src="mkx"
+                className="!rounded !bg-primary-100 !text-primary-500"
+              />
+              <Box>
+                <Typography
+                  variant="body1"
+                  className="!text-gray-900 !leading-tight !font-medium !text-sm"
+                >
+                  {depot.name}
+                </Typography>
+                {depot.code && (
+                  <Typography
+                    variant="caption"
+                    className="!text-gray-500 !text-xs !block !mt-0.5"
+                  >
+                    {depot.code}
+                  </Typography>
+                )}
+              </Box>
+            </Box>
+          );
+        },
       },
       {
         id: 'today_invoices',
@@ -148,7 +205,7 @@ const InventoryItems: React.FC = () => {
       },
       {
         id: 'total_quantity',
-        label: 'Total Quantity',
+        label: 'Quantity',
         numeric: true,
         render: (_value, row) => {
           const parts: string[] = [];
@@ -236,7 +293,11 @@ const InventoryItems: React.FC = () => {
         <Table
           data={filteredSummaryData}
           columns={columns}
-          pagination={false}
+          pagination={true}
+          page={page - 1}
+          rowsPerPage={limit}
+          totalCount={totalCount}
+          onPageChange={(newPage: number) => setPage(newPage + 1)}
           filterColunm={false}
           loading={isLoading}
           isPermission={isRead}
@@ -246,7 +307,7 @@ const InventoryItems: React.FC = () => {
               <SearchInput
                 placeholder="Search Sales Person..."
                 value={searchTerm}
-                onChange={setSearchTerm}
+                onChange={handleSearchChange}
                 debounceMs={300}
                 showClear={true}
                 fullWidth={false}
@@ -255,14 +316,14 @@ const InventoryItems: React.FC = () => {
               <div className="w-60">
                 <DepotSelect
                   value={depotId}
-                  setValue={setDepotId}
+                  setValue={handleDepotChange}
                   label="Depot Filter"
                 />
               </div>
               <div className="w-72">
                 <UserSelect
                   value={supervisorId}
-                  setValue={setSupervisorId}
+                  setValue={handleSupervisorChange}
                   label="Area Supervisor Filter"
                 />
               </div>

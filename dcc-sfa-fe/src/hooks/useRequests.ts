@@ -99,11 +99,16 @@ export const useTakeActionOnRequest = () => {
       'approval-workflows',
       'workflow',
       'dashboard-statistics',
+      'promotional-materials',
+      'promotionMaterialsIssues',
     ],
     loadingMessage: 'Processing request...',
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: requestQueryKeys.all });
       queryClient.refetchQueries({ queryKey: requestQueryKeys.all });
+      queryClient.invalidateQueries({ queryKey: ['promotional-materials'] });
+      queryClient.invalidateQueries({ queryKey: ['promotionMaterialsIssues'] });
+      queryClient.invalidateQueries({ queryKey: ['customers'] });
     },
   });
 };

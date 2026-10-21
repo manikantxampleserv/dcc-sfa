@@ -4,10 +4,17 @@ import type { ApiResponse } from 'types/api.types';
 export interface PromotionMaterialsIssueItem {
   id: number;
   issue_id: number;
-  asset_id: number;
+  material_id?: number | null;
+  asset_id?: number | null;
   quantity: number;
   unit_value?: number | null;
   total_value?: number | null;
+  material?: {
+    id: number;
+    name: string;
+    code: string;
+    uom?: string;
+  };
   asset?: {
     id: number;
     name: string;
@@ -38,13 +45,31 @@ export interface PromotionMaterialsIssue {
     id: number;
     name: string;
     code?: string;
+    address?: string;
+    route?: {
+      id?: number;
+      name?: string;
+      code?: string;
+    };
+    city?: {
+      id?: number;
+      name?: string;
+    };
+    [key: string]: any;
   };
   issued_by?: {
     id: number;
     name: string;
     sap_code?: string;
-    email: string;
+    email?: string;
   };
+  approved_by?: {
+    id: number;
+    name: string;
+    sap_code?: string;
+    email?: string;
+  } | null;
+  approved_at?: string | null;
   items?: PromotionMaterialsIssueItem[];
 }
 
@@ -56,7 +81,7 @@ export interface CreatePromotionMaterialsIssuePayload {
   campaign_reference?: string;
   notes?: string;
   items: {
-    asset_id: number;
+    material_id: number;
     quantity: number;
     unit_value?: number;
     total_value?: number;
@@ -71,8 +96,8 @@ export interface UpdatePromotionMaterialsIssuePayload {
   campaign_reference?: string;
   notes?: string;
   items?: {
-    id?: number; // for updates
-    asset_id: number;
+    id?: number;
+    material_id: number;
     quantity: number;
     unit_value?: number;
     total_value?: number;
@@ -140,4 +165,53 @@ export const deletePromotionMaterialsIssue = async (
     `${BASE_URL}/${id}`
   );
   return response.data;
+};
+
+/**
+ * Fetches the Goods Issue Note HTML for printing or previewing.
+ * @param id - Promotion Materials Issue ID
+ */
+export const getPromotionMaterialsIssueNoteHtml = async (
+  id: number
+): Promise<string> => {
+  const response = await axiosInstance.get<string>(
+    `${BASE_URL}/${id}/issue-note`,
+    {
+      headers: { Accept: 'text/html' },
+      responseType: 'text',
+    }
+  );
+  return response.data;
+};
+
+/**
+ * Prints the Goods Issue Note HTML directly using a temporary hidden iframe without opening a new tab.
+ * @param id - Promotion Materials Issue ID
+ */
+export const printPromotionMaterialsIssueNote = async (
+  id: number
+): Promise<void> => {
+  const html = await getPromotionMaterialsIssueNoteHtml(id);
+  const iframe = document.createElement('iframe');
+  iframe.style.position = 'fixed';
+  iframe.style.right = '0';
+  iframe.style.bottom = '0';
+  iframe.style.width = '0';
+  iframe.style.height = '0';
+  iframe.style.border = '0';
+  document.body.appendChild(iframe);
+
+  const doc = iframe.contentWindow?.document;
+  if (doc) {
+    doc.open();
+    doc.write(html);
+    doc.close();
+    iframe.contentWindow?.focus();
+    setTimeout(() => {
+      iframe.contentWindow?.print();
+      setTimeout(() => {
+        document.body.removeChild(iframe);
+      }, 1000);
+    }, 250);
+  }
 };

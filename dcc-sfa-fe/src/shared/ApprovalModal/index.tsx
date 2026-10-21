@@ -131,6 +131,11 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({
       });
       onClose();
       queryClient.invalidateQueries({ queryKey: ['requests'] });
+      queryClient.invalidateQueries({ queryKey: ['promotional-materials'] });
+      queryClient.invalidateQueries({ queryKey: ['promotionMaterialsIssues'] });
+      queryClient.invalidateQueries({ queryKey: ['customers'] });
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+      queryClient.invalidateQueries({ queryKey: ['approval-workflows'] });
     } catch (error) {
       console.error('Error taking action on request:', error);
     }
@@ -1675,10 +1680,18 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({
                                     >
                                       <td className="!py-2 !px-3">
                                         <div className="!font-semibold !text-gray-900">
-                                          {item.asset_name}
+                                          {item.item_name ||
+                                            item.material?.name ||
+                                            item.name ||
+                                            item.asset_name ||
+                                            'Promotional Item'}
                                         </div>
                                         <div className="!text-[10px] !text-gray-500">
-                                          {item.asset_code}
+                                          {item.item_code ||
+                                            item.material?.code ||
+                                            item.code ||
+                                            item.asset_code ||
+                                            ''}
                                         </div>
                                       </td>
 

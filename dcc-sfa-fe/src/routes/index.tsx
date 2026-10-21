@@ -3,12 +3,12 @@ import ErrorBoundary from 'components/ErrorBoundary';
 import ProtectedRoute from 'components/ProtectedRoute';
 import { useMenuPermissions } from 'hooks/useMenuPermissions';
 import Layout from 'layout';
+import AIAssistant from 'pages/ai-assistant';
 import Login from 'pages/auth/Login';
 import PrivacyPolicy from 'pages/auth/PrivacyPolicy';
 import ExecutiveDashboard from 'pages/dashboards/ExecutiveDashboard';
 import GradingDashboard from 'pages/dashboards/GradingDashboard';
 import SalesControlTower from 'pages/dashboards/SalesControlTower';
-
 import ApiTokensPage from 'pages/masters/ApiTokens';
 import AssetBrandsManagement from 'pages/masters/AssetBrands';
 import AssetMaintenanceManagement from 'pages/masters/AssetMaintenance';
@@ -53,6 +53,7 @@ import ProductTargetGroupsManagement from 'pages/masters/ProductTargetGroups';
 import ProductTypesManagement from 'pages/masters/ProductTypes';
 import ProductVolumesManagement from 'pages/masters/ProductVolumes';
 import ProductWebOrdersManagement from 'pages/masters/ProductWebOrders';
+import PromotionalMaterialsManagement from 'pages/masters/PromotionalMaterials';
 import PromotionsManagement from 'pages/masters/Promotions';
 import PromotionDetail from 'pages/masters/Promotions/PromotionDetail';
 import RegionsPage from 'pages/masters/Region';
@@ -73,41 +74,41 @@ import UnitOfMeasurementManagement from 'pages/masters/UnitOfMeasurement';
 import UpdatedPromotionsManagement from 'pages/masters/UpdatedPromotions';
 import UpdatedPromotionDetail from 'pages/masters/UpdatedPromotions/UpdatedPromotionDetail';
 import Users from 'pages/masters/Users';
-import SalesmanControl from 'pages/SalesmanControl';
-import MobileErrorLogs from 'pages/MobileErrorLogs';
 import UserDetail from 'pages/masters/Users/UserDetail';
 import VanStockManagement from 'pages/masters/VanStock';
 import VehiclesManagement from 'pages/masters/Vehicles';
 import WarehousesManagement from 'pages/masters/Warehouses';
 import ZonesManagement from 'pages/masters/Zone';
+import MobileErrorLogs from 'pages/MobileErrorLogs';
 import NotFound from 'pages/NotFound';
 import Profile from 'pages/Profile';
 import AssetMovementStatusReport from 'pages/reports/AssetMovementStatusReport';
+import AssetReport from 'pages/reports/AssetReport';
 import AttendanceReports from 'pages/reports/AttendanceReports';
 import AuditLogs from 'pages/reports/AuditLogs';
 import CompetitorAnalysisReport from 'pages/reports/CompetitorAnalysisReport';
+import CoolerInspectionsReport from 'pages/reports/CoolerInspectionsReport';
+import CoolersReport from 'pages/reports/CoolersReport';
+import CreditMemoReport from 'pages/reports/CreditMemoReport';
+import CreditMemoDetail from 'pages/reports/CreditMemoReport/CreditMemoDetail';
 import OrdersInvoicesReturnsReport from 'pages/reports/OrdersInvoicesReturnsReport';
 import OutstandingCollectionReport from 'pages/reports/OutstandingCollectionReport';
 import PromoEffectivenessReport from 'pages/reports/PromoEffectivenessReport';
+import PromotionMaterialsIssuedReport from 'pages/reports/PromotionMaterialsIssuedReport';
 import RegionTerritorySalesReport from 'pages/reports/RegionTerritorySalesReport';
 import RepProductivityReport from 'pages/reports/RepProductivityReport';
 import SalesVsTargetReport from 'pages/reports/SalesVsTargetReport';
 import SurveyResponses from 'pages/reports/SurveyResponses';
 import SurveyResponseDetail from 'pages/reports/SurveyResponses/SurveyResponseDetail';
 import VisitFrequencyCompletionReport from 'pages/reports/VisitFrequencyCompletionReport';
-import CoolerInspectionsReport from 'pages/reports/CoolerInspectionsReport';
-import CoolersReport from 'pages/reports/CoolersReport';
-import AssetReport from 'pages/reports/AssetReport';
-import PromotionMaterialsIssuedReport from 'pages/reports/PromotionMaterialsIssuedReport';
-import CreditMemoReport from 'pages/reports/CreditMemoReport';
-import CreditMemoDetail from 'pages/reports/CreditMemoReport/CreditMemoDetail';
+import SalesmanControl from 'pages/SalesmanControl';
 import EmailTemplates from 'pages/settings/EmailTemplates';
-import SystemSettings from 'pages/settings/SystemSettings';
 import ErrorLogs from 'pages/settings/ErrorLogs';
 import Reconciliation from 'pages/settings/Reconciliation';
 import ReconciliationDetail from 'pages/settings/Reconciliation/ReconciliationDetail';
 import SettlementSheet from 'pages/settings/SettlementSheet';
 import SettlementSheetDetail from 'pages/settings/SettlementSheet/SettlementSheetDetail';
+import SystemSettings from 'pages/settings/SystemSettings';
 import RepLocationTracking from 'pages/tracking/RepLocationTracking';
 import RouteEffectiveness from 'pages/tracking/RouteEffectiveness';
 import CoolerInspectionsManagement from 'pages/transactions/CoolerInspections';
@@ -121,6 +122,8 @@ import OrdersManagement from 'pages/transactions/Orders';
 import OrderDetail from 'pages/transactions/Orders/OrderDetail';
 import PaymentCollection from 'pages/transactions/PaymentCollection';
 import PaymentDetail from 'pages/transactions/PaymentCollection/PaymentDetail';
+import PromotionMaterialsIssueManagement from 'pages/transactions/PromotionMaterialsIssue';
+import PromotionMaterialsIssueDetail from 'pages/transactions/PromotionMaterialsIssue/PromotionMaterialsIssueDetail';
 import ReturnRequests from 'pages/transactions/ReturnRequests';
 import ReturnRequestDetail from 'pages/transactions/ReturnRequests/ReturnRequestDetail';
 import RouteAssignmentManagement from 'pages/transactions/RouteAssignment';
@@ -131,8 +134,6 @@ import AlertsReminders from 'pages/workflows/AlertsReminders';
 import ApprovalSetup from 'pages/workflows/ApprovalSetup';
 import ApprovalWorkflows from 'pages/workflows/ApprovalWorkflows';
 import RouteExceptions from 'pages/workflows/RouteExceptions';
-import PromotionMaterialsIssueManagement from 'pages/transactions/PromotionMaterialsIssue';
-import AIAssistant from 'pages/ai-assistant';
 import React from 'react';
 import {
   createBrowserRouter,
@@ -479,6 +480,14 @@ const router = createBrowserRouter(
           ),
         },
         {
+          path: '/masters/promotional-materials',
+          element: (
+            <PermissionGuard module="promotion-materials" action="read">
+              <PromotionalMaterialsManagement />
+            </PermissionGuard>
+          ),
+        },
+        {
           path: '/masters/warehouses',
           element: (
             <PermissionGuard module="warehouse" action="read">
@@ -667,6 +676,14 @@ const router = createBrowserRouter(
           element: (
             <PermissionGuard module="promotions" action="read">
               <PromotionsManagement />
+            </PermissionGuard>
+          ),
+        },
+        {
+          path: '/masters/promotional-materials',
+          element: (
+            <PermissionGuard module="promotion-materials" action="read">
+              <PromotionalMaterialsManagement />
             </PermissionGuard>
           ),
         },
@@ -899,6 +916,14 @@ const router = createBrowserRouter(
           element: (
             <PermissionGuard module="promotion-materials" action="read">
               <PromotionMaterialsIssueManagement />
+            </PermissionGuard>
+          ),
+        },
+        {
+          path: '/transactions/promotion-materials-issue/:id',
+          element: (
+            <PermissionGuard module="promotion-materials" action="read">
+              <PromotionMaterialsIssueDetail />
             </PermissionGuard>
           ),
         },

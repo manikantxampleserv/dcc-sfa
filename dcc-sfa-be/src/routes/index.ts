@@ -110,12 +110,14 @@ import warehouses from '../v1/routes/warehouses.routes';
 import workflow from '../v1/routes/workflow.routes';
 import zones from '../v1/routes/zones.routes';
 import promotionMaterialsIssue from '../v1/routes/promotionMaterialsIssue.routes';
+import promotionalMaterials from '../v1/routes/promotionalMaterials.routes';
 import systemEnums from '../v1/routes/systemEnums.routes';
 const routes = Router();
 
 routes.use('/v1/org-chart', orgChart);
 routes.use('/v1', barcode);
 routes.use('/v1', promotionMaterialsIssue);
+routes.use('/v1', promotionalMaterials);
 routes.use('/v1/system-enums', systemEnums);
 routes.use('/v1', ai);
 routes.use('/v1', auth);

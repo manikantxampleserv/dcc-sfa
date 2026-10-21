@@ -6,7 +6,7 @@ import type { Invoice } from '../../../hooks/useInvoices';
  * Customer entity interface
  */
 interface Customer {
-  depot?: { name: string; code: string } | null;
+  depot?: { id: number; name: string; code: string } | null;
   customer_district: any;
   customer_region: any;
   customer_city: any;

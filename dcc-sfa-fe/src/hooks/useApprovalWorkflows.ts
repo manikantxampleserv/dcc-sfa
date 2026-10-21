@@ -90,13 +90,22 @@ export const useApproveWorkflowStep = () => {
       stepId?: number;
       comments?: string;
     }) => approvalWorkflowsService.approveWorkflowStep(id, stepId, comments),
-    invalidateQueries: ['approval-workflows', 'orders', 'requests'],
+    invalidateQueries: [
+      'approval-workflows',
+      'orders',
+      'requests',
+      'promotional-materials',
+      'promotionMaterialsIssues',
+      'customers',
+    ],
     loadingMessage: 'Approving workflow step...',
     onSuccess: () => {
-      // Invalidate orders and requests to reflect updated approval status
       queryClient.invalidateQueries({ queryKey: orderKeys.lists() });
       queryClient.invalidateQueries({ queryKey: ['requests'] });
       queryClient.refetchQueries({ queryKey: ['requests'] });
+      queryClient.invalidateQueries({ queryKey: ['promotional-materials'] });
+      queryClient.invalidateQueries({ queryKey: ['promotionMaterialsIssues'] });
+      queryClient.invalidateQueries({ queryKey: ['customers'] });
     },
   });
 };
@@ -119,13 +128,22 @@ export const useRejectWorkflowStep = () => {
       rejectionReason: string;
     }) =>
       approvalWorkflowsService.rejectWorkflowStep(id, rejectionReason, stepId),
-    invalidateQueries: ['approval-workflows', 'orders', 'requests'],
+    invalidateQueries: [
+      'approval-workflows',
+      'orders',
+      'requests',
+      'promotional-materials',
+      'promotionMaterialsIssues',
+      'customers',
+    ],
     loadingMessage: 'Rejecting workflow step...',
     onSuccess: () => {
-      // Invalidate orders and requests to reflect updated approval status
       queryClient.invalidateQueries({ queryKey: orderKeys.lists() });
       queryClient.invalidateQueries({ queryKey: ['requests'] });
       queryClient.refetchQueries({ queryKey: ['requests'] });
+      queryClient.invalidateQueries({ queryKey: ['promotional-materials'] });
+      queryClient.invalidateQueries({ queryKey: ['promotionMaterialsIssues'] });
+      queryClient.invalidateQueries({ queryKey: ['customers'] });
     },
   });
 };
