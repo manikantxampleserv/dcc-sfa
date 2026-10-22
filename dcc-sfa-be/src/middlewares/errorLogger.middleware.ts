@@ -1,7 +1,14 @@
 import { Request, Response, NextFunction } from 'express';
 import prisma from '../configs/prisma.client';
-// import { aiService } from '../v1/services/ai.service';
 
+/**
+ * Middleware to intercept JSON error responses and log failures to the database,
+ * while ignoring routine authentication errors such as access_token_missing.
+ *
+ * @param req Express Request
+ * @param res Express Response
+ * @param next Express NextFunction
+ */
 export const errorLogger = (
   req: Request,
   res: Response,
@@ -16,6 +23,17 @@ export const errorLogger = (
       try {
         for (const failedItem of failedItems) {
           const errorMessage = failedItem.error || 'Bulk operation failed';
+
+          const isAccessTokenMissing =
+            failedItem.error === 'access_token_missing' ||
+            errorMessage === 'access_token_missing' ||
+            (typeof errorMessage === 'string' &&
+              errorMessage.includes('access_token_missing'));
+
+          if (isAccessTokenMissing) {
+            continue;
+          }
+
           const errorLog = {
             message:
               typeof errorMessage === 'string'
@@ -45,21 +63,6 @@ export const errorLogger = (
               (req.headers['user-agent'] || '').substring(0, 255) || null,
           };
           prisma.error_logs.create({ data: errorLog }).catch(console.error);
-          // (async () => {
-          //   try {
-          //     const payload = { requestPayload: req.body, failedItemContext: failedItem };
-          //     const suggestion = await aiService.explainError(
-          //       errorLog.message,
-          //       payload
-          //     );
-          //     if (suggestion) {
-          //       const updatedPayload = { ...payload, ai_suggestion: suggestion };
-          //       errorLog.body = JSON.stringify(updatedPayload);
-          //     }
-          //   } catch (aiError) {
-          //     console.error('Failed to generate AI suggestion:', aiError);
-          //   }
-          // })();
         }
       } catch (loggerError) {
         console.error('Failed to log bulk failures to database:', loggerError);
@@ -69,52 +72,44 @@ export const errorLogger = (
         const errorMessage =
           body?.error || body?.message || `HTTP Error ${res.statusCode}`;
 
-        const errorLog = {
-          message:
-            typeof errorMessage === 'string'
-              ? errorMessage
-              : JSON.stringify(errorMessage),
-          stack: body?.stack || null,
-          path: req.originalUrl || req.path,
-          method: req.method,
-          body:
-            req.body && Object.keys(req.body).length
-              ? JSON.stringify(req.body)
-              : null,
-          query:
-            req.query && Object.keys(req.query).length
-              ? JSON.stringify(req.query)
-              : null,
-          user_id: (req as any).user?.id ? Number((req as any).user.id) : null,
-          ip_address:
-            (
-              req.ip ||
-              req.headers['x-forwarded-for']?.toString() ||
-              ''
-            ).substring(0, 50) || null,
-          device_info:
-            (req.headers['user-agent'] || '').substring(0, 255) || null,
-        };
-        prisma.error_logs.create({ data: errorLog }).catch(console.error);
+        const isAccessTokenMissing =
+          body?.error === 'access_token_missing' ||
+          body?.message === 'access_token_missing' ||
+          errorMessage === 'access_token_missing' ||
+          (typeof errorMessage === 'string' &&
+            errorMessage.includes('access_token_missing'));
 
-        // (async () => {
-        //   try {
-        //     const suggestion = await aiService.explainError(
-        //       errorLog.message,
-        //       req.body
-        //     );
-        //     if (suggestion) {
-        //       const currentBody = errorLog.body
-        //         ? JSON.parse(errorLog.body)
-        //         : {};
-        //       const updatedBody = { ...currentBody, ai_suggestion: suggestion };
-        //       errorLog.body = JSON.stringify(updatedBody);
-        //     }
-        //   } catch (aiError) {
-        //     console.error('Failed to generate AI suggestion:', aiError);
-        //   }
-        //   prisma.error_logs.create({ data: errorLog }).catch(console.error);
-        // })();
+        if (!isAccessTokenMissing) {
+          const errorLog = {
+            message:
+              typeof errorMessage === 'string'
+                ? errorMessage
+                : JSON.stringify(errorMessage),
+            stack: body?.stack || null,
+            path: req.originalUrl || req.path,
+            method: req.method,
+            body:
+              req.body && Object.keys(req.body).length
+                ? JSON.stringify(req.body)
+                : null,
+            query:
+              req.query && Object.keys(req.query).length
+                ? JSON.stringify(req.query)
+                : null,
+            user_id: (req as any).user?.id
+              ? Number((req as any).user.id)
+              : null,
+            ip_address:
+              (
+                req.ip ||
+                req.headers['x-forwarded-for']?.toString() ||
+                ''
+              ).substring(0, 50) || null,
+            device_info:
+              (req.headers['user-agent'] || '').substring(0, 255) || null,
+          };
+          prisma.error_logs.create({ data: errorLog }).catch(console.error);
+        }
       } catch (loggerError) {
         console.error('Failed to log error to database:', loggerError);
       }

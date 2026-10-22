@@ -26,14 +26,22 @@ export const errorLogsController = {
         user_id,
       } = req.query;
 
-      const where: any = {};
+      const where: any = {
+        message: { not: 'access_token_missing' },
+      };
 
       if (path) {
         const searchTerm = (path as string).trim();
-        where.OR = [
-          { path: { contains: searchTerm } },
-          { message: { contains: searchTerm } },
+        where.AND = [
+          { message: { not: 'access_token_missing' } },
+          {
+            OR: [
+              { path: { contains: searchTerm } },
+              { message: { contains: searchTerm } },
+            ],
+          },
         ];
+        delete where.message;
       }
 
       if (method) {
@@ -133,13 +141,26 @@ export const errorLogsController = {
 
       const [total_errors, today_errors, this_week_errors, this_month_errors] =
         await Promise.all([
-          prisma.error_logs.count(),
-          prisma.error_logs.count({ where: { createdate: { gte: today } } }),
           prisma.error_logs.count({
-            where: { createdate: { gte: startOfWeek } },
+            where: { message: { not: 'access_token_missing' } },
           }),
           prisma.error_logs.count({
-            where: { createdate: { gte: startOfMonth } },
+            where: {
+              createdate: { gte: today },
+              message: { not: 'access_token_missing' },
+            },
+          }),
+          prisma.error_logs.count({
+            where: {
+              createdate: { gte: startOfWeek },
+              message: { not: 'access_token_missing' },
+            },
+          }),
+          prisma.error_logs.count({
+            where: {
+              createdate: { gte: startOfMonth },
+              message: { not: 'access_token_missing' },
+            },
           }),
         ]);
 

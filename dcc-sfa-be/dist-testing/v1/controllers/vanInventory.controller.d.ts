@@ -1,4 +1,34 @@
 import { Request, Response } from 'express';
+/**
+ * Context for resolving product prices across routes, customers, depots, and pricelists
+ */
+interface PriceResolutionContext {
+    salesperson_id?: number | null;
+    customer_id?: number | null;
+    route_id?: number | null;
+    depot_id?: number | null;
+    customer_category_id?: number | null;
+    date?: Date | null;
+}
+/**
+ * Result structure for resolved product prices
+ */
+interface ResolvedProductPrice {
+    product_id: number;
+    price: number;
+    unit_price: number;
+    sub_unit_price: number | null;
+    base_price: number;
+    tax_rate: number | null;
+    taxRate: number | null;
+    discount_percent: number | null;
+    is_special_price: boolean;
+    special_price_id: number | null;
+    pricelist_id: number | null;
+    pricelist_name: string | null;
+    route_id: number | null;
+    source: string;
+}
 export declare const vanInventoryController: {
     /**
      * Controller method to processApprovedVanInventoryStock
@@ -133,5 +163,13 @@ export declare const vanInventoryController: {
      * @param res
      */
     getProducts(req: Request, res: Response): Promise<Response<any, Record<string, any>> | undefined>;
+    /**
+     * Controller method to resolveProductPrices
+     * @param client
+     * @param productIds
+     * @param context
+     */
+    resolveProductPrices(client: any, productIds: number[], context: PriceResolutionContext): Promise<Map<number, ResolvedProductPrice>>;
 };
+export {};
 //# sourceMappingURL=vanInventory.controller.d.ts.map

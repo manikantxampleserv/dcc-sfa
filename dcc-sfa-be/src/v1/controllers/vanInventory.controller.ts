@@ -1715,6 +1715,571 @@ async function processApprovedVanInventoryStock(
   );
 }
 
+/**
+ * Context for resolving product prices across routes, customers, depots, and pricelists
+ */
+interface PriceResolutionContext {
+  salesperson_id?: number | null;
+  customer_id?: number | null;
+  route_id?: number | null;
+  depot_id?: number | null;
+  customer_category_id?: number | null;
+  date?: Date | null;
+}
+
+/**
+ * Result structure for resolved product prices
+ */
+interface ResolvedProductPrice {
+  product_id: number;
+  price: number;
+  unit_price: number;
+  sub_unit_price: number | null;
+  base_price: number;
+  tax_rate: number | null;
+  taxRate: number | null;
+  discount_percent: number | null;
+  is_special_price: boolean;
+  special_price_id: number | null;
+  pricelist_id: number | null;
+  pricelist_name: string | null;
+  route_id: number | null;
+  source: string;
+}
+
+/**
+ * Resolves product prices considering customer special prices, route-wise special prices,
+ * customer category special prices, route pricelists, depot pricelists, and default pricelists.
+ *
+ * @param client Prisma client or transaction instance
+ * @param productIds Array of product IDs to resolve prices for
+ * @param context Price resolution context including route, customer, depot, salesperson, and date
+ * @returns Map of product ID to ResolvedProductPrice
+ */
+async function resolveProductPrices(
+  client: any,
+  productIds: number[],
+  context: PriceResolutionContext
+): Promise<Map<number, ResolvedProductPrice>> {
+  const result = new Map<number, ResolvedProductPrice>();
+
+  const normalizedProductIds = Array.from(
+    new Set(
+      productIds
+        .map(id => Number(id))
+        .filter(id => !isNaN(id) && id > 0)
+    )
+  );
+
+  if (normalizedProductIds.length === 0) {
+    return result;
+  }
+
+  const targetDate = context.date ? new Date(context.date) : new Date();
+
+  let effectiveCustomerId: number | null = context.customer_id
+    ? Number(context.customer_id)
+    : null;
+  let effectiveRouteId: number | null = context.route_id
+    ? Number(context.route_id)
+    : null;
+  let effectiveDepotId: number | null = context.depot_id
+    ? Number(context.depot_id)
+    : null;
+  let effectiveCustomerCategoryId: number | null = context.customer_category_id
+    ? Number(context.customer_category_id)
+    : null;
+
+  if (effectiveCustomerId) {
+    const customer = await client.customers.findUnique({
+      where: { id: effectiveCustomerId },
+      select: {
+        id: true,
+        route_id: true,
+        depot_id: true,
+        customer_category_id: true,
+      },
+    });
+
+    if (customer) {
+      if (!effectiveRouteId && customer.route_id) {
+        effectiveRouteId = customer.route_id;
+      }
+      if (!effectiveDepotId && customer.depot_id) {
+        effectiveDepotId = customer.depot_id;
+      }
+      if (!effectiveCustomerCategoryId && customer.customer_category_id) {
+        effectiveCustomerCategoryId = customer.customer_category_id;
+      }
+    }
+  }
+
+  if (effectiveRouteId && !effectiveDepotId) {
+    const routeRecord = await client.routes.findUnique({
+      where: { id: effectiveRouteId },
+      select: { id: true, depot_id: true },
+    });
+    if (routeRecord?.depot_id) {
+      effectiveDepotId = routeRecord.depot_id;
+    }
+  }
+
+  if (context.salesperson_id) {
+    const salespersonIdNum = Number(context.salesperson_id);
+
+    if (!effectiveRouteId) {
+      const assignedRoute = await client.route_salespersons.findFirst({
+        where: { user_id: salespersonIdNum, is_active: 'Y' },
+        select: { route_id: true },
+      });
+      if (assignedRoute?.route_id) {
+        effectiveRouteId = assignedRoute.route_id;
+        if (!effectiveDepotId) {
+          const routeRec = await client.routes.findUnique({
+            where: { id: assignedRoute.route_id },
+            select: { depot_id: true },
+          });
+          if (routeRec?.depot_id) {
+            effectiveDepotId = routeRec.depot_id;
+          }
+        }
+      }
+    }
+
+    if (!effectiveDepotId) {
+      const userRecord = await client.users.findUnique({
+        where: { id: salespersonIdNum },
+        select: {
+          id: true,
+          depot_id: true,
+          users_depots_users: {
+            where: { is_active: 'Y' },
+            select: { depot_id: true },
+          },
+        },
+      });
+      if (userRecord) {
+        effectiveDepotId =
+          userRecord.depot_id ||
+          userRecord.users_depots_users?.[0]?.depot_id ||
+          null;
+      }
+    }
+  }
+
+  const candidatePricelistIds: number[] = [];
+  const addCandidateId = (id: number | null | undefined) => {
+    if (typeof id === 'number' && !isNaN(id) && id > 0 && !candidatePricelistIds.includes(id)) {
+      candidatePricelistIds.push(id);
+    }
+  };
+
+  if (effectiveCustomerId) {
+    const customerRoutePricelists = await client.route_pricelists.findMany({
+      where: { customer_id: effectiveCustomerId, is_active: 'Y' },
+      select: { pricelist_id: true },
+    });
+    customerRoutePricelists.forEach((rp: any) => addCandidateId(rp.pricelist_id));
+  }
+
+  if (effectiveRouteId) {
+    const routePricelists = await client.route_pricelists.findMany({
+      where: { route_id: effectiveRouteId, is_active: 'Y' },
+      select: { pricelist_id: true },
+    });
+    routePricelists.forEach((rp: any) => addCandidateId(rp.pricelist_id));
+  }
+
+  if (effectiveCustomerCategoryId) {
+    const categoryRoutePricelists = await client.route_pricelists.findMany({
+      where: { customer_category_id: effectiveCustomerCategoryId, is_active: 'Y' },
+      select: { pricelist_id: true },
+    });
+    categoryRoutePricelists.forEach((rp: any) => addCandidateId(rp.pricelist_id));
+  }
+
+  if (effectiveRouteId) {
+    const routeSpecialPricelists = await client.pricelist_items.findMany({
+      where: {
+        product_id: { in: normalizedProductIds },
+        is_active: 'Y',
+        pricelist_item_special_prices: {
+          some: {
+            route_id: effectiveRouteId,
+            is_active: 'Y',
+          },
+        },
+      },
+      select: { pricelist_id: true },
+    });
+    routeSpecialPricelists.forEach((pi: any) => addCandidateId(pi.pricelist_id));
+  }
+
+  if (effectiveDepotId) {
+    const depotRoutePricelists = await client.route_pricelists.findMany({
+      where: { depot_id: effectiveDepotId, is_active: 'Y' },
+      select: { pricelist_id: true },
+    });
+    depotRoutePricelists.forEach((rp: any) => addCandidateId(rp.pricelist_id));
+
+    const depotPricelists = await client.pricelists.findMany({
+      where: { depot_id: effectiveDepotId, is_active: 'Y' },
+      orderBy: { priority: 'asc' },
+      select: { id: true },
+    });
+    depotPricelists.forEach((p: any) => addCandidateId(p.id));
+  }
+
+  const defaultPricelists = await client.pricelists.findMany({
+    where: { is_default: 'Y', is_active: 'Y' },
+    select: { id: true },
+  });
+  defaultPricelists.forEach((p: any) => addCandidateId(p.id));
+
+  const [pricelistsWithItems, products] = await Promise.all([
+    candidatePricelistIds.length > 0
+      ? client.pricelists.findMany({
+          where: {
+            id: { in: candidatePricelistIds },
+            is_active: 'Y',
+          },
+          include: {
+            pricelist_item: {
+              where: {
+                product_id: { in: normalizedProductIds },
+                is_active: 'Y',
+              },
+              include: {
+                pricelist_item_special_prices: {
+                  where: { is_active: 'Y' },
+                },
+              },
+            },
+          },
+        })
+      : [],
+    client.products.findMany({
+      where: { id: { in: normalizedProductIds } },
+      select: {
+        id: true,
+        name: true,
+        code: true,
+        base_price: true,
+        product_tax_master: {
+          select: { tax_rate: true },
+        },
+      },
+    }),
+  ]);
+
+  const pricelistMapById = new Map<number, any>();
+  pricelistsWithItems.forEach((pl: any) => pricelistMapById.set(pl.id, pl));
+  const orderedPricelists: any[] = candidatePricelistIds
+    .map(id => pricelistMapById.get(id))
+    .filter(Boolean);
+
+  const productMapById = new Map<number, any>();
+  products.forEach((p: any) => productMapById.set(p.id, p));
+
+  const isSpecialPriceDateValid = (sp: any): boolean => {
+    if (!sp || sp.is_active !== 'Y') return false;
+    const targetTime = targetDate.getTime();
+    if (sp.valid_from) {
+      const fromDate = new Date(sp.valid_from);
+      fromDate.setHours(0, 0, 0, 0);
+      if (targetTime < fromDate.getTime()) return false;
+    }
+    if (sp.valid_to) {
+      const toDate = new Date(sp.valid_to);
+      toDate.setHours(23, 59, 59, 999);
+      if (targetTime > toDate.getTime()) return false;
+    }
+    return true;
+  };
+
+  const isItemEffectiveDateValid = (item: any): boolean => {
+    if (!item || item.is_active !== 'Y') return false;
+    const targetTime = targetDate.getTime();
+    if (item.effective_from) {
+      const fromDate = new Date(item.effective_from);
+      fromDate.setHours(0, 0, 0, 0);
+      if (targetTime < fromDate.getTime()) return false;
+    }
+    if (item.effective_to) {
+      const toDate = new Date(item.effective_to);
+      toDate.setHours(23, 59, 59, 999);
+      if (targetTime > toDate.getTime()) return false;
+    }
+    return true;
+  };
+
+  for (const productId of normalizedProductIds) {
+    const product = productMapById.get(productId);
+    const defaultTaxRate =
+      product?.product_tax_master?.tax_rate !== null &&
+      product?.product_tax_master?.tax_rate !== undefined
+        ? Number(product.product_tax_master.tax_rate)
+        : null;
+    const basePrice = Number(product?.base_price || 0);
+
+    let resolvedEntry: ResolvedProductPrice | null = null;
+
+    if (effectiveCustomerId) {
+      for (const pl of orderedPricelists) {
+        const item = pl.pricelist_item?.find((pi: any) => pi.product_id === productId);
+        if (!item) continue;
+        const specials = Array.isArray(item.pricelist_item_special_prices)
+          ? item.pricelist_item_special_prices
+          : [];
+        const match = specials.find((sp: any) => {
+          if (!isSpecialPriceDateValid(sp)) return false;
+          if (sp.customer_id !== effectiveCustomerId) return false;
+          if (sp.route_id && effectiveRouteId && sp.route_id !== effectiveRouteId) return false;
+          return true;
+        });
+        if (match) {
+          const salePrice = Number(match.sale_price);
+          const tax = match.tax_percent !== null && match.tax_percent !== undefined
+            ? Number(match.tax_percent)
+            : item.tax_percent !== null && item.tax_percent !== undefined
+              ? Number(item.tax_percent)
+              : defaultTaxRate;
+          const discount = match.discount_percent !== null && match.discount_percent !== undefined
+            ? Number(match.discount_percent)
+            : item.discount_percent !== null && item.discount_percent !== undefined
+              ? Number(item.discount_percent)
+              : null;
+          resolvedEntry = {
+            product_id: productId,
+            price: salePrice,
+            unit_price: salePrice,
+            sub_unit_price: match.sale_sub_unit_price !== null && match.sale_sub_unit_price !== undefined
+              ? Number(match.sale_sub_unit_price)
+              : item.sub_unit_price !== null && item.sub_unit_price !== undefined
+                ? Number(item.sub_unit_price)
+                : null,
+            base_price: basePrice,
+            tax_rate: tax,
+            taxRate: tax,
+            discount_percent: discount,
+            is_special_price: true,
+            special_price_id: match.id,
+            pricelist_id: pl.id,
+            pricelist_name: pl.name,
+            route_id: match.route_id ?? effectiveRouteId,
+            source: 'CUSTOMER_SPECIAL_PRICE',
+          };
+          break;
+        }
+      }
+    }
+
+    if (!resolvedEntry && effectiveRouteId) {
+      for (const pl of orderedPricelists) {
+        const item = pl.pricelist_item?.find((pi: any) => pi.product_id === productId);
+        if (!item) continue;
+        const specials = Array.isArray(item.pricelist_item_special_prices)
+          ? item.pricelist_item_special_prices
+          : [];
+        const match = specials.find((sp: any) => {
+          if (!isSpecialPriceDateValid(sp)) return false;
+          if (sp.customer_id) return false;
+          if (sp.route_id !== effectiveRouteId) return false;
+          if (sp.customer_category_id && effectiveCustomerCategoryId && sp.customer_category_id !== effectiveCustomerCategoryId) {
+            return false;
+          }
+          return true;
+        });
+        if (match) {
+          const salePrice = Number(match.sale_price);
+          const tax = match.tax_percent !== null && match.tax_percent !== undefined
+            ? Number(match.tax_percent)
+            : item.tax_percent !== null && item.tax_percent !== undefined
+              ? Number(item.tax_percent)
+              : defaultTaxRate;
+          const discount = match.discount_percent !== null && match.discount_percent !== undefined
+            ? Number(match.discount_percent)
+            : item.discount_percent !== null && item.discount_percent !== undefined
+              ? Number(item.discount_percent)
+              : null;
+          resolvedEntry = {
+            product_id: productId,
+            price: salePrice,
+            unit_price: salePrice,
+            sub_unit_price: match.sale_sub_unit_price !== null && match.sale_sub_unit_price !== undefined
+              ? Number(match.sale_sub_unit_price)
+              : item.sub_unit_price !== null && item.sub_unit_price !== undefined
+                ? Number(item.sub_unit_price)
+                : null,
+            base_price: basePrice,
+            tax_rate: tax,
+            taxRate: tax,
+            discount_percent: discount,
+            is_special_price: true,
+            special_price_id: match.id,
+            pricelist_id: pl.id,
+            pricelist_name: pl.name,
+            route_id: effectiveRouteId,
+            source: 'ROUTE_SPECIAL_PRICE',
+          };
+          break;
+        }
+      }
+    }
+
+    if (!resolvedEntry && effectiveCustomerCategoryId) {
+      for (const pl of orderedPricelists) {
+        const item = pl.pricelist_item?.find((pi: any) => pi.product_id === productId);
+        if (!item) continue;
+        const specials = Array.isArray(item.pricelist_item_special_prices)
+          ? item.pricelist_item_special_prices
+          : [];
+        const match = specials.find((sp: any) => {
+          if (!isSpecialPriceDateValid(sp)) return false;
+          if (sp.customer_id) return false;
+          if (sp.route_id) return false;
+          return sp.customer_category_id === effectiveCustomerCategoryId;
+        });
+        if (match) {
+          const salePrice = Number(match.sale_price);
+          const tax = match.tax_percent !== null && match.tax_percent !== undefined
+            ? Number(match.tax_percent)
+            : item.tax_percent !== null && item.tax_percent !== undefined
+              ? Number(item.tax_percent)
+              : defaultTaxRate;
+          const discount = match.discount_percent !== null && match.discount_percent !== undefined
+            ? Number(match.discount_percent)
+            : item.discount_percent !== null && item.discount_percent !== undefined
+              ? Number(item.discount_percent)
+              : null;
+          resolvedEntry = {
+            product_id: productId,
+            price: salePrice,
+            unit_price: salePrice,
+            sub_unit_price: match.sale_sub_unit_price !== null && match.sale_sub_unit_price !== undefined
+              ? Number(match.sale_sub_unit_price)
+              : item.sub_unit_price !== null && item.sub_unit_price !== undefined
+                ? Number(item.sub_unit_price)
+                : null,
+            base_price: basePrice,
+            tax_rate: tax,
+            taxRate: tax,
+            discount_percent: discount,
+            is_special_price: true,
+            special_price_id: match.id,
+            pricelist_id: pl.id,
+            pricelist_name: pl.name,
+            route_id: effectiveRouteId,
+            source: 'CATEGORY_SPECIAL_PRICE',
+          };
+          break;
+        }
+      }
+    }
+
+    if (!resolvedEntry) {
+      for (const pl of orderedPricelists) {
+        const item = pl.pricelist_item?.find((pi: any) => pi.product_id === productId);
+        if (!item) continue;
+        const specials = Array.isArray(item.pricelist_item_special_prices)
+          ? item.pricelist_item_special_prices
+          : [];
+        const generalMatch = specials.find((sp: any) => {
+          if (!isSpecialPriceDateValid(sp)) return false;
+          return !sp.customer_id && !sp.route_id && !sp.customer_category_id;
+        });
+
+        if (generalMatch) {
+          const salePrice = Number(generalMatch.sale_price);
+          const tax = generalMatch.tax_percent !== null && generalMatch.tax_percent !== undefined
+            ? Number(generalMatch.tax_percent)
+            : item.tax_percent !== null && item.tax_percent !== undefined
+              ? Number(item.tax_percent)
+              : defaultTaxRate;
+          const discount = generalMatch.discount_percent !== null && generalMatch.discount_percent !== undefined
+            ? Number(generalMatch.discount_percent)
+            : item.discount_percent !== null && item.discount_percent !== undefined
+              ? Number(item.discount_percent)
+              : null;
+          resolvedEntry = {
+            product_id: productId,
+            price: salePrice,
+            unit_price: salePrice,
+            sub_unit_price: generalMatch.sale_sub_unit_price !== null && generalMatch.sale_sub_unit_price !== undefined
+              ? Number(generalMatch.sale_sub_unit_price)
+              : item.sub_unit_price !== null && item.sub_unit_price !== undefined
+                ? Number(item.sub_unit_price)
+                : null,
+            base_price: basePrice,
+            tax_rate: tax,
+            taxRate: tax,
+            discount_percent: discount,
+            is_special_price: true,
+            special_price_id: generalMatch.id,
+            pricelist_id: pl.id,
+            pricelist_name: pl.name,
+            route_id: effectiveRouteId,
+            source: 'GENERAL_SPECIAL_PRICE',
+          };
+          break;
+        }
+
+        if (isItemEffectiveDateValid(item)) {
+          const itemPrice = Number(item.unit_price);
+          const tax = item.tax_percent !== null && item.tax_percent !== undefined
+            ? Number(item.tax_percent)
+            : defaultTaxRate;
+          const discount = item.discount_percent !== null && item.discount_percent !== undefined
+            ? Number(item.discount_percent)
+            : null;
+          resolvedEntry = {
+            product_id: productId,
+            price: itemPrice,
+            unit_price: itemPrice,
+            sub_unit_price: item.sub_unit_price !== null && item.sub_unit_price !== undefined
+              ? Number(item.sub_unit_price)
+              : null,
+            base_price: basePrice,
+            tax_rate: tax,
+            taxRate: tax,
+            discount_percent: discount,
+            is_special_price: false,
+            special_price_id: null,
+            pricelist_id: pl.id,
+            pricelist_name: pl.name,
+            route_id: effectiveRouteId,
+            source: 'PRICELIST',
+          };
+          break;
+        }
+      }
+    }
+
+    if (!resolvedEntry) {
+      resolvedEntry = {
+        product_id: productId,
+        price: basePrice,
+        unit_price: basePrice,
+        sub_unit_price: null,
+        base_price: basePrice,
+        tax_rate: defaultTaxRate,
+        taxRate: defaultTaxRate,
+        discount_percent: null,
+        is_special_price: false,
+        special_price_id: null,
+        pricelist_id: null,
+        pricelist_name: null,
+        route_id: effectiveRouteId,
+        source: 'BASE_PRICE',
+      };
+    }
+
+    result.set(productId, resolvedEntry);
+  }
+
+  return result;
+}
+
 export const vanInventoryController = {
   /**
    * Controller method to processApprovedVanInventoryStock
@@ -1916,7 +2481,7 @@ export const vanInventoryController = {
   async getSalespersonInventoryItemsDropdown(req: Request, res: Response) {
     try {
       const { salesperson_id } = req.params;
-      const { search } = req.query;
+      const { search, route_id, customer_id, depot_id } = req.query;
       if (!salesperson_id) {
         return res.status(400).json({
           success: false,
@@ -2043,6 +2608,26 @@ export const vanInventoryController = {
         }
       });
 
+      const productIds = Array.from(
+        new Set(
+          filteredItems
+            .map(it => it.van_inventory_items_products?.id)
+            .filter((id): id is number => typeof id === 'number')
+        )
+      );
+
+      const resolvedPrices = await resolveProductPrices(
+        prisma,
+        productIds,
+        {
+          salesperson_id: salespersonIdNum,
+          customer_id: customer_id ? Number(customer_id) : undefined,
+          route_id: route_id ? Number(route_id) : undefined,
+          depot_id: depot_id ? Number(depot_id) : undefined,
+          date: new Date(),
+        }
+      );
+
       const map = new Map<
         number,
         {
@@ -2050,6 +2635,10 @@ export const vanInventoryController = {
           name: string;
           code: string;
           unit_price: number;
+          base_price?: number;
+          is_special_price?: boolean;
+          pricelist_id?: number | null;
+          pricelist_name?: string | null;
           product_id: number;
           tracking_type: string | null;
           tax_details?: {
@@ -2072,11 +2661,20 @@ export const vanInventoryController = {
               (p.name &&
                 p.name.toLowerCase().includes((search as string).toLowerCase()))
             ) {
+              const resolved = resolvedPrices.get(p.id);
+              const unitPrice = resolved
+                ? resolved.price
+                : Number(p.base_price || 0);
+
               map.set(p.id, {
                 id: it.id,
                 name: p.name || 'N/A',
                 code: p.code || '',
-                unit_price: Number(p.base_price || 0),
+                unit_price: unitPrice,
+                base_price: Number(p.base_price || 0),
+                is_special_price: resolved?.is_special_price ?? false,
+                pricelist_id: resolved?.pricelist_id ?? null,
+                pricelist_name: resolved?.pricelist_name ?? null,
                 product_id: p.id,
                 tracking_type: p.tracking_type || null,
                 tax_details: p.product_tax_master
@@ -2084,7 +2682,10 @@ export const vanInventoryController = {
                       id: p.product_tax_master.id,
                       name: p.product_tax_master.name,
                       code: p.product_tax_master.code,
-                      tax_rate: Number(p.product_tax_master.tax_rate),
+                      tax_rate:
+                        resolved && resolved.tax_rate !== null
+                          ? resolved.tax_rate
+                          : Number(p.product_tax_master.tax_rate),
                       description: p.product_tax_master.description,
                     }
                   : null,
@@ -6188,122 +6789,32 @@ export const vanInventoryController = {
               .map(s => s.product_id)
               .filter((id): id is number => id !== null);
 
-            const depotPricelist = actualDepotId
-              ? await tx.pricelists.findFirst({
-                  where: {
-                    depot_id: actualDepotId,
-                    is_active: 'Y',
-                  },
-                  orderBy: { priority: 'asc' },
-                  include: {
-                    pricelist_item: {
-                      where: {
-                        product_id: { in: productIdsInStock },
-                        is_active: 'Y',
-                      },
-                      include: {
-                        pricelist_item_special_prices: {
-                          where: { is_active: 'Y' },
-                        },
-                      },
-                    },
-                  },
-                })
-              : null;
+            const requestRouteId = req.body?.route_id
+              ? Number(req.body.route_id)
+              : undefined;
 
-            const defaultPricelist = await tx.pricelists.findFirst({
-              where: { is_default: 'Y', is_active: 'Y' },
-              include: {
-                pricelist_item: {
-                  where: {
-                    product_id: { in: productIdsInStock },
-                    is_active: 'Y',
-                  },
-                  include: {
-                    pricelist_item_special_prices: {
-                      where: { is_active: 'Y' },
-                    },
-                  },
-                },
-              },
-            });
+            const resolvedPrices = await resolveProductPrices(
+              tx,
+              productIdsInStock,
+              {
+                salesperson_id: userIdNum,
+                depot_id: actualDepotId,
+                route_id: requestRouteId,
+                date: new Date(),
+              }
+            );
 
-            const today_date = new Date();
             const priceMap = new Map<
               number,
               { price: number; taxRate: number | null }
             >();
 
             for (const productId of productIdsInStock) {
-              let resolvedPrice: number | null = null;
-              let resolvedTax: number | null = null;
-
-              if (depotPricelist) {
-                const depotItem = depotPricelist.pricelist_item.find(
-                  item => item.product_id === productId
-                );
-                if (depotItem) {
-                  const validSpecial = (
-                    depotItem.pricelist_item_special_prices as any[]
-                  ).find(sp => {
-                    const from = sp.valid_from ? new Date(sp.valid_from) : null;
-                    const to = sp.valid_to ? new Date(sp.valid_to) : null;
-                    const afterFrom = !from || today_date >= from;
-                    const beforeTo = !to || today_date <= to;
-                    return afterFrom && beforeTo;
-                  });
-
-                  if (validSpecial) {
-                    resolvedPrice = Number(validSpecial.sale_price);
-                    resolvedTax =
-                      validSpecial.tax_percent !== null
-                        ? Number(validSpecial.tax_percent)
-                        : null;
-                  } else {
-                    resolvedPrice = Number(depotItem.unit_price);
-                    resolvedTax =
-                      depotItem.tax_percent !== null
-                        ? Number(depotItem.tax_percent)
-                        : null;
-                  }
-                }
-              }
-
-              if (resolvedPrice === null && defaultPricelist) {
-                const defaultItem = defaultPricelist.pricelist_item.find(
-                  item => item.product_id === productId
-                );
-                if (defaultItem) {
-                  const validSpecial = (
-                    defaultItem.pricelist_item_special_prices as any[]
-                  ).find(sp => {
-                    const from = sp.valid_from ? new Date(sp.valid_from) : null;
-                    const to = sp.valid_to ? new Date(sp.valid_to) : null;
-                    const afterFrom = !from || today_date >= from;
-                    const beforeTo = !to || today_date <= to;
-                    return afterFrom && beforeTo;
-                  });
-
-                  if (validSpecial) {
-                    resolvedPrice = Number(validSpecial.sale_price);
-                    resolvedTax =
-                      validSpecial.tax_percent !== null
-                        ? Number(validSpecial.tax_percent)
-                        : null;
-                  } else {
-                    resolvedPrice = Number(defaultItem.unit_price);
-                    resolvedTax =
-                      defaultItem.tax_percent !== null
-                        ? Number(defaultItem.tax_percent)
-                        : null;
-                  }
-                }
-              }
-
-              if (resolvedPrice !== null) {
+              const resPrice = resolvedPrices.get(productId);
+              if (resPrice) {
                 priceMap.set(productId, {
-                  price: resolvedPrice,
-                  taxRate: resolvedTax,
+                  price: resPrice.price,
+                  taxRate: resPrice.taxRate,
                 });
               }
             }
@@ -6895,7 +7406,7 @@ export const vanInventoryController = {
         source = 'DEFAULT';
       }
 
-      let vanInventory;
+      let vanInventory: any = null;
 
       if (depot_id) {
         vanInventory = await prisma.van_inventory.findFirst({
@@ -6903,6 +7414,7 @@ export const vanInventoryController = {
             user_id: Number(salesperson_id),
             location_id: Number(depot_id),
             status: 'A',
+            is_active: 'Y',
           },
           orderBy: { document_date: 'desc' },
           include: {
@@ -6913,6 +7425,7 @@ export const vanInventoryController = {
                     id: true,
                     name: true,
                     code: true,
+                    base_price: true,
                     description: true,
                     category_id: true,
                     unit_of_measurement: true,
@@ -6930,11 +7443,14 @@ export const vanInventoryController = {
             },
           },
         });
-      } else {
+      }
+
+      if (!vanInventory) {
         vanInventory = await prisma.van_inventory.findFirst({
           where: {
             user_id: Number(salesperson_id),
             status: 'A',
+            is_active: 'Y',
           },
           orderBy: { document_date: 'desc' },
           include: {
@@ -6945,6 +7461,7 @@ export const vanInventoryController = {
                     id: true,
                     name: true,
                     code: true,
+                    base_price: true,
                     description: true,
                     category_id: true,
                     unit_of_measurement: true,
@@ -6972,9 +7489,25 @@ export const vanInventoryController = {
       }
 
       const availableProducts =
-        vanInventory.van_inventory_items_inventory.filter(item => {
+        vanInventory.van_inventory_items_inventory.filter((item: any) => {
           return item.quantity > 0;
         });
+
+      const productIds = availableProducts
+        .map((item: any) => item.product_id)
+        .filter((id: any): id is number => typeof id === 'number');
+
+      const resolvedPrices = await resolveProductPrices(
+        prisma,
+        productIds,
+        {
+          salesperson_id: Number(salesperson_id),
+          customer_id: customer_id ? Number(customer_id) : undefined,
+          depot_id: depot_id ? Number(depot_id) : undefined,
+          route_id: route_id ? Number(route_id) : undefined,
+          date: new Date(),
+        }
+      );
 
       res.json({
         success: true,
@@ -6986,16 +7519,31 @@ export const vanInventoryController = {
             depot: vanInventory.van_inventory_depot,
             document_date: vanInventory.document_date,
           },
-          products: availableProducts.map(item => ({
-            id: item.id,
-            product_id: item.product_id,
-            product_name: item.product_name,
-            product: item.van_inventory_items_products,
-            quantity: item.quantity,
-            unit_price: item.unit_price,
-            unit: item.unit,
-            source: source,
-          })),
+          products: availableProducts.map((item: any) => {
+            const resolved = resolvedPrices.get(item.product_id);
+            const unitPrice =
+              resolved?.price ??
+              (item.unit_price
+                ? Number(item.unit_price)
+                : Number((item.van_inventory_items_products as any)?.base_price || 0));
+
+            return {
+              id: item.id,
+              product_id: item.product_id,
+              product_name: item.product_name,
+              product: item.van_inventory_items_products,
+              quantity: item.quantity,
+              unit_price: unitPrice,
+              base_price: Number((item.van_inventory_items_products as any)?.base_price || 0),
+              is_special_price: resolved?.is_special_price ?? false,
+              tax_rate: resolved?.tax_rate ?? null,
+              discount_percent: resolved?.discount_percent ?? null,
+              pricelist_id: resolved?.pricelist_id ?? null,
+              pricelist_name: resolved?.pricelist_name ?? null,
+              unit: item.unit,
+              source: resolved?.source || source,
+            };
+          }),
         },
       });
     } catch (error: any) {
@@ -7005,5 +7553,19 @@ export const vanInventoryController = {
         message: error.message,
       });
     }
+  },
+
+  /**
+   * Controller method to resolveProductPrices
+   * @param client
+   * @param productIds
+   * @param context
+   */
+  async resolveProductPrices(
+    client: any,
+    productIds: number[],
+    context: PriceResolutionContext
+  ) {
+    return resolveProductPrices(client, productIds, context);
   },
 };
