@@ -1901,6 +1901,14 @@ exports.salesManagerController = {
                 where: { id: outletId },
                 include: {
                     customer_type_customer: true,
+                    customer_category_customer: true,
+                    customer_channel_customer: true,
+                    customers_regions: true,
+                    customer_depot: {
+                        include: {
+                            depots_region: true,
+                        },
+                    },
                     customer_routes: {
                         include: {
                             salespersons: {
@@ -1909,7 +1917,15 @@ exports.salesManagerController = {
                             },
                         },
                     },
-                    customer_zones: true,
+                    customer_zones: {
+                        include: {
+                            zone_depots: {
+                                include: {
+                                    depots_region: true,
+                                },
+                            },
+                        },
+                    },
                     coolers_customers: {
                         where: { is_active: 'Y' },
                         include: {
@@ -2141,14 +2157,15 @@ exports.salesManagerController = {
                     title: `No order in ${lastOrderDaysAgo} days`,
                 });
             }
-            if (lastSupervisorCheckDays !== null) {
+            if (coolersPlaced > 0 && lastSupervisorCheckDays !== null) {
                 alertBanners.push({
                     id: 'cooler_not_verified',
                     type: 'warning',
                     title: `Cooler not verified in ${lastSupervisorCheckDays} days`,
                 });
             }
-            if (checkStatus &&
+            if (coolersPlaced > 0 &&
+                checkStatus &&
                 checkStatus !== 'Verified' &&
                 checkStatus !== 'Not checked yet') {
                 alertBanners.push({
@@ -2203,8 +2220,9 @@ exports.salesManagerController = {
                 where: { customer_id: outletId, is_active: 'Y' },
                 orderBy: { visit_date: 'desc' },
             });
-            let lastSupervisorVisitDaysAgo;
-            let lastSupervisorVisitDateStr;
+            let lastSupervisorVisitDaysAgo = null;
+            let lastSupervisorVisitDateStr = null;
+            let lastSupervisorVisitLabel = 'No visits yet';
             if (lastSupervisorVisit?.visit_date) {
                 const vDate = new Date(lastSupervisorVisit.visit_date);
                 lastSupervisorVisitDaysAgo = Math.max(1, Math.floor((now.getTime() - vDate.getTime()) / (1000 * 60 * 60 * 24)));
@@ -2213,10 +2231,49 @@ exports.salesManagerController = {
                     month: 'short',
                     year: 'numeric',
                 });
+                lastSupervisorVisitLabel = `${lastSupervisorVisitDaysAgo} days ago  ${lastSupervisorVisitDateStr}`;
             }
             const surveysCount = (await prisma_client_1.default.survey_responses.count({
                 where: { submitted_by: customer.id, is_active: 'Y' },
             })) || 1;
+            let regionName = customer.customers_regions?.name || null;
+            let regionId = customer.region_id || customer.customers_regions?.id || null;
+            let regionCode = customer.customers_regions?.code || null;
+            if (!regionName) {
+                if (customer.customer_zones?.zone_depots?.depots_region?.name) {
+                    regionName = customer.customer_zones.zone_depots.depots_region.name;
+                    regionId = customer.customer_zones.zone_depots.depots_region.id;
+                    regionCode = customer.customer_zones.zone_depots.depots_region.code;
+                }
+                else if (customer.customer_depot?.depots_region?.name) {
+                    regionName = customer.customer_depot.depots_region.name;
+                    regionId = customer.customer_depot.depots_region.id;
+                    regionCode = customer.customer_depot.depots_region.code;
+                }
+                else if (customer.state) {
+                    regionName = customer.state;
+                }
+            }
+            if (!regionName) {
+                const depotName = customer.customer_zones?.zone_depots?.name ||
+                    customer.customer_depot?.name;
+                if (depotName) {
+                    const matchedDistrict = await prisma_client_1.default.districts.findFirst({
+                        where: {
+                            name: { contains: depotName },
+                            is_active: 'Y',
+                        },
+                        include: { district_regions: true },
+                    });
+                    if (matchedDistrict?.district_regions) {
+                        regionName = matchedDistrict.district_regions.name;
+                        regionId = matchedDistrict.district_regions.id;
+                        regionCode = matchedDistrict.district_regions.code;
+                    }
+                }
+            }
+            const outletCategoryName = customer.customer_category_customer?.category_name || null;
+            const outletChannelName = customer.customer_channel_customer?.channel_name || null;
             res.success('Outlet details retrieved successfully', {
                 outlet: {
                     id: customer.id,
@@ -2225,6 +2282,39 @@ exports.salesManagerController = {
                     type: customer.type ||
                         customer.customer_type_customer?.type_name ||
                         'Outlet',
+                    outlet_category: outletCategoryName,
+                    outlet_category_id: customer.customer_category_id ||
+                        customer.customer_category_customer?.id ||
+                        null,
+                    customer_category: customer.customer_category_customer
+                        ? {
+                            id: customer.customer_category_customer.id,
+                            category_name: customer.customer_category_customer.category_name,
+                            category_code: customer.customer_category_customer.category_code,
+                            level: customer.customer_category_customer.level,
+                        }
+                        : null,
+                    outlet_channel: outletChannelName,
+                    outlet_channel_id: customer.customer_channel_id ||
+                        customer.customer_channel_customer?.id ||
+                        null,
+                    customer_channel: customer.customer_channel_customer
+                        ? {
+                            id: customer.customer_channel_customer.id,
+                            channel_name: customer.customer_channel_customer.channel_name,
+                            channel_code: customer.customer_channel_customer.channel_code,
+                        }
+                        : null,
+                    region: regionName,
+                    region_id: regionId,
+                    region_name: regionName,
+                    customer_region: regionName
+                        ? {
+                            id: regionId,
+                            name: regionName,
+                            code: regionCode,
+                        }
+                        : null,
                     has_cooler: coolersPlaced > 0,
                     cooler_count: coolersPlaced,
                     route_id: customer.route_id,
@@ -2242,6 +2332,9 @@ exports.salesManagerController = {
                     has_issues_flagged: hasIssuesFlagged,
                     flagged_issues_label: flaggedIssuesLabel,
                 },
+                outlet_category: outletCategoryName,
+                outlet_channel: outletChannelName,
+                region: regionName,
                 alerts: alertBanners,
                 sales: {
                     unit: 'cs',
@@ -2264,7 +2357,7 @@ exports.salesManagerController = {
                 orders_and_coverage: {
                     last_order_days_ago: lastOrderDaysAgo,
                     last_order_quantity: lastOrderQty,
-                    last_order_label: `${lastOrderDaysAgo} days ago  ${lastOrderQty} cs`,
+                    last_order_label: lastOrderLabel,
                     orders_last_30_days: ordersLast30Count,
                     salesman_visits_30_days: visitsLast30Count,
                     strike_rate_percent: strikeRate,
@@ -2283,8 +2376,8 @@ exports.salesManagerController = {
                 supervisor_visits: {
                     last_visit_days_ago: lastSupervisorVisitDaysAgo,
                     last_visit_date: lastSupervisorVisitDateStr,
-                    last_visit_label: `${lastSupervisorVisitDaysAgo} days ago  ${lastSupervisorVisitDateStr}`,
-                    surveys_submitted_then: surveysCount,
+                    last_visit_label: lastSupervisorVisitLabel,
+                    surveys_submitted_then: lastSupervisorVisit ? surveysCount : 0,
                 },
             });
         }

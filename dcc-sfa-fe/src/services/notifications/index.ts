@@ -142,7 +142,9 @@ export const notificationsService = {
    * @returns Promise<{ count: number }> - Unread count
    */
   async getUnreadCount(): Promise<{ count: number }> {
-    const response = await axioConfig.get('/notifications/unread-count');
+    const response = await axioConfig.get('/notifications/unread-count', {
+      skipErrorHandling: true,
+    } as any);
     return response.data.data || { count: 0 };
   },
 };

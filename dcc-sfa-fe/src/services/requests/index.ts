@@ -144,7 +144,8 @@ export const fetchRequestsByUsersWithoutPermission = async (
   try {
     const response = await api.get('/requests-by-users-without-permission', {
       params,
-    });
+      skipErrorHandling: true,
+    } as any);
     return response.data;
   } catch (error: any) {
     console.error(

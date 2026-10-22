@@ -473,7 +473,8 @@ const ManageOutlet: React.FC<ManageOutletProps> = ({
                       Freeze Location
                     </span>
                     <span className="!text-xs !text-gray-500 select-none">
-                      When checked, coordinates are locked and cannot be modified.
+                      When checked, coordinates are locked and cannot be
+                      modified.
                     </span>
                   </Box>
                 }

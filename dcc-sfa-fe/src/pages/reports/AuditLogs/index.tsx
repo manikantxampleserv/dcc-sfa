@@ -189,7 +189,7 @@ const ActivityLogs: React.FC = () => {
   ];
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-4">
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
@@ -261,7 +261,7 @@ const ActivityLogs: React.FC = () => {
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <StatsCard
           title="Total Logs"
           value={statistics.total_logs}

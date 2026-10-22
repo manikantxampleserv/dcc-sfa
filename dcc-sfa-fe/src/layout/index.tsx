@@ -72,7 +72,7 @@ const Layout: React.FC = () => {
               className={classNames('flex-1 overflow-auto', {
                 'p-0':
                   location.pathname === path || location.pathname === path1,
-                'p-5':
+                'p-4':
                   location.pathname !== path && location.pathname !== path1,
               })}
             >
