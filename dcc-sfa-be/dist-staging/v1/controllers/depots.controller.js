@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.depotsController = void 0;
 const paginate_1 = require("../../utils/paginate");
 const prisma_client_1 = __importDefault(require("../../configs/prisma.client"));
+const permissions_config_1 = require("../../configs/permissions.config");
 const generatedDepotCode = async (name) => {
     const prefix = name.slice(0, 3).toUpperCase();
     const lastDepots = await prisma_client_1.default.depots.findFirst({
@@ -177,6 +178,22 @@ exports.depotsController = {
             const page_num = parseInt(page, 10);
             const limit_num = parseInt(limit, 10);
             const searchLower = search.toLowerCase();
+            const userReq = req.user;
+            let isScopeRestricted = false;
+            let userDepotIds = [];
+            if (userReq && !(0, permissions_config_1.isAdminRole)(userReq.role)) {
+                isScopeRestricted = true;
+                const userDepots = await prisma_client_1.default.user_depots.findMany({
+                    where: { user_id: userReq.id, is_active: 'Y' },
+                    select: { depot_id: true },
+                });
+                userDepotIds = userDepots
+                    .map((ud) => ud.depot_id)
+                    .filter((id) => id !== null);
+                if (userReq.depot_id && !userDepotIds.includes(userReq.depot_id)) {
+                    userDepotIds.push(userReq.depot_id);
+                }
+            }
             const filters = {
                 is_active: isActive,
                 name: { not: { startsWith: 'Van -' } },
@@ -189,7 +206,6 @@ exports.depotsController = {
                     ],
                 }),
                 ...(parent_id && { parent_id: Number(parent_id) }),
-                ...(depot_id && { id: Number(depot_id) }),
                 ...(user_id && {
                     user_depots_depot_id: {
                         some: {
@@ -199,18 +215,49 @@ exports.depotsController = {
                     },
                 }),
             };
-            const totalDepots = await prisma_client_1.default.depots.count();
+            if (isScopeRestricted) {
+                if (userDepotIds.length > 0) {
+                    if (depot_id) {
+                        const parsedDepotId = Number(depot_id);
+                        if (userDepotIds.includes(parsedDepotId)) {
+                            filters.id = parsedDepotId;
+                        }
+                        else {
+                            filters.id = -1;
+                        }
+                    }
+                    else {
+                        filters.id = { in: userDepotIds };
+                    }
+                }
+                else {
+                    filters.id = -1;
+                }
+            }
+            else if (depot_id) {
+                filters.id = Number(depot_id);
+            }
+            const countFilter = {
+                name: { not: { startsWith: 'Van -' } },
+                ...(isScopeRestricted && {
+                    id: userDepotIds.length > 0 ? { in: userDepotIds } : -1,
+                }),
+            };
+            const totalDepots = await prisma_client_1.default.depots.count({
+                where: countFilter,
+            });
             const activeDepots = await prisma_client_1.default.depots.count({
-                where: { is_active: 'Y' },
+                where: { ...countFilter, is_active: 'Y' },
             });
             const inactiveDepots = await prisma_client_1.default.depots.count({
-                where: { is_active: 'N' },
+                where: { ...countFilter, is_active: 'N' },
             });
             const now = new Date();
             const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
             const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
             const newDepotsThisMonth = await prisma_client_1.default.depots.count({
                 where: {
+                    ...countFilter,
                     createdate: {
                         gte: startOfMonth,
                         lt: endOfMonth,

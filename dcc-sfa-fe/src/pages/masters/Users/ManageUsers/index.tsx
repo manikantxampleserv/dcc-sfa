@@ -97,7 +97,7 @@ const ManageUsers: React.FC<ManageUsersProps> = ({
   const { data: usersResponse, isFetching: isFetchingUsers } = useUsers(
     {
       page: 1,
-      limit: 10000,
+      limit: 1000,
       isActive: 'Y',
     },
     { enabled: drawerOpen }

@@ -130,7 +130,7 @@ const RouteAssignmentManagement: React.FC = () => {
 
   const SkeletonLoader = () => (
     <>
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
         {[1, 2, 3, 4, 5, 6].map(i => (
           <div
             key={i}
@@ -306,7 +306,7 @@ const RouteAssignmentManagement: React.FC = () => {
       )}
 
       {isRead && !isFetching && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
           {assignments.map(user => (
             <div
               key={user.id}

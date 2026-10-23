@@ -251,84 +251,42 @@ const CreditMemoReport: React.FC = () => {
   ];
 
   return (
-    <>
-      <Box className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+    <div className="flex flex-col gap-4">
+      <Box className="!flex !justify-between !items-center flex-wrap gap-4">
         <Box>
-          <Typography variant="h5" className="!font-bold !text-gray-900">
+          <p className="!font-bold text-xl !text-gray-900">
             Credit Memo Report
-          </Typography>
-          <Typography variant="body2" className="!text-gray-500 !mt-0.5">
+          </p>
+          <p className="!text-gray-500 text-sm">
             Monitor, audit, and analyze SAP Credit Memos across salesmen and
             depots
-          </Typography>
+          </p>
         </Box>
 
-        <Box className="flex items-center gap-2">
+        {isRead && (
           <PopConfirm
             title="Export Credit Memo Report"
             description="Are you sure you want to export this credit memo report to Excel?"
             onConfirm={handleExportToExcel}
-            placement="top"
+            confirmText="Export"
+            cancelText="Cancel"
+            placement="bottom"
+            disabled={isExporting}
           >
             <Button
+              startIcon={<Download className="w-4 h-4" />}
               variant="outlined"
-              size="small"
-              className="!border-gray-200 !text-gray-700 hover:!bg-gray-50 flex items-center gap-2"
-              disabled={isExporting}
+              loading={isExporting}
             >
-              <Download size={16} />
-              {isExporting ? 'Exporting...' : 'Export to Excel'}
+              Export to Excel
             </Button>
           </PopConfirm>
-        </Box>
+        )}
       </Box>
 
-      {/* Summary KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 mb-4">
-        <StatsCard
-          title="Total Credit Memos"
-          value={summary.total_credit_memos}
-          icon={<Receipt size={20} />}
-          color="blue"
-          isLoading={isFetching}
-        />
-        <StatsCard
-          title="Approved Memos"
-          value={summary.approved_memos}
-          icon={<CheckCircle2 size={20} />}
-          color="green"
-          isLoading={isFetching}
-        />
-        <StatsCard
-          title="Pending Memos"
-          value={summary.pending_memos}
-          icon={<Clock size={20} />}
-          color="amber"
-          isLoading={isFetching}
-        />
-        <StatsCard
-          title="Total Quantity"
-          value={`${Number(summary.total_quantity || 0).toLocaleString()} ${uomCase}`}
-          icon={<Package size={20} />}
-          color="purple"
-          isLoading={isFetching}
-        />
-        <StatsCard
-          title="Total Value (TZS)"
-          value={`TZS ${Number(summary.total_value || 0).toLocaleString(
-            undefined,
-            { maximumFractionDigits: 0 }
-          )}`}
-          icon={<CircleDollarSign size={20} />}
-          color="emerald"
-          isLoading={isFetching}
-        />
-      </div>
-
-      {/* Filter and Content Area */}
-      <div className="bg-white border border-gray-100 shadow-sm rounded-lg mb-4">
-        <div className="p-4 border-b border-gray-100">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+      {isRead && (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
             <Input
               type="text"
               label="Search"
@@ -338,7 +296,6 @@ const CreditMemoReport: React.FC = () => {
                 setSearch(val);
                 setPage(1);
               }}
-              size="small"
             />
 
             <Input
@@ -349,7 +306,6 @@ const CreditMemoReport: React.FC = () => {
                 setStartDate(val);
                 setPage(1);
               }}
-              size="small"
             />
 
             <Input
@@ -360,7 +316,6 @@ const CreditMemoReport: React.FC = () => {
                 setEndDate(val);
                 setPage(1);
               }}
-              size="small"
             />
 
             <DepotSelect
@@ -371,7 +326,6 @@ const CreditMemoReport: React.FC = () => {
                 setPage(1);
               }}
               placeholder="All Depots"
-              size="small"
             />
 
             <div>
@@ -393,28 +347,79 @@ const CreditMemoReport: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
 
-        <Box className="p-0">
-          <Table
-            columns={columns}
-            data={reportData?.data || []}
-            loading={isFetching}
-            sortable={false}
-            filterColunm={false}
-            pagination={true}
-            totalCount={
-              reportData?.pagination?.total_count ??
-              reportData?.pagination?.total ??
-              0
-            }
-            page={page - 1}
-            rowsPerPage={limit}
-            onPageChange={newPage => setPage(newPage + 1)}
-            emptyMessage="No credit memos found matching criteria"
-          />
-        </Box>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
+        <StatsCard
+          title="Total Credit Memos"
+          value={summary.total_credit_memos}
+          icon={<Receipt className="w-6 h-6" />}
+          color="blue"
+          isLoading={isFetching}
+        />
+        <StatsCard
+          title="Approved Memos"
+          value={summary.approved_memos}
+          icon={<CheckCircle2 className="w-6 h-6" />}
+          color="green"
+          isLoading={isFetching}
+        />
+        <StatsCard
+          title="Pending Memos"
+          value={summary.pending_memos}
+          icon={<Clock className="w-6 h-6" />}
+          color="amber"
+          isLoading={isFetching}
+        />
+        <StatsCard
+          title="Total Quantity"
+          value={`${Number(summary.total_quantity || 0).toLocaleString()} ${uomCase}`}
+          icon={<Package className="w-6 h-6" />}
+          color="purple"
+          isLoading={isFetching}
+        />
+        <StatsCard
+          title="Total Value (TZS)"
+          value={`TZS ${Number(summary.total_value || 0).toLocaleString(
+            undefined,
+            { maximumFractionDigits: 0 }
+          )}`}
+          icon={<CircleDollarSign className="w-6 h-6" />}
+          color="emerald"
+          isLoading={isFetching}
+        />
       </div>
-    </>
+
+      <Table
+        actions={
+          <Box className="flex font-bold items-center gap-2">
+            <Receipt className="w-5 h-5" />
+            Credit Memos (
+            {reportData?.pagination?.total_count ??
+              reportData?.pagination?.total ??
+              reportData?.data?.length ??
+              0}
+            )
+          </Box>
+        }
+        columns={columns}
+        data={reportData?.data || []}
+        loading={isFetching}
+        sortable={false}
+        filterColunm={false}
+        pagination={true}
+        totalCount={
+          reportData?.pagination?.total_count ??
+          reportData?.pagination?.total ??
+          0
+        }
+        page={page - 1}
+        rowsPerPage={limit}
+        onPageChange={newPage => setPage(newPage + 1)}
+        emptyMessage="No credit memos found matching criteria"
+        isPermission={isRead}
+      />
+    </div>
   );
 };
 

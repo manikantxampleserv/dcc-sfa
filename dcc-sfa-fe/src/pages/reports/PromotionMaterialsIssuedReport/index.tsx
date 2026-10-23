@@ -339,7 +339,7 @@ const PromotionMaterialsIssuedReport: React.FC = () => {
   return (
     <>
       {/* Header */}
-      <Box className="!mb-3 !flex !justify-between !items-center">
+      <Box className="!flex !justify-between !items-center">
         <Box>
           <p className="!font-bold text-xl !text-gray-900">
             Promotion Materials Issued

@@ -6,11 +6,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.customerCategoryController = void 0;
 const prisma_client_1 = __importDefault(require("../../configs/prisma.client"));
 const paginate_1 = require("../../utils/paginate");
+const customerCategoryAssignment_service_1 = __importDefault(require("../services/customerCategoryAssignment.service"));
 const serializeCustomerCategory = (category) => ({
     id: category.id,
     category_name: category.category_name,
     category_code: category.category_code,
     level: category.level,
+    logical_condition: category.logical_condition || 'AND',
     is_active: category.is_active,
     createdate: category.createdate,
     createdby: category.createdby,
@@ -22,6 +24,8 @@ const serializeCustomerCategory = (category) => ({
         condition_type: c.condition_type,
         condition_operator: c.condition_operator,
         threshold_value: c.threshold_value,
+        min_threshold_value: c.min_threshold_value,
+        max_threshold_value: c.max_threshold_value,
         product_category_id: c.product_category_id,
         condition_description: c.condition_description,
         is_active: c.is_active,
@@ -67,6 +71,7 @@ exports.customerCategoryController = {
                                 category_name: item.category_name,
                                 category_code: item.category_code,
                                 level: item.level,
+                                logical_condition: item.logical_condition || 'AND',
                                 is_active: item.is_active || 'Y',
                                 updatedby: req.user?.id || item.updatedby || 1,
                                 updatedate: new Date(),
@@ -79,6 +84,7 @@ exports.customerCategoryController = {
                                 category_name: item.category_name,
                                 category_code: item.category_code,
                                 level: item.level || 1,
+                                logical_condition: item.logical_condition || 'AND',
                                 is_active: item.is_active || 'Y',
                                 createdby: req.user?.id || item.createdby || 1,
                                 createdate: new Date(),
@@ -108,7 +114,13 @@ exports.customerCategoryController = {
                             const condData = {
                                 condition_type: cond.condition_type,
                                 condition_operator: cond.condition_operator,
-                                threshold_value: cond.threshold_value,
+                                threshold_value: cond.threshold_value ?? 0,
+                                min_threshold_value: cond.min_threshold_value !== undefined
+                                    ? cond.min_threshold_value
+                                    : null,
+                                max_threshold_value: cond.max_threshold_value !== undefined
+                                    ? cond.max_threshold_value
+                                    : null,
                                 product_category_id: cond.product_category_id || null,
                                 condition_description: cond.condition_description || null,
                                 is_active: cond.is_active || 'Y',
@@ -187,6 +199,7 @@ exports.customerCategoryController = {
                                     category_name: item.category_name,
                                     category_code: item.category_code,
                                     level: item.level,
+                                    logical_condition: item.logical_condition || 'AND',
                                     is_active: item.is_active || 'Y',
                                     updatedby: req.user?.id || item.updatedby || 1,
                                     updatedate: new Date(),
@@ -199,6 +212,7 @@ exports.customerCategoryController = {
                                     category_name: item.category_name,
                                     category_code: item.category_code,
                                     level: item.level || 1,
+                                    logical_condition: item.logical_condition || 'AND',
                                     is_active: item.is_active || 'Y',
                                     createdby: req.user?.id || item.createdby || 1,
                                     createdate: new Date(),
@@ -228,7 +242,13 @@ exports.customerCategoryController = {
                                 const condData = {
                                     condition_type: cond.condition_type,
                                     condition_operator: cond.condition_operator,
-                                    threshold_value: cond.threshold_value,
+                                    threshold_value: cond.threshold_value ?? 0,
+                                    min_threshold_value: cond.min_threshold_value !== undefined
+                                        ? cond.min_threshold_value
+                                        : null,
+                                    max_threshold_value: cond.max_threshold_value !== undefined
+                                        ? cond.max_threshold_value
+                                        : null,
                                     product_category_id: cond.product_category_id || null,
                                     condition_description: cond.condition_description || null,
                                     is_active: cond.is_active || 'Y',
@@ -429,123 +449,10 @@ exports.customerCategoryController = {
     async assignCategoriesToCustomers(req, res) {
         try {
             const startTime = new Date();
-            console.log(`[${startTime.toISOString()}] Starting customer category assignment...`);
-            const results = {
-                totalProcessed: 0,
-                totalUpdated: 0,
-                totalUnchanged: 0,
-                totalFailed: 0,
-                details: [],
-            };
-            const categoryLevels = await prisma_client_1.default.customer_category.findMany({
-                where: {
-                    is_active: 'Y',
-                },
-                include: {
-                    customer_category_condition_customer_category: {
-                        where: {
-                            is_active: 'Y',
-                            condition_type: 'sales_amount',
-                        },
-                    },
-                },
-                orderBy: {
-                    level: 'asc',
-                },
-            });
-            const validCategories = categoryLevels
-                .filter(cat => cat.customer_category_condition_customer_category.length > 0)
-                .map(cat => ({
-                id: cat.id,
-                categoryName: cat.category_name,
-                level: cat.level || 1,
-                thresholdValue: Number(cat.customer_category_condition_customer_category[0]
-                    ?.threshold_value || 0),
-            }))
-                .sort((a, b) => a.thresholdValue - b.thresholdValue);
-            if (validCategories.length === 0) {
-                return res.status(400).json({
-                    message: 'No active customer categories found with sales conditions',
-                });
-            }
-            console.log(`Found ${validCategories.length} category levels:`, validCategories);
-            const customers = await prisma_client_1.default.customers.findMany({
-                where: {
-                    is_active: 'Y',
-                },
-                select: {
-                    id: true,
-                    name: true,
-                    customer_category_id: true,
-                },
-            });
-            console.log(`Processing ${customers.length} customers...`);
-            for (const customer of customers) {
-                results.totalProcessed++;
-                try {
-                    const orderSales = await prisma_client_1.default.orders.aggregate({
-                        where: {
-                            parent_id: customer.id,
-                            approval_status: {
-                                in: ['approved', 'pending'],
-                            },
-                            is_active: 'Y',
-                        },
-                        _sum: {
-                            total_amount: true,
-                        },
-                    });
-                    const totalSales = Number(orderSales._sum.total_amount || 0);
-                    let assignedCategory = null;
-                    for (let i = validCategories.length - 1; i >= 0; i--) {
-                        if (totalSales >= validCategories[i].thresholdValue) {
-                            assignedCategory = validCategories[i];
-                            break;
-                        }
-                    }
-                    const newCategoryId = assignedCategory?.id || null;
-                    const currentCategoryId = customer.customer_category_id;
-                    if (newCategoryId !== currentCategoryId) {
-                        await prisma_client_1.default.customers.update({
-                            where: { id: customer.id },
-                            data: {
-                                customer_category_id: newCategoryId,
-                                updatedate: new Date(),
-                                updatedby: req.user?.id || 1,
-                            },
-                        });
-                        results.totalUpdated++;
-                        results.details.push({
-                            customerId: customer.id,
-                            customerName: customer.name,
-                            totalSales,
-                            previousCategory: currentCategoryId,
-                            newCategory: newCategoryId,
-                            newCategoryName: assignedCategory?.categoryName || 'None',
-                            status: 'updated',
-                        });
-                        console.log(` Customer ${customer.name} (ID: ${customer.id}) - Sales: ${totalSales} - Category: ${assignedCategory?.categoryName || 'None'}`);
-                    }
-                    else {
-                        results.totalUnchanged++;
-                    }
-                }
-                catch (error) {
-                    results.totalFailed++;
-                    console.error(` Failed to process customer ${customer.id}:`, error.message);
-                    results.details.push({
-                        customerId: customer.id,
-                        customerName: customer.name,
-                        status: 'failed',
-                        error: error.message,
-                    });
-                }
-            }
-            const endTime = new Date();
-            const duration = (endTime.getTime() - startTime.getTime()) / 1000;
-            console.log(`\n[${endTime.toISOString()}] Category assignment completed in ${duration}s`);
+            const results = await customerCategoryAssignment_service_1.default.assignCustomerCategories();
+            const duration = (new Date().getTime() - startTime.getTime()) / 1000;
             return res.status(200).json({
-                message: 'Customer category assignment completed',
+                message: 'Customer category assignment completed successfully',
                 duration: `${duration}s`,
                 summary: {
                     totalProcessed: results.totalProcessed,
@@ -570,71 +477,17 @@ exports.customerCategoryController = {
             if (!customer) {
                 return res.status(404).json({ message: 'Customer not found' });
             }
-            const categoryLevels = await prisma_client_1.default.customer_category.findMany({
-                where: {
-                    is_active: 'Y',
-                },
-                include: {
-                    customer_category_condition_customer_category: {
-                        where: {
-                            is_active: 'Y',
-                            condition_type: 'sales_amount',
-                        },
-                    },
-                },
-                orderBy: {
-                    level: 'asc',
-                },
-            });
-            const validCategories = categoryLevels
-                .filter(cat => cat.customer_category_condition_customer_category.length > 0)
-                .map(cat => ({
-                id: cat.id,
-                categoryName: cat.category_name,
-                level: cat.level || 1,
-                thresholdValue: Number(cat.customer_category_condition_customer_category[0]
-                    ?.threshold_value || 0),
-            }))
-                .sort((a, b) => a.thresholdValue - b.thresholdValue);
-            const orderSales = await prisma_client_1.default.orders.aggregate({
-                where: {
-                    parent_id: customerId,
-                    approval_status: {
-                        in: ['approved', 'pending'],
-                    },
-                    is_active: 'Y',
-                },
-                _sum: {
-                    total_amount: true,
-                },
-            });
-            const totalSales = Number(orderSales._sum.total_amount || 0);
-            let assignedCategory = null;
-            for (let i = validCategories.length - 1; i >= 0; i--) {
-                if (totalSales >= validCategories[i].thresholdValue) {
-                    assignedCategory = validCategories[i];
-                    break;
-                }
-            }
-            if (assignedCategory) {
-                await prisma_client_1.default.customers.update({
-                    where: { id: customerId },
-                    data: {
-                        customer_category_id: assignedCategory.id,
-                        updatedate: new Date(),
-                        updatedby: req.user?.id || 1,
-                    },
-                });
-            }
+            const result = await customerCategoryAssignment_service_1.default.assignSingleCustomerCategory(customerId);
             return res.status(200).json({
                 message: 'Customer category assigned successfully',
                 data: {
                     customerId,
                     customerName: customer.name,
-                    totalSales,
+                    totalSales: result.totalSales,
+                    orderCount: result.orderCount,
                     previousCategory: customer.customer_category_id,
-                    assignedCategory: assignedCategory?.categoryName || 'None',
-                    assignedCategoryId: assignedCategory?.id || null,
+                    assignedCategory: result.assignedCategory,
+                    assignedCategoryId: result.assignedCategoryId,
                 },
             });
         }

@@ -30,7 +30,9 @@ export async function paginate<T>({
     has_previous: boolean;
   };
 }> {
-  const skip = (page - 1) * limit;
+  const safePage = Math.max(1, Number(page) || 1);
+  const safeLimit = Math.min(Math.max(1, Number(limit) || 10), 1000);
+  const skip = (safePage - 1) * safeLimit;
 
   let attempt = 0;
 
@@ -41,7 +43,7 @@ export async function paginate<T>({
         model.findMany({
           where: filters,
           skip,
-          take: limit,
+          take: safeLimit,
           select,
           include,
           orderBy,
@@ -51,25 +53,23 @@ export async function paginate<T>({
       return {
         data,
         pagination: {
-          current_page: page,
-          total_pages: Math.ceil(total_count / limit),
+          current_page: safePage,
+          total_pages: Math.ceil(total_count / safeLimit),
           total_count,
-          has_next: page * limit < total_count,
-          has_previous: page > 1,
+          has_next: safePage * safeLimit < total_count,
+          has_previous: safePage > 1,
         },
       };
     } catch (error) {
       const isDeadlock =
         error instanceof Prisma.PrismaClientKnownRequestError &&
         error.code === 'P2034';
-
       if (isDeadlock && attempt < maxRetries) {
         attempt++;
         const delay = 100 * Math.pow(2, attempt - 1);
         await new Promise(resolve => setTimeout(resolve, delay));
         continue;
       }
-
       throw error;
     }
   }

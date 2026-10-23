@@ -279,16 +279,25 @@ const InventoryDetail = () => {
     [inventoryData]
   );
 
+  const apiTimeFilter = timeFilter !== 'all' ? timeFilter : undefined;
+  const apiStartDate =
+    timeFilter === 'custom' && customDateRange.start
+      ? customDateRange.start
+      : undefined;
+  const apiEndDate =
+    timeFilter === 'custom' && customDateRange.end
+      ? customDateRange.end
+      : undefined;
+
   const { data: vanInventoryResponse, isLoading: isLoadingVanInventory } =
     useVanInventory(
       {
         user_id: inventoryId,
-        limit: 10000000,
+        limit: 10000,
         status: 'approved',
-        time_filter:
-          timeFilter !== 'all' && timeFilter !== 'custom'
-            ? timeFilter
-            : undefined,
+        time_filter: apiTimeFilter,
+        start_date: apiStartDate,
+        end_date: apiEndDate,
       },
       {
         enabled: inventoryId !== undefined,
@@ -297,12 +306,11 @@ const InventoryDetail = () => {
 
   const { data: invoicesResponse, isLoading: isLoadingInvoices } = useInvoices(
     {
-      limit: 1000000,
+      limit: 10000,
       salesperson_id: inventoryId,
-      time_filter:
-        timeFilter !== 'all' && timeFilter !== 'custom'
-          ? timeFilter
-          : undefined,
+      time_filter: apiTimeFilter,
+      start_date: apiStartDate,
+      end_date: apiEndDate,
     },
     {
       enabled: inventoryId !== undefined,
@@ -332,7 +340,6 @@ const InventoryDetail = () => {
       customRange: { start: string; end: string }
     ): { start?: Date; end?: Date } | null => {
       if (filter === 'all') return null;
-
       if (filter === 'custom') {
         if (!customRange.start && !customRange.end) return null;
         const bounds: { start?: Date; end?: Date } = {};
@@ -394,7 +401,6 @@ const InventoryDetail = () => {
         end.setHours(23, 59, 59, 999);
         return { start, end };
       }
-
       return null;
     },
     []
@@ -441,16 +447,6 @@ const InventoryDetail = () => {
     }
     return rawInvoices;
   }, [invoicesResponse, timeFilter, customDateRange, getDateRangeBounds]);
-
-  const apiTimeFilter = timeFilter !== 'all' ? timeFilter : undefined;
-  const apiStartDate =
-    timeFilter === 'custom' && customDateRange.start
-      ? customDateRange.start
-      : undefined;
-  const apiEndDate =
-    timeFilter === 'custom' && customDateRange.end
-      ? customDateRange.end
-      : undefined;
 
   const { data: summaryResponse, isLoading: isLoadingSummary } =
     useSalespersonSummary(
@@ -1291,8 +1287,12 @@ const InventoryDetail = () => {
           <Tab
             label={`Serial Numbers (${salespersonData?.total_serials || 0})`}
           />
-          <Tab label={`Van Inventories (${vanInventories.length})`} />
-          <Tab label={`Invoices (${salespersonInvoices.length})`} />
+          <Tab
+            label={`Van Inventories (${vanInventoryResponse?.pagination?.total_count ?? salespersonData?.total_van_inventories ?? vanInventories.length})`}
+          />
+          <Tab
+            label={`Invoices (${invoicesResponse?.pagination?.total_count ?? summaryData?.totalInvoicesCount ?? salespersonInvoices.length})`}
+          />
           <Tab label="Salesperson Summary" />
         </Tabs>
       </Box>

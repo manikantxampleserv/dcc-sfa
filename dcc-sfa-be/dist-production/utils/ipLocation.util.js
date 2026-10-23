@@ -1,28 +1,36 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getLocationFromIPs = void 0;
+const ipCache = new Map();
 const getLocationFromIPs = async (rawIps) => {
     const validIps = rawIps.filter((ip) => Boolean(ip));
     const uniqueStrippedIps = [
         ...new Set(validIps.map(ip => ip.replace(/^::ffff:/, ''))),
-    ].filter(ip => ip !== '127.0.0.1' && ip !== '::1');
-    const apiLocationMap = {};
+    ].filter(ip => ip !== '127.0.0.1' &&
+        ip !== '::1' &&
+        !ip.startsWith('192.168.') &&
+        !ip.startsWith('10.') &&
+        !ipCache.has(ip));
     if (uniqueStrippedIps.length > 0) {
         try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 1500);
             const response = await fetch('http://ip-api.com/batch', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
+                signal: controller.signal,
                 body: JSON.stringify(uniqueStrippedIps.map(ip => ({
                     query: ip,
                     fields: 'query,city,regionName,country,status',
                 }))),
             });
+            clearTimeout(timeoutId);
             if (response.ok) {
                 const data = await response.json();
                 data.forEach((res) => {
                     if (res.status === 'success') {
-                        apiLocationMap[res.query] =
-                            `${res.city || 'Unknown City'}, ${res.regionName || 'Unknown Region'}, ${res.country || 'Unknown Country'}`;
+                        const loc = `${res.city || 'Unknown City'}, ${res.regionName || 'Unknown Region'}, ${res.country || 'Unknown Country'}`;
+                        ipCache.set(res.query, loc);
                     }
                 });
             }
@@ -40,8 +48,8 @@ const getLocationFromIPs = async (rawIps) => {
             strippedIp.startsWith('10.')) {
             finalMap[originalIp] = 'Local Network';
         }
-        else if (apiLocationMap[strippedIp]) {
-            finalMap[originalIp] = apiLocationMap[strippedIp];
+        else if (ipCache.has(strippedIp)) {
+            finalMap[originalIp] = ipCache.get(strippedIp);
         }
         else {
             finalMap[originalIp] = 'Unknown';

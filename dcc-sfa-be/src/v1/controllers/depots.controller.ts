@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { paginate } from '../../utils/paginate';
 import prisma from '../../configs/prisma.client';
+import { isAdminRole } from '../../configs/permissions.config';
 
 interface DepotSerialized {
   id: number;
@@ -240,6 +241,25 @@ export const depotsController = {
       const limit_num = parseInt(limit as string, 10);
       const searchLower = (search as string).toLowerCase();
 
+      const userReq = (req as any).user;
+      let isScopeRestricted = false;
+      let userDepotIds: number[] = [];
+
+      if (userReq && !isAdminRole(userReq.role)) {
+        isScopeRestricted = true;
+        const userDepots = await prisma.user_depots.findMany({
+          where: { user_id: userReq.id, is_active: 'Y' },
+          select: { depot_id: true },
+        });
+        userDepotIds = userDepots
+          .map((ud: any) => ud.depot_id)
+          .filter((id: any) => id !== null) as number[];
+
+        if (userReq.depot_id && !userDepotIds.includes(userReq.depot_id)) {
+          userDepotIds.push(userReq.depot_id);
+        }
+      }
+
       const filters: any = {
         is_active: isActive as string,
         name: { not: { startsWith: 'Van -' } },
@@ -252,7 +272,6 @@ export const depotsController = {
           ],
         }),
         ...(parent_id && { parent_id: Number(parent_id) }),
-        ...(depot_id && { id: Number(depot_id) }),
         ...(user_id && {
           user_depots_depot_id: {
             some: {
@@ -263,12 +282,40 @@ export const depotsController = {
         }),
       };
 
-      const totalDepots = await prisma.depots.count();
+      if (isScopeRestricted) {
+        if (userDepotIds.length > 0) {
+          if (depot_id) {
+            const parsedDepotId = Number(depot_id);
+            if (userDepotIds.includes(parsedDepotId)) {
+              filters.id = parsedDepotId;
+            } else {
+              filters.id = -1;
+            }
+          } else {
+            filters.id = { in: userDepotIds };
+          }
+        } else {
+          filters.id = -1;
+        }
+      } else if (depot_id) {
+        filters.id = Number(depot_id);
+      }
+
+      const countFilter: any = {
+        name: { not: { startsWith: 'Van -' } },
+        ...(isScopeRestricted && {
+          id: userDepotIds.length > 0 ? { in: userDepotIds } : -1,
+        }),
+      };
+
+      const totalDepots = await prisma.depots.count({
+        where: countFilter,
+      });
       const activeDepots = await prisma.depots.count({
-        where: { is_active: 'Y' },
+        where: { ...countFilter, is_active: 'Y' },
       });
       const inactiveDepots = await prisma.depots.count({
-        where: { is_active: 'N' },
+        where: { ...countFilter, is_active: 'N' },
       });
 
       const now = new Date();
@@ -277,6 +324,7 @@ export const depotsController = {
 
       const newDepotsThisMonth = await prisma.depots.count({
         where: {
+          ...countFilter,
           createdate: {
             gte: startOfMonth,
             lt: endOfMonth,

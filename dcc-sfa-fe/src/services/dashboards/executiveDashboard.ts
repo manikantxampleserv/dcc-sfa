@@ -82,3 +82,29 @@ export const getOrderStatus = async (): Promise<OrderStatusData> => {
   const response = await api.get('/dashboard/order-status');
   return response.data.data;
 };
+
+export interface ExecutiveDashboardOverview {
+  statistics: DashboardStatistics;
+  salesPerformance: SalesPerformanceData;
+  topProducts: TopProductsData;
+  orderStatus: OrderStatusData;
+}
+
+/**
+ * Fetch consolidated executive dashboard overview
+ * @param {number} [period=30] - Time period in days
+ * @param {number} [topProductsLimit=5] - Limit for top products
+ * @returns {Promise<ExecutiveDashboardOverview>} Consolidated dashboard data
+ */
+export const getExecutiveDashboardOverview = async (
+  period: number = 30,
+  topProductsLimit: number = 5
+): Promise<ExecutiveDashboardOverview> => {
+  const response = await api.get('/dashboard/executive', {
+    params: {
+      period,
+      top_products_limit: topProductsLimit,
+    },
+  });
+  return response.data.data;
+};

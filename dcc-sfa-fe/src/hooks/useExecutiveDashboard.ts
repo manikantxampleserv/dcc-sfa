@@ -1,12 +1,30 @@
 import { useQuery } from '@tanstack/react-query';
 import {
   getDashboardStatistics,
+  getExecutiveDashboardOverview,
+  getOrderStatus,
   getSalesPerformance,
   getTopProducts,
-  getOrderStatus,
 } from '../services/dashboards/executiveDashboard';
 
 const CACHE_TIME = 3 * 60 * 1000;
+
+/**
+ * Hook to fetch consolidated executive dashboard data in a single request
+ * @param {number} [period=30] - Time period in days
+ * @param {number} [limit=5] - Limit for top products
+ * @returns React Query result with consolidated dashboard data
+ */
+export const useExecutiveDashboardOverview = (
+  period: number = 30,
+  limit: number = 5
+) => {
+  return useQuery({
+    queryKey: ['executiveDashboardOverview', period, limit],
+    queryFn: () => getExecutiveDashboardOverview(period, limit),
+    staleTime: CACHE_TIME,
+  });
+};
 
 export const useDashboardStatistics = () => {
   return useQuery({

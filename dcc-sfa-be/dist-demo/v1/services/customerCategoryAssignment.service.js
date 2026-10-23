@@ -4,9 +4,86 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CustomerCategoryAssignmentService = void 0;
+exports.evaluateConditionRule = evaluateConditionRule;
+exports.matchesCategory = matchesCategory;
 const prisma_client_1 = __importDefault(require("../../configs/prisma.client"));
+function evaluateConditionRule(actualValue, condition) {
+    const min = condition.min_threshold_value !== null &&
+        condition.min_threshold_value !== undefined
+        ? Number(condition.min_threshold_value)
+        : null;
+    const max = condition.max_threshold_value !== null &&
+        condition.max_threshold_value !== undefined
+        ? Number(condition.max_threshold_value)
+        : null;
+    const op = (condition.condition_operator || '>=').toUpperCase().trim();
+    if (op === 'BETWEEN' || op === 'RANGE' || min !== null || max !== null) {
+        if (min !== null && max !== null) {
+            return actualValue >= min && actualValue <= max;
+        }
+        if (min !== null) {
+            return actualValue >= min;
+        }
+        if (max !== null) {
+            return actualValue <= max;
+        }
+    }
+    const single = condition.threshold_value !== null &&
+        condition.threshold_value !== undefined
+        ? Number(condition.threshold_value)
+        : 0;
+    switch (condition.condition_operator) {
+        case '>=':
+            return actualValue >= single;
+        case '<=':
+            return actualValue <= single;
+        case '>':
+            return actualValue > single;
+        case '<':
+            return actualValue < single;
+        case '=':
+        case '==':
+            return actualValue === single;
+        case '!=':
+            return actualValue !== single;
+        default:
+            return actualValue >= single;
+    }
+}
+function matchesCategory(category, metrics) {
+    if (!category.conditions || category.conditions.length === 0) {
+        return false;
+    }
+    const logicalOp = (category.logical_condition || 'AND').toUpperCase().trim();
+    const results = category.conditions.map(cond => {
+        let actualValue = metrics.totalSales;
+        const type = (cond.condition_type || '').toLowerCase();
+        if (cond.product_category_id && metrics.categorySales) {
+            actualValue = metrics.categorySales.get(cond.product_category_id) || 0;
+        }
+        else if (type.includes('order') ||
+            type.includes('frequency') ||
+            type.includes('count')) {
+            actualValue = metrics.orderCount;
+        }
+        else if (type.includes('average') || type.includes('aov')) {
+            actualValue = metrics.averageOrderValue;
+        }
+        else {
+            actualValue = metrics.totalSales;
+        }
+        return evaluateConditionRule(actualValue, cond);
+    });
+    if (logicalOp === 'OR') {
+        return results.some(r => r === true);
+    }
+    else {
+        // Default is AND: all condition types must be true
+        return results.every(r => r === true);
+    }
+}
 class CustomerCategoryAssignmentService {
-    async calculateCustomerSales(customerId) {
+    async calculateCustomerMetrics(customerId) {
         const orderSales = await prisma_client_1.default.orders.aggregate({
             where: {
                 parent_id: customerId,
@@ -18,20 +95,18 @@ class CustomerCategoryAssignmentService {
             _sum: {
                 total_amount: true,
             },
-        });
-        const invoiceSales = await prisma_client_1.default.invoices.aggregate({
-            where: {
-                customer_id: customerId,
-                status: {
-                    in: ['paid', 'completed'],
-                },
-                is_active: 'Y',
-            },
-            _sum: {
-                amount_paid: true,
+            _count: {
+                id: true,
             },
         });
-        return Number(orderSales._sum.total_amount || 0);
+        const totalSales = Number(orderSales._sum.total_amount || 0);
+        const orderCount = Number(orderSales._count.id || 0);
+        const averageOrderValue = orderCount > 0 ? totalSales / orderCount : 0;
+        return {
+            totalSales,
+            orderCount,
+            averageOrderValue,
+        };
     }
     async getCategoryLevels() {
         const categories = await prisma_client_1.default.customer_category.findMany({
@@ -42,12 +117,11 @@ class CustomerCategoryAssignmentService {
                 customer_category_condition_customer_category: {
                     where: {
                         is_active: 'Y',
-                        condition_type: 'sales_amount',
                     },
                 },
             },
             orderBy: {
-                level: 'asc',
+                level: 'desc',
             },
         });
         return categories
@@ -56,15 +130,26 @@ class CustomerCategoryAssignmentService {
             id: cat.id,
             categoryName: cat.category_name,
             level: cat.level || 1,
-            thresholdValue: Number(cat.customer_category_condition_customer_category[0]
-                ?.threshold_value || 0),
-        }))
-            .sort((a, b) => a.thresholdValue - b.thresholdValue);
+            logical_condition: cat.logical_condition || 'AND',
+            conditions: cat.customer_category_condition_customer_category.map(c => ({
+                id: c.id,
+                condition_type: c.condition_type,
+                condition_operator: c.condition_operator,
+                threshold_value: Number(c.threshold_value || 0),
+                min_threshold_value: c.min_threshold_value !== null
+                    ? Number(c.min_threshold_value)
+                    : null,
+                max_threshold_value: c.max_threshold_value !== null
+                    ? Number(c.max_threshold_value)
+                    : null,
+                product_category_id: c.product_category_id,
+            })),
+        }));
     }
-    determineCategory(totalSales, categoryLevels) {
-        for (let i = categoryLevels.length - 1; i >= 0; i--) {
-            if (totalSales >= categoryLevels[i].thresholdValue) {
-                return categoryLevels[i];
+    determineCategory(metrics, categoryLevels) {
+        for (const category of categoryLevels) {
+            if (matchesCategory(category, metrics)) {
+                return category;
             }
         }
         return null;
@@ -82,11 +167,15 @@ class CustomerCategoryAssignmentService {
         try {
             const categoryLevels = await this.getCategoryLevels();
             if (categoryLevels.length === 0) {
-                console.warn('No active customer categories found with sales conditions');
+                console.warn('No active customer categories found with conditions');
                 return results;
             }
-            console.log(`Found ${categoryLevels.length} category levels:`, categoryLevels);
-            // Get all active customers
+            console.log(`Found ${categoryLevels.length} category levels:`, categoryLevels.map(c => ({
+                name: c.categoryName,
+                level: c.level,
+                logical_condition: c.logical_condition,
+                conditionsCount: c.conditions.length,
+            })));
             const customers = await prisma_client_1.default.customers.findMany({
                 where: {
                     is_active: 'Y',
@@ -101,8 +190,8 @@ class CustomerCategoryAssignmentService {
             for (const customer of customers) {
                 results.totalProcessed++;
                 try {
-                    const totalSales = await this.calculateCustomerSales(customer.id);
-                    const assignedCategory = this.determineCategory(totalSales, categoryLevels);
+                    const metrics = await this.calculateCustomerMetrics(customer.id);
+                    const assignedCategory = this.determineCategory(metrics, categoryLevels);
                     const newCategoryId = assignedCategory?.id || null;
                     const currentCategoryId = customer.customer_category_id;
                     if (newCategoryId !== currentCategoryId) {
@@ -118,13 +207,14 @@ class CustomerCategoryAssignmentService {
                         results.details.push({
                             customerId: customer.id,
                             customerName: customer.name,
-                            totalSales,
+                            totalSales: metrics.totalSales,
+                            orderCount: metrics.orderCount,
                             previousCategory: currentCategoryId,
                             newCategory: newCategoryId,
                             newCategoryName: assignedCategory?.categoryName || 'None',
                             status: 'updated',
                         });
-                        console.log(` Customer ${customer.name} (ID: ${customer.id}) - Sales: ${totalSales} - Category: ${assignedCategory?.categoryName || 'None'}`);
+                        console.log(` Customer ${customer.name} (ID: ${customer.id}) - Sales: ${metrics.totalSales}, Orders: ${metrics.orderCount} - Category: ${assignedCategory?.categoryName || 'None'}`);
                     }
                     else {
                         results.totalUnchanged++;
@@ -157,8 +247,8 @@ class CustomerCategoryAssignmentService {
     }
     async assignSingleCustomerCategory(customerId) {
         const categoryLevels = await this.getCategoryLevels();
-        const totalSales = await this.calculateCustomerSales(customerId);
-        const assignedCategory = this.determineCategory(totalSales, categoryLevels);
+        const metrics = await this.calculateCustomerMetrics(customerId);
+        const assignedCategory = this.determineCategory(metrics, categoryLevels);
         if (assignedCategory) {
             await prisma_client_1.default.customers.update({
                 where: { id: customerId },
@@ -170,8 +260,10 @@ class CustomerCategoryAssignmentService {
         }
         return {
             customerId,
-            totalSales,
+            totalSales: metrics.totalSales,
+            orderCount: metrics.orderCount,
             assignedCategory: assignedCategory?.categoryName || 'None',
+            assignedCategoryId: assignedCategory?.id || null,
         };
     }
 }

@@ -7,12 +7,17 @@ import prisma from '../../configs/prisma.client';
  */
 export const executiveDashboardController = {
   /**
-   * Get Dashboard Statistics
-   * GET /api/v1/dashboard/statistics
-   * Returns overall system statistics
+   * Retrieves aggregated overview statistics, sales performance, top products, and order status in a single query pass
+   * @param {Request} req - Express request object
+   * @param {Response} res - Express response object
+   * @returns {Promise<void>} JSON response containing aggregated dashboard data
    */
-  async getStatistics(req: Request, res: Response) {
+  async getExecutiveDashboardOverview(req: Request, res: Response): Promise<void> {
     try {
+      const { period = '30', top_products_limit = '5' } = req.query;
+      const days = parseInt(period as string, 10) || 30;
+      const topN = parseInt(top_products_limit as string, 10) || 5;
+
       const now = new Date();
       const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
       const startOfLastMonth = new Date(
@@ -20,46 +25,139 @@ export const executiveDashboardController = {
         now.getMonth() - 1,
         1
       );
-      const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+      const endOfLastMonth = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        0,
+        23,
+        59,
+        59,
+        999
+      );
+      const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      const startDate = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
 
-      const user: any = req.user;
+      const user: any = (req as any).user;
       const zoneFilter = user?.zone_id ? { zones_id: user.zone_id } : {};
 
-      const totalCustomers = await prisma.customers.count({
-        where: { is_active: 'Y', ...zoneFilter },
-      });
+      const [
+        [
+          totalCustomers,
+          activeOutletsThisMonth,
+          activeOutletsThisWeek,
+          totalInvoices,
+          invoicesThisMonthCount,
+          invoicesLastMonthCount,
+          revenueThisMonthAgg,
+          revenueLastMonthAgg,
+          totalDeliveries,
+          successfulDeliveriesThisMonth,
+          allVisitsThisMonth,
+        ],
+        dailySalesRows,
+        topProductsRows,
+        salesmanRows,
+      ] = await Promise.all([
+        Promise.all([
+          prisma.customers.count({
+            where: { is_active: 'Y', ...zoneFilter },
+          }),
+          prisma.customers.count({
+            where: {
+              is_active: 'Y',
+              createdate: { gte: startOfMonth },
+              ...zoneFilter,
+            },
+          }),
+          prisma.customers.count({
+            where: {
+              is_active: 'Y',
+              createdate: { gte: sevenDaysAgo },
+              ...zoneFilter,
+            },
+          }),
+          prisma.invoices.count({
+            where: { is_active: 'Y' },
+          }),
+          prisma.invoices.count({
+            where: { is_active: 'Y', invoice_date: { gte: startOfMonth } },
+          }),
+          prisma.invoices.count({
+            where: {
+              is_active: 'Y',
+              invoice_date: { gte: startOfLastMonth, lte: endOfLastMonth },
+            },
+          }),
+          prisma.invoices.aggregate({
+            where: {
+              is_active: 'Y',
+              invoice_date: { gte: startOfMonth },
+            },
+            _sum: {
+              total_amount: true,
+            },
+          }),
+          prisma.invoices.aggregate({
+            where: {
+              is_active: 'Y',
+              invoice_date: { gte: startOfLastMonth, lte: endOfLastMonth },
+            },
+            _sum: {
+              total_amount: true,
+            },
+          }),
+          prisma.visits.count({
+            where: { is_active: 'Y', status: 'completed' },
+          }),
+          prisma.visits.count({
+            where: {
+              is_active: 'Y',
+              status: 'completed',
+              visit_date: { gte: startOfMonth },
+            },
+          }),
+          prisma.visits.count({
+            where: {
+              is_active: 'Y',
+              visit_date: { gte: startOfMonth },
+            },
+          }),
+        ]),
+        prisma.$queryRaw<Array<{ sale_date: string; total_sales: number | null }>>`
+          SELECT 
+            CONVERT(VARCHAR(10), invoice_date, 120) AS sale_date,
+            SUM(CAST(total_amount AS FLOAT)) AS total_sales
+          FROM invoices
+          WHERE is_active = 'Y'
+            AND invoice_date >= ${startDate}
+          GROUP BY CONVERT(VARCHAR(10), invoice_date, 120)
+          ORDER BY sale_date ASC
+        `,
+        prisma.$queryRaw<Array<{ name: string; qty: number | bigint | null }>>`
+          SELECT TOP (${topN})
+            p.name,
+            SUM(CAST(ii.quantity AS BIGINT)) AS qty
+          FROM invoice_items ii
+          INNER JOIN invoices i ON ii.parent_id = i.id
+          INNER JOIN products p ON ii.product_id = p.id
+          WHERE i.is_active = 'Y'
+            AND i.invoice_date >= ${startDate}
+          GROUP BY p.id, p.name
+          ORDER BY qty DESC
+        `,
+        prisma.$queryRaw<Array<{ name: string; invoice_count: number | bigint | null }>>`
+          SELECT TOP 5
+            u.name,
+            COUNT(i.id) AS invoice_count
+          FROM invoices i
+          INNER JOIN users u ON i.salesperson_id = u.id
+          WHERE i.is_active = 'Y'
+            AND u.name IS NOT NULL
+          GROUP BY u.id, u.name
+          ORDER BY invoice_count DESC
+        `,
+      ]);
 
-      const activeOutletsThisMonth = await prisma.customers.count({
-        where: {
-          is_active: 'Y',
-          createdate: { gte: startOfMonth },
-          ...zoneFilter,
-        },
-      });
-
-      const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-      const activeOutletsThisWeek = await prisma.customers.count({
-        where: {
-          is_active: 'Y',
-          createdate: { gte: sevenDaysAgo },
-          ...zoneFilter,
-        },
-      });
-
-      const totalInvoices = await prisma.invoices.count({
-        where: { is_active: 'Y' },
-      });
-
-      const invoicesThisMonthCount = await prisma.invoices.count({
-        where: { is_active: 'Y', invoice_date: { gte: startOfMonth } },
-      });
-
-      const invoicesLastMonthCount = await prisma.invoices.count({
-        where: {
-          is_active: 'Y',
-          invoice_date: { gte: startOfLastMonth, lte: endOfLastMonth },
-        },
-      });
       const invoicesGrowthPercentage =
         invoicesLastMonthCount > 0
           ? ((invoicesThisMonthCount - invoicesLastMonthCount) /
@@ -67,34 +165,9 @@ export const executiveDashboardController = {
             100
           : 0;
 
-      const invoicesThisMonth = await prisma.invoices.findMany({
-        where: {
-          is_active: 'Y',
-          invoice_date: { gte: startOfMonth },
-        },
-        select: {
-          total_amount: true,
-        },
-      });
-
-      const salesRevenue = invoicesThisMonth.reduce(
-        (sum, inv) => sum + Number(inv.total_amount || 0),
-        0
-      );
-
-      const invoicesLastMonth = await prisma.invoices.findMany({
-        where: {
-          is_active: 'Y',
-          invoice_date: { gte: startOfLastMonth, lte: endOfLastMonth },
-        },
-        select: {
-          total_amount: true,
-        },
-      });
-
-      const salesRevenueLastMonth = invoicesLastMonth.reduce(
-        (sum, inv) => sum + Number(inv.total_amount || 0),
-        0
+      const salesRevenue = Number(revenueThisMonthAgg._sum.total_amount || 0);
+      const salesRevenueLastMonth = Number(
+        revenueLastMonthAgg._sum.total_amount || 0
       );
 
       const revenueGrowthPercentage =
@@ -107,24 +180,222 @@ export const executiveDashboardController = {
       const targetProgress =
         salesTarget > 0 ? (salesRevenue / salesTarget) * 100 : 0;
 
-      const totalDeliveries = await prisma.visits.count({
-        where: { is_active: 'Y', status: 'completed' },
+      const deliverySuccessRate =
+        allVisitsThisMonth > 0
+          ? (successfulDeliveriesThisMonth / allVisitsThisMonth) * 100
+          : 0;
+
+      const salesByDate: Record<string, number> = {};
+      dailySalesRows.forEach(row => {
+        if (row.sale_date) {
+          salesByDate[row.sale_date] = Number(row.total_sales || 0);
+        }
       });
 
-      const successfulDeliveriesThisMonth = await prisma.visits.count({
-        where: {
-          is_active: 'Y',
-          status: 'completed',
-          visit_date: { gte: startOfMonth },
-        },
-      });
+      const salesLabels: string[] = [];
+      const salesValues: number[] = [];
 
-      const allVisitsThisMonth = await prisma.visits.count({
-        where: {
-          is_active: 'Y',
-          visit_date: { gte: startOfMonth },
+      for (let i = 0; i < days; i++) {
+        const d = new Date(startDate);
+        d.setDate(d.getDate() + i);
+        const dateStr = d.toISOString().split('T')[0];
+        const monthDay = `${d.getMonth() + 1}/${d.getDate()}`;
+
+        salesLabels.push(monthDay);
+        salesValues.push(salesByDate[dateStr] || 0);
+      }
+
+      const topProductsData = {
+        products: topProductsRows.map(p => p.name || 'Unknown'),
+        quantities: topProductsRows.map(p => Number(p.qty || 0)),
+      };
+
+      const orderStatusData = {
+        labels: salesmanRows.map(r => r.name),
+        values: salesmanRows.map(r => Number(r.invoice_count || 0)),
+      };
+
+      res.json({
+        success: true,
+        message: 'Executive dashboard overview retrieved successfully',
+        data: {
+          statistics: {
+            totalInvoices: {
+              value: totalInvoices,
+              thisMonth: invoicesThisMonthCount,
+              growthPercentage: invoicesGrowthPercentage.toFixed(1),
+            },
+            salesRevenue: {
+              value: salesRevenue,
+              formatted:
+                salesRevenue > 0
+                  ? `₹${(salesRevenue / 100000).toFixed(1)}L`
+                  : '₹0.0L',
+              growthPercentage: revenueGrowthPercentage.toFixed(1),
+              target: salesTarget,
+              targetProgress: targetProgress.toFixed(1),
+            },
+            deliveries: {
+              value: totalDeliveries,
+              thisMonth: successfulDeliveriesThisMonth,
+              successRate: deliverySuccessRate.toFixed(1),
+            },
+            activeOutlets: {
+              value: totalCustomers,
+              thisMonth: activeOutletsThisMonth,
+              thisWeek: activeOutletsThisWeek,
+            },
+          },
+          salesPerformance: {
+            labels: salesLabels,
+            sales: salesValues,
+            period: days,
+          },
+          topProducts: topProductsData,
+          orderStatus: orderStatusData,
         },
       });
+    } catch (error: any) {
+      console.error('Get Executive Dashboard Overview Error:', error);
+      res.status(500).json({
+        success: false,
+        message:
+          error.message ||
+          'Failed to retrieve executive dashboard overview data',
+      });
+    }
+  },
+
+  /**
+   * Get Dashboard Statistics
+   * GET /api/v1/dashboard/statistics
+   * Returns overall system statistics
+   * @param {Request} req - Express request object
+   * @param {Response} res - Express response object
+   * @returns {Promise<void>}
+   */
+  async getStatistics(req: Request, res: Response) {
+    try {
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const startOfLastMonth = new Date(
+        now.getFullYear(),
+        now.getMonth() - 1,
+        1
+      );
+      const endOfLastMonth = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        0,
+        23,
+        59,
+        59,
+        999
+      );
+      const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+      const user: any = req.user;
+      const zoneFilter = user?.zone_id ? { zones_id: user.zone_id } : {};
+
+      const [
+        totalCustomers,
+        activeOutletsThisMonth,
+        activeOutletsThisWeek,
+        totalInvoices,
+        invoicesThisMonthCount,
+        invoicesLastMonthCount,
+        revenueThisMonthAgg,
+        revenueLastMonthAgg,
+        totalDeliveries,
+        successfulDeliveriesThisMonth,
+        allVisitsThisMonth,
+      ] = await Promise.all([
+        prisma.customers.count({
+          where: { is_active: 'Y', ...zoneFilter },
+        }),
+        prisma.customers.count({
+          where: {
+            is_active: 'Y',
+            createdate: { gte: startOfMonth },
+            ...zoneFilter,
+          },
+        }),
+        prisma.customers.count({
+          where: {
+            is_active: 'Y',
+            createdate: { gte: sevenDaysAgo },
+            ...zoneFilter,
+          },
+        }),
+        prisma.invoices.count({
+          where: { is_active: 'Y' },
+        }),
+        prisma.invoices.count({
+          where: { is_active: 'Y', invoice_date: { gte: startOfMonth } },
+        }),
+        prisma.invoices.count({
+          where: {
+            is_active: 'Y',
+            invoice_date: { gte: startOfLastMonth, lte: endOfLastMonth },
+          },
+        }),
+        prisma.invoices.aggregate({
+          where: {
+            is_active: 'Y',
+            invoice_date: { gte: startOfMonth },
+          },
+          _sum: {
+            total_amount: true,
+          },
+        }),
+        prisma.invoices.aggregate({
+          where: {
+            is_active: 'Y',
+            invoice_date: { gte: startOfLastMonth, lte: endOfLastMonth },
+          },
+          _sum: {
+            total_amount: true,
+          },
+        }),
+        prisma.visits.count({
+          where: { is_active: 'Y', status: 'completed' },
+        }),
+        prisma.visits.count({
+          where: {
+            is_active: 'Y',
+            status: 'completed',
+            visit_date: { gte: startOfMonth },
+          },
+        }),
+        prisma.visits.count({
+          where: {
+            is_active: 'Y',
+            visit_date: { gte: startOfMonth },
+          },
+        }),
+      ]);
+
+      const invoicesGrowthPercentage =
+        invoicesLastMonthCount > 0
+          ? ((invoicesThisMonthCount - invoicesLastMonthCount) /
+              invoicesLastMonthCount) *
+            100
+          : 0;
+
+      const salesRevenue = Number(revenueThisMonthAgg._sum.total_amount || 0);
+      const salesRevenueLastMonth = Number(
+        revenueLastMonthAgg._sum.total_amount || 0
+      );
+
+      const revenueGrowthPercentage =
+        salesRevenueLastMonth > 0
+          ? ((salesRevenue - salesRevenueLastMonth) / salesRevenueLastMonth) *
+            100
+          : 0;
+
+      const salesTarget = salesRevenueLastMonth * 1.1;
+      const targetProgress =
+        salesTarget > 0 ? (salesRevenue / salesTarget) * 100 : 0;
 
       const deliverySuccessRate =
         allVisitsThisMonth > 0
@@ -174,37 +445,37 @@ export const executiveDashboardController = {
   /**
    * Get Sales Performance Data
    * GET /api/v1/dashboard/sales-performance
-   * Returns sales data for charts (last 7 days, last 30 days)
+   * Returns sales data for charts
+   * @param {Request} req - Express request object
+   * @param {Response} res - Express response object
+   * @returns {Promise<void>}
    */
   async getSalesPerformance(req: Request, res: Response) {
     try {
       const { period = '30' } = req.query;
-      const days = parseInt(period as string);
+      const days = parseInt(period as string, 10) || 30;
 
       const now = new Date();
       const startDate = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
 
-      const invoices = await prisma.invoices.findMany({
-        where: {
-          is_active: 'Y',
-          invoice_date: { gte: startDate },
-        },
-        select: {
-          invoice_date: true,
-          total_amount: true,
-        },
-        orderBy: {
-          invoice_date: 'asc',
-        },
-      });
+      const dailySalesRows = await prisma.$queryRaw<
+        Array<{ sale_date: string; total_sales: number | null }>
+      >`
+        SELECT 
+          CONVERT(VARCHAR(10), invoice_date, 120) AS sale_date,
+          SUM(CAST(total_amount AS FLOAT)) AS total_sales
+        FROM invoices
+        WHERE is_active = 'Y'
+          AND invoice_date >= ${startDate}
+        GROUP BY CONVERT(VARCHAR(10), invoice_date, 120)
+        ORDER BY sale_date ASC
+      `;
 
-      const salesByDate: { [key: string]: number } = {};
-      invoices.forEach(inv => {
-        const date = inv.invoice_date
-          ? inv.invoice_date.toISOString().split('T')[0]
-          : 'unknown';
-        salesByDate[date] =
-          (salesByDate[date] || 0) + Number(inv.total_amount || 0);
+      const salesByDate: Record<string, number> = {};
+      dailySalesRows.forEach(row => {
+        if (row.sale_date) {
+          salesByDate[row.sale_date] = Number(row.total_sales || 0);
+        }
       });
 
       const labels: string[] = [];
@@ -242,65 +513,40 @@ export const executiveDashboardController = {
    * Get Top Products Data
    * GET /api/v1/dashboard/top-products
    * Returns top selling products
+   * @param {Request} req - Express request object
+   * @param {Response} res - Express response object
+   * @returns {Promise<void>}
    */
   async getTopProducts(req: Request, res: Response) {
     try {
       const { period = '30', limit = 5 } = req.query;
-      const days = parseInt(period as string);
-      const topN = parseInt(limit as string);
+      const days = parseInt(period as string, 10) || 30;
+      const topN = parseInt(limit as string, 10) || 5;
 
       const now = new Date();
       const startDate = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
 
-      const invoiceItems = await prisma.invoice_items.findMany({
-        where: {
-          invoices: {
-            is_active: 'Y',
-            invoice_date: { gte: startDate },
-          },
-        },
-        select: {
-          product_id: true,
-          quantity: true,
-          product_name: true,
-          invoice_items_products: {
-            select: {
-              id: true,
-              name: true,
-              code: true,
-            },
-          },
-        },
-      });
-
-      const productSales: {
-        [key: number]: { name: string; code: string; qty: number };
-      } = {};
-
-      invoiceItems.forEach(item => {
-        if (item.invoice_items_products) {
-          const productId = item.invoice_items_products.id;
-          if (!productSales[productId]) {
-            productSales[productId] = {
-              name: item.invoice_items_products.name,
-              code: item.invoice_items_products.code,
-              qty: 0,
-            };
-          }
-          productSales[productId].qty += Number(item.quantity || 0);
-        }
-      });
-
-      const topProducts = Object.values(productSales)
-        .sort((a, b) => b.qty - a.qty)
-        .slice(0, topN);
+      const topProductsRows = await prisma.$queryRaw<
+        Array<{ name: string; qty: number | bigint | null }>
+      >`
+        SELECT TOP (${topN})
+          p.name,
+          SUM(CAST(ii.quantity AS BIGINT)) AS qty
+        FROM invoice_items ii
+        INNER JOIN invoices i ON ii.parent_id = i.id
+        INNER JOIN products p ON ii.product_id = p.id
+        WHERE i.is_active = 'Y'
+          AND i.invoice_date >= ${startDate}
+        GROUP BY p.id, p.name
+        ORDER BY qty DESC
+      `;
 
       res.json({
         success: true,
         message: 'Top products data retrieved successfully',
         data: {
-          products: topProducts.map(p => p.name),
-          quantities: topProducts.map(p => p.qty),
+          products: topProductsRows.map(p => p.name || 'Unknown'),
+          quantities: topProductsRows.map(p => Number(p.qty || 0)),
         },
       });
     } catch (error: any) {
@@ -315,42 +561,33 @@ export const executiveDashboardController = {
   /**
    * Get Order Status Distribution
    * GET /api/v1/dashboard/order-status
-   * Returns order counts by status
+   * Returns invoice counts by salesman
+   * @param {Request} req - Express request object
+   * @param {Response} res - Express response object
+   * @returns {Promise<void>}
    */
   async getOrderStatus(req: Request, res: Response) {
     try {
-      const invoices = await prisma.invoices.findMany({
-        where: { is_active: 'Y' },
-        select: {
-          invoices_salesperson: {
-            select: {
-              name: true,
-            },
-          },
-        },
-      });
-
-      const counts: { [key: string]: number } = {};
-      invoices.forEach(invoice => {
-        const salesman = invoice.invoices_salesperson?.name;
-        if (salesman) {
-          counts[salesman] = (counts[salesman] || 0) + 1;
-        }
-      });
-
-      const sortedEntries = Object.entries(counts)
-        .sort(([, a], [, b]) => b - a)
-        .slice(0, 5);
-
-      const labels = sortedEntries.map(([label]) => label);
-      const values = sortedEntries.map(([, value]) => value);
+      const salesmanRows = await prisma.$queryRaw<
+        Array<{ name: string; invoice_count: number | bigint | null }>
+      >`
+        SELECT TOP 5
+          u.name,
+          COUNT(i.id) AS invoice_count
+        FROM invoices i
+        INNER JOIN users u ON i.salesperson_id = u.id
+        WHERE i.is_active = 'Y'
+          AND u.name IS NOT NULL
+        GROUP BY u.id, u.name
+        ORDER BY invoice_count DESC
+      `;
 
       res.json({
         success: true,
         message: 'Invoices by salesman data retrieved successfully',
         data: {
-          labels,
-          values,
+          labels: salesmanRows.map(r => r.name),
+          values: salesmanRows.map(r => Number(r.invoice_count || 0)),
         },
       });
     } catch (error: any) {

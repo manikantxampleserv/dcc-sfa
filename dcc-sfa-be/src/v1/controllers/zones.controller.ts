@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { paginate } from '../../utils/paginate';
 import prisma from '../../configs/prisma.client';
+import { isAdminRole } from '../../configs/permissions.config';
 
 interface ZoneSerialized {
   id: number;
@@ -199,6 +200,25 @@ export const zonesController = {
       const limitNum = parseInt(limit as string, 10) || 10;
       const searchLower = search ? (search as string).toLowerCase() : '';
 
+      const user = (req as any).user;
+      let isScopeRestricted = false;
+      let depotIds: number[] = [];
+
+      if (user && !isAdminRole(user.role)) {
+        isScopeRestricted = true;
+        const userDepots = await prisma.user_depots.findMany({
+          where: { user_id: user.id, is_active: 'Y' },
+          select: { depot_id: true },
+        });
+        depotIds = userDepots
+          .map((ud: any) => ud.depot_id)
+          .filter((id: any) => id !== null) as number[];
+
+        if (user.depot_id && !depotIds.includes(user.depot_id)) {
+          depotIds.push(user.depot_id);
+        }
+      }
+
       const filters: any = {
         ...(search && {
           OR: [
@@ -207,9 +227,27 @@ export const zonesController = {
           ],
         }),
         ...(isActive && { is_active: isActive as string }),
-        ...(parent_id && { parent_id: Number(parent_id) }),
         ...(supervisor_id && { supervisor_id: Number(supervisor_id) }),
       };
+
+      if (isScopeRestricted) {
+        if (depotIds.length > 0) {
+          if (parent_id) {
+            const parsedParentId = Number(parent_id);
+            if (depotIds.includes(parsedParentId)) {
+              filters.parent_id = parsedParentId;
+            } else {
+              filters.id = -1;
+            }
+          } else {
+            filters.parent_id = { in: depotIds };
+          }
+        } else {
+          filters.id = -1;
+        }
+      } else if (parent_id) {
+        filters.parent_id = Number(parent_id);
+      }
 
       const { data, pagination } = await paginate({
         model: prisma.zones,
@@ -231,12 +269,20 @@ export const zonesController = {
         },
       });
 
-      const totalZones = await prisma.zones.count();
+      const countFilter: any = {
+        ...(isScopeRestricted && {
+          parent_id: depotIds.length > 0 ? { in: depotIds } : -1,
+        }),
+      };
+
+      const totalZones = await prisma.zones.count({
+        where: countFilter,
+      });
       const activeZones = await prisma.zones.count({
-        where: { is_active: 'Y' },
+        where: { ...countFilter, is_active: 'Y' },
       });
       const inactiveZones = await prisma.zones.count({
-        where: { is_active: 'N' },
+        where: { ...countFilter, is_active: 'N' },
       });
 
       const now = new Date();
@@ -244,6 +290,7 @@ export const zonesController = {
       const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
       const newZonesThisMonth = await prisma.zones.count({
         where: {
+          ...countFilter,
           createdate: {
             gte: startOfMonth,
             lt: endOfMonth,

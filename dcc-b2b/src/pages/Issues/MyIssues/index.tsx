@@ -108,7 +108,7 @@ const MyIssues: React.FC = () => {
   ];
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <div>
           <p className="text-xl font-bold text-gray-900">My Issues</p>

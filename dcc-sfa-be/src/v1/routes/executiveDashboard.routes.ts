@@ -8,6 +8,13 @@ import { executiveDashboardController } from '../controllers/executiveDashboard.
 const router = Router();
 
 router.get(
+  '/dashboard/executive',
+  authenticateToken,
+  requirePermission([{ module: 'executive-dashboard', action: 'read' }]),
+  executiveDashboardController.getExecutiveDashboardOverview
+);
+
+router.get(
   '/dashboard/statistics',
   authenticateToken,
   requirePermission([{ module: 'executive-dashboard', action: 'read' }]),

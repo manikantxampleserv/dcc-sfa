@@ -118,8 +118,12 @@ const login = async (req, res) => {
             return res.error('User not found', 404);
         }
         const incomingVersion = version || app_version || req.get('X-App-Version');
-        const appVersionStr = incomingVersion ? truncateString(incomingVersion, 50) : '1.0.0';
-        const userVersionStr = incomingVersion ? truncateString(incomingVersion, 100) : user.version;
+        const appVersionStr = incomingVersion
+            ? truncateString(incomingVersion, 50)
+            : '1.0.0';
+        const userVersionStr = incomingVersion
+            ? truncateString(incomingVersion, 100)
+            : user.version;
         if (user.platform) {
             if (!platform) {
                 return res.error('Platform is required for this account. This account is restricted to specific platform access.', 400);

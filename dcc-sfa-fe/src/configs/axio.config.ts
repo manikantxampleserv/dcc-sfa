@@ -381,9 +381,12 @@ function handleClientError(error: AxiosError): Promise<never> {
  * @returns {Promise<never>} Rejected promise
  */
 function handleNetworkError(error: AxiosError): Promise<never> {
+  const isOffline =
+    typeof navigator !== 'undefined' && navigator.onLine === false;
   let errorType: NetworkErrorTypeType = NetworkErrorType.NETWORK_ERROR;
-  let message =
-    'Network error occurred. Please check your internet connection.';
+  let message = isOffline
+    ? 'You are offline. Please check your internet connection.'
+    : 'Unable to reach the server. The request timed out or the server is unavailable.';
 
   if (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT') {
     errorType = NetworkErrorType.TIMEOUT;
@@ -393,12 +396,15 @@ function handleNetworkError(error: AxiosError): Promise<never> {
   } else if (error.code === 'ENOTFOUND') {
     message = 'Server not found. Please check your connection.';
   } else if (error.code === 'ERR_NETWORK') {
-    message = 'Network error. Unable to reach the server.';
+    message = isOffline
+      ? 'You are offline. Please check your internet connection.'
+      : 'Unable to reach the server. The request timed out or the server is unavailable.';
   } else if (error.message?.includes('Network Error')) {
-    message = 'Network error. Please check your internet connection.';
+    message = isOffline
+      ? 'Network error. Please check your internet connection.'
+      : 'Unable to reach the server. The server may be busy or unreachable.';
   }
 
-  // Show toast (toastService will handle duplicates automatically)
   showNotification(message, NotificationType.ERROR);
 
   return Promise.reject(new ApiErrorClass(message, 0, errorType, error));

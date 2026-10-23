@@ -124,7 +124,7 @@ const RepLocationTracking: React.FC = () => {
   );
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-4">
       {/* Header */}
       <div className="flex justify-between items-center flex-wrap gap-4">
         <div>

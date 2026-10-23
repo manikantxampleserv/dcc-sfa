@@ -1268,9 +1268,7 @@ async function processApprovedVanInventoryStock(inventoryId, userId, requestData
  */
 async function resolveProductPrices(client, productIds, context) {
     const result = new Map();
-    const normalizedProductIds = Array.from(new Set(productIds
-        .map(id => Number(id))
-        .filter(id => !isNaN(id) && id > 0)));
+    const normalizedProductIds = Array.from(new Set(productIds.map(id => Number(id)).filter(id => !isNaN(id) && id > 0)));
     if (normalizedProductIds.length === 0) {
         return result;
     }
@@ -1360,7 +1358,10 @@ async function resolveProductPrices(client, productIds, context) {
     }
     const candidatePricelistIds = [];
     const addCandidateId = (id) => {
-        if (typeof id === 'number' && !isNaN(id) && id > 0 && !candidatePricelistIds.includes(id)) {
+        if (typeof id === 'number' &&
+            !isNaN(id) &&
+            id > 0 &&
+            !candidatePricelistIds.includes(id)) {
             candidatePricelistIds.push(id);
         }
     };
@@ -1380,7 +1381,10 @@ async function resolveProductPrices(client, productIds, context) {
     }
     if (effectiveCustomerCategoryId) {
         const categoryRoutePricelists = await client.route_pricelists.findMany({
-            where: { customer_category_id: effectiveCustomerCategoryId, is_active: 'Y' },
+            where: {
+                customer_category_id: effectiveCustomerCategoryId,
+                is_active: 'Y',
+            },
             select: { pricelist_id: true },
         });
         categoryRoutePricelists.forEach((rp) => addCandidateId(rp.pricelist_id));
@@ -1518,7 +1522,9 @@ async function resolveProductPrices(client, productIds, context) {
                         return false;
                     if (sp.customer_id !== effectiveCustomerId)
                         return false;
-                    if (sp.route_id && effectiveRouteId && sp.route_id !== effectiveRouteId)
+                    if (sp.route_id &&
+                        effectiveRouteId &&
+                        sp.route_id !== effectiveRouteId)
                         return false;
                     return true;
                 });
@@ -1529,18 +1535,22 @@ async function resolveProductPrices(client, productIds, context) {
                         : item.tax_percent !== null && item.tax_percent !== undefined
                             ? Number(item.tax_percent)
                             : defaultTaxRate;
-                    const discount = match.discount_percent !== null && match.discount_percent !== undefined
+                    const discount = match.discount_percent !== null &&
+                        match.discount_percent !== undefined
                         ? Number(match.discount_percent)
-                        : item.discount_percent !== null && item.discount_percent !== undefined
+                        : item.discount_percent !== null &&
+                            item.discount_percent !== undefined
                             ? Number(item.discount_percent)
                             : null;
                     resolvedEntry = {
                         product_id: productId,
                         price: salePrice,
                         unit_price: salePrice,
-                        sub_unit_price: match.sale_sub_unit_price !== null && match.sale_sub_unit_price !== undefined
+                        sub_unit_price: match.sale_sub_unit_price !== null &&
+                            match.sale_sub_unit_price !== undefined
                             ? Number(match.sale_sub_unit_price)
-                            : item.sub_unit_price !== null && item.sub_unit_price !== undefined
+                            : item.sub_unit_price !== null &&
+                                item.sub_unit_price !== undefined
                                 ? Number(item.sub_unit_price)
                                 : null,
                         base_price: basePrice,
@@ -1573,7 +1583,9 @@ async function resolveProductPrices(client, productIds, context) {
                         return false;
                     if (sp.route_id !== effectiveRouteId)
                         return false;
-                    if (sp.customer_category_id && effectiveCustomerCategoryId && sp.customer_category_id !== effectiveCustomerCategoryId) {
+                    if (sp.customer_category_id &&
+                        effectiveCustomerCategoryId &&
+                        sp.customer_category_id !== effectiveCustomerCategoryId) {
                         return false;
                     }
                     return true;
@@ -1585,18 +1597,22 @@ async function resolveProductPrices(client, productIds, context) {
                         : item.tax_percent !== null && item.tax_percent !== undefined
                             ? Number(item.tax_percent)
                             : defaultTaxRate;
-                    const discount = match.discount_percent !== null && match.discount_percent !== undefined
+                    const discount = match.discount_percent !== null &&
+                        match.discount_percent !== undefined
                         ? Number(match.discount_percent)
-                        : item.discount_percent !== null && item.discount_percent !== undefined
+                        : item.discount_percent !== null &&
+                            item.discount_percent !== undefined
                             ? Number(item.discount_percent)
                             : null;
                     resolvedEntry = {
                         product_id: productId,
                         price: salePrice,
                         unit_price: salePrice,
-                        sub_unit_price: match.sale_sub_unit_price !== null && match.sale_sub_unit_price !== undefined
+                        sub_unit_price: match.sale_sub_unit_price !== null &&
+                            match.sale_sub_unit_price !== undefined
                             ? Number(match.sale_sub_unit_price)
-                            : item.sub_unit_price !== null && item.sub_unit_price !== undefined
+                            : item.sub_unit_price !== null &&
+                                item.sub_unit_price !== undefined
                                 ? Number(item.sub_unit_price)
                                 : null,
                         base_price: basePrice,
@@ -1638,18 +1654,22 @@ async function resolveProductPrices(client, productIds, context) {
                         : item.tax_percent !== null && item.tax_percent !== undefined
                             ? Number(item.tax_percent)
                             : defaultTaxRate;
-                    const discount = match.discount_percent !== null && match.discount_percent !== undefined
+                    const discount = match.discount_percent !== null &&
+                        match.discount_percent !== undefined
                         ? Number(match.discount_percent)
-                        : item.discount_percent !== null && item.discount_percent !== undefined
+                        : item.discount_percent !== null &&
+                            item.discount_percent !== undefined
                             ? Number(item.discount_percent)
                             : null;
                     resolvedEntry = {
                         product_id: productId,
                         price: salePrice,
                         unit_price: salePrice,
-                        sub_unit_price: match.sale_sub_unit_price !== null && match.sale_sub_unit_price !== undefined
+                        sub_unit_price: match.sale_sub_unit_price !== null &&
+                            match.sale_sub_unit_price !== undefined
                             ? Number(match.sale_sub_unit_price)
-                            : item.sub_unit_price !== null && item.sub_unit_price !== undefined
+                            : item.sub_unit_price !== null &&
+                                item.sub_unit_price !== undefined
                                 ? Number(item.sub_unit_price)
                                 : null,
                         base_price: basePrice,
@@ -1682,23 +1702,28 @@ async function resolveProductPrices(client, productIds, context) {
                 });
                 if (generalMatch) {
                     const salePrice = Number(generalMatch.sale_price);
-                    const tax = generalMatch.tax_percent !== null && generalMatch.tax_percent !== undefined
+                    const tax = generalMatch.tax_percent !== null &&
+                        generalMatch.tax_percent !== undefined
                         ? Number(generalMatch.tax_percent)
                         : item.tax_percent !== null && item.tax_percent !== undefined
                             ? Number(item.tax_percent)
                             : defaultTaxRate;
-                    const discount = generalMatch.discount_percent !== null && generalMatch.discount_percent !== undefined
+                    const discount = generalMatch.discount_percent !== null &&
+                        generalMatch.discount_percent !== undefined
                         ? Number(generalMatch.discount_percent)
-                        : item.discount_percent !== null && item.discount_percent !== undefined
+                        : item.discount_percent !== null &&
+                            item.discount_percent !== undefined
                             ? Number(item.discount_percent)
                             : null;
                     resolvedEntry = {
                         product_id: productId,
                         price: salePrice,
                         unit_price: salePrice,
-                        sub_unit_price: generalMatch.sale_sub_unit_price !== null && generalMatch.sale_sub_unit_price !== undefined
+                        sub_unit_price: generalMatch.sale_sub_unit_price !== null &&
+                            generalMatch.sale_sub_unit_price !== undefined
                             ? Number(generalMatch.sale_sub_unit_price)
-                            : item.sub_unit_price !== null && item.sub_unit_price !== undefined
+                            : item.sub_unit_price !== null &&
+                                item.sub_unit_price !== undefined
                                 ? Number(item.sub_unit_price)
                                 : null,
                         base_price: basePrice,
@@ -1719,7 +1744,8 @@ async function resolveProductPrices(client, productIds, context) {
                     const tax = item.tax_percent !== null && item.tax_percent !== undefined
                         ? Number(item.tax_percent)
                         : defaultTaxRate;
-                    const discount = item.discount_percent !== null && item.discount_percent !== undefined
+                    const discount = item.discount_percent !== null &&
+                        item.discount_percent !== undefined
                         ? Number(item.discount_percent)
                         : null;
                     resolvedEntry = {

@@ -8,6 +8,7 @@ exports.assignLowestCategoryToUncategorizedCustomers = assignLowestCategoryToUnc
 const node_cron_1 = __importDefault(require("node-cron"));
 const prisma_client_1 = __importDefault(require("../configs/prisma.client"));
 const logger_1 = __importDefault(require("../configs/logger"));
+const customerCategoryAssignment_service_1 = require("../v1/services/customerCategoryAssignment.service");
 function getChangeType(currentCategoryId, newCategoryId, validCategories) {
     if (!currentCategoryId && newCategoryId)
         return 'no_change';
@@ -74,12 +75,11 @@ const scheduleCustomerCategoryAssignment = async () => {
                     customer_category_condition_customer_category: {
                         where: {
                             is_active: 'Y',
-                            condition_type: 'sales_amount',
                         },
                     },
                 },
                 orderBy: {
-                    level: 'asc',
+                    level: 'desc', // Highest tier evaluated first
                 },
             });
             const validCategories = categoryLevels
@@ -88,12 +88,23 @@ const scheduleCustomerCategoryAssignment = async () => {
                 id: cat.id,
                 categoryName: cat.category_name,
                 level: cat.level || 1,
-                thresholdValue: Number(cat.customer_category_condition_customer_category[0]
-                    ?.threshold_value || 0),
-            }))
-                .sort((a, b) => a.thresholdValue - b.thresholdValue);
+                logical_condition: cat.logical_condition || 'AND',
+                conditions: cat.customer_category_condition_customer_category.map((c) => ({
+                    id: c.id,
+                    condition_type: c.condition_type,
+                    condition_operator: c.condition_operator,
+                    threshold_value: Number(c.threshold_value || 0),
+                    min_threshold_value: c.min_threshold_value !== null
+                        ? Number(c.min_threshold_value)
+                        : null,
+                    max_threshold_value: c.max_threshold_value !== null
+                        ? Number(c.max_threshold_value)
+                        : null,
+                    product_category_id: c.product_category_id,
+                })),
+            }));
             if (validCategories.length === 0) {
-                logger_1.default.warn('No active customer categories found with sales conditions');
+                logger_1.default.warn('No active customer categories found with conditions');
                 return;
             }
             logger_1.default.info(`Found ${validCategories.length} category levels`);
@@ -125,27 +136,41 @@ const scheduleCustomerCategoryAssignment = async () => {
                 _sum: {
                     total_amount: true,
                 },
+                _count: {
+                    id: true,
+                },
             });
-            const salesMap = new Map();
+            const metricsMap = new Map();
             for (const invoice of invoiceSalesData) {
                 if (invoice.customer_id !== null) {
-                    salesMap.set(invoice.customer_id, Number(invoice._sum?.total_amount || 0));
+                    const totalSales = Number(invoice._sum?.total_amount || 0);
+                    const orderCount = Number(invoice._count?.id || 0);
+                    const averageOrderValue = orderCount > 0 ? totalSales / orderCount : 0;
+                    metricsMap.set(invoice.customer_id, {
+                        totalSales,
+                        orderCount,
+                        averageOrderValue,
+                    });
                 }
             }
             logger_1.default.info(`Processing ${customers.length} customers...`);
             for (const customer of customers) {
                 results.totalProcessed++;
                 try {
-                    const totalSales = salesMap.get(customer.id) || 0;
+                    const metrics = metricsMap.get(customer.id) || {
+                        totalSales: 0,
+                        orderCount: 0,
+                        averageOrderValue: 0,
+                    };
                     let assignedCategory = null;
-                    for (let i = validCategories.length - 1; i >= 0; i--) {
-                        if (totalSales >= validCategories[i].thresholdValue) {
-                            assignedCategory = validCategories[i];
+                    for (const cat of validCategories) {
+                        if ((0, customerCategoryAssignment_service_1.matchesCategory)(cat, metrics)) {
+                            assignedCategory = cat;
                             break;
                         }
                     }
-                    if (!assignedCategory && validCategories.length > 0) {
-                        assignedCategory = validCategories[0];
+                    if (!assignedCategory && lowestCategory) {
+                        assignedCategory = lowestCategory;
                     }
                     const newCategoryId = assignedCategory?.id || null;
                     const currentCategoryId = customer.customer_category_id;

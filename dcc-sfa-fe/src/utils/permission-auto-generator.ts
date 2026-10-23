@@ -173,6 +173,7 @@ const MANUAL_PERMISSION_OVERRIDES: Record<string, BackendModule> = {
   'email-templates': 'templates',
   'promotion-materials-issue': 'promotion-materials',
   'promotional-materials': 'promotion-materials',
+  'promotion-materials-issued': 'report',
 };
 
 /**

@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.zonesController = exports.generateZoneCode = void 0;
 const paginate_1 = require("../../utils/paginate");
 const prisma_client_1 = __importDefault(require("../../configs/prisma.client"));
+const permissions_config_1 = require("../../configs/permissions.config");
 const generateZoneCode = async (depotId) => {
     if (!depotId) {
         throw new Error('Depot ID is required for zone code generation');
@@ -164,6 +165,22 @@ exports.zonesController = {
             const pageNum = parseInt(page, 10) || 1;
             const limitNum = parseInt(limit, 10) || 10;
             const searchLower = search ? search.toLowerCase() : '';
+            const user = req.user;
+            let isScopeRestricted = false;
+            let depotIds = [];
+            if (user && !(0, permissions_config_1.isAdminRole)(user.role)) {
+                isScopeRestricted = true;
+                const userDepots = await prisma_client_1.default.user_depots.findMany({
+                    where: { user_id: user.id, is_active: 'Y' },
+                    select: { depot_id: true },
+                });
+                depotIds = userDepots
+                    .map((ud) => ud.depot_id)
+                    .filter((id) => id !== null);
+                if (user.depot_id && !depotIds.includes(user.depot_id)) {
+                    depotIds.push(user.depot_id);
+                }
+            }
             const filters = {
                 ...(search && {
                     OR: [
@@ -172,9 +189,30 @@ exports.zonesController = {
                     ],
                 }),
                 ...(isActive && { is_active: isActive }),
-                ...(parent_id && { parent_id: Number(parent_id) }),
                 ...(supervisor_id && { supervisor_id: Number(supervisor_id) }),
             };
+            if (isScopeRestricted) {
+                if (depotIds.length > 0) {
+                    if (parent_id) {
+                        const parsedParentId = Number(parent_id);
+                        if (depotIds.includes(parsedParentId)) {
+                            filters.parent_id = parsedParentId;
+                        }
+                        else {
+                            filters.id = -1;
+                        }
+                    }
+                    else {
+                        filters.parent_id = { in: depotIds };
+                    }
+                }
+                else {
+                    filters.id = -1;
+                }
+            }
+            else if (parent_id) {
+                filters.parent_id = Number(parent_id);
+            }
             const { data, pagination } = await (0, paginate_1.paginate)({
                 model: prisma_client_1.default.zones,
                 filters,
@@ -194,18 +232,26 @@ exports.zonesController = {
                     zone_supervisor: true,
                 },
             });
-            const totalZones = await prisma_client_1.default.zones.count();
+            const countFilter = {
+                ...(isScopeRestricted && {
+                    parent_id: depotIds.length > 0 ? { in: depotIds } : -1,
+                }),
+            };
+            const totalZones = await prisma_client_1.default.zones.count({
+                where: countFilter,
+            });
             const activeZones = await prisma_client_1.default.zones.count({
-                where: { is_active: 'Y' },
+                where: { ...countFilter, is_active: 'Y' },
             });
             const inactiveZones = await prisma_client_1.default.zones.count({
-                where: { is_active: 'N' },
+                where: { ...countFilter, is_active: 'N' },
             });
             const now = new Date();
             const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
             const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
             const newZonesThisMonth = await prisma_client_1.default.zones.count({
                 where: {
+                    ...countFilter,
                     createdate: {
                         gte: startOfMonth,
                         lt: endOfMonth,

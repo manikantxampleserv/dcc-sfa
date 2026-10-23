@@ -20,12 +20,7 @@ import {
 } from 'chart.js';
 import { useAuditLogs } from 'hooks/useAuditLogs';
 import { useCurrency } from 'hooks/useCurrency';
-import {
-  useDashboardStatistics,
-  useOrderStatus,
-  useSalesPerformance,
-  useTopProducts,
-} from 'hooks/useExecutiveDashboard';
+import { useExecutiveDashboardOverview } from 'hooks/useExecutiveDashboard';
 import { useRequestsByUsersWithoutPermission } from 'hooks/useRequests';
 import React, { useState } from 'react';
 import { Chart, Doughnut, Line } from 'react-chartjs-2';
@@ -49,13 +44,14 @@ ChartJS.register(
 
 const ExecutiveDashboard: React.FC = () => {
   const navigate = useNavigate();
-  const { data: stats, isLoading: statsLoading } = useDashboardStatistics();
-  const { data: salesData, isLoading: salesLoading } = useSalesPerformance(30);
-  const { data: topProducts, isLoading: productsLoading } = useTopProducts(
-    30,
-    5
-  );
-  const { data: orderStatus, isLoading: orderStatusLoading } = useOrderStatus();
+  const { data: dashboardOverview, isLoading: dashboardLoading } =
+    useExecutiveDashboardOverview(30, 5);
+
+  const stats = dashboardOverview?.statistics;
+  const salesData = dashboardOverview?.salesPerformance;
+  const topProducts = dashboardOverview?.topProducts;
+  const orderStatus = dashboardOverview?.orderStatus;
+
   const { data: pendingApprovals, isLoading: approvalsLoading } =
     useRequestsByUsersWithoutPermission({
       page: 1,
@@ -64,7 +60,7 @@ const ExecutiveDashboard: React.FC = () => {
     });
   const { data: auditLogs, isLoading: auditLogsLoading } = useAuditLogs({
     page: 1,
-    limit: 100,
+    limit: 5,
   });
   const { formatCurrency } = useCurrency();
 
@@ -429,13 +425,7 @@ const ExecutiveDashboard: React.FC = () => {
     },
   };
 
-  const isLoading =
-    statsLoading ||
-    salesLoading ||
-    productsLoading ||
-    orderStatusLoading ||
-    approvalsLoading ||
-    auditLogsLoading;
+  const isLoading = dashboardLoading || approvalsLoading || auditLogsLoading;
 
   // Stats Card Skeleton Component
   const StatsCardSkeleton = () => (
@@ -746,7 +736,7 @@ const ExecutiveDashboard: React.FC = () => {
               <h3 className="text-lg font-semibold text-gray-900 mb-4">
                 Revenue Trend
               </h3>
-              {salesLoading ? (
+              {dashboardLoading ? (
                 <ChartSkeleton height={288} />
               ) : (
                 <div className="h-72 w-full">
@@ -762,7 +752,7 @@ const ExecutiveDashboard: React.FC = () => {
             <h3 className="text-lg font-semibold text-gray-900 mb-4">
               Invoices by Salesman
             </h3>
-            {orderStatusLoading ? (
+            {dashboardLoading ? (
               <DoughnutChartSkeleton />
             ) : hasPieChartData ? (
               <div className="h-72 w-full flex items-center justify-center">
@@ -793,7 +783,7 @@ const ExecutiveDashboard: React.FC = () => {
             <h3 className="text-lg font-semibold text-gray-900 mb-4">
               Top Selling Products (Last 30 Days)
             </h3>
-            {productsLoading ? (
+            {dashboardLoading ? (
               <ChartSkeleton height={288} />
             ) : (
               <div className="h-72 w-full flex items-center justify-center">
@@ -1023,7 +1013,7 @@ const ExecutiveDashboard: React.FC = () => {
           <h3 className="text-lg font-semibold text-gray-900 mb-4">
             Sales vs Invoices Performance
           </h3>
-          {salesLoading ? (
+          {dashboardLoading ? (
             <ChartSkeleton height={320} />
           ) : (
             <div className="h-80 w-full">
@@ -1045,7 +1035,7 @@ const ExecutiveDashboard: React.FC = () => {
             <h3 className="text-lg font-semibold text-gray-900 mb-4">
               Sales Performance & Trends
             </h3>
-            {salesLoading ? (
+            {dashboardLoading ? (
               <ChartSkeleton height={288} />
             ) : (
               <div className="h-72 w-full">

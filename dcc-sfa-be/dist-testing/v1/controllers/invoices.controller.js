@@ -657,7 +657,6 @@ exports.invoicesController = {
                     .split(',')
                     .map(id => Number(id.trim()))
                     .filter(id => !isNaN(id));
-                // Automatically expand the ID to include group members if it's a single ID
                 if (ids.length === 1) {
                     const expandedIds = await (0, inventory_utils_1.getContainerOwnerAndSelf)(prisma_client_1.default, ids[0]);
                     if (expandedIds.length > 0) {

@@ -53,6 +53,7 @@ const ManageAssetMaster: React.FC<ManageAssetMasterProps> = ({
     limit: 1000,
     isActive: 'Y',
   });
+
   const assetTypes = assetTypesResponse?.data || [];
 
   const { data: assetBrandsResponse } = useAssetBrands({
@@ -60,6 +61,7 @@ const ManageAssetMaster: React.FC<ManageAssetMasterProps> = ({
     limit: 1000,
     isActive: 'Y',
   });
+
   const assetBrands = assetBrandsResponse?.data || [];
 
   const { data: depotsResponse } = useDepots({
@@ -67,6 +69,7 @@ const ManageAssetMaster: React.FC<ManageAssetMasterProps> = ({
     limit: 1000,
     isActive: 'Y',
   });
+
   const depots = depotsResponse?.data || [];
 
   const formik = useFormik({
@@ -196,15 +199,12 @@ const ManageAssetMaster: React.FC<ManageAssetMasterProps> = ({
   useEffect(() => {
     const purchaseDate = formik.values.purchase_date;
     const warrantyPeriod = formik.values.warranty_period;
-
     if (purchaseDate && warrantyPeriod) {
       const purchase = new Date(purchaseDate);
       const years = parseInt(warrantyPeriod);
-
       if (!isNaN(purchase.getTime()) && !isNaN(years)) {
         const expiryDate = new Date(purchase);
         expiryDate.setFullYear(expiryDate.getFullYear() + years);
-
         const formattedExpiry = expiryDate.toISOString().split('T')[0];
         formik.setFieldValue('warranty_expiry', formattedExpiry);
       }
@@ -222,8 +222,10 @@ const ManageAssetMaster: React.FC<ManageAssetMasterProps> = ({
       const moshiDepot = depots.find(
         (depot: any) => depot.name?.toUpperCase() === 'MOSHI'
       );
-      if (moshiDepot) {
-        formik.setFieldValue('depot_id', moshiDepot.id.toString());
+      const targetDepot =
+        moshiDepot || (depots.length === 1 ? depots[0] : null);
+      if (targetDepot) {
+        formik.setFieldValue('depot_id', targetDepot.id.toString());
       }
       setHasDefaultedDepot(true);
     }

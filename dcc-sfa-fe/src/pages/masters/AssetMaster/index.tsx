@@ -20,7 +20,7 @@ import {
   Tag,
   Wrench,
 } from 'lucide-react';
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DeleteButton, EditButton, ViewButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
@@ -61,10 +61,22 @@ const AssetMasterManagement: React.FC = () => {
   const zones = zonesResponse?.data || [];
   const routes = routesResponse?.data || [];
 
+  useEffect(() => {
+    if (depots.length === 1 && depotFilter === 'all') {
+      setDepotFilter(depots[0].id.toString());
+    }
+  }, [depots, depotFilter]);
+
   const filteredZones = useMemo(() => {
-    if (depotFilter === 'all') return zones;
-    return zones.filter(z => z.parent_id === Number(depotFilter));
-  }, [zones, depotFilter]);
+    if (depotFilter !== 'all') {
+      return zones.filter(z => z.parent_id === Number(depotFilter));
+    }
+    if (depots.length > 0) {
+      const allowedDepotIds = new Set(depots.map(d => d.id));
+      return zones.filter(z => allowedDepotIds.has(z.parent_id));
+    }
+    return zones;
+  }, [zones, depotFilter, depots]);
 
   const filteredRoutes = useMemo(() => {
     if (zoneFilter !== 'all') {
@@ -73,8 +85,30 @@ const AssetMasterManagement: React.FC = () => {
     if (depotFilter !== 'all') {
       return routes.filter(r => r.depot_id === Number(depotFilter));
     }
+    if (depots.length > 0) {
+      const allowedDepotIds = new Set(depots.map(d => d.id));
+      return routes.filter(r => allowedDepotIds.has(r.depot_id));
+    }
     return routes;
-  }, [routes, zoneFilter, depotFilter]);
+  }, [routes, zoneFilter, depotFilter, depots]);
+
+  useEffect(() => {
+    if (
+      zoneFilter !== 'all' &&
+      !filteredZones.some(z => z.id.toString() === zoneFilter)
+    ) {
+      setZoneFilter('all');
+    }
+  }, [filteredZones, zoneFilter]);
+
+  useEffect(() => {
+    if (
+      routeFilter !== 'all' &&
+      !filteredRoutes.some(r => r.id.toString() === routeFilter)
+    ) {
+      setRouteFilter('all');
+    }
+  }, [filteredRoutes, routeFilter]);
 
   const {
     data: assetMasterResponse,
@@ -91,8 +125,7 @@ const AssetMasterManagement: React.FC = () => {
       route_id: routeFilter === 'all' ? undefined : Number(routeFilter),
       asset_type_id:
         assetTypeFilter === 'all' ? undefined : Number(assetTypeFilter),
-      asset_type:
-        assetTypeFilter === 'all' ? undefined : assetTypeFilter,
+      asset_type: assetTypeFilter === 'all' ? undefined : assetTypeFilter,
     },
     {
       enabled: isRead,
@@ -428,21 +461,7 @@ const AssetMasterManagement: React.FC = () => {
                       <MenuItem value="active">Active</MenuItem>
                       <MenuItem value="inactive">Inactive</MenuItem>
                     </Select>
-                    <Select
-                      value={assetTypeFilter}
-                      onChange={e => {
-                        setAssetTypeFilter(e.target.value);
-                        setPage(1);
-                      }}
-                      disableClearable
-                    >
-                      <MenuItem value="all">All Asset Types</MenuItem>
-                      {assetTypes.map(type => (
-                        <MenuItem key={type.id} value={type.id.toString()}>
-                          {type.name}
-                        </MenuItem>
-                      ))}
-                    </Select>
+
                     <Select
                       value={depotFilter}
                       onChange={e => {
@@ -453,7 +472,9 @@ const AssetMasterManagement: React.FC = () => {
                       }}
                       disableClearable
                     >
-                      <MenuItem value="all">All Depots</MenuItem>
+                      {depots.length !== 1 && (
+                        <MenuItem value="all">All Depots</MenuItem>
+                      )}
                       {depots.map(depot => (
                         <MenuItem key={depot.id} value={depot.id.toString()}>
                           {depot.name}
@@ -488,6 +509,22 @@ const AssetMasterManagement: React.FC = () => {
                       {filteredRoutes.map(route => (
                         <MenuItem key={route.id} value={route.id.toString()}>
                           {route.name}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                    <Select
+                      value={assetTypeFilter}
+                      onChange={e => {
+                        setAssetTypeFilter(e.target.value);
+                        setPage(1);
+                      }}
+                      disableClearable
+                      className="!w-46"
+                    >
+                      <MenuItem value="all">All Asset Types</MenuItem>
+                      {assetTypes.map(type => (
+                        <MenuItem key={type.id} value={type.id.toString()}>
+                          {type.name}
                         </MenuItem>
                       ))}
                     </Select>

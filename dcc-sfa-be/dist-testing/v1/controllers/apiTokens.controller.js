@@ -48,7 +48,8 @@ const getApiTokens = async (req, res) => {
         if (userId) {
             where.user_id = parseInt(userId);
         }
-        const [tokens, totalCount] = await Promise.all([
+        const now = new Date();
+        const [tokens, totalCount, totalTokens, activeTokens, revokedTokens, expiredTokens,] = await Promise.all([
             prisma_client_1.default.api_tokens.findMany({
                 where,
                 include: {
@@ -74,26 +75,30 @@ const getApiTokens = async (req, res) => {
                 take: limitNum,
             }),
             prisma_client_1.default.api_tokens.count({ where }),
-        ]);
-        const totalPages = Math.ceil(totalCount / limitNum);
-        const stats = {
-            total_tokens: await prisma_client_1.default.api_tokens.count(),
-            active_tokens: await prisma_client_1.default.api_tokens.count({
+            prisma_client_1.default.api_tokens.count(),
+            prisma_client_1.default.api_tokens.count({
                 where: {
                     is_active: 'Y',
                     is_revoked: false,
-                    OR: [{ expires_at: null }, { expires_at: { gte: new Date() } }],
+                    OR: [{ expires_at: null }, { expires_at: { gte: now } }],
                 },
             }),
-            revoked_tokens: await prisma_client_1.default.api_tokens.count({
+            prisma_client_1.default.api_tokens.count({
                 where: { is_revoked: true },
             }),
-            expired_tokens: await prisma_client_1.default.api_tokens.count({
+            prisma_client_1.default.api_tokens.count({
                 where: {
-                    expires_at: { lt: new Date() },
+                    expires_at: { lt: now },
                     is_revoked: false,
                 },
             }),
+        ]);
+        const totalPages = Math.ceil(totalCount / limitNum);
+        const stats = {
+            total_tokens: totalTokens,
+            active_tokens: activeTokens,
+            revoked_tokens: revokedTokens,
+            expired_tokens: expiredTokens,
         };
         const ipsToLookup = tokens.map(t => t.ip_address);
         const locationMap = await (0, ipLocation_util_1.getLocationFromIPs)(ipsToLookup);

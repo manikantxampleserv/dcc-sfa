@@ -1764,11 +1764,7 @@ async function resolveProductPrices(
   const result = new Map<number, ResolvedProductPrice>();
 
   const normalizedProductIds = Array.from(
-    new Set(
-      productIds
-        .map(id => Number(id))
-        .filter(id => !isNaN(id) && id > 0)
-    )
+    new Set(productIds.map(id => Number(id)).filter(id => !isNaN(id) && id > 0))
   );
 
   if (normalizedProductIds.length === 0) {
@@ -1826,7 +1822,6 @@ async function resolveProductPrices(
 
   if (context.salesperson_id) {
     const salespersonIdNum = Number(context.salesperson_id);
-
     if (!effectiveRouteId) {
       const assignedRoute = await client.route_salespersons.findFirst({
         where: { user_id: salespersonIdNum, is_active: 'Y' },
@@ -1869,7 +1864,12 @@ async function resolveProductPrices(
 
   const candidatePricelistIds: number[] = [];
   const addCandidateId = (id: number | null | undefined) => {
-    if (typeof id === 'number' && !isNaN(id) && id > 0 && !candidatePricelistIds.includes(id)) {
+    if (
+      typeof id === 'number' &&
+      !isNaN(id) &&
+      id > 0 &&
+      !candidatePricelistIds.includes(id)
+    ) {
       candidatePricelistIds.push(id);
     }
   };
@@ -1879,7 +1879,9 @@ async function resolveProductPrices(
       where: { customer_id: effectiveCustomerId, is_active: 'Y' },
       select: { pricelist_id: true },
     });
-    customerRoutePricelists.forEach((rp: any) => addCandidateId(rp.pricelist_id));
+    customerRoutePricelists.forEach((rp: any) =>
+      addCandidateId(rp.pricelist_id)
+    );
   }
 
   if (effectiveRouteId) {
@@ -1892,10 +1894,15 @@ async function resolveProductPrices(
 
   if (effectiveCustomerCategoryId) {
     const categoryRoutePricelists = await client.route_pricelists.findMany({
-      where: { customer_category_id: effectiveCustomerCategoryId, is_active: 'Y' },
+      where: {
+        customer_category_id: effectiveCustomerCategoryId,
+        is_active: 'Y',
+      },
       select: { pricelist_id: true },
     });
-    categoryRoutePricelists.forEach((rp: any) => addCandidateId(rp.pricelist_id));
+    categoryRoutePricelists.forEach((rp: any) =>
+      addCandidateId(rp.pricelist_id)
+    );
   }
 
   if (effectiveRouteId) {
@@ -1912,7 +1919,9 @@ async function resolveProductPrices(
       },
       select: { pricelist_id: true },
     });
-    routeSpecialPricelists.forEach((pi: any) => addCandidateId(pi.pricelist_id));
+    routeSpecialPricelists.forEach((pi: any) =>
+      addCandidateId(pi.pricelist_id)
+    );
   }
 
   if (effectiveDepotId) {
@@ -1934,6 +1943,7 @@ async function resolveProductPrices(
     where: { is_default: 'Y', is_active: 'Y' },
     select: { id: true },
   });
+
   defaultPricelists.forEach((p: any) => addCandidateId(p.id));
 
   const [pricelistsWithItems, products] = await Promise.all([
@@ -2026,7 +2036,9 @@ async function resolveProductPrices(
 
     if (effectiveCustomerId) {
       for (const pl of orderedPricelists) {
-        const item = pl.pricelist_item?.find((pi: any) => pi.product_id === productId);
+        const item = pl.pricelist_item?.find(
+          (pi: any) => pi.product_id === productId
+        );
         if (!item) continue;
         const specials = Array.isArray(item.pricelist_item_special_prices)
           ? item.pricelist_item_special_prices
@@ -2034,30 +2046,42 @@ async function resolveProductPrices(
         const match = specials.find((sp: any) => {
           if (!isSpecialPriceDateValid(sp)) return false;
           if (sp.customer_id !== effectiveCustomerId) return false;
-          if (sp.route_id && effectiveRouteId && sp.route_id !== effectiveRouteId) return false;
+          if (
+            sp.route_id &&
+            effectiveRouteId &&
+            sp.route_id !== effectiveRouteId
+          )
+            return false;
           return true;
         });
         if (match) {
           const salePrice = Number(match.sale_price);
-          const tax = match.tax_percent !== null && match.tax_percent !== undefined
-            ? Number(match.tax_percent)
-            : item.tax_percent !== null && item.tax_percent !== undefined
-              ? Number(item.tax_percent)
-              : defaultTaxRate;
-          const discount = match.discount_percent !== null && match.discount_percent !== undefined
-            ? Number(match.discount_percent)
-            : item.discount_percent !== null && item.discount_percent !== undefined
-              ? Number(item.discount_percent)
-              : null;
+          const tax =
+            match.tax_percent !== null && match.tax_percent !== undefined
+              ? Number(match.tax_percent)
+              : item.tax_percent !== null && item.tax_percent !== undefined
+                ? Number(item.tax_percent)
+                : defaultTaxRate;
+          const discount =
+            match.discount_percent !== null &&
+            match.discount_percent !== undefined
+              ? Number(match.discount_percent)
+              : item.discount_percent !== null &&
+                  item.discount_percent !== undefined
+                ? Number(item.discount_percent)
+                : null;
           resolvedEntry = {
             product_id: productId,
             price: salePrice,
             unit_price: salePrice,
-            sub_unit_price: match.sale_sub_unit_price !== null && match.sale_sub_unit_price !== undefined
-              ? Number(match.sale_sub_unit_price)
-              : item.sub_unit_price !== null && item.sub_unit_price !== undefined
-                ? Number(item.sub_unit_price)
-                : null,
+            sub_unit_price:
+              match.sale_sub_unit_price !== null &&
+              match.sale_sub_unit_price !== undefined
+                ? Number(match.sale_sub_unit_price)
+                : item.sub_unit_price !== null &&
+                    item.sub_unit_price !== undefined
+                  ? Number(item.sub_unit_price)
+                  : null,
             base_price: basePrice,
             tax_rate: tax,
             taxRate: tax,
@@ -2076,7 +2100,9 @@ async function resolveProductPrices(
 
     if (!resolvedEntry && effectiveRouteId) {
       for (const pl of orderedPricelists) {
-        const item = pl.pricelist_item?.find((pi: any) => pi.product_id === productId);
+        const item = pl.pricelist_item?.find(
+          (pi: any) => pi.product_id === productId
+        );
         if (!item) continue;
         const specials = Array.isArray(item.pricelist_item_special_prices)
           ? item.pricelist_item_special_prices
@@ -2085,32 +2111,43 @@ async function resolveProductPrices(
           if (!isSpecialPriceDateValid(sp)) return false;
           if (sp.customer_id) return false;
           if (sp.route_id !== effectiveRouteId) return false;
-          if (sp.customer_category_id && effectiveCustomerCategoryId && sp.customer_category_id !== effectiveCustomerCategoryId) {
+          if (
+            sp.customer_category_id &&
+            effectiveCustomerCategoryId &&
+            sp.customer_category_id !== effectiveCustomerCategoryId
+          ) {
             return false;
           }
           return true;
         });
         if (match) {
           const salePrice = Number(match.sale_price);
-          const tax = match.tax_percent !== null && match.tax_percent !== undefined
-            ? Number(match.tax_percent)
-            : item.tax_percent !== null && item.tax_percent !== undefined
-              ? Number(item.tax_percent)
-              : defaultTaxRate;
-          const discount = match.discount_percent !== null && match.discount_percent !== undefined
-            ? Number(match.discount_percent)
-            : item.discount_percent !== null && item.discount_percent !== undefined
-              ? Number(item.discount_percent)
-              : null;
+          const tax =
+            match.tax_percent !== null && match.tax_percent !== undefined
+              ? Number(match.tax_percent)
+              : item.tax_percent !== null && item.tax_percent !== undefined
+                ? Number(item.tax_percent)
+                : defaultTaxRate;
+          const discount =
+            match.discount_percent !== null &&
+            match.discount_percent !== undefined
+              ? Number(match.discount_percent)
+              : item.discount_percent !== null &&
+                  item.discount_percent !== undefined
+                ? Number(item.discount_percent)
+                : null;
           resolvedEntry = {
             product_id: productId,
             price: salePrice,
             unit_price: salePrice,
-            sub_unit_price: match.sale_sub_unit_price !== null && match.sale_sub_unit_price !== undefined
-              ? Number(match.sale_sub_unit_price)
-              : item.sub_unit_price !== null && item.sub_unit_price !== undefined
-                ? Number(item.sub_unit_price)
-                : null,
+            sub_unit_price:
+              match.sale_sub_unit_price !== null &&
+              match.sale_sub_unit_price !== undefined
+                ? Number(match.sale_sub_unit_price)
+                : item.sub_unit_price !== null &&
+                    item.sub_unit_price !== undefined
+                  ? Number(item.sub_unit_price)
+                  : null,
             base_price: basePrice,
             tax_rate: tax,
             taxRate: tax,
@@ -2129,7 +2166,9 @@ async function resolveProductPrices(
 
     if (!resolvedEntry && effectiveCustomerCategoryId) {
       for (const pl of orderedPricelists) {
-        const item = pl.pricelist_item?.find((pi: any) => pi.product_id === productId);
+        const item = pl.pricelist_item?.find(
+          (pi: any) => pi.product_id === productId
+        );
         if (!item) continue;
         const specials = Array.isArray(item.pricelist_item_special_prices)
           ? item.pricelist_item_special_prices
@@ -2142,25 +2181,32 @@ async function resolveProductPrices(
         });
         if (match) {
           const salePrice = Number(match.sale_price);
-          const tax = match.tax_percent !== null && match.tax_percent !== undefined
-            ? Number(match.tax_percent)
-            : item.tax_percent !== null && item.tax_percent !== undefined
-              ? Number(item.tax_percent)
-              : defaultTaxRate;
-          const discount = match.discount_percent !== null && match.discount_percent !== undefined
-            ? Number(match.discount_percent)
-            : item.discount_percent !== null && item.discount_percent !== undefined
-              ? Number(item.discount_percent)
-              : null;
+          const tax =
+            match.tax_percent !== null && match.tax_percent !== undefined
+              ? Number(match.tax_percent)
+              : item.tax_percent !== null && item.tax_percent !== undefined
+                ? Number(item.tax_percent)
+                : defaultTaxRate;
+          const discount =
+            match.discount_percent !== null &&
+            match.discount_percent !== undefined
+              ? Number(match.discount_percent)
+              : item.discount_percent !== null &&
+                  item.discount_percent !== undefined
+                ? Number(item.discount_percent)
+                : null;
           resolvedEntry = {
             product_id: productId,
             price: salePrice,
             unit_price: salePrice,
-            sub_unit_price: match.sale_sub_unit_price !== null && match.sale_sub_unit_price !== undefined
-              ? Number(match.sale_sub_unit_price)
-              : item.sub_unit_price !== null && item.sub_unit_price !== undefined
-                ? Number(item.sub_unit_price)
-                : null,
+            sub_unit_price:
+              match.sale_sub_unit_price !== null &&
+              match.sale_sub_unit_price !== undefined
+                ? Number(match.sale_sub_unit_price)
+                : item.sub_unit_price !== null &&
+                    item.sub_unit_price !== undefined
+                  ? Number(item.sub_unit_price)
+                  : null,
             base_price: basePrice,
             tax_rate: tax,
             taxRate: tax,
@@ -2179,7 +2225,9 @@ async function resolveProductPrices(
 
     if (!resolvedEntry) {
       for (const pl of orderedPricelists) {
-        const item = pl.pricelist_item?.find((pi: any) => pi.product_id === productId);
+        const item = pl.pricelist_item?.find(
+          (pi: any) => pi.product_id === productId
+        );
         if (!item) continue;
         const specials = Array.isArray(item.pricelist_item_special_prices)
           ? item.pricelist_item_special_prices
@@ -2191,25 +2239,33 @@ async function resolveProductPrices(
 
         if (generalMatch) {
           const salePrice = Number(generalMatch.sale_price);
-          const tax = generalMatch.tax_percent !== null && generalMatch.tax_percent !== undefined
-            ? Number(generalMatch.tax_percent)
-            : item.tax_percent !== null && item.tax_percent !== undefined
-              ? Number(item.tax_percent)
-              : defaultTaxRate;
-          const discount = generalMatch.discount_percent !== null && generalMatch.discount_percent !== undefined
-            ? Number(generalMatch.discount_percent)
-            : item.discount_percent !== null && item.discount_percent !== undefined
-              ? Number(item.discount_percent)
-              : null;
+          const tax =
+            generalMatch.tax_percent !== null &&
+            generalMatch.tax_percent !== undefined
+              ? Number(generalMatch.tax_percent)
+              : item.tax_percent !== null && item.tax_percent !== undefined
+                ? Number(item.tax_percent)
+                : defaultTaxRate;
+          const discount =
+            generalMatch.discount_percent !== null &&
+            generalMatch.discount_percent !== undefined
+              ? Number(generalMatch.discount_percent)
+              : item.discount_percent !== null &&
+                  item.discount_percent !== undefined
+                ? Number(item.discount_percent)
+                : null;
           resolvedEntry = {
             product_id: productId,
             price: salePrice,
             unit_price: salePrice,
-            sub_unit_price: generalMatch.sale_sub_unit_price !== null && generalMatch.sale_sub_unit_price !== undefined
-              ? Number(generalMatch.sale_sub_unit_price)
-              : item.sub_unit_price !== null && item.sub_unit_price !== undefined
-                ? Number(item.sub_unit_price)
-                : null,
+            sub_unit_price:
+              generalMatch.sale_sub_unit_price !== null &&
+              generalMatch.sale_sub_unit_price !== undefined
+                ? Number(generalMatch.sale_sub_unit_price)
+                : item.sub_unit_price !== null &&
+                    item.sub_unit_price !== undefined
+                  ? Number(item.sub_unit_price)
+                  : null,
             base_price: basePrice,
             tax_rate: tax,
             taxRate: tax,
@@ -2226,19 +2282,23 @@ async function resolveProductPrices(
 
         if (isItemEffectiveDateValid(item)) {
           const itemPrice = Number(item.unit_price);
-          const tax = item.tax_percent !== null && item.tax_percent !== undefined
-            ? Number(item.tax_percent)
-            : defaultTaxRate;
-          const discount = item.discount_percent !== null && item.discount_percent !== undefined
-            ? Number(item.discount_percent)
-            : null;
+          const tax =
+            item.tax_percent !== null && item.tax_percent !== undefined
+              ? Number(item.tax_percent)
+              : defaultTaxRate;
+          const discount =
+            item.discount_percent !== null &&
+            item.discount_percent !== undefined
+              ? Number(item.discount_percent)
+              : null;
           resolvedEntry = {
             product_id: productId,
             price: itemPrice,
             unit_price: itemPrice,
-            sub_unit_price: item.sub_unit_price !== null && item.sub_unit_price !== undefined
-              ? Number(item.sub_unit_price)
-              : null,
+            sub_unit_price:
+              item.sub_unit_price !== null && item.sub_unit_price !== undefined
+                ? Number(item.sub_unit_price)
+                : null,
             base_price: basePrice,
             tax_rate: tax,
             taxRate: tax,
@@ -2616,17 +2676,13 @@ export const vanInventoryController = {
         )
       );
 
-      const resolvedPrices = await resolveProductPrices(
-        prisma,
-        productIds,
-        {
-          salesperson_id: salespersonIdNum,
-          customer_id: customer_id ? Number(customer_id) : undefined,
-          route_id: route_id ? Number(route_id) : undefined,
-          depot_id: depot_id ? Number(depot_id) : undefined,
-          date: new Date(),
-        }
-      );
+      const resolvedPrices = await resolveProductPrices(prisma, productIds, {
+        salesperson_id: salespersonIdNum,
+        customer_id: customer_id ? Number(customer_id) : undefined,
+        route_id: route_id ? Number(route_id) : undefined,
+        depot_id: depot_id ? Number(depot_id) : undefined,
+        date: new Date(),
+      });
 
       const map = new Map<
         number,
@@ -7497,17 +7553,13 @@ export const vanInventoryController = {
         .map((item: any) => item.product_id)
         .filter((id: any): id is number => typeof id === 'number');
 
-      const resolvedPrices = await resolveProductPrices(
-        prisma,
-        productIds,
-        {
-          salesperson_id: Number(salesperson_id),
-          customer_id: customer_id ? Number(customer_id) : undefined,
-          depot_id: depot_id ? Number(depot_id) : undefined,
-          route_id: route_id ? Number(route_id) : undefined,
-          date: new Date(),
-        }
-      );
+      const resolvedPrices = await resolveProductPrices(prisma, productIds, {
+        salesperson_id: Number(salesperson_id),
+        customer_id: customer_id ? Number(customer_id) : undefined,
+        depot_id: depot_id ? Number(depot_id) : undefined,
+        route_id: route_id ? Number(route_id) : undefined,
+        date: new Date(),
+      });
 
       res.json({
         success: true,
@@ -7525,7 +7577,9 @@ export const vanInventoryController = {
               resolved?.price ??
               (item.unit_price
                 ? Number(item.unit_price)
-                : Number((item.van_inventory_items_products as any)?.base_price || 0));
+                : Number(
+                    (item.van_inventory_items_products as any)?.base_price || 0
+                  ));
 
             return {
               id: item.id,
@@ -7534,7 +7588,9 @@ export const vanInventoryController = {
               product: item.van_inventory_items_products,
               quantity: item.quantity,
               unit_price: unitPrice,
-              base_price: Number((item.van_inventory_items_products as any)?.base_price || 0),
+              base_price: Number(
+                (item.van_inventory_items_products as any)?.base_price || 0
+              ),
               is_special_price: resolved?.is_special_price ?? false,
               tax_rate: resolved?.tax_rate ?? null,
               discount_percent: resolved?.discount_percent ?? null,

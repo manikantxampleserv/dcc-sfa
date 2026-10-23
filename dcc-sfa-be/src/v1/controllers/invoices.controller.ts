@@ -874,7 +874,6 @@ export const invoicesController = {
           .map(id => Number(id.trim()))
           .filter(id => !isNaN(id));
 
-        // Automatically expand the ID to include group members if it's a single ID
         if (ids.length === 1) {
           const expandedIds = await getContainerOwnerAndSelf(prisma, ids[0]);
           if (expandedIds.length > 0) {
@@ -990,7 +989,6 @@ export const invoicesController = {
               user_role: true,
             },
           },
-
           currencies: true,
           orders: true,
           invoice_items: {

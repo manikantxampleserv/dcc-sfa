@@ -264,9 +264,9 @@ const SalesVsTargetReport: React.FC = () => {
   ];
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-4">
       {/* Header */}
-      <Box className="!mb-3 !flex !justify-between !items-center">
+      <Box className="!flex !justify-between !items-center">
         <Box>
           <p className="!font-bold text-xl !text-gray-900">
             Sales vs Target Report

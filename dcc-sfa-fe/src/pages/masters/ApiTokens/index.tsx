@@ -168,14 +168,6 @@ const ApiTokensPage: React.FC = () => {
               >
                 {user?.email || `ID: ${row.user_id}`}
               </Typography>
-              {user?.user_role?.name && (
-                <Chip
-                  label={user.user_role.name}
-                  size="small"
-                  variant="outlined"
-                  className="!text-[10px] !h-4 !mt-1 !border-gray-200 !text-gray-600"
-                />
-              )}
             </Box>
           </Box>
         );

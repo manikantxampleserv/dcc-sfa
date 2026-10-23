@@ -319,7 +319,7 @@ const OrderDetail: React.FC = () => {
         </div>
 
         {/* Sidebar details */}
-        <div className="flex flex-col gap-5">
+        <div className="flex flex-col gap-4">
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 flex flex-col gap-4">
             <h2 className="font-semibold text-gray-800 border-b border-gray-100 pb-2">
               Customer Details

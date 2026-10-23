@@ -26,7 +26,6 @@ import {
 import type { ApiResponse } from '../types/api.types';
 import { useApiMutation } from './useApiMutation';
 
-// Query Keys
 export const zoneKeys = {
   all: ['zones'] as const,
   lists: () => [...zoneKeys.all, 'list'] as const,
@@ -71,7 +70,7 @@ export const useSupervisors = (search?: string) => {
   return useQuery({
     queryKey: zoneKeys.supervisor(search || ''),
     queryFn: () => fetchSupervisors(search),
-    staleTime: 10 * 60 * 1000, // Cache for 10 minutes since supervisors rarely change
+    staleTime: 10 * 60 * 1000,
   });
 };
 
@@ -88,7 +87,6 @@ export const useCreateZone = (options?: {
     mutationFn: createZone,
     loadingMessage: 'Creating zone...',
     onSuccess: (data, variables) => {
-      // Invalidate and refetch zones list
       queryClient.invalidateQueries({ queryKey: zoneKeys.lists() });
       options?.onSuccess?.(data, variables);
     },
@@ -113,7 +111,6 @@ export const useUpdateZone = (options?: {
       updateZone(id, zoneData),
     loadingMessage: 'Updating zone...',
     onSuccess: (data, variables) => {
-      // Invalidate and refetch zones list and specific zone
       queryClient.invalidateQueries({ queryKey: zoneKeys.lists() });
       queryClient.invalidateQueries({
         queryKey: zoneKeys.detail(variables.id),
@@ -137,7 +134,6 @@ export const useDeleteZone = (options?: {
     mutationFn: deleteZone,
     loadingMessage: 'Deleting zone...',
     onSuccess: (data, variables) => {
-      // Invalidate and refetch zones list
       queryClient.invalidateQueries({ queryKey: zoneKeys.lists() });
       options?.onSuccess?.(data, variables);
     },

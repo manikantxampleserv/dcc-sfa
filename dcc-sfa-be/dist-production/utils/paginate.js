@@ -3,7 +3,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.paginate = paginate;
 const client_1 = require("@prisma/client");
 async function paginate({ model, filters = {}, page = 1, limit = 10, select, include, orderBy = { id: 'desc' }, maxRetries = 3, }) {
-    const skip = (page - 1) * limit;
+    const safePage = Math.max(1, Number(page) || 1);
+    const safeLimit = Math.min(Math.max(1, Number(limit) || 10), 1000);
+    const skip = (safePage - 1) * safeLimit;
     let attempt = 0;
     while (true) {
         try {
@@ -12,7 +14,7 @@ async function paginate({ model, filters = {}, page = 1, limit = 10, select, inc
                 model.findMany({
                     where: filters,
                     skip,
-                    take: limit,
+                    take: safeLimit,
                     select,
                     include,
                     orderBy,
@@ -21,11 +23,11 @@ async function paginate({ model, filters = {}, page = 1, limit = 10, select, inc
             return {
                 data,
                 pagination: {
-                    current_page: page,
-                    total_pages: Math.ceil(total_count / limit),
+                    current_page: safePage,
+                    total_pages: Math.ceil(total_count / safeLimit),
                     total_count,
-                    has_next: page * limit < total_count,
-                    has_previous: page > 1,
+                    has_next: safePage * safeLimit < total_count,
+                    has_previous: safePage > 1,
                 },
             };
         }

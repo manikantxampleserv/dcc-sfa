@@ -405,12 +405,15 @@ export const assetMasterController = {
       if (reqUser && !isAdminRole(reqUser.role)) {
         isScopeRestricted = true;
         const userDepots = await prisma.user_depots.findMany({
-          where: { user_id: reqUser.id },
+          where: { user_id: reqUser.id, is_active: 'Y' },
           select: { depot_id: true },
         });
         depotIds = userDepots
           .map((ud: any) => ud.depot_id)
           .filter((id: any) => id !== null) as number[];
+        if (reqUser.depot_id && !depotIds.includes(reqUser.depot_id)) {
+          depotIds.push(reqUser.depot_id);
+        }
       }
 
       const andConditions: any[] = [];

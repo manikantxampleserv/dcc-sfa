@@ -307,9 +307,9 @@ const OrdersInvoicesReturnsReport: React.FC = () => {
   ];
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-4">
       {/* Header */}
-      <Box className="!mb-3 !flex !justify-between !items-center flex-wrap gap-4">
+      <Box className="!flex !justify-between !items-center flex-wrap gap-4">
         <Box>
           <p className="!font-bold text-xl !text-gray-900">
             Orders & Invoices Report
