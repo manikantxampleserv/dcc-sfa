@@ -1474,14 +1474,14 @@ export const userController = {
         users
           ?.filter(u => u.name?.trim().toLowerCase() !== 'iuser')
           .map(u => ({
-          id: u.id,
-          name: u.name,
-          code: u.employee_id,
-          sap_code: u.sap_code,
-          role: u.user_role?.name,
-          email: u.email,
-          version: u.version ?? null,
-        })),
+            id: u.id,
+            name: u.name,
+            code: u.employee_id,
+            sap_code: u.sap_code,
+            role: u.user_role?.name,
+            email: u.email,
+            version: u.version ?? null,
+          })),
         200
       );
     } catch (error: any) {

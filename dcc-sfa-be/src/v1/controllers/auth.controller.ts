@@ -106,7 +106,8 @@ export const register = async (req: any, res: any) => {
 
 export const login = async (req: any, res: any) => {
   try {
-    const { email, username, password, platform, version, app_version } = req.body;
+    const { email, username, password, platform, version, app_version } =
+      req.body;
 
     if (!password) {
       return res.error('Password is required', 400);
@@ -147,8 +148,12 @@ export const login = async (req: any, res: any) => {
     }
 
     const incomingVersion = version || app_version || req.get('X-App-Version');
-    const appVersionStr = incomingVersion ? truncateString(incomingVersion, 50) : '1.0.0';
-    const userVersionStr = incomingVersion ? truncateString(incomingVersion, 100) : user.version;
+    const appVersionStr = incomingVersion
+      ? truncateString(incomingVersion, 50)
+      : '1.0.0';
+    const userVersionStr = incomingVersion
+      ? truncateString(incomingVersion, 100)
+      : user.version;
 
     if (user.platform) {
       if (!platform) {

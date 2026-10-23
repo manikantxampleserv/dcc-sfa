@@ -58,7 +58,16 @@ export const getApiTokens = async (req: Request, res: Response) => {
       where.user_id = parseInt(userId as string);
     }
 
-    const [tokens, totalCount] = await Promise.all([
+    const now = new Date();
+
+    const [
+      tokens,
+      totalCount,
+      totalTokens,
+      activeTokens,
+      revokedTokens,
+      expiredTokens,
+    ] = await Promise.all([
       prisma.api_tokens.findMany({
         where,
         include: {
@@ -84,28 +93,32 @@ export const getApiTokens = async (req: Request, res: Response) => {
         take: limitNum,
       }),
       prisma.api_tokens.count({ where }),
+      prisma.api_tokens.count(),
+      prisma.api_tokens.count({
+        where: {
+          is_active: 'Y',
+          is_revoked: false,
+          OR: [{ expires_at: null }, { expires_at: { gte: now } }],
+        },
+      }),
+      prisma.api_tokens.count({
+        where: { is_revoked: true },
+      }),
+      prisma.api_tokens.count({
+        where: {
+          expires_at: { lt: now },
+          is_revoked: false,
+        },
+      }),
     ]);
 
     const totalPages = Math.ceil(totalCount / limitNum);
 
     const stats = {
-      total_tokens: await prisma.api_tokens.count(),
-      active_tokens: await prisma.api_tokens.count({
-        where: {
-          is_active: 'Y',
-          is_revoked: false,
-          OR: [{ expires_at: null }, { expires_at: { gte: new Date() } }],
-        },
-      }),
-      revoked_tokens: await prisma.api_tokens.count({
-        where: { is_revoked: true },
-      }),
-      expired_tokens: await prisma.api_tokens.count({
-        where: {
-          expires_at: { lt: new Date() },
-          is_revoked: false,
-        },
-      }),
+      total_tokens: totalTokens,
+      active_tokens: activeTokens,
+      revoked_tokens: revokedTokens,
+      expired_tokens: expiredTokens,
     };
 
     const ipsToLookup = tokens.map(t => t.ip_address);

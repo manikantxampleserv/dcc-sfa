@@ -84,7 +84,6 @@ router.put(
   userController.updateUserLogInst
 );
 
-
 router.get(
   '/users-dropdown',
   authenticateToken,
@@ -92,4 +91,3 @@ router.get(
 );
 
 export default router;
-
