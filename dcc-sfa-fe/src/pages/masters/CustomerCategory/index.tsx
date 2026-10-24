@@ -161,9 +161,20 @@ const CustomerCategoryPage: React.FC = () => {
       id: 'conditions',
       label: 'Conditions',
       render: (_value, row) => (
-        <Typography variant="body2" className="!text-gray-700">
-          {row.conditions?.length || 0} condition(s)
-        </Typography>
+        <Box className="!flex !items-center !gap-1.5">
+          <Typography variant="body2" className="!text-gray-700">
+            {row.conditions?.length || 0} condition(s)
+          </Typography>
+          {row.logical_condition && (
+            <Chip
+              label={row.logical_condition}
+              size="small"
+              variant="outlined"
+              color={row.logical_condition === 'OR' ? 'warning' : 'primary'}
+              className="!text-[10px] !font-semibold !h-4 !px-1"
+            />
+          )}
+        </Box>
       ),
     },
     {

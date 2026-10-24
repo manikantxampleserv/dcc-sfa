@@ -395,7 +395,11 @@ const GradingDashboard: React.FC = () => {
                     placement="top"
                   >
                     <Chip
-                      label={`${cond.condition_type.replace(/_/g, ' ')} ${cond.condition_operator} ${cond.threshold_value}`}
+                      label={
+                        cond.condition_operator === 'BETWEEN'
+                          ? `${cond.condition_type.replace(/_/g, ' ')} ${cond.min_threshold_value ?? 0} - ${cond.max_threshold_value ?? 0}`
+                          : `${cond.condition_type.replace(/_/g, ' ')} ${cond.condition_operator} ${cond.threshold_value}`
+                      }
                       size="small"
                       variant="outlined"
                       className="!text-[10px] !h-5"

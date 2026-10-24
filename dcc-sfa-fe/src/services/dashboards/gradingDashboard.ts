@@ -28,7 +28,9 @@ export interface CategoryCondition {
   customer_category_id: number;
   condition_type: string;
   condition_operator: string;
-  threshold_value: string;
+  min_threshold_value?: string | number | null;
+  max_threshold_value?: string | number | null;
+  threshold_value?: string | number | null;
   product_category_id: number | null;
   condition_description: string | null;
   is_active: string;

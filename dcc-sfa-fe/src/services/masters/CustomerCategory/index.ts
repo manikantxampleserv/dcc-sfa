@@ -5,7 +5,9 @@ export interface CustomerCategoryCondition {
   id?: number;
   condition_type: string;
   condition_operator: string;
-  threshold_value: number;
+  min_threshold_value?: number | null;
+  max_threshold_value?: number | null;
+  threshold_value?: number | null;
   product_category_id?: number | null;
   condition_description?: string | null;
   is_active?: string;
@@ -16,6 +18,7 @@ export interface CustomerCategory {
   category_name: string;
   category_code: string;
   level: number;
+  logical_condition?: 'AND' | 'OR';
   is_active: string;
   createdate?: string | null;
   createdby: number;
@@ -30,6 +33,7 @@ export interface ManageCustomerCategoryPayload {
   category_code: string;
   is_active?: string;
   level: number;
+  logical_condition?: 'AND' | 'OR';
   conditions?: CustomerCategoryCondition[];
 }
 
@@ -38,6 +42,7 @@ export interface UpdateCustomerCategoryPayload {
   category_code?: string;
   is_active?: string;
   level: number;
+  logical_condition?: 'AND' | 'OR';
   conditions?: CustomerCategoryCondition[];
 }
 

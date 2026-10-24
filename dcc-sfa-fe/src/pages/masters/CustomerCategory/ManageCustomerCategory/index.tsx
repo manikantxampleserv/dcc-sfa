@@ -1,11 +1,12 @@
 import { Add, InfoOutline } from '@mui/icons-material';
-import { Box, MenuItem, Skeleton, Typography } from '@mui/material';
+import { Box, Chip, MenuItem, Skeleton, Typography } from '@mui/material';
 import { useFormik } from 'formik';
 import {
   useCreateCustomerCategory,
   useCustomerCategoryById,
   useUpdateCustomerCategory,
   type CustomerCategory,
+  type ManageCustomerCategoryPayload,
 } from 'hooks/useCustomerCategory';
 import { useProductCategories } from 'hooks/useProductCategories';
 import React, { useEffect, useState } from 'react';
@@ -32,7 +33,9 @@ interface ConditionFormData {
   id?: number;
   condition_type: string;
   condition_operator: string;
-  threshold_value: string;
+  min_threshold_value: string;
+  max_threshold_value: string;
+  threshold_value?: string;
   product_category_id: string;
   condition_description: string;
   is_active: string;
@@ -47,27 +50,21 @@ const customerCategoryValidationSchema = Yup.object({
     .required('Outlet category code is required')
     .min(2, 'Outlet category code must be at least 2 characters')
     .max(50, 'Outlet category code must be less than 50 characters'),
-  level: Yup.string()
+  level: Yup.number()
+    .typeError('Outlet category level must be a number')
     .required('Outlet category level is required')
-    .min(1, 'Outlet category level must be at least 1 character')
-    .max(10, 'Outlet category level must be less than 10 characters'),
+    .min(1, 'Outlet category level must be at least 1')
+    .max(99, 'Outlet category level must be less than 100'),
+  logical_condition: Yup.string()
+    .oneOf(['AND', 'OR'], 'Logical condition must be AND or OR')
+    .required('Logical condition is required'),
   is_active: Yup.string().oneOf(['Y', 'N']).required('Status is required'),
 });
 
 const CONDITION_TYPES = [
-  'Monthly Sales Amount (₹)',
-  'Quarterly Sales Amount (₹)',
-  'Monthly Sales Quantity (Crates)',
-  'Monthly Sales Quantity (Cases)',
-  'Monthly Sales Quantity (Units)',
-  'Quarterly Sales Quantity (Crates)',
-  'Order Frequency per Month',
-  'Order Frequency per Quarter',
-  'Payment Terms (Days)',
-  'Credit Limit (₹)',
-  'Purchase History (Months Active)',
-  'Average Order Value (₹)',
-  'Last Order Days Ago',
+  { value: 'sales_amount', label: 'Sales Amount (₹)' },
+  { value: 'order_count', label: 'Order Count' },
+  { value: 'average_order_value', label: 'Average Order Value (₹)' },
 ];
 
 const CONDITION_OPERATORS = [
@@ -77,64 +74,69 @@ const CONDITION_OPERATORS = [
   { value: '<', label: 'Less than (<)' },
   { value: '=', label: 'Equal (=)' },
   { value: '!=', label: 'Not equal (!=)' },
+  { value: 'BETWEEN', label: 'Between (BETWEEN)' },
 ];
 
-// Helper functions for threshold input guidance
-const getThresholdPlaceholder = (conditionType: string): string => {
-  switch (conditionType) {
-    case 'Monthly Sales Amount (₹)':
-    case 'Quarterly Sales Amount (₹)':
-    case 'Average Order Value (₹)':
-    case 'Credit Limit (₹)':
-      return 'e.g., 50000';
-    case 'Monthly Sales Quantity (Crates)':
-    case 'Monthly Sales Quantity (Cases)':
-    case 'Monthly Sales Quantity (Units)':
-    case 'Quarterly Sales Quantity (Crates)':
-      return 'e.g., 1';
-    case 'Order Frequency per Month':
-    case 'Order Frequency per Quarter':
-    case 'Purchase History (Months Active)':
-      return 'e.g., 4';
-    case 'Payment Terms (Days)':
-    case 'Last Order Days Ago':
-      return 'e.g., 30';
-    default:
-      return 'Enter threshold value';
-  }
+/**
+ * Resolves a readable display label for condition types.
+ * @param type - Condition type identifier.
+ */
+const getConditionTypeLabel = (type: string): string => {
+  const found = CONDITION_TYPES.find(t => t.value === type);
+  if (found) return found.label;
+  return type.replace(/_/g, ' ').replace(/\b\w/g, char => char.toUpperCase());
 };
 
-const getThresholdHelperText = (conditionType: string): string => {
-  switch (conditionType) {
-    case 'Monthly Sales Amount (₹)':
-      return 'Enter amount in rupees (e.g., 50000 for ₹50,000)';
-    case 'Quarterly Sales Amount (₹)':
-      return 'Enter amount in rupees for 3 months (e.g., 150000 for ₹1.5L)';
-    case 'Monthly Sales Quantity (Crates)':
-      return 'Enter number of crates per month (e.g., 1 for 1 crate/month)';
-    case 'Monthly Sales Quantity (Cases)':
-      return 'Enter number of cases per month (e.g., 24 for 24 cases/month)';
-    case 'Monthly Sales Quantity (Units)':
-      return 'Enter number of individual units per month';
-    case 'Quarterly Sales Quantity (Crates)':
-      return 'Enter number of crates for 3 months';
-    case 'Order Frequency per Month':
-      return 'Enter number of orders per month (e.g., 4 for weekly orders)';
-    case 'Order Frequency per Quarter':
-      return 'Enter number of orders for 3 months';
-    case 'Payment Terms (Days)':
-      return 'Enter credit period in days (e.g., 30 for 30-day credit)';
-    case 'Credit Limit (₹)':
-      return 'Enter credit limit in rupees';
-    case 'Purchase History (Months Active)':
-      return 'Enter months since first purchase';
-    case 'Average Order Value (₹)':
-      return 'Enter average order value in rupees';
-    case 'Last Order Days Ago':
-      return 'Enter days since last order (e.g., 7 for last week)';
-    default:
-      return '';
+/**
+ * Returns placeholder text for threshold inputs.
+ * @param conditionType - The condition type.
+ * @param field - Field kind: min or max.
+ */
+const getThresholdPlaceholder = (
+  conditionType: string,
+  field: 'min' | 'max' = 'min'
+): string => {
+  if (field === 'min') {
+    return conditionType === 'order_count' ? 'e.g., 5' : 'e.g., 500000';
   }
+  return conditionType === 'order_count' ? 'e.g., 20' : 'e.g., 1000000';
+};
+
+/**
+ * Auto-generates a condition description if none was provided by the user.
+ */
+const generateConditionDescription = (
+  type: string,
+  operator: string,
+  minThreshold?: string,
+  maxThreshold?: string,
+  productCategoryName?: string
+): string => {
+  const typeLabel = getConditionTypeLabel(type);
+  const catText = productCategoryName ? ` (${productCategoryName})` : '';
+  if (operator === 'BETWEEN') {
+    const minStr = minThreshold ? Number(minThreshold).toLocaleString() : '0';
+    const maxStr = maxThreshold ? Number(maxThreshold).toLocaleString() : '0';
+    return `${typeLabel}${catText} between ${minStr} and ${maxStr}`;
+  }
+  if (operator === '<=' || operator === '<') {
+    const maxStr = maxThreshold ? Number(maxThreshold).toLocaleString() : '0';
+    return `${typeLabel}${catText} ${operator} ${maxStr}`;
+  }
+  const minStr = minThreshold ? Number(minThreshold).toLocaleString() : '0';
+  return `${typeLabel}${catText} ${operator} ${minStr}`;
+};
+
+const defaultConditionInput: ConditionFormData = {
+  _index: 0,
+  condition_type: 'sales_amount',
+  condition_operator: '>=',
+  min_threshold_value: '',
+  max_threshold_value: '',
+  threshold_value: '',
+  product_category_id: '',
+  condition_description: '',
+  is_active: 'Y',
 };
 
 const ManageCustomerCategory: React.FC<ManageCustomerCategoryProps> = ({
@@ -148,15 +150,9 @@ const ManageCustomerCategory: React.FC<ManageCustomerCategoryProps> = ({
   const [selectedConditionIndex, setSelectedConditionIndex] = useState<
     number | null
   >(null);
-  const [conditionInput, setConditionInput] = useState<ConditionFormData>({
-    _index: 0,
-    condition_type: '',
-    condition_operator: '>=',
-    threshold_value: '',
-    product_category_id: '',
-    condition_description: '',
-    is_active: 'Y',
-  });
+  const [conditionInput, setConditionInput] = useState<ConditionFormData>(
+    defaultConditionInput
+  );
 
   const { data: productCategoriesResponse } = useProductCategories({
     limit: 1000,
@@ -171,30 +167,51 @@ const ManageCustomerCategory: React.FC<ManageCustomerCategoryProps> = ({
   useEffect(() => {
     if (categoryDetailResponse && isEdit) {
       const loadedConditions: ConditionFormData[] =
-        categoryDetailResponse.conditions?.map((cond, index) => ({
-          _index: index,
-          id: cond.id,
-          condition_type: cond.condition_type || '',
-          condition_operator: cond.condition_operator || '>=',
-          threshold_value: cond.threshold_value?.toString() || '',
-          product_category_id: cond.product_category_id?.toString() || '',
-          condition_description: cond.condition_description || '',
-          is_active: cond.is_active || 'Y',
-        })) || [];
+        categoryDetailResponse.conditions?.map((cond, index) => {
+          const op = cond.condition_operator || '>=';
+          const isMaxOnly = op === '<=' || op === '<';
+          const isMinOnly = op === '>=' || op === '>' || op === '=';
+
+          const minVal =
+            cond.min_threshold_value !== null &&
+            cond.min_threshold_value !== undefined
+              ? cond.min_threshold_value.toString()
+              : isMinOnly &&
+                  cond.threshold_value !== null &&
+                  cond.threshold_value !== undefined
+                ? cond.threshold_value.toString()
+                : '';
+
+          const maxVal =
+            cond.max_threshold_value !== null &&
+            cond.max_threshold_value !== undefined
+              ? cond.max_threshold_value.toString()
+              : isMaxOnly &&
+                  cond.threshold_value !== null &&
+                  cond.threshold_value !== undefined
+                ? cond.threshold_value.toString()
+                : '';
+
+          return {
+            _index: index,
+            id: cond.id,
+            condition_type: cond.condition_type || 'sales_amount',
+            condition_operator: op,
+            min_threshold_value: minVal,
+            max_threshold_value: maxVal,
+            threshold_value:
+              cond.threshold_value?.toString() || minVal || maxVal || '',
+            product_category_id: cond.product_category_id?.toString() || '',
+            condition_description: cond.condition_description || '',
+            is_active: cond.is_active || 'Y',
+          };
+        }) || [];
       setConditions(loadedConditions);
     } else {
       setConditions([]);
     }
     setSelectedConditionIndex(null);
-    setConditionInput({
-      _index: 0,
-      condition_type: '',
-      condition_operator: '>=',
-      threshold_value: '',
-      product_category_id: '',
-      condition_description: '',
-      is_active: 'Y',
-    });
+    setConditionInput(defaultConditionInput);
   }, [categoryDetailResponse, isEdit]);
 
   const handleCancel = () => {
@@ -202,87 +219,158 @@ const ManageCustomerCategory: React.FC<ManageCustomerCategoryProps> = ({
     setDrawerOpen(false);
     setConditions([]);
     setSelectedConditionIndex(null);
-    setConditionInput({
-      _index: 0,
-      condition_type: '',
-      condition_operator: '>=',
-      threshold_value: '',
-      product_category_id: '',
-      condition_description: '',
-      is_active: 'Y',
-    });
+    setConditionInput(defaultConditionInput);
     formik.resetForm();
   };
 
   const createCustomerCategoryMutation = useCreateCustomerCategory();
   const updateCustomerCategoryMutation = useUpdateCustomerCategory();
 
-  const addCondition = () => {
-    if (!conditionInput.condition_type.trim()) {
+  const validateCondition = (
+    input: ConditionFormData,
+    editIndex: number | null = null
+  ): boolean => {
+    if (!input.condition_type.trim()) {
       toast.error('Condition type is required');
-      return;
+      return false;
     }
 
-    if (!conditionInput.threshold_value.trim()) {
-      toast.error(
-        `Threshold value is required for ${conditionInput.condition_type}`
-      );
-      return;
-    }
+    if (input.condition_operator === 'BETWEEN') {
+      if (!input.min_threshold_value.trim()) {
+        toast.error('Minimum threshold value is required for BETWEEN operator');
+        return false;
+      }
+      if (!input.max_threshold_value.trim()) {
+        toast.error('Maximum threshold value is required for BETWEEN operator');
+        return false;
+      }
 
-    // Validate threshold value based on condition type
-    const thresholdValue = parseFloat(conditionInput.threshold_value);
-    if (isNaN(thresholdValue) || thresholdValue < 0) {
-      toast.error('Please enter a valid positive number for threshold value');
-      return;
-    }
+      const minVal = parseFloat(input.min_threshold_value);
+      const maxVal = parseFloat(input.max_threshold_value);
 
-    // Additional validation for specific condition types
-    if (
-      conditionInput.condition_type.includes('Days') &&
-      thresholdValue > 365
+      if (isNaN(minVal) || minVal < 0) {
+        toast.error(
+          'Minimum threshold value must be a valid non-negative number'
+        );
+        return false;
+      }
+      if (isNaN(maxVal) || maxVal < 0) {
+        toast.error(
+          'Maximum threshold value must be a valid non-negative number'
+        );
+        return false;
+      }
+      if (minVal > maxVal) {
+        toast.error(
+          'Minimum threshold value cannot be greater than Maximum threshold value'
+        );
+        return false;
+      }
+    } else if (
+      input.condition_operator === '<=' ||
+      input.condition_operator === '<'
     ) {
-      toast.error('Days cannot exceed 365 for this condition type');
-      return;
-    }
-
-    if (
-      conditionInput.condition_type.includes('Months') &&
-      thresholdValue > 12
-    ) {
-      toast.error('Months cannot exceed 12 for this condition type');
-      return;
+      if (!input.max_threshold_value.trim()) {
+        toast.error(
+          `Maximum threshold value is required for ${getConditionTypeLabel(input.condition_type)}`
+        );
+        return false;
+      }
+      const maxVal = parseFloat(input.max_threshold_value);
+      if (isNaN(maxVal) || maxVal < 0) {
+        toast.error(
+          'Please enter a valid positive number for maximum threshold value'
+        );
+        return false;
+      }
+      if (input.min_threshold_value.trim()) {
+        const minVal = parseFloat(input.min_threshold_value);
+        if (minVal > maxVal) {
+          toast.error(
+            'Minimum threshold value cannot be greater than Maximum threshold value'
+          );
+          return false;
+        }
+      }
+    } else {
+      if (!input.min_threshold_value.trim()) {
+        toast.error(
+          `Minimum threshold value is required for ${getConditionTypeLabel(input.condition_type)}`
+        );
+        return false;
+      }
+      const minVal = parseFloat(input.min_threshold_value);
+      if (isNaN(minVal) || minVal < 0) {
+        toast.error(
+          'Please enter a valid positive number for minimum threshold value'
+        );
+        return false;
+      }
+      if (input.max_threshold_value.trim()) {
+        const maxVal = parseFloat(input.max_threshold_value);
+        if (minVal > maxVal) {
+          toast.error(
+            'Minimum threshold value cannot be greater than Maximum threshold value'
+          );
+          return false;
+        }
+      }
     }
 
     const isDuplicate = conditions.some(
-      cond =>
-        cond.condition_type === conditionInput.condition_type &&
-        cond.condition_operator === conditionInput.condition_operator
+      (cond, i) =>
+        (editIndex === null || i !== editIndex) &&
+        cond.condition_type === input.condition_type &&
+        cond.condition_operator === input.condition_operator &&
+        (cond.product_category_id || '') === (input.product_category_id || '')
     );
+
     if (isDuplicate) {
-      toast.error('A condition with this type and operator already exists');
-      return;
+      toast.error(
+        'A condition with this type, operator and product category already exists'
+      );
+      return false;
     }
+
+    return true;
+  };
+
+  const addCondition = () => {
+    if (!validateCondition(conditionInput)) return;
+
+    const selectedProductCat = productCategories.find(
+      (c: { id?: number; category_name?: string }) =>
+        c.id === Number(conditionInput.product_category_id)
+    );
+
+    const minStr = conditionInput.min_threshold_value.trim();
+    const maxStr = conditionInput.max_threshold_value.trim();
+    const threshStr = minStr || maxStr || '0';
+
+    const description =
+      conditionInput.condition_description.trim() ||
+      generateConditionDescription(
+        conditionInput.condition_type,
+        conditionInput.condition_operator,
+        minStr,
+        maxStr,
+        selectedProductCat?.category_name
+      );
 
     const newCondition: ConditionFormData = {
       _index: conditions.length,
       condition_type: conditionInput.condition_type,
       condition_operator: conditionInput.condition_operator,
-      threshold_value: conditionInput.threshold_value,
+      min_threshold_value: minStr,
+      max_threshold_value: maxStr,
+      threshold_value: threshStr,
       product_category_id: conditionInput.product_category_id,
-      condition_description: conditionInput.condition_description,
+      condition_description: description,
       is_active: conditionInput.is_active,
     };
+
     setConditions([...conditions, newCondition]);
-    setConditionInput({
-      _index: conditions.length + 1,
-      condition_type: '',
-      condition_operator: '>=',
-      threshold_value: '',
-      product_category_id: '',
-      condition_description: '',
-      is_active: 'Y',
-    });
+    setConditionInput(defaultConditionInput);
     setSelectedConditionIndex(null);
     toast.success('Condition added successfully');
   };
@@ -298,37 +386,6 @@ const ManageCustomerCategory: React.FC<ManageCustomerCategoryProps> = ({
     setSelectedConditionIndex(null);
   };
 
-  const updateCondition = (index: number) => {
-    const isDuplicate = conditions.some(
-      (cond, i) =>
-        i !== index &&
-        cond.condition_type === conditionInput.condition_type &&
-        cond.condition_operator === conditionInput.condition_operator
-    );
-    if (isDuplicate) {
-      toast.error('A condition with this type and operator already exists');
-      return;
-    }
-
-    const updated = [...conditions];
-    updated[index] = {
-      ...conditionInput,
-      _index: index,
-      id: conditions[index].id,
-    };
-    setConditions(updated);
-    setConditionInput({
-      _index: conditions.length,
-      condition_type: '',
-      condition_operator: '>=',
-      threshold_value: '',
-      product_category_id: '',
-      condition_description: '',
-      is_active: 'Y',
-    });
-    setSelectedConditionIndex(null);
-  };
-
   const handleConditionRowClick = (row: ConditionFormData) => {
     setSelectedConditionIndex(row._index);
     setConditionInput({
@@ -336,9 +393,11 @@ const ManageCustomerCategory: React.FC<ManageCustomerCategoryProps> = ({
       id: row.id,
       condition_type: row.condition_type,
       condition_operator: row.condition_operator,
-      threshold_value: row.threshold_value,
+      min_threshold_value: row.min_threshold_value || '',
+      max_threshold_value: row.max_threshold_value || '',
+      threshold_value: row.threshold_value || '',
       product_category_id: row.product_category_id,
-      condition_description: row.condition_description,
+      condition_description: row.condition_description || '',
       is_active: row.is_active,
     });
   };
@@ -347,29 +406,49 @@ const ManageCustomerCategory: React.FC<ManageCustomerCategoryProps> = ({
     initialValues: {
       category_name: selectedCustomerCategory?.category_name || '',
       category_code: selectedCustomerCategory?.category_code || '',
-      level: selectedCustomerCategory?.level || 0,
+      level: selectedCustomerCategory?.level ?? 1,
+      logical_condition: selectedCustomerCategory?.logical_condition || 'AND',
       is_active: selectedCustomerCategory?.is_active || 'Y',
     },
     validationSchema: customerCategoryValidationSchema,
     enableReinitialize: true,
     onSubmit: async values => {
       try {
-        const categoryData = {
+        const categoryData: ManageCustomerCategoryPayload = {
           category_name: values.category_name,
           category_code: values.category_code,
           level: Number(values.level),
+          logical_condition: values.logical_condition as 'AND' | 'OR',
           is_active: values.is_active,
-          conditions: conditions.map(cond => ({
-            ...(cond.id && { id: cond.id }),
-            condition_type: cond.condition_type,
-            condition_operator: cond.condition_operator,
-            threshold_value: Number(cond.threshold_value),
-            product_category_id: cond.product_category_id
-              ? Number(cond.product_category_id)
-              : null,
-            condition_description: cond.condition_description || null,
-            is_active: cond.is_active,
-          })),
+          conditions: conditions.map(cond => {
+            const minNum =
+              cond.min_threshold_value !== '' &&
+              cond.min_threshold_value !== undefined
+                ? Number(cond.min_threshold_value)
+                : null;
+
+            const maxNum =
+              cond.max_threshold_value !== '' &&
+              cond.max_threshold_value !== undefined
+                ? Number(cond.max_threshold_value)
+                : null;
+
+            const threshNum = minNum ?? maxNum ?? 0;
+
+            return {
+              ...(cond.id && { id: cond.id }),
+              condition_type: cond.condition_type,
+              condition_operator: cond.condition_operator,
+              min_threshold_value: minNum,
+              max_threshold_value: maxNum,
+              threshold_value: threshNum,
+              product_category_id: cond.product_category_id
+                ? Number(cond.product_category_id)
+                : null,
+              condition_description: cond.condition_description || null,
+              is_active: cond.is_active || 'Y',
+            };
+          }),
         };
 
         if (isEdit && selectedCustomerCategory) {
@@ -393,35 +472,58 @@ const ManageCustomerCategory: React.FC<ManageCustomerCategoryProps> = ({
       id: 'condition_type',
       label: 'Condition Type',
       render: (_value, row) => (
-        <Typography
-          variant="body2"
-          className={
-            selectedConditionIndex === row._index
-              ? '!font-bold !text-primary-600'
-              : ''
-          }
+        <Box
           onClick={() => handleConditionRowClick(row)}
           style={{ cursor: 'pointer' }}
         >
-          {row.condition_type || '-'}
-        </Typography>
+          <Typography
+            variant="body2"
+            className={
+              selectedConditionIndex === row._index
+                ? '!font-bold !text-primary-600'
+                : '!font-medium !text-gray-900'
+            }
+          >
+            {getConditionTypeLabel(row.condition_type)}
+          </Typography>
+        </Box>
       ),
     },
     {
       id: 'condition_operator',
       label: 'Operator',
       render: (_value, row) => (
-        <Typography variant="body2" className="!text-gray-700">
-          {row.condition_operator || '-'}
+        <Chip
+          label={row.condition_operator || '-'}
+          size="small"
+          variant="outlined"
+          className="!font-semibold !text-xs"
+        />
+      ),
+    },
+    {
+      id: 'min_threshold_value',
+      label: 'Min Threshold',
+      render: (_value, row) => (
+        <Typography variant="body2" className="!text-gray-700 !font-medium">
+          {row.min_threshold_value !== '' &&
+          row.min_threshold_value !== undefined &&
+          row.min_threshold_value !== null
+            ? Number(row.min_threshold_value).toLocaleString()
+            : '-'}
         </Typography>
       ),
     },
     {
-      id: 'threshold_value',
-      label: 'Threshold Value',
+      id: 'max_threshold_value',
+      label: 'Max Threshold',
       render: (_value, row) => (
-        <Typography variant="body2" className="!text-gray-700">
-          {row.threshold_value || '-'}
+        <Typography variant="body2" className="!text-gray-700 !font-medium">
+          {row.max_threshold_value !== '' &&
+          row.max_threshold_value !== undefined &&
+          row.max_threshold_value !== null
+            ? Number(row.max_threshold_value).toLocaleString()
+            : '-'}
         </Typography>
       ),
     },
@@ -487,6 +589,7 @@ const ManageCustomerCategory: React.FC<ManageCustomerCategoryProps> = ({
               formik={formik}
               required
             />
+
             <Input
               type="number"
               name="level"
@@ -495,6 +598,17 @@ const ManageCustomerCategory: React.FC<ManageCustomerCategoryProps> = ({
               formik={formik}
               required
             />
+
+            <Select
+              name="logical_condition"
+              label="Logical Condition"
+              formik={formik}
+              disableClearable
+              required
+            >
+              <MenuItem value="AND">Match ALL Conditions (AND)</MenuItem>
+              <MenuItem value="OR">Match ANY Condition (OR)</MenuItem>
+            </Select>
 
             <ActiveInactiveField
               name="is_active"
@@ -511,18 +625,20 @@ const ManageCustomerCategory: React.FC<ManageCustomerCategoryProps> = ({
               >
                 Category Conditions
               </Typography>
-              <Button
-                type="button"
-                variant="outlined"
-                startIcon={<Add />}
-                onClick={addCondition}
-                size="small"
-              >
-                Add Condition
-              </Button>
+              {selectedConditionIndex === null && (
+                <Button
+                  type="button"
+                  variant="outlined"
+                  startIcon={<Add />}
+                  onClick={addCondition}
+                  size="small"
+                >
+                  Add Condition
+                </Button>
+              )}
             </Box>
 
-            <Box className="!grid !grid-cols-1 md:!grid-cols-2 !gap-4 !bg-gray-50 !rounded-lg">
+            <Box className="!grid !grid-cols-1 md:!grid-cols-2 !gap-4">
               <Select
                 value={conditionInput.condition_type}
                 onChange={e =>
@@ -534,12 +650,21 @@ const ManageCustomerCategory: React.FC<ManageCustomerCategoryProps> = ({
                 label="Condition Type"
                 size="small"
                 fullWidth
+                disableClearable
               >
                 {CONDITION_TYPES.map(type => (
-                  <MenuItem key={type} value={type}>
-                    {type}
+                  <MenuItem key={type.value} value={type.value}>
+                    {type.label}
                   </MenuItem>
                 ))}
+                {conditionInput.condition_type &&
+                  !CONDITION_TYPES.some(
+                    t => t.value === conditionInput.condition_type
+                  ) && (
+                    <MenuItem value={conditionInput.condition_type}>
+                      {getConditionTypeLabel(conditionInput.condition_type)}
+                    </MenuItem>
+                  )}
               </Select>
 
               <Select
@@ -553,6 +678,7 @@ const ManageCustomerCategory: React.FC<ManageCustomerCategoryProps> = ({
                 label="Operator"
                 size="small"
                 fullWidth
+                disableClearable
               >
                 {CONDITION_OPERATORS.map(op => (
                   <MenuItem key={op.value} value={op.value}>
@@ -560,95 +686,101 @@ const ManageCustomerCategory: React.FC<ManageCustomerCategoryProps> = ({
                   </MenuItem>
                 ))}
               </Select>
+            </Box>
 
+            <Box className="!grid !grid-cols-1 md:!grid-cols-2 !gap-4">
               <Input
-                value={conditionInput.threshold_value}
+                value={conditionInput.min_threshold_value}
                 onChange={e =>
                   setConditionInput({
                     ...conditionInput,
-                    threshold_value: e.target.value,
+                    min_threshold_value: e.target.value,
                   })
                 }
-                label="Threshold Value"
+                label="Min Threshold Value"
                 placeholder={getThresholdPlaceholder(
-                  conditionInput.condition_type
+                  conditionInput.condition_type,
+                  'min'
                 )}
-                helperText={getThresholdHelperText(
-                  conditionInput.condition_type
-                )}
+                helperText={
+                  conditionInput.condition_operator === '<=' ||
+                  conditionInput.condition_operator === '<'
+                    ? 'Optional lower bound'
+                    : 'Minimum required value'
+                }
                 type="number"
                 size="small"
                 fullWidth
+                required={
+                  conditionInput.condition_operator !== '<=' &&
+                  conditionInput.condition_operator !== '<'
+                }
               />
 
-              <ProductCategorySelect
-                value={conditionInput.product_category_id}
-                onChange={(_event, category) =>
+              <Input
+                value={conditionInput.max_threshold_value}
+                onChange={e =>
                   setConditionInput({
                     ...conditionInput,
-                    product_category_id: category ? category.id.toString() : '',
+                    max_threshold_value: e.target.value,
                   })
                 }
-                label="Product Category (Optional)"
+                label="Max Threshold Value"
+                placeholder={getThresholdPlaceholder(
+                  conditionInput.condition_type,
+                  'max'
+                )}
+                helperText={
+                  conditionInput.condition_operator === '>=' ||
+                  conditionInput.condition_operator === '>'
+                    ? 'Optional upper bound'
+                    : 'Maximum allowable value'
+                }
+                type="number"
                 size="small"
                 fullWidth
+                required={
+                  conditionInput.condition_operator === 'BETWEEN' ||
+                  conditionInput.condition_operator === '<=' ||
+                  conditionInput.condition_operator === '<'
+                }
               />
-              {/* Information Section */}
-              <Box className="!bg-blue-50 col-span-2 !border !border-blue-200 !rounded-lg !p-4">
-                <Typography
-                  variant="subtitle2"
-                  className="!font-semibold !text-blue-900 !mb-2"
-                >
-                  <InfoOutline fontSize="small" /> How Conditions Work:
-                </Typography>
-                <Typography variant="body2" className="!text-blue-800 !mb-2">
-                  <strong>Example 1:</strong> "Monthly Sales Quantity (Crates) ≥
-                  1" → Customers who buy at least 1 crate per month
-                </Typography>
-                <Typography variant="body2" className="!text-blue-800 !mb-2">
-                  <strong>Example 2:</strong> "Monthly Sales Amount (₹) ≥ 50000"
-                  → Customers with monthly sales of ₹50,000 or more
-                </Typography>
-                <Typography variant="body2" className="!text-blue-800">
-                  <strong>Note:</strong> All conditions are evaluated based on
-                  customer's purchase history and behavior patterns.
-                </Typography>
-              </Box>
-
-              <Box className="md:!col-span-2 !flex !items-center !gap-4">
-                {selectedConditionIndex !== null && (
-                  <Box className="!flex !gap-2">
-                    <Button
-                      type="button"
-                      variant="outlined"
-                      size="small"
-                      onClick={() => updateCondition(selectedConditionIndex)}
-                    >
-                      Update
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outlined"
-                      size="small"
-                      onClick={() => {
-                        setSelectedConditionIndex(null);
-                        setConditionInput({
-                          _index: conditions.length,
-                          condition_type: '',
-                          condition_operator: '>=',
-                          threshold_value: '',
-                          product_category_id: '',
-                          condition_description: '',
-                          is_active: 'Y',
-                        });
-                      }}
-                    >
-                      Cancel
-                    </Button>
-                  </Box>
-                )}
-              </Box>
             </Box>
+
+            <ProductCategorySelect
+              value={conditionInput.product_category_id}
+              onChange={(_event, category) =>
+                setConditionInput({
+                  ...conditionInput,
+                  product_category_id: category ? category.id.toString() : '',
+                })
+              }
+              label="Product Category (Optional)"
+              size="small"
+              fullWidth
+            />
+
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <div className="font-semibold text-blue-900 mb-2 flex items-center gap-1 text-xs">
+                <InfoOutline fontSize="small" /> How Conditions Work:
+              </div>
+              <div className="text-blue-800 text-xs mb-1.5">
+                <span className="font-bold">Example 1:</span> "Sales Amount
+                BETWEEN 500000 and 1000000" → Customers with sales between
+                ₹500,000 and ₹1,000,000
+              </div>
+              <div className="text-blue-800 text-xs mb-1.5">
+                <span className="font-bold">Example 2:</span> "Order Count ≥ 10"
+                → Customers who placed at least 10 orders
+              </div>
+              <div className="text-blue-800 text-xs">
+                <span className="font-bold">Condition Logic:</span> If set to{' '}
+                <span className="italic font-medium">AND</span>, customer must
+                satisfy all conditions. If set to{' '}
+                <span className="italic font-medium">OR</span>, satisfying any
+                condition qualifies.
+              </div>
+            </div>
 
             {isLoadingCategoryDetail && isEdit ? (
               <Box className="!mt-4">
