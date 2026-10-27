@@ -7,8 +7,11 @@ import {
   Tooltip,
 } from '@mui/material';
 import { useFormik } from 'formik';
+import dayjs from 'dayjs';
 import { useCustomerCategories } from 'hooks/useCustomerCategory';
-import { useCustomers } from 'hooks/useCustomers';
+import CustomerSelectCell, {
+  type CustomerOption,
+} from 'shared/CustomerSelectCell';
 import { useDepots } from 'hooks/useDepots';
 import {
   useCreatePriceList,
@@ -52,19 +55,24 @@ interface PriceListItemForm extends Omit<
 
 interface SpecialPriceForm extends Omit<
   SpecialPrice,
-  'route_id' | 'customer_id' | 'customer_category_id' | 'sale_price'
+  | 'route_id'
+  | 'customer_id'
+  | 'customer_category_id'
+  | 'sale_price'
+  | 'special_customer'
 > {
   id?: number;
   valid_from?: string;
   valid_to?: string;
-  route_id?: number | '';
-  customer_id?: number | '';
-  customer_category_id?: number | '';
+  route_id?: number | null;
+  customer_id?: number | null;
+  customer_category_id?: number | null;
   sale_price: string;
   sale_sub_unit_price?: string;
   tax_percent?: string;
   discount_percent?: string;
   is_active?: string;
+  special_customer?: CustomerOption | null;
 }
 
 const ManagePriceList: React.FC<ManagePriceListProps> = ({
@@ -102,24 +110,15 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
     },
     { enabled: drawerOpen }
   );
-  const { data: customersResponse } = useCustomers(
-    {
-      limit: 1000,
-      isActive: 'Y',
-    },
-    { enabled: drawerOpen }
-  );
   const { data: productsResponse, isLoading: isLoadingProducts } = useProducts(
     {
       limit: 1000,
     },
     { enabled: drawerOpen }
   );
-
   const depots = depotsResponse?.data || [];
   const routes = routesResponse?.data || [];
   const categories = categoriesResponse?.data || [];
-  const customers = customersResponse?.data || [];
   const products = productsResponse?.data || [];
 
   const { data: allPriceListsResponse, isLoading: isLoadingPriceList } =
@@ -154,9 +153,9 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
           id: sp.id,
           valid_from: sp.valid_from ? String(sp.valid_from).split('T')[0] : '',
           valid_to: sp.valid_to ? String(sp.valid_to).split('T')[0] : '',
-          route_id: sp.route_id || '',
-          customer_id: sp.customer_id || '',
-          customer_category_id: sp.customer_category_id || '',
+          route_id: sp.route_id || null,
+          customer_id: sp.customer_id || null,
+          customer_category_id: sp.customer_category_id || null,
           sale_price: String(sp.sale_price ?? '0'),
           sale_sub_unit_price: sp.sale_sub_unit_price
             ? String(sp.sale_sub_unit_price)
@@ -166,6 +165,7 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
             ? String(sp.discount_percent)
             : '',
           is_active: sp.is_active || 'Y',
+          special_customer: sp.special_customer || null,
         }));
 
         return {
@@ -674,14 +674,15 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
     const sp: SpecialPriceForm = {
       valid_from: '',
       valid_to: '',
-      route_id: '',
-      customer_id: '',
-      customer_category_id: '',
+      route_id: null,
+      customer_id: null,
+      customer_category_id: null,
       sale_price: basePrice,
       sale_sub_unit_price: item.sub_unit_price || '',
       tax_percent: item.tax_percent || '',
       discount_percent: '',
       is_active: 'Y',
+      special_customer: null,
     };
     item.special_prices = [...(item.special_prices || []), sp];
     setPriceListItems(updated);
@@ -698,6 +699,31 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
     if (!item.special_prices) item.special_prices = [];
     const sps = [...item.special_prices];
     const sp = { ...sps[spIndex], [field]: value } as SpecialPriceForm;
+
+    if (field === 'valid_to' && value) {
+      const selected = dayjs(value as string).startOf('day');
+      const today = dayjs().startOf('day');
+      if (selected.isBefore(today)) {
+        return;
+      }
+      if (
+        sp.valid_from &&
+        selected.isBefore(dayjs(sp.valid_from).startOf('day'))
+      ) {
+        return;
+      }
+    }
+
+    if (field === 'valid_from' && value) {
+      const selected = dayjs(value as string).startOf('day');
+      const today = dayjs().startOf('day');
+      if (selected.isBefore(today)) {
+        return;
+      }
+      if (sp.valid_to && dayjs(sp.valid_to).startOf('day').isBefore(selected)) {
+        sp.valid_to = '';
+      }
+    }
 
     const originalPrice = parseFloat(item.unit_price || '0');
 
@@ -730,6 +756,30 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
     }
 
     sps[spIndex] = sp;
+    item.special_prices = sps;
+    setPriceListItems(updated);
+  };
+
+  /**
+   * Update customer selection for a special price entry
+   * @param itemIndex - Index of the price list item
+   * @param spIndex - Index of the special price row
+   * @param customer - Selected customer option or null
+   */
+  const updateSpecialPriceCustomer = (
+    itemIndex: number,
+    spIndex: number,
+    customer: CustomerOption | null
+  ) => {
+    const updated = [...priceListItems];
+    const item = updated[itemIndex];
+    if (!item.special_prices) item.special_prices = [];
+    const sps = [...item.special_prices];
+    sps[spIndex] = {
+      ...sps[spIndex],
+      customer_id: customer ? customer.id : null,
+      special_customer: customer || null,
+    };
     item.special_prices = sps;
     setPriceListItems(updated);
   };
@@ -950,6 +1000,8 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
                               <Input
                                 compact={true}
                                 type="date"
+                                disablePast={true}
+                                minDate={dayjs().startOf('day')}
                                 value={row.valid_from || ''}
                                 onChange={e =>
                                   updateSpecialPrice(
@@ -967,23 +1019,35 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
                           {
                             id: 'valid_to',
                             label: 'To',
-                            render: (_v, row: any) => (
-                              <Input
-                                compact={true}
-                                type="date"
-                                value={row.valid_to || ''}
-                                onChange={e =>
-                                  updateSpecialPrice(
-                                    showSpecialForIndex,
-                                    row._index,
-                                    'valid_to',
-                                    e.target.value
+                            render: (_v, row: any) => {
+                              const minToDate = row.valid_from
+                                ? dayjs(row.valid_from).isAfter(
+                                    dayjs().startOf('day')
                                   )
-                                }
-                                size="small"
-                                className="!min-w-28"
-                              />
-                            ),
+                                  ? dayjs(row.valid_from)
+                                  : dayjs().startOf('day')
+                                : dayjs().startOf('day');
+
+                              return (
+                                <Input
+                                  compact={true}
+                                  type="date"
+                                  disablePast={true}
+                                  minDate={minToDate}
+                                  value={row.valid_to || ''}
+                                  onChange={e =>
+                                    updateSpecialPrice(
+                                      showSpecialForIndex,
+                                      row._index,
+                                      'valid_to',
+                                      e.target.value
+                                    )
+                                  }
+                                  size="small"
+                                  className="!min-w-28"
+                                />
+                              );
+                            },
                           },
                           {
                             id: 'route_id',
@@ -991,21 +1055,19 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
                             render: (_v, row: any) => (
                               <Select
                                 compact={true}
-                                value={row.route_id ?? ''}
+                                value={row.route_id || null}
                                 onChange={(e: any) =>
                                   updateSpecialPrice(
                                     showSpecialForIndex,
                                     row._index,
                                     'route_id',
-                                    e.target.value === ''
-                                      ? null
-                                      : e.target.value
+                                    e.target.value || null
                                   )
                                 }
+                                placeholder="Select Route"
                                 size="small"
                                 className="!min-w-36"
                               >
-                                <MenuItem value="">None</MenuItem>
                                 {routes.map((r: any) => (
                                   <MenuItem
                                     key={r.id}
@@ -1024,21 +1086,19 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
                             render: (_v, row: any) => (
                               <Select
                                 compact={true}
-                                value={row.customer_category_id ?? ''}
+                                value={row.customer_category_id || null}
                                 onChange={(e: any) =>
                                   updateSpecialPrice(
                                     showSpecialForIndex,
                                     row._index,
                                     'customer_category_id',
-                                    e.target.value === ''
-                                      ? null
-                                      : e.target.value
+                                    e.target.value || null
                                   )
                                 }
+                                placeholder="Select Category"
                                 size="small"
                                 className="!min-w-36"
                               >
-                                <MenuItem value="">None</MenuItem>
                                 {categories.map((c: any) => (
                                   <MenuItem
                                     key={c.id}
@@ -1055,33 +1115,19 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
                             id: 'customer_id',
                             label: 'Customer',
                             render: (_v, row: any) => (
-                              <Select
-                                compact={true}
-                                value={row.customer_id ?? ''}
-                                onChange={(e: any) =>
-                                  updateSpecialPrice(
-                                    showSpecialForIndex,
-                                    row._index,
-                                    'customer_id',
-                                    e.target.value === ''
-                                      ? null
-                                      : e.target.value
-                                  )
-                                }
-                                size="small"
-                                className="!min-w-40"
-                              >
-                                <MenuItem value="">None</MenuItem>
-                                {customers.map((c: any) => (
-                                  <MenuItem
-                                    key={c.id}
-                                    value={c.id}
-                                    className="text-xs"
-                                  >
-                                    {c.name}
-                                  </MenuItem>
-                                ))}
-                              </Select>
+                              <CustomerSelectCell
+                                value={row.customer_id}
+                                selectedCustomer={row.special_customer}
+                                onChange={customer => {
+                                  if (showSpecialForIndex !== null) {
+                                    updateSpecialPriceCustomer(
+                                      showSpecialForIndex,
+                                      row._index,
+                                      customer
+                                    );
+                                  }
+                                }}
+                              />
                             ),
                           },
 

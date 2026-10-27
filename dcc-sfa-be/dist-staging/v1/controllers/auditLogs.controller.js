@@ -7,6 +7,107 @@ exports.auditLogsController = void 0;
 const paginate_1 = require("../../utils/paginate");
 const prisma_client_1 = __importDefault(require("../../configs/prisma.client"));
 /**
+ * Extracts a human-readable record name or identifier from changed audit data or entity payload.
+ * @param data - The parsed changed data or database record
+ * @returns The resolved record name or null
+ */
+const extractRecordName = (data) => {
+    if (!data || typeof data !== 'object') {
+        return null;
+    }
+    const candidateFields = [
+        'order_number',
+        'invoice_number',
+        'order_no',
+        'invoice_no',
+        'name',
+        'title',
+        'outlet_name',
+        'shop_name',
+        'customer_name',
+        'product_name',
+        'route_name',
+        'vehicle_number',
+        'plate_number',
+        'reference_number',
+        'reference_no',
+        'reference',
+        'ref_no',
+        'voucher_no',
+        'receipt_no',
+        'code',
+        'short_code',
+        'username',
+        'employee_id',
+        'description',
+    ];
+    const obj = data;
+    for (const field of candidateFields) {
+        const val = obj[field];
+        if (typeof val === 'string' && val.trim().length > 0) {
+            return val.trim();
+        }
+        if (typeof val === 'number') {
+            return String(val);
+        }
+    }
+    const nestedKeys = ['new', 'data', 'old', 'record', 'item'];
+    for (const key of nestedKeys) {
+        if (obj[key] && typeof obj[key] === 'object') {
+            const nested = obj[key];
+            for (const field of candidateFields) {
+                const val = nested[field];
+                if (typeof val === 'string' && val.trim().length > 0) {
+                    return val.trim();
+                }
+                if (typeof val === 'number') {
+                    return String(val);
+                }
+            }
+        }
+    }
+    return null;
+};
+/**
+ * Attempts to retrieve a referenced record's display name directly from its database table.
+ * @param tableName - Name of the database table
+ * @param recordId - Primary key ID of the record
+ * @returns The resolved display name or null
+ */
+const resolveRecordNameFromDb = async (tableName, recordId) => {
+    if (!tableName || !recordId || isNaN(recordId)) {
+        return null;
+    }
+    try {
+        const raw = tableName.trim().toLowerCase();
+        const candidateModelNames = [
+            raw,
+            raw.endsWith('s') ? raw.slice(0, -1) : `${raw}s`,
+        ];
+        let targetModel = null;
+        for (const modelKey of candidateModelNames) {
+            if (prisma_client_1.default[modelKey]) {
+                targetModel = prisma_client_1.default[modelKey];
+                break;
+            }
+        }
+        if (!targetModel ||
+            typeof targetModel.findUnique !== 'function') {
+            return null;
+        }
+        const record = await targetModel.findUnique({
+            where: { id: recordId },
+        });
+        if (record) {
+            return extractRecordName(record);
+        }
+    }
+    catch {
+        return null;
+    }
+    return null;
+};
+/**
  * Audit Logs Controller
  * Handles audit log queries and reporting
  */
@@ -25,6 +126,17 @@ exports.auditLogsController = {
             if (table_name) {
                 where.table_name = table_name;
             }
+            else {
+                where.table_name = {
+                    notIn: [
+                        'gps_logs',
+                        'gps_log',
+                        'request_logs',
+                        'error_logs',
+                        'mobile_error_logs',
+                    ],
+                };
+            }
             if (action) {
                 where.action = action;
             }
@@ -32,17 +144,17 @@ exports.auditLogsController = {
                 where.changed_by = parseInt(user_id);
             }
             if (start_date || end_date) {
-                where.changed_at = {};
+                const dateFilter = {};
                 if (start_date) {
-                    where.changed_at.gte = new Date(start_date);
+                    dateFilter.gte = new Date(start_date);
                 }
                 if (end_date) {
-                    where.changed_at.lte = new Date(end_date);
+                    dateFilter.lte = new Date(end_date);
                 }
+                where.changed_at = dateFilter;
             }
             const pageNum = parseInt(page);
             const limitNum = parseInt(limit);
-            const offset = (pageNum - 1) * limitNum;
             const { data, pagination } = await (0, paginate_1.paginate)({
                 model: prisma_client_1.default.audit_logs,
                 filters: where,
@@ -56,12 +168,12 @@ exports.auditLogsController = {
                             name: true,
                             email: true,
                             employee_id: true,
+                            profile_image: true,
                         },
                     },
                 },
             });
-            // Serialize audit logs
-            const serializedLogs = data.map((log) => {
+            const serializedLogs = await Promise.all(data.map(async (log) => {
                 let parsedChangedData = null;
                 try {
                     parsedChangedData = log.changed_data
@@ -71,19 +183,13 @@ exports.auditLogsController = {
                 catch {
                     parsedChangedData = log.changed_data;
                 }
-                let record_name = null;
-                if (parsedChangedData && typeof parsedChangedData === 'object') {
-                    record_name =
-                        parsedChangedData.name ||
-                            parsedChangedData.title ||
-                            parsedChangedData.code ||
-                            parsedChangedData.reference_number ||
-                            parsedChangedData.reference ||
-                            parsedChangedData.username ||
-                            parsedChangedData.employee_id ||
-                            parsedChangedData.description ||
-                            null;
+                let record_name = extractRecordName(parsedChangedData);
+                if (!record_name &&
+                    typeof log.table_name === 'string' &&
+                    typeof log.record_id === 'number') {
+                    record_name = await resolveRecordNameFromDb(log.table_name, log.record_id);
                 }
+                const userRelation = log.users_audit_logs_changed_byTousers;
                 return {
                     id: log.id,
                     table_name: log.table_name,
@@ -92,16 +198,19 @@ exports.auditLogsController = {
                     action: log.action,
                     changed_data: parsedChangedData,
                     changed_by: log.changed_by,
-                    user_name: log.users_audit_logs_changed_byTousers?.name || 'N/A',
-                    user_email: log.users_audit_logs_changed_byTousers?.email || 'N/A',
-                    employee_id: log.users_audit_logs_changed_byTousers?.employee_id,
+                    user_name: userRelation?.name || 'N/A',
+                    user_email: userRelation?.email || 'N/A',
+                    user_avatar: userRelation?.profile_image || null,
+                    employee_id: userRelation?.employee_id || null,
                     changed_at: log.changed_at,
                     ip_address: log.ip_address,
                     device_info: log.device_info,
                     session_id: log.session_id,
                 };
-            });
-            // Calculate statistics
+            }));
+            /**
+             * Calculate statistics
+             */
             const stats = {
                 total_logs: pagination.total_count,
                 by_action: {
@@ -146,10 +255,11 @@ exports.auditLogsController = {
             });
         }
         catch (error) {
+            const err = error;
             console.error('Get Audit Logs Error:', error);
             res.status(500).json({
                 success: false,
-                message: error.message || 'Failed to retrieve audit logs',
+                message: err?.message || 'Failed to retrieve audit logs',
             });
         }
     },

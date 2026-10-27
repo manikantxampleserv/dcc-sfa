@@ -12,18 +12,20 @@ import {
   createCustomer,
   deleteCustomer,
   fetchCustomerById,
+  fetchCustomerRelations,
   fetchCustomers,
   fetchCustomersDropdown,
-  fetchCustomerRelations,
   updateCustomer,
+  type Customer,
+  type CustomerDropdown,
   type GetCustomersParams,
   type ManageCustomerPayload,
   type UpdateCustomerPayload,
-  type Customer,
-  type CustomerDropdown,
 } from '../services/masters/Customers';
 import type { ApiResponse } from '../types/api.types';
 import { useApiMutation } from './useApiMutation';
+
+export type { CustomerDropdown };
 
 /**
  * Query keys factory for customer-related queries
@@ -93,7 +95,12 @@ export const useCustomerRelations = (id: number) => {
  * @returns Query result with customers data
  */
 export const useCustomersDropdown = (
-  params?: { search?: string; customer_id?: number; depot_id?: number },
+  params?: {
+    search?: string;
+    customer_id?: number;
+    depot_id?: number;
+    limit?: number;
+  },
   options?: Omit<
     import('@tanstack/react-query').UseQueryOptions<
       import('../types/api.types').ApiResponse<CustomerDropdown[]>
@@ -194,8 +201,8 @@ export const useDeleteCustomer = (options?: {
  * Type exports for customer-related interfaces
  */
 export type {
+  Customer,
   GetCustomersParams,
   ManageCustomerPayload,
   UpdateCustomerPayload,
-  Customer,
 };

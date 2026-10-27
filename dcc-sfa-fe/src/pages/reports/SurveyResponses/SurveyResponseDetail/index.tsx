@@ -1,16 +1,40 @@
+import { Download } from '@mui/icons-material';
 import { Avatar, Chip, Skeleton, Typography } from '@mui/material';
 import classNames from 'classnames';
 import { useCurrency } from 'hooks/useCurrency';
-import { useSurveyResponse } from 'hooks/useSurveyResponses';
+import {
+  useExportSurveyResponses,
+  useSurveyResponse,
+} from 'hooks/useSurveyResponses';
 import { useSurvey } from 'hooks/useSurveys';
-import { AlertTriangle, BarChart3, FileText, User } from 'lucide-react';
-import React from 'react';
+import {
+  AlertTriangle,
+  BarChart3,
+  FileText,
+  Package,
+  User,
+} from 'lucide-react';
+import React, { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
+import Button from 'shared/Button';
+import { PopConfirm } from 'shared/DeleteConfirmation';
+import Table, { type TableColumn } from 'shared/Table';
 import { formatDateTime } from 'utils/dateUtils';
+
+interface FlatAnswerItem {
+  id: number | string;
+  productName: string;
+  productCode?: string;
+  fieldLabel: string;
+  fieldType: string;
+  answerValue: string;
+  isRequired: boolean;
+}
 
 const SurveyResponseDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { formatCurrency } = useCurrency();
+  const exportSurveyResponsesMutation = useExportSurveyResponses();
 
   const {
     data: response,
@@ -77,10 +101,75 @@ const SurveyResponseDetail: React.FC = () => {
 
       return answer;
     } catch {
-      // If parsing fails, return as-is
       return answer;
     }
   };
+
+  const flatAnswers: FlatAnswerItem[] = useMemo(() => {
+    if (!response?.answers || response.answers.length === 0) return [];
+
+    const fieldMap = new Map<number, any>();
+    if (survey?.fields) {
+      survey.fields.forEach((f: any) => fieldMap.set(f.id, f));
+    }
+
+    return response.answers.map((ans: any, idx: number) => {
+      let prodName = ans.product?.name || '';
+      let prodCode = ans.product?.code || '';
+      const matchedField = fieldMap.get(ans.field_id);
+
+      if (
+        !prodName &&
+        ans.field?.parent_option_value &&
+        ans.field.parent_option_value !== 'default'
+      ) {
+        prodName = ans.field.parent_option_value;
+      }
+      if (
+        !prodName &&
+        matchedField?.parent_option_value &&
+        matchedField.parent_option_value !== 'default'
+      ) {
+        prodName = matchedField.parent_option_value;
+      }
+
+      const fieldLabel =
+        matchedField?.label ||
+        ans.field?.name ||
+        ans.field?.label ||
+        'Question';
+
+      const fieldType =
+        matchedField?.field_type ||
+        ans.field?.type ||
+        ans.field?.field_type ||
+        'text';
+
+      const isReq =
+        matchedField?.is_required === true ||
+        matchedField?.is_required === 'Y' ||
+        ans.field?.is_required === true ||
+        ans.field?.is_required === 'Y';
+
+      let displayVal =
+        ans.answer !== null && ans.answer !== undefined
+          ? formatAnswer(ans.answer)
+          : '';
+      if (!displayVal && matchedField?.field_type === 'product') {
+        displayVal = prodName || '—';
+      }
+
+      return {
+        id: ans.id || idx + 1,
+        productName: prodName,
+        productCode: prodCode,
+        fieldLabel,
+        fieldType,
+        answerValue: displayVal || '—',
+        isRequired: isReq,
+      };
+    });
+  }, [response?.answers, survey?.fields]);
 
   const getFieldTypeLabel = (type: string) => {
     const labels: Record<string, string> = {
@@ -93,197 +182,354 @@ const SurveyResponseDetail: React.FC = () => {
       date: 'Date',
       time: 'Time',
       photo: 'Photo',
+      product: 'Product',
       signature: 'Signature',
     };
     return labels[type] || type;
   };
 
+  /**
+   * Check if a given string looks like an image URL
+   *
+   * @param {string} url
+   * @returns {boolean}
+   */
+  const isImageUrl = (url: string): boolean => {
+    return (
+      !!url &&
+      (url.startsWith('http') ||
+        url.startsWith('/') ||
+        url.startsWith('data:image') ||
+        !!url.match(/\.(jpeg|jpg|gif|png|webp|svg)/i))
+    );
+  };
+
+  /**
+   * Column definitions for the flat answers table.
+   */
+  const answerColumns: TableColumn<FlatAnswerItem>[] = useMemo(
+    () => [
+      {
+        id: 'productName',
+        label: 'Product / Context',
+        sortable: true,
+        render: (_value: unknown, row: FlatAnswerItem) =>
+          row.productName ? (
+            <div className="!flex !items-center !gap-2">
+              <Avatar
+                variant="rounded"
+                className="!w-10 !h-10 !rounded !bg-sky-100 !text-blue-600 !flex-shrink-0"
+              >
+                <Package className="!w-5 !h-5 !text-blue-600" />
+              </Avatar>
+              <div className="!min-w-0">
+                <Typography
+                  variant="body2"
+                  className="!font-semibold !text-gray-900 !leading-snug"
+                >
+                  {row.productName}
+                </Typography>
+                {row.productCode && (
+                  <Typography
+                    variant="caption"
+                    className="!text-xs !text-gray-400 !font-normal !block !mt-0.5"
+                  >
+                    {row.productCode}
+                  </Typography>
+                )}
+              </div>
+            </div>
+          ) : (
+            <span className="!text-xs !text-gray-400 italic">General</span>
+          ),
+      },
+      {
+        id: 'fieldLabel',
+        label: 'Question / Field',
+        sortable: true,
+        render: (_value: unknown, row: FlatAnswerItem) => (
+          <div className="!flex !items-center !gap-1.5">
+            <span className="!font-medium !text-gray-900">
+              {row.fieldLabel}
+            </span>
+            {row.isRequired && (
+              <span className="!text-red-500 !font-bold" title="Required">
+                *
+              </span>
+            )}
+          </div>
+        ),
+      },
+      {
+        id: 'fieldType',
+        label: 'Type',
+        width: '120px',
+        sortable: true,
+        render: (_value: unknown, row: FlatAnswerItem) => (
+          <Chip
+            label={getFieldTypeLabel(row.fieldType)}
+            size="small"
+            color="primary"
+            variant="outlined"
+          />
+        ),
+      },
+      {
+        id: 'isRequired',
+        label: 'Mandatory',
+        width: '120px',
+        sortable: true,
+        render: (_value: unknown, row: FlatAnswerItem) =>
+          row.isRequired ? (
+            <Chip
+              label="Mandatory"
+              size="small"
+              color="error"
+              variant="outlined"
+              className="!text-xs !font-medium"
+            />
+          ) : (
+            <Chip
+              label="Optional"
+              size="small"
+              variant="outlined"
+              className="!text-xs !text-gray-500 !border-gray-200"
+            />
+          ),
+      },
+      {
+        id: 'answerValue',
+        label: 'Answer Value',
+        sortable: true,
+        render: (_value: unknown, row: FlatAnswerItem) => {
+          if (row.answerValue && isImageUrl(row.answerValue)) {
+            return (
+              <div className="!py-1">
+                <a
+                  href={row.answerValue}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="!inline-block"
+                >
+                  <img
+                    src={row.answerValue}
+                    alt={row.fieldLabel}
+                    className="!w-16 !h-16 !object-cover !rounded-md !border !border-gray-200 hover:!opacity-80 !transition-opacity"
+                  />
+                </a>
+              </div>
+            );
+          }
+          if (row.answerValue.toLowerCase() === 'yes') {
+            return (
+              <span className="!inline-flex !items-center !px-2 !py-0.5 !rounded-full !text-xs !font-semibold !bg-green-100 !text-green-800">
+                Yes
+              </span>
+            );
+          }
+          if (row.answerValue.toLowerCase() === 'no') {
+            return (
+              <span className="!inline-flex !items-center !px-2 !py-0.5 !rounded-full !text-xs !font-semibold !bg-red-100 !text-red-800">
+                No
+              </span>
+            );
+          }
+          return (
+            <span
+              className={classNames('!text-sm', {
+                '!font-bold !text-gray-900':
+                  !isNaN(Number(row.answerValue)) && row.answerValue !== '',
+                '!font-medium !text-gray-700': isNaN(Number(row.answerValue)),
+                '!text-gray-300 italic': row.answerValue === '—',
+              })}
+            >
+              {row.answerValue}
+            </span>
+          );
+        },
+      },
+    ],
+    []
+  );
+
+  /**
+   * Export the current survey response to Excel
+   */
+  const handleExportExcel = async (): Promise<void> => {
+    if (!id) return;
+    try {
+      await exportSurveyResponsesMutation.mutateAsync({
+        response_id: Number(id),
+      });
+    } catch (err: unknown) {
+      console.error('Failed to export survey response to Excel:', err);
+    }
+  };
+
   if (isLoading || isFetching || isSurveyLoading) {
     return (
-      <div className="!flex !items-start !gap-4">
-        <div className="!flex-2 !flex !flex-col !gap-4">
-          {/* Main Response Card Skeleton */}
-          <div className="!bg-white !rounded-lg !shadow !border !border-gray-200 !p-6 !text-center !relative">
-            <div className="!absolute !top-3 !right-3">
-              <Skeleton
-                variant="circular"
-                width={10}
-                height={10}
-                className="!bg-green-200"
-              />
-            </div>
-
-            <div className="!relative !mb-4">
-              <Skeleton
-                variant="circular"
-                width={96}
-                height={96}
-                className="!mx-auto !border-3 !border-white"
-              />
-            </div>
-
-            <Skeleton
-              variant="text"
-              width="70%"
-              height={24}
-              className="!mx-auto !mb-1"
-            />
-            <Skeleton
-              variant="text"
-              width="50%"
-              height={16}
-              className="!mx-auto !mb-3"
-            />
-
-            <Skeleton
-              variant="rectangular"
-              width="60%"
-              height={24}
-              className="!mx-auto !mb-4 !bg-green-50"
-            />
-
-            <div className="!space-y-2 !text-left !mt-4">
-              <div className="!p-2 !bg-gray-50 !rounded-md">
+      <div className="!space-y-4">
+        <div className="!flex !items-start !gap-4">
+          <div className="!flex-2 flex flex-col">
+            <div className="!bg-white !rounded-lg !shadow !border !border-gray-200 !p-6 !text-center !relative">
+              <div className="absolute top-3 right-3">
                 <Skeleton
-                  variant="text"
-                  width="30%"
+                  variant="circular"
+                  width={10}
                   height={10}
-                  className="!mb-1"
+                  className="!bg-gray-200"
                 />
-                <Skeleton variant="text" width="60%" height={14} />
               </div>
-              <div className="!p-2 !bg-gray-50 !rounded-md">
-                <Skeleton
-                  variant="text"
-                  width="40%"
-                  height={10}
-                  className="!mb-1"
-                />
-                <Skeleton variant="text" width="70%" height={14} />
-              </div>
-            </div>
-          </div>
 
-          {/* Response Information Card Skeleton */}
-          <div className="!bg-white !rounded-lg !shadow !border !border-gray-200 !p-6 !relative !overflow-hidden">
-            <div className="!absolute !top-0 !right-0 !w-16 !h-16 !bg-gradient-to-br !from-blue-50 !to-purple-50 !rounded-full !-translate-y-8 !translate-x-8"></div>
-            <div className="!relative !z-10">
-              <div className="!flex !items-center !gap-2 !mb-4">
-                <div className="!p-1.5 !w-10 !h-10 flex items-center justify-center !bg-primary-100 !rounded-md">
+              <div className="!relative !mb-4">
+                <Skeleton
+                  variant="circular"
+                  width={96}
+                  height={96}
+                  className="!mx-auto"
+                />
+              </div>
+
+              <Skeleton
+                variant="text"
+                width="65%"
+                height={26}
+                className="!mx-auto !mb-1"
+              />
+              <Skeleton
+                variant="text"
+                width="45%"
+                height={18}
+                className="!mx-auto !mb-3"
+              />
+
+              <Skeleton
+                variant="rectangular"
+                width={70}
+                height={24}
+                className="!mx-auto !mb-4 !rounded-full"
+              />
+
+              <div className="!space-y-1 !text-left !mt-4">
+                <div className="!p-1 !bg-gray-50 !rounded-md">
                   <Skeleton
-                    variant="circular"
-                    width={16}
-                    height={16}
-                    className="!bg-primary-200"
+                    variant="text"
+                    width="40%"
+                    height={12}
+                    className="!mb-0.5"
                   />
+                  <Skeleton variant="text" width="70%" height={16} />
                 </div>
-                <Skeleton variant="text" width={140} height={20} />
+                <div className="!p-1 !bg-gray-50 !rounded-md">
+                  <Skeleton
+                    variant="text"
+                    width="35%"
+                    height={12}
+                    className="!mb-0.5"
+                  />
+                  <Skeleton variant="text" width="60%" height={16} />
+                </div>
               </div>
-              <div className="!grid !grid-cols-1 md:!grid-cols-2 !gap-4">
-                {[1, 2, 3, 4].map(field => (
-                  <div key={field} className="!space-y-1">
+            </div>
+
+            <div className="!bg-white !mt-4 !rounded-lg !shadow-sm !border !border-gray-200 !p-6 !relative !overflow-hidden">
+              <div className="!absolute !top-0 !right-0 !w-16 !h-16 !bg-gradient-to-br !from-blue-50 !to-purple-50 !rounded-full !-translate-y-8 !translate-x-8" />
+              <div className="!relative !z-10">
+                <div className="!flex !items-center !gap-2 !mb-4">
+                  <div className="!p-1.5 !w-10 !h-10 flex items-center justify-center !bg-primary-100 !rounded-md">
                     <Skeleton
-                      variant="text"
-                      width={`${40 + field * 8}%`}
-                      height={12}
-                    />
-                    <Skeleton
-                      variant="text"
-                      width={`${60 + field * 6}%`}
-                      height={16}
+                      variant="circular"
+                      width={18}
+                      height={18}
+                      className="!bg-primary-200"
                     />
                   </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="!flex-4 !space-y-4">
-          {/* Survey Answers Card Skeleton */}
-          <div className="!bg-white !rounded-lg !shadow !border !border-gray-200 !p-6 !relative !overflow-hidden">
-            <div className="!absolute !top-0 !right-0 !w-16 !h-16 !bg-gradient-to-br !from-blue-50 !to-purple-50 !rounded-full !-translate-y-8 !translate-x-8"></div>
-            <div className="!relative !z-10">
-              <div className="!flex !items-center !gap-2 !mb-4">
-                <div className="!p-1.5 !w-10 !h-10 flex items-center justify-center !bg-primary-100 !rounded-md">
-                  <Skeleton
-                    variant="circular"
-                    width={16}
-                    height={16}
-                    className="!bg-primary-200"
-                  />
+                  <Skeleton variant="text" width={170} height={24} />
                 </div>
-                <Skeleton variant="text" width={200} height={20} />
-              </div>
 
-              <div className="!space-y-3">
-                {[1, 2, 3].map(item => (
-                  <div
-                    key={item}
-                    className="!p-3 !bg-gray-50 !rounded-md !border !border-gray-200"
-                  >
+                <div className="!space-y-3">
+                  <div className="!p-3.5 !bg-gray-50 !rounded-md !border !border-gray-200">
                     <div className="!flex !items-center !justify-between">
                       <div className="!flex-1">
                         <Skeleton
                           variant="text"
-                          width="60%"
-                          height={16}
+                          width="50%"
+                          height={18}
                           className="!mb-1"
                         />
-                        <Skeleton variant="text" width="40%" height={12} />
+                        <Skeleton variant="text" width="70%" height={13} />
                       </div>
-                      <Skeleton
-                        variant="text"
-                        width={80}
-                        height={16}
-                        className="!text-right"
-                      />
+                      <Skeleton variant="text" width={32} height={28} />
                     </div>
                   </div>
-                ))}
+                </div>
               </div>
             </div>
           </div>
-          <div className="!bg-white !rounded-lg !shadow !border !border-gray-200 !p-6 !relative !overflow-hidden">
-            <div className="!absolute !top-0 !right-0 !w-16 !h-16 !bg-gradient-to-br !from-blue-50 !to-purple-50 !rounded-full !-translate-y-8 !translate-x-8"></div>
-            <div className="!relative !z-10">
-              <div className="!flex !items-center !gap-2 !mb-4">
-                <div className="!p-1.5 !w-10 !h-10 flex items-center justify-center !bg-primary-100 !rounded-md">
-                  <Skeleton
-                    variant="circular"
-                    width={16}
-                    height={16}
-                    className="!bg-primary-200"
-                  />
-                </div>
-                <Skeleton variant="text" width={200} height={20} />
-              </div>
 
-              <div className="!space-y-3">
-                {[1, 2, 3].map(item => (
-                  <div
-                    key={item}
-                    className="!p-3 !bg-gray-50 !rounded-md !border !border-gray-200"
-                  >
-                    <div className="!flex !items-center !justify-between">
-                      <div className="!flex-1">
-                        <Skeleton
-                          variant="text"
-                          width="60%"
-                          height={16}
-                          className="!mb-1"
-                        />
-                        <Skeleton variant="text" width="40%" height={12} />
-                      </div>
+          <div className="!flex-4 !space-y-4">
+            <div className="!bg-white !rounded-lg !shadow-sm !border !border-gray-200 !p-6 !relative !overflow-hidden">
+              <div className="!absolute !top-0 !right-0 !w-16 !h-16 !bg-gradient-to-br !from-blue-50 !to-purple-50 !rounded-full !-translate-y-8 !translate-x-8" />
+              <div className="!relative !z-10">
+                <div className="!flex !items-center !gap-2 !mb-4">
+                  <div className="!p-1.5 !w-10 !h-10 flex items-center justify-center !bg-primary-100 !rounded-md">
+                    <Skeleton
+                      variant="circular"
+                      width={18}
+                      height={18}
+                      className="!bg-primary-200"
+                    />
+                  </div>
+                  <Skeleton variant="text" width={190} height={24} />
+                </div>
+
+                <div className="!grid !grid-cols-1 md:!grid-cols-2 !gap-4">
+                  {[1, 2, 3, 4, 5].map(field => (
+                    <div key={field} className="!space-y-1">
+                      <Skeleton variant="text" width="35%" height={12} />
                       <Skeleton
                         variant="text"
-                        width={80}
-                        height={16}
-                        className="!text-right"
+                        width={`${55 + (field % 3) * 15}%`}
+                        height={18}
                       />
                     </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="!bg-white !rounded-lg !shadow-sm !border !border-gray-200 !p-6 !relative !overflow-hidden">
+              <div className="!absolute !top-0 !right-0 !w-16 !h-16 !bg-gradient-to-br !from-blue-50 !to-purple-50 !rounded-full !-translate-y-8 !translate-x-8" />
+              <div className="!relative !z-10">
+                <div className="!flex !items-center !gap-2 !mb-4">
+                  <div className="!p-1.5 !w-10 !h-10 flex items-center justify-center !bg-primary-100 !rounded-md">
+                    <Skeleton
+                      variant="circular"
+                      width={18}
+                      height={18}
+                      className="!bg-primary-200"
+                    />
                   </div>
-                ))}
+                  <Skeleton variant="text" width={180} height={24} />
+                </div>
+
+                <div className="!grid !grid-cols-1 md:!grid-cols-2 lg:!grid-cols-3 !gap-4">
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map(field => (
+                    <div
+                      key={field}
+                      className={classNames('!space-y-1', {
+                        'md:!col-span-2 lg:!col-span-2': field === 8,
+                      })}
+                    >
+                      <Skeleton variant="text" width="40%" height={12} />
+                      <Skeleton
+                        variant="text"
+                        width={`${50 + (field % 4) * 12}%`}
+                        height={18}
+                      />
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
@@ -381,16 +627,6 @@ const SurveyResponseDetail: React.FC = () => {
     }
 
     return parentAnswerVal.toLowerCase() === optVal.toLowerCase();
-  };
-
-  const isImageUrl = (url: string) => {
-    return (
-      url &&
-      (url.startsWith('http') ||
-        url.startsWith('/') ||
-        url.startsWith('data:image') ||
-        url.match(/\.(jpeg|jpg|gif|png|webp|svg)/i))
-    );
   };
 
   const renderFieldNode = (
@@ -536,13 +772,17 @@ const SurveyResponseDetail: React.FC = () => {
     title,
     children,
     icon: Icon,
+    padding = 6,
   }: {
-    title: string;
+    title?: string;
     children: React.ReactNode;
     icon?: React.ElementType;
+    padding?: number;
   }) => (
-    <div className="!bg-white mt-4 !rounded-lg !shadow !border !border-gray-200 !p-6 !relative !overflow-hidden">
-      <div className="!absolute !top-0 !right-0 !w-16 !h-16 !bg-gradient-to-br !from-blue-50 !to-purple-50 !rounded-full !-translate-y-8 !translate-x-8"></div>
+    <div
+      className={`!bg-white !mt-4 !rounded-lg !shadow-sm !border !border-gray-200 !p-${padding} !relative !overflow-hidden`}
+    >
+      <div className="!absolute !top-0 !right-0 !w-16 !h-16 !bg-gradient-to-br !from-blue-50 !to-purple-50 !rounded-full !-translate-y-8 !translate-x-8" />
       <div className="!relative !z-10">
         <div className="!flex !items-center !gap-2 !mb-4">
           {Icon && (
@@ -561,482 +801,492 @@ const SurveyResponseDetail: React.FC = () => {
 
   return (
     <>
-      <div className="!flex !items-start !gap-4">
-        <div className="!flex-2 flex flex-col">
-          <div className="!bg-white !rounded-lg !shadow !border !border-gray-200 !p-6 !text-center !relative">
-            <div className="absolute top-3 right-3">
-              <div
-                className={`!w-2.5 !h-2.5 !rounded-full ${
-                  response.is_active === 'Y' ? '!bg-green-400' : '!bg-gray-400'
-                }`}
-              ></div>
-            </div>
-
-            <div className="!relative !mb-4">
-              <Avatar
-                className={classNames(
-                  '!w-24 !h-24 !mx-auto !text-xl !font-bold !border-3 !border-white !shadow-lg',
-                  {
-                    '!bg-gradient-to-br !from-blue-400 !to-blue-600 !text-white':
-                      response.is_active === 'Y',
-                    '!bg-gradient-to-br !from-gray-400 !to-gray-600 !text-white':
-                      response.is_active !== 'Y',
-                  }
-                )}
-              >
-                <FileText className="!w-8 !h-8" />
-              </Avatar>
-            </div>
-
-            <Typography
-              variant="h6"
-              className="!font-bold !text-gray-900 !mb-1"
-            >
-              Response #{response.id}
-            </Typography>
-
-            <Typography variant="body2" className="!text-gray-600 !mb-3">
-              {response.survey?.title || `Survey #${response.parent_id}`}
-            </Typography>
-
-            <Chip
-              label={response.is_active === 'Y' ? 'Active' : 'Inactive'}
-              className={`${
-                response.is_active === 'Y'
-                  ? '!bg-green-100 !text-green-800'
-                  : '!bg-gray-100 !text-gray-800'
-              } font-semibold`}
-              size="small"
-            />
-
-            <div className="!space-y-1 !text-left !mt-4">
-              <div className="!p-1 !bg-gray-50 !rounded-md">
-                <Typography
-                  variant="caption"
-                  className="!text-gray-500 !text-xs !uppercase !tracking-wide !mb-0.5"
-                >
-                  Submitted At
-                </Typography>
-                <Typography
-                  variant="body2"
-                  className="!font-semibold !text-gray-900"
-                >
-                  {response.submitted_at
-                    ? formatDateTime(
-                        typeof response.submitted_at === 'string'
-                          ? response.submitted_at
-                          : response.submitted_at?.toString() || ''
-                      )
-                    : 'Not submitted'}
-                </Typography>
+      <div className="!space-y-4">
+        <div className="!flex !items-start !gap-4">
+          <div className="!flex-2 flex flex-col">
+            <div className="!bg-white !rounded-lg !shadow !border !border-gray-200 !p-6 !text-center !relative">
+              <div className="absolute top-3 right-3">
+                <div
+                  className={`!w-2.5 !h-2.5 !rounded-full ${
+                    response.is_active === 'Y'
+                      ? '!bg-green-400'
+                      : '!bg-gray-400'
+                  }`}
+                ></div>
               </div>
 
-              {response.location && (
+              <div className="!relative !mb-4">
+                <Avatar
+                  className={classNames(
+                    '!w-24 !h-24 !mx-auto !text-xl !font-bold !border-3 !border-white !shadow-lg',
+                    {
+                      '!bg-gradient-to-br !from-blue-400 !to-blue-600 !text-white':
+                        response.is_active === 'Y',
+                      '!bg-gradient-to-br !from-gray-400 !to-gray-600 !text-white':
+                        response.is_active !== 'Y',
+                    }
+                  )}
+                >
+                  <FileText className="!w-8 !h-8" />
+                </Avatar>
+              </div>
+
+              <Typography
+                variant="h6"
+                className="!font-bold !text-gray-900 !mb-1"
+              >
+                Response #{response.id}
+              </Typography>
+
+              <Typography variant="body2" className="!text-gray-600 !mb-3">
+                {response.survey?.title || `Survey #${response.parent_id}`}
+              </Typography>
+
+              <Chip
+                label={response.is_active === 'Y' ? 'Active' : 'Inactive'}
+                className={`${
+                  response.is_active === 'Y'
+                    ? '!bg-green-100 !text-green-800'
+                    : '!bg-gray-100 !text-gray-800'
+                } font-semibold`}
+                size="small"
+              />
+
+              <div className="!space-y-1 !text-left !mt-4">
                 <div className="!p-1 !bg-gray-50 !rounded-md">
                   <Typography
                     variant="caption"
                     className="!text-gray-500 !text-xs !uppercase !tracking-wide !mb-0.5"
                   >
-                    Location
+                    Submitted At
                   </Typography>
                   <Typography
                     variant="body2"
                     className="!font-semibold !text-gray-900"
                   >
-                    {response.location}
+                    {response.submitted_at
+                      ? formatDateTime(
+                          typeof response.submitted_at === 'string'
+                            ? response.submitted_at
+                            : response.submitted_at?.toString() || ''
+                        )
+                      : 'Not submitted'}
                   </Typography>
                 </div>
-              )}
 
-              <div className="!p-1 !bg-gray-50 !rounded-md">
-                <Typography
-                  variant="caption"
-                  className="!text-gray-500 !text-xs !uppercase !tracking-wide !mb-0.5"
-                >
-                  Total Answers
-                </Typography>
-                <Typography
-                  variant="body2"
-                  className="!font-semibold !text-gray-900"
-                >
-                  {response.answers?.length || 0} answers
-                </Typography>
-              </div>
-            </div>
-          </div>
-          {/* Statistics */}
-          <InfoCard title="Response Statistics" icon={BarChart3}>
-            <div className="!space-y-3">
-              <div className="!p-3 !bg-gray-50 !rounded-md !border !border-gray-200">
-                <div className="!flex !items-center !justify-between">
-                  <div>
+                {response.location && (
+                  <div className="!p-1 !bg-gray-50 !rounded-md">
+                    <Typography
+                      variant="caption"
+                      className="!text-gray-500 !text-xs !uppercase !tracking-wide !mb-0.5"
+                    >
+                      Location
+                    </Typography>
                     <Typography
                       variant="body2"
                       className="!font-semibold !text-gray-900"
                     >
-                      Total Answers
-                    </Typography>
-                    <Typography variant="caption" className="!text-gray-500">
-                      Number of fields answered
+                      {response.location}
                     </Typography>
                   </div>
+                )}
+
+                <div className="!p-1 !bg-gray-50 !rounded-md">
                   <Typography
-                    variant="h6"
-                    className="!font-bold !text-primary-600"
+                    variant="caption"
+                    className="!text-gray-500 !text-xs !uppercase !tracking-wide !mb-0.5"
                   >
-                    {response.answers?.length || 0}
+                    Total Answers
                   </Typography>
-                </div>
-              </div>
-
-              <div className="!p-3 !bg-gray-50 !rounded-md !border !border-gray-200">
-                <div className="!flex !items-center !justify-between">
-                  <div>
-                    <Typography
-                      variant="body2"
-                      className="!font-semibold !text-gray-900"
-                    >
-                      Status
-                    </Typography>
-                    <Typography variant="caption" className="!text-gray-500">
-                      Current response status
-                    </Typography>
-                  </div>
-                  <Chip
-                    variant="outlined"
-                    label={response.is_active === 'Y' ? 'Active' : 'Inactive'}
-                    color={response.is_active === 'Y' ? 'success' : 'error'}
-                    size="small"
-                  />
+                  <Typography
+                    variant="body2"
+                    className="!font-semibold !text-gray-900"
+                  >
+                    {response.answers?.length || 0} answers
+                  </Typography>
                 </div>
               </div>
             </div>
-          </InfoCard>
-        </div>
-        <div className="!flex-4 !space-y-4">
-          <InfoCard title="Response Information" icon={FileText}>
-            <div className="!grid !grid-cols-1 md:!grid-cols-2 !gap-4">
-              <div className="!space-y-0.5">
-                <Typography
-                  variant="caption"
-                  className="!text-gray-500 !text-xs !uppercase !tracking-wide"
-                >
-                  Survey
-                </Typography>
-                <Typography
-                  variant="body2"
-                  className="!font-semibold !text-gray-900"
-                >
-                  {response.survey?.title || `Survey #${response.parent_id}`}
-                </Typography>
-                {response.survey?.description && (
-                  <Typography variant="caption" className="!text-gray-500">
-                    {response.survey.description}
-                  </Typography>
-                )}
+            {/* Statistics */}
+            <InfoCard title="Response Statistics" icon={BarChart3}>
+              <div className="!space-y-3">
+                <div className="!p-3.5 !bg-gray-50 !rounded-md !border !border-gray-200">
+                  <div className="!flex !items-center !justify-between">
+                    <div>
+                      <Typography
+                        variant="body2"
+                        className="!font-semibold !text-gray-900"
+                      >
+                        Total Answers
+                      </Typography>
+                      <Typography variant="caption" className="!text-gray-500">
+                        Number of fields answered
+                      </Typography>
+                    </div>
+                    <Typography
+                      variant="h6"
+                      className="!font-bold !text-primary-600"
+                    >
+                      {response.answers?.length || 0}
+                    </Typography>
+                  </div>
+                </div>
               </div>
-
-              <div className="!space-y-0.5">
-                <Typography
-                  variant="caption"
-                  className="!text-gray-500 !text-xs !uppercase !tracking-wide"
-                >
-                  Submitted By
-                </Typography>
-                <Typography
-                  variant="body2"
-                  className="!font-semibold !text-gray-900"
-                >
-                  {response.submitted_user?.name ||
-                    `User #${response.submitted_by}`}
-                </Typography>
-                {response.submitted_user?.email && (
-                  <Typography variant="caption" className="!text-gray-500">
-                    {response.submitted_user.email}
-                  </Typography>
-                )}
-              </div>
-
-              <div className="!space-y-0.5">
-                <Typography
-                  variant="caption"
-                  className="!text-gray-500 !text-xs !uppercase !tracking-wide"
-                >
-                  Submitted Date
-                </Typography>
-                <Typography
-                  variant="body2"
-                  className="!font-semibold !text-gray-900"
-                >
-                  {response.submitted_at
-                    ? formatDateTime(
-                        typeof response.submitted_at === 'string'
-                          ? response.submitted_at
-                          : response.submitted_at?.toString() || ''
-                      )
-                    : 'Not available'}
-                </Typography>
-              </div>
-
-              {response.location && (
+            </InfoCard>
+          </div>
+          <div className="!flex-4 !space-y-4">
+            <InfoCard title="Response Information" icon={FileText}>
+              <div className="!grid !grid-cols-1 md:!grid-cols-2 !gap-4">
                 <div className="!space-y-0.5">
                   <Typography
                     variant="caption"
                     className="!text-gray-500 !text-xs !uppercase !tracking-wide"
                   >
-                    Location
+                    Survey
                   </Typography>
                   <Typography
                     variant="body2"
                     className="!font-semibold !text-gray-900"
                   >
-                    {response.location}
+                    {response.survey?.title || `Survey #${response.parent_id}`}
+                  </Typography>
+                  {response.survey?.description && (
+                    <Typography variant="caption" className="!text-gray-500">
+                      {response.survey.description}
+                    </Typography>
+                  )}
+                </div>
+
+                <div className="!space-y-0.5">
+                  <Typography
+                    variant="caption"
+                    className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                  >
+                    Submitted By
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    className="!font-semibold !text-gray-900"
+                  >
+                    {response.submitted_user?.name ||
+                      `User #${response.submitted_by}`}
+                  </Typography>
+                  {response.submitted_user?.email && (
+                    <Typography variant="caption" className="!text-gray-500">
+                      {response.submitted_user.email}
+                    </Typography>
+                  )}
+                </div>
+
+                <div className="!space-y-0.5">
+                  <Typography
+                    variant="caption"
+                    className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                  >
+                    Submitted Date
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    className="!font-semibold !text-gray-900"
+                  >
+                    {response.submitted_at
+                      ? formatDateTime(
+                          typeof response.submitted_at === 'string'
+                            ? response.submitted_at
+                            : response.submitted_at?.toString() || ''
+                        )
+                      : 'Not available'}
                   </Typography>
                 </div>
-              )}
 
-              <div className="!space-y-0.5">
-                <Typography
-                  variant="caption"
-                  className="!text-gray-500 !text-xs !uppercase !tracking-wide"
-                >
-                  Created Date
-                </Typography>
-                <Typography
-                  variant="body2"
-                  className="!font-semibold !text-gray-900"
-                >
-                  {response.createdate
-                    ? formatDateTime(
-                        typeof response.createdate === 'string'
-                          ? response.createdate
-                          : response.createdate?.toString() || ''
-                      )
-                    : 'Not available'}
-                </Typography>
-              </div>
-            </div>
-          </InfoCard>
-          {(response.customer || response.survey_response_customer) && (
-            <InfoCard title="Customer Information" icon={User}>
-              {(() => {
-                const customer =
-                  response.customer || response.survey_response_customer;
-                if (!customer) return null;
-
-                return (
-                  <div className="!grid !grid-cols-1 md:!grid-cols-2 lg:!grid-cols-3 !gap-4">
-                    <div className="!space-y-0.5">
-                      <Typography
-                        variant="caption"
-                        className="!text-gray-500 !text-xs !uppercase !tracking-wide"
-                      >
-                        Customer Name
-                      </Typography>
-                      <Typography
-                        variant="body2"
-                        className="!font-semibold !text-gray-900"
-                      >
-                        {customer.name}
-                      </Typography>
-                    </div>
-
-                    <div className="!space-y-0.5">
-                      <Typography
-                        variant="caption"
-                        className="!text-gray-500 !text-xs !uppercase !tracking-wide"
-                      >
-                        Customer Code
-                      </Typography>
-                      <Typography
-                        variant="body2"
-                        className="!font-semibold !text-gray-900"
-                      >
-                        {customer.code || 'N/A'}
-                      </Typography>
-                    </div>
-
-                    <div className="!space-y-0.5">
-                      <Typography
-                        variant="caption"
-                        className="!text-gray-500 !text-xs !uppercase !tracking-wide"
-                      >
-                        Customer Type
-                      </Typography>
-                      <Typography
-                        variant="body2"
-                        className="!font-semibold !text-gray-900"
-                      >
-                        {customer.type || 'N/A'}
-                      </Typography>
-                    </div>
-
-                    <div className="!space-y-0.5">
-                      <Typography
-                        variant="caption"
-                        className="!text-gray-500 !text-xs !uppercase !tracking-wide"
-                      >
-                        Contact Person
-                      </Typography>
-                      <Typography
-                        variant="body2"
-                        className="!font-semibold !text-gray-900"
-                      >
-                        {customer.contact_person || 'N/A'}
-                      </Typography>
-                    </div>
-
-                    <div className="!space-y-0.5">
-                      <Typography
-                        variant="caption"
-                        className="!text-gray-500 !text-xs !uppercase !tracking-wide"
-                      >
-                        Phone Number
-                      </Typography>
-                      <Typography
-                        variant="body2"
-                        className="!font-semibold !text-gray-900"
-                      >
-                        {customer.phone_number || 'N/A'}
-                      </Typography>
-                    </div>
-
-                    <div className="!space-y-0.5">
-                      <Typography
-                        variant="caption"
-                        className="!text-gray-500 !text-xs !uppercase !tracking-wide"
-                      >
-                        Email
-                      </Typography>
-                      <Typography
-                        variant="body2"
-                        className="!font-semibold !text-gray-900 !break-all"
-                      >
-                        {customer.email || 'N/A'}
-                      </Typography>
-                    </div>
-
-                    <div className="!space-y-0.5">
-                      <Typography
-                        variant="caption"
-                        className="!text-gray-500 !text-xs !uppercase !tracking-wide"
-                      >
-                        Location
-                      </Typography>
-                      <Typography
-                        variant="body2"
-                        className="!font-semibold !text-gray-900"
-                      >
-                        {[customer.city, customer.state, customer.zipcode]
-                          .filter(Boolean)
-                          .join(', ') || 'N/A'}
-                      </Typography>
-                    </div>
-
-                    <div className="!space-y-0.5 md:!col-span-2 lg:!col-span-2">
-                      <Typography
-                        variant="caption"
-                        className="!text-gray-500 !text-xs !uppercase !tracking-wide"
-                      >
-                        Address
-                      </Typography>
-                      <Typography
-                        variant="body2"
-                        className="!font-semibold !text-gray-900"
-                      >
-                        {customer.address || 'N/A'}
-                      </Typography>
-                    </div>
-
-                    <div className="!space-y-0.5">
-                      <Typography
-                        variant="caption"
-                        className="!text-gray-500 !text-xs !uppercase !tracking-wide"
-                      >
-                        Credit Limit
-                      </Typography>
-                      <Typography
-                        variant="body2"
-                        className="!font-semibold !text-gray-900"
-                      >
-                        {formatCurrency(Number(customer.credit_limit))}
-                      </Typography>
-                    </div>
-
-                    <div className="!space-y-0.5">
-                      <Typography
-                        variant="caption"
-                        className="!text-gray-500 !text-xs !uppercase !tracking-wide"
-                      >
-                        Outstanding Amount
-                      </Typography>
-                      <Typography
-                        variant="body2"
-                        className="!font-semibold !text-red-600"
-                      >
-                        {formatCurrency(Number(customer.outstanding_amount))}
-                      </Typography>
-                    </div>
-
-                    <div className="!space-y-0.5 flex flex-col items-start">
-                      <Typography
-                        variant="caption"
-                        className="!text-gray-500 !text-xs !uppercase !tracking-wide"
-                      >
-                        Status
-                      </Typography>
-                      <Chip
-                        label={
-                          customer.is_active === 'Y' ? 'Active' : 'Inactive'
-                        }
-                        size="small"
-                        color={customer.is_active === 'Y' ? 'success' : 'error'}
-                        variant="outlined"
-                      />
-                    </div>
-                  </div>
-                );
-              })()}
-            </InfoCard>
-          )}
-          <InfoCard title="Survey Answers" icon={BarChart3}>
-            {response.answers && response.answers.length > 0 ? (
-              survey?.is_matrix === 'Y' ? (
-                <div className="!space-y-4">
-                  {productsInResponse.map(product => (
-                    <div
-                      key={product.id}
-                      className="!bg-white !p-4 !rounded-lg !border !border-gray-200"
+                {response.location && (
+                  <div className="!space-y-0.5">
+                    <Typography
+                      variant="caption"
+                      className="!text-gray-500 !text-xs !uppercase !tracking-wide"
                     >
-                      <Typography
-                        variant="subtitle1"
-                        className="!font-bold !text-primary-600 !mb-3"
-                      >
-                        Product: {product.name}
-                      </Typography>
-                      <div className="!space-y-3">
-                        {surveyFieldsTree.map(field =>
-                          renderFieldNode(field, product.name)
-                        )}
+                      Location
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      className="!font-semibold !text-gray-900"
+                    >
+                      {response.location}
+                    </Typography>
+                  </div>
+                )}
+
+                <div className="!space-y-0.5">
+                  <Typography
+                    variant="caption"
+                    className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                  >
+                    Created Date
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    className="!font-semibold !text-gray-900"
+                  >
+                    {response.createdate
+                      ? formatDateTime(
+                          typeof response.createdate === 'string'
+                            ? response.createdate
+                            : response.createdate?.toString() || ''
+                        )
+                      : 'Not available'}
+                  </Typography>
+                </div>
+              </div>
+            </InfoCard>
+            {(response.customer || response.survey_response_customer) && (
+              <InfoCard title="Customer Information" icon={User}>
+                {(() => {
+                  const customer =
+                    response.customer || response.survey_response_customer;
+                  if (!customer) return null;
+
+                  return (
+                    <div className="!grid !grid-cols-1 md:!grid-cols-2 lg:!grid-cols-3 !gap-4">
+                      <div className="!space-y-0.5">
+                        <Typography
+                          variant="caption"
+                          className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                        >
+                          Customer Name
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          className="!font-semibold !text-gray-900"
+                        >
+                          {customer.name}
+                        </Typography>
+                      </div>
+
+                      <div className="!space-y-0.5">
+                        <Typography
+                          variant="caption"
+                          className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                        >
+                          Customer Code
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          className="!font-semibold !text-gray-900"
+                        >
+                          {customer.code || 'N/A'}
+                        </Typography>
+                      </div>
+
+                      <div className="!space-y-0.5">
+                        <Typography
+                          variant="caption"
+                          className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                        >
+                          Customer Type
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          className="!font-semibold !text-gray-900"
+                        >
+                          {customer.type || 'N/A'}
+                        </Typography>
+                      </div>
+
+                      <div className="!space-y-0.5">
+                        <Typography
+                          variant="caption"
+                          className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                        >
+                          Contact Person
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          className="!font-semibold !text-gray-900"
+                        >
+                          {customer.contact_person || 'N/A'}
+                        </Typography>
+                      </div>
+
+                      <div className="!space-y-0.5">
+                        <Typography
+                          variant="caption"
+                          className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                        >
+                          Phone Number
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          className="!font-semibold !text-gray-900"
+                        >
+                          {customer.phone_number || 'N/A'}
+                        </Typography>
+                      </div>
+
+                      <div className="!space-y-0.5">
+                        <Typography
+                          variant="caption"
+                          className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                        >
+                          Email
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          className="!font-semibold !text-gray-900 !break-all"
+                        >
+                          {customer.email || 'N/A'}
+                        </Typography>
+                      </div>
+
+                      <div className="!space-y-0.5">
+                        <Typography
+                          variant="caption"
+                          className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                        >
+                          Location
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          className="!font-semibold !text-gray-900"
+                        >
+                          {[customer.city, customer.state, customer.zipcode]
+                            .filter(Boolean)
+                            .join(', ') || 'N/A'}
+                        </Typography>
+                      </div>
+
+                      <div className="!space-y-0.5 md:!col-span-2 lg:!col-span-2">
+                        <Typography
+                          variant="caption"
+                          className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                        >
+                          Address
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          className="!font-semibold !text-gray-900"
+                        >
+                          {customer.address || 'N/A'}
+                        </Typography>
+                      </div>
+
+                      <div className="!space-y-0.5">
+                        <Typography
+                          variant="caption"
+                          className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                        >
+                          Credit Limit
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          className="!font-semibold !text-gray-900"
+                        >
+                          {formatCurrency(Number(customer.credit_limit))}
+                        </Typography>
+                      </div>
+
+                      <div className="!space-y-0.5">
+                        <Typography
+                          variant="caption"
+                          className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                        >
+                          Outstanding Amount
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          className="!font-semibold !text-red-600"
+                        >
+                          {formatCurrency(Number(customer.outstanding_amount))}
+                        </Typography>
+                      </div>
+
+                      <div className="!space-y-0.5 flex flex-col items-start">
+                        <Typography
+                          variant="caption"
+                          className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                        >
+                          Status
+                        </Typography>
+                        <Chip
+                          label={
+                            customer.is_active === 'Y' ? 'Active' : 'Inactive'
+                          }
+                          size="small"
+                          color={
+                            customer.is_active === 'Y' ? 'success' : 'error'
+                          }
+                          variant="outlined"
+                        />
                       </div>
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="!space-y-3">
-                  {surveyFieldsTree.map(field => renderFieldNode(field))}
-                </div>
-              )
-            ) : (
-              <div className="!text-center !py-8 !text-gray-500">
-                <FileText className="w-12 h-12 text-gray-400 mx-auto mb-2" />
-                <Typography variant="body2">
-                  No answers provided for this response.
-                </Typography>
-              </div>
+                  );
+                })()}
+              </InfoCard>
             )}
-          </InfoCard>
+          </div>
         </div>
+
+        {response.answers && response.answers.length > 0 ? (
+          <Table<FlatAnswerItem>
+            data={flatAnswers}
+            actions={
+              <div className="flex justify-between items-center w-full">
+                <div className="text-md">
+                  Total Answers: {response.answers.length}
+                </div>
+                <PopConfirm
+                  title="Export Survey Response"
+                  description="Are you sure you want to export this survey response to Excel?"
+                  onConfirm={handleExportExcel}
+                  confirmText="Export"
+                  cancelText="Cancel"
+                  placement="top"
+                >
+                  <Button
+                    variant="outlined"
+                    className="!capitalize"
+                    startIcon={<Download />}
+                    disabled={exportSurveyResponsesMutation.isPending}
+                  >
+                    {exportSurveyResponsesMutation.isPending
+                      ? 'Exporting...'
+                      : 'Export'}
+                  </Button>
+                </PopConfirm>
+              </div>
+            }
+            columns={answerColumns}
+            pagination={false}
+            sortable
+            filterColunm={false}
+            getRowId={row => row.id}
+            emptyMessage="No answers match the filter."
+          />
+        ) : survey?.is_matrix === 'Y' ? (
+          <div className="!space-y-4">
+            {productsInResponse.map(product => (
+              <div
+                key={product.id}
+                className="!bg-white !p-4 !rounded-lg !border !border-gray-200 !shadow-sm"
+              >
+                <Typography
+                  variant="subtitle1"
+                  className="!font-bold !text-primary-600 !mb-3"
+                >
+                  Product: {product.name}
+                </Typography>
+                <div className="!space-y-3">
+                  {surveyFieldsTree.map(field =>
+                    renderFieldNode(field, product.name)
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="!space-y-3">
+            {surveyFieldsTree.map(field => renderFieldNode(field))}
+          </div>
+        )}
       </div>
     </>
   );

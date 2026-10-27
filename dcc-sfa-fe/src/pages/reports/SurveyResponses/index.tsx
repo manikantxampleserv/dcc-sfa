@@ -1,8 +1,14 @@
-import { CheckCircle, Description, Visibility } from '@mui/icons-material';
+import {
+  CheckCircle,
+  Description,
+  Download,
+  Visibility,
+} from '@mui/icons-material';
 import { Alert, Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
 import { usePermission } from 'hooks/usePermission';
 import {
   useDeleteSurveyResponse,
+  useExportSurveyResponses,
   useSurveyResponses,
   type SurveyResponse,
 } from 'hooks/useSurveyResponses';
@@ -11,6 +17,8 @@ import { BarChart3, Calendar, FileText, MapPin } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ActionButton, DeleteButton } from 'shared/ActionButton';
+import Button from 'shared/Button';
+import { PopConfirm } from 'shared/DeleteConfirmation';
 import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import StatsCard from 'shared/StatsCard';
@@ -53,6 +61,7 @@ const SurveyResponses: React.FC = () => {
   const currentPage = (responsesResponse?.meta?.page || 1) - 1;
 
   const deleteResponseMutation = useDeleteSurveyResponse();
+  const exportSurveyResponsesMutation = useExportSurveyResponses();
 
   const totalResponses =
     responsesResponse?.stats?.total_records ?? responses.length;
@@ -82,6 +91,18 @@ const SurveyResponses: React.FC = () => {
     setSearch(value);
     setPage(1);
   }, []);
+
+  const handleExportToExcel = useCallback(async () => {
+    try {
+      await exportSurveyResponsesMutation.mutateAsync({
+        search: search || undefined,
+        status: statusFilter === 'all' ? undefined : statusFilter,
+        survey_id: surveyFilter,
+      });
+    } catch (error) {
+      console.error('Error exporting survey responses:', error);
+    }
+  }, [exportSurveyResponsesMutation, search, statusFilter, surveyFilter]);
 
   const handlePageChange = (newPage: number) => {
     setPage(newPage + 1);
@@ -368,6 +389,29 @@ const SurveyResponses: React.FC = () => {
                   </MenuItem>
                 ))}
               </Select>
+            </div>
+            <div className="flex gap-2 items-center">
+              {isRead && (
+                <PopConfirm
+                  title="Export Survey Responses"
+                  description="Are you sure you want to export the current survey responses to Excel? This will include all filtered results."
+                  onConfirm={handleExportToExcel}
+                  confirmText="Export"
+                  cancelText="Cancel"
+                  placement="top"
+                >
+                  <Button
+                    variant="outlined"
+                    className="!capitalize"
+                    startIcon={<Download />}
+                    disabled={exportSurveyResponsesMutation.isPending}
+                  >
+                    {exportSurveyResponsesMutation.isPending
+                      ? 'Exporting...'
+                      : 'Export'}
+                  </Button>
+                </PopConfirm>
+              )}
             </div>
           </div>
         }

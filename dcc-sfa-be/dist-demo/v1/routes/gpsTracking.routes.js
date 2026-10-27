@@ -1,7 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
-const audit_middleware_1 = require("../../middlewares/audit.middleware");
 const auth_middleware_1 = require("../../middlewares/auth.middleware");
 const validation_middleware_1 = require("../../middlewares/validation.middleware");
 const gpsTracking_controller_1 = require("../controllers/gpsTracking.controller");
@@ -13,7 +12,7 @@ const router = (0, express_1.Router)();
  * @access Private (requires authentication)
  * @body { latitude, longitude, accuracy_meters?, speed_kph?, battery_level?, network_type?, log_time? }
  */
-router.post('/gps', auth_middleware_1.authenticateToken, (0, audit_middleware_1.auditCreate)('gps_logs'), 
+router.post('/gps', auth_middleware_1.authenticateToken, 
 // requirePermission([{ module: 'location', action: 'create' }]),
 gpsTracking_validation_1.createGPSLogValidation, validation_middleware_1.validate, gpsTracking_controller_1.gpsTrackingController.createGPSLog);
 /**

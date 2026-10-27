@@ -2377,10 +2377,11 @@ exports.customerController = {
     },
     async getCustomersDropdown(req, res) {
         try {
-            const { search = '', customer_id, depot_id } = req.query;
+            const { search = '', customer_id, depot_id, limit } = req.query;
             const searchLower = search.toLowerCase().trim();
             const customerId = customer_id ? Number(customer_id) : null;
             const depotId = depot_id ? Number(depot_id) : null;
+            const limitNum = limit ? Math.min(Math.max(1, Number(limit)), 100) : 50;
             const user = req.user;
             let isScopeRestricted = false;
             let depotIds = [];
@@ -2408,6 +2409,7 @@ exports.customerController = {
             }
             if (customerId) {
                 where.id = customerId;
+                delete where.is_active;
             }
             else if (searchLower) {
                 where.OR = [
@@ -2433,7 +2435,7 @@ exports.customerController = {
                 orderBy: {
                     name: 'asc',
                 },
-                take: 50,
+                take: limitNum,
             });
             res.success('Customers dropdown fetched successfully', customers, 200);
         }

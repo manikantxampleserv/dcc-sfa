@@ -13,11 +13,13 @@ export interface AuditLogData {
   id: number;
   table_name: string;
   record_id: number;
+  record_name?: string | null;
   action: string;
-  changed_data: any;
+  changed_data: unknown;
   changed_by: number;
   user_name: string;
   user_email: string;
+  user_avatar?: string | null;
   employee_id: string | null;
   changed_at: string;
   ip_address: string | null;

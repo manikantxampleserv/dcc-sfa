@@ -7,6 +7,59 @@ exports.surveyResponseController = void 0;
 const paginate_1 = require("../../utils/paginate");
 const prisma_client_1 = __importDefault(require("../../configs/prisma.client"));
 const blackbaze_1 = require("../../utils/blackbaze");
+const exceljs_1 = __importDefault(require("exceljs"));
+/**
+ * Format date to DD-Mon-YY string (e.g. 22-Oct-26)
+ *
+ * @param {Date | string | null | undefined} date
+ * @returns {string}
+ */
+const formatDateExcel = (date) => {
+    if (!date)
+        return '-';
+    const d = new Date(date);
+    if (isNaN(d.getTime()))
+        return '-';
+    const day = String(d.getDate()).padStart(2, '0');
+    const monthNames = [
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dec',
+    ];
+    const month = monthNames[d.getMonth()];
+    const year = String(d.getFullYear()).slice(-2);
+    return `${day}-${month}-${year}`;
+};
+/**
+ * Format answer value for Excel cell output
+ *
+ * @param {string | null | undefined} val
+ * @returns {string}
+ */
+const formatExcelAnswer = (val) => {
+    if (val === null || val === undefined || val === '')
+        return '-';
+    try {
+        const parsed = JSON.parse(val);
+        if (Array.isArray(parsed))
+            return parsed.join(', ');
+        if (typeof parsed === 'object' && parsed !== null)
+            return JSON.stringify(parsed);
+        return String(parsed);
+    }
+    catch {
+        return String(val);
+    }
+};
 const serializeSurveyResponse = (item) => ({
     id: item.id,
     parent_id: item.parent_id,
@@ -35,7 +88,9 @@ const serializeSurveyResponse = (item) => ({
             id: item.survey_responses_submitted_by_users.id,
             name: item.survey_responses_submitted_by_users.name,
             email: item.survey_responses_submitted_by_users.email,
-            employee_id: item.survey_responses_submitted_by_users.employee_id || item.survey_responses_submitted_by_users.employee || null,
+            employee_id: item.survey_responses_submitted_by_users.employee_id ||
+                item.survey_responses_submitted_by_users.employee ||
+                null,
         }
         : null,
     customer: item.survey_response_customer
@@ -69,12 +124,14 @@ const serializeSurveyResponse = (item) => ({
                 type: ans.survey_fields.field_type || ans.survey_fields.type,
                 parent_option_value: ans.survey_fields.parent_option_value || null,
                 parent_field_id: ans.survey_fields.parent_field_id || null,
+                is_required: !!ans.survey_fields.is_required,
             }
             : null,
         product: ans.survey_answers_products
             ? {
                 id: ans.survey_answers_products.id,
                 name: ans.survey_answers_products.name,
+                code: ans.survey_answers_products.code || null,
             }
             : null,
     })) || [],
@@ -643,6 +700,229 @@ exports.surveyResponseController = {
         catch (error) {
             console.error('Get Survey Answers Error:', error);
             res.status(500).json({ message: error.message });
+        }
+    },
+    /**
+     * Export survey responses in flat table format matching user template
+     * Supports both product-based surveys (one row per product answer)
+     * and generic surveys (one row per response with questions as columns).
+     *
+     * @param {Request} req
+     * @param {Response} res
+     * @returns {Promise<void>}
+     */
+    async exportSurveyResponses(req, res) {
+        try {
+            const { search, status, survey_id, submitted_by, customer_id, start_date, end_date, response_id, } = req.query;
+            const searchLower = search ? String(search).toLowerCase() : '';
+            const statusLower = status ? String(status).toLowerCase() : '';
+            const dateFilter = {};
+            if (start_date) {
+                dateFilter.gte = new Date(String(start_date));
+            }
+            if (end_date) {
+                dateFilter.lte = new Date(String(end_date));
+            }
+            const filters = {
+                ...(response_id && { id: parseInt(String(response_id), 10) }),
+                ...(search && {
+                    OR: [
+                        { surveys: { title: { contains: searchLower } } },
+                        {
+                            survey_responses_submitted_by_users: {
+                                name: { contains: searchLower },
+                            },
+                        },
+                        {
+                            survey_response_customer: {
+                                name: { contains: searchLower },
+                            },
+                        },
+                    ],
+                }),
+                ...(statusLower === 'active' && { is_active: 'Y' }),
+                ...(statusLower === 'inactive' && { is_active: 'N' }),
+                ...(survey_id && { parent_id: parseInt(String(survey_id), 10) }),
+                ...(submitted_by && {
+                    submitted_by: parseInt(String(submitted_by), 10),
+                }),
+                ...(customer_id && {
+                    customer_id: parseInt(String(customer_id), 10),
+                }),
+                ...(Object.keys(dateFilter).length > 0 && { submitted_at: dateFilter }),
+            };
+            const responses = await prisma_client_1.default.survey_responses.findMany({
+                where: filters,
+                orderBy: { createdate: 'desc' },
+                include: {
+                    surveys: true,
+                    survey_responses_submitted_by_users: {
+                        select: { id: true, name: true, employee_id: true, sap_code: true },
+                    },
+                    survey_response_customer: {
+                        include: {
+                            customer_routes: true,
+                            customer_type_customer: true,
+                        },
+                    },
+                    survey_answer_responses: {
+                        include: {
+                            survey_fields: true,
+                            survey_answers_products: true,
+                        },
+                        orderBy: { id: 'asc' },
+                    },
+                },
+            });
+            const WorkbookClass = exceljs_1.default.Workbook ||
+                exceljs_1.default.default?.Workbook ||
+                exceljs_1.default;
+            const workbook = new WorkbookClass();
+            workbook.creator = 'DCC-SFA System';
+            workbook.created = new Date();
+            const hasProductAnswers = responses.some(r => r.survey_answer_responses.some(a => a.product_id !== null ||
+                a.survey_answers_products !== null ||
+                (a.survey_fields?.parent_option_value !== null &&
+                    a.survey_fields?.parent_option_value !== undefined &&
+                    a.survey_fields.parent_option_value !== 'default')));
+            const isProductFormat = hasProductAnswers ||
+                responses.some(r => r.surveys?.is_matrix === 'Y' ||
+                    (r.surveys?.title &&
+                        /sku|product|knmw|csd|van/i.test(r.surveys.title)));
+            const worksheet = workbook.addWorksheet('Survey Responses', {
+                pageSetup: { paperSize: 9, orientation: 'landscape' },
+            });
+            if (isProductFormat) {
+                worksheet.columns = [
+                    { header: 'Response ID', key: 'response_id', width: 14 },
+                    { header: 'Date', key: 'date', width: 15 },
+                    { header: 'Salesperson', key: 'salesperson', width: 22 },
+                    { header: 'Route code', key: 'route_code', width: 16 },
+                    { header: 'Customer', key: 'customer', width: 25 },
+                    { header: 'Customer code', key: 'customer_code', width: 18 },
+                    { header: 'Customer type', key: 'customer_type', width: 16 },
+                    { header: 'Location', key: 'location', width: 16 },
+                    { header: 'Product', key: 'product', width: 35 },
+                    { header: 'Qty not available', key: 'qty_not_available', width: 18 },
+                ];
+                for (const r of responses) {
+                    const dateStr = formatDateExcel(r.submitted_at);
+                    const salesperson = r.survey_responses_submitted_by_users?.name ||
+                        r.survey_responses_submitted_by_users?.employee_id ||
+                        '-';
+                    const routeCode = r.survey_response_customer?.customer_routes?.code ||
+                        r.survey_response_customer?.customer_routes?.name ||
+                        '-';
+                    const customerName = r.survey_response_customer?.name || '-';
+                    const customerCode = r.survey_response_customer?.code || '-';
+                    const customerType = r.survey_response_customer?.customer_type_customer?.type_name ||
+                        r.survey_response_customer?.type ||
+                        'Retailer';
+                    const location = r.location || '-';
+                    const answers = r.survey_answer_responses || [];
+                    if (answers.length === 0) {
+                        worksheet.addRow({
+                            response_id: r.id,
+                            date: dateStr,
+                            salesperson,
+                            route_code: routeCode,
+                            customer: customerName,
+                            customer_code: customerCode,
+                            customer_type: customerType,
+                            location,
+                            product: '-',
+                            qty_not_available: '-',
+                        });
+                    }
+                    else {
+                        for (const ans of answers) {
+                            const productName = ans.survey_answers_products?.name ||
+                                (ans.survey_fields?.parent_option_value &&
+                                    ans.survey_fields.parent_option_value !== 'default'
+                                    ? ans.survey_fields.parent_option_value
+                                    : ans.survey_fields?.label || '-');
+                            worksheet.addRow({
+                                response_id: r.id,
+                                date: dateStr,
+                                salesperson,
+                                route_code: routeCode,
+                                customer: customerName,
+                                customer_code: customerCode,
+                                customer_type: customerType,
+                                location,
+                                product: productName,
+                                qty_not_available: formatExcelAnswer(ans.answer),
+                            });
+                        }
+                    }
+                }
+            }
+            else {
+                const questionMap = new Map();
+                for (const r of responses) {
+                    for (const ans of r.survey_answer_responses) {
+                        if (ans.survey_fields?.id && ans.survey_fields?.label) {
+                            questionMap.set(ans.survey_fields.id, ans.survey_fields.label);
+                        }
+                    }
+                }
+                const dynamicCols = Array.from(questionMap.entries()).map(([fieldId, label]) => ({
+                    header: label,
+                    key: `q_${fieldId}`,
+                    width: Math.max(20, Math.min(40, label.length + 5)),
+                }));
+                worksheet.columns = [
+                    { header: 'Response ID', key: 'response_id', width: 14 },
+                    { header: 'Date', key: 'date', width: 15 },
+                    { header: 'Salesperson', key: 'salesperson', width: 22 },
+                    { header: 'Route code', key: 'route_code', width: 16 },
+                    { header: 'Customer', key: 'customer', width: 25 },
+                    { header: 'Customer code', key: 'customer_code', width: 18 },
+                    { header: 'Customer type', key: 'customer_type', width: 16 },
+                    { header: 'Location', key: 'location', width: 16 },
+                    ...dynamicCols,
+                ];
+                for (const r of responses) {
+                    const dateStr = formatDateExcel(r.submitted_at);
+                    const salesperson = r.survey_responses_submitted_by_users?.name ||
+                        r.survey_responses_submitted_by_users?.employee_id ||
+                        '-';
+                    const routeCode = r.survey_response_customer?.customer_routes?.code ||
+                        r.survey_response_customer?.customer_routes?.name ||
+                        '-';
+                    const rowData = {
+                        response_id: r.id,
+                        date: dateStr,
+                        salesperson,
+                        route_code: routeCode,
+                        customer: r.survey_response_customer?.name || '-',
+                        customer_code: r.survey_response_customer?.code || '-',
+                        customer_type: r.survey_response_customer?.customer_type_customer?.type_name ||
+                            r.survey_response_customer?.type ||
+                            'Retailer',
+                        location: r.location || '-',
+                    };
+                    for (const ans of r.survey_answer_responses) {
+                        if (ans.field_id) {
+                            rowData[`q_${ans.field_id}`] = formatExcelAnswer(ans.answer);
+                        }
+                    }
+                    worksheet.addRow(rowData);
+                }
+            }
+            const headerRow = worksheet.getRow(1);
+            headerRow.font = { bold: true };
+            res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+            res.setHeader('Content-Disposition', `attachment; filename=survey_responses_${Date.now()}.xlsx`);
+            await workbook.xlsx.write(res);
+            res.end();
+        }
+        catch (error) {
+            console.error('Export Survey Responses Error:', error);
+            const errMsg = error instanceof Error
+                ? error.message
+                : 'Failed to export survey responses';
+            res.status(500).json({ success: false, message: errMsg });
         }
     },
 };

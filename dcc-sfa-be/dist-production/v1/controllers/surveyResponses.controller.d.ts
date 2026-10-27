@@ -6,5 +6,15 @@ export declare const surveyResponseController: {
     getSurveyResponseById(req: Request, res: Response): Promise<Response<any, Record<string, any>> | undefined>;
     deleteSurveyResponse(req: Request, res: Response): Promise<Response<any, Record<string, any>> | undefined>;
     getSurveyAnswers(req: Request, res: Response): Promise<void>;
+    /**
+     * Export survey responses in flat table format matching user template
+     * Supports both product-based surveys (one row per product answer)
+     * and generic surveys (one row per response with questions as columns).
+     *
+     * @param {Request} req
+     * @param {Response} res
+     * @returns {Promise<void>}
+     */
+    exportSurveyResponses(req: Request, res: Response): Promise<void>;
 };
 //# sourceMappingURL=surveyResponses.controller.d.ts.map

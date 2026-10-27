@@ -1,5 +1,4 @@
 import { Router } from 'express';
-import { auditCreate } from '../../middlewares/audit.middleware';
 import {
   authenticateToken,
   requirePermission,
@@ -19,7 +18,6 @@ const router = Router();
 router.post(
   '/gps',
   authenticateToken,
-  auditCreate('gps_logs'),
   // requirePermission([{ module: 'location', action: 'create' }]),
   createGPSLogValidation,
   validate,

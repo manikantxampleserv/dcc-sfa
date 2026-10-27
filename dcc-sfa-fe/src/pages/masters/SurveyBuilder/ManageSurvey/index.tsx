@@ -1,11 +1,13 @@
 import {
   Autocomplete,
   Box,
+  Checkbox,
   Collapse,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
+  FormControlLabel,
   IconButton,
   MenuItem,
   Paper,
@@ -50,6 +52,7 @@ const FieldTreeItem = ({ field, path, formik, level = 0, productMap }: any) => {
   const [selectedProductIds, setSelectedProductIds] = useState<number[]>([]);
   const [commonQuestionLabel, setCommonQuestionLabel] = useState('');
   const [commonQuestionType, setCommonQuestionType] = useState('radio');
+  const [commonQuestionRequired, setCommonQuestionRequired] = useState(false);
 
   const fieldPathStr = path.join('.');
 
@@ -145,7 +148,7 @@ const FieldTreeItem = ({ field, path, formik, level = 0, productMap }: any) => {
               id: generateTempId(),
               label: commonQuestionLabel.trim(),
               field_type: commonQuestionType,
-              is_required: false,
+              is_required: commonQuestionRequired,
               parent_option_value: prodName,
               options: ['radio', 'checkbox'].includes(commonQuestionType)
                 ? 'Yes, No'
@@ -160,6 +163,7 @@ const FieldTreeItem = ({ field, path, formik, level = 0, productMap }: any) => {
 
       setCommonQuestionLabel('');
       setCommonQuestionType('radio');
+      setCommonQuestionRequired(false);
     } else {
       if (newOptionText.trim()) {
         const currentOptions = field.options ? field.options.split(',') : [];
@@ -227,9 +231,15 @@ const FieldTreeItem = ({ field, path, formik, level = 0, productMap }: any) => {
           }}
         >
           {getQuestionNumber()}
+          {Boolean(field.is_required) && (
+            <span className="!text-red-500 !font-bold !ml-1" title="Required">
+              *
+            </span>
+          )}
         </Typography>
         <Box className="!flex !items-center !gap-2 !py-1 hover:!bg-gray-50 !rounded">
           <ActionButton
+            size="small"
             icon={
               expanded ? <ChevronDown size={20} /> : <ChevronRight size={20} />
             }
@@ -242,6 +252,7 @@ const FieldTreeItem = ({ field, path, formik, level = 0, productMap }: any) => {
               formik={formik}
               placeholder="Type"
               size="small"
+              compact
               className="!w-52"
               sx={{
                 '& .MuiInputBase-root': { height: '36px', fontSize: '13px' },
@@ -260,6 +271,7 @@ const FieldTreeItem = ({ field, path, formik, level = 0, productMap }: any) => {
                 name={`${fieldPathStr}.label`}
                 formik={formik}
                 size="small"
+                compact
                 placeholder="Question Label"
                 fullWidth
                 sx={{
@@ -275,7 +287,7 @@ const FieldTreeItem = ({ field, path, formik, level = 0, productMap }: any) => {
                 onClick={addOption}
                 startIcon={<Plus size={14} />}
                 sx={{
-                  height: '36px',
+                  height: '28px',
                   fontSize: '12px',
                   textTransform: 'none',
                   minWidth: '115px',
@@ -288,9 +300,42 @@ const FieldTreeItem = ({ field, path, formik, level = 0, productMap }: any) => {
               </Button>
             )}
 
+            <FormControlLabel
+              control={
+                <Checkbox
+                  size="small"
+                  checked={Boolean(field.is_required)}
+                  onChange={e =>
+                    formik.setFieldValue(
+                      `${fieldPathStr}.is_required`,
+                      e.target.checked
+                    )
+                  }
+                  color="error"
+                  sx={{ p: 0.5 }}
+                />
+              }
+              label={
+                <Typography
+                  className={`!text-xs !select-none ${
+                    field.is_required ? '!text-red-600' : '!text-gray-600'
+                  }`}
+                >
+                  Required
+                </Typography>
+              }
+              className={`!m-0 !px-1 !border !rounded !cursor-pointer !transition-colors ${
+                field.is_required
+                  ? '!border-red-300 !bg-red-50/60'
+                  : '!border-gray-300 !bg-white hover:!bg-gray-50'
+              }`}
+              sx={{ height: '28px', minWidth: '105px' }}
+            />
+
             <ActionButton
-              icon={<Trash2 size={20} />}
+              icon={<Trash2 size={16} />}
               color="error"
+              size="small"
               onClick={handleRemove}
               tooltip="Remove Question"
             />
@@ -305,8 +350,8 @@ const FieldTreeItem = ({ field, path, formik, level = 0, productMap }: any) => {
                   (cf: any) => cf.parent_option_value === opt
                 );
                 return (
-                  <Box key={idx} className="!pl-7 !border-l-2 !border-blue-100">
-                    <Box className="!flex !items-center !gap-3 !py-1">
+                  <Box key={idx} className="!pl-5 !border-l-2 !border-blue-100">
+                    <Box className="!flex !items-center !gap-2.5 !py-1">
                       <Typography className="!bg-gray-100 min-w-52 !px-2 !py-1 !rounded !text-xs !font-medium !text-gray-700 !border !border-gray-200">
                         {field.field_type === 'product'
                           ? getProductLabel(opt)
@@ -432,6 +477,25 @@ const FieldTreeItem = ({ field, path, formik, level = 0, productMap }: any) => {
                     name="commonQuestionLabel"
                     fullWidth
                     size="small"
+                  />
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        size="small"
+                        checked={commonQuestionRequired}
+                        onChange={e =>
+                          setCommonQuestionRequired(e.target.checked)
+                        }
+                        color="error"
+                        sx={{ p: 0.5 }}
+                      />
+                    }
+                    label={
+                      <Typography className="!text-xs !font-medium !text-gray-700">
+                        Mark as Required Question
+                      </Typography>
+                    }
+                    className="!m-0"
                   />
                 </Box>
               </Box>
@@ -600,7 +664,13 @@ const ManageSurvey: React.FC<ManageSurveyProps> = ({
   const buildTree = (flatFields: any[]) => {
     const tree: any[] = [];
     const map = new Map();
-    flatFields.forEach(f => map.set(f.id, { ...f, child_fields: [] }));
+    flatFields.forEach(f =>
+      map.set(f.id, {
+        ...f,
+        is_required: Boolean(f.is_required),
+        child_fields: [],
+      })
+    );
 
     flatFields.forEach(f => {
       if (f.parent_field_id) {
@@ -1250,7 +1320,7 @@ const ManageSurvey: React.FC<ManageSurveyProps> = ({
             </Box>
           </Paper>
 
-          <Box className="!mt-4 !mb-2 !flex !items-center !justify-between">
+          <Box className="!mt-4 !flex !items-center !justify-between">
             <Typography variant="h6" className="!font-semibold">
               Survey Form
             </Typography>
@@ -1267,8 +1337,8 @@ const ManageSurvey: React.FC<ManageSurveyProps> = ({
 
           <Box className="!py-2 !bg-white !min-h-[300px] !font-sans !mb-4">
             {formik.values.fields.length === 0 ? (
-              <Box className="!p-12 !text-center !flex !flex-col !justify-center !items-center !border-2 !border-dashed !border-gray-200 !rounded-xl !bg-gray-50/50">
-                <FileText className="!w-12 !h-12 !text-gray-300 !mb-3" />
+              <Box className="!p-12 !text-center !flex !flex-col !justify-center !items-center !border-2 !border-dashed !border-gray-200 !rounded !bg-gray-50/50">
+                <FileText className="!w-12 !h-12 !text-blue-500 rounded-lg p-2 !bg-blue-100 !mb-3" />
                 <Typography className="!text-gray-700 !text-sm !font-semibold">
                   No Questions Added Yet
                 </Typography>
@@ -1299,9 +1369,7 @@ const ManageSurvey: React.FC<ManageSurveyProps> = ({
             color="primary"
             disabled={createOrUpdateSurveyMutation.isPending}
           >
-            {createOrUpdateSurveyMutation.isPending
-              ? 'Saving...'
-              : 'Save Survey'}
+            {createOrUpdateSurveyMutation.isPending ? 'Creating...' : 'Create'}
           </Button>
         </Box>
       </form>

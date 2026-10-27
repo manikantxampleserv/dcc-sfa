@@ -83,7 +83,6 @@ export const reconciliationController = {
         reconcFilters.reconciliation_items = {
           some: {
             resolution_action: resolveStatusFilter(status),
-
             is_active: 'Y',
           },
         };

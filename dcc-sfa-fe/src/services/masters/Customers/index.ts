@@ -296,6 +296,7 @@ export interface GetCustomersDropdownParams {
   search?: string;
   customer_id?: number;
   depot_id?: number;
+  limit?: number;
 }
 
 /**

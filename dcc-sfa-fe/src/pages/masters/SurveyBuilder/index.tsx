@@ -446,7 +446,7 @@ const SurveyBuilder: React.FC = () => {
                     startIcon={<Add />}
                     onClick={handleCreateSurvey}
                   >
-                    Create Survey
+                    Create
                   </Button>
                 )}
               </div>

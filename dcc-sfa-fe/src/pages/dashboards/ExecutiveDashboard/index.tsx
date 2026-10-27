@@ -25,6 +25,7 @@ import { useRequestsByUsersWithoutPermission } from 'hooks/useRequests';
 import React, { useState } from 'react';
 import { Chart, Doughnut, Line } from 'react-chartjs-2';
 import { useNavigate } from 'react-router-dom';
+import type { AuditLogData } from 'services/auditLogs';
 import type { Request } from 'services/requests';
 import ApprovalModal from 'shared/ApprovalModal';
 import { formatDateTime } from 'utils/dateUtils';
@@ -643,42 +644,34 @@ const ExecutiveDashboard: React.FC = () => {
             />
             <ChartSkeleton height={288} />
           </div>
-          <div className="bg-white shadow-sm p-5 rounded-lg border border-gray-100">
-            <Skeleton
-              variant="text"
-              width={200}
-              height={24}
-              className="!mb-4"
-            />
-            <div className="space-y-3">
-              {[1, 2, 3].map(i => (
-                <div
-                  key={i}
-                  className="bg-gray-50 rounded-lg p-4 border border-gray-200"
-                >
-                  <div className="flex items-center gap-3 mb-2">
-                    <Skeleton
-                      variant="circular"
-                      width={40}
-                      height={40}
-                      className="!bg-gray-200"
-                    />
-                    <div className="flex-1">
-                      <Skeleton
-                        variant="text"
-                        width="60%"
-                        height={20}
-                        className="!mb-1"
-                      />
-                      <Skeleton variant="text" width="40%" height={16} />
-                    </div>
-                  </div>
+          <div className="bg-white shadow-sm p-4 rounded-lg border border-gray-100">
+            <div className="flex justify-between items-center mb-3">
+              <Skeleton variant="text" width={160} height={24} />
+              <Skeleton
+                variant="rectangular"
+                width={72}
+                height={28}
+                className="!rounded"
+              />
+            </div>
+            <div className="space-y-1">
+              {[1, 2, 3, 4, 5].map(i => (
+                <div key={i} className="flex items-start gap-2 pb-3">
                   <Skeleton
-                    variant="text"
-                    width="80%"
-                    height={16}
-                    className="!mb-2"
+                    variant="rounded"
+                    width={32}
+                    height={32}
+                    className="!rounded shrink-0"
                   />
+                  <div className="flex-1 min-w-0">
+                    <Skeleton
+                      variant="text"
+                      width="60%"
+                      height={16}
+                      className="!mb-1"
+                    />
+                    <Skeleton variant="text" width="40%" height={13} />
+                  </div>
                 </div>
               ))}
             </div>
@@ -1045,121 +1038,115 @@ const ExecutiveDashboard: React.FC = () => {
           </div>
         )}
 
-        {/* Audit Logs Section */}
         {auditLogs?.logs && auditLogs.logs.length > 0 && (
-          <div className="bg-white shadow-sm p-5 rounded-lg border border-gray-100">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              Recent Activity Logs
-            </h3>
+          <div className="bg-white shadow-sm p-4 rounded-lg border border-gray-100">
+            <div className="flex justify-between items-center mb-3">
+              <div className="flex items-center gap-2">
+                <h3 className="text-base font-semibold text-gray-900">
+                  Recent Activity Logs
+                </h3>
+                <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
+                  {auditLogs.logs.length}
+                </span>
+              </div>
+              <Button
+                variant="outlined"
+                size="small"
+                onClick={() => navigate('/reports/audit-logs')}
+                sx={{
+                  textTransform: 'none',
+                  fontSize: '12px',
+                  height: '28px',
+                  px: 1.5,
+                }}
+              >
+                View All
+              </Button>
+            </div>
+
             {auditLogsLoading ? (
-              <div className="space-y-3">
-                {[1, 2, 3].map(i => (
-                  <div
-                    key={i}
-                    className="bg-gray-50 rounded-lg p-4 border border-gray-200"
-                  >
-                    <div className="flex items-center gap-3 mb-2">
-                      <Skeleton
-                        variant="circular"
-                        width={40}
-                        height={40}
-                        className="!bg-gray-200"
-                      />
-                      <div className="flex-1">
-                        <Skeleton
-                          variant="text"
-                          width="60%"
-                          height={20}
-                          className="!mb-1"
-                        />
-                        <Skeleton variant="text" width="40%" height={16} />
-                      </div>
-                    </div>
+              <div className="space-y-1">
+                {[1, 2, 3, 4, 5].map(i => (
+                  <div key={i} className="flex items-start gap-2 pb-3">
                     <Skeleton
-                      variant="text"
-                      width="80%"
-                      height={16}
-                      className="!mb-2"
+                      variant="rounded"
+                      width={32}
+                      height={32}
+                      className="!rounded shrink-0"
                     />
-                    <div className="flex gap-2">
-                      <Skeleton variant="rectangular" width={60} height={20} />
-                      <Skeleton variant="rectangular" width={80} height={20} />
+                    <div className="flex-1 min-w-0">
+                      <Skeleton
+                        variant="text"
+                        width="60%"
+                        height={16}
+                        className="!mb-1"
+                      />
+                      <Skeleton variant="text" width="40%" height={13} />
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="space-y-2 max-h-80 hide-scrollbar overflow-y-auto">
-                {auditLogs.logs.slice(0, 5).map((log: any) => (
+              <div className="space-y-1 max-h-80 hide-scrollbar overflow-y-auto">
+                {auditLogs.logs.slice(0, 5).map((log: AuditLogData) => (
                   <div
                     key={log.id}
-                    className="bg-white border border-gray-200 rounded-lg p-3 shadow-sm transition-shadow"
+                    className="flex items-start gap-2 pb-3 hover:bg-gray-50/70 transition-colors"
                   >
-                    <div className="text-xs flex justify-between items-center  text-gray-500 uppercase tracking-wide mb-2">
-                      <p className="font-medium">
-                        {log.table_name?.replaceAll('_', ' ')}
-                      </p>
-                      <span className="text-xs text-gray-500 ml-2">
-                        {new Date(log.changed_at).toLocaleDateString()}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-3 mt-2">
-                      <Avatar
-                        src="mkx"
-                        alt={log.user_name?.trim()}
-                        className="!rounded !bg-primary-100 !text-primary-500 !w-8 !h-8 !text-sm !font-semibold"
-                      >
-                        {log.user_name?.charAt(0).toUpperCase() || 'U'}
-                      </Avatar>
-                      <div className="flex flex-col">
-                        <div className="text-sm text-gray-700">
-                          <span className="font-medium text-gray-900">
-                            {log.user_name}
-                          </span>
-                          <span className="mx-1">
-                            {log.action === 'CREATE' && (
-                              <span className="text-green-600 font-medium">
-                                created
-                              </span>
-                            )}
-                            {log.action === 'UPDATE' && (
-                              <span className="text-blue-600 font-medium">
-                                updated
-                              </span>
-                            )}
-                            {log.action === 'DELETE' && (
-                              <span className="text-red-600 font-medium">
-                                deleted
-                              </span>
-                            )}
-                          </span>
-                          <span className="text-gray-600">
-                            a {log.table_name?.replaceAll('_', ' ')} record
-                            {log.record_name
-                              ? ` (${log.record_name})`
-                              : log.record_id
-                                ? ` (ID: ${log.record_id})`
-                                : ''}
-                          </span>
-                        </div>
-                        <span className="text-xs text-gray-500">
-                          {log.employee_id || log.user_email || 'No ID'}
+                    <Avatar
+                      src={log.user_avatar || undefined}
+                      alt={log.user_name?.trim()}
+                      className="!rounded !bg-blue-100 !text-blue-600 !w-8 !h-8 !text-sm"
+                    >
+                      {log.user_name?.charAt(0).toUpperCase() || 'U'}
+                    </Avatar>
+
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-gray-700 leading-snug">
+                        <span className="font-normal text-[#52a477]">
+                          {log.user_name}
+                        </span>{' '}
+                        <span className="text-gray-500 font-normal">
+                          {log.action === 'CREATE'
+                            ? 'created'
+                            : log.action === 'UPDATE'
+                              ? 'updated'
+                              : 'deleted'}
+                        </span>{' '}
+                        <span className="font-medium text-gray-800 capitalize">
+                          {log.table_name?.replaceAll('_', ' ')}
                         </span>
+                      </p>
+                      <div className="text-[11px] text-gray-500 mt-0.5 flex items-center gap-1.5 flex-wrap leading-tight">
+                        {log.record_name ? (
+                          <span className="font-medium text-gray-700 truncate max-w-[280px]">
+                            {log.record_name}
+                          </span>
+                        ) : log.record_id ? (
+                          <span className="font-mono text-gray-400">
+                            #{log.record_id}
+                          </span>
+                        ) : null}
+                        {(log.record_name || log.record_id) && (
+                          <span className="text-gray-300">•</span>
+                        )}
+                        <span className="text-gray-400">
+                          {formatDateTime(log.changed_at.toString())}
+                        </span>
+                        {(log.employee_id || log.user_email) && (
+                          <>
+                            <span className="text-gray-300">•</span>
+                            <span className="text-gray-400 truncate max-w-[150px]">
+                              {log.employee_id || log.user_email}
+                            </span>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>
                 ))}
               </div>
             )}
-            <div className="mt-4 pt-4 border-t border-gray-200 flex justify-end">
-              <Button
-                variant="outlined"
-                size="small"
-                onClick={() => navigate('/reports/audit-logs')}
-              >
-                View All Logs
-              </Button>
-            </div>
           </div>
         )}
       </div>

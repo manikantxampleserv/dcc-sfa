@@ -2,6 +2,15 @@ import { Request, Response, NextFunction } from 'express';
 import { getClientIP } from '../utils/ipUtils';
 import prisma from '../configs/prisma.client';
 
+const EXCLUDED_TABLES = new Set([
+  'gps_logs',
+  'gps_log',
+  'request_logs',
+  'error_logs',
+  'mobile_error_logs',
+  'api_tokens',
+]);
+
 /**
  * Create an audit log entry
  */
@@ -13,6 +22,10 @@ const createAuditLog = async (
   userId: number,
   req: Request
 ) => {
+  if (EXCLUDED_TABLES.has(tableName?.toLowerCase())) {
+    return;
+  }
+
   try {
     const ipAddress = getClientIP(req);
     const deviceInfo = req.headers['user-agent'] || 'Unknown';
@@ -88,6 +101,11 @@ export const auditRoute = (
   action: 'CREATE' | 'UPDATE' | 'DELETE'
 ) => {
   return async (req: Request, res: Response, next: NextFunction) => {
+    if (EXCLUDED_TABLES.has(tableName?.toLowerCase())) {
+      next();
+      return;
+    }
+
     const originalJson = res.json.bind(res);
 
     res.json = function (data: any) {

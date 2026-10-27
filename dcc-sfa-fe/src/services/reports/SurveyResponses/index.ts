@@ -10,6 +10,7 @@ interface SurveyAnswer {
   product?: {
     id: number;
     name: string;
+    code?: string | null;
   } | null;
   field?: {
     id: number;
@@ -17,6 +18,7 @@ interface SurveyAnswer {
     type: string;
     parent_option_value?: string | null;
     parent_field_id?: number | null;
+    is_required?: boolean | string | null;
   } | null;
 }
 
@@ -114,6 +116,10 @@ interface GetSurveyResponsesParams {
   status?: string;
   survey_id?: number;
   submitted_by?: number;
+  customer_id?: number;
+  response_id?: number;
+  start_date?: string;
+  end_date?: string;
 }
 
 /**
@@ -164,11 +170,53 @@ export const deleteSurveyResponse = async (
   return response.data;
 };
 
+/**
+ * Export survey responses to Excel in flat table format
+ *
+ * @param {GetSurveyResponsesParams} [params]
+ * @returns {Promise<void>}
+ */
+export const exportSurveyResponsesReport = async (
+  params?: GetSurveyResponsesParams
+): Promise<void> => {
+  const queryParams = new URLSearchParams();
+  if (params?.search) queryParams.append('search', params.search);
+  if (params?.status) queryParams.append('status', params.status);
+  if (params?.survey_id)
+    queryParams.append('survey_id', params.survey_id.toString());
+  if (params?.submitted_by)
+    queryParams.append('submitted_by', params.submitted_by.toString());
+  if (params?.customer_id)
+    queryParams.append('customer_id', params.customer_id.toString());
+  if (params?.response_id)
+    queryParams.append('response_id', params.response_id.toString());
+  if (params?.start_date) queryParams.append('start_date', params.start_date);
+  if (params?.end_date) queryParams.append('end_date', params.end_date);
+
+  const response = await axiosInstance.get(
+    `/survey-responses/export?${queryParams.toString()}`,
+    { responseType: 'blob' }
+  );
+
+  const blob = new Blob([response.data], {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  });
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.setAttribute('download', `survey_responses_${Date.now()}.xlsx`);
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.URL.revokeObjectURL(url);
+};
+
 export default {
   fetchSurveyResponses,
   fetchSurveyResponseById,
   createOrUpdateSurveyResponse,
   deleteSurveyResponse,
+  exportSurveyResponsesReport,
 };
 
 export type {

@@ -16,7 +16,7 @@
     "start:testing": "cross-env NODE_ENV=testing node dist-testing/index.js",
     "start:production": "cross-env NODE_ENV=production node dist-production/index.js",
     "start:demo": "cross-env NODE_ENV=demo node dist-demo/index.js",
-    "dev": "cross-env NODE_ENV=development tsx watch src/index.ts",
+    "dev": "cross-env NODE_ENV=development NODE_OPTIONS=\"--max-old-space-size=8192\" tsx watch src/index.ts",
     "prisma:generate": "npx prisma generate",
     "seed:all": "ts-node src/scripts/run-json-seeds.ts",
     "seed": "ts-node src/scripts/run-json-seeds.ts",

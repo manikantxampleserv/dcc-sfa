@@ -18,6 +18,10 @@ interface InputProps extends Omit<TextFieldProps, 'onChange'> {
   formik?: FormikProps<any>;
   setValue?: (value: any) => void;
   compact?: boolean;
+  minDate?: Dayjs;
+  maxDate?: Dayjs;
+  disablePast?: boolean;
+  disableFuture?: boolean;
   onChange?: (
     event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => void;
@@ -37,6 +41,10 @@ const Input: React.FC<InputProps> = ({
   label,
   compact = false,
   sx: propsSx,
+  minDate,
+  maxDate,
+  disablePast,
+  disableFuture,
   ...rest
 }) => {
   const [isVisible, setIsVisible] = React.useState<{ [key: string]: boolean }>({
@@ -101,11 +109,7 @@ const Input: React.FC<InputProps> = ({
   const error = useMemo(() => {
     if (!formik || !name) return false;
     return getIn(formik.touched, name) && getIn(formik.errors, name);
-  }, [
-    formik?.touched,
-    formik?.errors,
-    name,
-  ]);
+  }, [formik?.touched, formik?.errors, name]);
 
   const errorMessage = typeof error === 'string' ? error : undefined;
 
@@ -268,6 +272,10 @@ const Input: React.FC<InputProps> = ({
         onChange={handleDateChange}
         format="DD/MM/YYYY"
         disabled={rest.disabled}
+        minDate={minDate}
+        maxDate={maxDate}
+        disablePast={disablePast}
+        disableFuture={disableFuture}
         sx={compactSx}
         slotProps={{
           desktopPaper: {
@@ -285,6 +293,9 @@ const Input: React.FC<InputProps> = ({
             slotProps: {
               htmlInput: {
                 required: false,
+                ...(disablePast && { min: dayjs().format('YYYY-MM-DD') }),
+                ...(minDate && { min: minDate.format('YYYY-MM-DD') }),
+                ...(maxDate && { max: maxDate.format('YYYY-MM-DD') }),
               },
               ...slotProps,
             },

@@ -9,6 +9,7 @@
 
 import {
   Autocomplete,
+  Box,
   FormControl,
   TextField,
   type AutocompleteProps,
@@ -24,7 +25,7 @@ interface Option {
 
 interface CustomSelectProps extends Omit<
   AutocompleteProps<any, false, boolean, false>,
-  'options' | 'onChange' | 'renderInput'
+  'options' | 'onChange' | 'renderInput' | 'renderOption'
 > {
   formik?: FormikProps<any>;
   setValue?: (value: any) => void;
@@ -231,7 +232,69 @@ const Select: React.FC<CustomSelectProps> = ({
             option.label.toLowerCase().includes(state.inputValue.toLowerCase())
           );
         }}
-        sx={{ minWidth: defaultMinWidth }}
+        sx={{
+          minWidth: defaultMinWidth,
+          ...(compact && {
+            '& .MuiAutocomplete-endAdornment': {
+              right: '2px !important',
+              top: '50% !important',
+              transform: 'translateY(-50%) !important',
+              display: 'flex !important',
+              alignItems: 'center !important',
+              gap: '0px !important',
+              '& .MuiIconButton-root': {
+                padding: '1px !important',
+                margin: '0px !important',
+                width: '18px !important',
+                height: '18px !important',
+                minWidth: '18px !important',
+                '& .MuiSvgIcon-root': {
+                  fontSize: '0.875rem !important',
+                },
+              },
+            },
+            '& .MuiAutocomplete-clearIndicator': {
+              marginRight: '-1px !important',
+              padding: '1px !important',
+            },
+            '& .MuiAutocomplete-popupIndicator': {
+              marginRight: '0px !important',
+              padding: '1px !important',
+            },
+            '&.MuiAutocomplete-hasPopupIcon.MuiAutocomplete-hasClearIcon .MuiOutlinedInput-root, &.MuiAutocomplete-hasPopupIcon.MuiAutocomplete-hasClearIcon .MuiAutocomplete-inputRoot':
+              {
+                paddingRight: '38px !important',
+              },
+            '&.MuiAutocomplete-hasPopupIcon:not(.MuiAutocomplete-hasClearIcon) .MuiOutlinedInput-root, &.MuiAutocomplete-hasPopupIcon:not(.MuiAutocomplete-hasClearIcon) .MuiAutocomplete-inputRoot':
+              {
+                paddingRight: '22px !important',
+              },
+            '&.MuiAutocomplete-hasClearIcon:not(.MuiAutocomplete-hasPopupIcon) .MuiOutlinedInput-root, &.MuiAutocomplete-hasClearIcon:not(.MuiAutocomplete-hasPopupIcon) .MuiAutocomplete-inputRoot':
+              {
+                paddingRight: '22px !important',
+              },
+            '&:not(.MuiAutocomplete-hasPopupIcon):not(.MuiAutocomplete-hasClearIcon) .MuiOutlinedInput-root, &:not(.MuiAutocomplete-hasPopupIcon):not(.MuiAutocomplete-hasClearIcon) .MuiAutocomplete-inputRoot':
+              {
+                paddingRight: '8px !important',
+              },
+            '& .MuiOutlinedInput-root, & .MuiAutocomplete-inputRoot, & .MuiInputBase-root':
+              {
+                height: '28px !important',
+                minHeight: '28px !important',
+                paddingTop: '0px !important',
+                paddingBottom: '0px !important',
+                fontSize: '0.75rem',
+              },
+            '& .MuiAutocomplete-input, & .MuiInputBase-input, & .MuiOutlinedInput-input':
+              {
+                padding: '0px 2px 0px 8px !important',
+                height: '28px !important',
+                lineHeight: '28px !important',
+                fontSize: '0.75rem !important',
+                boxSizing: 'border-box !important',
+              },
+          }),
+        }}
         slotProps={{
           popper: {
             style: { zIndex: 10000 },
@@ -239,7 +302,44 @@ const Select: React.FC<CustomSelectProps> = ({
           },
           listbox: {
             style: { maxHeight: '300px' },
+            sx: {
+              ...(compact && {
+                padding: '4px !important',
+                '& .MuiAutocomplete-option': {
+                  fontSize: '0.75rem !important',
+                  minHeight: '26px !important',
+                  padding: '4px 8px !important',
+                  lineHeight: '1.25 !important',
+                },
+              }),
+            },
           },
+        }}
+        renderOption={(props, option: Option) => {
+          const { key, ...optionProps } = props;
+          return (
+            <Box
+              component="li"
+              key={key}
+              {...optionProps}
+              sx={{
+                ...(compact && {
+                  fontSize: '0.75rem !important',
+                  minHeight: '26px !important',
+                  padding: '4px 8px !important',
+                  lineHeight: '1.25 !important',
+                }),
+              }}
+            >
+              <span
+                className={
+                  compact ? 'text-xs text-gray-800' : 'text-sm text-gray-800'
+                }
+              >
+                {option.label}
+              </span>
+            </Box>
+          );
         }}
         renderInput={params => (
           <TextField
@@ -254,11 +354,11 @@ const Select: React.FC<CustomSelectProps> = ({
             sx={{
               '& .MuiOutlinedInput-root': {
                 minWidth: defaultMinWidth,
+                ...(compact && {
+                  height: '28px !important',
+                  minHeight: '28px !important',
+                }),
               },
-              '&.MuiAutocomplete-hasPopupIcon.MuiAutocomplete-hasClearIcon .MuiOutlinedInput-root':
-                {
-                  paddingRight: '24px !important',
-                },
               ...(compact && {
                 '& .MuiInputBase-root': {
                   height: '28px !important',
@@ -269,45 +369,20 @@ const Select: React.FC<CustomSelectProps> = ({
                   display: 'flex',
                   alignItems: 'center',
                 },
-                '& .MuiInputBase-input': {
-                  padding: '0px 8px !important',
-                  height: '28px !important',
-                  lineHeight: '28px !important',
-                  fontSize: '0.75rem',
-                  boxSizing: 'border-box',
-                },
-                '& .MuiOutlinedInput-input': {
-                  padding: '0px 8px !important',
-                  height: '28px !important',
-                  lineHeight: '28px !important',
-                },
+                '& .MuiInputBase-input, & .MuiOutlinedInput-input, & .MuiAutocomplete-input':
+                  {
+                    padding: '0px 2px 0px 8px !important',
+                    height: '28px !important',
+                    lineHeight: '28px !important',
+                    fontSize: '0.75rem',
+                    boxSizing: 'border-box',
+                  },
                 '& .MuiInputLabel-root': {
                   fontSize: '0.75rem',
                   transform: 'translate(14px, 5px) scale(1)',
                 },
                 '& .MuiInputLabel-shrink': {
                   transform: 'translate(14px, -8px) scale(0.75)',
-                },
-                '& .MuiAutocomplete-endAdornment': {
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  right: '4px !important',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0px',
-                  '& .MuiIconButton-root': {
-                    padding: '2px',
-                    margin: 0,
-                    '& .MuiSvgIcon-root': {
-                      fontSize: '1rem',
-                    },
-                  },
-                },
-                '& .MuiAutocomplete-clearIndicator': {
-                  marginRight: '-2px',
-                },
-                '& .MuiAutocomplete-popupIndicator': {
-                  marginRight: '0px',
                 },
               }),
             }}
@@ -321,11 +396,6 @@ const Select: React.FC<CustomSelectProps> = ({
               },
             }}
           />
-        )}
-        renderOption={(props: any, option: Option) => (
-          <li {...props} key={`${option.value}-${option.label}`}>
-            {option.label}
-          </li>
         )}
         noOptionsText="No options available"
         {...rest}

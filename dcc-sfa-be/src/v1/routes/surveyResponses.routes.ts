@@ -26,6 +26,13 @@ router.get(
 );
 
 router.get(
+  '/survey-responses/export',
+  authenticateToken,
+  requirePermission([{ module: 'survey', action: 'read' }]),
+  surveyResponseController.exportSurveyResponses
+);
+
+router.get(
   '/survey-responses/:id',
   authenticateToken,
   requirePermission([{ module: 'survey', action: 'read' }]),

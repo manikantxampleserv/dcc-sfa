@@ -6,10 +6,21 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.auditDelete = exports.auditUpdate = exports.auditCreate = exports.auditRoute = exports.auditMiddleware = void 0;
 const ipUtils_1 = require("../utils/ipUtils");
 const prisma_client_1 = __importDefault(require("../configs/prisma.client"));
+const EXCLUDED_TABLES = new Set([
+    'gps_logs',
+    'gps_log',
+    'request_logs',
+    'error_logs',
+    'mobile_error_logs',
+    'api_tokens',
+]);
 /**
  * Create an audit log entry
  */
 const createAuditLog = async (tableName, recordId, action, changedData, userId, req) => {
+    if (EXCLUDED_TABLES.has(tableName?.toLowerCase())) {
+        return;
+    }
     try {
         const ipAddress = (0, ipUtils_1.getClientIP)(req);
         const deviceInfo = req.headers['user-agent'] || 'Unknown';
@@ -58,6 +69,10 @@ exports.auditMiddleware = {
  */
 const auditRoute = (tableName, action) => {
     return async (req, res, next) => {
+        if (EXCLUDED_TABLES.has(tableName?.toLowerCase())) {
+            next();
+            return;
+        }
         const originalJson = res.json.bind(res);
         res.json = function (data) {
             const result = originalJson(data);

@@ -13,6 +13,7 @@ import {
 import {
   createOrUpdateSurveyResponse,
   deleteSurveyResponse,
+  exportSurveyResponsesReport,
   fetchSurveyResponseById,
   fetchSurveyResponses,
   type CreateOrUpdateSurveyResponsePayload,
@@ -21,6 +22,8 @@ import {
 } from '../services/reports/SurveyResponses';
 import { useApiMutation } from './useApiMutation';
 import type { ApiResponse } from '../types/api.types';
+
+export { exportSurveyResponsesReport };
 
 // Query Keys
 export const surveyResponseKeys = {
@@ -110,6 +113,22 @@ export const useDeleteSurveyResponse = (options?: {
       options?.onSuccess?.(data, variables);
     },
     onError: options?.onError,
+  });
+};
+
+/**
+ * Hook to export survey responses to Excel in flat table format
+ */
+export const useExportSurveyResponses = () => {
+  return useApiMutation({
+    mutationFn: async (params?: GetSurveyResponsesParams) => {
+      await exportSurveyResponsesReport(params);
+      return {
+        success: true,
+        message: 'Survey responses exported to Excel successfully',
+      };
+    },
+    loadingMessage: 'Exporting survey responses to Excel...',
   });
 };
 
