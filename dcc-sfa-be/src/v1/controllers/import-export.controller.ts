@@ -365,6 +365,19 @@ export const importExportController = {
         orderBy: { [sortField as string]: sortOrder },
       };
 
+      if (typeof (service as any).exportToExcelStream === 'function') {
+        res.setHeader(
+          'Content-Type',
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        );
+        res.setHeader(
+          'Content-Disposition',
+          `attachment; filename=${table}_export_${Date.now()}.xlsx`
+        );
+        await (service as any).exportToExcelStream(res, options);
+        return;
+      }
+
       const buffer = await service.exportToExcel(options);
 
       res.setHeader(
