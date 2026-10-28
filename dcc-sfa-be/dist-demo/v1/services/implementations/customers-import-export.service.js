@@ -40,6 +40,7 @@ exports.CustomersImportExportService = void 0;
 const client_1 = require("@prisma/client");
 const prisma_client_1 = __importDefault(require("../../../configs/prisma.client"));
 const import_export_service_1 = require("../base/import-export.service");
+const ExcelJS = __importStar(require("exceljs"));
 class CustomersImportExportService extends import_export_service_1.ImportExportService {
     modelName = 'customers';
     displayName = 'Customers';
@@ -730,191 +731,154 @@ class CustomersImportExportService extends import_export_service_1.ImportExportS
         });
     }
     async exportToExcel(options = {}) {
+        const rawFilters = options.filters || {};
+        const where = {};
+        if (rawFilters.id)
+            where.id = Number(rawFilters.id);
+        if (rawFilters.depot_id && rawFilters.depot_id !== 'all') {
+            where.depot_id = Number(rawFilters.depot_id);
+        }
+        if (rawFilters.zones_id && rawFilters.zones_id !== 'all') {
+            where.zones_id = Number(rawFilters.zones_id);
+        }
+        if (rawFilters.customer_type_id && rawFilters.customer_type_id !== 'all') {
+            where.customer_type_id = Number(rawFilters.customer_type_id);
+        }
+        if (rawFilters.customer_channel_id && rawFilters.customer_channel_id !== 'all') {
+            where.customer_channel_id = Number(rawFilters.customer_channel_id);
+        }
+        if (rawFilters.customer_category_id && rawFilters.customer_category_id !== 'all') {
+            where.customer_category_id = Number(rawFilters.customer_category_id);
+        }
+        if (rawFilters.route_id && rawFilters.route_id !== 'all') {
+            where.route_id = Number(rawFilters.route_id);
+        }
+        if (rawFilters.region_id && rawFilters.region_id !== 'all') {
+            where.region_id = Number(rawFilters.region_id);
+        }
+        if (rawFilters.district_id && rawFilters.district_id !== 'all') {
+            where.district_id = Number(rawFilters.district_id);
+        }
+        if (rawFilters.is_active)
+            where.is_active = rawFilters.is_active;
+        if (rawFilters.search) {
+            const searchStr = String(rawFilters.search).trim();
+            where.OR = [
+                { name: { contains: searchStr } },
+                { code: { contains: searchStr } },
+                { phone_number: { contains: searchStr } },
+                { contact_person: { contains: searchStr } },
+                { city: { contains: searchStr } },
+                { customer_depot: { name: { contains: searchStr } } },
+                { customer_zones: { name: { contains: searchStr } } },
+                { customer_routes: { code: { contains: searchStr } } },
+            ];
+        }
+        else if (rawFilters.OR) {
+            where.OR = rawFilters.OR;
+        }
         const query = {
-            where: options.filters,
+            where,
             orderBy: options.orderBy || { id: 'desc' },
             include: {
                 customer_zones: {
-                    select: {
-                        name: true,
-                        code: true,
-                    },
+                    select: { name: true, code: true },
                 },
                 customer_depot: {
-                    select: {
-                        name: true,
-                        code: true,
-                    },
+                    select: { name: true, code: true },
                 },
                 customers_regions: {
-                    select: {
-                        name: true,
-                        code: true,
-                    },
+                    select: { name: true, code: true },
                 },
                 customers_districts: {
-                    select: {
-                        name: true,
-                        code: true,
-                    },
+                    select: { name: true, code: true },
                 },
                 customer_category_customer: {
-                    select: {
-                        category_name: true,
-                        category_code: true,
-                    },
+                    select: { category_name: true, category_code: true },
                 },
                 customer_type_customer: {
-                    select: {
-                        type_name: true,
-                        type_code: true,
-                    },
+                    select: { type_name: true, type_code: true },
                 },
                 customer_channel_customer: {
-                    select: {
-                        channel_name: true,
-                        channel_code: true,
-                    },
+                    select: { channel_name: true, channel_code: true },
                 },
                 customer_routes: {
-                    select: {
-                        name: true,
-                        code: true,
-                    },
-                },
-                customer_users: {
-                    select: {
-                        name: true,
-                        email: true,
-                    },
-                },
-                _count: {
-                    select: {
-                        orders_customers: true,
-                        invoices_customers: true,
-                        payments_customers: true,
-                        visit_customers: true,
-                        coolers_customers: true,
-                        customer_assets_customers: true,
-                        serial_numbers_customers: true,
-                    },
+                    select: { name: true, code: true },
                 },
             },
         };
         if (options.limit)
             query.take = options.limit;
         const data = await this.getModel().findMany(query);
-        const ExcelJS = await Promise.resolve().then(() => __importStar(require('exceljs')));
-        const workbook = new ExcelJS.Workbook();
-        const worksheet = workbook.addWorksheet(this.displayName);
-        const exportColumns = [
-            { header: 'ID', key: 'id', width: 12 },
-            { header: 'Customer Code', key: 'code', width: 20 },
-            ...this.columns,
-            { header: 'Zone Name', key: 'zone_name', width: 25 },
-            { header: 'Depot Name', key: 'depot_name', width: 25 },
-            { header: 'Region Name', key: 'region_name', width: 25 },
-            { header: 'District Name', key: 'district_name', width: 25 },
-            { header: 'Category Name', key: 'category_name', width: 25 },
-            { header: 'Customer Type Name', key: 'customer_type_name', width: 25 },
-            {
-                header: 'Customer Channel Name',
-                key: 'customer_channel_name',
-                width: 28,
-            },
-            { header: 'Route Name', key: 'route_name', width: 25 },
-            { header: 'Salesperson Name', key: 'salesperson_name', width: 25 },
-            { header: 'Total Orders', key: 'total_orders', width: 15 },
-            { header: 'Total Invoices', key: 'total_invoices', width: 15 },
-            { header: 'Total Payments', key: 'total_payments', width: 15 },
-            { header: 'Total Visits', key: 'total_visits', width: 15 },
-            { header: 'Total Assets', key: 'total_assets', width: 15 },
-            { header: 'Total Coolers', key: 'total_coolers', width: 15 },
+        const WorkbookConstructor = ExcelJS.Workbook ||
+            ExcelJS.default?.Workbook ||
+            ExcelJS.default;
+        const workbook = new WorkbookConstructor();
+        const worksheet = workbook.addWorksheet('Outlets');
+        worksheet.columns = [
+            { header: 'Outlet Code', key: 'code', width: 16 },
+            { header: 'Outlet Name', key: 'name', width: 32 },
+            { header: 'Depot', key: 'depot', width: 18 },
+            { header: 'Zone', key: 'zone', width: 22 },
+            { header: 'Route', key: 'route', width: 20 },
+            { header: 'Outlet Type', key: 'outlet_type', width: 26 },
+            { header: 'Outlet Channel', key: 'outlet_channel', width: 18 },
+            { header: 'Outlet Category', key: 'outlet_category', width: 18 },
+            { header: 'Region', key: 'region', width: 18 },
+            { header: 'District', key: 'district', width: 20 },
+            { header: 'Contact Person', key: 'contact_person', width: 24 },
+            { header: 'Phone Number', key: 'phone_number', width: 20 },
+            { header: 'Latitude', key: 'latitude', width: 14 },
+            { header: 'Longitude', key: 'longitude', width: 14 },
         ];
-        worksheet.columns = exportColumns.map(col => ({
-            header: col.header,
-            key: col.key,
-            width: col.width || 20,
-        }));
         const headerRow = worksheet.getRow(1);
-        headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
-        headerRow.fill = {
-            type: 'pattern',
-            pattern: 'solid',
-            fgColor: { argb: 'FF4472C4' },
-        };
-        headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
-        headerRow.height = 25;
-        const exportData = await this.transformDataForExport(data);
-        let totalCreditLimit = 0;
-        let totalOutstanding = 0;
-        let activeCount = 0;
-        let inactiveCount = 0;
-        exportData.forEach((row, index) => {
-            const customer = data[index];
-            row.zone_name = customer.customer_zones?.name || '';
-            row.depot_name = customer.customer_depot?.name || '';
-            row.region_name = customer.customers_regions?.name || '';
-            row.district_name = customer.customers_districts?.name || '';
-            row.category_name =
-                customer.customer_category_customer?.category_name || '';
-            row.customer_type_name = customer.customer_type_customer?.type_name || '';
-            row.customer_channel_name =
-                customer.customer_channel_customer?.channel_name || '';
-            row.route_name = customer.customer_routes?.name || '';
-            row.salesperson_name = customer.customer_users?.name || '';
-            row.total_orders = customer._count?.orders_customers || 0;
-            row.total_invoices = customer._count?.invoices_customers || 0;
-            row.total_payments = customer._count?.payments_customers || 0;
-            row.total_visits = customer._count?.visit_customers || 0;
-            row.total_assets = customer._count?.customer_assets_customers || 0;
-            row.total_coolers = customer._count?.coolers_customers || 0;
-            if (customer.credit_limit) {
-                totalCreditLimit += parseFloat(customer.credit_limit.toString());
-            }
-            if (customer.outstanding_amount) {
-                totalOutstanding += parseFloat(customer.outstanding_amount.toString());
-            }
-            if (customer.is_active === 'Y') {
-                activeCount++;
-            }
-            else {
-                inactiveCount++;
-            }
-            const excelRow = worksheet.addRow(row);
-            if (index % 2 === 0) {
-                excelRow.fill = {
-                    type: 'pattern',
-                    pattern: 'solid',
-                    fgColor: { argb: 'FFF2F2F2' },
-                };
-            }
-            excelRow.eachCell((cell) => {
-                cell.border = {
-                    top: { style: 'thin' },
-                    left: { style: 'thin' },
-                    bottom: { style: 'thin' },
-                    right: { style: 'thin' },
-                };
-            });
-            if (customer.is_active === 'N') {
-                excelRow.getCell('is_active').font = { color: { argb: 'FFFF0000' } };
-            }
-            if (customer.outstanding_amount &&
-                parseFloat(customer.outstanding_amount.toString()) > 50000) {
-                excelRow.getCell('outstanding_amount').font = {
-                    color: { argb: 'FFFF0000' },
-                    bold: true,
-                };
-            }
+        headerRow.height = 20;
+        headerRow.eachCell((cell) => {
+            cell.font = { name: 'Calibri', size: 11, bold: true };
+            cell.alignment = { vertical: 'middle', horizontal: 'left' };
         });
-        if (data.length > 0) {
-            worksheet.autoFilter = {
-                from: 'A1',
-                to: `${String.fromCharCode(64 + exportColumns.length)}${data.length + 1}`,
-            };
+        for (const customer of data) {
+            const row = worksheet.addRow({
+                code: customer.code || '',
+                name: customer.name || '',
+                depot: customer.customer_depot?.name || '',
+                zone: customer.customer_zones?.name || '',
+                route: customer.customer_routes?.code ||
+                    customer.customer_routes?.name ||
+                    '',
+                outlet_type: customer.customer_type_customer?.type_name || '',
+                outlet_channel: customer.customer_channel_customer?.channel_code ||
+                    customer.customer_channel_customer?.channel_name ||
+                    '',
+                outlet_category: customer.customer_category_customer?.category_name || '',
+                region: customer.customers_regions?.name || '',
+                district: customer.customers_districts?.name || '',
+                contact_person: customer.contact_person || '',
+                phone_number: customer.phone_number || '',
+                latitude: customer.latitude !== null && customer.latitude !== undefined
+                    ? Number(customer.latitude)
+                    : '',
+                longitude: customer.longitude !== null && customer.longitude !== undefined
+                    ? Number(customer.longitude)
+                    : '',
+            });
+            row.height = 19;
+            row.eachCell((cell, colNumber) => {
+                cell.font = { name: 'Calibri', size: 11 };
+                if (colNumber === 13 || colNumber === 14) {
+                    if (typeof cell.value === 'number') {
+                        cell.alignment = { vertical: 'middle', horizontal: 'right' };
+                    }
+                    else {
+                        cell.alignment = { vertical: 'middle', horizontal: 'left' };
+                    }
+                }
+                else {
+                    cell.alignment = { vertical: 'middle', horizontal: 'left' };
+                }
+            });
         }
-        worksheet.views = [{ state: 'frozen', ySplit: 1 }];
+        worksheet.views = [{ showGridLines: true }];
         const buffer = await workbook.xlsx.writeBuffer();
         return Buffer.from(buffer);
     }

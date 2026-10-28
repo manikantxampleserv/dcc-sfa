@@ -37,9 +37,11 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.VanInventoryImportExportService = void 0;
+exports.generateVanInventoryExcelWorkbook = generateVanInventoryExcelWorkbook;
 const prisma_client_1 = __importDefault(require("../../../configs/prisma.client"));
 const inventory_utils_1 = require("../../utils/inventory.utils");
 const import_export_service_1 = require("../base/import-export.service");
+const ExcelJS = __importStar(require("exceljs"));
 class VanInventoryImportExportService extends import_export_service_1.ImportExportService {
     modelName = 'van_inventory';
     displayName = 'Van Inventory';
@@ -352,8 +354,12 @@ class VanInventoryImportExportService extends import_export_service_1.ImportExpo
                         product_id: item.product_id,
                         quantity: item.quantity || 0,
                         unit_price: item.unit_price || 0,
-                        batch_number: item.batch_lots?.batch_number || '',
-                        serial_numbers: item.serial_numbers?.serial_number || '',
+                        batch_number: item.van_inventory_items_batch_lot?.batch_number ||
+                            item.batch_lots?.batch_number ||
+                            '',
+                        serial_numbers: item.van_inventory_serial?.serial_number ||
+                            item.serial_numbers?.serial_number ||
+                            '',
                         is_cancelled: 'Y',
                     });
                 }
@@ -595,8 +601,100 @@ class VanInventoryImportExportService extends import_export_service_1.ImportExpo
         };
     }
     async exportToExcel(options = {}) {
+        const rawFilters = options.filters || {};
+        const where = {};
+        if (rawFilters.id)
+            where.id = Number(rawFilters.id);
+        if (rawFilters.user_id && rawFilters.user_id !== 'all') {
+            where.user_id = Number(rawFilters.user_id);
+        }
+        if (rawFilters.location_id && rawFilters.location_id !== 'all') {
+            where.location_id = Number(rawFilters.location_id);
+        }
+        if (rawFilters.vehicle_id)
+            where.vehicle_id = Number(rawFilters.vehicle_id);
+        if (rawFilters.status && rawFilters.status !== 'all')
+            where.status = rawFilters.status;
+        if (rawFilters.is_active)
+            where.is_active = rawFilters.is_active;
+        if (rawFilters.loading_type && rawFilters.loading_type !== 'all') {
+            const lt = String(rawFilters.loading_type).toUpperCase();
+            if (lt === 'LOAD' || lt === 'L') {
+                where.loading_type = 'L';
+            }
+            else if (lt === 'UNLOAD' || lt === 'U') {
+                where.loading_type = 'U';
+            }
+            else {
+                where.loading_type = rawFilters.loading_type;
+            }
+        }
+        if (rawFilters.approval_status && rawFilters.approval_status !== 'all') {
+            const statusUpper = String(rawFilters.approval_status).toUpperCase();
+            if (statusUpper.includes(',')) {
+                where.approval_status = { in: statusUpper.split(',').map(s => s.trim()) };
+            }
+            else {
+                where.approval_status = statusUpper;
+            }
+        }
+        if (rawFilters.search) {
+            const searchStr = String(rawFilters.search).trim();
+            where.OR = [
+                { van_inventory_users: { name: { contains: searchStr } } },
+                { vehicle: { vehicle_number: { contains: searchStr } } },
+                {
+                    van_inventory_items_inventory: {
+                        some: {
+                            OR: [
+                                { van_inventory_items_products: { name: { contains: searchStr } } },
+                                { van_inventory_items_batch_lot: { batch_number: { contains: searchStr } } },
+                                { van_inventory_serial: { serial_number: { contains: searchStr } } },
+                            ],
+                        },
+                    },
+                },
+            ];
+        }
+        else if (rawFilters.OR) {
+            where.OR = rawFilters.OR;
+        }
+        const startDate = rawFilters.start_date;
+        const endDate = rawFilters.end_date;
+        if (startDate || endDate) {
+            const dateFilter = {};
+            if (startDate) {
+                const start = new Date(startDate);
+                start.setHours(0, 0, 0, 0);
+                dateFilter.gte = start;
+            }
+            if (endDate) {
+                const end = new Date(endDate);
+                end.setHours(23, 59, 59, 999);
+                dateFilter.lte = end;
+            }
+            if (Array.isArray(where.OR) && where.OR.length > 0) {
+                where.AND = [
+                    {
+                        OR: [
+                            { document_date: dateFilter },
+                            { createdate: dateFilter },
+                        ],
+                    },
+                ];
+            }
+            else {
+                where.OR = [
+                    { document_date: dateFilter },
+                    { createdate: dateFilter },
+                ];
+            }
+        }
+        else if (rawFilters.document_date) {
+            where.document_date = rawFilters.document_date;
+        }
         const query = {
-            where: options.filters,
+            where,
             orderBy: options.orderBy || { id: 'desc' },
             include: {
                 van_inventory_users: {
@@ -608,13 +706,13 @@ class VanInventoryImportExportService extends import_export_service_1.ImportExpo
                 van_inventory_items_inventory: {
                     include: {
                         van_inventory_items_products: {
-                            select: { id: true, name: true, code: true },
+                            select: { id: true, name: true, code: true, tracking_type: true },
                         },
-                        batch_lots: {
-                            select: { batch_number: true },
+                        van_inventory_items_batch_lot: {
+                            select: { id: true, batch_number: true },
                         },
-                        serial_numbers: {
-                            select: { serial_number: true },
+                        van_inventory_serial: {
+                            select: { id: true, serial_number: true },
                         },
                     },
                 },
@@ -623,71 +721,147 @@ class VanInventoryImportExportService extends import_export_service_1.ImportExpo
         if (options.limit)
             query.take = options.limit;
         const data = await this.getModel().findMany(query);
-        const workbook = new (await Promise.resolve().then(() => __importStar(require('exceljs')))).Workbook();
-        const worksheet = workbook.addWorksheet(this.displayName);
-        const exportColumns = [
-            ...this.columns,
-            { header: 'ID', key: 'id', width: 12 },
-            { header: 'User Name', key: 'user_name', width: 20 },
-            { header: 'Vehicle Number', key: 'vehicle_number', width: 20 },
-            { header: 'Location Name', key: 'location_name', width: 20 },
-            { header: 'Items Count', key: 'items_count', width: 15 },
-            { header: 'Created Date', key: 'created_date', width: 15 },
-            { header: 'Created By', key: 'created_by', width: 15 },
-            { header: 'Updated Date', key: 'updated_date', width: 15 },
-            { header: 'Updated By', key: 'updated_by', width: 15 },
-        ];
-        worksheet.columns = exportColumns.map(col => ({
-            header: col.header,
-            key: col.key,
-            width: col.width || 20,
-        }));
-        const headerRow = worksheet.getRow(1);
-        headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
-        headerRow.fill = {
-            type: 'pattern',
-            pattern: 'solid',
-            fgColor: { argb: 'FF4472C4' },
-        };
-        headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
-        headerRow.height = 25;
-        const exportData = await this.transformDataForExport(data);
-        exportData.forEach((row, index) => {
-            const excelRow = worksheet.addRow({
-                ...row,
-                user_name: data[index]?.van_inventory_users?.name || '',
-                vehicle_number: data[index]?.vehicle?.vehicle_number || '',
-                items_count: data[index]?.van_inventory_items_inventory?.length || 0,
-            });
-            if (index % 2 === 0) {
-                excelRow.fill = {
-                    type: 'pattern',
-                    pattern: 'solid',
-                    fgColor: { argb: 'FFF2F2F2' },
-                };
+        const rows = [];
+        for (const vanInventory of data) {
+            const dateObj = vanInventory.document_date || vanInventory.createdate;
+            let formattedDate = '';
+            if (dateObj) {
+                const d = new Date(dateObj);
+                if (!isNaN(d.getTime())) {
+                    const day = String(d.getDate()).padStart(2, '0');
+                    const month = String(d.getMonth() + 1).padStart(2, '0');
+                    const year = d.getFullYear();
+                    formattedDate = `${day}-${month}-${year}`;
+                }
             }
-            excelRow.eachCell((cell) => {
-                cell.border = {
-                    top: { style: 'thin' },
-                    left: { style: 'thin' },
-                    bottom: { style: 'thin' },
-                    right: { style: 'thin' },
-                };
-            });
-        });
-        if (data.length > 0) {
-            worksheet.autoFilter = {
-                from: 'A1',
-                to: `${String.fromCharCode(64 + exportColumns.length)}${data.length + 1}`,
-            };
+            const rawType = (vanInventory.loading_type || 'L').toString().toUpperCase();
+            const typeStr = rawType === 'U' || rawType === 'UNLOAD' ? 'Unload' : 'Load';
+            const userName = vanInventory.van_inventory_users?.name || '';
+            const vanInventoryNo = vanInventory.id;
+            const items = vanInventory.van_inventory_items_inventory || [];
+            if (items.length === 0) {
+                rows.push({
+                    date: formattedDate,
+                    type: typeStr,
+                    vanInventoryNo,
+                    userName,
+                    product: '',
+                    trackingType: '',
+                    quantity: '',
+                    batchSerials: '',
+                });
+            }
+            else {
+                for (const item of items) {
+                    const productName = item.van_inventory_items_products?.name ||
+                        item.product_name ||
+                        '';
+                    let trackingType = item.van_inventory_items_products?.tracking_type;
+                    if (trackingType && trackingType.trim()) {
+                        const t = trackingType.trim().toLowerCase();
+                        trackingType = t.charAt(0).toUpperCase() + t.slice(1);
+                    }
+                    else if (item.van_inventory_items_batch_lot || item.batch_lot_id) {
+                        trackingType = 'Batch';
+                    }
+                    else if (item.van_inventory_serial || item.serial_id) {
+                        trackingType = 'Serial';
+                    }
+                    else {
+                        trackingType = 'None';
+                    }
+                    const batchSerial = item.van_inventory_items_batch_lot?.batch_number ||
+                        item.van_inventory_serial?.serial_number ||
+                        item.sap_item_code ||
+                        '';
+                    rows.push({
+                        date: formattedDate,
+                        type: typeStr,
+                        vanInventoryNo,
+                        userName,
+                        product: productName,
+                        trackingType,
+                        quantity: Number(item.quantity) || 0,
+                        batchSerials: batchSerial,
+                    });
+                }
+            }
         }
-        const summaryRow = worksheet.addRow([]);
-        summaryRow.getCell(1).value = `Total Van Inventory Records: ${data.length}`;
-        summaryRow.getCell(1).font = { bold: true };
-        worksheet.views = [{ state: 'frozen', ySplit: 1 }];
-        const buffer = await workbook.xlsx.writeBuffer();
-        return Buffer.from(buffer);
+        return await generateVanInventoryExcelWorkbook(rows);
     }
 }
 exports.VanInventoryImportExportService = VanInventoryImportExportService;
+async function generateVanInventoryExcelWorkbook(rows) {
+    const WorkbookConstructor = ExcelJS.Workbook ||
+        ExcelJS.default?.Workbook ||
+        ExcelJS.default;
+    const workbook = new WorkbookConstructor();
+    const worksheet = workbook.addWorksheet('Van Inventory');
+    worksheet.columns = [
+        { header: 'Date', key: 'date', width: 14 },
+        { header: 'Type', key: 'type', width: 10 },
+        { header: 'Van Inventory No', key: 'van_inventory_no', width: 18 },
+        { header: 'User Name', key: 'user_name', width: 28 },
+        { header: 'Product', key: 'product', width: 28 },
+        { header: 'Tracking Type', key: 'tracking_type', width: 16 },
+        { header: 'Quantity', key: 'quantity', width: 12 },
+        { header: 'Batch / Serials', key: 'batch_serials', width: 18 },
+    ];
+    const headerRow = worksheet.getRow(1);
+    headerRow.height = 20;
+    headerRow.eachCell((cell, colNumber) => {
+        cell.font = { name: 'Calibri', size: 11, bold: true };
+        if (colNumber === 3 || colNumber === 7) {
+            cell.alignment = { vertical: 'middle', horizontal: 'right' };
+        }
+        else {
+            cell.alignment = { vertical: 'middle', horizontal: 'left' };
+        }
+    });
+    for (const rowData of rows) {
+        const isUnload = String(rowData.type).toLowerCase() === 'unload';
+        let qtyVal = rowData.quantity;
+        if (typeof rowData.quantity === 'number') {
+            qtyVal = isUnload ? -Math.abs(rowData.quantity) : Math.abs(rowData.quantity);
+        }
+        else if (typeof rowData.quantity === 'string' && rowData.quantity.trim() !== '') {
+            const parsed = Number(rowData.quantity.replace(/[()]/g, ''));
+            if (!isNaN(parsed)) {
+                qtyVal = isUnload ? -Math.abs(parsed) : Math.abs(parsed);
+            }
+        }
+        const row = worksheet.addRow({
+            date: rowData.date,
+            type: rowData.type,
+            van_inventory_no: rowData.vanInventoryNo,
+            user_name: rowData.userName,
+            product: rowData.product,
+            tracking_type: rowData.trackingType,
+            quantity: qtyVal,
+            batch_serials: rowData.batchSerials,
+        });
+        row.height = 19;
+        row.eachCell((cell, colNumber) => {
+            cell.font = { name: 'Calibri', size: 11 };
+            if (colNumber === 3) {
+                cell.alignment = { vertical: 'middle', horizontal: 'right' };
+                if (typeof cell.value === 'number') {
+                    cell.numFmt = '0';
+                }
+            }
+            else if (colNumber === 7) {
+                cell.alignment = { vertical: 'middle', horizontal: 'right' };
+                if (typeof cell.value === 'number') {
+                    cell.numFmt = '#,##0;(#,##0);0';
+                }
+            }
+            else {
+                cell.alignment = { vertical: 'middle', horizontal: 'left' };
+            }
+        });
+    }
+    worksheet.views = [{ showGridLines: true }];
+    const buffer = await workbook.xlsx.writeBuffer();
+    return Buffer.from(buffer);
+}
 //# sourceMappingURL=vanInventory-import-export.service.js.map

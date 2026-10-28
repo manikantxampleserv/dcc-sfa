@@ -19,4 +19,3 @@ if (existsSync(sourcePath)) {
     copyFileSync(sourcePath, targetPath);
   }
 }
-

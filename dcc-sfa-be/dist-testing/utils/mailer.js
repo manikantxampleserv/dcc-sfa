@@ -46,41 +46,24 @@ const getSMTPConfig = async (log_inst) => {
             console.log('Using SMTP configuration from company table');
             return {
                 host: company.smtp_host,
-                port: company.smtp_port,
+                port: Number(company.smtp_port),
                 username: company.smtp_username,
                 password: company.smtp_password,
                 fromAddress: company.smtp_mail_from_address ||
-                    process.env.MAIL_FROM_ADDRESS ||
                     company.smtp_username,
                 fromName: company.smtp_mail_from_name ||
-                    process.env.MAIL_FROM_NAME ||
                     'DCC SFA System',
             };
         }
-        console.log(' Using SMTP configuration from environment variables (company config incomplete)');
-        return {
-            host: process.env.MAIL_HOST || 'smtp-relay.sendinblue.com',
-            port: parseInt(process.env.MAIL_PORT || '587'),
-            username: process.env.MAIL_USERNAME || '',
-            password: process.env.MAIL_PASSWORD || '',
-            fromAddress: process.env.MAIL_FROM_ADDRESS || process.env.MAIL_USERNAME || '',
-            fromName: process.env.MAIL_FROM_NAME || 'DCC SFA System',
-        };
+        console.warn('SMTP configuration missing or incomplete in companies table. Email will not be sent.');
+        return null;
     }
     catch (error) {
-        console.error('Error fetching SMTP config from database, using env:', error);
-        return {
-            host: process.env.MAIL_HOST || 'smtp-relay.sendinblue.com',
-            port: parseInt(process.env.MAIL_PORT || '587'),
-            username: process.env.MAIL_USERNAME || '',
-            password: process.env.MAIL_PASSWORD || '',
-            fromAddress: process.env.MAIL_FROM_ADDRESS || process.env.MAIL_USERNAME || '',
-            fromName: process.env.MAIL_FROM_NAME || 'DCC SFA System',
-        };
+        console.error('Error fetching SMTP config from database:', error);
+        return null;
     }
 };
-const createTransporter = async (log_inst) => {
-    const config = await getSMTPConfig(log_inst);
+const createTransporter = (config) => {
     return nodemailer_1.default.createTransport({
         host: config.host,
         port: config.port,
@@ -102,7 +85,11 @@ const sendEmail = async (emailData) => {
     }
     try {
         const config = await getSMTPConfig(log_inst);
-        const transporter = await createTransporter(log_inst);
+        if (!config) {
+            console.warn('Skipping email send: SMTP details are missing in companies table. Workflow will continue.');
+            return false;
+        }
+        const transporter = createTransporter(config);
         console.log(' SMTP Configuration:');
         console.log('   SMTP Host:', config.host);
         console.log('   SMTP Port:', config.port);

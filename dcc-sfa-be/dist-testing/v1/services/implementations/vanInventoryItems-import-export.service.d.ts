@@ -21,5 +21,6 @@ export declare class VanInventoryItemsImportExportService extends ImportExportSe
     protected prepareDataForImport(data: any, userId: number, tx?: any): Promise<any>;
     protected updateExisting(data: any, existingId: any, userId: number, tx?: any): Promise<any>;
     protected processImportRecord(data: any, userId: number, options: any, tx?: any): Promise<any>;
+    exportToExcel(options?: any): Promise<Buffer>;
 }
 //# sourceMappingURL=vanInventoryItems-import-export.service.d.ts.map

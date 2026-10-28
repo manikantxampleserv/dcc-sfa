@@ -23,4 +23,15 @@ export declare class VanInventoryImportExportService extends ImportExportService
     importData(data: any[], userId: number, options?: any): Promise<any>;
     exportToExcel(options?: any): Promise<Buffer>;
 }
+export interface VanInventoryExportRow {
+    date: string;
+    type: string;
+    vanInventoryNo: number | string;
+    userName: string;
+    product: string;
+    trackingType: string;
+    quantity: number | string;
+    batchSerials: string;
+}
+export declare function generateVanInventoryExcelWorkbook(rows: VanInventoryExportRow[]): Promise<Buffer>;
 //# sourceMappingURL=vanInventory-import-export.service.d.ts.map

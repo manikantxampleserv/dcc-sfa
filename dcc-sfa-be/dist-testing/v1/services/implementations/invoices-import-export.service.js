@@ -39,6 +39,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.InvoicesImportExportService = void 0;
 const import_export_service_1 = require("../base/import-export.service");
 const prisma_client_1 = __importDefault(require("../../../configs/prisma.client"));
+const ExcelJS = __importStar(require("exceljs"));
 class InvoicesImportExportService extends import_export_service_1.ImportExportService {
     modelName = 'invoices';
     displayName = 'Invoices';
@@ -533,16 +534,208 @@ class InvoicesImportExportService extends import_export_service_1.ImportExportSe
         });
     }
     async exportToExcel(options = {}) {
+        const rawFilters = options.filters || {};
+        const where = {};
+        if (rawFilters.is_active) {
+            where.is_active = rawFilters.is_active;
+        }
+        if (rawFilters.salesperson_id) {
+            where.salesperson_id = Number(rawFilters.salesperson_id);
+        }
+        if (rawFilters.customer_id) {
+            where.customer_id = Number(rawFilters.customer_id);
+        }
+        if (rawFilters.status && rawFilters.status !== 'all') {
+            where.status = rawFilters.status;
+        }
+        // Date range filtering
+        if (rawFilters.start_date || rawFilters.end_date) {
+            where.invoice_date = {};
+            if (rawFilters.start_date) {
+                where.invoice_date.gte = new Date(rawFilters.start_date);
+            }
+            if (rawFilters.end_date) {
+                const end = new Date(rawFilters.end_date);
+                end.setHours(23, 59, 59, 999);
+                where.invoice_date.lte = end;
+            }
+        }
+        else if (rawFilters.time_filter && rawFilters.time_filter !== 'all') {
+            const now = new Date();
+            if (rawFilters.time_filter === 'today') {
+                const start = new Date(now);
+                start.setHours(0, 0, 0, 0);
+                const end = new Date(now);
+                end.setHours(23, 59, 59, 999);
+                where.invoice_date = { gte: start, lte: end };
+            }
+            else if (rawFilters.time_filter === 'week') {
+                const start = new Date(now);
+                start.setDate(now.getDate() - 7);
+                where.invoice_date = { gte: start };
+            }
+            else if (rawFilters.time_filter === 'month') {
+                const start = new Date(now);
+                start.setDate(now.getDate() - 30);
+                where.invoice_date = { gte: start };
+            }
+        }
+        if (rawFilters.search) {
+            const s = String(rawFilters.search).trim();
+            where.OR = [
+                { invoice_number: { contains: s } },
+                { status: { contains: s } },
+                { invoices_customers: { name: { contains: s } } },
+                { invoices_customers: { code: { contains: s } } },
+                { invoices_salesperson: { name: { contains: s } } },
+            ];
+        }
+        else if (rawFilters.OR) {
+            where.OR = rawFilters.OR;
+        }
         const query = {
-            where: options.filters,
-            orderBy: options.orderBy || { id: 'desc' },
+            where,
+            orderBy: options.orderBy || { invoice_date: 'desc' },
             include: {
-                invoices_customers: true,
-                orders: true,
-                currencies: true,
+                invoices_customers: {
+                    select: {
+                        code: true,
+                        name: true,
+                        latitude: true,
+                        longitude: true,
+                        customer_category_customer: { select: { category_name: true } },
+                        customer_channel_customer: { select: { channel_name: true } },
+                        customer_type_customer: { select: { type_name: true } },
+                        customer_zones: { select: { name: true } },
+                        customer_depot: {
+                            select: {
+                                name: true,
+                                depots_coodrinator: { select: { name: true } },
+                                depots_supervisior: { select: { name: true } },
+                                user_depots_depot_id: {
+                                    select: {
+                                        users_depots_users: {
+                                            select: {
+                                                name: true,
+                                                user_role: { select: { name: true } },
+                                            },
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                        customer_routes: {
+                            select: {
+                                code: true,
+                                name: true,
+                                salespersons: {
+                                    select: {
+                                        user: {
+                                            select: {
+                                                name: true,
+                                                sap_code: true,
+                                            },
+                                        },
+                                    },
+                                },
+                                route_depots: {
+                                    select: {
+                                        name: true,
+                                        depots_coodrinator: { select: { name: true } },
+                                        depots_supervisior: { select: { name: true } },
+                                        user_depots_depot_id: {
+                                            select: {
+                                                users_depots_users: {
+                                                    select: {
+                                                        name: true,
+                                                        user_role: { select: { name: true } },
+                                                    },
+                                                },
+                                            },
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+                invoices_salesperson: {
+                    select: {
+                        name: true,
+                        sap_code: true,
+                        route_salespersons: {
+                            select: {
+                                route: {
+                                    select: {
+                                        name: true,
+                                        code: true,
+                                        route_depots: {
+                                            select: {
+                                                name: true,
+                                                depots_coodrinator: { select: { name: true } },
+                                                depots_supervisior: { select: { name: true } },
+                                                user_depots_depot_id: {
+                                                    select: {
+                                                        users_depots_users: {
+                                                            select: {
+                                                                name: true,
+                                                                user_role: { select: { name: true } },
+                                                            },
+                                                        },
+                                                    },
+                                                },
+                                            },
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                        user_depot: {
+                            select: {
+                                name: true,
+                                depots_coodrinator: { select: { name: true } },
+                                depots_supervisior: { select: { name: true } },
+                                user_depots_depot_id: {
+                                    select: {
+                                        users_depots_users: {
+                                            select: {
+                                                name: true,
+                                                user_role: { select: { name: true } },
+                                            },
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
                 invoice_items: {
-                    include: {
-                        invoice_items_products: true,
+                    select: {
+                        id: true,
+                        quantity: true,
+                        base_quantity: true,
+                        conversion_factor: true,
+                        total_amount: true,
+                        unit_price: true,
+                        product_name: true,
+                        notes: true,
+                        invoice_items_products: {
+                            select: {
+                                name: true,
+                                sap_code: true,
+                                code: true,
+                                unit_case_conversion_rate: true,
+                                product_brands: { select: { name: true } },
+                                product_sub_categories_products: {
+                                    select: { sub_category_name: true },
+                                },
+                                product_categories_products: {
+                                    select: { category_name: true },
+                                },
+                                product_flavours_products: { select: { name: true } },
+                                product_volumes_products: { select: { name: true } },
+                            },
+                        },
                     },
                 },
             },
@@ -550,69 +743,155 @@ class InvoicesImportExportService extends import_export_service_1.ImportExportSe
         if (options.limit)
             query.take = options.limit;
         const data = await this.getModel().findMany(query);
-        const workbook = new (await Promise.resolve().then(() => __importStar(require('exceljs')))).Workbook();
-        const worksheet = workbook.addWorksheet(this.displayName);
-        const exportColumns = [
-            ...this.columns,
-            { header: 'ID', key: 'id', width: 12 },
-            { header: 'Customer Name', key: 'customer_name', width: 25 },
-            { header: 'Order Number', key: 'order_number', width: 20 },
-            { header: 'Currency Name', key: 'currency_name', width: 15 },
-            { header: 'Item Count', key: 'item_count', width: 12 },
-            { header: 'Created Date', key: 'created_date', width: 15 },
-            { header: 'Created By', key: 'created_by', width: 15 },
-            { header: 'Updated Date', key: 'updated_date', width: 15 },
-            { header: 'Updated By', key: 'updated_by', width: 15 },
+        const WorkbookConstructor = ExcelJS.Workbook ||
+            ExcelJS.default?.Workbook ||
+            ExcelJS.default;
+        const workbook = new WorkbookConstructor();
+        const worksheet = workbook.addWorksheet('Sales Data');
+        worksheet.columns = [
+            { header: 'EvDate', key: 'EvDate', width: 14 },
+            { header: 'Depot', key: 'Depot', width: 22 },
+            { header: 'Coordinator', key: 'Coordinator', width: 22 },
+            { header: 'Supervisor', key: 'Supervisor', width: 22 },
+            { header: 'SellerCode', key: 'SellerCode', width: 14 },
+            { header: 'Salesman', key: 'Salesman', width: 24 },
+            { header: 'Outlet Number', key: 'OutletNumber', width: 16 },
+            { header: 'Outlet Name', key: 'OutletName', width: 28 },
+            { header: 'Zone', key: 'Zone', width: 16 },
+            { header: 'Route', key: 'Route', width: 18 },
+            { header: 'Customer Channel', key: 'CustomerChannel', width: 18 },
+            { header: 'Customer Type', key: 'CustomerType', width: 18 },
+            { header: 'IDInv', key: 'IDInv', width: 26 },
+            { header: 'Batch', key: 'Batch', width: 10 },
+            { header: 'Category', key: 'Category', width: 30 },
+            { header: 'Flavour', key: 'Flavour', width: 16 },
+            { header: 'Volume', key: 'Volume', width: 12 },
+            { header: 'Brand', key: 'Brand', width: 24 },
+            { header: 'SKU Code', key: 'SKUCode', width: 14 },
+            { header: 'SKU', key: 'SKU', width: 32 },
+            { header: 'Pack', key: 'Pack', width: 24 },
+            { header: 'PhyCas', key: 'PhyCas', width: 12 },
+            { header: 'UnitCas', key: 'UnitCas', width: 12 },
+            { header: 'Turnover', key: 'Turnover', width: 16 },
         ];
-        worksheet.columns = exportColumns.map(col => ({
-            header: col.header,
-            key: col.key,
-            width: col.width || 20,
-        }));
         const headerRow = worksheet.getRow(1);
-        headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
-        headerRow.fill = {
-            type: 'pattern',
-            pattern: 'solid',
-            fgColor: { argb: 'FF4472C4' },
-        };
-        headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
-        headerRow.height = 25;
-        const exportData = await this.transformDataForExport(data);
-        exportData.forEach((row, index) => {
-            const excelRow = worksheet.addRow({
-                ...row,
-                customer_name: data[index]?.invoices_customers?.name || '',
-                order_number: data[index]?.orders?.order_number || '',
-                currency_name: data[index]?.currencies?.name || '',
-                item_count: data[index]?.invoice_items?.length || 0,
-            });
-            if (index % 2 === 0) {
-                excelRow.fill = {
-                    type: 'pattern',
-                    pattern: 'solid',
-                    fgColor: { argb: 'FFF2F2F2' },
-                };
+        headerRow.height = 20;
+        headerRow.eachCell((cell, colNumber) => {
+            cell.font = { name: 'Calibri', size: 11, bold: true };
+            if (colNumber >= 22 && colNumber <= 24) {
+                cell.alignment = { vertical: 'middle', horizontal: 'right' };
             }
-            excelRow.eachCell((cell) => {
-                cell.border = {
-                    top: { style: 'thin' },
-                    left: { style: 'thin' },
-                    bottom: { style: 'thin' },
-                    right: { style: 'thin' },
-                };
-            });
+            else {
+                cell.alignment = { vertical: 'middle', horizontal: 'left' };
+            }
         });
-        if (data.length > 0) {
-            worksheet.autoFilter = {
-                from: 'A1',
-                to: `${String.fromCharCode(64 + exportColumns.length)}${data.length + 1}`,
-            };
+        for (const inv of data) {
+            const invDate = inv.invoice_date ? new Date(inv.invoice_date) : '';
+            const route = inv.invoices_customers?.customer_routes?.code ||
+                inv.invoices_customers?.customer_routes?.name ||
+                inv.invoices_salesperson?.route_salespersons?.[0]?.route?.code ||
+                inv.invoices_salesperson?.route_salespersons?.[0]?.route?.name ||
+                '';
+            const routeSalesman = inv.invoices_customers?.customer_routes?.salespersons?.[0]?.user;
+            const salesman = inv.invoices_salesperson?.name || routeSalesman?.name || '';
+            const sellerCode = inv.invoices_salesperson?.sap_code || routeSalesman?.sap_code || '';
+            const depotData = inv.invoices_customers?.customer_depot ||
+                inv.invoices_customers?.customer_routes?.route_depots ||
+                inv.invoices_salesperson?.user_depot ||
+                inv.invoices_salesperson?.route_salespersons?.[0]?.route?.route_depots;
+            const depot = depotData?.name || '';
+            let coordinator = depotData?.depots_coodrinator?.name || '';
+            let supervisor = depotData?.depots_supervisior?.name || '';
+            if (depotData?.user_depots_depot_id) {
+                const assignedUsers = depotData.user_depots_depot_id
+                    .map((ud) => ud.users_depots_users)
+                    .filter(Boolean);
+                const coordUser = assignedUsers.find((u) => u.user_role?.name === 'Sales coordinator');
+                if (coordUser)
+                    coordinator = coordUser.name;
+                const superUser = assignedUsers.find((u) => u.user_role?.name === 'Area Sales Supervisor');
+                if (superUser)
+                    supervisor = superUser.name;
+            }
+            const outletCode = inv.invoices_customers?.code || '';
+            const outletName = inv.invoices_customers?.name || '';
+            const zoneName = inv.invoices_customers?.customer_zones?.name || '';
+            const channel = inv.invoices_customers?.customer_category_customer?.category_name ||
+                inv.invoices_customers?.customer_channel_customer?.channel_name ||
+                '';
+            const typeName = inv.invoices_customers?.customer_type_customer?.type_name || '';
+            const invoiceNum = inv.invoice_number || (inv.id ? String(inv.id) : '');
+            const items = inv.invoice_items && inv.invoice_items.length > 0
+                ? inv.invoice_items
+                : [null];
+            for (const item of items) {
+                const product = item?.invoice_items_products;
+                const qty = Number(item?.quantity) || 0;
+                const baseQty = Number(item?.base_quantity) || 0;
+                const conv = Number(item?.conversion_factor) || 1;
+                const phyCase = item ? qty + (conv > 0 ? baseQty / conv : 0) : 0;
+                const unitCase = item
+                    ? phyCase * Number(product?.unit_case_conversion_rate || 1)
+                    : 0;
+                const turnover = item
+                    ? item.total_amount !== null && item.total_amount !== undefined
+                        ? Number(item.total_amount)
+                        : phyCase * Number(item.unit_price || 0)
+                    : 0;
+                const row = worksheet.addRow({
+                    EvDate: invDate,
+                    Depot: depot,
+                    Coordinator: coordinator,
+                    Supervisor: supervisor,
+                    SellerCode: sellerCode,
+                    Salesman: salesman,
+                    OutletNumber: outletCode,
+                    OutletName: outletName,
+                    Zone: zoneName,
+                    Route: route,
+                    CustomerChannel: channel,
+                    CustomerType: typeName,
+                    IDInv: invoiceNum,
+                    Batch: item?.notes || '',
+                    Category: product?.product_categories_products?.category_name || '',
+                    Flavour: product?.product_flavours_products?.name || '',
+                    Volume: product?.product_volumes_products?.name || '',
+                    Brand: product?.product_brands?.name || '',
+                    SKUCode: product?.sap_code || product?.code || '',
+                    SKU: product?.name || item?.product_name || '',
+                    Pack: product?.product_sub_categories_products?.sub_category_name || '',
+                    PhyCas: phyCase,
+                    UnitCas: unitCase,
+                    Turnover: turnover,
+                });
+                row.height = 19;
+                row.eachCell((cell, colNumber) => {
+                    cell.font = { name: 'Calibri', size: 11 };
+                    if (colNumber === 1) {
+                        if (cell.value instanceof Date) {
+                            cell.numFmt = 'DD/MM/YYYY';
+                        }
+                        cell.alignment = { vertical: 'middle', horizontal: 'left' };
+                    }
+                    else if (colNumber === 22 || colNumber === 23) {
+                        cell.numFmt = '0.00';
+                        cell.alignment = { vertical: 'middle', horizontal: 'right' };
+                    }
+                    else if (colNumber === 24) {
+                        cell.numFmt = '#,##0.00';
+                        cell.alignment = { vertical: 'middle', horizontal: 'right' };
+                    }
+                    else {
+                        cell.alignment = { vertical: 'middle', horizontal: 'left' };
+                    }
+                });
+            }
         }
-        const summaryRow = worksheet.addRow([]);
-        summaryRow.getCell(1).value = `Total Invoices: ${data.length}`;
-        summaryRow.getCell(1).font = { bold: true };
-        worksheet.views = [{ state: 'frozen', ySplit: 1 }];
+        const lastRowNumber = worksheet.rowCount;
+        if (lastRowNumber > 1) {
+            worksheet.autoFilter = { from: 'A1', to: `X${lastRowNumber}` };
+        }
+        worksheet.views = [{ state: 'frozen', ySplit: 1, showGridLines: true }];
         const buffer = await workbook.xlsx.writeBuffer();
         return Buffer.from(buffer);
     }

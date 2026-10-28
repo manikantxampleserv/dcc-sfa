@@ -1191,6 +1191,438 @@ exports.promotionsNewController = {
             });
         }
     },
+    // async getActivePromotionsWithDetails(req: any, res: Response) {
+    //   try {
+    //     const {
+    //       page,
+    //       limit,
+    //       search,
+    //       platform,
+    //       depot_id,
+    //       salesperson_id,
+    //       route_id,
+    //       zone_id,
+    //       customer_type_id,
+    //       customer_channel_id,
+    //       customer_category_id,
+    //     } = req.query;
+    //     const pageNum = parseInt(page as string, 10) || 1;
+    //     const limitNum = parseInt(limit as string, 10) || 10;
+    //     const searchLower = search ? (search as string).toLowerCase().trim() : '';
+    //     const today = new Date();
+    //     today.setHours(0, 0, 0, 0);
+    //     const endOfToday = new Date(today);
+    //     endOfToday.setHours(23, 59, 59, 999);
+    //     let salespersonOutletIds: number[] = [];
+    //     let outletSource: string = 'none';
+    //     if (salesperson_id) {
+    //       const salespersonIdNum = parseInt(salesperson_id as string, 10);
+    //       const todaysVisits = await prisma.visits.findMany({
+    //         where: {
+    //           sales_person_id: salespersonIdNum,
+    //           visit_date: {
+    //             gte: today,
+    //             lte: endOfToday,
+    //           },
+    //           is_active: 'Y',
+    //         },
+    //         select: {
+    //           customer_id: true,
+    //         },
+    //       });
+    //       if (todaysVisits.length > 0) {
+    //         salespersonOutletIds = Array.from(
+    //           new Set(todaysVisits.map(v => v.customer_id))
+    //         );
+    //         outletSource = 'visits';
+    //       } else {
+    //         const salespersonRouteAssignments =
+    //           await prisma.route_salespersons.findMany({
+    //             where: {
+    //               user_id: salespersonIdNum,
+    //               is_active: 'Y',
+    //             },
+    //             select: {
+    //               route_id: true,
+    //             },
+    //           });
+    //         const routeIds = salespersonRouteAssignments.map(r => r.route_id);
+    //         if (routeIds.length > 0) {
+    //           const routeCustomers = await prisma.customers.findMany({
+    //             where: {
+    //               route_id: { in: routeIds },
+    //               is_active: 'Y',
+    //             },
+    //             select: {
+    //               id: true,
+    //             },
+    //           });
+    //           salespersonOutletIds = routeCustomers.map(c => c.id);
+    //           outletSource = 'salesperson_routes';
+    //         }
+    //       }
+    //       if (salespersonOutletIds.length === 0) {
+    //         return res.json({
+    //           success: true,
+    //           message: 'No outlets assigned to this salesperson for today',
+    //           data: [],
+    //           pagination: {
+    //             current_page: pageNum,
+    //             per_page: limitNum,
+    //             total_pages: 0,
+    //             total_count: 0,
+    //           },
+    //           summary: {
+    //             total_active_promotions: 0,
+    //             current_date: today.toISOString().split('T')[0],
+    //             salesperson_filter_applied: true,
+    //             salesperson_outlets_count: 0,
+    //             outlet_source: outletSource,
+    //           },
+    //         });
+    //       }
+    //     }
+    //     const filters: any = {
+    //       is_active: 'Y',
+    //       start_date: { lte: endOfToday },
+    //       end_date: { gte: today },
+    //     };
+    //     if (searchLower) {
+    //       filters.OR = [
+    //         { name: { contains: searchLower } },
+    //         { code: { contains: searchLower } },
+    //         { description: { contains: searchLower } },
+    //       ];
+    //     }
+    //     if (platform) {
+    //       filters.promotion_channel_promotions = {
+    //         some: {
+    //           channel_type: platform,
+    //           is_active: 'Y',
+    //         },
+    //       };
+    //     }
+    //     if (depot_id) {
+    //       filters.promotion_depot_promotions = {
+    //         some: {
+    //           depot_id: parseInt(depot_id as string, 10),
+    //           is_active: 'Y',
+    //         },
+    //       };
+    //     }
+    //     if (route_id) {
+    //       filters.promotion_routes_promotions = {
+    //         some: {
+    //           route_id: parseInt(route_id as string, 10),
+    //           is_active: 'Y',
+    //         },
+    //       };
+    //     }
+    //     if (zone_id) {
+    //       filters.promotion_zones_promotions = {
+    //         some: {
+    //           zone_id: parseInt(zone_id as string, 10),
+    //           is_active: 'Y',
+    //         },
+    //       };
+    //     }
+    //     if (customer_type_id) {
+    //       filters.promotion_customer_types_promotions = {
+    //         some: {
+    //           customer_type_id: parseInt(customer_type_id as string, 10),
+    //           is_active: 'Y',
+    //         },
+    //       };
+    //     }
+    //     if (customer_channel_id) {
+    //       filters.promotion_customer_channel_promotions = {
+    //         some: {
+    //           customer_channel_id: parseInt(customer_channel_id as string, 10),
+    //           is_active: 'Y',
+    //         },
+    //       };
+    //     }
+    //     if (customer_category_id) {
+    //       filters.promotion_customer_category_promotions = {
+    //         some: {
+    //           customer_category_id: parseInt(customer_category_id as string, 10),
+    //           is_active: 'Y',
+    //         },
+    //       };
+    //     }
+    //     const allPromotions = await prisma.promotions.findMany({
+    //       where: filters,
+    //       include: {
+    //         promotion_routes_promotions: {
+    //           where: { is_active: 'Y' },
+    //           select: { route_id: true },
+    //         },
+    //         promotion_zones_promotions: {
+    //           where: { is_active: 'Y' },
+    //           select: { zone_id: true },
+    //         },
+    //         promotion_customer_types_promotions: {
+    //           where: { is_active: 'Y' },
+    //           select: { customer_type_id: true },
+    //         },
+    //         promotion_customer_channel_promotions: {
+    //           where: { is_active: 'Y' },
+    //           select: { customer_channel_id: true },
+    //         },
+    //         promotion_customer_category_promotions: {
+    //           where: { is_active: 'Y' },
+    //           select: { customer_category_id: true },
+    //         },
+    //         promotion_customer_exclusion_promotions: {
+    //           select: { customer_id: true },
+    //         },
+    //         promotion_condition_promotions: {
+    //           where: { is_active: 'Y' },
+    //           include: {
+    //             promotion_condition_products: {
+    //               where: { is_active: 'Y' },
+    //               include: {
+    //                 promotion_condition_productId: {
+    //                   select: {
+    //                     id: true,
+    //                     name: true,
+    //                     code: true,
+    //                     description: true,
+    //                     base_price: true,
+    //                     category_id: true,
+    //                     sub_category_id: true,
+    //                     brand_id: true,
+    //                     unit_of_measurement: true,
+    //                     tax_rate: true,
+    //                     vat_percentage: true,
+    //                     weight_in_grams: true,
+    //                     volume_in_liters: true,
+    //                     tracking_type: true,
+    //                   },
+    //                 },
+    //                 promotion_condition_categories: {
+    //                   select: {
+    //                     id: true,
+    //                     category_name: true,
+    //                   },
+    //                 },
+    //               },
+    //             },
+    //           },
+    //         },
+    //         promotion_level_promotions: {
+    //           where: { is_active: 'Y' },
+    //           include: {
+    //             promotion_benefit_level: {
+    //               where: { is_active: 'Y' },
+    //               include: {
+    //                 promotion_benefit_products: {
+    //                   select: {
+    //                     id: true,
+    //                     name: true,
+    //                     code: true,
+    //                     description: true,
+    //                     base_price: true,
+    //                     category_id: true,
+    //                     sub_category_id: true,
+    //                     brand_id: true,
+    //                     unit_of_measurement: true,
+    //                     tax_rate: true,
+    //                     vat_percentage: true,
+    //                     weight_in_grams: true,
+    //                     volume_in_liters: true,
+    //                     tracking_type: true,
+    //                   },
+    //                 },
+    //               },
+    //             },
+    //           },
+    //           orderBy: { level_number: 'asc' },
+    //         },
+    //       },
+    //       orderBy: { start_date: 'desc' },
+    //     });
+    //     const promotionsWithMatchingOutlets = await Promise.all(
+    //       allPromotions.map(async (promo: any) => {
+    //         const outletFilters: any = {
+    //           is_active: 'Y',
+    //         };
+    //         if (salesperson_id && salespersonOutletIds.length > 0) {
+    //           outletFilters.id = { in: salespersonOutletIds };
+    //         }
+    //         const routeIds = promo.promotion_routes_promotions?.map(
+    //           (r: any) => r.route_id
+    //         );
+    //         if (routeIds && routeIds.length > 0) {
+    //           outletFilters.route_id = { in: routeIds };
+    //         }
+    //         const zoneIds = promo.promotion_zones_promotions?.map(
+    //           (z: any) => z.zone_id
+    //         );
+    //         if (zoneIds && zoneIds.length > 0) {
+    //           outletFilters.zones_id = { in: zoneIds };
+    //         }
+    //         const customerTypeIds =
+    //           promo.promotion_customer_types_promotions?.map(
+    //             (ct: any) => ct.customer_type_id
+    //           );
+    //         if (customerTypeIds && customerTypeIds.length > 0) {
+    //           outletFilters.customer_type_id = { in: customerTypeIds };
+    //         }
+    //         const customerChannelIds =
+    //           promo.promotion_customer_channel_promotions?.map(
+    //             (cc: any) => cc.customer_channel_id
+    //           );
+    //         if (customerChannelIds && customerChannelIds.length > 0) {
+    //           outletFilters.customer_channel_id = { in: customerChannelIds };
+    //         }
+    //         // Apply promotion's customer category targeting
+    //         const customerCategoryIds =
+    //           promo.promotion_customer_category_promotions?.map(
+    //             (cat: any) => cat.customer_category_id
+    //           );
+    //         if (customerCategoryIds && customerCategoryIds.length > 0) {
+    //           outletFilters.customer_category_id = { in: customerCategoryIds };
+    //         }
+    //         const excludedCustomerIds =
+    //           promo.promotion_customer_exclusion_promotions?.map(
+    //             (exc: any) => exc.customer_id
+    //           );
+    //         if (excludedCustomerIds && excludedCustomerIds.length > 0) {
+    //           if (outletFilters.id?.in) {
+    //             outletFilters.id.in = outletFilters.id.in.filter(
+    //               (id: number) => !excludedCustomerIds.includes(id)
+    //             );
+    //           } else {
+    //             outletFilters.NOT = { id: { in: excludedCustomerIds } };
+    //           }
+    //         }
+    //         const matchingOutlets = await prisma.customers.findMany({
+    //           where: outletFilters,
+    //           select: {
+    //             id: true,
+    //             name: true,
+    //             code: true,
+    //           },
+    //         });
+    //         return {
+    //           promo,
+    //           matchingOutlets,
+    //           matchingOutletIds: matchingOutlets.map(o => o.id),
+    //         };
+    //       })
+    //     );
+    //     let filteredPromotions = promotionsWithMatchingOutlets;
+    //     if (salesperson_id) {
+    //       filteredPromotions = promotionsWithMatchingOutlets.filter(
+    //         item => item.matchingOutletIds.length > 0
+    //       );
+    //     }
+    //     const totalCount = filteredPromotions.length;
+    //     const totalPages = Math.ceil(totalCount / limitNum);
+    //     const startIndex = (pageNum - 1) * limitNum;
+    //     const paginatedPromotions = filteredPromotions.slice(
+    //       startIndex,
+    //       startIndex + limitNum
+    //     );
+    //     const promotionsWithDetails = paginatedPromotions.map(item => {
+    //       const promo = item.promo;
+    //       const productConditions = promo.promotion_condition_promotions?.map(
+    //         (condition: any) => ({
+    //           id: condition.id,
+    //           condition_type: condition.condition_type,
+    //           applies_to_type: condition.applies_to_type,
+    //           min_value: condition.min_value,
+    //           max_value: condition.max_value,
+    //           effective_start_date: condition.effective_start_date,
+    //           effective_end_date: condition.effective_end_date,
+    //           status: condition.status,
+    //           products: condition.promotion_condition_products?.map(
+    //             (cp: any) => ({
+    //               id: cp.id,
+    //               product_id: cp.product_id,
+    //               category_id: cp.category_id,
+    //               product_group: cp.product_group,
+    //               condition_quantity: cp.condition_quantity,
+    //               product_details: cp.promotion_condition_productId,
+    //               category_details: cp.promotion_condition_categories,
+    //             })
+    //           ),
+    //         })
+    //       );
+    //       const gifts = promo.promotion_level_promotions?.flatMap(
+    //         (level: any) =>
+    //           level.promotion_benefit_level?.map((benefit: any) => ({
+    //             id: benefit.id,
+    //             level_number: level.level_number,
+    //             level_threshold: level.threshold_value,
+    //             discount_type: level.discount_type,
+    //             discount_value: level.discount_value,
+    //             benefit_type: benefit.benefit_type,
+    //             product_id: benefit.product_id,
+    //             benefit_value: benefit.benefit_value,
+    //             condition_type: benefit.condition_type,
+    //             gift_limit: benefit.gift_limit,
+    //             product_details: benefit.promotion_benefit_products,
+    //           })) || []
+    //       );
+    //       const matchingOutletsFormatted = item.matchingOutlets.map(outlet => ({
+    //         id: outlet.id,
+    //         name: outlet.name,
+    //         code: outlet.code,
+    //       }));
+    //       return {
+    //         id: promo.id,
+    //         name: promo.name,
+    //         code: promo.code,
+    //         type: promo.type,
+    //         start_date: promo.start_date,
+    //         end_date: promo.end_date,
+    //         description: promo.description,
+    //         is_active: promo.is_active,
+    //         createdate: promo.createdate,
+    //         createdby: promo.createdby,
+    //         updatedate: promo.updatedate,
+    //         updatedby: promo.updatedby,
+    //         product_conditions: productConditions || [],
+    //         gifts: gifts || [],
+    //         matching_outlets: matchingOutletsFormatted,
+    //         matching_outlets_count: item.matchingOutletIds.length,
+    //         outlet_source: salesperson_id ? outletSource : null,
+    //       };
+    //     });
+    //     res.json({
+    //       success: true,
+    //       message: 'Active promotions with details retrieved successfully',
+    //       data: promotionsWithDetails,
+    //       pagination: {
+    //         current_page: pageNum,
+    //         per_page: limitNum,
+    //         total_pages: totalPages,
+    //         total_count: totalCount,
+    //         has_next: pageNum < totalPages,
+    //         has_prev: pageNum > 1,
+    //       },
+    //       summary: {
+    //         total_active_promotions_in_system: allPromotions.length,
+    //         promotions_matching_salesperson_outlets: filteredPromotions.length,
+    //         current_date: today.toISOString().split('T')[0],
+    //         salesperson_filter_applied: !!salesperson_id,
+    //         salesperson_total_outlets: salesperson_id
+    //           ? salespersonOutletIds.length
+    //           : null,
+    //         salesperson_outlet_ids: salesperson_id ? salespersonOutletIds : null,
+    //         outlet_source: salesperson_id ? outletSource : null,
+    //       },
+    //     });
+    //   } catch (error: any) {
+    //     console.error('Get Active Promotions With Details Error:', error);
+    //     res.status(500).json({
+    //       success: false,
+    //       message: error.message,
+    //     });
+    //   }
+    // },
     async getActivePromotionsWithDetails(req, res) {
         try {
             const { page, limit, search, platform, depot_id, salesperson_id, route_id, zone_id, customer_type_id, customer_channel_id, customer_category_id, } = req.query;
@@ -1203,23 +1635,46 @@ exports.promotionsNewController = {
             endOfToday.setHours(23, 59, 59, 999);
             let salespersonOutletIds = [];
             let outletSource = 'none';
-            if (salesperson_id) {
-                const salespersonIdNum = parseInt(salesperson_id, 10);
-                const todaysVisits = await prisma_client_1.default.visits.findMany({
+            let effectiveDepotId = depot_id
+                ? parseInt(depot_id, 10)
+                : null;
+            if (!effectiveDepotId && salesperson_id) {
+                const userDepot = await prisma_client_1.default.user_depots.findFirst({
                     where: {
-                        sales_person_id: salespersonIdNum,
-                        visit_date: {
-                            gte: today,
-                            lte: endOfToday,
-                        },
+                        user_id: parseInt(salesperson_id, 10),
                         is_active: 'Y',
                     },
+                    select: { depot_id: true },
+                });
+                if (userDepot?.depot_id) {
+                    effectiveDepotId = userDepot.depot_id;
+                }
+            }
+            if (salesperson_id) {
+                const salespersonIdNum = parseInt(salesperson_id, 10);
+                const visitWhere = {
+                    sales_person_id: salespersonIdNum,
+                    visit_date: {
+                        gte: today,
+                        lte: endOfToday,
+                    },
+                    is_active: 'Y',
+                };
+                if (effectiveDepotId) {
+                    visitWhere.visit_customers = {
+                        depot_id: effectiveDepotId,
+                    };
+                }
+                const todaysVisits = await prisma_client_1.default.visits.findMany({
+                    where: visitWhere,
                     select: {
                         customer_id: true,
                     },
                 });
                 if (todaysVisits.length > 0) {
-                    salespersonOutletIds = Array.from(new Set(todaysVisits.map(v => v.customer_id)));
+                    salespersonOutletIds = Array.from(new Set(todaysVisits
+                        .map(v => v.customer_id)
+                        .filter((id) => id !== null && id !== undefined)));
                     outletSource = 'visits';
                 }
                 else {
@@ -1234,11 +1689,15 @@ exports.promotionsNewController = {
                     });
                     const routeIds = salespersonRouteAssignments.map(r => r.route_id);
                     if (routeIds.length > 0) {
+                        const customerWhere = {
+                            route_id: { in: routeIds },
+                            is_active: 'Y',
+                        };
+                        if (effectiveDepotId) {
+                            customerWhere.depot_id = effectiveDepotId;
+                        }
                         const routeCustomers = await prisma_client_1.default.customers.findMany({
-                            where: {
-                                route_id: { in: routeIds },
-                                is_active: 'Y',
-                            },
+                            where: customerWhere,
                             select: {
                                 id: true,
                             },
@@ -1263,6 +1722,7 @@ exports.promotionsNewController = {
                             current_date: today.toISOString().split('T')[0],
                             salesperson_filter_applied: true,
                             salesperson_outlets_count: 0,
+                            effective_depot_id: effectiveDepotId,
                             outlet_source: outletSource,
                         },
                     });
@@ -1288,10 +1748,10 @@ exports.promotionsNewController = {
                     },
                 };
             }
-            if (depot_id) {
+            if (effectiveDepotId) {
                 filters.promotion_depot_promotions = {
                     some: {
-                        depot_id: parseInt(depot_id, 10),
+                        depot_id: effectiveDepotId,
                         is_active: 'Y',
                     },
                 };
@@ -1339,6 +1799,10 @@ exports.promotionsNewController = {
             const allPromotions = await prisma_client_1.default.promotions.findMany({
                 where: filters,
                 include: {
+                    promotion_depot_promotions: {
+                        where: { is_active: 'Y' },
+                        select: { depot_id: true },
+                    },
                     promotion_routes_promotions: {
                         where: { is_active: 'Y' },
                         select: { route_id: true },
@@ -1432,6 +1896,13 @@ exports.promotionsNewController = {
                 const outletFilters = {
                     is_active: 'Y',
                 };
+                const promoDepotIds = promo.promotion_depot_promotions?.map((d) => d.depot_id) || [];
+                if (effectiveDepotId) {
+                    outletFilters.depot_id = effectiveDepotId;
+                }
+                else if (promoDepotIds.length > 0) {
+                    outletFilters.depot_id = { in: promoDepotIds };
+                }
                 if (salesperson_id && salespersonOutletIds.length > 0) {
                     outletFilters.id = { in: salespersonOutletIds };
                 }
@@ -1451,7 +1922,6 @@ exports.promotionsNewController = {
                 if (customerChannelIds && customerChannelIds.length > 0) {
                     outletFilters.customer_channel_id = { in: customerChannelIds };
                 }
-                // Apply promotion's customer category targeting
                 const customerCategoryIds = promo.promotion_customer_category_promotions?.map((cat) => cat.customer_category_id);
                 if (customerCategoryIds && customerCategoryIds.length > 0) {
                     outletFilters.customer_category_id = { in: customerCategoryIds };
@@ -1563,6 +2033,7 @@ exports.promotionsNewController = {
                     promotions_matching_salesperson_outlets: filteredPromotions.length,
                     current_date: today.toISOString().split('T')[0],
                     salesperson_filter_applied: !!salesperson_id,
+                    effective_depot_id: effectiveDepotId,
                     salesperson_total_outlets: salesperson_id
                         ? salespersonOutletIds.length
                         : null,
