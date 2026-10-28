@@ -104,7 +104,8 @@ const CoolersReport: React.FC = () => {
               variant="caption"
               className="!text-gray-500 !text-xs !block !mt-0.5"
             >
-              {row.barcode || row.serial_number || '—'} • {row.brand}
+              ID: {row.id} • {row.barcode || row.serial_number || '—'} •{' '}
+              {row.brand}
             </Typography>
           </Box>
         </Box>

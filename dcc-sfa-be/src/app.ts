@@ -52,7 +52,7 @@ export const createApp = async (): Promise<Application> => {
 
   app.use(
     cors({
-      origin: (origin, callback) => callback(null, true),
+      origin: (_origin, callback) => callback(null, true),
       credentials: true,
     })
   );

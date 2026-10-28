@@ -8,7 +8,7 @@ import {
   WarehouseOutlined,
   WarningAmberOutlined,
 } from '@mui/icons-material';
-import { Maximize, Minimize } from 'lucide-react';
+import { Download, Maximize, Minimize } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
 import Select from 'shared/Select';
 import './index.css';
@@ -42,6 +42,7 @@ interface BarItem {
  * Record shape for outlet coolers
  */
 interface OutletRecord {
+  assetId?: string | number | null;
   zone: string;
   route: string;
   routeName: string;
@@ -90,6 +91,7 @@ interface MasterRecord {
  * Record shape for depot stock
  */
 interface DepotRecord {
+  assetId?: string | number | null;
   zone: string;
   barcode: string;
   serial: string;
@@ -981,11 +983,11 @@ const AssetReport: React.FC = () => {
 
   /** Shorthand aliases for dashboard dataset slices */
   const OM = dashboardData.outletMeta;
-  const ORECORDS = dashboardData.outletRecords as OutletRecord[];
+  const ORECORDS = dashboardData.outletRecords as unknown as OutletRecord[];
   const MM = dashboardData.masterMeta;
   const MASTER = dashboardData.masterRecords as MasterRecord[];
   const DM = dashboardData.depotMeta;
-  const DRECORDS = dashboardData.depotRecords as DepotRecord[];
+  const DRECORDS = dashboardData.depotRecords as unknown as DepotRecord[];
 
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [activeView, setActiveView] = useState<'outlet' | 'coverage' | 'depot'>(
@@ -1283,6 +1285,11 @@ const AssetReport: React.FC = () => {
    */
   const handleExportOutletTable = () => {
     const headers = [
+      'Asset ID',
+      'Barcode',
+      'Serial Number',
+      'Brand',
+      'Model / SubType',
       'Supervisor',
       'Zone',
       'Route',
@@ -1298,6 +1305,11 @@ const AssetReport: React.FC = () => {
       'Bucket',
     ];
     const dataRows = tableRows.map(r => [
+      r.assetId || '',
+      r.barcode || '',
+      r.serial || '',
+      r.brand || '',
+      r.subtype || '',
       r.supervisor,
       r.zone,
       r.routeName || r.route,
@@ -1313,6 +1325,80 @@ const AssetReport: React.FC = () => {
       r.bucket,
     ]);
     exportExcel(headers, dataRows, 'outlet_action_list');
+  };
+
+  /**
+   * Export Consolidated Coolers (Outlet + Depot combined)
+   */
+  const handleExportAllCoolers = () => {
+    const headers = [
+      'Location Type',
+      'Asset ID',
+      'Barcode',
+      'Serial Number',
+      'Brand',
+      'Model / SubType',
+      'Location Name',
+      'Location Code',
+      'Depot',
+      'Zone',
+      'Route',
+      'Supervisor',
+      'Category',
+      'Type',
+      'Channel',
+      'Status / Verification',
+      'Last Scanned / Verified Date',
+      'Days Since Scan',
+      'Bucket',
+    ];
+
+    const outletData = (ORECORDS || []).map((r: OutletRecord) => [
+      'Outlet',
+      r.assetId || '',
+      r.barcode || '',
+      r.serial || '',
+      r.brand || '',
+      r.subtype || '',
+      r.outlet || '',
+      r.code || '',
+      r.depot || '',
+      r.zone || '',
+      r.routeName || r.route || '',
+      r.supervisor || '',
+      r.category || '',
+      r.custType || '',
+      r.channel || '',
+      r.status || '',
+      r.lastScan || 'Never',
+      r.days === null ? '' : r.days,
+      r.bucket || '',
+    ]);
+
+    const depotData = (DRECORDS || []).map((r: DepotRecord) => [
+      'Depot',
+      r.assetId || '',
+      r.barcode || '',
+      r.serial || '',
+      r.brand || '',
+      r.subtype || '',
+      r.zone || '',
+      '',
+      r.zone || '',
+      r.zone || '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      r.verifyBucket || '',
+      r.verifiedDate ? new Date(r.verifiedDate).toLocaleDateString() : 'Never',
+      '',
+      r.verifyBucket || '',
+    ]);
+
+    const combinedRows = [...outletData, ...depotData];
+    exportExcel(headers, combinedRows, 'consolidated_all_coolers');
   };
 
   /**
@@ -1461,15 +1547,19 @@ const AssetReport: React.FC = () => {
    */
   const handleExportDepotTable = () => {
     const headers = [
+      'Asset ID',
+      'Barcode',
+      'Serial Number',
       'Depot',
-      'Serial',
       'Brand',
       'Model',
       'Verification status',
     ];
     const dataRows = depotTableRows.map(r => [
+      r.assetId || '',
+      r.barcode || '',
+      r.serial || '',
       r.zone,
-      r.serial,
       r.brand,
       r.subtype,
       r.verifyBucket,
@@ -1555,39 +1645,50 @@ const AssetReport: React.FC = () => {
           </div>
         </div>
 
-        <div
-          className="flex gap-1.5 bg-[#F1F2F7] rounded-[5px] p-1 mb-4 w-fit"
-          id="viewTabs"
-        >
-          <button
-            className={`border-none text-[12.5px] font-semibold px-2.5 py-1.5 rounded-[5px] cursor-pointer whitespace-nowrap transition-all duration-200 ${
-              activeView === 'outlet'
-                ? 'bg-r-card text-r-text shadow-xs'
-                : 'bg-transparent text-r-muted hover:text-r-text'
-            }`}
-            onClick={() => setActiveView('outlet')}
+        <div className="flex justify-between items-center mb-4 flex-wrap gap-2">
+          <div
+            className="flex gap-1.5 bg-[#F1F2F7] rounded-[5px] p-1 w-fit"
+            id="viewTabs"
           >
-            Outlet scanning compliance
-          </button>
+            <button
+              className={`border-none text-[12.5px] font-semibold px-2.5 py-1.5 rounded-[5px] cursor-pointer whitespace-nowrap transition-all duration-200 ${
+                activeView === 'outlet'
+                  ? 'bg-r-card text-r-text shadow-xs'
+                  : 'bg-transparent text-r-muted hover:text-r-text'
+              }`}
+              onClick={() => setActiveView('outlet')}
+            >
+              Outlet scanning compliance
+            </button>
+            <button
+              className={`border-none text-[12.5px] font-semibold px-2.5 py-1.5 rounded-[5px] cursor-pointer whitespace-nowrap transition-all duration-200 ${
+                activeView === 'coverage'
+                  ? 'bg-r-card text-r-text shadow-xs'
+                  : 'bg-transparent text-r-muted hover:text-r-text'
+              }`}
+              onClick={() => setActiveView('coverage')}
+            >
+              Cooler coverage
+            </button>
+            <button
+              className={`border-none text-[12.5px] font-semibold px-2.5 py-1.5 rounded-[5px] cursor-pointer whitespace-nowrap transition-all duration-200 ${
+                activeView === 'depot'
+                  ? 'bg-r-card text-r-text shadow-xs'
+                  : 'bg-transparent text-r-muted hover:text-r-text'
+              }`}
+              onClick={() => setActiveView('depot')}
+            >
+              Depot stock &amp; verification
+            </button>
+          </div>
+
           <button
-            className={`border-none text-[12.5px] font-semibold px-2.5 py-1.5 rounded-[5px] cursor-pointer whitespace-nowrap transition-all duration-200 ${
-              activeView === 'coverage'
-                ? 'bg-r-card text-r-text shadow-xs'
-                : 'bg-transparent text-r-muted hover:text-r-text'
-            }`}
-            onClick={() => setActiveView('coverage')}
+            className="border border-r-border bg-white hover:bg-r-line rounded-[5px] px-3.5 py-2 text-[12.5px] font-bold text-r-text cursor-pointer transition-colors flex items-center gap-1.5 shadow-xs"
+            onClick={handleExportAllCoolers}
+            title="Export consolidated list of all coolers (Outlets + Depots) in one Excel file"
           >
-            Cooler coverage
-          </button>
-          <button
-            className={`border-none text-[12.5px] font-semibold px-2.5 py-1.5 rounded-[5px] cursor-pointer whitespace-nowrap transition-all duration-200 ${
-              activeView === 'depot'
-                ? 'bg-r-card text-r-text shadow-xs'
-                : 'bg-transparent text-r-muted hover:text-r-text'
-            }`}
-            onClick={() => setActiveView('depot')}
-          >
-            Depot stock &amp; verification
+            <Download size={14} />
+            Export Consolidated Coolers (All)
           </button>
         </div>
 

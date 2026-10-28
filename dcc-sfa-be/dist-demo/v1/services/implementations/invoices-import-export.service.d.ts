@@ -25,6 +25,10 @@ export declare class InvoicesImportExportService extends ImportExportService<any
     protected getColumnDescription(key: string): string;
     protected transformDataForExport(data: any[]): Promise<any[]>;
     protected updateExisting(data: any, userId: number, tx?: any): Promise<any>;
+    private buildExportQuery;
+    private setupSalesDataWorksheet;
+    private writeInvoicesToWorksheet;
+    exportToExcelStream(res: any, options?: any): Promise<void>;
     exportToExcel(options?: any): Promise<Buffer>;
 }
 //# sourceMappingURL=invoices-import-export.service.d.ts.map

@@ -37,9 +37,16 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.reportsController = void 0;
-const paginate_1 = require("../../utils/paginate");
-const prisma_client_1 = __importDefault(require("../../configs/prisma.client"));
 const permissions_config_1 = require("../../configs/permissions.config");
+const prisma_client_1 = __importDefault(require("../../configs/prisma.client"));
+const paginate_1 = require("../../utils/paginate");
+/**
+ * Helper to get ExcelJS library instance compatible with CJS and ESM dynamic imports
+ */
+const getExcelJS = async () => {
+    const mod = await Promise.resolve().then(() => __importStar(require('exceljs')));
+    return mod.default || mod;
+};
 async function getReportData(filters) {
     const { start_date, end_date, customer_id, status, depotIds, isScopeRestricted, } = filters;
     const dateFilter = {};
@@ -251,7 +258,7 @@ exports.reportsController = {
                 customer_id,
                 status,
             });
-            const ExcelJS = await Promise.resolve().then(() => __importStar(require('exceljs')));
+            const ExcelJS = await getExcelJS();
             const workbook = new ExcelJS.Workbook();
             const ordersSheet = workbook.addWorksheet('Orders', {
                 pageSetup: { paperSize: 9, orientation: 'landscape' },
@@ -861,7 +868,7 @@ exports.reportsController = {
             const overallAchievement = totalTargetAmount > 0
                 ? Math.min((totalActualSales / totalTargetAmount) * 100, 100)
                 : 0;
-            const ExcelJS = await Promise.resolve().then(() => __importStar(require('exceljs')));
+            const ExcelJS = await getExcelJS();
             const workbook = new ExcelJS.Workbook();
             const performanceSheet = workbook.addWorksheet('Performance by Salesperson', {
                 pageSetup: { paperSize: 9, orientation: 'landscape' },
@@ -1309,7 +1316,7 @@ exports.reportsController = {
                     },
                 },
             });
-            const ExcelJS = await Promise.resolve().then(() => __importStar(require('exceljs')));
+            const ExcelJS = await getExcelJS();
             const workbook = new ExcelJS.Workbook();
             const assetsSheet = workbook.addWorksheet('Asset Master', {
                 pageSetup: { paperSize: 9, orientation: 'landscape' },
@@ -1735,7 +1742,7 @@ exports.reportsController = {
                 }
             });
             // Import ExcelJS
-            const ExcelJS = await Promise.resolve().then(() => __importStar(require('exceljs')));
+            const ExcelJS = await getExcelJS();
             const workbook = new ExcelJS.Workbook();
             // Create Visits sheet
             const visitsSheet = workbook.addWorksheet('Visits', {
@@ -2175,7 +2182,7 @@ exports.reportsController = {
                 },
             });
             // Import ExcelJS
-            const ExcelJS = await Promise.resolve().then(() => __importStar(require('exceljs')));
+            const ExcelJS = await getExcelJS();
             const workbook = new ExcelJS.Workbook();
             // Create Promotions sheet
             const promotionsSheet = workbook.addWorksheet('Promotions', {
@@ -2601,7 +2608,7 @@ exports.reportsController = {
                 },
             });
             // Import ExcelJS
-            const ExcelJS = await Promise.resolve().then(() => __importStar(require('exceljs')));
+            const ExcelJS = await getExcelJS();
             const workbook = new ExcelJS.Workbook();
             // Create Zone/Territory Summary sheet
             const zonesSheet = workbook.addWorksheet('Territory Sales', {
@@ -2957,7 +2964,7 @@ exports.reportsController = {
                 },
             });
             // Import ExcelJS
-            const ExcelJS = await Promise.resolve().then(() => __importStar(require('exceljs')));
+            const ExcelJS = await getExcelJS();
             const workbook = new ExcelJS.Workbook();
             // Create Reps sheet
             const repsSheet = workbook.addWorksheet('Rep Productivity', {
@@ -3203,7 +3210,7 @@ exports.reportsController = {
                     },
                 },
             });
-            const ExcelJS = await Promise.resolve().then(() => __importStar(require('exceljs')));
+            const ExcelJS = await getExcelJS();
             const workbook = new ExcelJS.Workbook();
             // Competitor Activities Sheet
             const activitiesSheet = workbook.addWorksheet('Competitor Activities', {
@@ -3533,7 +3540,7 @@ exports.reportsController = {
                     users_payments_collected_byTousers: { select: { name: true } },
                 },
             });
-            const ExcelJS = await Promise.resolve().then(() => __importStar(require('exceljs')));
+            const ExcelJS = await getExcelJS();
             const workbook = new ExcelJS.Workbook();
             const outstandingSheet = workbook.addWorksheet('Outstanding Invoices', {
                 pageSetup: { paperSize: 9, orientation: 'landscape' },
@@ -3875,7 +3882,7 @@ exports.reportsController = {
                 },
                 orderBy: { createdate: 'desc' },
             });
-            const ExcelJS = await Promise.resolve().then(() => __importStar(require('exceljs')));
+            const ExcelJS = await getExcelJS();
             const workbook = new ExcelJS.Workbook();
             const historySheet = workbook.addWorksheet('Attendance History', {
                 pageSetup: { paperSize: 9, orientation: 'landscape' },
@@ -4169,7 +4176,7 @@ exports.reportsController = {
                     },
                 },
             });
-            const ExcelJS = await Promise.resolve().then(() => __importStar(require('exceljs')));
+            const ExcelJS = await getExcelJS();
             const workbook = new ExcelJS.Workbook();
             const sheet = workbook.addWorksheet('Cooler Inspections', {
                 pageSetup: { paperSize: 9, orientation: 'landscape' },
@@ -4199,7 +4206,7 @@ exports.reportsController = {
                     width: 25,
                 },
             ];
-            sheet.columns.forEach(column => {
+            sheet.columns.forEach((column) => {
                 column.font = { name: 'Aptos Narrow', size: 11 };
             });
             inspections.forEach(row => {
@@ -4338,6 +4345,16 @@ exports.reportsController = {
                     asset_master_asset_sub_types: true,
                     asset_master_brand: true,
                     asset_master_brands: true,
+                    asset_master_last_read: {
+                        select: { id: true, name: true, employee_id: true, email: true },
+                    },
+                    asset_master_outlet: {
+                        include: {
+                            customer_depot: {
+                                select: { id: true, name: true, code: true },
+                            },
+                        },
+                    },
                     cooler_asset_master: {
                         include: {
                             cooler_inspections: {
@@ -4354,7 +4371,13 @@ exports.reportsController = {
                                     },
                                 },
                             },
-                            coolers_customers: true,
+                            coolers_customers: {
+                                include: {
+                                    customer_depot: {
+                                        select: { id: true, name: true, code: true },
+                                    },
+                                },
+                            },
                             cooler_types: true,
                             cooler_sub_types: true,
                             users: {
@@ -4380,16 +4403,22 @@ exports.reportsController = {
                     deployedCooler.cooler_inspections.length > 0
                     ? deployedCooler.cooler_inspections[0]
                     : null;
+                const customer = deployedCooler?.coolers_customers || a.asset_master_outlet || null;
                 return {
                     id: a.id,
-                    // Asset fields
                     name: a.name || '',
                     code: a.code || '',
-                    barcode: a.barcode || '',
-                    serial_number: a.serial_number || '',
+                    barcode: a.barcode?.trim() ||
+                        deployedCooler?.code?.trim() ||
+                        a.code?.trim() ||
+                        '',
+                    serial_number: a.serial_number?.trim() ||
+                        deployedCooler?.serial_number?.trim() ||
+                        '',
                     asset_type: a.asset_master_asset_types?.name || '',
                     asset_sub_type: a.asset_master_asset_sub_types?.name || '',
-                    brand: a.asset_master_brands?.name ||
+                    brand: deployedCooler?.brand ||
+                        a.asset_master_brands?.name ||
                         a.asset_master_brand?.name ||
                         a.brand ||
                         '',
@@ -4397,18 +4426,17 @@ exports.reportsController = {
                     is_active: a.is_active,
                     current_status: a.current_status || '',
                     install_date: deployedCooler?.install_date || a.installation_date || null,
-                    // Cooler (deployed) fields
                     cooler_code: deployedCooler?.code || null,
                     cooler_status: deployedCooler?.status || null,
                     cooler_type: deployedCooler?.cooler_types?.name || null,
                     cooler_sub_type: deployedCooler?.cooler_sub_types?.name || null,
-                    // Customer (outlet) or depot the cooler is currently at
-                    customer: deployedCooler?.coolers_customers
+                    customer: customer
                         ? {
-                            id: deployedCooler.coolers_customers.id,
-                            name: deployedCooler.coolers_customers.name,
-                            code: deployedCooler.coolers_customers.code,
+                            id: customer.id,
+                            name: customer.name,
+                            code: customer.code,
                             type: 'outlet',
+                            depot: customer.customer_depot || a.asset_master_depot || null,
                         }
                         : a.asset_master_depot
                             ? {
@@ -4420,8 +4448,10 @@ exports.reportsController = {
                             : a.current_location
                                 ? { name: a.current_location, code: null, type: 'other' }
                                 : null,
-                    // Latest inspection
-                    inspection_date: latestInspection?.inspection_date || null,
+                    inspection_date: latestInspection?.inspection_date ||
+                        deployedCooler?.last_scanned_date ||
+                        a.last_scanned_date ||
+                        null,
                     temperature: latestInspection?.temperature ??
                         deployedCooler?.temperature ??
                         null,
@@ -4434,7 +4464,14 @@ exports.reportsController = {
                             employee_id: latestInspection.users.employee_id,
                             email: latestInspection.users.email,
                         }
-                        : null,
+                        : a.asset_master_last_read
+                            ? {
+                                id: a.asset_master_last_read.id,
+                                name: a.asset_master_last_read.name,
+                                employee_id: a.asset_master_last_read.employee_id,
+                                email: a.asset_master_last_read.email,
+                            }
+                            : null,
                     technician: deployedCooler?.users
                         ? {
                             id: deployedCooler.users.id,
@@ -4591,6 +4628,16 @@ exports.reportsController = {
                         asset_master_asset_sub_types: true,
                         asset_master_brand: true,
                         asset_master_brands: true,
+                        asset_master_last_read: {
+                            select: { id: true, name: true, employee_id: true, email: true },
+                        },
+                        asset_master_outlet: {
+                            include: {
+                                customer_depot: {
+                                    select: { id: true, name: true, code: true },
+                                },
+                            },
+                        },
                         cooler_asset_master: {
                             include: {
                                 cooler_inspections: {
@@ -4607,7 +4654,13 @@ exports.reportsController = {
                                         },
                                     },
                                 },
-                                coolers_customers: true,
+                                coolers_customers: {
+                                    include: {
+                                        customer_depot: {
+                                            select: { id: true, name: true, code: true },
+                                        },
+                                    },
+                                },
                                 cooler_types: true,
                                 cooler_sub_types: true,
                                 users: {
@@ -4634,12 +4687,14 @@ exports.reportsController = {
                 }
             }
             const assets = allAssets;
-            const ExcelJS = await Promise.resolve().then(() => __importStar(require('exceljs')));
+            const ExcelJS = await getExcelJS();
             const workbook = new ExcelJS.Workbook();
             const sheet = workbook.addWorksheet('Cooler Reports', {
                 pageSetup: { paperSize: 9, orientation: 'landscape' },
             });
             sheet.columns = [
+                { header: 'Asset ID', key: 'asset_id', width: 15 },
+                { header: 'Cooler Code', key: 'cooler_code', width: 20 },
                 { header: 'Barcode', key: 'barcode', width: 20 },
                 { header: 'Serial', key: 'serial', width: 20 },
                 { header: 'Type', key: 'type', width: 20 },
@@ -4664,7 +4719,7 @@ exports.reportsController = {
                     width: 25,
                 },
             ];
-            sheet.columns.forEach(column => {
+            sheet.columns.forEach((column) => {
                 if (column)
                     column.font = { name: 'Aptos Narrow', size: 11 };
             });
@@ -4676,64 +4731,101 @@ exports.reportsController = {
                     deployedCooler.cooler_inspections.length > 0
                     ? deployedCooler.cooler_inspections[0]
                     : null;
+                const customer = deployedCooler?.coolers_customers || row.asset_master_outlet || null;
+                const depot = row.asset_master_depot || customer?.customer_depot || null;
+                const isOutlet = !!customer;
+                const isDepot = !isOutlet && (!!depot || !!row.depot_id);
+                const locationType = isOutlet
+                    ? 'Outlet'
+                    : isDepot
+                        ? 'Depot'
+                        : row.current_location || '—';
                 const isWorking = latestInspection?.is_working === 'Y'
                     ? 'Working'
                     : latestInspection?.is_working === 'N'
                         ? 'Not Working'
                         : deployedCooler?.status === 'working'
                             ? 'Working'
-                            : deployedCooler?.status
+                            : deployedCooler?.status === 'not_working'
                                 ? 'Not Working'
-                                : 'N/A';
-                const installDate = deployedCooler?.install_date || row.installation_date || null;
-                const lastScannedDate = latestInspection?.inspection_date ||
+                                : deployedCooler?.status
+                                    ? deployedCooler.status
+                                    : row.current_status
+                                        ? row.current_status
+                                        : isDepot
+                                            ? 'In Depot'
+                                            : 'N/A';
+                const installDateRaw = deployedCooler?.install_date || row.installation_date || null;
+                const installDate = installDateRaw && !isNaN(new Date(installDateRaw).getTime())
+                    ? new Date(installDateRaw).toLocaleDateString()
+                    : '—';
+                const lastScannedRaw = latestInspection?.inspection_date ||
                     deployedCooler?.last_scanned_date ||
+                    row.last_scanned_date ||
                     null;
+                const lastScannedDate = lastScannedRaw && !isNaN(new Date(lastScannedRaw).getTime())
+                    ? new Date(lastScannedRaw).toLocaleString()
+                    : '—';
+                const coolerCode = deployedCooler?.code?.trim() || row.code?.trim() || '—';
+                const barcode = row.barcode?.trim() ||
+                    deployedCooler?.code?.trim() ||
+                    row.code?.trim() ||
+                    '—';
+                const serial = row.serial_number?.trim() ||
+                    deployedCooler?.serial_number?.trim() ||
+                    '—';
+                const type = deployedCooler?.cooler_types?.name ||
+                    row.asset_master_asset_types?.name ||
+                    '—';
+                const subtype = deployedCooler?.cooler_sub_types?.name ||
+                    row.asset_master_asset_sub_types?.name ||
+                    '—';
+                const brand = deployedCooler?.brand ||
+                    row.asset_master_brands?.name ||
+                    row.asset_master_brand?.name ||
+                    row.brand ||
+                    '—';
+                const depotName = isOutlet
+                    ? customer?.customer_depot?.name || depot?.name || '—'
+                    : isDepot
+                        ? depot?.name || '—'
+                        : '—';
+                const depotOutletCode = isOutlet
+                    ? customer?.code || '—'
+                    : isDepot
+                        ? depot?.code || '—'
+                        : '—';
+                const outletName = isOutlet
+                    ? customer?.name || '—'
+                    : isDepot
+                        ? '—'
+                        : row.current_location || '—';
+                const lastScannedSellerCode = latestInspection?.users?.employee_id ||
+                    deployedCooler?.users?.employee_id ||
+                    row.asset_master_last_read?.employee_id ||
+                    '—';
+                const lastScannedSellerName = latestInspection?.users?.name ||
+                    deployedCooler?.users?.name ||
+                    row.asset_master_last_read?.name ||
+                    '—';
                 sheet.addRow({
-                    barcode: row.barcode || '—',
-                    serial: row.serial_number || '—',
-                    type: deployedCooler?.cooler_types?.name ||
-                        row.asset_master_asset_types?.name ||
-                        '—',
-                    subtype: deployedCooler?.cooler_sub_types?.name ||
-                        row.asset_master_asset_sub_types?.name ||
-                        '—',
-                    brand: row.asset_master_brands?.name ||
-                        row.asset_master_brand?.name ||
-                        deployedCooler?.brand ||
-                        row.brand ||
-                        '—',
-                    location: deployedCooler?.coolers_customers
-                        ? 'Outlet'
-                        : row.asset_master_depot
-                            ? 'Depot'
-                            : row.depot_id
-                                ? 'Depot'
-                                : '—',
-                    depot_name: !deployedCooler?.coolers_customers
-                        ? row.asset_master_depot?.name || '—'
-                        : '—',
-                    depot_outlet_code: deployedCooler?.coolers_customers?.code ||
-                        (!deployedCooler?.coolers_customers &&
-                            row.asset_master_depot?.code) ||
-                        '—',
-                    outlet_name: deployedCooler?.coolers_customers?.name ||
-                        (!deployedCooler?.coolers_customers &&
-                            row.asset_master_depot?.name) ||
-                        row.current_location ||
-                        '—',
+                    asset_id: row.id,
+                    cooler_code: coolerCode,
+                    barcode: barcode,
+                    serial: serial,
+                    type: type,
+                    subtype: subtype,
+                    brand: brand,
+                    location: locationType,
+                    depot_name: depotName,
+                    depot_outlet_code: depotOutletCode,
+                    outlet_name: outletName,
                     status: isWorking,
                     disabled: row.is_active === 'N' ? 'YES' : 'NO',
-                    install_date: installDate
-                        ? new Date(installDate).toLocaleDateString()
-                        : '—',
-                    last_scanned_date: lastScannedDate
-                        ? new Date(lastScannedDate).toLocaleString()
-                        : '—',
-                    last_scanned_seller_code: latestInspection?.users?.employee_id ||
-                        deployedCooler?.users?.employee_id ||
-                        '—',
-                    last_scanned_seller_name: latestInspection?.users?.name || deployedCooler?.users?.name || '—',
+                    install_date: installDate,
+                    last_scanned_date: lastScannedDate,
+                    last_scanned_seller_code: lastScannedSellerCode,
+                    last_scanned_seller_name: lastScannedSellerName,
                 });
             });
             const headerRow = sheet.getRow(1);
@@ -5042,7 +5134,7 @@ exports.reportsController = {
                     },
                 },
             });
-            const ExcelJS = await Promise.resolve().then(() => __importStar(require('exceljs')));
+            const ExcelJS = await getExcelJS();
             const workbook = new ExcelJS.Workbook();
             const sheet = workbook.addWorksheet('Promotion Materials Issued');
             sheet.columns = [
@@ -5713,7 +5805,7 @@ exports.reportsController = {
                 if (p.code)
                     productMap.set(p.code, p);
             });
-            const ExcelJS = await Promise.resolve().then(() => __importStar(require('exceljs')));
+            const ExcelJS = await getExcelJS();
             const workbook = new ExcelJS.Workbook();
             const summarySheet = workbook.addWorksheet('Credit Memos');
             summarySheet.columns = [

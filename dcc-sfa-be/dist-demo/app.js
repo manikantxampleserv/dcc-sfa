@@ -11,6 +11,7 @@ const express_1 = __importDefault(require("express"));
 const path_1 = require("path");
 const customerCategoryAssignment_job_1 = require("./jobs/customerCategoryAssignment.job");
 const monthlyActiveUsersReport_job_1 = require("./jobs/monthlyActiveUsersReport.job");
+const revokedTokensCleanup_job_1 = require("./jobs/revokedTokensCleanup.job");
 const response_middleware_1 = require("./middlewares/response.middleware");
 const errorLogger_middleware_1 = require("./middlewares/errorLogger.middleware");
 const routes_1 = __importDefault(require("./routes"));
@@ -44,12 +45,17 @@ const createApp = async () => {
     app.use(express_1.default.json({ limit: '10mb' }));
     app.use(express_1.default.urlencoded({ extended: true, limit: '10mb' }));
     app.use((0, cookie_parser_1.default)());
-    app.use((0, cors_1.default)({ origin: '*', credentials: true }));
+    // app.use(cors({ origin: '*', credentials: true }));
+    app.use((0, cors_1.default)({
+        origin: (_origin, callback) => callback(null, true),
+        credentials: true,
+    }));
     app.use(response_middleware_1.responseHandler);
     app.use(errorLogger_middleware_1.errorLogger);
     app.use('/api', routes_1.default);
     (0, customerCategoryAssignment_job_1.scheduleCustomerCategoryAssignment)();
     (0, monthlyActiveUsersReport_job_1.scheduleMonthlyActiveUsersReport)();
+    (0, revokedTokensCleanup_job_1.scheduleRevokedTokensCleanup)();
     return app;
 };
 exports.createApp = createApp;
