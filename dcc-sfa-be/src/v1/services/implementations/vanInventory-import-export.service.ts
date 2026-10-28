@@ -596,7 +596,7 @@ export class VanInventoryImportExportService extends ImportExportService<any> {
       detailedErrors: detailedErrors.length > 0 ? detailedErrors : undefined,
     };
   }
-  async exportToExcel(options: any = {}): Promise<Buffer> {
+  private buildExportQuery(options: any = {}) {
     const rawFilters = options.filters || {};
     const where: any = {};
 
@@ -685,7 +685,7 @@ export class VanInventoryImportExportService extends ImportExportService<any> {
       where.document_date = rawFilters.document_date;
     }
 
-    const query: any = {
+    return {
       where,
       orderBy: options.orderBy || { id: 'desc' },
       include: {
@@ -710,83 +710,116 @@ export class VanInventoryImportExportService extends ImportExportService<any> {
         },
       },
     };
+  }
 
-    if (options.limit) query.take = options.limit;
+  async exportToExcelStream(res: any, options: any = {}): Promise<void> {
+    const query = this.buildExportQuery(options);
+    const WorkbookWriter =
+      (ExcelJS as any).stream?.xlsx?.WorkbookWriter ||
+      (ExcelJS as any).default?.stream?.xlsx?.WorkbookWriter;
 
-    const data = await this.getModel().findMany(query);
+    const workbook = new WorkbookWriter({
+      stream: res,
+      useStyles: true,
+    });
 
-    const rows: VanInventoryExportRow[] = [];
-    for (const vanInventory of data) {
-      const dateObj = vanInventory.document_date || vanInventory.createdate;
-      let formattedDate = '';
-      if (dateObj) {
-        const d = new Date(dateObj);
-        if (!isNaN(d.getTime())) {
-          const day = String(d.getDate()).padStart(2, '0');
-          const month = String(d.getMonth() + 1).padStart(2, '0');
-          const year = d.getFullYear();
-          formattedDate = `${day}-${month}-${year}`;
-        }
+    const worksheet = workbook.addWorksheet('Van Inventory', {
+      views: [{ showGridLines: true }],
+    });
+    setupVanInventoryWorksheet(worksheet);
+
+    const BATCH_SIZE = 1000;
+    let lastId: number | null = null;
+    let hasMore = true;
+    const maxLimit = options.limit ? Number(options.limit) : Infinity;
+    let totalProcessed = 0;
+
+    while (hasMore) {
+      const currentTake = Math.min(BATCH_SIZE, maxLimit - totalProcessed);
+      if (currentTake <= 0) break;
+
+      const batchQuery: any = {
+        ...query,
+        take: currentTake,
+        orderBy: { id: 'desc' },
+      };
+
+      if (lastId !== null) {
+        batchQuery.cursor = { id: lastId };
+        batchQuery.skip = 1;
       }
 
-      const rawType = (vanInventory.loading_type || 'L').toString().toUpperCase();
-      const typeStr = rawType === 'U' || rawType === 'UNLOAD' ? 'Unload' : 'Load';
-      const userName = vanInventory.van_inventory_users?.name || '';
-      const vanInventoryNo = vanInventory.id;
+      const batchData = await this.getModel().findMany(batchQuery);
+      if (!batchData || batchData.length === 0) {
+        break;
+      }
 
-      const items = vanInventory.van_inventory_items_inventory || [];
-      if (items.length === 0) {
-        rows.push({
-          date: formattedDate,
-          type: typeStr,
-          vanInventoryNo,
-          userName,
-          product: '',
-          trackingType: '',
-          quantity: '',
-          batchSerials: '',
-        });
-      } else {
-        for (const item of items) {
-          const productName =
-            item.van_inventory_items_products?.name ||
-            item.product_name ||
-            '';
+      writeVanInventoryBatchToWorksheet(worksheet, batchData);
 
-          let trackingType =
-            item.van_inventory_items_products?.tracking_type;
-          if (trackingType && trackingType.trim()) {
-            const t = trackingType.trim().toLowerCase();
-            trackingType = t.charAt(0).toUpperCase() + t.slice(1);
-          } else if (item.van_inventory_items_batch_lot || item.batch_lot_id) {
-            trackingType = 'Batch';
-          } else if (item.van_inventory_serial || item.serial_id) {
-            trackingType = 'Serial';
-          } else {
-            trackingType = 'None';
-          }
+      totalProcessed += batchData.length;
+      lastId = batchData[batchData.length - 1].id;
 
-          const batchSerial =
-            item.van_inventory_items_batch_lot?.batch_number ||
-            item.van_inventory_serial?.serial_number ||
-            item.sap_item_code ||
-            '';
-
-          rows.push({
-            date: formattedDate,
-            type: typeStr,
-            vanInventoryNo,
-            userName,
-            product: productName,
-            trackingType,
-            quantity: Number(item.quantity) || 0,
-            batchSerials: batchSerial,
-          });
-        }
+      if (batchData.length < currentTake) {
+        hasMore = false;
       }
     }
 
-    return await generateVanInventoryExcelWorkbook(rows);
+    worksheet.commit();
+    await workbook.commit();
+  }
+
+  async exportToExcel(options: any = {}): Promise<Buffer> {
+    const query = this.buildExportQuery(options);
+
+    const WorkbookConstructor =
+      (ExcelJS as any).Workbook ||
+      (ExcelJS as any).default?.Workbook ||
+      (ExcelJS as any).default;
+    const workbook = new WorkbookConstructor();
+
+    const worksheet = workbook.addWorksheet('Van Inventory', {
+      views: [{ showGridLines: true }],
+    });
+    setupVanInventoryWorksheet(worksheet);
+
+    const BATCH_SIZE = 1000;
+    let lastId: number | null = null;
+    let hasMore = true;
+    const maxLimit = options.limit ? Number(options.limit) : Infinity;
+    let totalProcessed = 0;
+
+    while (hasMore) {
+      const currentTake = Math.min(BATCH_SIZE, maxLimit - totalProcessed);
+      if (currentTake <= 0) break;
+
+      const batchQuery: any = {
+        ...query,
+        take: currentTake,
+        orderBy: { id: 'desc' },
+      };
+
+      if (lastId !== null) {
+        batchQuery.cursor = { id: lastId };
+        batchQuery.skip = 1;
+      }
+
+      const batchData = await this.getModel().findMany(batchQuery);
+      if (!batchData || batchData.length === 0) {
+        break;
+      }
+
+      writeVanInventoryBatchToWorksheet(worksheet, batchData);
+
+      totalProcessed += batchData.length;
+      lastId = batchData[batchData.length - 1].id;
+
+      if (batchData.length < currentTake) {
+        hasMore = false;
+      }
+    }
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    return Buffer.from(buffer);
   }
 }
 
@@ -801,25 +834,31 @@ export interface VanInventoryExportRow {
   batchSerials: string;
 }
 
-export async function generateVanInventoryExcelWorkbook(
-  rows: VanInventoryExportRow[]
-): Promise<Buffer> {
-  const WorkbookConstructor =
-    (ExcelJS as any).Workbook ||
-    (ExcelJS as any).default?.Workbook ||
-    (ExcelJS as any).default;
-  const workbook = new WorkbookConstructor();
-  const worksheet = workbook.addWorksheet('Van Inventory');
+export function setupVanInventoryWorksheet(worksheet: any) {
+  const defaultStyle = {
+    font: { name: 'Calibri', size: 11 },
+    alignment: { vertical: 'middle', horizontal: 'left' },
+  };
+  const numberStyle = {
+    font: { name: 'Calibri', size: 11 },
+    alignment: { vertical: 'middle', horizontal: 'right' },
+    numFmt: '0',
+  };
+  const quantityStyle = {
+    font: { name: 'Calibri', size: 11 },
+    alignment: { vertical: 'middle', horizontal: 'right' },
+    numFmt: '#,##0;(#,##0);0',
+  };
 
   worksheet.columns = [
-    { header: 'Date', key: 'date', width: 14 },
-    { header: 'Type', key: 'type', width: 10 },
-    { header: 'Van Inventory No', key: 'van_inventory_no', width: 18 },
-    { header: 'User Name', key: 'user_name', width: 28 },
-    { header: 'Product', key: 'product', width: 28 },
-    { header: 'Tracking Type', key: 'tracking_type', width: 16 },
-    { header: 'Quantity', key: 'quantity', width: 12 },
-    { header: 'Batch / Serials', key: 'batch_serials', width: 18 },
+    { header: 'Date', key: 'date', width: 14, style: defaultStyle },
+    { header: 'Type', key: 'type', width: 10, style: defaultStyle },
+    { header: 'Van Inventory No', key: 'van_inventory_no', width: 18, style: numberStyle },
+    { header: 'User Name', key: 'user_name', width: 28, style: defaultStyle },
+    { header: 'Product', key: 'product', width: 28, style: defaultStyle },
+    { header: 'Tracking Type', key: 'tracking_type', width: 16, style: defaultStyle },
+    { header: 'Quantity', key: 'quantity', width: 12, style: quantityStyle },
+    { header: 'Batch / Serials', key: 'batch_serials', width: 18, style: defaultStyle },
   ];
 
   const headerRow = worksheet.getRow(1);
@@ -832,6 +871,110 @@ export async function generateVanInventoryExcelWorkbook(
       cell.alignment = { vertical: 'middle', horizontal: 'left' };
     }
   });
+
+  if (typeof headerRow.commit === 'function') {
+    headerRow.commit();
+  }
+}
+
+export function writeVanInventoryBatchToWorksheet(worksheet: any, data: any[]) {
+  for (const vanInventory of data) {
+    const dateObj = vanInventory.document_date || vanInventory.createdate;
+    let formattedDate = '';
+    if (dateObj) {
+      const d = new Date(dateObj);
+      if (!isNaN(d.getTime())) {
+        const day = String(d.getDate()).padStart(2, '0');
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const year = d.getFullYear();
+        formattedDate = `${day}-${month}-${year}`;
+      }
+    }
+
+    const rawType = (vanInventory.loading_type || 'L').toString().toUpperCase();
+    const typeStr = rawType === 'U' || rawType === 'UNLOAD' ? 'Unload' : 'Load';
+    const isUnload = rawType === 'U' || rawType === 'UNLOAD';
+    const userName = vanInventory.van_inventory_users?.name || '';
+    const vanInventoryNo = vanInventory.id;
+
+    const items = vanInventory.van_inventory_items_inventory || [];
+    if (items.length === 0) {
+      const row = worksheet.addRow({
+        date: formattedDate,
+        type: typeStr,
+        van_inventory_no: vanInventoryNo,
+        user_name: userName,
+        product: '',
+        tracking_type: '',
+        quantity: '',
+        batch_serials: '',
+      });
+      row.height = 19;
+      if (typeof row.commit === 'function') {
+        row.commit();
+      }
+    } else {
+      for (const item of items) {
+        const productName =
+          item.van_inventory_items_products?.name ||
+          item.product_name ||
+          '';
+
+        let trackingType =
+          item.van_inventory_items_products?.tracking_type;
+        if (trackingType && trackingType.trim()) {
+          const t = trackingType.trim().toLowerCase();
+          trackingType = t.charAt(0).toUpperCase() + t.slice(1);
+        } else if (item.van_inventory_items_batch_lot || item.batch_lot_id) {
+          trackingType = 'Batch';
+        } else if (item.van_inventory_serial || item.serial_id) {
+          trackingType = 'Serial';
+        } else {
+          trackingType = 'None';
+        }
+
+        const batchSerial =
+          item.van_inventory_items_batch_lot?.batch_number ||
+          item.van_inventory_serial?.serial_number ||
+          item.sap_item_code ||
+          '';
+
+        const rawQty = Number(item.quantity) || 0;
+        const qtyVal = isUnload ? -Math.abs(rawQty) : Math.abs(rawQty);
+
+        const row = worksheet.addRow({
+          date: formattedDate,
+          type: typeStr,
+          van_inventory_no: vanInventoryNo,
+          user_name: userName,
+          product: productName,
+          tracking_type: trackingType,
+          quantity: qtyVal,
+          batch_serials: batchSerial,
+        });
+
+        row.height = 19;
+        if (typeof row.commit === 'function') {
+          row.commit();
+        }
+      }
+    }
+  }
+}
+
+export async function generateVanInventoryExcelWorkbook(
+  rows: VanInventoryExportRow[]
+): Promise<Buffer> {
+  const WorkbookConstructor =
+    (ExcelJS as any).Workbook ||
+    (ExcelJS as any).default?.Workbook ||
+    (ExcelJS as any).default;
+  const workbook = new WorkbookConstructor();
+  const worksheet = workbook.addWorksheet('Van Inventory', {
+    views: [{ showGridLines: true }],
+  });
+
+  setupVanInventoryWorksheet(worksheet);
 
   for (const rowData of rows) {
     const isUnload = String(rowData.type).toLowerCase() === 'unload';
@@ -857,25 +1000,8 @@ export async function generateVanInventoryExcelWorkbook(
     });
 
     row.height = 19;
-    row.eachCell((cell: any, colNumber: number) => {
-      cell.font = { name: 'Calibri', size: 11 };
-      if (colNumber === 3) {
-        cell.alignment = { vertical: 'middle', horizontal: 'right' };
-        if (typeof cell.value === 'number') {
-          cell.numFmt = '0';
-        }
-      } else if (colNumber === 7) {
-        cell.alignment = { vertical: 'middle', horizontal: 'right' };
-        if (typeof cell.value === 'number') {
-          cell.numFmt = '#,##0;(#,##0);0';
-        }
-      } else {
-        cell.alignment = { vertical: 'middle', horizontal: 'left' };
-      }
-    });
   }
 
-  worksheet.views = [{ showGridLines: true }];
   const buffer = await workbook.xlsx.writeBuffer();
   return Buffer.from(buffer);
 }

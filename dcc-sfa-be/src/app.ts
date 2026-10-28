@@ -47,7 +47,14 @@ export const createApp = async (): Promise<Application> => {
 
   app.use(cookieParser() as any);
 
-  app.use(cors({ origin: '*', credentials: true }));
+  // app.use(cors({ origin: '*', credentials: true }));
+
+  app.use(
+    cors({
+      origin: (origin, callback) => callback(null, true),
+      credentials: true,
+    })
+  );
 
   app.use(responseHandler);
 
