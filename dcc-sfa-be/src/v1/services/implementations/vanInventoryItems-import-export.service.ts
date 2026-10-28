@@ -1,6 +1,10 @@
 import { ColumnDefinition } from '../../../types/import-export.types';
 import { ImportExportService } from '../base/import-export.service';
 import prisma from '../../../configs/prisma.client';
+import {
+  generateVanInventoryExcelWorkbook,
+  VanInventoryExportRow,
+} from './vanInventory-import-export.service';
 
 export class VanInventoryItemsImportExportService extends ImportExportService<any> {
   protected modelName = 'van_inventory_items' as const;
@@ -440,4 +444,159 @@ export class VanInventoryItemsImportExportService extends ImportExportService<an
   ): Promise<any> {
     return data;
   }
+
+  async exportToExcel(options: any = {}): Promise<Buffer> {
+    const rawFilters = options.filters || {};
+    const where: any = {};
+
+    if (rawFilters.id) where.id = Number(rawFilters.id);
+    if (rawFilters.product_id) where.product_id = Number(rawFilters.product_id);
+    if (rawFilters.parent_id) where.parent_id = Number(rawFilters.parent_id);
+
+    const parentWhere: any = {};
+    if (rawFilters.loading_type && rawFilters.loading_type !== 'all') {
+      const lt = String(rawFilters.loading_type).toUpperCase();
+      if (lt === 'LOAD' || lt === 'L') parentWhere.loading_type = 'L';
+      else if (lt === 'UNLOAD' || lt === 'U') parentWhere.loading_type = 'U';
+      else parentWhere.loading_type = rawFilters.loading_type;
+    }
+    if (rawFilters.user_id && rawFilters.user_id !== 'all') {
+      parentWhere.user_id = Number(rawFilters.user_id);
+    }
+    if (rawFilters.location_id && rawFilters.location_id !== 'all') {
+      parentWhere.location_id = Number(rawFilters.location_id);
+    }
+    if (rawFilters.approval_status && rawFilters.approval_status !== 'all') {
+      parentWhere.approval_status = String(rawFilters.approval_status).toUpperCase();
+    }
+
+    const startDate = rawFilters.start_date;
+    const endDate = rawFilters.end_date;
+    if (startDate || endDate) {
+      const dateFilter: any = {};
+      if (startDate) {
+        const start = new Date(startDate);
+        start.setHours(0, 0, 0, 0);
+        dateFilter.gte = start;
+      }
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        dateFilter.lte = end;
+      }
+      parentWhere.OR = [
+        { document_date: dateFilter },
+        { createdate: dateFilter },
+      ];
+    }
+
+    if (Object.keys(parentWhere).length > 0) {
+      where.van_inventory_items_inventory = parentWhere;
+    }
+
+    if (rawFilters.search) {
+      const searchStr = String(rawFilters.search).trim();
+      where.OR = [
+        { van_inventory_items_products: { name: { contains: searchStr } } },
+        { van_inventory_items_batch_lot: { batch_number: { contains: searchStr } } },
+        { van_inventory_serial: { serial_number: { contains: searchStr } } },
+        {
+          van_inventory_items_inventory: {
+            OR: [
+              { van_inventory_users: { name: { contains: searchStr } } },
+              { vehicle: { vehicle_number: { contains: searchStr } } },
+            ],
+          },
+        },
+      ];
+    } else if (rawFilters.OR) {
+      where.OR = rawFilters.OR;
+    }
+
+    const query: any = {
+      where,
+      orderBy: options.orderBy || { id: 'desc' },
+      include: {
+        van_inventory_items_inventory: {
+          include: {
+            van_inventory_users: {
+              select: { id: true, name: true, email: true },
+            },
+          },
+        },
+        van_inventory_items_products: {
+          select: { id: true, name: true, code: true, tracking_type: true },
+        },
+        van_inventory_items_batch_lot: {
+          select: { id: true, batch_number: true },
+        },
+        van_inventory_serial: {
+          select: { id: true, serial_number: true },
+        },
+      },
+    };
+
+    if (options.limit) query.take = options.limit;
+
+    const items = await this.getModel().findMany(query);
+
+    const rows: VanInventoryExportRow[] = [];
+    for (const item of items) {
+      const parent = item.van_inventory_items_inventory;
+      const dateObj = parent?.document_date || parent?.createdate;
+      let formattedDate = '';
+      if (dateObj) {
+        const d = new Date(dateObj);
+        if (!isNaN(d.getTime())) {
+          const day = String(d.getDate()).padStart(2, '0');
+          const month = String(d.getMonth() + 1).padStart(2, '0');
+          const year = d.getFullYear();
+          formattedDate = `${day}-${month}-${year}`;
+        }
+      }
+
+      const rawType = (parent?.loading_type || 'L').toString().toUpperCase();
+      const typeStr = rawType === 'U' || rawType === 'UNLOAD' ? 'Unload' : 'Load';
+      const userName = parent?.van_inventory_users?.name || '';
+      const vanInventoryNo = parent?.id || item.parent_id;
+
+      const productName =
+        item.van_inventory_items_products?.name ||
+        item.product_name ||
+        '';
+
+      let trackingType =
+        item.van_inventory_items_products?.tracking_type;
+      if (trackingType && trackingType.trim()) {
+        const t = trackingType.trim().toLowerCase();
+        trackingType = t.charAt(0).toUpperCase() + t.slice(1);
+      } else if (item.van_inventory_items_batch_lot || item.batch_lot_id) {
+        trackingType = 'Batch';
+      } else if (item.van_inventory_serial || item.serial_id) {
+        trackingType = 'Serial';
+      } else {
+        trackingType = 'None';
+      }
+
+      const batchSerial =
+        item.van_inventory_items_batch_lot?.batch_number ||
+        item.van_inventory_serial?.serial_number ||
+        item.sap_item_code ||
+        '';
+
+      rows.push({
+        date: formattedDate,
+        type: typeStr,
+        vanInventoryNo,
+        userName,
+        product: productName,
+        trackingType,
+        quantity: Number(item.quantity) || 0,
+        batchSerials: batchSerial,
+      });
+    }
+
+    return await generateVanInventoryExcelWorkbook(rows);
+  }
 }
+
