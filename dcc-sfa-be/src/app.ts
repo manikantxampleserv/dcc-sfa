@@ -6,6 +6,7 @@ import { resolve } from 'path';
 
 import { scheduleCustomerCategoryAssignment } from './jobs/customerCategoryAssignment.job';
 import { scheduleMonthlyActiveUsersReport } from './jobs/monthlyActiveUsersReport.job';
+import { scheduleRevokedTokensCleanup } from './jobs/revokedTokensCleanup.job';
 
 import { responseHandler } from './middlewares/response.middleware';
 import { errorLogger } from './middlewares/errorLogger.middleware';
@@ -57,6 +58,7 @@ export const createApp = async (): Promise<Application> => {
 
   scheduleCustomerCategoryAssignment();
   scheduleMonthlyActiveUsersReport();
+  scheduleRevokedTokensCleanup();
 
   return app;
 };
