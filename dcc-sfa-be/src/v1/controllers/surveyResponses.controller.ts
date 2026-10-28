@@ -4,6 +4,7 @@ import prisma from '../../configs/prisma.client';
 import { deleteFile, uploadFile } from '../../utils/blackbaze';
 import { Prisma } from '@prisma/client';
 import ExcelJS from 'exceljs';
+import { getTimeFilter } from '../../utils/dateFilters';
 
 interface SurveyAnswerSerialized {
   id: number;
@@ -708,11 +709,20 @@ export const surveyResponseController = {
         survey_id,
         submitted_by,
         customer_id,
+        time_filter,
+        start_date,
+        end_date,
       } = req.query;
       const pageNum = parseInt(page as string, 10) || 1;
       const limitNum = parseInt(limit as string, 10) || 10;
       const searchLower = search ? (search as string).toLowerCase() : '';
       const statusLower = status ? (status as string).toLowerCase() : '';
+
+      const timeBasedDateFilter = getTimeFilter(
+        time_filter as string | undefined,
+        start_date as string | undefined,
+        end_date as string | undefined
+      );
 
       const filters: any = {
         ...(search && {
@@ -741,6 +751,21 @@ export const surveyResponseController = {
         }),
       };
 
+      if (timeBasedDateFilter) {
+        if (!filters.AND) filters.AND = [];
+        filters.AND.push({
+          OR: [
+            { submitted_at: timeBasedDateFilter },
+            {
+              AND: [
+                { submitted_at: null },
+                { createdate: timeBasedDateFilter },
+              ],
+            },
+          ],
+        });
+      }
+
       const { data, pagination } = await paginate({
         model: prisma.survey_responses,
         filters,
@@ -766,9 +791,13 @@ export const surveyResponseController = {
         inactiveResponses,
         responsesThisMonth,
       ] = await Promise.all([
-        prisma.survey_responses.count(),
-        prisma.survey_responses.count({ where: { is_active: 'Y' } }),
-        prisma.survey_responses.count({ where: { is_active: 'N' } }),
+        prisma.survey_responses.count({ where: filters }),
+        prisma.survey_responses.count({
+          where: { ...filters, is_active: 'Y' },
+        }),
+        prisma.survey_responses.count({
+          where: { ...filters, is_active: 'N' },
+        }),
         prisma.survey_responses.count({
           where: {
             createdate: {
@@ -906,6 +935,7 @@ export const surveyResponseController = {
         survey_id,
         submitted_by,
         customer_id,
+        time_filter,
         start_date,
         end_date,
         response_id,
@@ -914,13 +944,11 @@ export const surveyResponseController = {
       const searchLower = search ? String(search).toLowerCase() : '';
       const statusLower = status ? String(status).toLowerCase() : '';
 
-      const dateFilter: { gte?: Date; lte?: Date } = {};
-      if (start_date) {
-        dateFilter.gte = new Date(String(start_date));
-      }
-      if (end_date) {
-        dateFilter.lte = new Date(String(end_date));
-      }
+      const timeBasedDateFilter = getTimeFilter(
+        time_filter as string | undefined,
+        start_date as string | undefined,
+        end_date as string | undefined
+      );
 
       const filters: Prisma.survey_responsesWhereInput = {
         ...(response_id && { id: parseInt(String(response_id), 10) }),
@@ -948,8 +976,22 @@ export const surveyResponseController = {
         ...(customer_id && {
           customer_id: parseInt(String(customer_id), 10),
         }),
-        ...(Object.keys(dateFilter).length > 0 && { submitted_at: dateFilter }),
       };
+
+      if (timeBasedDateFilter) {
+        if (!filters.AND) filters.AND = [];
+        (filters.AND as any[]).push({
+          OR: [
+            { submitted_at: timeBasedDateFilter },
+            {
+              AND: [
+                { submitted_at: null },
+                { createdate: timeBasedDateFilter },
+              ],
+            },
+          ],
+        });
+      }
 
       const responses = await prisma.survey_responses.findMany({
         where: filters,

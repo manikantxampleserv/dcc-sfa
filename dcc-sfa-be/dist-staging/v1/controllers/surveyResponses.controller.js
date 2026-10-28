@@ -8,6 +8,7 @@ const paginate_1 = require("../../utils/paginate");
 const prisma_client_1 = __importDefault(require("../../configs/prisma.client"));
 const blackbaze_1 = require("../../utils/blackbaze");
 const exceljs_1 = __importDefault(require("exceljs"));
+const dateFilters_1 = require("../../utils/dateFilters");
 /**
  * Format date to DD-Mon-YY string (e.g. 22-Oct-26)
  *
@@ -549,11 +550,12 @@ exports.surveyResponseController = {
     },
     async getAllSurveyResponses(req, res) {
         try {
-            const { page, limit, search, status, survey_id, submitted_by, customer_id, } = req.query;
+            const { page, limit, search, status, survey_id, submitted_by, customer_id, time_filter, start_date, end_date, } = req.query;
             const pageNum = parseInt(page, 10) || 1;
             const limitNum = parseInt(limit, 10) || 10;
             const searchLower = search ? search.toLowerCase() : '';
             const statusLower = status ? status.toLowerCase() : '';
+            const timeBasedDateFilter = (0, dateFilters_1.getTimeFilter)(time_filter, start_date, end_date);
             const filters = {
                 ...(search && {
                     OR: [
@@ -580,6 +582,21 @@ exports.surveyResponseController = {
                     customer_id: parseInt(customer_id, 10),
                 }),
             };
+            if (timeBasedDateFilter) {
+                if (!filters.AND)
+                    filters.AND = [];
+                filters.AND.push({
+                    OR: [
+                        { submitted_at: timeBasedDateFilter },
+                        {
+                            AND: [
+                                { submitted_at: null },
+                                { createdate: timeBasedDateFilter },
+                            ],
+                        },
+                    ],
+                });
+            }
             const { data, pagination } = await (0, paginate_1.paginate)({
                 model: prisma_client_1.default.survey_responses,
                 filters,
@@ -599,9 +616,13 @@ exports.surveyResponseController = {
                 },
             });
             const [totalResponses, activeResponses, inactiveResponses, responsesThisMonth,] = await Promise.all([
-                prisma_client_1.default.survey_responses.count(),
-                prisma_client_1.default.survey_responses.count({ where: { is_active: 'Y' } }),
-                prisma_client_1.default.survey_responses.count({ where: { is_active: 'N' } }),
+                prisma_client_1.default.survey_responses.count({ where: filters }),
+                prisma_client_1.default.survey_responses.count({
+                    where: { ...filters, is_active: 'Y' },
+                }),
+                prisma_client_1.default.survey_responses.count({
+                    where: { ...filters, is_active: 'N' },
+                }),
                 prisma_client_1.default.survey_responses.count({
                     where: {
                         createdate: {
@@ -713,16 +734,10 @@ exports.surveyResponseController = {
      */
     async exportSurveyResponses(req, res) {
         try {
-            const { search, status, survey_id, submitted_by, customer_id, start_date, end_date, response_id, } = req.query;
+            const { search, status, survey_id, submitted_by, customer_id, time_filter, start_date, end_date, response_id, } = req.query;
             const searchLower = search ? String(search).toLowerCase() : '';
             const statusLower = status ? String(status).toLowerCase() : '';
-            const dateFilter = {};
-            if (start_date) {
-                dateFilter.gte = new Date(String(start_date));
-            }
-            if (end_date) {
-                dateFilter.lte = new Date(String(end_date));
-            }
+            const timeBasedDateFilter = (0, dateFilters_1.getTimeFilter)(time_filter, start_date, end_date);
             const filters = {
                 ...(response_id && { id: parseInt(String(response_id), 10) }),
                 ...(search && {
@@ -749,8 +764,22 @@ exports.surveyResponseController = {
                 ...(customer_id && {
                     customer_id: parseInt(String(customer_id), 10),
                 }),
-                ...(Object.keys(dateFilter).length > 0 && { submitted_at: dateFilter }),
             };
+            if (timeBasedDateFilter) {
+                if (!filters.AND)
+                    filters.AND = [];
+                filters.AND.push({
+                    OR: [
+                        { submitted_at: timeBasedDateFilter },
+                        {
+                            AND: [
+                                { submitted_at: null },
+                                { createdate: timeBasedDateFilter },
+                            ],
+                        },
+                    ],
+                });
+            }
             const responses = await prisma_client_1.default.survey_responses.findMany({
                 where: filters,
                 orderBy: { createdate: 'desc' },
