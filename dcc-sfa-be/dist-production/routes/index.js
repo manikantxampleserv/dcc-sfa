@@ -49,6 +49,7 @@ const customerTypes_routes_1 = __importDefault(require("../v1/routes/customerTyp
 const deliverySchedules_routes_1 = __importDefault(require("../v1/routes/deliverySchedules.routes"));
 const depots_routes_1 = __importDefault(require("../v1/routes/depots.routes"));
 const districts_routes_1 = __importDefault(require("../v1/routes/districts.routes"));
+const excelSync_routes_1 = __importDefault(require("../v1/routes/excelSync.routes"));
 const executiveDashboard_routes_1 = __importDefault(require("../v1/routes/executiveDashboard.routes"));
 const gpsTracking_routes_1 = __importDefault(require("../v1/routes/gpsTracking.routes"));
 const import_export_routes_1 = __importDefault(require("../v1/routes/import-export.routes"));
@@ -117,6 +118,7 @@ const promotionMaterialsIssue_routes_1 = __importDefault(require("../v1/routes/p
 const promotionalMaterials_routes_1 = __importDefault(require("../v1/routes/promotionalMaterials.routes"));
 const systemEnums_routes_1 = __importDefault(require("../v1/routes/systemEnums.routes"));
 const routes = (0, express_1.Router)();
+routes.use('/v1', excelSync_routes_1.default);
 routes.use('/v1/org-chart', orgChart_routes_1.default);
 routes.use('/v1', barcode_routes_1.default);
 routes.use('/v1', promotionMaterialsIssue_routes_1.default);

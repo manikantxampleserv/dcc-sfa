@@ -45,6 +45,7 @@ import customerType from '../v1/routes/customerTypes.routes';
 import deliverySchedules from '../v1/routes/deliverySchedules.routes';
 import depots from '../v1/routes/depots.routes';
 import districts from '../v1/routes/districts.routes';
+import excelSync from '../v1/routes/excelSync.routes';
 import executiveDashboard from '../v1/routes/executiveDashboard.routes';
 import gpsTracking from '../v1/routes/gpsTracking.routes';
 import importExport from '../v1/routes/import-export.routes';
@@ -114,6 +115,7 @@ import promotionalMaterials from '../v1/routes/promotionalMaterials.routes';
 import systemEnums from '../v1/routes/systemEnums.routes';
 const routes = Router();
 
+routes.use('/v1', excelSync);
 routes.use('/v1/org-chart', orgChart);
 routes.use('/v1', barcode);
 routes.use('/v1', promotionMaterialsIssue);
