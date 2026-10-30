@@ -1,6 +1,7 @@
 import cron from 'node-cron';
 import ExcelJS from 'exceljs';
 import prisma from '../configs/prisma.client';
+import { hiddenUsersPrismaFilter } from '../configs/hiddenUsers.config';
 import logger from '../configs/logger';
 import { generateEmailContent } from '../utils/emailTemplates';
 import { sendEmail } from '../utils/mailer';
@@ -311,6 +312,7 @@ export const sendMonthlyActiveUsersEmail = async (targetCompanyId?: number) => {
       const activeUsers = await prisma.users.findMany({
         where: {
           is_active: 'Y',
+          ...hiddenUsersPrismaFilter,
           OR: [{ parent_id: company.id }, { parent_id: null }],
         },
         include: {

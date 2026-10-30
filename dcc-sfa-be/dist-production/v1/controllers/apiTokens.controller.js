@@ -7,6 +7,7 @@ exports.revokeAllSalespersonTokens = exports.revokeAllTokens = exports.revokeAll
 const express_validator_1 = require("express-validator");
 const prisma_client_1 = __importDefault(require("../../configs/prisma.client"));
 const ipLocation_util_1 = require("../../utils/ipLocation.util");
+const hiddenUsers_config_1 = require("../../configs/hiddenUsers.config");
 const getApiTokens = async (req, res) => {
     try {
         const errors = (0, express_validator_1.validationResult)(req);
@@ -21,7 +22,9 @@ const getApiTokens = async (req, res) => {
         const pageNum = parseInt(page);
         const limitNum = parseInt(limit);
         const offset = (pageNum - 1) * limitNum;
-        const where = {};
+        const where = {
+            ...hiddenUsers_config_1.hiddenApiTokensUserFilter,
+        };
         if (search) {
             where.OR = [
                 { token: { contains: search } },
@@ -75,20 +78,22 @@ const getApiTokens = async (req, res) => {
                 take: limitNum,
             }),
             prisma_client_1.default.api_tokens.count({ where }),
-            prisma_client_1.default.api_tokens.count(),
+            prisma_client_1.default.api_tokens.count({ where: { ...hiddenUsers_config_1.hiddenApiTokensUserFilter } }),
             prisma_client_1.default.api_tokens.count({
                 where: {
                     is_active: 'Y',
                     is_revoked: false,
                     OR: [{ expires_at: null }, { expires_at: { gte: now } }],
+                    ...hiddenUsers_config_1.hiddenApiTokensUserFilter,
                 },
             }),
             prisma_client_1.default.api_tokens.count({
-                where: { is_revoked: true },
+                where: { is_revoked: true, ...hiddenUsers_config_1.hiddenApiTokensUserFilter },
             }),
             prisma_client_1.default.api_tokens.count({
                 where: {
                     expires_at: { lt: now },
+                    ...hiddenUsers_config_1.hiddenApiTokensUserFilter,
                     is_revoked: false,
                 },
             }),

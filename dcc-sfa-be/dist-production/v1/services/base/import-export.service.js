@@ -42,13 +42,32 @@ const exceljs_1 = __importDefault(require("exceljs"));
 const pdfkit_1 = __importDefault(require("pdfkit"));
 const import_export_error_service_1 = require("./import-export-error.service");
 const prisma_client_1 = __importDefault(require("../../../configs/prisma.client"));
+const hiddenUsers_config_1 = require("../../../configs/hiddenUsers.config");
 class ImportExportService {
     getModel() {
         return prisma_client_1.default[this.modelName];
     }
+    /**
+     * Applies centralized hidden system users filter for user-related models
+     * @param {any} filters - Existing filters
+     * @returns {any} Filter object with hidden users excluded
+     */
+    applyHiddenFilter(filters = {}) {
+        const where = { ...(filters || {}) };
+        if (this.modelName === 'users') {
+            return { ...where, ...hiddenUsers_config_1.hiddenUsersPrismaFilter };
+        }
+        if (this.modelName === 'login_history') {
+            return { ...where, ...hiddenUsers_config_1.hiddenLoginHistoryUserFilter };
+        }
+        if (this.modelName === 'api_tokens') {
+            return { ...where, ...hiddenUsers_config_1.hiddenApiTokensUserFilter };
+        }
+        return where;
+    }
     async getCount(filters) {
         return await this.getModel().count({
-            where: filters,
+            where: this.applyHiddenFilter(filters),
         });
     }
     getDisplayName() {
@@ -335,7 +354,7 @@ class ImportExportService {
     }
     async exportToExcel(options = {}) {
         const query = {
-            where: options.filters,
+            where: this.applyHiddenFilter(options.filters),
             orderBy: options.orderBy || { id: 'desc' },
         };
         if (options.include)
@@ -344,7 +363,10 @@ class ImportExportService {
             query.select = options.select;
         if (options.limit)
             query.take = options.limit;
-        const data = await this.getModel().findMany(query);
+        const rawData = await this.getModel().findMany(query);
+        const data = this.modelName === 'users'
+            ? rawData.filter((u) => !(0, hiddenUsers_config_1.isHiddenUser)(u))
+            : rawData;
         const workbook = new exceljs_1.default.Workbook();
         const worksheet = workbook.addWorksheet(this.displayName);
         workbook.creator = 'Import/Export System';
@@ -398,7 +420,7 @@ class ImportExportService {
     }
     async exportToPDF(options = {}) {
         const query = {
-            where: options.filters,
+            where: this.applyHiddenFilter(options.filters),
             orderBy: options.orderBy || { id: 'desc' },
         };
         if (options.include)
@@ -407,7 +429,10 @@ class ImportExportService {
             query.select = options.select;
         if (options.limit)
             query.take = options.limit || 1000;
-        const data = await this.getModel().findMany(query);
+        const rawData = await this.getModel().findMany(query);
+        const data = this.modelName === 'users'
+            ? rawData.filter((u) => !(0, hiddenUsers_config_1.isHiddenUser)(u))
+            : rawData;
         return new Promise(async (resolve, reject) => {
             try {
                 const doc = new pdfkit_1.default({
@@ -661,13 +686,23 @@ class ImportExportService {
                 [field]: true,
             }), {});
             try {
-                const whereClause = masterTable === 'asset_master' ? {} : { is_active: 'Y' };
+                const whereClause = masterTable === 'asset_master'
+                    ? {}
+                    : masterTable === 'users'
+                        ? { is_active: 'Y', ...hiddenUsers_config_1.hiddenUsersPrismaFilter }
+                        : masterTable === 'login_history'
+                            ? { ...hiddenUsers_config_1.hiddenLoginHistoryUserFilter }
+                            : masterTable === 'api_tokens'
+                                ? { ...hiddenUsers_config_1.hiddenApiTokensUserFilter }
+                                : { is_active: 'Y' };
                 const result = await model.findMany({
                     select: selectFields,
                     where: whereClause,
                     orderBy: { id: 'asc' },
                 });
-                return result;
+                return masterTable === 'users'
+                    ? result.filter((u) => !(0, hiddenUsers_config_1.isHiddenUser)(u))
+                    : result;
             }
             catch (e1) {
                 console.warn(`getMasterTableData [${masterTable}] failed with is_active filter:`, e1?.message);
@@ -677,7 +712,9 @@ class ImportExportService {
                     select: selectFields,
                     orderBy: { id: 'asc' },
                 });
-                return result;
+                return masterTable === 'users'
+                    ? result.filter((u) => !(0, hiddenUsers_config_1.isHiddenUser)(u))
+                    : result;
             }
             catch (e2) {
                 console.warn(`getMasterTableData [${masterTable}] failed without filter:`, e2?.message);

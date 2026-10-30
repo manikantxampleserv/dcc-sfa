@@ -1,6 +1,10 @@
 import { Request, Response } from 'express';
 import { isAdminRole } from '../../configs/permissions.config';
 import prisma from '../../configs/prisma.client';
+import {
+  hiddenUsersPrismaFilter,
+  isHiddenUser,
+} from '../../configs/hiddenUsers.config';
 import { paginate } from '../../utils/paginate';
 
 /**
@@ -518,6 +522,7 @@ export const reportsController = {
 
       const salespersonsWhere: any = {
         id: { in: Array.from(salespersonIds) },
+        ...hiddenUsersPrismaFilter,
         is_active: 'Y',
       };
 
@@ -610,6 +615,7 @@ export const reportsController = {
         const missingSalespersons = await prisma.users.findMany({
           where: {
             id: { in: salespersonIdsToFetch },
+            ...hiddenUsersPrismaFilter,
           },
           select: { id: true, name: true, email: true, employee_id: true },
         });
@@ -839,6 +845,7 @@ export const reportsController = {
       const salespersons = await prisma.users.findMany({
         where: {
           id: { in: Array.from(salespersonIds) },
+        ...hiddenUsersPrismaFilter,
           is_active: 'Y',
         },
         select: { id: true, name: true, email: true, employee_id: true },
@@ -918,6 +925,7 @@ export const reportsController = {
         const missingSalespersons = await prisma.users.findMany({
           where: {
             id: { in: salespersonIdsToFetch },
+            ...hiddenUsersPrismaFilter,
           },
           select: { id: true, name: true, email: true, employee_id: true },
         });
@@ -3254,8 +3262,11 @@ export const reportsController = {
         dateFilter.lte = new Date(end_date as string);
       }
 
-      // Fetch Users (Sales Reps)
+      /**
+       * Fetch Users (Sales Reps)
+       */
       const whereUsers: any = {
+        ...hiddenUsersPrismaFilter,
         is_active: 'Y',
       };
       if (salesperson_id) {
@@ -3507,6 +3518,7 @@ export const reportsController = {
 
       // Fetch Users
       const whereUsers: any = {
+        ...hiddenUsersPrismaFilter,
         is_active: 'Y',
       };
       if (salesperson_id) {
@@ -4551,7 +4563,12 @@ export const reportsController = {
         history_this_month: historyThisMonth,
       };
 
-      const serializedData = data.map((history: any) => ({
+      const serializedData = data
+        .filter(
+          (history: any) =>
+            !isHiddenUser(history.attendance_historys?.attendance_user)
+        )
+        .map((history: any) => ({
         id: history.id,
         attendance_id: history.attendance_id,
         action_type: history.action_type,
@@ -4702,6 +4719,7 @@ export const reportsController = {
 
       historyRecords.forEach((history: any) => {
         const user = history.attendance_historys?.attendance_user;
+        if (isHiddenUser(user)) return;
         historySheet.addRow({
           employee_name: user?.name || 'N/A',
           employee_id: user?.employee_id || 'N/A',

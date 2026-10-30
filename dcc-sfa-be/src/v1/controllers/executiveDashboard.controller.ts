@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { Prisma } from '@prisma/client';
 import prisma from '../../configs/prisma.client';
+import { hiddenUsersRawSqlWhere } from '../../configs/hiddenUsers.config';
 
 /**
  * Executive Dashboard Controller
@@ -136,6 +137,8 @@ export const executiveDashboardController = {
             COUNT(i.id) AS invoice_count
           FROM invoices i
           INNER JOIN users u ON i.salesperson_id = u.id
+          ${hiddenUsersRawSqlWhere}
+          
           WHERE i.is_active = 'Y'
             AND u.name IS NOT NULL
           GROUP BY u.id, u.name
@@ -599,7 +602,9 @@ export const executiveDashboardController = {
           COUNT(i.id) AS invoice_count
         FROM invoices i
         INNER JOIN users u ON i.salesperson_id = u.id
-        WHERE i.is_active = 'Y'
+        ${hiddenUsersRawSqlWhere}
+          
+          WHERE i.is_active = 'Y'
           AND u.name IS NOT NULL
         GROUP BY u.id, u.name
         ORDER BY invoice_count DESC

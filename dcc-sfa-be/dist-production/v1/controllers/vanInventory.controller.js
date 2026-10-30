@@ -11,6 +11,7 @@ const inventory_utils_1 = require("../utils/inventory.utils");
 const sourceSystem_1 = require("../../utils/sourceSystem");
 const requests_controller_1 = require("./requests.controller");
 const permissions_config_1 = require("../../configs/permissions.config");
+const hiddenUsers_config_1 = require("../../configs/hiddenUsers.config");
 /**
  * Function to serializeVanInventory
  * @param item
@@ -4272,7 +4273,7 @@ exports.vanInventoryController = {
                 salesperson_id === '' ||
                 salesperson_id === 'all') {
                 const allSalespersons = await prisma_client_1.default.users.findMany({
-                    where: {},
+                    where: { ...hiddenUsers_config_1.hiddenUsersPrismaFilter },
                     select: {
                         id: true,
                         name: true,
@@ -4919,7 +4920,7 @@ exports.vanInventoryController = {
                 salesperson_id === '' ||
                 salesperson_id === 'all') {
                 const allSalespersons = await prisma_client_1.default.users.findMany({
-                    where: {},
+                    where: { ...hiddenUsers_config_1.hiddenUsersPrismaFilter },
                     select: {
                         id: true,
                         name: true,

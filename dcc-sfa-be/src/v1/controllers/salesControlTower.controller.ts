@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import prisma from '../../configs/prisma.client';
+import { isHiddenUser } from '../../configs/hiddenUsers.config';
 import ExcelJS from 'exceljs';
 
 const cache = new Map<string, { timestamp: number; data: any }>();
@@ -335,6 +336,7 @@ export const salesControlTowerController = {
         let processedInvoiceCount = 0;
         const rows: any[] = [];
         for (const inv of invoices) {
+        if (isHiddenUser((inv as any).invoices_salesperson)) continue;
           const brandFilter = brand_id ? (brand_id as string) : null;
           const packFilter = pack ? (pack as string) : null;
           const validItems = inv.invoice_items.filter((item: any) => {
@@ -748,6 +750,7 @@ export const salesControlTowerController = {
       const flatRows: any[] = [];
 
       for (const inv of invoices) {
+        if (isHiddenUser((inv as any).invoices_salesperson)) continue;
         const dateStr = inv.invoice_date
           ? new Date(inv.invoice_date).toLocaleDateString('en-GB')
           : '';

@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.executiveDashboardController = void 0;
 const client_1 = require("@prisma/client");
 const prisma_client_1 = __importDefault(require("../../configs/prisma.client"));
+const hiddenUsers_config_1 = require("../../configs/hiddenUsers.config");
 /**
  * Executive Dashboard Controller
  * Provides aggregated statistics and analytics for the executive dashboard
@@ -87,6 +88,8 @@ exports.executiveDashboardController = {
             COUNT(i.id) AS invoice_count
           FROM invoices i
           INNER JOIN users u ON i.salesperson_id = u.id
+          ${hiddenUsers_config_1.hiddenUsersRawSqlWhere}
+          
           WHERE i.is_active = 'Y'
             AND u.name IS NOT NULL
           GROUP BY u.id, u.name
@@ -442,7 +445,9 @@ exports.executiveDashboardController = {
           COUNT(i.id) AS invoice_count
         FROM invoices i
         INNER JOIN users u ON i.salesperson_id = u.id
-        WHERE i.is_active = 'Y'
+        ${hiddenUsers_config_1.hiddenUsersRawSqlWhere}
+          
+          WHERE i.is_active = 'Y'
           AND u.name IS NOT NULL
         GROUP BY u.id, u.name
         ORDER BY invoice_count DESC

@@ -7,6 +7,7 @@ exports.scheduleMonthlyActiveUsersReport = exports.sendMonthlyActiveUsersEmail =
 const node_cron_1 = __importDefault(require("node-cron"));
 const exceljs_1 = __importDefault(require("exceljs"));
 const prisma_client_1 = __importDefault(require("../configs/prisma.client"));
+const hiddenUsers_config_1 = require("../configs/hiddenUsers.config");
 const logger_1 = __importDefault(require("../configs/logger"));
 const emailTemplates_1 = require("../utils/emailTemplates");
 const mailer_1 = require("../utils/mailer");
@@ -276,6 +277,7 @@ const sendMonthlyActiveUsersEmail = async (targetCompanyId) => {
             const activeUsers = await prisma_client_1.default.users.findMany({
                 where: {
                     is_active: 'Y',
+                    ...hiddenUsers_config_1.hiddenUsersPrismaFilter,
                     OR: [{ parent_id: company.id }, { parent_id: null }],
                 },
                 include: {

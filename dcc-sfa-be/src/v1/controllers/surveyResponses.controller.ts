@@ -1,6 +1,10 @@
 import { Request, Response } from 'express';
 import { paginate } from '../../utils/paginate';
 import prisma from '../../configs/prisma.client';
+import {
+  hiddenUsersPrismaFilter,
+  isHiddenUser,
+} from '../../configs/hiddenUsers.config';
 import { deleteFile, uploadFile } from '../../utils/blackbaze';
 import { Prisma } from '@prisma/client';
 import ExcelJS from 'exceljs';
@@ -725,6 +729,9 @@ export const surveyResponseController = {
       );
 
       const filters: any = {
+        survey_responses_submitted_by_users: {
+          ...hiddenUsersPrismaFilter,
+        },
         ...(search && {
           OR: [
             { surveys: { title: { contains: searchLower } } },
@@ -812,7 +819,11 @@ export const surveyResponseController = {
         }),
       ]);
 
-      const serializedData = data.map((r: any) => serializeSurveyResponse(r));
+      const serializedData = data
+        .filter(
+          (r: any) => !isHiddenUser(r.survey_responses_submitted_by_users)
+        )
+        .map((r: any) => serializeSurveyResponse(r));
 
       res.success(
         'Survey responses fetched successfully',
@@ -993,7 +1004,7 @@ export const surveyResponseController = {
         });
       }
 
-      const responses = await prisma.survey_responses.findMany({
+      const rawResponses = await prisma.survey_responses.findMany({
         where: filters,
         orderBy: { createdate: 'desc' },
         include: {
@@ -1016,6 +1027,10 @@ export const surveyResponseController = {
           },
         },
       });
+
+      const responses = rawResponses.filter(
+        r => !isHiddenUser(r.survey_responses_submitted_by_users)
+      );
 
       const WorkbookClass =
         (ExcelJS as any).Workbook ||

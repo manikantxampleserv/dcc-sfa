@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { Prisma } from '@prisma/client';
 import prisma from '../../configs/prisma.client';
 import { isAdminRole } from '../../configs/permissions.config';
+import { hiddenUsersPrismaFilter } from '../../configs/hiddenUsers.config';
 
 const DAY_ABBREVIATIONS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
@@ -1401,6 +1402,7 @@ export const salesManagerController = {
         const directReports = await prisma.users.findMany({
           where: {
             reporting_to: user.id,
+            ...hiddenUsersPrismaFilter,
             is_active: 'Y',
           },
           select: { id: true },
@@ -1434,8 +1436,11 @@ export const salesManagerController = {
         depotSalespersons.forEach(ds => assignedSalespersonIds.add(ds.id));
       }
 
-      // Base query for team member users
+      /**
+       * Base query for team member users
+       */
       const userWhere: any = {
+        ...hiddenUsersPrismaFilter,
         is_active: 'Y',
       };
 

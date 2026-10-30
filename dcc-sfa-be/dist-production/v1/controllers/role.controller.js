@@ -7,6 +7,7 @@ exports.rolesController = void 0;
 const express_validator_1 = require("express-validator");
 const paginate_1 = require("../../utils/paginate");
 const prisma_client_1 = __importDefault(require("../../configs/prisma.client"));
+const hiddenUsers_config_1 = require("../../configs/hiddenUsers.config");
 const serializeRole = (role, includeCreatedAt = false, includeUpdatedAt = false) => ({
     id: role.id,
     name: role.name,
@@ -33,7 +34,9 @@ const serializeRole = (role, includeCreatedAt = false, includeUpdatedAt = false)
         }))
         : [],
     user_role: role.user_role
-        ? role.user_role.map((user) => ({
+        ? role.user_role
+            .filter((user) => !(0, hiddenUsers_config_1.isHiddenUser)(user))
+            .map((user) => ({
             id: user.id,
             name: user.name,
             email: user.email,
@@ -131,7 +134,7 @@ exports.rolesController = {
                         where: { is_active: 'Y' },
                     },
                     user_role: {
-                        where: { is_active: 'Y' },
+                        where: { is_active: 'Y', ...hiddenUsers_config_1.hiddenUsersPrismaFilter },
                         select: {
                             id: true,
                             name: true,
@@ -201,7 +204,7 @@ exports.rolesController = {
                             where: { is_active: 'Y' },
                         },
                         user_role: {
-                            where: { is_active: 'Y' },
+                            where: { is_active: 'Y', ...hiddenUsers_config_1.hiddenUsersPrismaFilter },
                             select: {
                                 id: true,
                                 name: true,
@@ -237,7 +240,7 @@ exports.rolesController = {
                                 where: { is_active: 'Y' },
                             },
                             user_role: {
-                                where: { is_active: 'Y' },
+                                where: { is_active: 'Y', ...hiddenUsers_config_1.hiddenUsersPrismaFilter },
                                 select: {
                                     id: true,
                                     name: true,
@@ -281,6 +284,7 @@ exports.rolesController = {
             const usersWithRole = await prisma_client_1.default.users.count({
                 where: {
                     role_id: parseInt(id),
+                    ...hiddenUsers_config_1.hiddenUsersPrismaFilter,
                     is_active: 'Y',
                 },
             });
@@ -360,7 +364,7 @@ exports.rolesController = {
                         where: { is_active: 'Y' },
                     },
                     user_role: {
-                        where: { is_active: 'Y' },
+                        where: { is_active: 'Y', ...hiddenUsers_config_1.hiddenUsersPrismaFilter },
                         select: {
                             id: true,
                             name: true,

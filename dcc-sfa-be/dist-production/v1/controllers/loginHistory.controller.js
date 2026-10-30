@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.loginHistoryController = void 0;
 const prisma_client_1 = __importDefault(require("../../configs/prisma.client"));
 const ipLocation_util_1 = require("../../utils/ipLocation.util");
+const hiddenUsers_config_1 = require("../../configs/hiddenUsers.config");
 const serializeLoginHistory = (loginHistory) => ({
     id: loginHistory.id,
     user_id: loginHistory.user_id,
@@ -88,7 +89,9 @@ exports.loginHistoryController = {
             const pageNum = Number(page);
             const limitNum = Number(limit);
             const skip = (pageNum - 1) * limitNum;
-            const where = {};
+            const where = {
+                ...hiddenUsers_config_1.hiddenLoginHistoryUserFilter,
+            };
             if (search) {
                 where.OR = [
                     { ip_address: { contains: search } },
@@ -143,15 +146,18 @@ exports.loginHistoryController = {
                 },
             });
             // Calculate statistics
-            const totalLogins = await prisma_client_1.default.login_history.count();
+            const totalLogins = await prisma_client_1.default.login_history.count({
+                where: { ...hiddenUsers_config_1.hiddenLoginHistoryUserFilter },
+            });
             const successfulLogins = await prisma_client_1.default.login_history.count({
-                where: { login_status: 'success' },
+                where: { login_status: 'success', ...hiddenUsers_config_1.hiddenLoginHistoryUserFilter },
             });
             const failedLogins = await prisma_client_1.default.login_history.count({
-                where: { login_status: 'failed' },
+                where: { login_status: 'failed', ...hiddenUsers_config_1.hiddenLoginHistoryUserFilter },
             });
             const todayLogins = await prisma_client_1.default.login_history.count({
                 where: {
+                    ...hiddenUsers_config_1.hiddenLoginHistoryUserFilter,
                     login_time: {
                         gte: new Date(new Date().setHours(0, 0, 0, 0)),
                     },
@@ -220,7 +226,8 @@ exports.loginHistoryController = {
                     },
                 },
             });
-            if (!loginHistory) {
+            if (!loginHistory ||
+                (0, hiddenUsers_config_1.isHiddenUser)(loginHistory.users_login_history_user_idTousers)) {
                 return res.status(404).json({
                     success: false,
                     message: 'Login history not found',
@@ -255,11 +262,21 @@ exports.loginHistoryController = {
                     message: 'Invalid login history ID',
                 });
             }
-            // Check if login history exists
             const existingLoginHistory = await prisma_client_1.default.login_history.findUnique({
                 where: { id: loginHistoryId },
+                include: {
+                    users_login_history_user_idTousers: {
+                        select: {
+                            id: true,
+                            name: true,
+                            email: true,
+                            employee_id: true,
+                        },
+                    },
+                },
             });
-            if (!existingLoginHistory) {
+            if (!existingLoginHistory ||
+                (0, hiddenUsers_config_1.isHiddenUser)(existingLoginHistory.users_login_history_user_idTousers)) {
                 return res.status(404).json({
                     success: false,
                     message: 'Login history not found',
@@ -316,11 +333,21 @@ exports.loginHistoryController = {
                     message: 'Invalid login history ID',
                 });
             }
-            // Check if login history exists
             const existingLoginHistory = await prisma_client_1.default.login_history.findUnique({
                 where: { id: loginHistoryId },
+                include: {
+                    users_login_history_user_idTousers: {
+                        select: {
+                            id: true,
+                            name: true,
+                            email: true,
+                            employee_id: true,
+                        },
+                    },
+                },
             });
-            if (!existingLoginHistory) {
+            if (!existingLoginHistory ||
+                (0, hiddenUsers_config_1.isHiddenUser)(existingLoginHistory.users_login_history_user_idTousers)) {
                 return res.status(404).json({
                     success: false,
                     message: 'Login history not found',

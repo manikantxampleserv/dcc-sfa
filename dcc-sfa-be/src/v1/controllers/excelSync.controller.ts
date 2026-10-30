@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import prisma from '../../configs/prisma.client';
+import { isHiddenUser } from '../../configs/hiddenUsers.config';
 
 /**
  * Escapes values for safe CSV formatting compliant with RFC 4180.
@@ -176,6 +177,7 @@ export const excelSyncController = {
           const inv = item.invoices;
           const cust = inv?.invoices_customers;
           const sp = inv?.invoices_salesperson;
+          if (isHiddenUser(sp)) continue;
           const prod = item.invoice_items_products;
           const depot = cust?.customer_depot;
 
@@ -248,6 +250,7 @@ export const excelSyncController = {
         for (const inv of invoices) {
           const cust = inv.invoices_customers;
           const sp = inv.invoices_salesperson;
+          if (isHiddenUser(sp)) continue;
           const depot = cust?.customer_depot;
 
           csvLines.push(
@@ -478,6 +481,7 @@ export const excelSyncController = {
         const resp = ans.survey_answer_responses;
         const cust = resp?.survey_response_customer;
         const user = resp?.survey_responses_submitted_by_users;
+        if (isHiddenUser(user)) continue;
         const prod = ans.survey_answers_products;
 
         csvLines.push(
@@ -601,6 +605,7 @@ export const excelSyncController = {
         const inv = item.van_inventory_items_inventory;
         const prod = item.van_inventory_items_products;
         const user = inv?.van_inventory_users;
+        if (isHiddenUser(user)) continue;
 
         const dateVal = inv?.document_date || inv?.createdate;
         const typeVal =

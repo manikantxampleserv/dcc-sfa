@@ -6,6 +6,7 @@ import { getContainerOwnerAndSelf } from '../utils/inventory.utils';
 import { getSourceSystemLabel } from '../../utils/sourceSystem';
 import { createRequest, resolveRequesterDepotId } from './requests.controller';
 import { isAdminRole } from '../../configs/permissions.config';
+import { hiddenUsersPrismaFilter } from '../../configs/hiddenUsers.config';
 interface VanInventoryItemSerialized {
   id: number;
   parent_id: number;
@@ -5435,7 +5436,7 @@ export const vanInventoryController = {
         salesperson_id === 'all'
       ) {
         const allSalespersons = await prisma.users.findMany({
-          where: {},
+          where: { ...hiddenUsersPrismaFilter },
           select: {
             id: true,
             name: true,
@@ -6193,7 +6194,7 @@ export const vanInventoryController = {
         salesperson_id === 'all'
       ) {
         const allSalespersons = await prisma.users.findMany({
-          where: {},
+          where: { ...hiddenUsersPrismaFilter },
           select: {
             id: true,
             name: true,

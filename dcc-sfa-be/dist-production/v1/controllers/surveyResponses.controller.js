@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.surveyResponseController = void 0;
 const paginate_1 = require("../../utils/paginate");
 const prisma_client_1 = __importDefault(require("../../configs/prisma.client"));
+const hiddenUsers_config_1 = require("../../configs/hiddenUsers.config");
 const blackbaze_1 = require("../../utils/blackbaze");
 const exceljs_1 = __importDefault(require("exceljs"));
 const dateFilters_1 = require("../../utils/dateFilters");
@@ -557,6 +558,9 @@ exports.surveyResponseController = {
             const statusLower = status ? status.toLowerCase() : '';
             const timeBasedDateFilter = (0, dateFilters_1.getTimeFilter)(time_filter, start_date, end_date);
             const filters = {
+                survey_responses_submitted_by_users: {
+                    ...hiddenUsers_config_1.hiddenUsersPrismaFilter,
+                },
                 ...(search && {
                     OR: [
                         { surveys: { title: { contains: searchLower } } },
@@ -632,7 +636,9 @@ exports.surveyResponseController = {
                     },
                 }),
             ]);
-            const serializedData = data.map((r) => serializeSurveyResponse(r));
+            const serializedData = data
+                .filter((r) => !(0, hiddenUsers_config_1.isHiddenUser)(r.survey_responses_submitted_by_users))
+                .map((r) => serializeSurveyResponse(r));
             res.success('Survey responses fetched successfully', serializedData, 200, pagination, {
                 total_records: totalResponses,
                 active_records: activeResponses,
@@ -780,7 +786,7 @@ exports.surveyResponseController = {
                     ],
                 });
             }
-            const responses = await prisma_client_1.default.survey_responses.findMany({
+            const rawResponses = await prisma_client_1.default.survey_responses.findMany({
                 where: filters,
                 orderBy: { createdate: 'desc' },
                 include: {
@@ -803,6 +809,7 @@ exports.surveyResponseController = {
                     },
                 },
             });
+            const responses = rawResponses.filter(r => !(0, hiddenUsers_config_1.isHiddenUser)(r.survey_responses_submitted_by_users));
             const WorkbookClass = exceljs_1.default.Workbook ||
                 exceljs_1.default.default?.Workbook ||
                 exceljs_1.default;

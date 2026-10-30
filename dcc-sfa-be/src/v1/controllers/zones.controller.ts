@@ -2,6 +2,10 @@ import { Request, Response } from 'express';
 import { paginate } from '../../utils/paginate';
 import prisma from '../../configs/prisma.client';
 import { isAdminRole } from '../../configs/permissions.config';
+import {
+  hiddenUsersPrismaFilter,
+  isHiddenUser,
+} from '../../configs/hiddenUsers.config';
 
 interface ZoneSerialized {
   id: number;
@@ -460,6 +464,7 @@ export const zonesController = {
       const supervisors = await prisma.users.findMany({
         where: {
           is_active: 'Y',
+          ...hiddenUsersPrismaFilter,
           user_role: {
             name: {
               in: [
@@ -512,7 +517,7 @@ export const zonesController = {
 
       res.json({
         message: 'Supervisors retrieved successfully',
-        data: supervisors,
+        data: supervisors.filter(s => !isHiddenUser(s)),
       });
     } catch (error: any) {
       console.error('Get Supervisors Error:', error);

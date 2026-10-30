@@ -8,6 +8,12 @@ export declare abstract class ImportExportService<T> {
     protected abstract uniqueFields: string[];
     protected abstract searchFields: string[];
     protected getModel(): any;
+    /**
+     * Applies centralized hidden system users filter for user-related models
+     * @param {any} filters - Existing filters
+     * @returns {any} Filter object with hidden users excluded
+     */
+    protected applyHiddenFilter(filters?: any): any;
     getCount(filters?: any): Promise<number>;
     getDisplayName(): string;
     getColumns(): ColumnDefinition[];
