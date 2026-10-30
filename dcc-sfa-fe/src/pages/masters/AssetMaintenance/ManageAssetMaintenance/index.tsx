@@ -80,7 +80,10 @@ const ManageAssetMaintenance: React.FC<ManageAssetMaintenanceProps> = ({
           .filter((s: SparePartItemFormData) => s.name?.trim())
           .map((s: SparePartItemFormData) => ({
             name: s.name.trim(),
-            cost: s.cost !== '' && s.cost !== undefined ? Number(s.cost) : 0,
+            cost: Math.max(
+              0,
+              s.cost !== '' && s.cost !== undefined ? Number(s.cost) : 0
+            ),
           }));
 
         const submitData = {
@@ -89,7 +92,7 @@ const ManageAssetMaintenance: React.FC<ManageAssetMaintenanceProps> = ({
           issue_reported: values.issue_reported,
           action_taken: values.action_taken,
           technician_id: Number(values.technician_id),
-          cost: values.cost ? Number(values.cost) : undefined,
+          cost: values.cost ? Math.max(0, Number(values.cost)) : undefined,
           remarks: values.remarks,
           is_active: values.is_active,
           spares: formattedSpares,
@@ -136,10 +139,18 @@ const ManageAssetMaintenance: React.FC<ManageAssetMaintenanceProps> = ({
 
   const updateSpareItem = useCallback(
     (index: number, field: 'name' | 'cost', value: any) => {
+      let finalValue = value;
+      if (field === 'cost') {
+        if (typeof value === 'string') {
+          finalValue = value.replace(/-/g, '');
+        } else if (typeof value === 'number' && value < 0) {
+          finalValue = Math.abs(value);
+        }
+      }
       const updated = [...(formik.values.spares || [])];
       updated[index] = {
         ...updated[index],
-        [field]: value,
+        [field]: finalValue,
       };
       formik.setFieldValue('spares', updated);
     },
@@ -149,8 +160,11 @@ const ManageAssetMaintenance: React.FC<ManageAssetMaintenanceProps> = ({
   const totalSparesCost = useMemo(() => {
     return (formik.values.spares || []).reduce(
       (sum: number, item: SparePartItemFormData) => {
+        if (!item.name || !item.name.trim()) {
+          return sum;
+        }
         const val = Number(item.cost);
-        return sum + (isNaN(val) ? 0 : val);
+        return sum + (isNaN(val) || val < 0 ? 0 : val);
       },
       0
     );
@@ -183,6 +197,17 @@ const ManageAssetMaintenance: React.FC<ManageAssetMaintenanceProps> = ({
             type="number"
             value={row.cost ?? ''}
             onChange={e => updateSpareItem(rowIndex, 'cost', e.target.value)}
+            onKeyDown={e => {
+              if (e.key === '-' || e.key === 'e' || e.key === '+') {
+                e.preventDefault();
+              }
+            }}
+            slotProps={{
+              htmlInput: {
+                min: 0,
+                step: 'any',
+              },
+            }}
             size="small"
             fullWidth
             placeholder="Enter Cost"
@@ -195,10 +220,12 @@ const ManageAssetMaintenance: React.FC<ManageAssetMaintenanceProps> = ({
         width: 80,
         sortable: false,
         render: (_value, _row, rowIndex) => (
-          <DeleteButton
-            onClick={() => removeSpareItem(rowIndex)}
-            tooltip="Remove item"
-          />
+          <div className="flex items-center justify-center">
+            <DeleteButton
+              onClick={() => removeSpareItem(rowIndex)}
+              tooltip="Remove item"
+            />
+          </div>
         ),
       },
     ],
@@ -251,6 +278,21 @@ const ManageAssetMaintenance: React.FC<ManageAssetMaintenanceProps> = ({
                 type="number"
                 placeholder="Enter maintenance cost"
                 formik={formik}
+                onChange={e => {
+                  const sanitized = e.target.value.replace(/-/g, '');
+                  formik.setFieldValue('cost', sanitized);
+                }}
+                onKeyDown={e => {
+                  if (e.key === '-' || e.key === 'e' || e.key === '+') {
+                    e.preventDefault();
+                  }
+                }}
+                slotProps={{
+                  htmlInput: {
+                    min: 0,
+                    step: 'any',
+                  },
+                }}
               />
             </Box>
 
@@ -302,7 +344,7 @@ const ManageAssetMaintenance: React.FC<ManageAssetMaintenanceProps> = ({
                     <Box className="!flex !justify-between !items-center !px-4 !py-3 !border-t !border-gray-200">
                       <Typography
                         variant="body2"
-                        className="!text-gray-700 !font-medium"
+                        className="!text-gray-700 p-px !font-medium"
                       >
                         Total Spares Cost:{' '}
                         <span className="!font-bold !text-primary-600">

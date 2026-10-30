@@ -75,7 +75,7 @@ exports.assetMaintenanceController = {
                     .filter((s) => s && typeof s.name === 'string' && s.name.trim())
                     .map((s) => ({
                     name: s.name.trim(),
-                    cost: Number(s.cost) || 0,
+                    cost: Math.max(0, Number(s.cost) || 0),
                     createdby: req.user?.id || 1,
                 }))
                 : [];
@@ -229,7 +229,7 @@ exports.assetMaintenanceController = {
                             .map((s) => ({
                             asset_maintenance_id: maintenanceId,
                             name: s.name.trim(),
-                            cost: Number(s.cost) || 0,
+                            cost: Math.max(0, Number(s.cost) || 0),
                             createdby: req.user?.id || 1,
                         }));
                         if (sparesToCreate.length > 0) {

@@ -16,7 +16,14 @@ export const assetMaintenanceValidationSchema = Yup.object({
   technician_id: Yup.number()
     .required('Technician is required')
     .positive('Technician ID must be positive'),
-  cost: Yup.number().min(0, 'Cost must be non-negative').optional(),
+  cost: Yup.number()
+    .transform((value, originalValue) =>
+      originalValue === '' || originalValue === null ? undefined : value
+    )
+    .typeError('Cost must be a valid number')
+    .min(0, 'Cost must be non-negative')
+    .nullable()
+    .optional(),
   remarks: Yup.string()
     .max(1000, 'Remarks must be less than 1000 characters')
     .optional(),
@@ -27,7 +34,14 @@ export const assetMaintenanceValidationSchema = Yup.object({
     .of(
       Yup.object({
         name: Yup.string().optional(),
-        cost: Yup.mixed().optional(),
+        cost: Yup.number()
+          .transform((value, originalValue) =>
+            originalValue === '' || originalValue === null ? undefined : value
+          )
+          .typeError('Cost must be a valid number')
+          .min(0, 'Cost must be non-negative')
+          .nullable()
+          .optional(),
       })
     )
     .optional(),

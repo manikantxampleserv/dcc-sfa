@@ -14,9 +14,18 @@ export const createAssetMaintenanceValidation = [
     .optional()
     .isString()
     .withMessage('Action taken must be a string'),
-  body('cost').optional().isFloat().withMessage('Cost must be a float'),
+  body('cost')
+    .optional()
+    .isFloat({ min: 0 })
+    .withMessage('Cost must be a non-negative number'),
   body('remarks').optional().isString().withMessage('Remarks must be a string'),
   body('spares').optional().isArray().withMessage('Spares must be an array'),
-  body('spares.*.name').optional().isString().withMessage('Spare part name must be a string'),
-  body('spares.*.cost').optional().isNumeric().withMessage('Spare part cost must be numeric'),
+  body('spares.*.name')
+    .optional()
+    .isString()
+    .withMessage('Spare part name must be a string'),
+  body('spares.*.cost')
+    .optional()
+    .isFloat({ min: 0 })
+    .withMessage('Spare part cost must be a non-negative number'),
 ];

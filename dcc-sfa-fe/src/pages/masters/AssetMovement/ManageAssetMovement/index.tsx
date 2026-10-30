@@ -229,6 +229,7 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
     }
   }, [
     availableSearch,
+    formik.values.movement_type,
     formik.values.from_direction,
     formik.values.from_depot,
     formik.values.from_outlet,
@@ -270,6 +271,11 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
     Map<number, AssetMaster>
   >(new Map());
 
+  const isReturn =
+    formik.values.movement_type === 'return' ||
+    (formik.values.from_direction === 'outlet' &&
+      formik.values.to_direction === 'depot');
+
   const isSourceSelected = !!(
     (formik.values.from_direction === 'depot' && formik.values.from_depot) ||
     (formik.values.from_direction === 'outlet' && formik.values.from_outlet)
@@ -279,10 +285,13 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
     {
       page,
       limit: 100,
-      status: 'Available',
-      current_status: 'Available',
-      only_available:
-        formik.values.from_direction === 'depot' ? true : undefined,
+      status: isReturn ? 'active' : 'Available',
+      current_status: isReturn ? 'Installed' : 'Available',
+      only_available: isReturn
+        ? undefined
+        : formik.values.from_direction === 'depot'
+          ? true
+          : undefined,
       search: availableSearch,
       depot_id:
         formik.values.from_direction === 'depot' && formik.values.from_depot
@@ -321,7 +330,6 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
     setKnownAssetsMap(prev => {
       const newMap = new Map(prev);
       displayedAssets.forEach(asset => newMap.set(asset.id, asset));
-
       if (selectedMovement?.asset_movement_assets) {
         selectedMovement.asset_movement_assets.forEach((item: any) => {
           if (item.asset) {
@@ -349,13 +357,18 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
 
   const availableAssets = useMemo(() => {
     const selectedIds = new Set(selectedAssetIds);
-    return displayedAssets.filter(
-      asset =>
-        !selectedIds.has(asset.id) &&
-        (asset.current_status?.toLowerCase() === 'available' ||
-          !asset.current_status)
-    );
-  }, [displayedAssets, selectedAssetIds]);
+    return displayedAssets.filter(asset => {
+      if (selectedIds.has(asset.id)) return false;
+      if (isReturn) {
+        const status = asset.current_status?.toLowerCase();
+        return status === 'installed' || status === 'available' || !status;
+      }
+      return (
+        asset.current_status?.toLowerCase() === 'available' ||
+        !asset.current_status
+      );
+    });
+  }, [displayedAssets, selectedAssetIds, isReturn]);
 
   const emptyStateMessage = useMemo(() => {
     if (!formik.values.movement_type) {
@@ -370,7 +383,9 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
       return 'No assets match your search';
     }
     if (displayedAssets.length === 0) {
-      return 'No assets available in this source';
+      return isReturn
+        ? 'No installed assets found at this outlet'
+        : 'No assets available in this source';
     }
     return 'All assets are selected';
   }, [
@@ -379,6 +394,7 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
     isSourceSelected,
     availableSearch,
     displayedAssets.length,
+    isReturn,
   ]);
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
@@ -427,9 +443,25 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
         <Package className="w-4 h-4" />
       </Avatar>
       <Box className="!flex-1 !min-w-0">
-        <Typography variant="body2" className="!font-medium !text-gray-900">
-          {asset.name || `Asset ${asset.id}`}
-        </Typography>
+        <Box className="!flex !items-center !justify-between !gap-2">
+          <Typography
+            variant="body2"
+            className="!font-medium !text-gray-900 !truncate"
+          >
+            {asset.name || `Asset ${asset.id}`}
+          </Typography>
+          {asset.current_status && (
+            <span
+              className={`!text-[11px] !font-medium !px-1.5 !py-0.5 !rounded ${
+                asset.current_status.toLowerCase() === 'installed'
+                  ? '!bg-green-100 !text-green-700'
+                  : '!bg-blue-100 !text-blue-700'
+              }`}
+            >
+              {asset.current_status}
+            </span>
+          )}
+        </Box>
         <Typography
           variant="caption"
           className="!text-gray-500 !text-xs !block !mt-0.5"
@@ -609,15 +641,21 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
                         variant="subtitle1"
                         className="!font-semibold !text-blue-600"
                       >
-                        Available Assets (
+                        {isReturn ? 'Installed Assets' : 'Available Assets'} (
                         {assetsResponse?.meta?.total || availableAssets.length})
                       </Typography>
                       <p className="!text-gray-500 !text-xs !block !mt-1">
-                        Drag assets from the left panel to select
+                        {isReturn
+                          ? 'Drag installed assets from the left panel to return'
+                          : 'Drag assets from the left panel to select'}
                       </p>
                       <Box className="!mt-2">
                         <SearchInput
-                          placeholder="Search Assets..."
+                          placeholder={
+                            isReturn
+                              ? 'Search Installed Assets...'
+                              : 'Search Assets...'
+                          }
                           value={availableSearch}
                           onChange={setAvailableSearch}
                           className="!w-full"
@@ -694,7 +732,9 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
                         variant="subtitle1"
                         className="!font-semibold !text-green-600"
                       >
-                        Selected Assets ({selectedAssets.length})
+                        {isReturn
+                          ? `Assets to Return (${selectedAssets.length})`
+                          : `Selected Assets (${selectedAssets.length})`}
                       </Typography>
                       <p className="!text-gray-500 !text-xs !block !mt-1">
                         Drag assets from the right panel to reorder

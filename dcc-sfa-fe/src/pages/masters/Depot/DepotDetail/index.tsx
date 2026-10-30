@@ -260,7 +260,7 @@ const DepotDetail: React.FC = () => {
   return (
     <>
       <div className="flex items-start gap-4">
-        <div className="!flex-2 flex flex-col gap-4">
+        <div className="!flex-3 flex flex-col gap-4">
           <div className="!bg-white !rounded-lg !shadow !border !border-gray-200 !p-6 !text-center !relative">
             <div className="absolute top-3 right-3">
               <div
@@ -534,7 +534,7 @@ const DepotDetail: React.FC = () => {
           </InfoCard>
         </div>
 
-        <div className="!flex-4 !space-y-4">
+        <div className="!flex-5 !space-y-4">
           {/* Staff Assignment */}
           <InfoCard title="Staff Assignment" icon={Users}>
             <div className="!space-y-3">

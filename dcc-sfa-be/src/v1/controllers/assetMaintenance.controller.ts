@@ -117,7 +117,7 @@ export const assetMaintenanceController = {
               )
               .map((s: any) => ({
                 name: s.name.trim(),
-                cost: Number(s.cost) || 0,
+                cost: Math.max(0, Number(s.cost) || 0),
                 createdby: req.user?.id || 1,
               }))
           : [];
@@ -296,7 +296,7 @@ export const assetMaintenanceController = {
               .map((s: any) => ({
                 asset_maintenance_id: maintenanceId,
                 name: s.name.trim(),
-                cost: Number(s.cost) || 0,
+                cost: Math.max(0, Number(s.cost) || 0),
                 createdby: req.user?.id || 1,
               }));
 
