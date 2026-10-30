@@ -23,7 +23,7 @@ import { useCurrency } from 'hooks/useCurrency';
 import { useExecutiveDashboardOverview } from 'hooks/useExecutiveDashboard';
 import { useRequestsByUsersWithoutPermission } from 'hooks/useRequests';
 import React, { useState } from 'react';
-import { Chart, Doughnut, Line } from 'react-chartjs-2';
+import { Bar, Doughnut, Line } from 'react-chartjs-2';
 import { useNavigate } from 'react-router-dom';
 import type { AuditLogData } from 'services/auditLogs';
 import type { Request } from 'services/requests';
@@ -270,34 +270,29 @@ const ExecutiveDashboard: React.FC = () => {
     ],
   };
 
-  const averageDailyInvoices = stats
-    ? Math.round(
-        stats.totalInvoices.value / Math.max(lineChartLabels.length, 1)
-      )
-    : 0;
-  const invoicesData = lineChartLabels.map(
-    (_, index) => averageDailyInvoices + (index % 3)
-  );
+  const invoicesData =
+    salesData?.invoices || new Array(lineChartLabels.length).fill(0);
   const composedChartDataValue = {
     labels: lineChartLabels,
     datasets: [
       {
         label: 'Sales',
         data: salesData?.sales || [],
-        type: 'bar' as const,
-        backgroundColor: CHART_COLORS.warning,
-        borderColor: CHART_COLORS.warning,
-        borderWidth: 1,
+        backgroundColor: 'rgba(255, 99, 132, 0.45)',
+        borderColor: 'rgb(255, 99, 132)',
+        borderWidth: 2,
+        borderRadius: 2,
+        borderSkipped: false,
         yAxisID: 'y',
       },
       {
         label: 'Invoices',
         data: invoicesData,
-        type: 'line' as const,
-        borderColor: CHART_COLORS.danger,
-        backgroundColor: CHART_COLORS.danger + '20',
-        tension: 0.4,
-        fill: false,
+        backgroundColor: 'rgba(54, 162, 235, 0.5)',
+        borderColor: 'rgb(54, 162, 235)',
+        borderWidth: 2,
+        borderRadius: 2,
+        borderSkipped: false,
         yAxisID: 'y1',
       },
     ],
@@ -305,9 +300,11 @@ const ExecutiveDashboard: React.FC = () => {
 
   const hasLineChartData = lineChartLabels.length > 0;
   const hasPieChartData = pieChartLabels.length > 0;
-  const hasBarChartData = barChartLabels.length > 0;
   const hasAreaChartData = lineChartLabels.length > 0;
   const hasComposedChartData = lineChartLabels.length > 0;
+  const hasTopProductsData =
+    barChartLabels.length > 0 &&
+    (topProducts?.quantities || []).some(qty => Number(qty) > 0);
 
   const commonChartOptions = {
     responsive: true,
@@ -390,13 +387,26 @@ const ExecutiveDashboard: React.FC = () => {
     ...commonChartOptions,
     plugins: {
       ...commonChartOptions.plugins,
+      legend: {
+        display: true,
+        position: 'top' as const,
+        labels: {
+          usePointStyle: false,
+          boxWidth: 32,
+          boxHeight: 14,
+          font: {
+            size: 12,
+            weight: 'bold' as const,
+          },
+        },
+      },
       tooltip: {
         callbacks: {
           label: (context: any) => {
             const datasetLabel = context.dataset.label || '';
             const value = context.parsed.y;
             if (datasetLabel === 'Invoices') {
-              return `${datasetLabel}: ${value}`;
+              return `${datasetLabel}: ${value?.toLocaleString?.() ?? value} Invoices`;
             }
             return `${datasetLabel}: ${formatCurrency(value)}`;
           },
@@ -405,20 +415,46 @@ const ExecutiveDashboard: React.FC = () => {
     },
     scales: {
       x: {
+        grid: {
+          display: false,
+        },
         ticks: {
           maxRotation: 45,
           minRotation: 45,
+          font: {
+            size: 11,
+          },
         },
       },
       y: {
         type: 'linear' as const,
         display: true,
         position: 'left' as const,
+        title: {
+          display: true,
+          text: 'Sales Amount',
+          font: { size: 12, weight: 'bold' as const },
+        },
+        ticks: {
+          callback: (value: any) => formatCurrency(value),
+        },
+        grid: {
+          color: 'rgba(0, 0, 0, 0.05)',
+        },
       },
       y1: {
         type: 'linear' as const,
         display: true,
         position: 'right' as const,
+        title: {
+          display: true,
+          text: 'Invoices Count',
+          font: { size: 12, weight: 'bold' as const },
+        },
+        ticks: {
+          stepSize: 1,
+          precision: 0,
+        },
         grid: {
           drawOnChartArea: false,
         },
@@ -771,23 +807,30 @@ const ExecutiveDashboard: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-3 gap-4">
-        {hasBarChartData && (
-          <div className="bg-white shadow-sm p-5 rounded-lg border border-gray-100">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              Top Selling Products (Last 30 Days)
-            </h3>
-            {dashboardLoading ? (
-              <ChartSkeleton height={288} />
-            ) : (
-              <div className="h-72 w-full flex items-center justify-center">
-                <Doughnut
-                  data={barChartDataValue}
-                  options={topProductsDoughnutOptions}
-                />
+        <div className="bg-white shadow-sm p-5 rounded-lg border border-gray-100">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            Top Selling Products (Last 30 Days)
+          </h3>
+          {dashboardLoading ? (
+            <ChartSkeleton height={288} />
+          ) : hasTopProductsData ? (
+            <div className="h-72 w-full flex items-center justify-center">
+              <Doughnut
+                data={barChartDataValue}
+                options={topProductsDoughnutOptions}
+              />
+            </div>
+          ) : (
+            <div className="h-72 flex items-center justify-center bg-gray-50 rounded-lg">
+              <div className="text-center flex flex-col justify-center items-center gap-2">
+                <AssignmentIcon className="!text-5xl rounded-lg p-2 bg-blue-200 text-blue-500" />
+                <span className="text-gray-500">
+                  No top selling products available
+                </span>
               </div>
-            )}
-          </div>
-        )}
+            </div>
+          )}
+        </div>
 
         <div className="bg-white shadow-sm col-span-2 p-5 rounded-lg border border-gray-100">
           <div className="flex justify-between items-center mb-2">
@@ -990,10 +1033,8 @@ const ExecutiveDashboard: React.FC = () => {
             </div>
           ) : (
             <div className="h-72 flex items-center justify-center bg-gray-50 rounded-lg">
-              <div className="text-center">
-                <div className="text-gray-400 mx-auto mb-2 flex justify-center">
-                  <AssignmentIcon sx={{ fontSize: 48 }} />
-                </div>
+              <div className="text-center flex flex-col justify-center items-center gap-2">
+                <AssignmentIcon className="!text-5xl rounded-lg p-2 bg-blue-200 text-blue-500" />
                 <span className="text-gray-500">No pending approvals</span>
               </div>
             </div>
@@ -1001,24 +1042,30 @@ const ExecutiveDashboard: React.FC = () => {
         </div>
       </div>
 
-      {hasComposedChartData && (
-        <div className="bg-white shadow-sm p-5 rounded-lg border border-gray-100">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
-            Sales vs Invoices Performance
-          </h3>
-          {dashboardLoading ? (
-            <ChartSkeleton height={320} />
-          ) : (
-            <div className="h-80 w-full">
-              <Chart
-                type="bar"
-                data={composedChartDataValue as any}
-                options={composedChartOptions}
-              />
+      <div className="bg-white shadow-sm p-5 rounded-lg border border-gray-100">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          Sales vs Invoices Performance
+        </h3>
+        {dashboardLoading ? (
+          <ChartSkeleton height={320} />
+        ) : hasComposedChartData ? (
+          <div className="h-80 w-full">
+            <Bar
+              data={composedChartDataValue as any}
+              options={composedChartOptions}
+            />
+          </div>
+        ) : (
+          <div className="h-80 flex items-center justify-center bg-gray-50 rounded-lg">
+            <div className="text-center flex flex-col justify-center items-center gap-2">
+              <AssignmentIcon className="!text-5xl rounded-lg p-2 bg-blue-200 text-blue-500" />
+              <span className="text-gray-500">
+                No performance data available
+              </span>
             </div>
-          )}
-        </div>
-      )}
+          </div>
+        )}
+      </div>
 
       {/* Sales Performance & Trends and Activity Logs Side by Side */}
       <div className="grid grid-cols-1  gap-4">
@@ -1087,22 +1134,22 @@ const ExecutiveDashboard: React.FC = () => {
                 ))}
               </div>
             ) : (
-              <div className="space-y-1 max-h-80 hide-scrollbar overflow-y-auto">
+              <div className="max-h-80 hide-scrollbar overflow-y-auto space-y-2">
                 {auditLogs.logs.slice(0, 5).map((log: AuditLogData) => (
                   <div
                     key={log.id}
-                    className="flex items-start gap-2 pb-3 hover:bg-gray-50/70 transition-colors"
+                    className="flex items-start border-b border-gray-200 pb-2 gap-2 hover:bg-gray-50/70 transition-colors"
                   >
                     <Avatar
                       src={log.user_avatar || undefined}
                       alt={log.user_name?.trim()}
-                      className="!rounded !bg-blue-100 !text-blue-600 !w-8 !h-8 !text-sm"
+                      className="!rounded !bg-blue-100 !text-blue-600 !w-10 !h-10"
                     >
                       {log.user_name?.charAt(0).toUpperCase() || 'U'}
                     </Avatar>
 
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs text-gray-700 leading-snug">
+                    <div className="flex-1 min-w-0 space-y-1">
+                      <p className="text-sm text-gray-700 font-semibold">
                         <span className="font-normal text-[#52a477]">
                           {log.user_name}
                         </span>{' '}
@@ -1117,9 +1164,9 @@ const ExecutiveDashboard: React.FC = () => {
                           {log.table_name?.replaceAll('_', ' ')}
                         </span>
                       </p>
-                      <div className="text-[11px] text-gray-500 mt-0.5 flex items-center gap-1.5 flex-wrap leading-tight">
+                      <div className="text-xs text-gray-500 flex items-center gap-1 flex-wrap leading-tight">
                         {log.record_name ? (
-                          <span className="font-medium text-gray-700 truncate max-w-[280px]">
+                          <span className="text-gray-500 truncate max-w-[280px]">
                             {log.record_name}
                           </span>
                         ) : log.record_id ? (

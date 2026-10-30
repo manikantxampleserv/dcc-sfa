@@ -15,6 +15,7 @@ export interface AssetSubType {
 }
 
 export interface AssetMaster {
+  nfc_tag_code: string;
   inspections: {
     inspected_by: { id: number; name: string; email: string } | null;
     inspection_date?: string | null;
@@ -181,6 +182,7 @@ export interface AssetMasterQueryParams {
   limit?: number;
   search?: string;
   status?: string;
+  current_status?: string;
   depot_id?: number;
   zone_id?: number;
   route_id?: number;

@@ -1,6 +1,11 @@
 import axiosInstance from 'configs/axio.config';
 import type { ApiResponse } from 'types/api.types';
 
+export interface SparePartItem {
+  name: string;
+  cost: number;
+}
+
 export interface AssetMaintenance {
   id: number;
   asset_id: number;
@@ -11,6 +16,7 @@ export interface AssetMaintenance {
   cost?: number | null;
   remarks?: string | null;
   is_active: string;
+  spares?: SparePartItem[] | null;
   createdate?: string | null;
   createdby: number;
   updatedate?: string | null;
@@ -42,6 +48,7 @@ export interface CreateAssetMaintenancePayload {
   cost?: number;
   remarks?: string;
   is_active?: string;
+  spares?: SparePartItem[];
 }
 
 export interface UpdateAssetMaintenancePayload {
@@ -53,6 +60,7 @@ export interface UpdateAssetMaintenancePayload {
   cost?: number;
   remarks?: string;
   is_active?: string;
+  spares?: SparePartItem[];
 }
 
 export interface AssetMaintenanceQueryParams {

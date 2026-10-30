@@ -23,4 +23,12 @@ export const assetMaintenanceValidationSchema = Yup.object({
   is_active: Yup.string()
     .oneOf(['Y', 'N'], 'Status must be Active or Inactive')
     .required('Status is required'),
+  spares: Yup.array()
+    .of(
+      Yup.object({
+        name: Yup.string().optional(),
+        cost: Yup.mixed().optional(),
+      })
+    )
+    .optional(),
 });

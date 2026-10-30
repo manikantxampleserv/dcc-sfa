@@ -28,6 +28,7 @@ export interface DashboardStatistics {
 export interface SalesPerformanceData {
   labels: string[];
   sales: number[];
+  invoices?: number[];
   period: number;
 }
 

@@ -237,9 +237,9 @@ const ManageAssetMaster: React.FC<ManageAssetMasterProps> = ({
       setOpen={handleCancel}
       title={isEdit ? 'Edit Asset' : 'Create Asset'}
     >
-      <Box className="!p-6">
-        <form onSubmit={formik.handleSubmit} className="!space-y-6">
-          <Box className="!grid !grid-cols-1 md:!grid-cols-2 !gap-6">
+      <Box className="!p-5">
+        <form onSubmit={formik.handleSubmit} className="!space-y-4">
+          <Box className="!grid !grid-cols-1 md:!grid-cols-2 !gap-5">
             <Input
               name="name"
               label="Asset Name"
@@ -333,7 +333,7 @@ const ManageAssetMaster: React.FC<ManageAssetMasterProps> = ({
               </Typography>
 
               <Box
-                className="!border-2 !border-dashed !border-gray-300 !rounded-lg !p-4 !text-center hover:!border-primary-400 !transition-colors !cursor-pointer"
+                className="!border-2 !border-dashed !border-gray-300 !rounded !p-4 !text-center hover:!border-primary-400 !transition-colors !cursor-pointer"
                 onClick={handleImageUploadClick}
               >
                 <CloudUpload className="!mx-auto !mb-2 !text-gray-400 !text-2xl" />

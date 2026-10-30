@@ -158,13 +158,13 @@ const AssetMaintenanceManagement: React.FC = () => {
         <Box className="flex flex-col gap-1">
           <Box className="flex items-center gap-1">
             <Wrench className="h-3 w-3 text-gray-400" />
-            <span className="text-xs">
+            <span className="text-xs italic">
               {row.issue_reported || 'No issue reported'}
             </span>
           </Box>
           <Box className="flex items-center gap-1">
             <FileText className="h-3 w-3 text-gray-400" />
-            <span className="text-xs">
+            <span className="text-xs italic">
               {row.action_taken || 'No action taken'}
             </span>
           </Box>
@@ -178,7 +178,7 @@ const AssetMaintenanceManagement: React.FC = () => {
       render: (_value, row) => (
         <Box className="flex items-center gap-1">
           <Avatar
-            alt={row.asset_maintenance_technician?.name}
+            alt={row.asset_maintenance_technician?.name.trim()}
             src={row.asset_maintenance_technician?.profile_image || 'mkx'}
             className="!rounded !bg-primary-100 !text-primary-500"
           />
@@ -234,7 +234,7 @@ const AssetMaintenanceManagement: React.FC = () => {
         <Box className="flex items-center gap-1">
           <FileText className="h-3 w-3 text-gray-400" />
           <Tooltip title={row.remarks || 'No remarks'} placement="top" arrow>
-            <span className="max-w-32 truncate text-xs">
+            <span className="max-w-32 truncate italic text-xs">
               {row.remarks || 'No remarks'}
             </span>
           </Tooltip>

@@ -100,11 +100,16 @@ export const executiveDashboardController = {
           WHERE is_active = 'Y'
         `,
         prisma.$queryRaw<
-          Array<{ sale_date: Date | string; total_sales: number | null }>
+          Array<{
+            sale_date: Date | string;
+            total_sales: number | null;
+            invoice_count: number | bigint | null;
+          }>
         >`
           SELECT 
             CAST(invoice_date AS DATE) AS sale_date,
-            SUM(CAST(total_amount AS FLOAT)) AS total_sales
+            SUM(CAST(total_amount AS FLOAT)) AS total_sales,
+            COUNT(1) AS invoice_count
           FROM invoices
           WHERE is_active = 'Y'
             AND invoice_date >= ${startDate}
@@ -187,6 +192,7 @@ export const executiveDashboardController = {
           : 0;
 
       const salesByDate: Record<string, number> = {};
+      const invoicesByDate: Record<string, number> = {};
       dailySalesRows.forEach(row => {
         if (row.sale_date) {
           const key =
@@ -194,11 +200,13 @@ export const executiveDashboardController = {
               ? row.sale_date.toISOString().split('T')[0]
               : String(row.sale_date).split('T')[0];
           salesByDate[key] = Number(row.total_sales || 0);
+          invoicesByDate[key] = Number(row.invoice_count || 0);
         }
       });
 
       const salesLabels: string[] = [];
       const salesValues: number[] = [];
+      const invoicesValues: number[] = [];
 
       for (let i = 0; i < days; i++) {
         const d = new Date(startDate);
@@ -208,6 +216,7 @@ export const executiveDashboardController = {
 
         salesLabels.push(monthDay);
         salesValues.push(salesByDate[dateStr] || 0);
+        invoicesValues.push(invoicesByDate[dateStr] || 0);
       }
 
       const topProductsData = {
@@ -254,6 +263,7 @@ export const executiveDashboardController = {
           salesPerformance: {
             labels: salesLabels,
             sales: salesValues,
+            invoices: invoicesValues,
             period: days,
           },
           topProducts: topProductsData,
@@ -458,11 +468,16 @@ export const executiveDashboardController = {
       const startDate = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
 
       const dailySalesRows = await prisma.$queryRaw<
-        Array<{ sale_date: Date | string; total_sales: number | null }>
+        Array<{
+          sale_date: Date | string;
+          total_sales: number | null;
+          invoice_count: number | bigint | null;
+        }>
       >`
         SELECT 
           CAST(invoice_date AS DATE) AS sale_date,
-          SUM(CAST(total_amount AS FLOAT)) AS total_sales
+          SUM(CAST(total_amount AS FLOAT)) AS total_sales,
+          COUNT(1) AS invoice_count
         FROM invoices
         WHERE is_active = 'Y'
           AND invoice_date >= ${startDate}
@@ -471,6 +486,7 @@ export const executiveDashboardController = {
       `;
 
       const salesByDate: Record<string, number> = {};
+      const invoicesByDate: Record<string, number> = {};
       dailySalesRows.forEach(row => {
         if (row.sale_date) {
           const key =
@@ -478,11 +494,13 @@ export const executiveDashboardController = {
               ? row.sale_date.toISOString().split('T')[0]
               : String(row.sale_date).split('T')[0];
           salesByDate[key] = Number(row.total_sales || 0);
+          invoicesByDate[key] = Number(row.invoice_count || 0);
         }
       });
 
       const labels: string[] = [];
       const data: number[] = [];
+      const invoicesData: number[] = [];
 
       for (let i = 0; i < days; i++) {
         const date = new Date(startDate);
@@ -492,6 +510,7 @@ export const executiveDashboardController = {
 
         labels.push(monthDay);
         data.push(salesByDate[dateStr] || 0);
+        invoicesData.push(invoicesByDate[dateStr] || 0);
       }
 
       res.json({
@@ -500,6 +519,7 @@ export const executiveDashboardController = {
         data: {
           labels,
           sales: data,
+          invoices: invoicesData,
           period: days,
         },
       });

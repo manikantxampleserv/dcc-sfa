@@ -61,7 +61,8 @@ exports.executiveDashboardController = {
                 prisma_client_1.default.$queryRaw `
           SELECT 
             CAST(invoice_date AS DATE) AS sale_date,
-            SUM(CAST(total_amount AS FLOAT)) AS total_sales
+            SUM(CAST(total_amount AS FLOAT)) AS total_sales,
+            COUNT(1) AS invoice_count
           FROM invoices
           WHERE is_active = 'Y'
             AND invoice_date >= ${startDate}
@@ -121,16 +122,19 @@ exports.executiveDashboardController = {
                 ? (successfulDeliveriesThisMonth / allVisitsThisMonth) * 100
                 : 0;
             const salesByDate = {};
+            const invoicesByDate = {};
             dailySalesRows.forEach(row => {
                 if (row.sale_date) {
                     const key = row.sale_date instanceof Date
                         ? row.sale_date.toISOString().split('T')[0]
                         : String(row.sale_date).split('T')[0];
                     salesByDate[key] = Number(row.total_sales || 0);
+                    invoicesByDate[key] = Number(row.invoice_count || 0);
                 }
             });
             const salesLabels = [];
             const salesValues = [];
+            const invoicesValues = [];
             for (let i = 0; i < days; i++) {
                 const d = new Date(startDate);
                 d.setDate(d.getDate() + i);
@@ -138,6 +142,7 @@ exports.executiveDashboardController = {
                 const monthDay = `${d.getMonth() + 1}/${d.getDate()}`;
                 salesLabels.push(monthDay);
                 salesValues.push(salesByDate[dateStr] || 0);
+                invoicesValues.push(invoicesByDate[dateStr] || 0);
             }
             const topProductsData = {
                 products: topProductsRows.map(p => p.name || 'Unknown'),
@@ -180,6 +185,7 @@ exports.executiveDashboardController = {
                     salesPerformance: {
                         labels: salesLabels,
                         sales: salesValues,
+                        invoices: invoicesValues,
                         period: days,
                     },
                     topProducts: topProductsData,
@@ -326,7 +332,8 @@ exports.executiveDashboardController = {
             const dailySalesRows = await prisma_client_1.default.$queryRaw `
         SELECT 
           CAST(invoice_date AS DATE) AS sale_date,
-          SUM(CAST(total_amount AS FLOAT)) AS total_sales
+          SUM(CAST(total_amount AS FLOAT)) AS total_sales,
+          COUNT(1) AS invoice_count
         FROM invoices
         WHERE is_active = 'Y'
           AND invoice_date >= ${startDate}
@@ -334,16 +341,19 @@ exports.executiveDashboardController = {
         ORDER BY sale_date ASC
       `;
             const salesByDate = {};
+            const invoicesByDate = {};
             dailySalesRows.forEach(row => {
                 if (row.sale_date) {
                     const key = row.sale_date instanceof Date
                         ? row.sale_date.toISOString().split('T')[0]
                         : String(row.sale_date).split('T')[0];
                     salesByDate[key] = Number(row.total_sales || 0);
+                    invoicesByDate[key] = Number(row.invoice_count || 0);
                 }
             });
             const labels = [];
             const data = [];
+            const invoicesData = [];
             for (let i = 0; i < days; i++) {
                 const date = new Date(startDate);
                 date.setDate(date.getDate() + i);
@@ -351,6 +361,7 @@ exports.executiveDashboardController = {
                 const monthDay = `${date.getMonth() + 1}/${date.getDate()}`;
                 labels.push(monthDay);
                 data.push(salesByDate[dateStr] || 0);
+                invoicesData.push(invoicesByDate[dateStr] || 0);
             }
             res.json({
                 success: true,
@@ -358,6 +369,7 @@ exports.executiveDashboardController = {
                 data: {
                     labels,
                     sales: data,
+                    invoices: invoicesData,
                     period: days,
                 },
             });

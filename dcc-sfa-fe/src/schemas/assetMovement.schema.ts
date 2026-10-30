@@ -59,7 +59,7 @@ export const assetMovementValidationSchema = Yup.object({
       ],
       'Movement type must be one of: transfer, maintenance, repair, disposal, return, installation'
     )
-    .nullable(),
+    .required('Movement type is required'),
   return_reason: Yup.string()
     .nullable()
     .when('movement_type', {

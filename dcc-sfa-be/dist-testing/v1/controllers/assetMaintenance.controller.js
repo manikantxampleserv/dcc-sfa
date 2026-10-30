@@ -21,6 +21,13 @@ const serializeAssetMaintenance = (m) => ({
     updatedate: m.updatedate,
     updatedby: m.updatedby,
     log_inst: m.log_inst,
+    spares: Array.isArray(m.spares)
+        ? m.spares.map((s) => ({
+            id: s.id,
+            name: s.name,
+            cost: Number(s.cost) || 0,
+        }))
+        : [],
     asset_maintenance_master: m.asset_maintenance_master
         ? {
             id: m.asset_maintenance_master.id,
@@ -47,38 +54,45 @@ const serializeAssetMaintenance = (m) => ({
 exports.assetMaintenanceController = {
     async createAssetMaintenance(req, res) {
         try {
-            const data = req.body;
-            if (!data.asset_id || !data.technician_id || !data.maintenance_date) {
+            const { spares, ...maintenanceData } = req.body;
+            if (!maintenanceData.asset_id ||
+                !maintenanceData.technician_id ||
+                !maintenanceData.maintenance_date) {
                 return res.status(400).json({
                     message: 'asset_id, technician_id, and maintenance_date are required',
                 });
             }
             const asset = await prisma_client_1.default.asset_master.findUnique({
-                where: { id: data.asset_id },
+                where: { id: maintenanceData.asset_id },
             });
             if (!asset) {
                 return res.status(404).json({
                     message: 'Asset not found',
                 });
             }
-            if (!asset.warranty_expiry ||
-                new Date(asset.warranty_expiry) < new Date()) {
-                return res.status(400).json({
-                    message: 'Cannot create maintenance record. Asset warranty has expired.',
-                });
-            }
-            if (new Date(data.maintenance_date) > new Date(asset.warranty_expiry)) {
-                return res.status(400).json({
-                    message: 'Maintenance date is beyond the warranty expiry date.',
-                });
-            }
+            const sparesToCreate = Array.isArray(spares) && spares.length > 0
+                ? spares
+                    .filter((s) => s && typeof s.name === 'string' && s.name.trim())
+                    .map((s) => ({
+                    name: s.name.trim(),
+                    cost: Number(s.cost) || 0,
+                    createdby: req.user?.id || 1,
+                }))
+                : [];
             const record = await prisma_client_1.default.asset_maintenance.create({
                 data: {
-                    ...data,
-                    maintenance_date: new Date(data.maintenance_date),
+                    ...maintenanceData,
+                    maintenance_date: new Date(maintenanceData.maintenance_date),
                     createdby: req.user?.id || 1,
                     createdate: new Date(),
-                    log_inst: data.log_inst || 1,
+                    log_inst: maintenanceData.log_inst || 1,
+                    ...(sparesToCreate.length > 0
+                        ? {
+                            spares: {
+                                create: sparesToCreate,
+                            },
+                        }
+                        : {}),
                 },
                 include: {
                     asset_maintenance_master: {
@@ -89,6 +103,7 @@ exports.assetMaintenanceController = {
                         },
                     },
                     asset_maintenance_technician: true,
+                    spares: true,
                 },
             });
             res.status(201).json({
@@ -134,6 +149,7 @@ exports.assetMaintenanceController = {
                         },
                     },
                     asset_maintenance_technician: true,
+                    spares: true,
                 },
             });
             const totalRecords = await prisma_client_1.default.asset_maintenance.count();
@@ -177,6 +193,7 @@ exports.assetMaintenanceController = {
                         },
                     },
                     asset_maintenance_technician: true,
+                    spares: true,
                 },
             });
             if (!record)
@@ -194,29 +211,56 @@ exports.assetMaintenanceController = {
     async updateAssetMaintenance(req, res) {
         try {
             const { id } = req.params;
+            const maintenanceId = Number(id);
             const existing = await prisma_client_1.default.asset_maintenance.findUnique({
-                where: { id: Number(id) },
+                where: { id: maintenanceId },
             });
             if (!existing)
                 return res.status(404).json({ message: 'Asset maintenance not found' });
-            const updated = await prisma_client_1.default.asset_maintenance.update({
-                where: { id: Number(id) },
-                data: {
-                    ...req.body,
-                    maintenance_date: new Date(req.body.maintenance_date),
-                    updatedby: req.user?.id || req.body.updatedby || 1,
-                    updatedate: new Date(),
-                },
-                include: {
-                    asset_maintenance_master: {
-                        include: {
-                            asset_master_asset_types: {
-                                select: { id: true, name: true },
+            const { spares, ...updateData } = req.body;
+            const updated = await prisma_client_1.default.$transaction(async (tx) => {
+                if (spares !== undefined) {
+                    await tx.asset_maintenance_spares.deleteMany({
+                        where: { asset_maintenance_id: maintenanceId },
+                    });
+                    if (Array.isArray(spares) && spares.length > 0) {
+                        const sparesToCreate = spares
+                            .filter((s) => s && typeof s.name === 'string' && s.name.trim())
+                            .map((s) => ({
+                            asset_maintenance_id: maintenanceId,
+                            name: s.name.trim(),
+                            cost: Number(s.cost) || 0,
+                            createdby: req.user?.id || 1,
+                        }));
+                        if (sparesToCreate.length > 0) {
+                            await tx.asset_maintenance_spares.createMany({
+                                data: sparesToCreate,
+                            });
+                        }
+                    }
+                }
+                return tx.asset_maintenance.update({
+                    where: { id: maintenanceId },
+                    data: {
+                        ...updateData,
+                        ...(updateData.maintenance_date
+                            ? { maintenance_date: new Date(updateData.maintenance_date) }
+                            : {}),
+                        updatedby: req.user?.id || updateData.updatedby || 1,
+                        updatedate: new Date(),
+                    },
+                    include: {
+                        asset_maintenance_master: {
+                            include: {
+                                asset_master_asset_types: {
+                                    select: { id: true, name: true },
+                                },
                             },
                         },
+                        asset_maintenance_technician: true,
+                        spares: true,
                     },
-                    asset_maintenance_technician: true,
-                },
+                });
             });
             res.json({
                 message: 'Asset maintenance updated successfully',

@@ -18,5 +18,8 @@ exports.createAssetMaintenanceValidation = [
         .withMessage('Action taken must be a string'),
     (0, express_validator_1.body)('cost').optional().isFloat().withMessage('Cost must be a float'),
     (0, express_validator_1.body)('remarks').optional().isString().withMessage('Remarks must be a string'),
+    (0, express_validator_1.body)('spares').optional().isArray().withMessage('Spares must be an array'),
+    (0, express_validator_1.body)('spares.*.name').optional().isString().withMessage('Spare part name must be a string'),
+    (0, express_validator_1.body)('spares.*.cost').optional().isNumeric().withMessage('Spare part cost must be numeric'),
 ];
 //# sourceMappingURL=assetMaintenance.validation.js.map
