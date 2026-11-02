@@ -16,9 +16,9 @@ export declare const excelSyncController: {
      *
      * @param {Request} req Express request
      * @param {Response} res Express response
-     * @param {NextFunction} next Express next middleware
+     * @param {NextFunction} _next Express next middleware
      */
-    getSalesData(req: Request, res: Response, next: NextFunction): Promise<Response<any, Record<string, any>>>;
+    getSalesData(req: Request, res: Response, _next: NextFunction): Promise<Response<any, Record<string, any>>>;
     /**
      * 2. Outlet Master Endpoint (CSV Only)
      * Headers: Outlet Code, Outlet Name, Depot, Zone, Route, Outlet Type,
@@ -26,9 +26,9 @@ export declare const excelSyncController: {
      *
      * @param {Request} req Express request
      * @param {Response} res Express response
-     * @param {NextFunction} next Express next middleware
+     * @param {NextFunction} _next Express next middleware
      */
-    getOutletMaster(req: Request, res: Response, next: NextFunction): Promise<Response<any, Record<string, any>>>;
+    getOutletMaster(req: Request, res: Response, _next: NextFunction): Promise<Response<any, Record<string, any>>>;
     /**
      * 3. Survey Data Endpoint (CSV Only)
      * Headers: Response ID, Date, Salesperson, Route code, Customer, Customer code,
@@ -36,17 +36,17 @@ export declare const excelSyncController: {
      *
      * @param {Request} req Express request
      * @param {Response} res Express response
-     * @param {NextFunction} next Express next middleware
+     * @param {NextFunction} _next Express next middleware
      */
-    getSurveyData(req: Request, res: Response, next: NextFunction): Promise<Response<any, Record<string, any>>>;
+    getSurveyData(req: Request, res: Response, _next: NextFunction): Promise<Response<any, Record<string, any>>>;
     /**
      * 4. Van Load and Unload Detail Endpoint (CSV Only)
      * Headers: Date, Type, Van Inventory No, User Name, Product, Tracking Type, Quantity, Batch / Serials.
      *
      * @param {Request} req Express request
      * @param {Response} res Express response
-     * @param {NextFunction} next Express next middleware
+     * @param {NextFunction} _next Express next middleware
      */
-    getVanLoadUnload(req: Request, res: Response, next: NextFunction): Promise<Response<any, Record<string, any>>>;
+    getVanLoadUnload(req: Request, res: Response, _next: NextFunction): Promise<Response<any, Record<string, any>>>;
 };
 //# sourceMappingURL=excelSync.controller.d.ts.map

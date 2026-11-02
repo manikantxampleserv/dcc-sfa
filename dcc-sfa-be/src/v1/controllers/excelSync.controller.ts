@@ -69,9 +69,9 @@ export const excelSyncController = {
    *
    * @param {Request} req Express request
    * @param {Response} res Express response
-   * @param {NextFunction} next Express next middleware
+   * @param {NextFunction} _next Express next middleware
    */
-  async getSalesData(req: Request, res: Response, next: NextFunction) {
+  async getSalesData(req: Request, res: Response, _next: NextFunction) {
     try {
       const {
         start_date,
@@ -80,12 +80,18 @@ export const excelSyncController = {
         to_date,
         status,
         customer_id,
-        limit,
+        depot_id,
+        zone_id,
+        zones_id,
+        route_id,
+        salesperson_id,
+        sales_person_id,
+        brand_id,
       } = req.query;
 
       const startDate = (start_date || from_date) as string | undefined;
       const endDate = (end_date || to_date) as string | undefined;
-      const take = limit ? Math.min(Number(limit), 50000) : 25000;
+      const BATCH_SIZE = 5000;
 
       const invoiceWhere: any = { is_active: 'Y' };
       if (status && status !== 'all') {
@@ -94,6 +100,25 @@ export const excelSyncController = {
       if (customer_id) {
         invoiceWhere.customer_id = Number(customer_id);
       }
+
+      const spId = salesperson_id || sales_person_id;
+      if (spId) {
+        invoiceWhere.salesperson_id = Number(spId);
+      }
+
+      const targetDepotId = depot_id ? Number(depot_id) : undefined;
+      const targetZoneId =
+        zone_id || zones_id ? Number(zone_id || zones_id) : undefined;
+      const targetRouteId = route_id ? Number(route_id) : undefined;
+
+      if (targetDepotId || targetZoneId || targetRouteId) {
+        invoiceWhere.invoices_customers = {
+          ...(targetDepotId ? { depot_id: targetDepotId } : {}),
+          ...(targetZoneId ? { zones_id: targetZoneId } : {}),
+          ...(targetRouteId ? { route_id: targetRouteId } : {}),
+        };
+      }
+
       if (startDate || endDate) {
         invoiceWhere.invoice_date = {};
         if (startDate) invoiceWhere.invoice_date.gte = new Date(startDate);
@@ -104,45 +129,10 @@ export const excelSyncController = {
         }
       }
 
-      /**
-       * First attempt line-item level export through invoice_items
-       */
-      const invoiceItems = await prisma.invoice_items.findMany({
-        where: { invoices: invoiceWhere },
-        take,
-        orderBy: { id: 'desc' },
-        include: {
-          invoices: {
-            include: {
-              invoices_customers: {
-                include: {
-                  customer_depot: {
-                    include: {
-                      depots_coodrinator: true,
-                      depots_supervisior: true,
-                    },
-                  },
-                  customer_zones: true,
-                  customer_routes: true,
-                  customer_channel_customer: true,
-                  customer_type_customer: true,
-                },
-              },
-              invoices_salesperson: true,
-            },
-          },
-          invoice_items_products: {
-            include: {
-              product_categories_products: true,
-              product_flavours_products: true,
-              product_volumes_products: true,
-              product_brands: true,
-              product_types_products: true,
-              product_unit_of_measurement: true,
-            },
-          },
-        },
-      });
+      const itemWhere: any = { invoices: invoiceWhere };
+      if (brand_id) {
+        itemWhere.invoice_items_products = { brand_id: Number(brand_id) };
+      }
 
       const headers = [
         'EvDate',
@@ -171,11 +161,65 @@ export const excelSyncController = {
         'Turnover',
       ];
 
-      const csvLines: string[] = [headers.join(',')];
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename=sales_data_${Date.now()}.csv`
+      );
+      res.write(headers.join(',') + '\r\n');
+
       const staffLookup = await getDepotStaffLookup();
 
-      if (invoiceItems && invoiceItems.length > 0) {
-        for (const item of invoiceItems) {
+      let hasLineItems = true;
+      let lastItemId: number | null = null;
+      let totalExported = 0;
+      let hasMore = true;
+
+      while (hasMore) {
+        const batch: any[] = await prisma.invoice_items.findMany({
+          where: itemWhere,
+          take: BATCH_SIZE,
+          ...(lastItemId !== null
+            ? { skip: 1, cursor: { id: lastItemId } }
+            : {}),
+          orderBy: { id: 'desc' },
+          include: {
+            invoices: {
+              include: {
+                invoices_customers: {
+                  include: {
+                    customer_depot: true,
+                    customer_zones: true,
+                    customer_routes: true,
+                    customer_channel_customer: true,
+                    customer_type_customer: true,
+                  },
+                },
+                invoices_salesperson: true,
+              },
+            },
+            invoice_items_products: {
+              include: {
+                product_categories_products: true,
+                product_flavours_products: true,
+                product_volumes_products: true,
+                product_brands: true,
+                product_types_products: true,
+                product_unit_of_measurement: true,
+              },
+            },
+          },
+        });
+
+        if (!batch || batch.length === 0) {
+          if (totalExported === 0) {
+            hasLineItems = false;
+          }
+          break;
+        }
+
+        const lines: string[] = [];
+        for (const item of batch) {
           const inv = item.invoices;
           const cust = inv?.invoices_customers;
           const sp = inv?.invoices_salesperson;
@@ -194,7 +238,7 @@ export const excelSyncController = {
           const unitCase = Number((phyCase * conversionRate).toFixed(3));
           const turnover = Number(item.total_amount) || 0;
 
-          csvLines.push(
+          lines.push(
             [
               escapeCsv(formatDateDMY(inv?.invoice_date)),
               escapeCsv(staff.depotName || depot?.name || ''),
@@ -205,7 +249,9 @@ export const excelSyncController = {
               escapeCsv(cust?.code || ''),
               escapeCsv(cust?.name || ''),
               escapeCsv(cust?.customer_zones?.name || ''),
-              escapeCsv(cust?.customer_routes?.code || cust?.customer_routes?.name || ''),
+              escapeCsv(
+                cust?.customer_routes?.code || cust?.customer_routes?.name || ''
+              ),
               escapeCsv(cust?.customer_channel_customer?.channel_name || ''),
               escapeCsv(cust?.customer_type_customer?.type_name || ''),
               escapeCsv(inv?.invoice_number || ''),
@@ -218,9 +264,9 @@ export const excelSyncController = {
               escapeCsv(prod?.name || item.product_name || ''),
               escapeCsv(
                 prod?.product_types_products?.name ||
-                prod?.product_unit_of_measurement?.name ||
-                item.unit ||
-                ''
+                  prod?.product_unit_of_measurement?.name ||
+                  item.unit ||
+                  ''
               ),
               escapeCsv(phyCase),
               escapeCsv(unitCase),
@@ -228,86 +274,118 @@ export const excelSyncController = {
             ].join(',')
           );
         }
-      } else {
-        /**
-         * Fallback to invoice header level when line items are not populated
-         */
-        const invoices = await prisma.invoices.findMany({
-          where: invoiceWhere,
-          take,
-          orderBy: { invoice_date: 'desc' },
-          include: {
-            invoices_customers: {
-              include: {
-                customer_depot: {
-                  include: {
-                    depots_coodrinator: true,
-                    depots_supervisior: true,
-                  },
-                },
-                customer_zones: true,
-                customer_routes: true,
-                customer_channel_customer: true,
-                customer_type_customer: true,
-              },
-            },
-            invoices_salesperson: true,
-          },
-        });
 
-        for (const inv of invoices) {
-          const cust = inv.invoices_customers;
-          const sp = inv.invoices_salesperson;
-          if (isHiddenUser(sp)) continue;
-          const depot = cust?.customer_depot;
+        if (lines.length > 0) {
+          res.write(lines.join('\r\n') + '\r\n');
+        }
 
-          const staff = staffLookup.resolveStaff({
-            customerDepot: depot,
-            salesperson: sp,
-            depotName: depot?.name,
-          });
-
-          csvLines.push(
-            [
-              escapeCsv(formatDateDMY(inv.invoice_date)),
-              escapeCsv(staff.depotName || depot?.name || ''),
-              escapeCsv(staff.coordinatorName || ''),
-              escapeCsv(staff.supervisorName || ''),
-              escapeCsv(sp?.employee_id || sp?.sap_code || ''),
-              escapeCsv(sp?.name || ''),
-              escapeCsv(cust?.code || ''),
-              escapeCsv(cust?.name || ''),
-              escapeCsv(cust?.customer_zones?.name || ''),
-              escapeCsv(cust?.customer_routes?.code || cust?.customer_routes?.name || ''),
-              escapeCsv(cust?.customer_channel_customer?.channel_name || ''),
-              escapeCsv(cust?.customer_type_customer?.type_name || ''),
-              escapeCsv(inv.invoice_number),
-              escapeCsv(''),
-              escapeCsv(''),
-              escapeCsv(''),
-              escapeCsv(''),
-              escapeCsv(''),
-              escapeCsv(''),
-              escapeCsv(''),
-              escapeCsv(''),
-              escapeCsv(0),
-              escapeCsv(0),
-              escapeCsv(Number(inv.total_amount) || 0),
-            ].join(',')
-          );
+        totalExported += batch.length;
+        lastItemId = batch[batch.length - 1].id;
+        if (batch.length < BATCH_SIZE) {
+          hasMore = false;
         }
       }
 
-      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-      res.setHeader(
-        'Content-Disposition',
-        `attachment; filename=sales_data_${Date.now()}.csv`
-      );
-      return res.status(200).send(csvLines.join('\r\n'));
+      if (!hasLineItems) {
+        /**
+         * Fallback to invoice header level when line items are not populated
+         */
+        let lastInvId: number | null = null;
+        let hasMoreInv = true;
+
+        while (hasMoreInv) {
+          const batchInvoices: any[] = await prisma.invoices.findMany({
+            where: invoiceWhere,
+            take: BATCH_SIZE,
+            ...(lastInvId !== null
+              ? { skip: 1, cursor: { id: lastInvId } }
+              : {}),
+            orderBy: { id: 'desc' },
+            include: {
+              invoices_customers: {
+                include: {
+                  customer_depot: true,
+                  customer_zones: true,
+                  customer_routes: true,
+                  customer_channel_customer: true,
+                  customer_type_customer: true,
+                },
+              },
+              invoices_salesperson: true,
+            },
+          });
+
+          if (!batchInvoices || batchInvoices.length === 0) break;
+
+          const lines: string[] = [];
+          for (const inv of batchInvoices) {
+            const cust = inv.invoices_customers;
+            const sp = inv.invoices_salesperson;
+            if (isHiddenUser(sp)) continue;
+            const depot = cust?.customer_depot;
+
+            const staff = staffLookup.resolveStaff({
+              customerDepot: depot,
+              salesperson: sp,
+              depotName: depot?.name,
+            });
+
+            lines.push(
+              [
+                escapeCsv(formatDateDMY(inv.invoice_date)),
+                escapeCsv(staff.depotName || depot?.name || ''),
+                escapeCsv(staff.coordinatorName || ''),
+                escapeCsv(staff.supervisorName || ''),
+                escapeCsv(sp?.employee_id || sp?.sap_code || ''),
+                escapeCsv(sp?.name || ''),
+                escapeCsv(cust?.code || ''),
+                escapeCsv(cust?.name || ''),
+                escapeCsv(cust?.customer_zones?.name || ''),
+                escapeCsv(
+                  cust?.customer_routes?.code ||
+                    cust?.customer_routes?.name ||
+                    ''
+                ),
+                escapeCsv(cust?.customer_channel_customer?.channel_name || ''),
+                escapeCsv(cust?.customer_type_customer?.type_name || ''),
+                escapeCsv(inv.invoice_number),
+                escapeCsv(''),
+                escapeCsv(''),
+                escapeCsv(''),
+                escapeCsv(''),
+                escapeCsv(''),
+                escapeCsv(''),
+                escapeCsv(''),
+                escapeCsv(''),
+                escapeCsv(0),
+                escapeCsv(0),
+                escapeCsv(Number(inv.total_amount) || 0),
+              ].join(',')
+            );
+          }
+
+          if (lines.length > 0) {
+            res.write(lines.join('\r\n') + '\r\n');
+          }
+
+          totalExported += batchInvoices.length;
+          lastInvId = batchInvoices[batchInvoices.length - 1].id;
+          if (batchInvoices.length < BATCH_SIZE) {
+            hasMoreInv = false;
+          }
+        }
+      }
+
+      return res.end();
     } catch (error: any) {
       console.error('Excel Sales Data Export Error:', error);
-      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-      return res.status(500).send(`Error: ${error.message || 'Failed to export sales data'}`);
+      if (!res.headersSent) {
+        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+        return res
+          .status(500)
+          .send(`Error: ${error.message || 'Failed to export sales data'}`);
+      }
+      return res.end();
     }
   },
 
@@ -318,19 +396,13 @@ export const excelSyncController = {
    *
    * @param {Request} req Express request
    * @param {Response} res Express response
-   * @param {NextFunction} next Express next middleware
+   * @param {NextFunction} _next Express next middleware
    */
-  async getOutletMaster(req: Request, res: Response, next: NextFunction) {
+  async getOutletMaster(req: Request, res: Response, _next: NextFunction) {
     try {
-      const {
-        depot_id,
-        zone_id,
-        route_id,
-        search,
-        limit,
-      } = req.query;
+      const { depot_id, zone_id, route_id, search } = req.query;
 
-      const take = limit ? Math.min(Number(limit), 50000) : 25000;
+      const BATCH_SIZE = 5000;
       const where: any = { is_active: 'Y' };
 
       if (depot_id) where.depot_id = Number(depot_id);
@@ -346,22 +418,6 @@ export const excelSyncController = {
           { phone_number: { contains: searchStr } },
         ];
       }
-
-      const customers = await prisma.customers.findMany({
-        where,
-        take,
-        orderBy: { id: 'asc' },
-        include: {
-          customer_depot: true,
-          customer_zones: true,
-          customer_routes: true,
-          customer_type_customer: true,
-          customer_channel_customer: true,
-          customer_category_customer: true,
-          customers_regions: true,
-          customers_districts: true,
-        },
-      });
 
       const headers = [
         'Outlet Code',
@@ -380,38 +436,84 @@ export const excelSyncController = {
         'Longitude',
       ];
 
-      const csvLines: string[] = [headers.join(',')];
-      for (const c of customers) {
-        csvLines.push(
-          [
-            escapeCsv(c.code || ''),
-            escapeCsv(c.name || ''),
-            escapeCsv(c.customer_depot?.name || ''),
-            escapeCsv(c.customer_zones?.name || ''),
-            escapeCsv(c.customer_routes?.code || c.customer_routes?.name || ''),
-            escapeCsv(c.customer_type_customer?.type_name || c.type || ''),
-            escapeCsv(c.customer_channel_customer?.channel_name || ''),
-            escapeCsv(c.customer_category_customer?.category_name || ''),
-            escapeCsv(c.customers_regions?.name || ''),
-            escapeCsv(c.customers_districts?.name || ''),
-            escapeCsv(c.contact_person || ''),
-            escapeCsv(c.phone_number || ''),
-            escapeCsv(c.latitude ? String(c.latitude) : ''),
-            escapeCsv(c.longitude ? String(c.longitude) : ''),
-          ].join(',')
-        );
-      }
-
       res.setHeader('Content-Type', 'text/csv; charset=utf-8');
       res.setHeader(
         'Content-Disposition',
         `attachment; filename=outlet_master_${Date.now()}.csv`
       );
-      return res.status(200).send(csvLines.join('\r\n'));
+      res.write(headers.join(',') + '\r\n');
+
+      let lastCustId: number | null = null;
+      let totalExported = 0;
+      let hasMore = true;
+
+      while (hasMore) {
+        const customers: any[] = await prisma.customers.findMany({
+          where,
+          take: BATCH_SIZE,
+          ...(lastCustId !== null
+            ? { skip: 1, cursor: { id: lastCustId } }
+            : {}),
+          orderBy: { id: 'asc' },
+          include: {
+            customer_depot: true,
+            customer_zones: true,
+            customer_routes: true,
+            customer_type_customer: true,
+            customer_channel_customer: true,
+            customer_category_customer: true,
+            customers_regions: true,
+            customers_districts: true,
+          },
+        });
+
+        if (!customers || customers.length === 0) break;
+
+        const lines: string[] = [];
+        for (const c of customers) {
+          lines.push(
+            [
+              escapeCsv(c.code || ''),
+              escapeCsv(c.name || ''),
+              escapeCsv(c.customer_depot?.name || ''),
+              escapeCsv(c.customer_zones?.name || ''),
+              escapeCsv(
+                c.customer_routes?.code || c.customer_routes?.name || ''
+              ),
+              escapeCsv(c.customer_type_customer?.type_name || c.type || ''),
+              escapeCsv(c.customer_channel_customer?.channel_name || ''),
+              escapeCsv(c.customer_category_customer?.category_name || ''),
+              escapeCsv(c.customers_regions?.name || ''),
+              escapeCsv(c.customers_districts?.name || ''),
+              escapeCsv(c.contact_person || ''),
+              escapeCsv(c.phone_number || ''),
+              escapeCsv(c.latitude ? String(c.latitude) : ''),
+              escapeCsv(c.longitude ? String(c.longitude) : ''),
+            ].join(',')
+          );
+        }
+
+        if (lines.length > 0) {
+          res.write(lines.join('\r\n') + '\r\n');
+        }
+
+        totalExported += customers.length;
+        lastCustId = customers[customers.length - 1].id;
+        if (customers.length < BATCH_SIZE) {
+          hasMore = false;
+        }
+      }
+
+      return res.end();
     } catch (error: any) {
       console.error('Excel Outlet Master Export Error:', error);
-      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-      return res.status(500).send(`Error: ${error.message || 'Failed to export outlet master'}`);
+      if (!res.headersSent) {
+        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+        return res
+          .status(500)
+          .send(`Error: ${error.message || 'Failed to export outlet master'}`);
+      }
+      return res.end();
     }
   },
 
@@ -422,21 +524,15 @@ export const excelSyncController = {
    *
    * @param {Request} req Express request
    * @param {Response} res Express response
-   * @param {NextFunction} next Express next middleware
+   * @param {NextFunction} _next Express next middleware
    */
-  async getSurveyData(req: Request, res: Response, next: NextFunction) {
+  async getSurveyData(req: Request, res: Response, _next: NextFunction) {
     try {
-      const {
-        start_date,
-        end_date,
-        from_date,
-        to_date,
-        limit,
-      } = req.query;
+      const { start_date, end_date, from_date, to_date } = req.query;
 
       const startDate = (start_date || from_date) as string | undefined;
       const endDate = (end_date || to_date) as string | undefined;
-      const take = limit ? Math.min(Number(limit), 50000) : 25000;
+      const BATCH_SIZE = 5000;
 
       const where: any = {
         survey_answer_responses: {
@@ -456,27 +552,6 @@ export const excelSyncController = {
         }
       }
 
-      const surveyAnswers = await prisma.survey_answers.findMany({
-        where,
-        take,
-        orderBy: { id: 'desc' },
-        include: {
-          survey_answer_responses: {
-            include: {
-              survey_responses_submitted_by_users: true,
-              survey_response_customer: {
-                include: {
-                  customer_routes: true,
-                  customer_type_customer: true,
-                },
-              },
-            },
-          },
-          survey_answers_products: true,
-          survey_fields: true,
-        },
-      });
-
       const headers = [
         'Response ID',
         'Date',
@@ -490,40 +565,91 @@ export const excelSyncController = {
         'Qty not available',
       ];
 
-      const csvLines: string[] = [headers.join(',')];
-      for (const ans of surveyAnswers) {
-        const resp = ans.survey_answer_responses;
-        const cust = resp?.survey_response_customer;
-        const user = resp?.survey_responses_submitted_by_users;
-        if (isHiddenUser(user)) continue;
-        const prod = ans.survey_answers_products;
-
-        csvLines.push(
-          [
-            escapeCsv(ans.parent_id),
-            escapeCsv(formatDateISO(resp?.submitted_at || resp?.createdate)),
-            escapeCsv(user?.name || ''),
-            escapeCsv(cust?.customer_routes?.code || cust?.customer_routes?.name || ''),
-            escapeCsv(cust?.name || ''),
-            escapeCsv(cust?.code || ''),
-            escapeCsv(cust?.customer_type_customer?.type_name || cust?.type || ''),
-            escapeCsv(resp?.location || '–'),
-            escapeCsv(prod?.name || ans.survey_fields?.label || ''),
-            escapeCsv(ans.answer || '0'),
-          ].join(',')
-        );
-      }
-
       res.setHeader('Content-Type', 'text/csv; charset=utf-8');
       res.setHeader(
         'Content-Disposition',
         `attachment; filename=survey_data_${Date.now()}.csv`
       );
-      return res.status(200).send(csvLines.join('\r\n'));
+      res.write(headers.join(',') + '\r\n');
+
+      let lastAnsId: number | null = null;
+      let totalExported = 0;
+      let hasMore = true;
+
+      while (hasMore) {
+        const surveyAnswers: any[] = await prisma.survey_answers.findMany({
+          where,
+          take: BATCH_SIZE,
+          ...(lastAnsId !== null ? { skip: 1, cursor: { id: lastAnsId } } : {}),
+          orderBy: { id: 'desc' },
+          include: {
+            survey_answer_responses: {
+              include: {
+                survey_responses_submitted_by_users: true,
+                survey_response_customer: {
+                  include: {
+                    customer_routes: true,
+                    customer_type_customer: true,
+                  },
+                },
+              },
+            },
+            survey_answers_products: true,
+            survey_fields: true,
+          },
+        });
+
+        if (!surveyAnswers || surveyAnswers.length === 0) break;
+
+        const lines: string[] = [];
+        for (const ans of surveyAnswers) {
+          const resp = ans.survey_answer_responses;
+          const cust = resp?.survey_response_customer;
+          const user = resp?.survey_responses_submitted_by_users;
+          if (isHiddenUser(user)) continue;
+          const prod = ans.survey_answers_products;
+
+          lines.push(
+            [
+              escapeCsv(ans.parent_id),
+              escapeCsv(formatDateISO(resp?.submitted_at || resp?.createdate)),
+              escapeCsv(user?.name || ''),
+              escapeCsv(
+                cust?.customer_routes?.code || cust?.customer_routes?.name || ''
+              ),
+              escapeCsv(cust?.name || ''),
+              escapeCsv(cust?.code || ''),
+              escapeCsv(
+                cust?.customer_type_customer?.type_name || cust?.type || ''
+              ),
+              escapeCsv(resp?.location || '–'),
+              escapeCsv(prod?.name || ans.survey_fields?.label || ''),
+              escapeCsv(ans.answer || '0'),
+            ].join(',')
+          );
+        }
+
+        if (lines.length > 0) {
+          res.write(lines.join('\r\n') + '\r\n');
+        }
+
+        totalExported += surveyAnswers.length;
+        lastAnsId = surveyAnswers[surveyAnswers.length - 1].id;
+        if (surveyAnswers.length < BATCH_SIZE) {
+          hasMore = false;
+        }
+      }
+
+      return res.end();
     } catch (error: any) {
       console.error('Excel Survey Data Export Error:', error);
-      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-      return res.status(500).send(`Error: ${error.message || 'Failed to export survey data'}`);
+      if (!res.headersSent) {
+        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+        return res
+          .status(500)
+          .send(`Error: ${error.message || 'Failed to export survey data'}`);
+      }
+      return res.end();
     }
   },
 
@@ -533,23 +659,16 @@ export const excelSyncController = {
    *
    * @param {Request} req Express request
    * @param {Response} res Express response
-   * @param {NextFunction} next Express next middleware
+   * @param {NextFunction} _next Express next middleware
    */
-  async getVanLoadUnload(req: Request, res: Response, next: NextFunction) {
+  async getVanLoadUnload(req: Request, res: Response, _next: NextFunction) {
     try {
-      const {
-        start_date,
-        end_date,
-        from_date,
-        to_date,
-        type,
-        user_id,
-        limit,
-      } = req.query;
+      const { start_date, end_date, from_date, to_date, type, user_id } =
+        req.query;
 
       const startDate = (start_date || from_date) as string | undefined;
       const endDate = (end_date || to_date) as string | undefined;
-      const take = limit ? Math.min(Number(limit), 50000) : 25000;
+      const BATCH_SIZE = 5000;
 
       const where: any = {
         is_cancelled: 'N',
@@ -586,22 +705,6 @@ export const excelSyncController = {
         }
       }
 
-      const items = await prisma.van_inventory_items.findMany({
-        where,
-        take,
-        orderBy: { id: 'desc' },
-        include: {
-          van_inventory_items_inventory: {
-            include: {
-              van_inventory_users: true,
-            },
-          },
-          van_inventory_items_products: true,
-          van_inventory_items_batch_lot: true,
-          van_inventory_serial: true,
-        },
-      });
-
       const headers = [
         'Date',
         'Type',
@@ -613,56 +716,101 @@ export const excelSyncController = {
         'Batch / Serials',
       ];
 
-      const csvLines: string[] = [headers.join(',')];
-
-      for (const item of items) {
-        const inv = item.van_inventory_items_inventory;
-        const prod = item.van_inventory_items_products;
-        const user = inv?.van_inventory_users;
-        if (isHiddenUser(user)) continue;
-
-        const dateVal = inv?.document_date || inv?.createdate;
-        const typeVal =
-          inv?.loading_type === 'L'
-            ? 'Load'
-            : inv?.loading_type === 'U'
-              ? 'Unload'
-              : inv?.loading_type || 'Load';
-
-        const trackingType =
-          prod?.tracking_type ||
-          (item.batch_lot_id ? 'Batch' : item.serial_id ? 'Serial' : 'Batch');
-
-        const batchOrSerial =
-          item.van_inventory_items_batch_lot?.batch_number ||
-          item.van_inventory_serial?.serial_number ||
-          item.notes ||
-          '';
-
-        csvLines.push(
-          [
-            escapeCsv(formatDateISO(dateVal)),
-            escapeCsv(typeVal),
-            escapeCsv(inv?.id || item.parent_id),
-            escapeCsv(user?.name || ''),
-            escapeCsv(prod?.name || item.product_name || ''),
-            escapeCsv(trackingType),
-            escapeCsv(Number(item.quantity) || 0),
-            escapeCsv(batchOrSerial),
-          ].join(',')
-        );
-      }
-
       res.setHeader('Content-Type', 'text/csv; charset=utf-8');
       res.setHeader(
         'Content-Disposition',
         `attachment; filename=van_load_unload_${Date.now()}.csv`
       );
-      return res.status(200).send(csvLines.join('\r\n'));
+      res.write(headers.join(',') + '\r\n');
+
+      let lastItemId: number | null = null;
+      let totalExported = 0;
+      let hasMore = true;
+
+      while (hasMore) {
+        const items: any[] = await prisma.van_inventory_items.findMany({
+          where,
+          take: BATCH_SIZE,
+          ...(lastItemId !== null
+            ? { skip: 1, cursor: { id: lastItemId } }
+            : {}),
+          orderBy: { id: 'desc' },
+          include: {
+            van_inventory_items_inventory: {
+              include: {
+                van_inventory_users: true,
+              },
+            },
+            van_inventory_items_products: true,
+            van_inventory_items_batch_lot: true,
+            van_inventory_serial: true,
+          },
+        });
+
+        if (!items || items.length === 0) break;
+
+        const lines: string[] = [];
+        for (const item of items) {
+          const inv = item.van_inventory_items_inventory;
+          const prod = item.van_inventory_items_products;
+          const user = inv?.van_inventory_users;
+          if (isHiddenUser(user)) continue;
+
+          const dateVal = inv?.document_date || inv?.createdate;
+          const typeVal =
+            inv?.loading_type === 'L'
+              ? 'Load'
+              : inv?.loading_type === 'U'
+                ? 'Unload'
+                : inv?.loading_type || 'Load';
+
+          const trackingType =
+            prod?.tracking_type ||
+            (item.batch_lot_id ? 'Batch' : item.serial_id ? 'Serial' : 'Batch');
+
+          const batchOrSerial =
+            item.van_inventory_items_batch_lot?.batch_number ||
+            item.van_inventory_serial?.serial_number ||
+            item.notes ||
+            '';
+
+          lines.push(
+            [
+              escapeCsv(formatDateISO(dateVal)),
+              escapeCsv(typeVal),
+              escapeCsv(inv?.id || item.parent_id),
+              escapeCsv(user?.name || ''),
+              escapeCsv(prod?.name || item.product_name || ''),
+              escapeCsv(trackingType),
+              escapeCsv(Number(item.quantity) || 0),
+              escapeCsv(batchOrSerial),
+            ].join(',')
+          );
+        }
+
+        if (lines.length > 0) {
+          res.write(lines.join('\r\n') + '\r\n');
+        }
+
+        totalExported += items.length;
+        lastItemId = items[items.length - 1].id;
+        if (items.length < BATCH_SIZE) {
+          hasMore = false;
+        }
+      }
+
+      return res.end();
     } catch (error: any) {
       console.error('Excel Van Load Unload Export Error:', error);
-      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-      return res.status(500).send(`Error: ${error.message || 'Failed to export van load unload data'}`);
+      if (!res.headersSent) {
+        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+        return res
+          .status(500)
+          .send(
+            `Error: ${error.message || 'Failed to export van load unload data'}`
+          );
+      }
+      return res.end();
     }
   },
 };
