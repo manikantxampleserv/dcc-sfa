@@ -6939,4 +6939,340 @@ export const reportsController = {
       });
     }
   },
+
+  async getMonthlyActiveUsersReport(req: Request, res: Response) {
+    try {
+      const { company_id, only_logged_in } = req.query;
+      const targetCompanyId = company_id
+        ? parseInt(company_id as string, 10)
+        : undefined;
+      const onlyLoggedIn = only_logged_in !== 'false';
+
+      const company = await prisma.companies.findFirst({
+        where: targetCompanyId
+          ? { id: targetCompanyId, is_active: 'Y' }
+          : { is_active: 'Y' },
+        orderBy: { id: 'asc' },
+      });
+
+      const now = new Date();
+      const startOfMonth = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        1,
+        0,
+        0,
+        0,
+        0
+      );
+      const endOfMonth = new Date(
+        now.getFullYear(),
+        now.getMonth() + 1,
+        0,
+        23,
+        59,
+        59,
+        999
+      );
+
+      const userWhere: any = {
+        is_active: 'Y',
+        ...(company
+          ? { OR: [{ parent_id: company.id }, { parent_id: null }] }
+          : {}),
+      };
+
+      if (onlyLoggedIn) {
+        userWhere.last_login = { gte: startOfMonth, lte: endOfMonth };
+      }
+
+      const users = await prisma.users.findMany({
+        where: userWhere,
+        include: {
+          user_role: true,
+          user_depot: true,
+        },
+        orderBy: { last_login: 'desc' },
+      });
+
+      const loggedInCount = users.filter(u => u.last_login).length;
+      const monthYear = now.toLocaleString('en-US', {
+        month: 'long',
+        year: 'numeric',
+      });
+
+      res.status(200).json({
+        success: true,
+        data: {
+          company_name: company?.name || 'All Companies',
+          month_year: monthYear,
+          generated_date: now.toLocaleDateString('en-GB'),
+          summary: {
+            total_active_users: users.length,
+            logged_in_users: loggedInCount,
+            never_logged_in: Math.max(0, users.length - loggedInCount),
+          },
+          users: users.map(u => ({
+            id: u.id,
+            employee_id: u.employee_id || null,
+            name: u.name,
+            email: u.email,
+            phone_number: u.phone_number || null,
+            role: u.user_role?.name || null,
+            depot: u.user_depot?.name || null,
+            last_login: u.last_login,
+          })),
+        },
+      });
+    } catch (error: any) {
+      console.error('Get Monthly Active Users Report Error:', error);
+      res.status(500).json({
+        success: false,
+        message:
+          error.message || 'Failed to retrieve monthly active users report',
+      });
+    }
+  },
+
+  /**
+   * Export Monthly Active Users Report to Excel
+   * GET /api/v1/reports/monthly-active-users/export/excel
+   */
+  async exportMonthlyActiveUsersExcel(req: Request, res: Response) {
+    try {
+      const { company_id, only_logged_in } = req.query;
+      const targetCompanyId = company_id
+        ? parseInt(company_id as string, 10)
+        : undefined;
+      // Default to true: only include users who logged in this month
+      const onlyLoggedIn = only_logged_in !== 'false';
+
+      const company = await prisma.companies.findFirst({
+        where: targetCompanyId
+          ? { id: targetCompanyId, is_active: 'Y' }
+          : { is_active: 'Y' },
+        orderBy: { id: 'asc' },
+      });
+
+      const now = new Date();
+      const startOfMonth = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        1,
+        0,
+        0,
+        0,
+        0
+      );
+      const endOfMonth = new Date(
+        now.getFullYear(),
+        now.getMonth() + 1,
+        0,
+        23,
+        59,
+        59,
+        999
+      );
+
+      const userWhere: any = {
+        is_active: 'Y',
+        ...(company
+          ? { OR: [{ parent_id: company.id }, { parent_id: null }] }
+          : {}),
+      };
+
+      if (onlyLoggedIn) {
+        userWhere.last_login = { gte: startOfMonth, lte: endOfMonth };
+      }
+
+      const users = await prisma.users.findMany({
+        where: userWhere,
+        include: {
+          user_role: true,
+          user_depot: true,
+        },
+        orderBy: { last_login: 'desc' },
+      });
+
+      const monthYear = now.toLocaleString('en-US', {
+        month: 'long',
+        year: 'numeric',
+      });
+      const companyName = company?.name || 'All Companies';
+
+      const { generateUsersExcelBuffer } = await import(
+        '../../jobs/monthlyActiveUsersReport.job'
+      );
+      const buffer = await generateUsersExcelBuffer(
+        users,
+        companyName,
+        monthYear
+      );
+
+      const sanitizedCompanyName = companyName.replace(/[^a-zA-Z0-9_-]/g, '_');
+      const filename = `Active_Users_${sanitizedCompanyName}_${monthYear.replace(/\s+/g, '_')}.xlsx`;
+
+      res.setHeader(
+        'Content-Type',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      );
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename="${filename}"`
+      );
+      res.setHeader('Content-Length', buffer.byteLength.toString());
+
+      res.send(buffer);
+    } catch (error: any) {
+      console.error('Export Monthly Active Users Excel Error:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Failed to export monthly active users Excel',
+      });
+    }
+  },
+
+  /**
+   * Export Monthly Active Users Report to PDF
+   * GET /api/v1/reports/monthly-active-users/export/pdf
+   */
+  async exportMonthlyActiveUsersPdf(req: Request, res: Response) {
+    try {
+      const { company_id, only_logged_in } = req.query;
+      const targetCompanyId = company_id
+        ? parseInt(company_id as string, 10)
+        : undefined;
+      // Default to true: only include users who logged in this month
+      const onlyLoggedIn = only_logged_in !== 'false';
+
+      const company = await prisma.companies.findFirst({
+        where: targetCompanyId
+          ? { id: targetCompanyId, is_active: 'Y' }
+          : { is_active: 'Y' },
+        orderBy: { id: 'asc' },
+      });
+
+      const now = new Date();
+      const startOfMonth = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        1,
+        0,
+        0,
+        0,
+        0
+      );
+      const endOfMonth = new Date(
+        now.getFullYear(),
+        now.getMonth() + 1,
+        0,
+        23,
+        59,
+        59,
+        999
+      );
+
+      const totalEnrolled = await prisma.users.count({
+        where: {
+          is_active: 'Y',
+          ...(company
+            ? { OR: [{ parent_id: company.id }, { parent_id: null }] }
+            : {}),
+        },
+      });
+
+      const userWhere: any = {
+        is_active: 'Y',
+        ...(company
+          ? { OR: [{ parent_id: company.id }, { parent_id: null }] }
+          : {}),
+      };
+
+      if (onlyLoggedIn) {
+        userWhere.last_login = { gte: startOfMonth, lte: endOfMonth };
+      }
+
+      const users = await prisma.users.findMany({
+        where: userWhere,
+        include: {
+          user_role: true,
+          user_depot: true,
+        },
+        orderBy: { last_login: 'desc' },
+      });
+
+      const monthYear = now.toLocaleString('en-US', {
+        month: 'long',
+        year: 'numeric',
+      });
+      const companyName = company?.name || 'All Companies';
+
+      const { generateUsersPdfBuffer } = await import(
+        '../../jobs/monthlyActiveUsersReport.job'
+      );
+      const buffer = await generateUsersPdfBuffer(
+        users,
+        companyName,
+        monthYear,
+        {
+          totalActive: totalEnrolled,
+          loggedInThisMonth: users.length,
+        }
+      );
+
+      const sanitizedCompanyName = companyName.replace(/[^a-zA-Z0-9_-]/g, '_');
+      const filename = `Active_Users_${sanitizedCompanyName}_${monthYear.replace(/\s+/g, '_')}.pdf`;
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename="${filename}"`
+      );
+      res.setHeader('Content-Length', buffer.byteLength.toString());
+
+      res.send(buffer);
+    } catch (error: any) {
+      console.error('Export Monthly Active Users PDF Error:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Failed to export monthly active users PDF',
+      });
+    }
+  },
+
+  /**
+   * Trigger sending monthly active users email report immediately (Excel & PDF)
+   * POST /api/v1/reports/monthly-active-users/send
+   */
+  async sendMonthlyActiveUsersReportNow(req: Request, res: Response) {
+    try {
+      const { company_id, email, only_logged_in } = req.body;
+      const targetCompanyId = company_id
+        ? parseInt(company_id as string, 10)
+        : undefined;
+      const onlyLoggedIn =
+        only_logged_in !== false && only_logged_in !== 'false';
+
+      const { sendMonthlyActiveUsersEmail } = await import(
+        '../../jobs/monthlyActiveUsersReport.job'
+      );
+      const result = await sendMonthlyActiveUsersEmail(targetCompanyId, {
+        targetEmail: email,
+        onlyLoggedInThisMonth: onlyLoggedIn,
+      });
+
+      res.status(200).json({
+        success: true,
+        message: 'Monthly active users report dispatched successfully.',
+        data: result,
+      });
+    } catch (error: any) {
+      console.error('Send Monthly Active Users Report Now Error:', error);
+      res.status(500).json({
+        success: false,
+        message:
+          error.message || 'Failed to send monthly active users report email',
+      });
+    }
+  },
 };

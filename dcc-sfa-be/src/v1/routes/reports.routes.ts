@@ -377,4 +377,52 @@ router.get(
   reportsController.getCreditMemoReportById
 );
 
+/**
+ * @route GET /api/v1/reports/monthly-active-users
+ * @description Get Monthly Active Users Report data and summary
+ * @access Private (requires authentication)
+ */
+router.get(
+  '/monthly-active-users',
+  authenticateToken,
+  requirePermission([{ module: 'report', action: 'read' }]),
+  reportsController.getMonthlyActiveUsersReport
+);
+
+/**
+ * @route GET /api/v1/reports/monthly-active-users/export/excel
+ * @description Export Monthly Active Users Report to Excel
+ * @access Private (requires authentication)
+ */
+router.get(
+  '/monthly-active-users/export/excel',
+  authenticateToken,
+  requirePermission([{ module: 'report', action: 'read' }]),
+  reportsController.exportMonthlyActiveUsersExcel
+);
+
+/**
+ * @route GET /api/v1/reports/monthly-active-users/export/pdf
+ * @description Export Monthly Active Users Report to PDF
+ * @access Private (requires authentication)
+ */
+router.get(
+  '/monthly-active-users/export/pdf',
+  authenticateToken,
+  requirePermission([{ module: 'report', action: 'read' }]),
+  reportsController.exportMonthlyActiveUsersPdf
+);
+
+/**
+ * @route POST /api/v1/reports/monthly-active-users/send
+ * @description Trigger sending Monthly Active Users Report email (with Excel and PDF attachments)
+ * @access Private (requires authentication)
+ */
+router.post(
+  '/monthly-active-users/send',
+  authenticateToken,
+  requirePermission([{ module: 'report', action: 'read' }]),
+  reportsController.sendMonthlyActiveUsersReportNow
+);
+
 export default router;

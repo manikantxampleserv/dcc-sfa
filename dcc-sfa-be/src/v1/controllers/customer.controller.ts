@@ -308,7 +308,7 @@ const convertIsActive = (isActiveParam: any): string | undefined => {
   return isActiveParam === '1' || isActiveParam === 1 ? 'Y' : 'N';
 };
 
-const isLocationFrozen = (customer: any): boolean => {
+function isLocationFrozen(customer: any): boolean {
   if (!customer) return false;
   return (
     customer.freeze_location === true ||
@@ -322,7 +322,7 @@ const isLocationFrozen = (customer: any): boolean => {
     customer.is_freeze_location === 1 ||
     customer.is_freeze_location === '1'
   );
-};
+}
 
 const parseFreezeLocation = (value: any): boolean | undefined => {
   if (value === undefined || value === null || value === '') return undefined;
@@ -1250,7 +1250,7 @@ export const customerController = {
     }
   },
 
-  async createLocationChangeRequest(req: any, res: any) {
+  async createLocationChangeRequest(req: any, res: any): Promise<any> {
     try {
       if (!req.body) {
         return res.status(400).json({
@@ -3467,7 +3467,6 @@ export const customerController = {
 
       const associatedDepots = Array.from(depotsMap.values());
 
-      // 4. Associated Assets
       const unifiedAssets = [
         ...customerAssets.map(ca => ({
           id: ca.id,
@@ -3524,7 +3523,6 @@ export const customerController = {
         })),
       ];
 
-      // 5. Associated Visits
       const mappedVisits = visits.map(v => ({
         id: v.id,
         visit_date: v.visit_date,
@@ -3553,7 +3551,6 @@ export const customerController = {
           : null,
       }));
 
-      // 6. Associated Orders
       const mappedOrders = orders.map(o => ({
         id: o.id,
         order_number: o.order_number,
@@ -3586,7 +3583,6 @@ export const customerController = {
           : null,
       }));
 
-      // 7. Associated Payments
       const mappedPayments = payments.map(p => ({
         id: p.id,
         payment_number: p.payment_number,
@@ -3620,7 +3616,6 @@ export const customerController = {
         })),
       }));
 
-      // 8. Associated Surveys
       const surveyMap = new Map<number, any>();
       directSurveys.forEach(sc => {
         if (sc.surveys) {

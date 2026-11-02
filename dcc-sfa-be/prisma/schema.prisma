@@ -1027,6 +1027,8 @@ model customers {
   default_for_depots                     depots[]                          @relation("DepotDefaultOutlet")
   promotion_materials_issued             promotion_materials_issue[]
   customers_promotional_materials        customers_promotional_materials[]
+
+  @@index([is_active, depot_id, route_id], map: "IX_customers_active_depot")
 }
 
 model customer_image {
@@ -1215,6 +1217,8 @@ model invoice_items {
   expiry_date            DateTime? @db.DateTime
   invoices               invoices  @relation(fields: [parent_id], references: [id], onUpdate: NoAction, map: "FK__invoice_i__paren__1EA48E88")
   invoice_items_products products  @relation(fields: [product_id], references: [id], onUpdate: NoAction, map: "FK__invoice_i__produ__1F98B2C1")
+
+  @@index([parent_id, product_id], map: "IX_invoice_items_parent_product")
 }
 
 model invoices {
@@ -1259,6 +1263,8 @@ model invoices {
   invoices_salesperson users?          @relation(fields: [salesperson_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   payment_lines        payment_lines[]
   refund_lines         refund_lines[]
+
+  @@index([is_active, invoice_date], map: "IX_invoices_active_date")
 }
 
 model login_history {
@@ -2451,6 +2457,8 @@ model visits {
   visit_routes        routes?               @relation(fields: [route_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   visits_salesperson  users                 @relation(fields: [sales_person_id], references: [id], onUpdate: NoAction)
   visit_zones         zones?                @relation("VisitZones", fields: [zones_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([is_active, visit_date, status], map: "IX_visits_date_status")
 }
 
 model warehouses {
