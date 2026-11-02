@@ -1,5 +1,4 @@
-import type { Request, Response } from 'express';
-import { Prisma } from '@prisma/client';
+import { Request, Response } from 'express';
 import prisma from '../../configs/prisma.client';
 import { isHiddenUser } from '../../configs/hiddenUsers.config';
 import { getDepotStaffLookup } from '../../utils/depotStaff.util';
@@ -8,219 +7,6 @@ import ExcelJS from 'exceljs';
 const cache = new Map<string, { timestamp: number; data: any }>();
 const CACHE_TTL = 5 * 60 * 1000;
 
-// In-memory cache for master filter dropdowns (15 minutes TTL)
-let cachedMasterFilters: any = null;
-let cachedMasterFiltersTimestamp = 0;
-const MASTER_FILTERS_TTL = 15 * 60 * 1000;
-
-async function getMasterFilters() {
-  if (
-    cachedMasterFilters &&
-    Date.now() - cachedMasterFiltersTimestamp < MASTER_FILTERS_TTL
-  ) {
-    return cachedMasterFilters;
-  }
-
-  const [
-    depotsList,
-    salespersonsList,
-    routesList,
-    brandsList,
-    packsList,
-    channelsList,
-  ] = await Promise.all([
-    prisma.depots.findMany({
-      where: { is_active: 'Y' },
-      select: { id: true, name: true },
-      orderBy: { name: 'asc' },
-    }),
-    prisma.users.findMany({
-      where: {
-        is_active: 'Y',
-        OR: [{ invoices: { some: {} } }, { route_salespersons: { some: {} } }],
-      },
-      select: { id: true, name: true },
-      orderBy: { name: 'asc' },
-    }),
-    prisma.routes.findMany({
-      where: { is_active: 'Y' },
-      select: { id: true, name: true },
-      orderBy: { name: 'asc' },
-    }),
-    prisma.brands.findMany({
-      where: { is_active: 'Y' },
-      select: { id: true, name: true },
-      orderBy: { name: 'asc' },
-    }),
-    prisma.product_sub_categories.findMany({
-      where: { is_active: 'Y' },
-      select: { id: true, sub_category_name: true },
-      orderBy: { sub_category_name: 'asc' },
-    }),
-    prisma.customer_category.findMany({
-      where: { is_active: 'Y' },
-      select: { id: true, category_name: true },
-      orderBy: { category_name: 'asc' },
-    }),
-  ]);
-
-  cachedMasterFilters = {
-    depots: depotsList,
-    salespersons: salespersonsList,
-    routes: routesList,
-    brands: brandsList,
-    packs: packsList.map(p => ({
-      id: p.id,
-      name: p.sub_category_name,
-    })),
-    channels: channelsList.map((c: any) => ({
-      id: c.id,
-      name: c.category_name,
-    })),
-  };
-  cachedMasterFiltersTimestamp = Date.now();
-  return cachedMasterFilters;
-}
-
-/**
- * Lean select for dashboard aggregations.
- * Strips unused nested models (categories, flavours, volumes, zones, types, sap_codes)
- * to minimize database join overhead and memory footprint.
- */
-const dashboardInvoiceSelect = {
-  id: true,
-  invoice_date: true,
-  customer_id: true,
-  invoice_items: {
-    select: {
-      quantity: true,
-      base_quantity: true,
-      conversion_factor: true,
-      total_amount: true,
-      unit_price: true,
-      invoice_items_products: {
-        select: {
-          name: true,
-          brand_id: true,
-          unit_case_conversion_rate: true,
-          product_brands: { select: { name: true } },
-          product_sub_categories_products: {
-            select: { sub_category_name: true },
-          },
-        },
-      },
-    },
-  },
-  invoices_customers: {
-    select: {
-      code: true,
-      name: true,
-      latitude: true,
-      longitude: true,
-      customer_category_customer: { select: { category_name: true } },
-      customer_depot: {
-        select: {
-          name: true,
-          depots_coodrinator: { select: { name: true } },
-          depots_supervisior: { select: { name: true } },
-          user_depots_depot_id: {
-            select: {
-              users_depots_users: {
-                select: {
-                  name: true,
-                  user_role: { select: { name: true } },
-                },
-              },
-            },
-          },
-        },
-      },
-      customer_routes: {
-        select: {
-          name: true,
-          salespersons: {
-            select: {
-              user: {
-                select: {
-                  name: true,
-                },
-              },
-            },
-          },
-          route_depots: {
-            select: {
-              name: true,
-              depots_coodrinator: { select: { name: true } },
-              depots_supervisior: { select: { name: true } },
-              user_depots_depot_id: {
-                select: {
-                  users_depots_users: {
-                    select: {
-                      name: true,
-                      user_role: { select: { name: true } },
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-    },
-  },
-  invoices_salesperson: {
-    select: {
-      name: true,
-      route_salespersons: {
-        select: {
-          route: {
-            select: {
-              name: true,
-              route_depots: {
-                select: {
-                  name: true,
-                  depots_coodrinator: { select: { name: true } },
-                  depots_supervisior: { select: { name: true } },
-                  user_depots_depot_id: {
-                    select: {
-                      users_depots_users: {
-                        select: {
-                          name: true,
-                          user_role: { select: { name: true } },
-                        },
-                      },
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-      user_depot: {
-        select: {
-          name: true,
-          depots_coodrinator: { select: { name: true } },
-          depots_supervisior: { select: { name: true } },
-          user_depots_depot_id: {
-            select: {
-              users_depots_users: {
-                select: {
-                  name: true,
-                  user_role: { select: { name: true } },
-                },
-              },
-            },
-          },
-        },
-      },
-    },
-  },
-};
-
-/**
- * Full select used by exportSalesData to generate complete Excel workbook.
- */
 const invoiceSelect = {
   id: true,
   invoice_date: true,
@@ -377,6 +163,10 @@ export const salesControlTowerController = {
       const cacheKey = JSON.stringify(req.query);
       const cached = cache.get(cacheKey);
       if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+        if (cache.size > 200) {
+          const keys = Array.from(cache.keys());
+          cache.delete(keys[0]);
+        }
         return res.status(200).json(cached.data);
       }
 
@@ -393,7 +183,6 @@ export const salesControlTowerController = {
         channel,
         cmpMode,
       } = req.query;
-
       let prevStartDate: string | undefined;
       let prevEndDate: string | undefined;
       if (startDate && endDate) {
@@ -433,28 +222,6 @@ export const salesControlTowerController = {
             where.invoices_salesperson = { name: salesman_id as string };
           }
         }
-
-        // Push brand and pack filters into database WHERE clause (Phase 1)
-        if (brand_id || pack) {
-          const itemProductWhere: any = {};
-          if (brand_id) {
-            const bid = parseInt(brand_id as string, 10);
-            if (!isNaN(bid)) {
-              itemProductWhere.brand_id = bid;
-            } else {
-              itemProductWhere.product_brands = { name: brand_id as string };
-            }
-          }
-          if (pack) {
-            itemProductWhere.product_sub_categories_products = {
-              sub_category_name: pack as string,
-            };
-          }
-          where.invoice_items = {
-            some: { invoice_items_products: itemProductWhere },
-          };
-        }
-
         const custWhere: any = { is_active: 'Y' };
         if (depot_id) {
           const did = parseInt(depot_id as string, 10);
@@ -520,29 +287,23 @@ export const salesControlTowerController = {
             delete custWhere.customer_depot.AND;
           }
         }
-        if (channel) {
+        if (channel)
           custWhere.customer_category_customer = {
             category_name: channel as string,
           };
-        }
         if (Object.keys(custWhere).length > 1) {
           where.invoices_customers = custWhere;
         }
         return where;
       };
-
       const fetchInvoices = async (sd?: string | null, ed?: string | null) => {
         return prisma.invoices.findMany({
           where: buildInvoiceWhere(sd, ed),
-          select: dashboardInvoiceSelect,
+          select: invoiceSelect,
           orderBy: { invoice_date: 'asc' },
         });
       };
-
-      const buildAggMaps = (
-        invoices: any[],
-        isCurrentPeriod: boolean = true
-      ) => {
+      const buildAggMaps = (invoices: any[]) => {
         const byDepot: Record<string, any> = {};
         const byCoord: Record<string, any> = {};
         const bySup: Record<string, any> = {};
@@ -553,7 +314,6 @@ export const salesControlTowerController = {
         const bySKU: Record<string, any> = {};
         const byCh: Record<string, any> = {};
         const byDate: Record<string, any> = {};
-
         const acc = (
           map: Record<string, any>,
           key: string,
@@ -571,10 +331,10 @@ export const salesControlTowerController = {
           map[key].TV += val;
           if (isInvoice) map[key].count += 1;
         };
-
         let totalUC = 0;
         let totalPC = 0;
         let totalTV = 0;
+        const uniqueCustomerIds = new Set<number>();
         let processedInvoiceCount = 0;
         const rows: any[] = [];
 
@@ -586,10 +346,10 @@ export const salesControlTowerController = {
             if (brandFilter) {
               const bid = parseInt(brandFilter, 10);
               if (!isNaN(bid)) {
-                if (item.invoice_items_products?.brand_id !== bid) return false;
+                if (item.invoice_items_products.brand_id !== bid) return false;
               } else {
                 if (
-                  item.invoice_items_products?.product_brands?.name !==
+                  item.invoice_items_products.product_brands?.name !==
                   brandFilter
                 )
                   return false;
@@ -597,7 +357,7 @@ export const salesControlTowerController = {
             }
             if (
               packFilter &&
-              item.invoice_items_products?.product_sub_categories_products
+              item.invoice_items_products.product_sub_categories_products
                 ?.sub_category_name !== packFilter
             )
               return false;
@@ -605,26 +365,7 @@ export const salesControlTowerController = {
           });
           if (validItems.length === 0 && (brand_id || pack)) continue;
           processedInvoiceCount++;
-
-          // Extract up to 500 unique map customers directly during the single pass (Phase 1)
-          if (
-            isCurrentPeriod &&
-            mapCustomers.length < 500 &&
-            inv.customer_id &&
-            !seenMapCustomers.has(inv.customer_id) &&
-            inv.invoices_customers?.latitude != null &&
-            inv.invoices_customers?.longitude != null
-          ) {
-            seenMapCustomers.add(inv.customer_id);
-            mapCustomers.push({
-              id: inv.customer_id,
-              name: inv.invoices_customers.name,
-              code: inv.invoices_customers.code,
-              latitude: inv.invoices_customers.latitude,
-              longitude: inv.invoices_customers.longitude,
-            });
-          }
-
+          uniqueCustomerIds.add(inv.customer_id);
           const dKey = inv.invoice_date
             ? inv.invoice_date.toISOString().split('T')[0]
             : 'Unknown';
@@ -707,11 +448,11 @@ export const salesControlTowerController = {
             invUC += uc;
             invValue += tv;
             const bName =
-              item.invoice_items_products?.product_brands?.name || 'Unknown';
+              item.invoice_items_products.product_brands?.name || 'Unknown';
             const pName =
-              item.invoice_items_products?.product_sub_categories_products
+              item.invoice_items_products.product_sub_categories_products
                 ?.sub_category_name || 'Unknown';
-            const skuName = item.invoice_items_products?.name || 'Unknown';
+            const skuName = item.invoice_items_products.name || 'Unknown';
             acc(byBrand, bName, uc, pc, tv, false);
             acc(byPack, pName, uc, pc, tv, false);
             acc(bySKU, skuName, uc, pc, tv, false);
@@ -730,8 +471,7 @@ export const salesControlTowerController = {
           });
           acc(byCoord, cName, invUC, invPC, invValue, true);
           acc(bySup, supName, invUC, invPC, invValue, true);
-
-          if (isCurrentPeriod && rows.length < 500) {
+          if (rows.length < 500) {
             rows.push({
               id: inv.id,
               Date: dKey,
@@ -760,122 +500,169 @@ export const salesControlTowerController = {
           }
         }
         return {
-          agg: {
-            byDepot,
-            byCoord,
-            bySup,
-            byRoute,
-            bySal,
-            byBrand,
-            byPack,
-            bySKU,
-            byCh,
-            byDate,
-            totalUC,
-            totalPC,
-            totalTV,
-            newOutlets: 0,
-            avgStrike: 0,
-            rows,
-          },
-          mapCustomers,
+          byDepot,
+          byCoord,
+          bySup,
+          byRoute,
+          bySal,
+          byBrand,
+          byPack,
+          bySKU,
+          byCh,
+          byDate,
+          totalUC,
+          totalPC,
+          totalTV,
+          newOutlets: 0,
+          avgStrike: 0,
+          rows,
+          _uniqueCustomerIds: uniqueCustomerIds,
+          _processedInvoiceCount: processedInvoiceCount,
         };
       };
-
-      // 1. Fetch current invoices, previous invoices, and cached master filters in parallel
-      const [currentInvoices, prevInvoices, filterData] = await Promise.all([
+      const [currentInvoices, prevInvoices] = await Promise.all([
         fetchInvoices(startDate as string, endDate as string),
         prevStartDate && prevEndDate
           ? fetchInvoices(prevStartDate, prevEndDate)
           : Promise.resolve([]),
-        getMasterFilters(),
       ]);
-
-      // 2. Aggregate data and extract map markers in a single in-memory pass
-      const { agg: mayAgg, mapCustomers } = buildAggMaps(currentInvoices, true);
-      const { agg: aprAgg } = buildAggMaps(prevInvoices, false);
-
-      // 3. Compute strike rate via single raw SQL query (Phase 3 optimization)
+      const mayAggRaw = buildAggMaps(currentInvoices);
+      const aprAggRaw = buildAggMaps(prevInvoices);
+      const uniqueCustomerIds = mayAggRaw._uniqueCustomerIds;
       let strikeRate = 0;
-      try {
-        const visitConditions: Prisma.Sql[] = [Prisma.sql`is_active = 'Y'`];
-        if (startDate && endDate) {
-          const start = new Date(startDate as string);
-          const end = new Date(endDate as string);
-          end.setUTCHours(23, 59, 59, 999);
-          visitConditions.push(
-            Prisma.sql`visit_date >= ${start} AND visit_date <= ${end}`
-          );
-        }
-        if (salesman_id) {
-          const sid = parseInt(salesman_id as string, 10);
-          if (!isNaN(sid)) {
-            visitConditions.push(
-              Prisma.sql`(sales_person_id = ${sid} OR createdby = ${sid})`
-            );
-          } else {
-            visitConditions.push(
-              Prisma.sql`sales_person_id IN (SELECT id FROM users WHERE name = ${salesman_id as string})`
-            );
-          }
-        }
-        const whereSql = Prisma.sql`WHERE ${Prisma.join(visitConditions, ' AND ')}`;
-        const visitStats = await prisma.$queryRaw<
-          Array<{ total: number | bigint; productive: number | bigint }>
-        >`
-          SELECT 
-            COUNT(1) AS total,
-            COUNT(CASE WHEN status = 'productive' THEN 1 END) AS productive
-          FROM visits
-          ${whereSql}
-        `;
-        const totalVisits = Number(visitStats[0]?.total || 0);
-        const prodVisits = Number(visitStats[0]?.productive || 0);
-        if (totalVisits > 0) {
-          strikeRate = (prodVisits / totalVisits) * 100;
-        }
-      } catch (visitErr) {
-        const visitWhere: any = { is_active: 'Y' };
-        if (startDate && endDate) {
-          const start = new Date(startDate as string);
-          const end = new Date(endDate as string);
-          end.setUTCHours(23, 59, 59, 999);
-          visitWhere.visit_date = { gte: start, lte: end };
-        }
-        if (salesman_id) {
-          const sid = parseInt(salesman_id as string, 10);
-          if (!isNaN(sid)) {
-            visitWhere.OR = [{ sales_person_id: sid }, { createdby: sid }];
-          } else {
-            visitWhere.visits_salesperson = { name: salesman_id as string };
-          }
-        }
-        const [vCount, pCount] = await Promise.all([
-          prisma.visits.count({ where: visitWhere }),
-          prisma.visits.count({
-            where: { ...visitWhere, status: 'productive' },
-          }),
-        ]);
-        if (vCount > 0) {
-          strikeRate = (pCount / vCount) * 100;
+      const visitWhere: any = { is_active: 'Y' };
+      if (startDate && endDate) {
+        const start = new Date(startDate as string);
+        const end = new Date(endDate as string);
+        end.setUTCHours(23, 59, 59, 999);
+        visitWhere.visit_date = {
+          gte: start,
+          lte: end,
+        };
+      }
+      if (salesman_id) {
+        const sid = parseInt(salesman_id as string, 10);
+        if (!isNaN(sid)) {
+          visitWhere.OR = [{ sales_person_id: sid }, { createdby: sid }];
+        } else {
+          visitWhere.visits_salesperson = { name: salesman_id as string };
         }
       }
+      const visits = await prisma.visits.count({ where: visitWhere });
+      if (visits > 0) {
+        const productiveVisits = await prisma.visits.count({
+          where: { ...visitWhere, status: 'productive' },
+        });
+        strikeRate = (productiveVisits / visits) * 100;
+      }
+      const [
+        depotsList,
+        salespersonsList,
+        routesList,
+        brandsList,
+        packsList,
+        channelsList,
+      ] = await Promise.all([
+        prisma.depots.findMany({
+          where: { is_active: 'Y' },
+          select: { id: true, name: true },
+          orderBy: { name: 'asc' },
+        }),
+        prisma.users.findMany({
+          where: {
+            is_active: 'Y',
+            OR: [
+              { invoices: { some: {} } },
+              { route_salespersons: { some: {} } },
+            ],
+          },
+          select: { id: true, name: true },
+          orderBy: { name: 'asc' },
+        }),
+        prisma.routes.findMany({
+          where: { is_active: 'Y' },
+          select: { id: true, name: true },
+          orderBy: { name: 'asc' },
+        }),
+        prisma.brands.findMany({
+          where: { is_active: 'Y' },
+          select: { id: true, name: true },
+          orderBy: { name: 'asc' },
+        }),
+        prisma.product_sub_categories.findMany({
+          where: { is_active: 'Y' },
+          select: { id: true, sub_category_name: true },
+          orderBy: { sub_category_name: 'asc' },
+        }),
+        prisma.customer_category.findMany({
+          where: { is_active: 'Y' },
+          select: { id: true, category_name: true },
+          orderBy: { category_name: 'asc' },
+        }),
+      ]);
 
+      const CHUNK_SIZE = 2000;
+      const customerIdArray = Array.from(uniqueCustomerIds).slice(0, 10000);
+      const chunks: number[][] = [];
+      for (let i = 0; i < customerIdArray.length; i += CHUNK_SIZE) {
+        chunks.push(customerIdArray.slice(i, i + CHUNK_SIZE));
+      }
+      const chunkResults = await Promise.all(
+        chunks.map(chunk =>
+          prisma.customers.findMany({
+            where: {
+              id: { in: chunk },
+              latitude: { not: null },
+              longitude: { not: null },
+            },
+            select: {
+              id: true,
+              name: true,
+              code: true,
+              latitude: true,
+              longitude: true,
+            },
+          })
+        )
+      );
+      const mapCustomers = chunkResults.flat().slice(0, 500);
+      const {
+        _uniqueCustomerIds: _m,
+        _processedInvoiceCount: _mp,
+        ...mayAgg
+      } = mayAggRaw;
+      const {
+        _uniqueCustomerIds: _a,
+        _processedInvoiceCount: _ap,
+        ...aprAgg
+      } = aprAggRaw;
       (mayAgg as any).avgStrike = Number(strikeRate.toFixed(1));
-
       const responseData = {
         success: true,
         data: {
           mayAgg,
           aprAgg,
           mapData: mapCustomers,
-          filters: filterData,
+          filters: {
+            depots: depotsList,
+            salespersons: salespersonsList,
+            routes: routesList,
+            brands: brandsList,
+            packs: packsList.map(p => ({
+              id: p.id,
+              name: p.sub_category_name,
+            })),
+            channels: channelsList.map((c: any) => ({
+              id: c.id,
+              name: c.category_name,
+            })),
+          },
         },
       };
 
-      if (cache.size >= 200) {
-        const oldestKey = cache.keys().next().value;
-        if (oldestKey) cache.delete(oldestKey);
+      if (cache.size > 200) {
+        const keys = Array.from(cache.keys());
+        cache.delete(keys[0]);
       }
       cache.set(cacheKey, { timestamp: Date.now(), data: responseData });
 
@@ -926,27 +713,6 @@ export const salesControlTowerController = {
           where.invoices_salesperson = { name: salesman_id as string };
         }
       }
-
-      if (brand_id || pack) {
-        const itemProductWhere: any = {};
-        if (brand_id) {
-          const bid = parseInt(brand_id as string, 10);
-          if (!isNaN(bid)) {
-            itemProductWhere.brand_id = bid;
-          } else {
-            itemProductWhere.product_brands = { name: brand_id as string };
-          }
-        }
-        if (pack) {
-          itemProductWhere.product_sub_categories_products = {
-            sub_category_name: pack as string,
-          };
-        }
-        where.invoice_items = {
-          some: { invoice_items_products: itemProductWhere },
-        };
-      }
-
       const custWhere: any = { is_active: 'Y' };
       if (depot_id) {
         const did = parseInt(depot_id as string, 10);
@@ -983,12 +749,14 @@ export const salesControlTowerController = {
       if (Object.keys(custWhere).length > 1)
         where.invoices_customers = custWhere;
 
+      /** Fetch invoices with full relations */
       const invoices = await prisma.invoices.findMany({
         where,
         select: invoiceSelect,
         orderBy: { invoice_date: 'asc' },
       });
 
+      /** Build flat rows, one per invoice_item */
       const brandFilter = brand_id ? (brand_id as string) : null;
       const packFilter = pack ? (pack as string) : null;
 

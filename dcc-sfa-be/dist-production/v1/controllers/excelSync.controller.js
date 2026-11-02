@@ -77,31 +77,11 @@ exports.excelSyncController = {
      */
     async getSalesData(req, res, _next) {
         try {
-            const { start_date, end_date, from_date, to_date, status, customer_id, depot_id, zone_id, zones_id, route_id, salesperson_id, sales_person_id, brand_id, } = req.query;
+            const { start_date, end_date, from_date, to_date } = req.query;
             const startDate = (start_date || from_date);
             const endDate = (end_date || to_date);
             const BATCH_SIZE = 5000;
             const invoiceWhere = { is_active: 'Y' };
-            if (status && status !== 'all') {
-                invoiceWhere.status = status;
-            }
-            if (customer_id) {
-                invoiceWhere.customer_id = Number(customer_id);
-            }
-            const spId = salesperson_id || sales_person_id;
-            if (spId) {
-                invoiceWhere.salesperson_id = Number(spId);
-            }
-            const targetDepotId = depot_id ? Number(depot_id) : undefined;
-            const targetZoneId = zone_id || zones_id ? Number(zone_id || zones_id) : undefined;
-            const targetRouteId = route_id ? Number(route_id) : undefined;
-            if (targetDepotId || targetZoneId || targetRouteId) {
-                invoiceWhere.invoices_customers = {
-                    ...(targetDepotId ? { depot_id: targetDepotId } : {}),
-                    ...(targetZoneId ? { zones_id: targetZoneId } : {}),
-                    ...(targetRouteId ? { route_id: targetRouteId } : {}),
-                };
-            }
             if (startDate || endDate) {
                 invoiceWhere.invoice_date = {};
                 if (startDate)
@@ -111,10 +91,6 @@ exports.excelSyncController = {
                     end.setHours(23, 59, 59, 999);
                     invoiceWhere.invoice_date.lte = end;
                 }
-            }
-            const itemWhere = { invoices: invoiceWhere };
-            if (brand_id) {
-                itemWhere.invoice_items_products = { brand_id: Number(brand_id) };
             }
             const headers = [
                 'EvDate',
@@ -152,7 +128,7 @@ exports.excelSyncController = {
             let hasMore = true;
             while (hasMore) {
                 const batch = await prisma_client_1.default.invoice_items.findMany({
-                    where: itemWhere,
+                    where: { invoices: invoiceWhere },
                     take: BATCH_SIZE,
                     ...(lastItemId !== null
                         ? { skip: 1, cursor: { id: lastItemId } }

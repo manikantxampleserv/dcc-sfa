@@ -1,1 +1,1 @@
-{"version":3,"file":"customerCategoryAssignment.job.d.ts","sourceRoot":"","sources":["../../src/jobs/customerCategoryAssignment.job.ts"],"names":[],"mappings":"AA+CA,eAAO,MAAM,kCAAkC,qBAgT9C,CAAC;AAEF,wBAAsB,4CAA4C;;;eAwEjE"}
+{"version":3,"file":"customerCategoryAssignment.job.d.ts","sourceRoot":"","sources":["../../src/jobs/customerCategoryAssignment.job.ts"],"names":[],"mappings":"AAgDA,eAAO,MAAM,6BAA6B;;;;;;;;;cAiUzC,CAAC;AAEF,eAAO,MAAM,kCAAkC,qBA8B9C,CAAC;AAEF,wBAAsB,4CAA4C;;;eAwEjE"}

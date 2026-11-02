@@ -200,5 +200,29 @@ router.get('/credit-memo/export', auth_middleware_1.authenticateToken, (0, auth_
  * @access Private (requires authentication)
  */
 router.get('/credit-memo/:id', auth_middleware_1.authenticateToken, (0, auth_middleware_1.requirePermission)([{ module: 'report', action: 'read' }]), reports_controller_1.reportsController.getCreditMemoReportById);
+/**
+ * @route GET /api/v1/reports/monthly-active-users
+ * @description Get Monthly Active Users Report data and summary
+ * @access Private (requires authentication)
+ */
+router.get('/monthly-active-users', auth_middleware_1.authenticateToken, (0, auth_middleware_1.requirePermission)([{ module: 'report', action: 'read' }]), reports_controller_1.reportsController.getMonthlyActiveUsersReport);
+/**
+ * @route GET /api/v1/reports/monthly-active-users/export/excel
+ * @description Export Monthly Active Users Report to Excel
+ * @access Private (requires authentication)
+ */
+router.get('/monthly-active-users/export/excel', auth_middleware_1.authenticateToken, (0, auth_middleware_1.requirePermission)([{ module: 'report', action: 'read' }]), reports_controller_1.reportsController.exportMonthlyActiveUsersExcel);
+/**
+ * @route GET /api/v1/reports/monthly-active-users/export/pdf
+ * @description Export Monthly Active Users Report to PDF
+ * @access Private (requires authentication)
+ */
+router.get('/monthly-active-users/export/pdf', auth_middleware_1.authenticateToken, (0, auth_middleware_1.requirePermission)([{ module: 'report', action: 'read' }]), reports_controller_1.reportsController.exportMonthlyActiveUsersPdf);
+/**
+ * @route POST /api/v1/reports/monthly-active-users/send
+ * @description Trigger sending Monthly Active Users Report email (with Excel and PDF attachments)
+ * @access Private (requires authentication)
+ */
+router.post('/monthly-active-users/send', auth_middleware_1.authenticateToken, (0, auth_middleware_1.requirePermission)([{ module: 'report', action: 'read' }]), reports_controller_1.reportsController.sendMonthlyActiveUsersReportNow);
 exports.default = router;
 //# sourceMappingURL=reports.routes.js.map

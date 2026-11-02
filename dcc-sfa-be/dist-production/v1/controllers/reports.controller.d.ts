@@ -147,5 +147,21 @@ export declare const reportsController: {
      * @param res Express response
      */
     exportCreditMemoReport(req: Request, res: Response): Promise<void>;
+    getMonthlyActiveUsersReport(req: Request, res: Response): Promise<void>;
+    /**
+     * Export Monthly Active Users Report to Excel
+     * GET /api/v1/reports/monthly-active-users/export/excel
+     */
+    exportMonthlyActiveUsersExcel(req: Request, res: Response): Promise<void>;
+    /**
+     * Export Monthly Active Users Report to PDF
+     * GET /api/v1/reports/monthly-active-users/export/pdf
+     */
+    exportMonthlyActiveUsersPdf(req: Request, res: Response): Promise<void>;
+    /**
+     * Trigger sending monthly active users email report immediately (Excel & PDF)
+     * POST /api/v1/reports/monthly-active-users/send
+     */
+    sendMonthlyActiveUsersReportNow(req: Request, res: Response): Promise<void>;
 };
 //# sourceMappingURL=reports.controller.d.ts.map

@@ -49,13 +49,28 @@ const getSMTPConfig = async (log_inst) => {
                 port: Number(company.smtp_port),
                 username: company.smtp_username,
                 password: company.smtp_password,
-                fromAddress: company.smtp_mail_from_address ||
-                    company.smtp_username,
-                fromName: company.smtp_mail_from_name ||
-                    'DCC SFA System',
+                fromAddress: company.smtp_mail_from_address || company.smtp_username,
+                fromName: company.smtp_mail_from_name || 'DCC SFA System',
             };
         }
-        console.warn('SMTP configuration missing or incomplete in companies table. Email will not be sent.');
+        const envHost = process.env.MAIL_HOST || process.env.SMTP_HOST;
+        const envPort = process.env.MAIL_PORT || process.env.SMTP_PORT;
+        const envUser = process.env.MAIL_USERNAME || process.env.SMTP_USERNAME;
+        const envPass = process.env.MAIL_PASSWORD || process.env.SMTP_PASSWORD;
+        const envFrom = process.env.MAIL_FROM_ADDRESS || envUser;
+        const envFromName = process.env.MAIL_FROM_NAME || 'DCC SFA System';
+        if (envHost && envPort && envUser && envPass) {
+            console.log('Using SMTP configuration from environment variables (.env)');
+            return {
+                host: envHost,
+                port: Number(envPort),
+                username: envUser,
+                password: envPass,
+                fromAddress: envFrom || envUser,
+                fromName: envFromName,
+            };
+        }
+        console.warn('SMTP configuration missing or incomplete in companies table and environment variables. Email will not be sent.');
         return null;
     }
     catch (error) {
@@ -67,7 +82,7 @@ const createTransporter = (config) => {
     return nodemailer_1.default.createTransport({
         host: config.host,
         port: config.port,
-        secure: config.port === 465,
+        secure: false,
         auth: {
             user: config.username,
             pass: config.password,
