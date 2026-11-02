@@ -5,6 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getOrganizationChart = void 0;
 const prisma_client_1 = __importDefault(require("../../configs/prisma.client"));
+const hiddenUsers_config_1 = require("../../configs/hiddenUsers.config");
 const buildTree = (allUsers) => {
     const roleMap = new Map();
     allUsers.forEach(user => {
@@ -77,7 +78,10 @@ const buildTree = (allUsers) => {
 const getOrganizationChart = async (req, res) => {
     try {
         const allUsers = await prisma_client_1.default.users.findMany({
-            where: { is_active: 'Y' },
+            where: {
+                is_active: 'Y',
+                ...hiddenUsers_config_1.hiddenUsersPrismaFilter,
+            },
             select: {
                 id: true,
                 name: true,

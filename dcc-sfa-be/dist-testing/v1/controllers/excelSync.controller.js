@@ -5,6 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.excelSyncController = void 0;
 const prisma_client_1 = __importDefault(require("../../configs/prisma.client"));
+const hiddenUsers_config_1 = require("../../configs/hiddenUsers.config");
 /**
  * Escapes values for safe CSV formatting compliant with RFC 4180.
  *
@@ -167,6 +168,8 @@ exports.excelSyncController = {
                     const inv = item.invoices;
                     const cust = inv?.invoices_customers;
                     const sp = inv?.invoices_salesperson;
+                    if ((0, hiddenUsers_config_1.isHiddenUser)(sp))
+                        continue;
                     const prod = item.invoice_items_products;
                     const depot = cust?.customer_depot;
                     const phyCase = Number(item.quantity) || 0;
@@ -233,6 +236,8 @@ exports.excelSyncController = {
                 for (const inv of invoices) {
                     const cust = inv.invoices_customers;
                     const sp = inv.invoices_salesperson;
+                    if ((0, hiddenUsers_config_1.isHiddenUser)(sp))
+                        continue;
                     const depot = cust?.customer_depot;
                     csvLines.push([
                         escapeCsv(formatDateDMY(inv.invoice_date)),
@@ -429,6 +434,8 @@ exports.excelSyncController = {
                 const resp = ans.survey_answer_responses;
                 const cust = resp?.survey_response_customer;
                 const user = resp?.survey_responses_submitted_by_users;
+                if ((0, hiddenUsers_config_1.isHiddenUser)(user))
+                    continue;
                 const prod = ans.survey_answers_products;
                 csvLines.push([
                     escapeCsv(ans.parent_id),
@@ -527,6 +534,8 @@ exports.excelSyncController = {
                 const inv = item.van_inventory_items_inventory;
                 const prod = item.van_inventory_items_products;
                 const user = inv?.van_inventory_users;
+                if ((0, hiddenUsers_config_1.isHiddenUser)(user))
+                    continue;
                 const dateVal = inv?.document_date || inv?.createdate;
                 const typeVal = inv?.loading_type === 'L'
                     ? 'Load'

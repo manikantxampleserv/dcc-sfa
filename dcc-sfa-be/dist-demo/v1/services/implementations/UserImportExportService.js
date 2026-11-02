@@ -39,6 +39,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.UserImportExportService = void 0;
 const import_export_service_1 = require("../base/import-export.service");
 const prisma_client_1 = __importDefault(require("../../../configs/prisma.client"));
+const hiddenUsers_config_1 = require("../../../configs/hiddenUsers.config");
 const bcrypt_1 = __importDefault(require("bcrypt"));
 class UserImportExportService extends import_export_service_1.ImportExportService {
     modelName = 'users';
@@ -336,7 +337,8 @@ class UserImportExportService extends import_export_service_1.ImportExportServic
             take: 1,
             select: { id: true },
             orderBy: { id: 'asc' },
-            where: { is_active: 'Y' },
+            where: { is_active: 'Y',
+                ...hiddenUsers_config_1.hiddenUsersPrismaFilter, },
         });
         const roleId1 = roles[0]?.id;
         const roleId2 = roles[1]?.id || roles[0]?.id;
@@ -593,7 +595,10 @@ class UserImportExportService extends import_export_service_1.ImportExportServic
     }
     async exportToExcel(options = {}) {
         const query = {
-            where: options.filters,
+            where: {
+                ...(options.filters || {}),
+                ...hiddenUsers_config_1.hiddenUsersPrismaFilter,
+            },
             orderBy: options.orderBy || { createdate: 'desc' },
             include: {
                 user_role: {
@@ -624,8 +629,10 @@ class UserImportExportService extends import_export_service_1.ImportExportServic
         };
         if (options.limit)
             query.take = options.limit;
-        const data = await this.getModel().findMany(query);
-        const ExcelJS = await Promise.resolve().then(() => __importStar(require('exceljs')));
+        const rawData = await this.getModel().findMany(query);
+        const data = rawData.filter((user) => !(0, hiddenUsers_config_1.isHiddenUser)(user));
+        const ExcelJSModule = await Promise.resolve().then(() => __importStar(require('exceljs')));
+        const ExcelJS = ExcelJSModule.default || ExcelJSModule;
         const workbook = new ExcelJS.Workbook();
         const worksheet = workbook.addWorksheet(this.displayName);
         const exportColumns = [

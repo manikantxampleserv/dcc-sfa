@@ -5,6 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.salesControlTowerController = void 0;
 const prisma_client_1 = __importDefault(require("../../configs/prisma.client"));
+const hiddenUsers_config_1 = require("../../configs/hiddenUsers.config");
 const exceljs_1 = __importDefault(require("exceljs"));
 const cache = new Map();
 const CACHE_TTL = 5 * 60 * 1000;
@@ -324,6 +325,8 @@ exports.salesControlTowerController = {
                 let processedInvoiceCount = 0;
                 const rows = [];
                 for (const inv of invoices) {
+                    if ((0, hiddenUsers_config_1.isHiddenUser)(inv.invoices_salesperson))
+                        continue;
                     const brandFilter = brand_id ? brand_id : null;
                     const packFilter = pack ? pack : null;
                     const validItems = inv.invoice_items.filter((item) => {
@@ -687,6 +690,8 @@ exports.salesControlTowerController = {
             const packFilter = pack ? pack : null;
             const flatRows = [];
             for (const inv of invoices) {
+                if ((0, hiddenUsers_config_1.isHiddenUser)(inv.invoices_salesperson))
+                    continue;
                 const dateStr = inv.invoice_date
                     ? new Date(inv.invoice_date).toLocaleDateString('en-GB')
                     : '';

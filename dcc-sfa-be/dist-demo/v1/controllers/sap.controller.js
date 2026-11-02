@@ -4,6 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.sapController = void 0;
+const hiddenUsers_config_1 = require("../../configs/hiddenUsers.config");
 const sap_service_1 = require("../services/sap.service");
 const prisma_client_1 = __importDefault(require("../../configs/prisma.client"));
 exports.sapController = {
@@ -46,6 +47,7 @@ exports.sapController = {
                 where: {
                     OR: [{ name: { contains: name } }, { sap_code: { contains: name } }],
                     is_active: 'Y',
+                    ...hiddenUsers_config_1.hiddenUsersPrismaFilter,
                 },
                 select: { id: true, name: true, sap_code: true },
                 take: 50,

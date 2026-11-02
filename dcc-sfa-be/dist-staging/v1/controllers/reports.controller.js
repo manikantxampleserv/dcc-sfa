@@ -39,6 +39,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.reportsController = void 0;
 const permissions_config_1 = require("../../configs/permissions.config");
 const prisma_client_1 = __importDefault(require("../../configs/prisma.client"));
+const hiddenUsers_config_1 = require("../../configs/hiddenUsers.config");
 const paginate_1 = require("../../utils/paginate");
 /**
  * Helper to get ExcelJS library instance compatible with CJS and ESM dynamic imports
@@ -464,6 +465,7 @@ exports.reportsController = {
             }
             const salespersonsWhere = {
                 id: { in: Array.from(salespersonIds) },
+                ...hiddenUsers_config_1.hiddenUsersPrismaFilter,
                 is_active: 'Y',
             };
             if (isScopeRestricted) {
@@ -539,6 +541,7 @@ exports.reportsController = {
                 const missingSalespersons = await prisma_client_1.default.users.findMany({
                     where: {
                         id: { in: salespersonIdsToFetch },
+                        ...hiddenUsers_config_1.hiddenUsersPrismaFilter,
                     },
                     select: { id: true, name: true, email: true, employee_id: true },
                 });
@@ -714,6 +717,7 @@ exports.reportsController = {
             const salespersons = await prisma_client_1.default.users.findMany({
                 where: {
                     id: { in: Array.from(salespersonIds) },
+                    ...hiddenUsers_config_1.hiddenUsersPrismaFilter,
                     is_active: 'Y',
                 },
                 select: { id: true, name: true, email: true, employee_id: true },
@@ -782,6 +786,7 @@ exports.reportsController = {
                 const missingSalespersons = await prisma_client_1.default.users.findMany({
                     where: {
                         id: { in: salespersonIdsToFetch },
+                        ...hiddenUsers_config_1.hiddenUsersPrismaFilter,
                     },
                     select: { id: true, name: true, email: true, employee_id: true },
                 });
@@ -2722,8 +2727,11 @@ exports.reportsController = {
             if (end_date) {
                 dateFilter.lte = new Date(end_date);
             }
-            // Fetch Users (Sales Reps)
+            /**
+             * Fetch Users (Sales Reps)
+             */
             const whereUsers = {
+                ...hiddenUsers_config_1.hiddenUsersPrismaFilter,
                 is_active: 'Y',
             };
             if (salesperson_id) {
@@ -2926,6 +2934,7 @@ exports.reportsController = {
             }
             // Fetch Users
             const whereUsers = {
+                ...hiddenUsers_config_1.hiddenUsersPrismaFilter,
                 is_active: 'Y',
             };
             if (salesperson_id) {
@@ -3766,7 +3775,9 @@ exports.reportsController = {
                 punch_out_count: punchOutCount,
                 history_this_month: historyThisMonth,
             };
-            const serializedData = data.map((history) => ({
+            const serializedData = data
+                .filter((history) => !(0, hiddenUsers_config_1.isHiddenUser)(history.attendance_historys?.attendance_user))
+                .map((history) => ({
                 id: history.id,
                 attendance_id: history.attendance_id,
                 action_type: history.action_type,
@@ -3905,6 +3916,8 @@ exports.reportsController = {
             ];
             historyRecords.forEach((history) => {
                 const user = history.attendance_historys?.attendance_user;
+                if ((0, hiddenUsers_config_1.isHiddenUser)(user))
+                    return;
                 historySheet.addRow({
                     employee_name: user?.name || 'N/A',
                     employee_id: user?.employee_id || 'N/A',
