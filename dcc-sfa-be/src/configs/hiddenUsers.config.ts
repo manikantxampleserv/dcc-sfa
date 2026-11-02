@@ -55,11 +55,7 @@ export const hiddenUsersRawSqlWhere = Prisma.sql`AND u.email NOT IN ('excel.sync
  * @param {any} user - User object containing name, email, or employee_id
  * @returns {boolean} True if the user is a hidden system user
  */
-export const isHiddenUser = (user?: {
-  name?: string | null;
-  email?: string | null;
-  employee_id?: string | null;
-} | null): boolean => {
+export const isHiddenUser = (user?: any): boolean => {
   if (!user) return false;
 
   if (user.name) {

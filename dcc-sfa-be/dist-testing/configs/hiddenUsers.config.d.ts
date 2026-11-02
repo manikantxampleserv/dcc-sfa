@@ -56,9 +56,5 @@ export declare const hiddenUsersRawSqlWhere: Prisma.Sql;
  * @param {any} user - User object containing name, email, or employee_id
  * @returns {boolean} True if the user is a hidden system user
  */
-export declare const isHiddenUser: (user?: {
-    name?: string | null;
-    email?: string | null;
-    employee_id?: string | null;
-} | null) => boolean;
+export declare const isHiddenUser: (user?: any) => boolean;
 //# sourceMappingURL=hiddenUsers.config.d.ts.map

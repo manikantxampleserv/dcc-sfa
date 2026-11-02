@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.salesControlTowerController = void 0;
 const prisma_client_1 = __importDefault(require("../../configs/prisma.client"));
 const hiddenUsers_config_1 = require("../../configs/hiddenUsers.config");
+const depotStaff_util_1 = require("../../utils/depotStaff.util");
 const exceljs_1 = __importDefault(require("exceljs"));
 const cache = new Map();
 const CACHE_TTL = 5 * 60 * 1000;
@@ -190,6 +191,7 @@ exports.salesControlTowerController = {
                 prevStartDate = ps.toISOString().split('T')[0];
                 prevEndDate = pe.toISOString().split('T')[0];
             }
+            const staffLookup = await (0, depotStaff_util_1.getDepotStaffLookup)();
             const buildInvoiceWhere = (sd, ed) => {
                 const where = { is_active: 'Y' };
                 if (sd && ed) {
@@ -362,7 +364,7 @@ exports.salesControlTowerController = {
                     const rName = inv.invoices_customers?.customer_routes?.name ||
                         inv.invoices_salesperson?.route_salespersons?.[0]?.route?.name ||
                         'Unassigned';
-                    const dName = inv.invoices_customers?.customer_depot?.name ||
+                    let dName = inv.invoices_customers?.customer_depot?.name ||
                         inv.invoices_customers?.customer_routes?.route_depots?.name ||
                         inv.invoices_salesperson?.user_depot?.name ||
                         inv.invoices_salesperson?.route_salespersons?.[0]?.route
@@ -375,9 +377,17 @@ exports.salesControlTowerController = {
                         inv.invoices_salesperson?.user_depot ||
                         inv.invoices_salesperson?.route_salespersons?.[0]?.route
                             ?.route_depots;
-                    let cName = depotData?.depots_coodrinator?.name || '';
-                    let supName = depotData?.depots_supervisior?.name || '';
-                    if (depotData?.user_depots_depot_id) {
+                    const staff = staffLookup.resolveStaff({
+                        customerDepot: depotData,
+                        salesperson: inv.invoices_salesperson,
+                        depotName: dName !== 'Unassigned' ? dName : undefined,
+                    });
+                    let cName = staff.coordinatorName || depotData?.depots_coodrinator?.name || '';
+                    let supName = staff.supervisorName || depotData?.depots_supervisior?.name || '';
+                    if (dName === 'Unassigned' && staff.depotName) {
+                        dName = staff.depotName;
+                    }
+                    if (depotData?.user_depots_depot_id && (!cName || !supName)) {
                         const assignedUsers = depotData.user_depots_depot_id
                             .map((ud) => ud.users_depots_users)
                             .filter(Boolean);
@@ -689,6 +699,7 @@ exports.salesControlTowerController = {
             const brandFilter = brand_id ? brand_id : null;
             const packFilter = pack ? pack : null;
             const flatRows = [];
+            const staffLookup = await (0, depotStaff_util_1.getDepotStaffLookup)();
             for (const inv of invoices) {
                 if ((0, hiddenUsers_config_1.isHiddenUser)(inv.invoices_salesperson))
                     continue;
@@ -710,11 +721,18 @@ exports.salesControlTowerController = {
                     inv.invoices_salesperson?.user_depot ||
                     inv.invoices_salesperson?.route_salespersons?.[0]?.route
                         ?.route_depots;
-                const depot = depotData?.name || '';
-                let coordinator = depotData?.depots_coodrinator?.name || '';
-                let supervisor = depotData?.depots_supervisior?.name || '';
+                let depot = depotData?.name || '';
+                const staff = staffLookup.resolveStaff({
+                    customerDepot: depotData,
+                    salesperson: inv.invoices_salesperson,
+                    depotName: depot || undefined,
+                });
+                let coordinator = staff.coordinatorName || depotData?.depots_coodrinator?.name || '';
+                let supervisor = staff.supervisorName || depotData?.depots_supervisior?.name || '';
+                if (!depot && staff.depotName)
+                    depot = staff.depotName;
                 /** Check assigned users if they have the appropriate role */
-                if (depotData?.user_depots_depot_id) {
+                if (depotData?.user_depots_depot_id && (!coordinator || !supervisor)) {
                     const assignedUsers = depotData.user_depots_depot_id
                         .map((ud) => ud.users_depots_users)
                         .filter(Boolean);

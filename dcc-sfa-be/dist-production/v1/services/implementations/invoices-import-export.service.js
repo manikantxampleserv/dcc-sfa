@@ -40,6 +40,7 @@ exports.InvoicesImportExportService = void 0;
 const import_export_service_1 = require("../base/import-export.service");
 const prisma_client_1 = __importDefault(require("../../../configs/prisma.client"));
 const ExcelJS = __importStar(require("exceljs"));
+const depotStaff_util_1 = require("../../../utils/depotStaff.util");
 class InvoicesImportExportService extends import_export_service_1.ImportExportService {
     modelName = 'invoices';
     displayName = 'Invoices';
@@ -802,7 +803,7 @@ class InvoicesImportExportService extends import_export_service_1.ImportExportSe
             headerRow.commit();
         }
     }
-    writeInvoicesToWorksheet(worksheet, data) {
+    writeInvoicesToWorksheet(worksheet, data, staffLookup) {
         for (const inv of data) {
             const invDate = inv.invoice_date ? new Date(inv.invoice_date) : '';
             const route = inv.invoices_customers?.customer_routes?.code ||
@@ -817,9 +818,22 @@ class InvoicesImportExportService extends import_export_service_1.ImportExportSe
                 inv.invoices_customers?.customer_routes?.route_depots ||
                 inv.invoices_salesperson?.user_depot ||
                 inv.invoices_salesperson?.route_salespersons?.[0]?.route?.route_depots;
-            const depot = depotData?.name || '';
+            let depot = depotData?.name || '';
             let coordinator = depotData?.depots_coodrinator?.name || '';
             let supervisor = depotData?.depots_supervisior?.name || '';
+            if (staffLookup) {
+                const staff = staffLookup.resolveStaff({
+                    customerDepot: depotData,
+                    salesperson: inv.invoices_salesperson,
+                    depotName: depot || undefined,
+                });
+                if (staff.coordinatorName)
+                    coordinator = staff.coordinatorName;
+                if (staff.supervisorName)
+                    supervisor = staff.supervisorName;
+                if (!depot && staff.depotName)
+                    depot = staff.depotName;
+            }
             if (depotData?.user_depots_depot_id) {
                 const assignedUsers = depotData.user_depots_depot_id
                     .map((ud) => ud.users_depots_users)
@@ -906,6 +920,7 @@ class InvoicesImportExportService extends import_export_service_1.ImportExportSe
         let hasMore = true;
         const maxLimit = options.limit ? Number(options.limit) : Infinity;
         let totalProcessed = 0;
+        const staffLookup = await (0, depotStaff_util_1.getDepotStaffLookup)();
         while (hasMore) {
             const currentTake = Math.min(BATCH_SIZE, maxLimit - totalProcessed);
             if (currentTake <= 0)
@@ -923,7 +938,7 @@ class InvoicesImportExportService extends import_export_service_1.ImportExportSe
             if (!batchData || batchData.length === 0) {
                 break;
             }
-            this.writeInvoicesToWorksheet(worksheet, batchData);
+            this.writeInvoicesToWorksheet(worksheet, batchData, staffLookup);
             totalProcessed += batchData.length;
             lastId = batchData[batchData.length - 1].id;
             if (batchData.length < currentTake) {
@@ -948,6 +963,7 @@ class InvoicesImportExportService extends import_export_service_1.ImportExportSe
         let hasMore = true;
         const maxLimit = options.limit ? Number(options.limit) : Infinity;
         let totalProcessed = 0;
+        const staffLookup = await (0, depotStaff_util_1.getDepotStaffLookup)();
         while (hasMore) {
             const currentTake = Math.min(BATCH_SIZE, maxLimit - totalProcessed);
             if (currentTake <= 0)
@@ -965,7 +981,7 @@ class InvoicesImportExportService extends import_export_service_1.ImportExportSe
             if (!batchData || batchData.length === 0) {
                 break;
             }
-            this.writeInvoicesToWorksheet(worksheet, batchData);
+            this.writeInvoicesToWorksheet(worksheet, batchData, staffLookup);
             totalProcessed += batchData.length;
             lastId = batchData[batchData.length - 1].id;
             if (batchData.length < currentTake) {

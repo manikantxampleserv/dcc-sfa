@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.excelSyncController = void 0;
 const prisma_client_1 = __importDefault(require("../../configs/prisma.client"));
 const hiddenUsers_config_1 = require("../../configs/hiddenUsers.config");
+const depotStaff_util_1 = require("../../utils/depotStaff.util");
 /**
  * Escapes values for safe CSV formatting compliant with RFC 4180.
  *
@@ -163,6 +164,7 @@ exports.excelSyncController = {
                 'Turnover',
             ];
             const csvLines = [headers.join(',')];
+            const staffLookup = await (0, depotStaff_util_1.getDepotStaffLookup)();
             if (invoiceItems && invoiceItems.length > 0) {
                 for (const item of invoiceItems) {
                     const inv = item.invoices;
@@ -172,15 +174,20 @@ exports.excelSyncController = {
                         continue;
                     const prod = item.invoice_items_products;
                     const depot = cust?.customer_depot;
+                    const staff = staffLookup.resolveStaff({
+                        customerDepot: depot,
+                        salesperson: sp,
+                        depotName: depot?.name,
+                    });
                     const phyCase = Number(item.quantity) || 0;
                     const conversionRate = Number(prod?.unit_case_conversion_rate) || 1;
                     const unitCase = Number((phyCase * conversionRate).toFixed(3));
                     const turnover = Number(item.total_amount) || 0;
                     csvLines.push([
                         escapeCsv(formatDateDMY(inv?.invoice_date)),
-                        escapeCsv(depot?.name || ''),
-                        escapeCsv(depot?.depots_coodrinator?.name || ''),
-                        escapeCsv(depot?.depots_supervisior?.name || ''),
+                        escapeCsv(staff.depotName || depot?.name || ''),
+                        escapeCsv(staff.coordinatorName || ''),
+                        escapeCsv(staff.supervisorName || ''),
                         escapeCsv(sp?.employee_id || sp?.sap_code || ''),
                         escapeCsv(sp?.name || ''),
                         escapeCsv(cust?.code || ''),
@@ -239,11 +246,16 @@ exports.excelSyncController = {
                     if ((0, hiddenUsers_config_1.isHiddenUser)(sp))
                         continue;
                     const depot = cust?.customer_depot;
+                    const staff = staffLookup.resolveStaff({
+                        customerDepot: depot,
+                        salesperson: sp,
+                        depotName: depot?.name,
+                    });
                     csvLines.push([
                         escapeCsv(formatDateDMY(inv.invoice_date)),
-                        escapeCsv(depot?.name || ''),
-                        escapeCsv(depot?.depots_coodrinator?.name || ''),
-                        escapeCsv(depot?.depots_supervisior?.name || ''),
+                        escapeCsv(staff.depotName || depot?.name || ''),
+                        escapeCsv(staff.coordinatorName || ''),
+                        escapeCsv(staff.supervisorName || ''),
                         escapeCsv(sp?.employee_id || sp?.sap_code || ''),
                         escapeCsv(sp?.name || ''),
                         escapeCsv(cust?.code || ''),

@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import prisma from '../../configs/prisma.client';
 import { isHiddenUser } from '../../configs/hiddenUsers.config';
+import { getDepotStaffLookup } from '../../utils/depotStaff.util';
 
 /**
  * Escapes values for safe CSV formatting compliant with RFC 4180.
@@ -171,6 +172,7 @@ export const excelSyncController = {
       ];
 
       const csvLines: string[] = [headers.join(',')];
+      const staffLookup = await getDepotStaffLookup();
 
       if (invoiceItems && invoiceItems.length > 0) {
         for (const item of invoiceItems) {
@@ -181,6 +183,12 @@ export const excelSyncController = {
           const prod = item.invoice_items_products;
           const depot = cust?.customer_depot;
 
+          const staff = staffLookup.resolveStaff({
+            customerDepot: depot,
+            salesperson: sp,
+            depotName: depot?.name,
+          });
+
           const phyCase = Number(item.quantity) || 0;
           const conversionRate = Number(prod?.unit_case_conversion_rate) || 1;
           const unitCase = Number((phyCase * conversionRate).toFixed(3));
@@ -189,9 +197,9 @@ export const excelSyncController = {
           csvLines.push(
             [
               escapeCsv(formatDateDMY(inv?.invoice_date)),
-              escapeCsv(depot?.name || ''),
-              escapeCsv(depot?.depots_coodrinator?.name || ''),
-              escapeCsv(depot?.depots_supervisior?.name || ''),
+              escapeCsv(staff.depotName || depot?.name || ''),
+              escapeCsv(staff.coordinatorName || ''),
+              escapeCsv(staff.supervisorName || ''),
               escapeCsv(sp?.employee_id || sp?.sap_code || ''),
               escapeCsv(sp?.name || ''),
               escapeCsv(cust?.code || ''),
@@ -253,12 +261,18 @@ export const excelSyncController = {
           if (isHiddenUser(sp)) continue;
           const depot = cust?.customer_depot;
 
+          const staff = staffLookup.resolveStaff({
+            customerDepot: depot,
+            salesperson: sp,
+            depotName: depot?.name,
+          });
+
           csvLines.push(
             [
               escapeCsv(formatDateDMY(inv.invoice_date)),
-              escapeCsv(depot?.name || ''),
-              escapeCsv(depot?.depots_coodrinator?.name || ''),
-              escapeCsv(depot?.depots_supervisior?.name || ''),
+              escapeCsv(staff.depotName || depot?.name || ''),
+              escapeCsv(staff.coordinatorName || ''),
+              escapeCsv(staff.supervisorName || ''),
               escapeCsv(sp?.employee_id || sp?.sap_code || ''),
               escapeCsv(sp?.name || ''),
               escapeCsv(cust?.code || ''),
