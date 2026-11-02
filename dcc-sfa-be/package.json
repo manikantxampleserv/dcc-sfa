@@ -26,7 +26,8 @@
     "create:permanent-user": "ts-node src/scripts/create-permanent-user.ts",
     "sync:units-subunits": "ts-node src/scripts/sync-units-subunits.ts",
     "seed:templates": "ts-node src/scripts/seed-templates.ts",
-    "test:monthly-mail": "tsx src/scripts/test-monthly-report-mail.ts"
+    "test:monthly-mail": "tsx src/scripts/test-monthly-report-mail.ts",
+    "run:grading-job": "tsx src/scripts/run-customer-grading-job.ts"
   },
   "devDependencies": {
     "@types/backblaze-b2": "^1.5.6",

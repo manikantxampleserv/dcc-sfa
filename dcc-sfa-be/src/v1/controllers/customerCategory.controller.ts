@@ -549,6 +549,20 @@ export const customerCategoryController = {
     }
   },
 
+  async runGradingJob(req: Request, res: Response) {
+    try {
+      const { runCustomerCategoryAssignment } = await import('../../jobs/customerCategoryAssignment.job');
+      const results = await runCustomerCategoryAssignment();
+      return res.status(200).json({
+        message: 'Customer category grading job executed successfully',
+        data: results,
+      });
+    } catch (e: any) {
+      console.error('Fatal error in grading job execution:', e);
+      return res.status(500).json({ message: e.message });
+    }
+  },
+
   async assignCategoriesToCustomers(req: Request, res: Response) {
     try {
       const startTime = new Date();

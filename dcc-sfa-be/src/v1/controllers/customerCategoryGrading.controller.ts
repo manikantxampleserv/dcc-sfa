@@ -76,6 +76,12 @@ export const customerCategoryGradingController = {
           data: {
             action_taken: action === 'approve' ? 'A' : 'R',
             status: action === 'approve' ? 'C' : 'R',
+            upcoming_category_id:
+              action === 'approve'
+                ? gradingRequest.upcoming_category_id
+                : gradingRequest.current_category_id,
+            change_type:
+              action === 'approve' ? gradingRequest.change_type : 'no_change',
             approver_id: req.user?.id,
             approved_date: new Date(),
             updatedby: req.user?.id,
@@ -361,6 +367,12 @@ async function processSingleGradingRequest(
       data: {
         action_taken: action === 'approve' ? 'A' : 'R',
         status: action === 'approve' ? 'C' : 'R',
+        upcoming_category_id:
+          action === 'approve'
+            ? gradingRequest.upcoming_category_id
+            : gradingRequest.current_category_id,
+        change_type:
+          action === 'approve' ? gradingRequest.change_type : 'no_change',
         approver_id: userId,
         approved_date: new Date(),
         updatedby: userId,

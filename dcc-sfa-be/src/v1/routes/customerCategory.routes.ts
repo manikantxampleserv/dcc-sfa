@@ -39,6 +39,13 @@ router.delete(
 );
 
 router.post(
+  '/customer-category/run-grading-job',
+  authenticateToken,
+  requirePermission([{ module: 'customer-category', action: 'update' }]),
+  customerCategoryController.runGradingJob
+);
+
+router.post(
   '/customer-category/assign-all',
   authenticateToken,
   requirePermission([{ module: 'customer-category', action: 'update' }]),

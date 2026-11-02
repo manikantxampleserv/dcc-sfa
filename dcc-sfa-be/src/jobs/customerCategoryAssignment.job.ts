@@ -44,32 +44,19 @@ async function getLowestCategory() {
 }
 
 let scheduledTask: any = null;
+let isAssignmentRunning = false;
 
-export const scheduleCustomerCategoryAssignment = async () => {
-  let cronExpression = '0 0 * * *';
+export const runCustomerCategoryAssignment = async () => {
+  if (isAssignmentRunning) {
+    logger.warn('Customer Category Assignment is already running. Skipping duplicate trigger.');
+    return { skipped: true };
+  }
+  isAssignmentRunning = true;
+  logger.info('Customer Category Assignment Started');
+  logger.info(`Time: ${new Date().toISOString()}`);
+
   try {
-    const companySettings = await prisma.companies.findFirst({
-      orderBy: { id: 'asc' },
-    });
-    if (companySettings?.customer_grading_cron_time) {
-      cronExpression = companySettings.customer_grading_cron_time;
-    }
-  } catch (error) {
-    logger.error('Failed to get cron settings, using default', error);
-  }
-
-  if (scheduledTask) {
-    scheduledTask.stop();
-  }
-
-  scheduledTask = cron.schedule(
-    cronExpression,
-    async () => {
-      logger.info('Cron job: Customer Category Assignment Started');
-      logger.info(`Time: ${new Date().toISOString()}`);
-
-      try {
-        const startTime = new Date();
+    const startTime = new Date();
         const results = {
           totalProcessed: 0,
           totalUpdated: 0,
@@ -187,9 +174,36 @@ export const scheduleCustomerCategoryAssignment = async () => {
           }
         }
 
+        logger.info(`Pre-fetching existing grading records for quick lookup...`);
+        const existingGradings = await prisma.customer_category_grading.findMany({
+          select: {
+            id: true,
+            customer_id: true,
+            current_category_id: true,
+            upcoming_category_id: true,
+            change_type: true,
+            status: true,
+            action_taken: true,
+          },
+          orderBy: { id: 'desc' },
+        });
+
+        const gradingMap = new Map<number, any>();
+        for (const g of existingGradings) {
+          if (!gradingMap.has(g.customer_id)) {
+            gradingMap.set(g.customer_id, g);
+          }
+        }
+        logger.info(`Loaded ${gradingMap.size} existing customer grading records into memory.`);
+
         logger.info(`Processing ${customers.length} customers...`);
 
-        for (const customer of customers) {
+        // Process in chunks of 50 to maximize throughput and avoid serial network latency
+        const CHUNK_SIZE = 50;
+        for (let i = 0; i < customers.length; i += CHUNK_SIZE) {
+          const chunk = customers.slice(i, i + CHUNK_SIZE);
+          await Promise.all(
+            chunk.map(async customer => {
           results.totalProcessed++;
 
           try {
@@ -270,22 +284,31 @@ export const scheduleCustomerCategoryAssignment = async () => {
               });
 
               results.totalUpdated++;
-            } else if (newCategoryId !== currentCategoryId) {
-              const changeType = getChangeType(
-                currentCategoryId,
-                newCategoryId,
-                validCategories
-              );
+            } else {
+              const isDifferent = newCategoryId !== currentCategoryId;
+              const changeType = isDifferent
+                ? getChangeType(
+                    currentCategoryId,
+                    newCategoryId,
+                    validCategories
+                  )
+                : 'no_change';
 
-              const existingRequest =
-                await prisma.customer_category_grading.findFirst({
-                  where: {
-                    customer_id: customer.id,
-                    action_taken: 'N',
-                  },
-                });
+              const existingRequest = gradingMap.get(customer.id);
 
               if (existingRequest) {
+                // If already in the exact desired state, SKIP database write
+                if (
+                  existingRequest.current_category_id === currentCategoryId &&
+                  existingRequest.upcoming_category_id === newCategoryId &&
+                  existingRequest.change_type === changeType &&
+                  existingRequest.status === 'P' &&
+                  existingRequest.action_taken === 'N'
+                ) {
+                  results.totalUnchanged++;
+                  return;
+                }
+
                 await prisma.customer_category_grading.update({
                   where: { id: existingRequest.id },
                   data: {
@@ -293,6 +316,9 @@ export const scheduleCustomerCategoryAssignment = async () => {
                     upcoming_category_id: newCategoryId,
                     change_type: changeType,
                     status: 'P',
+                    action_taken: 'N',
+                    approver_id: null,
+                    approved_date: null,
                     updatedate: new Date(),
                     updatedby: 1,
                   },
@@ -317,32 +343,56 @@ export const scheduleCustomerCategoryAssignment = async () => {
 
                 results.totalUpdated++;
               }
-            } else {
-              results.totalUnchanged++;
             }
           } catch (error: any) {
             results.totalFailed++;
             logger.error(`${customer.name}: ${error.message}`);
-            logger.error(`Full error:`, JSON.stringify(error, null, 2));
-
-            if (error.code === 'P2002') {
-              logger.error(`Unique constraint violation`);
-            } else if (error.code === 'P2003') {
-              logger.error(`Foreign key constraint violation`);
-            }
           }
+            })
+          );
         }
         const endTime = new Date();
         const duration = (endTime.getTime() - startTime.getTime()) / 1000;
 
-        logger.info('Cron Customer Category Assignment Completed');
+        logger.info('Customer Category Assignment Completed');
         logger.info(`Duration: ${duration}s`);
         logger.info(
           `Summary: processed: ${results.totalProcessed}, requestsCreated: ${results.totalUpdated}, unchanged: ${results.totalUnchanged}, failed: ${results.totalFailed}`
         );
+        return { ...results, duration };
       } catch (error: any) {
-        logger.error('Cron: Customer Category Assignment Failed');
+        logger.error('Customer Category Assignment Failed');
         logger.error('Error:', error.message);
+        throw error;
+      } finally {
+        isAssignmentRunning = false;
+      }
+};
+
+export const scheduleCustomerCategoryAssignment = async () => {
+  let cronExpression = '0 0 * * *';
+  try {
+    const companySettings = await prisma.companies.findFirst({
+      orderBy: { id: 'asc' },
+    });
+    if (companySettings?.customer_grading_cron_time) {
+      cronExpression = companySettings.customer_grading_cron_time;
+    }
+  } catch (error) {
+    logger.error('Failed to get cron settings, using default', error);
+  }
+
+  if (scheduledTask) {
+    scheduledTask.stop();
+  }
+
+  scheduledTask = cron.schedule(
+    cronExpression,
+    async () => {
+      try {
+        await runCustomerCategoryAssignment();
+      } catch (err: any) {
+        logger.error('Scheduled customer category assignment error:', err.message);
       }
     },
     {
