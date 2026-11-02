@@ -1,3 +1,4 @@
+import ExcelJS from 'exceljs';
 import { ImportExportService } from '../base/import-export.service';
 import { ColumnDefinition } from '../../../types/import-export.types';
 import prisma from '../../../configs/prisma.client';
@@ -111,6 +112,14 @@ export class AssetMasterImportExportService extends ImportExportService<any> {
       description: 'ID of the depot (optional)',
     },
     {
+      key: 'depot_name',
+      header: 'Depot Name',
+      width: 25,
+      required: false,
+      type: 'string',
+      description: 'Name of the depot (export only)',
+    },
+    {
       key: 'outlet_id',
       header: 'Outlet ID',
       width: 15,
@@ -118,6 +127,14 @@ export class AssetMasterImportExportService extends ImportExportService<any> {
       type: 'number',
       transform: value => (value ? parseInt(value) : null),
       description: 'ID of the outlet/customer (optional)',
+    },
+    {
+      key: 'outlet_name',
+      header: 'Outlet Name',
+      width: 25,
+      required: false,
+      type: 'string',
+      description: 'Name of the outlet/customer (export only)',
     },
     {
       key: 'name',
@@ -219,6 +236,32 @@ export class AssetMasterImportExportService extends ImportExportService<any> {
       description: 'Warranty expiry date (optional, format: YYYY-MM-DD)',
     },
     {
+      key: 'installation_date',
+      header: 'Installation Date',
+      width: 18,
+      required: false,
+      type: 'date',
+      transform: value => (value ? new Date(value) : null),
+      description: 'Date of installation (optional, format: YYYY-MM-DD)',
+    },
+    {
+      key: 'last_scanned_date',
+      header: 'Last Scanned Date',
+      width: 20,
+      required: false,
+      type: 'date',
+      transform: value => (value ? new Date(value) : null),
+      description: 'Last scanned date (optional, format: YYYY-MM-DD)',
+    },
+    {
+      key: 'last_scanned_by',
+      header: 'Last Scanned By',
+      width: 25,
+      required: false,
+      type: 'string',
+      description: 'Name of user who last scanned/inspected (export only)',
+    },
+    {
       key: 'current_location',
       header: 'Current Location',
       width: 30,
@@ -304,9 +347,14 @@ export class AssetMasterImportExportService extends ImportExportService<any> {
         barcode: 'BC123456789',
         nfc_tag: 'NFC123456789',
         depot_id: 1,
+        depot_name: 'Main Depot',
         outlet_id: null,
+        outlet_name: '',
         purchase_date: '2024-01-15',
         warranty_expiry: '2026-01-15',
+        installation_date: '2024-01-20',
+        last_scanned_date: '2024-02-01',
+        last_scanned_by: 'John Doe',
         current_location: 'Main Warehouse - Section A',
         current_status: 'Available',
         assigned_to: 'Warehouse Team',
@@ -320,52 +368,347 @@ export class AssetMasterImportExportService extends ImportExportService<any> {
     return column?.description || '';
   }
 
-  async exportToExcel(options: any = {}): Promise<Buffer> {
-    const exportOptions = {
-      ...options,
+  /**
+   * Builds the export query with necessary relational includes and filters
+   * @param options Export query options
+   * @returns Prisma query configuration object
+   */
+  private buildExportQuery(options: any = {}): any {
+    const where = options.filters || options.where || {};
+    return {
+      where,
+      orderBy: options.orderBy || { id: 'desc' },
       include: {
         asset_master_asset_types: true,
         asset_master_asset_sub_types: true,
         asset_master_brands: true,
         asset_master_depot: true,
         asset_master_outlet: true,
+        asset_master_last_read: {
+          select: {
+            id: true,
+            name: true,
+            employee_id: true,
+          },
+        },
+        cooler_asset_master: {
+          select: {
+            id: true,
+            last_scanned_date: true,
+            cooler_inspections: {
+              where: { is_active: 'Y' },
+              orderBy: {
+                inspection_date: 'desc',
+              },
+              take: 1,
+              select: {
+                inspection_date: true,
+                users: {
+                  select: {
+                    id: true,
+                    name: true,
+                  },
+                },
+              },
+            },
+          },
+        },
       },
     };
-    return super.exportToExcel(exportOptions);
+  }
+
+  /**
+   * Helper to convert 1-based column number to Excel column letter
+   * @param colNumber 1-based column number
+   * @returns Excel column letter (e.g. A, B, ..., Z, AA, AB)
+   */
+  private getColumnLetter(colNumber: number): string {
+    let letter = '';
+    while (colNumber > 0) {
+      const mod = (colNumber - 1) % 26;
+      letter = String.fromCharCode(65 + mod) + letter;
+      colNumber = Math.floor((colNumber - mod) / 26);
+    }
+    return letter;
+  }
+
+  /**
+   * Streams the exported asset master data in batches to prevent MSSQL parameter limit issues
+   * @param res HTTP response stream
+   * @param options Export options including filters, limit, and sorting
+   */
+  async exportToExcelStream(res: any, options: any = {}): Promise<void> {
+    const WorkbookWriter =
+      (ExcelJS as any).stream?.xlsx?.WorkbookWriter ||
+      (ExcelJS as any).default?.stream?.xlsx?.WorkbookWriter;
+
+    const workbook = new WorkbookWriter({
+      stream: res,
+      useStyles: true,
+    });
+
+    const worksheet = workbook.addWorksheet(this.displayName, {
+      views: [{ state: 'frozen', ySplit: 1, showGridLines: true }],
+    });
+
+    worksheet.columns = this.columns.map(col => ({
+      header: col.header,
+      key: col.key,
+      width: col.width || 20,
+    }));
+
+    const headerRow = worksheet.getRow(1);
+    headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    headerRow.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FF4472C4' },
+    };
+    headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
+    headerRow.height = 25;
+    if (typeof headerRow.commit === 'function') {
+      headerRow.commit();
+    }
+
+    const BATCH_SIZE = 500;
+    let offset = 0;
+    let hasMore = true;
+    const maxLimit = options.limit ? Number(options.limit) : Infinity;
+    let totalProcessed = 0;
+
+    const query = this.buildExportQuery(options);
+
+    while (hasMore) {
+      const currentTake = Math.min(BATCH_SIZE, maxLimit - totalProcessed);
+      if (currentTake <= 0) break;
+
+      const batchQuery = {
+        ...query,
+        take: currentTake,
+        skip: offset,
+      };
+
+      const batchData = await this.getModel().findMany(batchQuery);
+      if (!batchData || batchData.length === 0) {
+        break;
+      }
+
+      const transformedRows = await this.transformDataForExport(batchData);
+      transformedRows.forEach((row, index) => {
+        const excelRow = worksheet.addRow(row);
+        const globalIndex = totalProcessed + index;
+
+        if (globalIndex % 2 === 0) {
+          excelRow.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFF2F2F2' },
+          };
+        }
+
+        excelRow.eachCell((cell: any) => {
+          cell.border = {
+            top: { style: 'thin' },
+            left: { style: 'thin' },
+            bottom: { style: 'thin' },
+            right: { style: 'thin' },
+          };
+        });
+
+        if (typeof excelRow.commit === 'function') {
+          excelRow.commit();
+        }
+      });
+
+      totalProcessed += batchData.length;
+      offset += batchData.length;
+
+      if (batchData.length < currentTake) {
+        hasMore = false;
+      }
+    }
+
+    const summaryRow = worksheet.addRow([]);
+    summaryRow.getCell(1).value = `Total Records: ${totalProcessed}`;
+    summaryRow.getCell(1).font = { bold: true };
+    if (typeof summaryRow.commit === 'function') {
+      summaryRow.commit();
+    }
+
+    worksheet.commit();
+    await workbook.commit();
+  }
+
+  /**
+   * Generates an Excel buffer of asset master data in batches to prevent MSSQL parameter limit issues
+   * @param options Export options including filters, limit, and sorting
+   * @returns Excel file buffer
+   */
+  async exportToExcel(options: any = {}): Promise<Buffer> {
+    const WorkbookConstructor =
+      (ExcelJS as any).Workbook ||
+      (ExcelJS as any).default?.Workbook ||
+      (ExcelJS as any).default;
+    const workbook = new WorkbookConstructor();
+
+    const worksheet = workbook.addWorksheet(this.displayName, {
+      views: [{ state: 'frozen', ySplit: 1, showGridLines: true }],
+    });
+
+    worksheet.columns = this.columns.map(col => ({
+      header: col.header,
+      key: col.key,
+      width: col.width || 20,
+    }));
+
+    const headerRow = worksheet.getRow(1);
+    headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    headerRow.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FF4472C4' },
+    };
+    headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
+    headerRow.height = 25;
+
+    const BATCH_SIZE = 500;
+    let offset = 0;
+    let hasMore = true;
+    const maxLimit = options.limit ? Number(options.limit) : Infinity;
+    let totalProcessed = 0;
+
+    const query = this.buildExportQuery(options);
+
+    while (hasMore) {
+      const currentTake = Math.min(BATCH_SIZE, maxLimit - totalProcessed);
+      if (currentTake <= 0) break;
+
+      const batchQuery = {
+        ...query,
+        take: currentTake,
+        skip: offset,
+      };
+
+      const batchData = await this.getModel().findMany(batchQuery);
+      if (!batchData || batchData.length === 0) {
+        break;
+      }
+
+      const transformedRows = await this.transformDataForExport(batchData);
+      transformedRows.forEach((row, index) => {
+        const excelRow = worksheet.addRow(row);
+        const globalIndex = totalProcessed + index;
+
+        if (globalIndex % 2 === 0) {
+          excelRow.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFF2F2F2' },
+          };
+        }
+
+        excelRow.eachCell((cell: any) => {
+          cell.border = {
+            top: { style: 'thin' },
+            left: { style: 'thin' },
+            bottom: { style: 'thin' },
+            right: { style: 'thin' },
+          };
+        });
+      });
+
+      totalProcessed += batchData.length;
+      offset += batchData.length;
+
+      if (batchData.length < currentTake) {
+        hasMore = false;
+      }
+    }
+
+    if (totalProcessed > 0) {
+      worksheet.autoFilter = {
+        from: 'A1',
+        to: `${this.getColumnLetter(this.columns.length)}${totalProcessed + 1}`,
+      };
+    }
+
+    const summaryRow = worksheet.addRow([]);
+    summaryRow.getCell(1).value = `Total Records: ${totalProcessed}`;
+    summaryRow.getCell(1).font = { bold: true };
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    return Buffer.from(buffer);
   }
 
   protected async transformDataForExport(data: any[]): Promise<any[]> {
-    return data.map(asset => ({
-      name: asset.name || '',
-      code: asset.code || '',
-      asset_type_id: asset.asset_type_id,
-      asset_type_name: asset.asset_master_asset_types?.name || '',
-      asset_sub_type_id: asset.asset_sub_type_id || '',
-      asset_sub_type_name: asset.asset_master_asset_sub_types?.name || '',
-      asset_brand_id: asset.asset_brand_id || '',
-      asset_brand_name: asset.asset_master_brands?.name || '',
-      serial_number: asset.serial_number,
-      barcode: asset.barcode || '',
-      nfc_tag: asset.nfc_tag || '',
-      depot_id: asset.depot_id || '',
-      depot_name: asset.asset_master_depot?.name || '',
-      outlet_id: asset.outlet_id || '',
-      outlet_name: asset.asset_master_outlet?.name || '',
-      purchase_date: asset.purchase_date
-        ? asset.purchase_date.toISOString().split('T')[0]
-        : '',
-      warranty_expiry: asset.warranty_expiry
-        ? asset.warranty_expiry.toISOString().split('T')[0]
-        : '',
-      current_location: asset.current_location || '',
-      current_status: asset.current_status || '',
-      assigned_to: asset.assigned_to || '',
-      is_active: asset.is_active || 'Y',
-      created_date: asset.createdate?.toISOString().split('T')[0] || '',
-      created_by: asset.createdby || '',
-      updated_date: asset.updatedate?.toISOString().split('T')[0] || '',
-      updated_by: asset.updatedby || '',
-    }));
+    return data.map(asset => {
+      const latestInspection =
+        asset.cooler_asset_master?.[0]?.cooler_inspections?.[0];
+      const scanDate =
+        asset.last_scanned_date ||
+        latestInspection?.inspection_date ||
+        asset.cooler_asset_master?.[0]?.last_scanned_date ||
+        null;
+      const scannedByUser =
+        asset.asset_master_last_read?.name ||
+        latestInspection?.users?.name ||
+        '';
+
+      return {
+        serial_number: asset.serial_number,
+        barcode: asset.barcode || '',
+        nfc_tag: asset.nfc_tag || '',
+        depot_id: asset.depot_id || '',
+        depot_name: asset.asset_master_depot?.name || '',
+        outlet_id: asset.outlet_id || '',
+        outlet_name: asset.asset_master_outlet?.name || '',
+        name: asset.name || '',
+        code: asset.code || '',
+        asset_type_id: asset.asset_type_id,
+        asset_type_name: asset.asset_master_asset_types?.name || '',
+        asset_sub_type_id: asset.asset_sub_type_id || '',
+        asset_sub_type_name: asset.asset_master_asset_sub_types?.name || '',
+        asset_brand_id: asset.asset_brand_id || '',
+        asset_brand_name: asset.asset_master_brands?.name || '',
+        purchase_date: asset.purchase_date
+          ? (asset.purchase_date instanceof Date
+              ? asset.purchase_date.toISOString().split('T')[0]
+              : String(asset.purchase_date).split('T')[0])
+          : '',
+        warranty_expiry: asset.warranty_expiry
+          ? (asset.warranty_expiry instanceof Date
+              ? asset.warranty_expiry.toISOString().split('T')[0]
+              : String(asset.warranty_expiry).split('T')[0])
+          : '',
+        installation_date: asset.installation_date
+          ? (asset.installation_date instanceof Date
+              ? asset.installation_date.toISOString().split('T')[0]
+              : String(asset.installation_date).split('T')[0])
+          : '',
+        last_scanned_date: scanDate
+          ? (scanDate instanceof Date
+              ? scanDate.toISOString().split('T')[0]
+              : String(scanDate).split('T')[0])
+          : '',
+        last_scanned_by: scannedByUser,
+        current_location: asset.current_location || '',
+        current_status: asset.current_status || '',
+        assigned_to: asset.assigned_to || '',
+        is_active: asset.is_active || 'Y',
+        created_date: asset.createdate
+          ? (asset.createdate instanceof Date
+              ? asset.createdate.toISOString().split('T')[0]
+              : String(asset.createdate).split('T')[0])
+          : '',
+        created_by: asset.createdby || '',
+        updated_date: asset.updatedate
+          ? (asset.updatedate instanceof Date
+              ? asset.updatedate.toISOString().split('T')[0]
+              : String(asset.updatedate).split('T')[0])
+          : '',
+        updated_by: asset.updatedby || '',
+      };
+    });
   }
 
   protected async checkDuplicate(data: any, tx?: any): Promise<string | null> {
@@ -458,6 +801,8 @@ export class AssetMasterImportExportService extends ImportExportService<any> {
       nfc_tag: data.nfc_tag || null,
       purchase_date: data.purchase_date || null,
       warranty_expiry: data.warranty_expiry || null,
+      installation_date: data.installation_date || null,
+      last_scanned_date: data.last_scanned_date || null,
       current_location: data.current_location || null,
       current_status: data.current_status || 'Available',
       assigned_to: data.assigned_to || null,
@@ -528,6 +873,14 @@ export class AssetMasterImportExportService extends ImportExportService<any> {
         data.purchase_date !== undefined ? data.purchase_date : undefined,
       warranty_expiry:
         data.warranty_expiry !== undefined ? data.warranty_expiry : undefined,
+      installation_date:
+        data.installation_date !== undefined
+          ? data.installation_date
+          : undefined,
+      last_scanned_date:
+        data.last_scanned_date !== undefined
+          ? data.last_scanned_date
+          : undefined,
       current_location:
         data.current_location !== undefined ? data.current_location : undefined,
       current_status: data.current_status || undefined,

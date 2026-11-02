@@ -7,6 +7,7 @@ exports.salesManagerController = void 0;
 const client_1 = require("@prisma/client");
 const prisma_client_1 = __importDefault(require("../../configs/prisma.client"));
 const permissions_config_1 = require("../../configs/permissions.config");
+const hiddenUsers_config_1 = require("../../configs/hiddenUsers.config");
 const DAY_ABBREVIATIONS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const extractRouteDay = (name = '', description = '', code = '', index = 0) => {
     const combined = `${name} ${description || ''} ${code}`;
@@ -1144,6 +1145,7 @@ exports.salesManagerController = {
                 const directReports = await prisma_client_1.default.users.findMany({
                     where: {
                         reporting_to: user.id,
+                        ...hiddenUsers_config_1.hiddenUsersPrismaFilter,
                         is_active: 'Y',
                     },
                     select: { id: true },
@@ -1174,8 +1176,11 @@ exports.salesManagerController = {
                 });
                 depotSalespersons.forEach(ds => assignedSalespersonIds.add(ds.id));
             }
-            // Base query for team member users
+            /**
+             * Base query for team member users
+             */
             const userWhere = {
+                ...hiddenUsers_config_1.hiddenUsersPrismaFilter,
                 is_active: 'Y',
             };
             if (assignedSalespersonIds.size > 0) {

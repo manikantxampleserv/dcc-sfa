@@ -12,6 +12,12 @@ import { ImportExportErrorHandler } from './import-export-error.service';
 import prisma from '../../../configs/prisma.client';
 import { PrismaClient } from '@prisma/client';
 import { config } from 'dotenv';
+import {
+  hiddenUsersPrismaFilter,
+  hiddenLoginHistoryUserFilter,
+  hiddenApiTokensUserFilter,
+  isHiddenUser,
+} from '../../../configs/hiddenUsers.config';
 
 export abstract class ImportExportService<T> {
   protected abstract modelName: keyof PrismaClient;
@@ -24,9 +30,28 @@ export abstract class ImportExportService<T> {
     return (prisma as any)[this.modelName];
   }
 
+  /**
+   * Applies centralized hidden system users filter for user-related models
+   * @param {any} filters - Existing filters
+   * @returns {any} Filter object with hidden users excluded
+   */
+  protected applyHiddenFilter(filters: any = {}): any {
+    const where = { ...(filters || {}) };
+    if (this.modelName === 'users') {
+      return { ...where, ...hiddenUsersPrismaFilter };
+    }
+    if (this.modelName === 'login_history') {
+      return { ...where, ...hiddenLoginHistoryUserFilter };
+    }
+    if (this.modelName === 'api_tokens') {
+      return { ...where, ...hiddenApiTokensUserFilter };
+    }
+    return where;
+  }
+
   async getCount(filters?: any): Promise<number> {
     return await this.getModel().count({
-      where: filters,
+      where: this.applyHiddenFilter(filters),
     });
   }
 
@@ -374,7 +399,7 @@ export abstract class ImportExportService<T> {
 
   async exportToExcel(options: ExportOptions = {}): Promise<Buffer> {
     const query: any = {
-      where: options.filters,
+      where: this.applyHiddenFilter(options.filters),
       orderBy: options.orderBy || { id: 'desc' },
     };
 
@@ -382,7 +407,11 @@ export abstract class ImportExportService<T> {
     if (options.select) query.select = options.select;
     if (options.limit) query.take = options.limit;
 
-    const data = await this.getModel().findMany(query);
+    const rawData = await this.getModel().findMany(query);
+    const data =
+      this.modelName === 'users'
+        ? rawData.filter((u: any) => !isHiddenUser(u))
+        : rawData;
 
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet(this.displayName);
@@ -448,7 +477,7 @@ export abstract class ImportExportService<T> {
 
   async exportToPDF(options: ExportOptions = {}): Promise<Buffer> {
     const query: any = {
-      where: options.filters,
+      where: this.applyHiddenFilter(options.filters),
       orderBy: options.orderBy || { id: 'desc' },
     };
 
@@ -456,7 +485,11 @@ export abstract class ImportExportService<T> {
     if (options.select) query.select = options.select;
     if (options.limit) query.take = options.limit || 1000;
 
-    const data = await this.getModel().findMany(query);
+    const rawData = await this.getModel().findMany(query);
+    const data =
+      this.modelName === 'users'
+        ? rawData.filter((u: any) => !isHiddenUser(u))
+        : rawData;
 
     return new Promise(async (resolve, reject) => {
       try {
@@ -798,14 +831,24 @@ export abstract class ImportExportService<T> {
 
       try {
         const whereClause =
-          masterTable === 'asset_master' ? {} : { is_active: 'Y' };
+          masterTable === 'asset_master'
+            ? {}
+            : masterTable === 'users'
+            ? { is_active: 'Y', ...hiddenUsersPrismaFilter }
+            : masterTable === 'login_history'
+            ? { ...hiddenLoginHistoryUserFilter }
+            : masterTable === 'api_tokens'
+            ? { ...hiddenApiTokensUserFilter }
+            : { is_active: 'Y' };
 
         const result = await model.findMany({
           select: selectFields,
           where: whereClause,
           orderBy: { id: 'asc' },
         });
-        return result;
+        return masterTable === 'users'
+          ? result.filter((u: any) => !isHiddenUser(u))
+          : result;
       } catch (e1) {
         console.warn(
           `getMasterTableData [${masterTable}] failed with is_active filter:`,
@@ -818,7 +861,9 @@ export abstract class ImportExportService<T> {
           select: selectFields,
           orderBy: { id: 'asc' },
         });
-        return result;
+        return masterTable === 'users'
+          ? result.filter((u: any) => !isHiddenUser(u))
+          : result;
       } catch (e2) {
         console.warn(
           `getMasterTableData [${masterTable}] failed without filter:`,

@@ -309,6 +309,12 @@ exports.importExportController = {
                 limit: limit ? parseInt(limit) : undefined,
                 orderBy: { [sortField]: sortOrder },
             };
+            if (typeof service.exportToExcelStream === 'function') {
+                res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+                res.setHeader('Content-Disposition', `attachment; filename=${table}_export_${Date.now()}.xlsx`);
+                await service.exportToExcelStream(res, options);
+                return;
+            }
             const buffer = await service.exportToExcel(options);
             res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
             res.setHeader('Content-Disposition', `attachment; filename=${table}_export_${Date.now()}.xlsx`);

@@ -2,6 +2,10 @@ import { Request, Response } from 'express';
 import { validationResult } from 'express-validator';
 import prisma from '../../configs/prisma.client';
 import { getLocationFromIPs } from '../../utils/ipLocation.util';
+import {
+  hiddenApiTokensUserFilter,
+  hiddenUsersPrismaFilter,
+} from '../../configs/hiddenUsers.config';
 
 export const getApiTokens = async (req: Request, res: Response) => {
   try {
@@ -27,7 +31,9 @@ export const getApiTokens = async (req: Request, res: Response) => {
     const limitNum = parseInt(limit as string);
     const offset = (pageNum - 1) * limitNum;
 
-    const where: any = {};
+    const where: any = {
+      ...hiddenApiTokensUserFilter,
+    };
 
     if (search) {
       where.OR = [
@@ -93,20 +99,22 @@ export const getApiTokens = async (req: Request, res: Response) => {
         take: limitNum,
       }),
       prisma.api_tokens.count({ where }),
-      prisma.api_tokens.count(),
+      prisma.api_tokens.count({ where: { ...hiddenApiTokensUserFilter } }),
       prisma.api_tokens.count({
         where: {
           is_active: 'Y',
           is_revoked: false,
           OR: [{ expires_at: null }, { expires_at: { gte: now } }],
+          ...hiddenApiTokensUserFilter,
         },
       }),
       prisma.api_tokens.count({
-        where: { is_revoked: true },
+        where: { is_revoked: true, ...hiddenApiTokensUserFilter },
       }),
       prisma.api_tokens.count({
         where: {
           expires_at: { lt: now },
+          ...hiddenApiTokensUserFilter,
           is_revoked: false,
         },
       }),

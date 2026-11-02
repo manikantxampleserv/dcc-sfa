@@ -1,8 +1,19 @@
 import { Request, Response } from 'express';
-import { paginate } from '../../utils/paginate';
-import prisma from '../../configs/prisma.client';
 import { isAdminRole } from '../../configs/permissions.config';
-import { getTimeFilter } from '../../utils/dateFilters';
+import prisma from '../../configs/prisma.client';
+import {
+  hiddenUsersPrismaFilter,
+  isHiddenUser,
+} from '../../configs/hiddenUsers.config';
+import { paginate } from '../../utils/paginate';
+
+/**
+ * Helper to get ExcelJS library instance compatible with CJS and ESM dynamic imports
+ */
+const getExcelJS = async () => {
+  const mod = await import('exceljs');
+  return (mod as any).default || mod;
+};
 
 async function getReportData(filters: any) {
   const {
@@ -266,7 +277,7 @@ export const reportsController = {
         status,
       });
 
-      const ExcelJS = await import('exceljs');
+      const ExcelJS = await getExcelJS();
       const workbook = new ExcelJS.Workbook();
 
       const ordersSheet = workbook.addWorksheet('Orders', {
@@ -511,6 +522,7 @@ export const reportsController = {
 
       const salespersonsWhere: any = {
         id: { in: Array.from(salespersonIds) },
+        ...hiddenUsersPrismaFilter,
         is_active: 'Y',
       };
 
@@ -603,6 +615,7 @@ export const reportsController = {
         const missingSalespersons = await prisma.users.findMany({
           where: {
             id: { in: salespersonIdsToFetch },
+            ...hiddenUsersPrismaFilter,
           },
           select: { id: true, name: true, email: true, employee_id: true },
         });
@@ -832,6 +845,7 @@ export const reportsController = {
       const salespersons = await prisma.users.findMany({
         where: {
           id: { in: Array.from(salespersonIds) },
+        ...hiddenUsersPrismaFilter,
           is_active: 'Y',
         },
         select: { id: true, name: true, email: true, employee_id: true },
@@ -911,6 +925,7 @@ export const reportsController = {
         const missingSalespersons = await prisma.users.findMany({
           where: {
             id: { in: salespersonIdsToFetch },
+            ...hiddenUsersPrismaFilter,
           },
           select: { id: true, name: true, email: true, employee_id: true },
         });
@@ -1033,7 +1048,7 @@ export const reportsController = {
           ? Math.min((totalActualSales / totalTargetAmount) * 100, 100)
           : 0;
 
-      const ExcelJS = await import('exceljs');
+      const ExcelJS = await getExcelJS();
       const workbook = new ExcelJS.Workbook();
 
       const performanceSheet = workbook.addWorksheet(
@@ -1537,7 +1552,7 @@ export const reportsController = {
         },
       });
 
-      const ExcelJS = await import('exceljs');
+      const ExcelJS = await getExcelJS();
       const workbook = new ExcelJS.Workbook();
 
       const assetsSheet = workbook.addWorksheet('Asset Master', {
@@ -2041,7 +2056,7 @@ export const reportsController = {
       });
 
       // Import ExcelJS
-      const ExcelJS = await import('exceljs');
+      const ExcelJS = await getExcelJS();
       const workbook = new ExcelJS.Workbook();
 
       // Create Visits sheet
@@ -2557,7 +2572,7 @@ export const reportsController = {
       });
 
       // Import ExcelJS
-      const ExcelJS = await import('exceljs');
+      const ExcelJS = await getExcelJS();
       const workbook = new ExcelJS.Workbook();
 
       // Create Promotions sheet
@@ -3087,7 +3102,7 @@ export const reportsController = {
       });
 
       // Import ExcelJS
-      const ExcelJS = await import('exceljs');
+      const ExcelJS = await getExcelJS();
       const workbook = new ExcelJS.Workbook();
 
       // Create Zone/Territory Summary sheet
@@ -3247,8 +3262,11 @@ export const reportsController = {
         dateFilter.lte = new Date(end_date as string);
       }
 
-      // Fetch Users (Sales Reps)
+      /**
+       * Fetch Users (Sales Reps)
+       */
       const whereUsers: any = {
+        ...hiddenUsersPrismaFilter,
         is_active: 'Y',
       };
       if (salesperson_id) {
@@ -3500,6 +3518,7 @@ export const reportsController = {
 
       // Fetch Users
       const whereUsers: any = {
+        ...hiddenUsersPrismaFilter,
         is_active: 'Y',
       };
       if (salesperson_id) {
@@ -3543,7 +3562,7 @@ export const reportsController = {
       });
 
       // Import ExcelJS
-      const ExcelJS = await import('exceljs');
+      const ExcelJS = await getExcelJS();
       const workbook = new ExcelJS.Workbook();
 
       // Create Reps sheet
@@ -3852,7 +3871,7 @@ export const reportsController = {
         },
       });
 
-      const ExcelJS = await import('exceljs');
+      const ExcelJS = await getExcelJS();
       const workbook = new ExcelJS.Workbook();
 
       // Competitor Activities Sheet
@@ -4257,7 +4276,7 @@ export const reportsController = {
         },
       });
 
-      const ExcelJS = await import('exceljs');
+      const ExcelJS = await getExcelJS();
       const workbook = new ExcelJS.Workbook();
 
       const outstandingSheet = workbook.addWorksheet('Outstanding Invoices', {
@@ -4544,7 +4563,12 @@ export const reportsController = {
         history_this_month: historyThisMonth,
       };
 
-      const serializedData = data.map((history: any) => ({
+      const serializedData = data
+        .filter(
+          (history: any) =>
+            !isHiddenUser(history.attendance_historys?.attendance_user)
+        )
+        .map((history: any) => ({
         id: history.id,
         attendance_id: history.attendance_id,
         action_type: history.action_type,
@@ -4670,7 +4694,7 @@ export const reportsController = {
         orderBy: { createdate: 'desc' },
       });
 
-      const ExcelJS = await import('exceljs');
+      const ExcelJS = await getExcelJS();
       const workbook = new ExcelJS.Workbook();
 
       const historySheet = workbook.addWorksheet('Attendance History', {
@@ -4695,6 +4719,7 @@ export const reportsController = {
 
       historyRecords.forEach((history: any) => {
         const user = history.attendance_historys?.attendance_user;
+        if (isHiddenUser(user)) return;
         historySheet.addRow({
           employee_name: user?.name || 'N/A',
           employee_id: user?.employee_id || 'N/A',
@@ -5023,7 +5048,7 @@ export const reportsController = {
         },
       });
 
-      const ExcelJS = await import('exceljs');
+      const ExcelJS = await getExcelJS();
       const workbook = new ExcelJS.Workbook();
       const sheet = workbook.addWorksheet('Cooler Inspections', {
         pageSetup: { paperSize: 9, orientation: 'landscape' },
@@ -5055,9 +5080,11 @@ export const reportsController = {
         },
       ];
 
-      sheet.columns.forEach(column => {
-        column.font = { name: 'Aptos Narrow', size: 11 };
-      });
+      sheet.columns.forEach(
+        (column: { font: { name: string; size: number } }) => {
+          column.font = { name: 'Aptos Narrow', size: 11 };
+        }
+      );
 
       inspections.forEach(row => {
         sheet.addRow({
@@ -5226,6 +5253,16 @@ export const reportsController = {
           asset_master_asset_sub_types: true,
           asset_master_brand: true,
           asset_master_brands: true,
+          asset_master_last_read: {
+            select: { id: true, name: true, employee_id: true, email: true },
+          },
+          asset_master_outlet: {
+            include: {
+              customer_depot: {
+                select: { id: true, name: true, code: true },
+              },
+            },
+          },
           cooler_asset_master: {
             include: {
               cooler_inspections: {
@@ -5242,7 +5279,13 @@ export const reportsController = {
                   },
                 },
               },
-              coolers_customers: true,
+              coolers_customers: {
+                include: {
+                  customer_depot: {
+                    select: { id: true, name: true, code: true },
+                  },
+                },
+              },
               cooler_types: true,
               cooler_sub_types: true,
               users: {
@@ -5272,16 +5315,26 @@ export const reportsController = {
             ? deployedCooler.cooler_inspections[0]
             : null;
 
+        const customer =
+          deployedCooler?.coolers_customers || a.asset_master_outlet || null;
+
         return {
           id: a.id,
-          // Asset fields
           name: a.name || '',
           code: a.code || '',
-          barcode: a.barcode || '',
-          serial_number: a.serial_number || '',
+          barcode:
+            a.barcode?.trim() ||
+            deployedCooler?.code?.trim() ||
+            a.code?.trim() ||
+            '',
+          serial_number:
+            a.serial_number?.trim() ||
+            deployedCooler?.serial_number?.trim() ||
+            '',
           asset_type: a.asset_master_asset_types?.name || '',
           asset_sub_type: a.asset_master_asset_sub_types?.name || '',
           brand:
+            deployedCooler?.brand ||
             a.asset_master_brands?.name ||
             a.asset_master_brand?.name ||
             a.brand ||
@@ -5292,19 +5345,18 @@ export const reportsController = {
           install_date:
             deployedCooler?.install_date || a.installation_date || null,
 
-          // Cooler (deployed) fields
           cooler_code: deployedCooler?.code || null,
           cooler_status: deployedCooler?.status || null,
           cooler_type: deployedCooler?.cooler_types?.name || null,
           cooler_sub_type: deployedCooler?.cooler_sub_types?.name || null,
 
-          // Customer (outlet) or depot the cooler is currently at
-          customer: deployedCooler?.coolers_customers
+          customer: customer
             ? {
-                id: deployedCooler.coolers_customers.id,
-                name: deployedCooler.coolers_customers.name,
-                code: deployedCooler.coolers_customers.code,
+                id: customer.id,
+                name: customer.name,
+                code: customer.code,
                 type: 'outlet',
+                depot: customer.customer_depot || a.asset_master_depot || null,
               }
             : a.asset_master_depot
               ? {
@@ -5317,8 +5369,11 @@ export const reportsController = {
                 ? { name: a.current_location, code: null, type: 'other' }
                 : null,
 
-          // Latest inspection
-          inspection_date: latestInspection?.inspection_date || null,
+          inspection_date:
+            latestInspection?.inspection_date ||
+            deployedCooler?.last_scanned_date ||
+            a.last_scanned_date ||
+            null,
           temperature:
             latestInspection?.temperature ??
             deployedCooler?.temperature ??
@@ -5333,7 +5388,14 @@ export const reportsController = {
                 employee_id: latestInspection.users.employee_id,
                 email: latestInspection.users.email,
               }
-            : null,
+            : a.asset_master_last_read
+              ? {
+                  id: a.asset_master_last_read.id,
+                  name: a.asset_master_last_read.name,
+                  employee_id: a.asset_master_last_read.employee_id,
+                  email: a.asset_master_last_read.email,
+                }
+              : null,
 
           technician: deployedCooler?.users
             ? {
@@ -5513,6 +5575,16 @@ export const reportsController = {
             asset_master_asset_sub_types: true,
             asset_master_brand: true,
             asset_master_brands: true,
+            asset_master_last_read: {
+              select: { id: true, name: true, employee_id: true, email: true },
+            },
+            asset_master_outlet: {
+              include: {
+                customer_depot: {
+                  select: { id: true, name: true, code: true },
+                },
+              },
+            },
             cooler_asset_master: {
               include: {
                 cooler_inspections: {
@@ -5529,7 +5601,13 @@ export const reportsController = {
                     },
                   },
                 },
-                coolers_customers: true,
+                coolers_customers: {
+                  include: {
+                    customer_depot: {
+                      select: { id: true, name: true, code: true },
+                    },
+                  },
+                },
                 cooler_types: true,
                 cooler_sub_types: true,
                 users: {
@@ -5559,13 +5637,15 @@ export const reportsController = {
 
       const assets = allAssets;
 
-      const ExcelJS = await import('exceljs');
+      const ExcelJS = await getExcelJS();
       const workbook = new ExcelJS.Workbook();
       const sheet = workbook.addWorksheet('Cooler Reports', {
         pageSetup: { paperSize: 9, orientation: 'landscape' },
       });
 
       sheet.columns = [
+        { header: 'Asset ID', key: 'asset_id', width: 15 },
+        { header: 'Cooler Code', key: 'cooler_code', width: 20 },
         { header: 'Barcode', key: 'barcode', width: 20 },
         { header: 'Serial', key: 'serial', width: 20 },
         { header: 'Type', key: 'type', width: 20 },
@@ -5591,9 +5671,11 @@ export const reportsController = {
         },
       ];
 
-      sheet.columns.forEach(column => {
-        if (column) column.font = { name: 'Aptos Narrow', size: 11 };
-      });
+      sheet.columns.forEach(
+        (column: { font: { name: string; size: number } }) => {
+          if (column) column.font = { name: 'Aptos Narrow', size: 11 };
+        }
+      );
 
       assets.forEach((row: any) => {
         const deployedCooler =
@@ -5606,6 +5688,20 @@ export const reportsController = {
             ? deployedCooler.cooler_inspections[0]
             : null;
 
+        const customer =
+          deployedCooler?.coolers_customers || row.asset_master_outlet || null;
+        const depot =
+          row.asset_master_depot || customer?.customer_depot || null;
+
+        const isOutlet = !!customer;
+        const isDepot = !isOutlet && (!!depot || !!row.depot_id);
+
+        const locationType = isOutlet
+          ? 'Outlet'
+          : isDepot
+            ? 'Depot'
+            : row.current_location || '—';
+
         const isWorking =
           latestInspection?.is_working === 'Y'
             ? 'Working'
@@ -5613,70 +5709,110 @@ export const reportsController = {
               ? 'Not Working'
               : deployedCooler?.status === 'working'
                 ? 'Working'
-                : deployedCooler?.status
+                : deployedCooler?.status === 'not_working'
                   ? 'Not Working'
-                  : 'N/A';
+                  : deployedCooler?.status
+                    ? deployedCooler.status
+                    : row.current_status
+                      ? row.current_status
+                      : isDepot
+                        ? 'In Depot'
+                        : 'N/A';
 
-        const installDate =
+        const installDateRaw =
           deployedCooler?.install_date || row.installation_date || null;
+        const installDate =
+          installDateRaw && !isNaN(new Date(installDateRaw).getTime())
+            ? new Date(installDateRaw).toLocaleDateString()
+            : '—';
 
-        const lastScannedDate =
+        const lastScannedRaw =
           latestInspection?.inspection_date ||
           deployedCooler?.last_scanned_date ||
+          row.last_scanned_date ||
           null;
+        const lastScannedDate =
+          lastScannedRaw && !isNaN(new Date(lastScannedRaw).getTime())
+            ? new Date(lastScannedRaw).toLocaleString()
+            : '—';
+
+        const coolerCode =
+          deployedCooler?.code?.trim() || row.code?.trim() || '—';
+        const barcode =
+          row.barcode?.trim() ||
+          deployedCooler?.code?.trim() ||
+          row.code?.trim() ||
+          '—';
+        const serial =
+          row.serial_number?.trim() ||
+          deployedCooler?.serial_number?.trim() ||
+          '—';
+
+        const type =
+          deployedCooler?.cooler_types?.name ||
+          row.asset_master_asset_types?.name ||
+          '—';
+
+        const subtype =
+          deployedCooler?.cooler_sub_types?.name ||
+          row.asset_master_asset_sub_types?.name ||
+          '—';
+
+        const brand =
+          deployedCooler?.brand ||
+          row.asset_master_brands?.name ||
+          row.asset_master_brand?.name ||
+          row.brand ||
+          '—';
+
+        const depotName = isOutlet
+          ? customer?.customer_depot?.name || depot?.name || '—'
+          : isDepot
+            ? depot?.name || '—'
+            : '—';
+
+        const depotOutletCode = isOutlet
+          ? customer?.code || '—'
+          : isDepot
+            ? depot?.code || '—'
+            : '—';
+
+        const outletName = isOutlet
+          ? customer?.name || '—'
+          : isDepot
+            ? '—'
+            : row.current_location || '—';
+
+        const lastScannedSellerCode =
+          latestInspection?.users?.employee_id ||
+          deployedCooler?.users?.employee_id ||
+          row.asset_master_last_read?.employee_id ||
+          '—';
+
+        const lastScannedSellerName =
+          latestInspection?.users?.name ||
+          deployedCooler?.users?.name ||
+          row.asset_master_last_read?.name ||
+          '—';
 
         sheet.addRow({
-          barcode: row.barcode || '—',
-          serial: row.serial_number || '—',
-          type:
-            deployedCooler?.cooler_types?.name ||
-            row.asset_master_asset_types?.name ||
-            '—',
-          subtype:
-            deployedCooler?.cooler_sub_types?.name ||
-            row.asset_master_asset_sub_types?.name ||
-            '—',
-          brand:
-            row.asset_master_brands?.name ||
-            row.asset_master_brand?.name ||
-            deployedCooler?.brand ||
-            row.brand ||
-            '—',
-          location: deployedCooler?.coolers_customers
-            ? 'Outlet'
-            : row.asset_master_depot
-              ? 'Depot'
-              : row.depot_id
-                ? 'Depot'
-                : '—',
-          depot_name: !deployedCooler?.coolers_customers
-            ? row.asset_master_depot?.name || '—'
-            : '—',
-          depot_outlet_code:
-            deployedCooler?.coolers_customers?.code ||
-            (!deployedCooler?.coolers_customers &&
-              row.asset_master_depot?.code) ||
-            '—',
-          outlet_name:
-            deployedCooler?.coolers_customers?.name ||
-            (!deployedCooler?.coolers_customers &&
-              row.asset_master_depot?.name) ||
-            row.current_location ||
-            '—',
+          asset_id: row.id,
+          cooler_code: coolerCode,
+          barcode: barcode,
+          serial: serial,
+          type: type,
+          subtype: subtype,
+          brand: brand,
+          location: locationType,
+          depot_name: depotName,
+          depot_outlet_code: depotOutletCode,
+          outlet_name: outletName,
           status: isWorking,
           disabled: row.is_active === 'N' ? 'YES' : 'NO',
-          install_date: installDate
-            ? new Date(installDate).toLocaleDateString()
-            : '—',
-          last_scanned_date: lastScannedDate
-            ? new Date(lastScannedDate).toLocaleString()
-            : '—',
-          last_scanned_seller_code:
-            latestInspection?.users?.employee_id ||
-            deployedCooler?.users?.employee_id ||
-            '—',
-          last_scanned_seller_name:
-            latestInspection?.users?.name || deployedCooler?.users?.name || '—',
+          install_date: installDate,
+          last_scanned_date: lastScannedDate,
+          last_scanned_seller_code: lastScannedSellerCode,
+          last_scanned_seller_name: lastScannedSellerName,
         });
       });
 
@@ -6022,7 +6158,7 @@ export const reportsController = {
         },
       });
 
-      const ExcelJS = await import('exceljs');
+      const ExcelJS = await getExcelJS();
       const workbook = new ExcelJS.Workbook();
       const sheet = workbook.addWorksheet('Promotion Materials Issued');
 
@@ -6779,7 +6915,7 @@ export const reportsController = {
         if (p.code) productMap.set(p.code, p);
       });
 
-      const ExcelJS = await import('exceljs');
+      const ExcelJS = await getExcelJS();
       const workbook = new ExcelJS.Workbook();
 
       const summarySheet = workbook.addWorksheet('Credit Memos');

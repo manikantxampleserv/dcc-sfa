@@ -2,6 +2,7 @@ import { ImportExportService } from '../base/import-export.service';
 import { ColumnDefinition } from '../../../types/import-export.types';
 import prisma from '../../../configs/prisma.client';
 import * as ExcelJS from 'exceljs';
+import { getDepotStaffLookup, DepotStaffLookup } from '../../../utils/depotStaff.util';
 
 export class InvoicesImportExportService extends ImportExportService<any> {
   protected modelName = 'invoices' as const;
@@ -826,7 +827,7 @@ export class InvoicesImportExportService extends ImportExportService<any> {
     }
   }
 
-  private writeInvoicesToWorksheet(worksheet: any, data: any[]) {
+  private writeInvoicesToWorksheet(worksheet: any, data: any[], staffLookup?: DepotStaffLookup) {
     for (const inv of data) {
       const invDate = inv.invoice_date ? new Date(inv.invoice_date) : '';
 
@@ -852,10 +853,21 @@ export class InvoicesImportExportService extends ImportExportService<any> {
         inv.invoices_salesperson?.user_depot ||
         inv.invoices_salesperson?.route_salespersons?.[0]?.route?.route_depots;
 
-      const depot = depotData?.name || '';
+      let depot = depotData?.name || '';
 
       let coordinator = depotData?.depots_coodrinator?.name || '';
       let supervisor = depotData?.depots_supervisior?.name || '';
+
+      if (staffLookup) {
+        const staff = staffLookup.resolveStaff({
+          customerDepot: depotData,
+          salesperson: inv.invoices_salesperson,
+          depotName: depot || undefined,
+        });
+        if (staff.coordinatorName) coordinator = staff.coordinatorName;
+        if (staff.supervisorName) supervisor = staff.supervisorName;
+        if (!depot && staff.depotName) depot = staff.depotName;
+      }
 
       if (depotData?.user_depots_depot_id) {
         const assignedUsers = depotData.user_depots_depot_id
@@ -962,6 +974,7 @@ export class InvoicesImportExportService extends ImportExportService<any> {
     let hasMore = true;
     const maxLimit = options.limit ? Number(options.limit) : Infinity;
     let totalProcessed = 0;
+    const staffLookup = await getDepotStaffLookup();
 
     while (hasMore) {
       const currentTake = Math.min(BATCH_SIZE, maxLimit - totalProcessed);
@@ -983,7 +996,7 @@ export class InvoicesImportExportService extends ImportExportService<any> {
         break;
       }
 
-      this.writeInvoicesToWorksheet(worksheet, batchData);
+      this.writeInvoicesToWorksheet(worksheet, batchData, staffLookup);
 
       totalProcessed += batchData.length;
       lastId = batchData[batchData.length - 1].id;
@@ -1016,6 +1029,7 @@ export class InvoicesImportExportService extends ImportExportService<any> {
     let hasMore = true;
     const maxLimit = options.limit ? Number(options.limit) : Infinity;
     let totalProcessed = 0;
+    const staffLookup = await getDepotStaffLookup();
 
     while (hasMore) {
       const currentTake = Math.min(BATCH_SIZE, maxLimit - totalProcessed);
@@ -1037,7 +1051,7 @@ export class InvoicesImportExportService extends ImportExportService<any> {
         break;
       }
 
-      this.writeInvoicesToWorksheet(worksheet, batchData);
+      this.writeInvoicesToWorksheet(worksheet, batchData, staffLookup);
 
       totalProcessed += batchData.length;
       lastId = batchData[batchData.length - 1].id;

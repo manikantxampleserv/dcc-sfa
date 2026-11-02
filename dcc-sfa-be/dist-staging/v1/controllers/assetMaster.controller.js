@@ -276,7 +276,7 @@ exports.assetMasterController = {
     },
     async getAllAssetMaster(req, res) {
         try {
-            const { page, limit, search, status, depot_id, zone_id, zones_id, route_id, outlet_id, only_available, asset_type, asset_type_id, } = req.query;
+            const { page, limit, search, status, current_status, depot_id, exact_depot, zone_id, zones_id, route_id, outlet_id, only_available, asset_type, asset_type_id, } = req.query;
             const pageNum = parseInt(page, 10) || 1;
             const limitNum = parseInt(limit, 10) || 10;
             const searchLower = search ? search.toLowerCase() : '';
@@ -312,13 +312,25 @@ exports.assetMasterController = {
                     ],
                 });
             }
-            if (statusLower === 'active')
+            const isOnlyAvailable = only_available === 'true' || only_available === true;
+            if (statusLower === 'active') {
                 andConditions.push({ is_active: 'Y' });
-            if (statusLower === 'inactive')
+            }
+            else if (statusLower === 'inactive') {
                 andConditions.push({ is_active: 'N' });
+            }
+            else if (statusLower === 'available') {
+                andConditions.push({ is_active: 'Y', current_status: 'Available' });
+            }
+            else if (status && statusLower !== 'all') {
+                andConditions.push({ current_status: status });
+            }
+            if (current_status && current_status !== 'all') {
+                andConditions.push({ current_status: current_status });
+            }
             if (outlet_id)
                 andConditions.push({ outlet_id: parseInt(outlet_id, 10) });
-            if (only_available === 'true')
+            if (isOnlyAvailable)
                 andConditions.push({ outlet_id: null });
             if (asset_type_id) {
                 andConditions.push({
@@ -346,12 +358,20 @@ exports.assetMasterController = {
                     if (depot_id) {
                         const parsedDepotId = parseInt(depot_id, 10);
                         if (depotIds.includes(parsedDepotId)) {
-                            andConditions.push({
-                                OR: [
-                                    { depot_id: parsedDepotId },
-                                    { asset_master_outlet: { depot_id: parsedDepotId } },
-                                ],
-                            });
+                            if (isOnlyAvailable || exact_depot === 'true') {
+                                andConditions.push({
+                                    depot_id: parsedDepotId,
+                                    outlet_id: null,
+                                });
+                            }
+                            else {
+                                andConditions.push({
+                                    OR: [
+                                        { depot_id: parsedDepotId },
+                                        { asset_master_outlet: { depot_id: parsedDepotId } },
+                                    ],
+                                });
+                            }
                         }
                         else {
                             andConditions.push({ id: -1 });
@@ -372,12 +392,20 @@ exports.assetMasterController = {
             }
             else if (depot_id) {
                 const parsedDepotId = parseInt(depot_id, 10);
-                andConditions.push({
-                    OR: [
-                        { depot_id: parsedDepotId },
-                        { asset_master_outlet: { depot_id: parsedDepotId } },
-                    ],
-                });
+                if (isOnlyAvailable || exact_depot === 'true') {
+                    andConditions.push({
+                        depot_id: parsedDepotId,
+                        outlet_id: null,
+                    });
+                }
+                else {
+                    andConditions.push({
+                        OR: [
+                            { depot_id: parsedDepotId },
+                            { asset_master_outlet: { depot_id: parsedDepotId } },
+                        ],
+                    });
+                }
             }
             const parsedZoneId = zone_id
                 ? parseInt(zone_id, 10)

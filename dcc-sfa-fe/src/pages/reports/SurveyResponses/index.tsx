@@ -18,6 +18,7 @@ import React, { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ActionButton, DeleteButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
+import DateRangeFilter from 'shared/DateRangeFilter';
 import { PopConfirm } from 'shared/DeleteConfirmation';
 import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
@@ -34,6 +35,11 @@ const SurveyResponses: React.FC = () => {
   );
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
+  const [timeFilter, setTimeFilter] = useState('all');
+  const [customDateRange, setCustomDateRange] = useState({
+    start: '',
+    end: '',
+  });
   const { isRead } = usePermission('report');
 
   const {
@@ -47,6 +53,15 @@ const SurveyResponses: React.FC = () => {
       limit,
       status: statusFilter === 'all' ? undefined : statusFilter,
       survey_id: surveyFilter,
+      time_filter: timeFilter !== 'all' ? timeFilter : undefined,
+      start_date:
+        timeFilter === 'custom' && customDateRange.start
+          ? customDateRange.start
+          : undefined,
+      end_date:
+        timeFilter === 'custom' && customDateRange.end
+          ? customDateRange.end
+          : undefined,
     },
     {
       enabled: isRead,
@@ -98,11 +113,27 @@ const SurveyResponses: React.FC = () => {
         search: search || undefined,
         status: statusFilter === 'all' ? undefined : statusFilter,
         survey_id: surveyFilter,
+        time_filter: timeFilter !== 'all' ? timeFilter : undefined,
+        start_date:
+          timeFilter === 'custom' && customDateRange.start
+            ? customDateRange.start
+            : undefined,
+        end_date:
+          timeFilter === 'custom' && customDateRange.end
+            ? customDateRange.end
+            : undefined,
       });
     } catch (error) {
       console.error('Error exporting survey responses:', error);
     }
-  }, [exportSurveyResponsesMutation, search, statusFilter, surveyFilter]);
+  }, [
+    exportSurveyResponsesMutation,
+    search,
+    statusFilter,
+    surveyFilter,
+    timeFilter,
+    customDateRange,
+  ]);
 
   const handlePageChange = (newPage: number) => {
     setPage(newPage + 1);
@@ -297,13 +328,25 @@ const SurveyResponses: React.FC = () => {
 
   return (
     <>
-      <Box className="!mb-3 !flex !justify-between !items-center">
+      <Box className="!mb-3 !flex !justify-between !items-start sm:!items-center">
         <Box>
           <p className="!font-bold text-xl !text-gray-900">Survey Responses</p>
           <p className="!text-gray-500 text-sm">
             View and manage survey responses submitted by users
           </p>
         </Box>
+        <DateRangeFilter
+          timeFilter={timeFilter}
+          setTimeFilter={val => {
+            setTimeFilter(val);
+            setPage(1);
+          }}
+          customDateRange={customDateRange}
+          setCustomDateRange={val => {
+            setCustomDateRange(val);
+            setPage(1);
+          }}
+        />
       </Box>
 
       {/* Statistics Cards */}

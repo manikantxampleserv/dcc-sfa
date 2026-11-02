@@ -1,3 +1,4 @@
+import { hiddenUsersPrismaFilter } from '../../configs/hiddenUsers.config';
 import { Request, Response } from 'express';
 import { sapService } from '../services/sap.service';
 import prisma from '../../configs/prisma.client';
@@ -48,6 +49,7 @@ export const sapController = {
         where: {
           OR: [{ name: { contains: name } }, { sap_code: { contains: name } }],
           is_active: 'Y',
+          ...hiddenUsersPrismaFilter,
         },
         select: { id: true, name: true, sap_code: true },
         take: 50,

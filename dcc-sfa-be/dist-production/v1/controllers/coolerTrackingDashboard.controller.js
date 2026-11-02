@@ -326,6 +326,7 @@ exports.coolerTrackingDashboardController = {
                     channel,
                     code: customerCode,
                     outlet: outletName,
+                    assetId: c.asset_master_id ?? null,
                     barcode,
                     serial,
                     brand,
@@ -453,6 +454,7 @@ exports.coolerTrackingDashboardController = {
                 if (brand)
                     depotBrandSet.add(brand);
                 return {
+                    assetId: a.id,
                     zone: depotName,
                     barcode: a.barcode || a.serial_number || '—',
                     serial: a.serial_number || a.barcode || '—',

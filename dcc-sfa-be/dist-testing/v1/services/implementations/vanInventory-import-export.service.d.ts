@@ -21,6 +21,8 @@ export declare class VanInventoryImportExportService extends ImportExportService
     protected prepareDataForImport(data: any, userId: number): Promise<any>;
     protected updateExisting(_data: any, _userId: number, _tx?: any): Promise<any>;
     importData(data: any[], userId: number, options?: any): Promise<any>;
+    private buildExportQuery;
+    exportToExcelStream(res: any, options?: any): Promise<void>;
     exportToExcel(options?: any): Promise<Buffer>;
 }
 export interface VanInventoryExportRow {
@@ -33,5 +35,7 @@ export interface VanInventoryExportRow {
     quantity: number | string;
     batchSerials: string;
 }
+export declare function setupVanInventoryWorksheet(worksheet: any): void;
+export declare function writeVanInventoryBatchToWorksheet(worksheet: any, data: any[]): void;
 export declare function generateVanInventoryExcelWorkbook(rows: VanInventoryExportRow[]): Promise<Buffer>;
 //# sourceMappingURL=vanInventory-import-export.service.d.ts.map

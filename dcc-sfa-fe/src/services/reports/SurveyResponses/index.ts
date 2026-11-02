@@ -118,6 +118,7 @@ interface GetSurveyResponsesParams {
   submitted_by?: number;
   customer_id?: number;
   response_id?: number;
+  time_filter?: string;
   start_date?: string;
   end_date?: string;
 }
@@ -190,6 +191,7 @@ export const exportSurveyResponsesReport = async (
     queryParams.append('customer_id', params.customer_id.toString());
   if (params?.response_id)
     queryParams.append('response_id', params.response_id.toString());
+  if (params?.time_filter) queryParams.append('time_filter', params.time_filter);
   if (params?.start_date) queryParams.append('start_date', params.start_date);
   if (params?.end_date) queryParams.append('end_date', params.end_date);
 

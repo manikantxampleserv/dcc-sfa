@@ -4,7 +4,8 @@ import {
   Droppable,
   type DropResult,
 } from '@hello-pangea/dnd';
-import { Box, MenuItem, Typography, Avatar, Skeleton } from '@mui/material';
+import { Avatar, Box, MenuItem, Skeleton, Typography } from '@mui/material';
+import { useAuth } from 'context/AuthContext';
 import { useFormik } from 'formik';
 import { useAssetMaster, type AssetMaster } from 'hooks/useAssetMaster';
 import {
@@ -14,19 +15,18 @@ import {
 } from 'hooks/useAssetMovement';
 import { useSystemEnum } from 'hooks/useSystemEnums';
 import { GripVertical, Package } from 'lucide-react';
-import React, { useCallback, useMemo, useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { assetMovementValidationSchema } from 'schemas/assetMovement.schema';
 import ActiveInactiveField from 'shared/ActiveInactiveField';
 import Button from 'shared/Button';
 import CustomerSelect from 'shared/CustomerSelect';
-import CustomDrawer from 'shared/Drawer';
 import DepotSelect from 'shared/DepotSelect';
+import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
 import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import UserSelect from 'shared/UserSelect';
 import { formatForDateInput } from 'utils/dateUtils';
-import { useAuth } from 'context/AuthContext';
 
 interface ManageAssetMovementProps {
   selectedMovement?: AssetMovement | null;
@@ -53,8 +53,10 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
 
   const createAssetMovementMutation = useCreateAssetMovement();
   const updateAssetMovementMutation = useUpdateAssetMovement();
-  
-  const { data: returnReasonEnum } = useSystemEnum('asset_movement_return_reason');
+
+  const { data: returnReasonEnum } = useSystemEnum(
+    'asset_movement_return_reason'
+  );
   const returnReasons = returnReasonEnum?.data?.values || [];
 
   const handleCancel = () => {
@@ -65,14 +67,34 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
     formik.resetForm();
   };
 
-  const handleDirectionChange = (fieldName: string, value: string) => {
-    formik.setFieldValue(fieldName, value);
-    if (fieldName === 'from_direction') {
+  const handleMovementTypeChange = (type: string) => {
+    formik.setFieldValue('movement_type', type);
+    setSelectedAssetIds([]);
+    if (type === 'installation') {
+      formik.setFieldValue('from_direction', 'depot');
+      formik.setFieldValue('to_direction', 'outlet');
+      formik.setFieldValue('from_outlet', '');
+      formik.setFieldValue('to_depot', '');
+      formik.setFieldValue('return_reason', '');
+    } else if (type === 'transfer') {
+      formik.setFieldValue('from_direction', 'depot');
+      formik.setFieldValue('to_direction', 'depot');
+      formik.setFieldValue('from_outlet', '');
+      formik.setFieldValue('to_outlet', '');
+      formik.setFieldValue('return_reason', '');
+    } else if (type === 'return') {
+      formik.setFieldValue('from_direction', 'outlet');
+      formik.setFieldValue('to_direction', 'depot');
+      formik.setFieldValue('from_depot', '');
+      formik.setFieldValue('to_outlet', '');
+    } else {
+      formik.setFieldValue('from_direction', '');
+      formik.setFieldValue('to_direction', '');
       formik.setFieldValue('from_outlet', '');
       formik.setFieldValue('from_depot', '');
-    } else if (fieldName === 'to_direction') {
       formik.setFieldValue('to_outlet', '');
       formik.setFieldValue('to_depot', '');
+      formik.setFieldValue('return_reason', '');
     }
   };
 
@@ -207,14 +229,52 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
     }
   }, [
     availableSearch,
+    formik.values.movement_type,
     formik.values.from_direction,
     formik.values.from_depot,
     formik.values.from_outlet,
   ]);
 
+  useEffect(() => {
+    const type = formik.values.movement_type;
+    if (type === 'installation') {
+      if (formik.values.from_direction !== 'depot') {
+        formik.setFieldValue('from_direction', 'depot');
+        formik.setFieldValue('from_outlet', '');
+      }
+      if (formik.values.to_direction !== 'outlet') {
+        formik.setFieldValue('to_direction', 'outlet');
+        formik.setFieldValue('to_depot', '');
+      }
+    } else if (type === 'transfer') {
+      if (formik.values.from_direction !== 'depot') {
+        formik.setFieldValue('from_direction', 'depot');
+        formik.setFieldValue('from_outlet', '');
+      }
+      if (formik.values.to_direction !== 'depot') {
+        formik.setFieldValue('to_direction', 'depot');
+        formik.setFieldValue('to_outlet', '');
+      }
+    } else if (type === 'return') {
+      if (formik.values.from_direction !== 'outlet') {
+        formik.setFieldValue('from_direction', 'outlet');
+        formik.setFieldValue('from_depot', '');
+      }
+      if (formik.values.to_direction !== 'depot') {
+        formik.setFieldValue('to_direction', 'depot');
+        formik.setFieldValue('to_outlet', '');
+      }
+    }
+  }, [formik.values.movement_type]);
+
   const [knownAssetsMap, setKnownAssetsMap] = useState<
     Map<number, AssetMaster>
   >(new Map());
+
+  const isReturn =
+    formik.values.movement_type === 'return' ||
+    (formik.values.from_direction === 'outlet' &&
+      formik.values.to_direction === 'depot');
 
   const isSourceSelected = !!(
     (formik.values.from_direction === 'depot' && formik.values.from_depot) ||
@@ -225,7 +285,13 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
     {
       page,
       limit: 100,
-      status: 'active',
+      status: isReturn ? 'active' : 'Available',
+      current_status: isReturn ? 'Installed' : 'Available',
+      only_available: isReturn
+        ? undefined
+        : formik.values.from_direction === 'depot'
+          ? true
+          : undefined,
       search: availableSearch,
       depot_id:
         formik.values.from_direction === 'depot' && formik.values.from_depot
@@ -264,7 +330,6 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
     setKnownAssetsMap(prev => {
       const newMap = new Map(prev);
       displayedAssets.forEach(asset => newMap.set(asset.id, asset));
-
       if (selectedMovement?.asset_movement_assets) {
         selectedMovement.asset_movement_assets.forEach((item: any) => {
           if (item.asset) {
@@ -292,21 +357,45 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
 
   const availableAssets = useMemo(() => {
     const selectedIds = new Set(selectedAssetIds);
-    return displayedAssets.filter(asset => !selectedIds.has(asset.id));
-  }, [displayedAssets, selectedAssetIds]);
+    return displayedAssets.filter(asset => {
+      if (selectedIds.has(asset.id)) return false;
+      if (isReturn) {
+        const status = asset.current_status?.toLowerCase();
+        return status === 'installed' || status === 'available' || !status;
+      }
+      return (
+        asset.current_status?.toLowerCase() === 'available' ||
+        !asset.current_status
+      );
+    });
+  }, [displayedAssets, selectedAssetIds, isReturn]);
 
   const emptyStateMessage = useMemo(() => {
+    if (!formik.values.movement_type) {
+      return 'Please select Movement Type first';
+    }
     if (!isSourceSelected) {
-      return 'Please select From Direction and Source first';
+      return formik.values.from_direction === 'depot'
+        ? 'Please select From Depot first'
+        : 'Please select From Outlet first';
     }
     if (availableSearch) {
       return 'No assets match your search';
     }
     if (displayedAssets.length === 0) {
-      return 'No assets available in this source';
+      return isReturn
+        ? 'No installed assets found at this outlet'
+        : 'No assets available in this source';
     }
     return 'All assets are selected';
-  }, [isSourceSelected, availableSearch, displayedAssets.length]);
+  }, [
+    formik.values.movement_type,
+    formik.values.from_direction,
+    isSourceSelected,
+    availableSearch,
+    displayedAssets.length,
+    isReturn,
+  ]);
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const target = e.target as HTMLDivElement;
@@ -354,9 +443,25 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
         <Package className="w-4 h-4" />
       </Avatar>
       <Box className="!flex-1 !min-w-0">
-        <Typography variant="body2" className="!font-medium !text-gray-900">
-          {asset.name || `Asset ${asset.id}`}
-        </Typography>
+        <Box className="!flex !items-center !justify-between !gap-2">
+          <Typography
+            variant="body2"
+            className="!font-medium !text-gray-900 !truncate"
+          >
+            {asset.name || `Asset ${asset.id}`}
+          </Typography>
+          {asset.current_status && (
+            <span
+              className={`!text-[11px] !font-medium !px-1.5 !py-0.5 !rounded ${
+                asset.current_status.toLowerCase() === 'installed'
+                  ? '!bg-green-100 !text-green-700'
+                  : '!bg-blue-100 !text-blue-700'
+              }`}
+            >
+              {asset.current_status}
+            </span>
+          )}
+        </Box>
         <Typography
           variant="caption"
           className="!text-gray-500 !text-xs !block !mt-0.5"
@@ -378,7 +483,13 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
       <Box className="!p-4">
         <form onSubmit={formik.handleSubmit} className="!space-y-6">
           <Box className="!grid !grid-cols-1 md:!grid-cols-2 !gap-6">
-            <Select name="movement_type" label="Movement Type" formik={formik}>
+            <Select
+              name="movement_type"
+              label="Movement Type"
+              formik={formik}
+              required
+              onChange={e => handleMovementTypeChange(e.target.value)}
+            >
               {movementTypeOptions.map(
                 (option: { value: string; label: string }) => (
                   <MenuItem key={option.value} value={option.value}>
@@ -387,21 +498,6 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
                 )
               )}
             </Select>
-
-            {formik.values.movement_type === 'return' && (
-              <Select
-                name="return_reason"
-                label="Return Reason"
-                formik={formik}
-                required
-              >
-                {returnReasons.map((reason: string) => (
-                  <MenuItem key={reason} value={reason}>
-                    {reason}
-                  </MenuItem>
-                ))}
-              </Select>
-            )}
 
             <Select name="priority" label="Priority" formik={formik}>
               <MenuItem value="low">Low</MenuItem>
@@ -414,24 +510,48 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
               label="From Direction"
               formik={formik}
               required
-              onChange={e =>
-                handleDirectionChange('from_direction', e.target.value)
+              disabled={true}
+              placeholder={
+                !formik.values.movement_type
+                  ? 'Select Movement Type first'
+                  : undefined
               }
             >
-              <MenuItem value="outlet">Outlet</MenuItem>
-              <MenuItem value="depot">Depot</MenuItem>
+              {formik.values.movement_type === 'return' ? (
+                <MenuItem value="outlet">Outlet</MenuItem>
+              ) : formik.values.movement_type === 'installation' ||
+                formik.values.movement_type === 'transfer' ? (
+                <MenuItem value="depot">Depot</MenuItem>
+              ) : (
+                <>
+                  <MenuItem value="depot">Depot</MenuItem>
+                  <MenuItem value="outlet">Outlet</MenuItem>
+                </>
+              )}
             </Select>
             <Select
               name="to_direction"
               label="To Direction"
               formik={formik}
               required
-              onChange={e =>
-                handleDirectionChange('to_direction', e.target.value)
+              disabled={true}
+              placeholder={
+                !formik.values.movement_type
+                  ? 'Select Movement Type first'
+                  : undefined
               }
             >
-              <MenuItem value="outlet">Outlet</MenuItem>
-              <MenuItem value="depot">Depot</MenuItem>
+              {formik.values.movement_type === 'installation' ? (
+                <MenuItem value="outlet">Outlet</MenuItem>
+              ) : formik.values.movement_type === 'transfer' ||
+                formik.values.movement_type === 'return' ? (
+                <MenuItem value="depot">Depot</MenuItem>
+              ) : (
+                <>
+                  <MenuItem value="depot">Depot</MenuItem>
+                  <MenuItem value="outlet">Outlet</MenuItem>
+                </>
+              )}
             </Select>
 
             {formik.values.from_direction === 'outlet' && (
@@ -498,6 +618,20 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
               formik={formik}
               disabled={true}
             />
+            {formik.values.movement_type === 'return' && (
+              <Select
+                name="return_reason"
+                label="Return Reason"
+                formik={formik}
+                required
+              >
+                {returnReasons.map((reason: string) => (
+                  <MenuItem key={reason} value={reason}>
+                    {reason}
+                  </MenuItem>
+                ))}
+              </Select>
+            )}
             <Box className="col-span-2">
               <DragDropContext onDragEnd={handleDragEnd}>
                 <div className="!grid !grid-cols-2 !gap-4 !h-[400px]">
@@ -507,15 +641,21 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
                         variant="subtitle1"
                         className="!font-semibold !text-blue-600"
                       >
-                        Available Assets (
+                        {isReturn ? 'Installed Assets' : 'Available Assets'} (
                         {assetsResponse?.meta?.total || availableAssets.length})
                       </Typography>
                       <p className="!text-gray-500 !text-xs !block !mt-1">
-                        Drag assets from the left panel to select
+                        {isReturn
+                          ? 'Drag installed assets from the left panel to return'
+                          : 'Drag assets from the left panel to select'}
                       </p>
                       <Box className="!mt-2">
                         <SearchInput
-                          placeholder="Search Assets..."
+                          placeholder={
+                            isReturn
+                              ? 'Search Installed Assets...'
+                              : 'Search Assets...'
+                          }
                           value={availableSearch}
                           onChange={setAvailableSearch}
                           className="!w-full"
@@ -592,7 +732,9 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
                         variant="subtitle1"
                         className="!font-semibold !text-green-600"
                       >
-                        Selected Assets ({selectedAssets.length})
+                        {isReturn
+                          ? `Assets to Return (${selectedAssets.length})`
+                          : `Selected Assets (${selectedAssets.length})`}
                       </Typography>
                       <p className="!text-gray-500 !text-xs !block !mt-1">
                         Drag assets from the right panel to reorder

@@ -45,6 +45,7 @@ export interface OutletRecord {
   channel: string | null;
   code: string;
   outlet: string;
+  assetId?: number | null;
   barcode: string;
   serial: string;
   brand: string;
@@ -91,6 +92,7 @@ export interface DepotMeta {
 
 /** A single depot stock record */
 export interface DepotRecord {
+  assetId?: number | null;
   zone: string;
   barcode: string;
   serial: string;

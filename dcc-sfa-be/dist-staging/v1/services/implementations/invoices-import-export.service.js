@@ -40,6 +40,7 @@ exports.InvoicesImportExportService = void 0;
 const import_export_service_1 = require("../base/import-export.service");
 const prisma_client_1 = __importDefault(require("../../../configs/prisma.client"));
 const ExcelJS = __importStar(require("exceljs"));
+const depotStaff_util_1 = require("../../../utils/depotStaff.util");
 class InvoicesImportExportService extends import_export_service_1.ImportExportService {
     modelName = 'invoices';
     displayName = 'Invoices';
@@ -533,7 +534,7 @@ class InvoicesImportExportService extends import_export_service_1.ImportExportSe
             },
         });
     }
-    async exportToExcel(options = {}) {
+    buildExportQuery(options = {}) {
         const rawFilters = options.filters || {};
         const where = {};
         if (rawFilters.is_active) {
@@ -593,7 +594,7 @@ class InvoicesImportExportService extends import_export_service_1.ImportExportSe
         else if (rawFilters.OR) {
             where.OR = rawFilters.OR;
         }
-        const query = {
+        return {
             where,
             orderBy: options.orderBy || { invoice_date: 'desc' },
             include: {
@@ -740,39 +741,52 @@ class InvoicesImportExportService extends import_export_service_1.ImportExportSe
                 },
             },
         };
-        if (options.limit)
-            query.take = options.limit;
-        const data = await this.getModel().findMany(query);
-        const WorkbookConstructor = ExcelJS.Workbook ||
-            ExcelJS.default?.Workbook ||
-            ExcelJS.default;
-        const workbook = new WorkbookConstructor();
-        const worksheet = workbook.addWorksheet('Sales Data');
+    }
+    setupSalesDataWorksheet(worksheet) {
+        const defaultStyle = {
+            font: { name: 'Calibri', size: 11 },
+            alignment: { vertical: 'middle', horizontal: 'left' },
+        };
+        const numberStyle = {
+            font: { name: 'Calibri', size: 11 },
+            alignment: { vertical: 'middle', horizontal: 'right' },
+            numFmt: '0.00',
+        };
+        const currencyStyle = {
+            font: { name: 'Calibri', size: 11 },
+            alignment: { vertical: 'middle', horizontal: 'right' },
+            numFmt: '#,##0.00',
+        };
+        const dateStyle = {
+            font: { name: 'Calibri', size: 11 },
+            alignment: { vertical: 'middle', horizontal: 'left' },
+            numFmt: 'DD/MM/YYYY',
+        };
         worksheet.columns = [
-            { header: 'EvDate', key: 'EvDate', width: 14 },
-            { header: 'Depot', key: 'Depot', width: 22 },
-            { header: 'Coordinator', key: 'Coordinator', width: 22 },
-            { header: 'Supervisor', key: 'Supervisor', width: 22 },
-            { header: 'SellerCode', key: 'SellerCode', width: 14 },
-            { header: 'Salesman', key: 'Salesman', width: 24 },
-            { header: 'Outlet Number', key: 'OutletNumber', width: 16 },
-            { header: 'Outlet Name', key: 'OutletName', width: 28 },
-            { header: 'Zone', key: 'Zone', width: 16 },
-            { header: 'Route', key: 'Route', width: 18 },
-            { header: 'Customer Channel', key: 'CustomerChannel', width: 18 },
-            { header: 'Customer Type', key: 'CustomerType', width: 18 },
-            { header: 'IDInv', key: 'IDInv', width: 26 },
-            { header: 'Batch', key: 'Batch', width: 10 },
-            { header: 'Category', key: 'Category', width: 30 },
-            { header: 'Flavour', key: 'Flavour', width: 16 },
-            { header: 'Volume', key: 'Volume', width: 12 },
-            { header: 'Brand', key: 'Brand', width: 24 },
-            { header: 'SKU Code', key: 'SKUCode', width: 14 },
-            { header: 'SKU', key: 'SKU', width: 32 },
-            { header: 'Pack', key: 'Pack', width: 24 },
-            { header: 'PhyCas', key: 'PhyCas', width: 12 },
-            { header: 'UnitCas', key: 'UnitCas', width: 12 },
-            { header: 'Turnover', key: 'Turnover', width: 16 },
+            { header: 'EvDate', key: 'EvDate', width: 14, style: dateStyle },
+            { header: 'Depot', key: 'Depot', width: 22, style: defaultStyle },
+            { header: 'Coordinator', key: 'Coordinator', width: 22, style: defaultStyle },
+            { header: 'Supervisor', key: 'Supervisor', width: 22, style: defaultStyle },
+            { header: 'SellerCode', key: 'SellerCode', width: 14, style: defaultStyle },
+            { header: 'Salesman', key: 'Salesman', width: 24, style: defaultStyle },
+            { header: 'Outlet Number', key: 'OutletNumber', width: 16, style: defaultStyle },
+            { header: 'Outlet Name', key: 'OutletName', width: 28, style: defaultStyle },
+            { header: 'Zone', key: 'Zone', width: 16, style: defaultStyle },
+            { header: 'Route', key: 'Route', width: 18, style: defaultStyle },
+            { header: 'Customer Channel', key: 'CustomerChannel', width: 18, style: defaultStyle },
+            { header: 'Customer Type', key: 'CustomerType', width: 18, style: defaultStyle },
+            { header: 'IDInv', key: 'IDInv', width: 26, style: defaultStyle },
+            { header: 'Batch', key: 'Batch', width: 10, style: defaultStyle },
+            { header: 'Category', key: 'Category', width: 30, style: defaultStyle },
+            { header: 'Flavour', key: 'Flavour', width: 16, style: defaultStyle },
+            { header: 'Volume', key: 'Volume', width: 12, style: defaultStyle },
+            { header: 'Brand', key: 'Brand', width: 24, style: defaultStyle },
+            { header: 'SKU Code', key: 'SKUCode', width: 14, style: defaultStyle },
+            { header: 'SKU', key: 'SKU', width: 32, style: defaultStyle },
+            { header: 'Pack', key: 'Pack', width: 24, style: defaultStyle },
+            { header: 'PhyCas', key: 'PhyCas', width: 12, style: numberStyle },
+            { header: 'UnitCas', key: 'UnitCas', width: 12, style: numberStyle },
+            { header: 'Turnover', key: 'Turnover', width: 16, style: currencyStyle },
         ];
         const headerRow = worksheet.getRow(1);
         headerRow.height = 20;
@@ -785,6 +799,11 @@ class InvoicesImportExportService extends import_export_service_1.ImportExportSe
                 cell.alignment = { vertical: 'middle', horizontal: 'left' };
             }
         });
+        if (typeof headerRow.commit === 'function') {
+            headerRow.commit();
+        }
+    }
+    writeInvoicesToWorksheet(worksheet, data, staffLookup) {
         for (const inv of data) {
             const invDate = inv.invoice_date ? new Date(inv.invoice_date) : '';
             const route = inv.invoices_customers?.customer_routes?.code ||
@@ -799,9 +818,22 @@ class InvoicesImportExportService extends import_export_service_1.ImportExportSe
                 inv.invoices_customers?.customer_routes?.route_depots ||
                 inv.invoices_salesperson?.user_depot ||
                 inv.invoices_salesperson?.route_salespersons?.[0]?.route?.route_depots;
-            const depot = depotData?.name || '';
+            let depot = depotData?.name || '';
             let coordinator = depotData?.depots_coodrinator?.name || '';
             let supervisor = depotData?.depots_supervisior?.name || '';
+            if (staffLookup) {
+                const staff = staffLookup.resolveStaff({
+                    customerDepot: depotData,
+                    salesperson: inv.invoices_salesperson,
+                    depotName: depot || undefined,
+                });
+                if (staff.coordinatorName)
+                    coordinator = staff.coordinatorName;
+                if (staff.supervisorName)
+                    supervisor = staff.supervisorName;
+                if (!depot && staff.depotName)
+                    depot = staff.depotName;
+            }
             if (depotData?.user_depots_depot_id) {
                 const assignedUsers = depotData.user_depots_depot_id
                     .map((ud) => ud.users_depots_users)
@@ -865,33 +897,101 @@ class InvoicesImportExportService extends import_export_service_1.ImportExportSe
                     Turnover: turnover,
                 });
                 row.height = 19;
-                row.eachCell((cell, colNumber) => {
-                    cell.font = { name: 'Calibri', size: 11 };
-                    if (colNumber === 1) {
-                        if (cell.value instanceof Date) {
-                            cell.numFmt = 'DD/MM/YYYY';
-                        }
-                        cell.alignment = { vertical: 'middle', horizontal: 'left' };
-                    }
-                    else if (colNumber === 22 || colNumber === 23) {
-                        cell.numFmt = '0.00';
-                        cell.alignment = { vertical: 'middle', horizontal: 'right' };
-                    }
-                    else if (colNumber === 24) {
-                        cell.numFmt = '#,##0.00';
-                        cell.alignment = { vertical: 'middle', horizontal: 'right' };
-                    }
-                    else {
-                        cell.alignment = { vertical: 'middle', horizontal: 'left' };
-                    }
-                });
+                if (typeof row.commit === 'function') {
+                    row.commit();
+                }
+            }
+        }
+    }
+    async exportToExcelStream(res, options = {}) {
+        const query = this.buildExportQuery(options);
+        const WorkbookWriter = ExcelJS.stream?.xlsx?.WorkbookWriter ||
+            ExcelJS.default?.stream?.xlsx?.WorkbookWriter;
+        const workbook = new WorkbookWriter({
+            stream: res,
+            useStyles: true,
+        });
+        const worksheet = workbook.addWorksheet('Sales Data', {
+            views: [{ state: 'frozen', ySplit: 1, showGridLines: true }],
+        });
+        this.setupSalesDataWorksheet(worksheet);
+        const BATCH_SIZE = 1000;
+        let lastId = null;
+        let hasMore = true;
+        const maxLimit = options.limit ? Number(options.limit) : Infinity;
+        let totalProcessed = 0;
+        const staffLookup = await (0, depotStaff_util_1.getDepotStaffLookup)();
+        while (hasMore) {
+            const currentTake = Math.min(BATCH_SIZE, maxLimit - totalProcessed);
+            if (currentTake <= 0)
+                break;
+            const batchQuery = {
+                ...query,
+                take: currentTake,
+                orderBy: { id: 'desc' },
+            };
+            if (lastId !== null) {
+                batchQuery.cursor = { id: lastId };
+                batchQuery.skip = 1;
+            }
+            const batchData = await this.getModel().findMany(batchQuery);
+            if (!batchData || batchData.length === 0) {
+                break;
+            }
+            this.writeInvoicesToWorksheet(worksheet, batchData, staffLookup);
+            totalProcessed += batchData.length;
+            lastId = batchData[batchData.length - 1].id;
+            if (batchData.length < currentTake) {
+                hasMore = false;
+            }
+        }
+        worksheet.commit();
+        await workbook.commit();
+    }
+    async exportToExcel(options = {}) {
+        const query = this.buildExportQuery(options);
+        const WorkbookConstructor = ExcelJS.Workbook ||
+            ExcelJS.default?.Workbook ||
+            ExcelJS.default;
+        const workbook = new WorkbookConstructor();
+        const worksheet = workbook.addWorksheet('Sales Data', {
+            views: [{ state: 'frozen', ySplit: 1, showGridLines: true }],
+        });
+        this.setupSalesDataWorksheet(worksheet);
+        const BATCH_SIZE = 1000;
+        let lastId = null;
+        let hasMore = true;
+        const maxLimit = options.limit ? Number(options.limit) : Infinity;
+        let totalProcessed = 0;
+        const staffLookup = await (0, depotStaff_util_1.getDepotStaffLookup)();
+        while (hasMore) {
+            const currentTake = Math.min(BATCH_SIZE, maxLimit - totalProcessed);
+            if (currentTake <= 0)
+                break;
+            const batchQuery = {
+                ...query,
+                take: currentTake,
+                orderBy: { id: 'desc' },
+            };
+            if (lastId !== null) {
+                batchQuery.cursor = { id: lastId };
+                batchQuery.skip = 1;
+            }
+            const batchData = await this.getModel().findMany(batchQuery);
+            if (!batchData || batchData.length === 0) {
+                break;
+            }
+            this.writeInvoicesToWorksheet(worksheet, batchData, staffLookup);
+            totalProcessed += batchData.length;
+            lastId = batchData[batchData.length - 1].id;
+            if (batchData.length < currentTake) {
+                hasMore = false;
             }
         }
         const lastRowNumber = worksheet.rowCount;
         if (lastRowNumber > 1) {
             worksheet.autoFilter = { from: 'A1', to: `X${lastRowNumber}` };
         }
-        worksheet.views = [{ state: 'frozen', ySplit: 1, showGridLines: true }];
         const buffer = await workbook.xlsx.writeBuffer();
         return Buffer.from(buffer);
     }

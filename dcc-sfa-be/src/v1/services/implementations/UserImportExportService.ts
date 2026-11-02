@@ -1,6 +1,10 @@
 import { ImportExportService } from '../base/import-export.service';
 import { ColumnDefinition } from '../../../types/import-export.types';
 import prisma from '../../../configs/prisma.client';
+import {
+  hiddenUsersPrismaFilter,
+  isHiddenUser,
+} from '../../../configs/hiddenUsers.config';
 import bcrypt from 'bcrypt';
 
 export class UserImportExportService extends ImportExportService<any> {
@@ -290,7 +294,8 @@ export class UserImportExportService extends ImportExportService<any> {
       take: 1,
       select: { id: true },
       orderBy: { id: 'asc' },
-      where: { is_active: 'Y' },
+      where: { is_active: 'Y',
+        ...hiddenUsersPrismaFilter, },
     });
 
     const roleId1 = roles[0]?.id;
@@ -586,7 +591,10 @@ export class UserImportExportService extends ImportExportService<any> {
 
   async exportToExcel(options: any = {}): Promise<Buffer> {
     const query: any = {
-      where: options.filters,
+      where: {
+        ...(options.filters || {}),
+        ...hiddenUsersPrismaFilter,
+      },
       orderBy: options.orderBy || { createdate: 'desc' },
       include: {
         user_role: {
@@ -618,9 +626,11 @@ export class UserImportExportService extends ImportExportService<any> {
 
     if (options.limit) query.take = options.limit;
 
-    const data = await this.getModel().findMany(query);
+    const rawData = await this.getModel().findMany(query);
+    const data = rawData.filter((user: any) => !isHiddenUser(user));
 
-    const ExcelJS = await import('exceljs');
+    const ExcelJSModule = await import('exceljs');
+    const ExcelJS = (ExcelJSModule as any).default || ExcelJSModule;
     const workbook = new ExcelJS.Workbook();
 
     const worksheet = workbook.addWorksheet(this.displayName);

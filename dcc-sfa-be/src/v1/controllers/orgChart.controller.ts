@@ -1,4 +1,5 @@
 import prisma from '../../configs/prisma.client';
+import { hiddenUsersPrismaFilter } from '../../configs/hiddenUsers.config';
 
 interface TreeNode {
   id: string;
@@ -88,7 +89,10 @@ const buildTree = (allUsers: any[]): TreeNode[] => {
 export const getOrganizationChart = async (req: any, res: any) => {
   try {
     const allUsers = await prisma.users.findMany({
-      where: { is_active: 'Y' },
+      where: {
+        is_active: 'Y',
+        ...hiddenUsersPrismaFilter,
+      },
       select: {
         id: true,
         name: true,

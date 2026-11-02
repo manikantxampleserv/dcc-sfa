@@ -1,6 +1,10 @@
 import { validationResult } from 'express-validator';
 import { paginate } from '../../utils/paginate';
 import prisma from '../../configs/prisma.client';
+import {
+  hiddenUsersPrismaFilter,
+  isHiddenUser,
+} from '../../configs/hiddenUsers.config';
 
 const serializeRole = (
   role: any,
@@ -33,11 +37,13 @@ const serializeRole = (
       }))
     : [],
   user_role: role.user_role
-    ? role.user_role.map((user: any) => ({
-        id: user.id,
-        name: user.name,
-        email: user.email,
-      }))
+    ? role.user_role
+        .filter((user: any) => !isHiddenUser(user))
+        .map((user: any) => ({
+          id: user.id,
+          name: user.name,
+          email: user.email,
+        }))
     : [],
 });
 
@@ -152,7 +158,7 @@ export const rolesController = {
             where: { is_active: 'Y' },
           },
           user_role: {
-            where: { is_active: 'Y' },
+            where: { is_active: 'Y', ...hiddenUsersPrismaFilter },
             select: {
               id: true,
               name: true,
@@ -233,7 +239,7 @@ export const rolesController = {
               where: { is_active: 'Y' },
             },
             user_role: {
-              where: { is_active: 'Y' },
+            where: { is_active: 'Y', ...hiddenUsersPrismaFilter },
               select: {
                 id: true,
                 name: true,
@@ -272,7 +278,7 @@ export const rolesController = {
                 where: { is_active: 'Y' },
               },
               user_role: {
-                where: { is_active: 'Y' },
+            where: { is_active: 'Y', ...hiddenUsersPrismaFilter },
                 select: {
                   id: true,
                   name: true,
@@ -324,6 +330,7 @@ export const rolesController = {
       const usersWithRole = await prisma.users.count({
         where: {
           role_id: parseInt(id),
+          ...hiddenUsersPrismaFilter,
           is_active: 'Y',
         },
       });
@@ -410,7 +417,7 @@ export const rolesController = {
             where: { is_active: 'Y' },
           },
           user_role: {
-            where: { is_active: 'Y' },
+            where: { is_active: 'Y', ...hiddenUsersPrismaFilter },
             select: {
               id: true,
               name: true,

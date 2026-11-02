@@ -1,6 +1,8 @@
 import type { Request, Response } from 'express';
 import { Prisma } from '@prisma/client';
 import prisma from '../../configs/prisma.client';
+import { isHiddenUser } from '../../configs/hiddenUsers.config';
+import { getDepotStaffLookup } from '../../utils/depotStaff.util';
 import ExcelJS from 'exceljs';
 
 const cache = new Map<string, { timestamp: number; data: any }>();
@@ -411,7 +413,7 @@ export const salesControlTowerController = {
         prevStartDate = ps.toISOString().split('T')[0];
         prevEndDate = pe.toISOString().split('T')[0];
       }
-
+      const staffLookup = await getDepotStaffLookup();
       const buildInvoiceWhere = (sd?: string | null, ed?: string | null) => {
         const where: any = { is_active: 'Y' };
         if (sd && ed) {
@@ -575,13 +577,11 @@ export const salesControlTowerController = {
         let totalTV = 0;
         let processedInvoiceCount = 0;
         const rows: any[] = [];
-        const mapCustomers: any[] = [];
-        const seenMapCustomers = new Set<number>();
-
-        const brandFilter = brand_id ? (brand_id as string) : null;
-        const packFilter = pack ? (pack as string) : null;
 
         for (const inv of invoices) {
+          if (isHiddenUser((inv as any).invoices_salesperson)) continue;
+          const brandFilter = brand_id ? (brand_id as string) : null;
+          const packFilter = pack ? (pack as string) : null;
           const validItems = inv.invoice_items.filter((item: any) => {
             if (brandFilter) {
               const bid = parseInt(brandFilter, 10);
@@ -638,7 +638,7 @@ export const salesControlTowerController = {
             inv.invoices_customers?.customer_routes?.name ||
             inv.invoices_salesperson?.route_salespersons?.[0]?.route?.name ||
             'Unassigned';
-          const dName =
+          let dName =
             inv.invoices_customers?.customer_depot?.name ||
             inv.invoices_customers?.customer_routes?.route_depots?.name ||
             inv.invoices_salesperson?.user_depot?.name ||
@@ -654,10 +654,20 @@ export const salesControlTowerController = {
             inv.invoices_salesperson?.user_depot ||
             inv.invoices_salesperson?.route_salespersons?.[0]?.route
               ?.route_depots;
-          let cName = depotData?.depots_coodrinator?.name || '';
-          let supName = depotData?.depots_supervisior?.name || '';
+          const staff = staffLookup.resolveStaff({
+            customerDepot: depotData,
+            salesperson: inv.invoices_salesperson,
+            depotName: dName !== 'Unassigned' ? dName : undefined,
+          });
+          let cName =
+            staff.coordinatorName || depotData?.depots_coodrinator?.name || '';
+          let supName =
+            staff.supervisorName || depotData?.depots_supervisior?.name || '';
+          if (dName === 'Unassigned' && staff.depotName) {
+            dName = staff.depotName;
+          }
 
-          if (depotData?.user_depots_depot_id) {
+          if (depotData?.user_depots_depot_id && (!cName || !supName)) {
             const assignedUsers = depotData.user_depots_depot_id
               .map((ud: any) => ud.users_depots_users)
               .filter(Boolean);
@@ -983,8 +993,10 @@ export const salesControlTowerController = {
       const packFilter = pack ? (pack as string) : null;
 
       const flatRows: any[] = [];
+      const staffLookup = await getDepotStaffLookup();
 
       for (const inv of invoices) {
+        if (isHiddenUser((inv as any).invoices_salesperson)) continue;
         const dateStr = inv.invoice_date
           ? new Date(inv.invoice_date).toLocaleDateString('en-GB')
           : '';
@@ -1007,13 +1019,21 @@ export const salesControlTowerController = {
           (inv as any).invoices_salesperson?.user_depot ||
           (inv as any).invoices_salesperson?.route_salespersons?.[0]?.route
             ?.route_depots;
-        const depot = depotData?.name || '';
+        let depot = depotData?.name || '';
 
-        let coordinator = depotData?.depots_coodrinator?.name || '';
-        let supervisor = depotData?.depots_supervisior?.name || '';
+        const staff = staffLookup.resolveStaff({
+          customerDepot: depotData,
+          salesperson: (inv as any).invoices_salesperson,
+          depotName: depot || undefined,
+        });
+        let coordinator =
+          staff.coordinatorName || depotData?.depots_coodrinator?.name || '';
+        let supervisor =
+          staff.supervisorName || depotData?.depots_supervisior?.name || '';
+        if (!depot && staff.depotName) depot = staff.depotName;
 
         /** Check assigned users if they have the appropriate role */
-        if (depotData?.user_depots_depot_id) {
+        if (depotData?.user_depots_depot_id && (!coordinator || !supervisor)) {
           const assignedUsers = depotData.user_depots_depot_id
             .map((ud: any) => ud.users_depots_users)
             .filter(Boolean);

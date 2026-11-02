@@ -104,7 +104,8 @@ const CoolersReport: React.FC = () => {
               variant="caption"
               className="!text-gray-500 !text-xs !block !mt-0.5"
             >
-              {row.barcode || row.serial_number || '—'} • {row.brand}
+              ID: {row.id} • {row.barcode || row.serial_number || '—'} •{' '}
+              {row.brand}
             </Typography>
           </Box>
         </Box>
@@ -134,9 +135,9 @@ const CoolersReport: React.FC = () => {
           <Box className="flex items-center gap-2">
             <Avatar
               alt={customer?.name || 'Location'}
-              className="!rounded !bg-primary-100 !text-primary-600 !w-8 !h-8 shrink-0"
+              className="!rounded !bg-primary-100 !text-primary-600 !w-10 !h-10 shrink-0"
             >
-              <MapPin className="w-4 h-4" />
+              <MapPin className="!w-5 !h-5" />
             </Avatar>
             <Box className="flex flex-col">
               <Box className="flex items-center gap-1">
@@ -235,11 +236,11 @@ const CoolersReport: React.FC = () => {
           );
         }
         return (
-          <Box className="flex items-center gap-1">
+          <Box className="flex items-center gap-2">
             <Avatar
               alt={inspector.name}
               src={'mkx'}
-              className="!rounded !bg-primary-100 !text-primary-600 !w-7 !h-7"
+              className="!rounded !bg-primary-100 !text-primary-600 !w-10 !h-10"
             />
             <Box className="flex flex-col">
               <Typography

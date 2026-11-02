@@ -82,7 +82,7 @@ const StatsCard: React.FC<StatsCardProps> = ({
           )}
         </Box>
         <Box
-          className={`h-10 w-10 rounded-full flex items-center justify-center ${colors.iconBg}`}
+          className={`h-10 w-10 rounded-lg flex items-center justify-center ${colors.iconBg}`}
         >
           <Box className={colors.iconText}>{icon}</Box>
         </Box>

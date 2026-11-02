@@ -74,7 +74,15 @@ export const authenticateToken = async (req: any, res: any, next: any) => {
             dbToken.issued_at || dbToken.created_date || Date.now()
           ).getTime();
 
-      if (Date.now() - lastActive > INACTIVITY_TIMEOUT_MS) {
+      const isPermanentToken =
+        dbToken.token_type === 'Permanent' ||
+        dbToken.token_type === 'Service' ||
+        dbToken.token_type === 'API_KEY';
+
+      if (
+        !isPermanentToken &&
+        Date.now() - lastActive > INACTIVITY_TIMEOUT_MS
+      ) {
         try {
           await prisma.api_tokens.update({
             where: { id: dbToken.id },

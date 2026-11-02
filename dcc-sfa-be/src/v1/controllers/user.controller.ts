@@ -4,6 +4,10 @@ import prisma from '../../configs/prisma.client';
 import { deleteFile, uploadFile } from '../../utils/blackbaze';
 import { paginate } from '../../utils/paginate';
 import { isAdminRole } from '../../configs/permissions.config';
+import {
+  hiddenUsersPrismaFilter,
+  isHiddenUser,
+} from '../../configs/hiddenUsers.config';
 
 const serializeUser = (
   user: any,
@@ -340,7 +344,8 @@ export const userController = {
 
       const filters: any = {
         is_active: isActive as string,
-        name: { notIn: ['iuser', 'IUSER'] },
+        ...hiddenUsersPrismaFilter,
+
         ...(search && {
           OR: [
             {
@@ -444,13 +449,21 @@ export const userController = {
       });
 
       const totalUsers = await prisma.users.count({
-        where: { name: { notIn: ['iuser', 'IUSER'] } },
+        where: {
+          ...hiddenUsersPrismaFilter,
+        },
       });
       const activeUsers = await prisma.users.count({
-        where: { is_active: 'Y', name: { notIn: ['iuser', 'IUSER'] } },
+        where: {
+          is_active: 'Y',
+          ...hiddenUsersPrismaFilter,
+        },
       });
       const inactiveUsers = await prisma.users.count({
-        where: { is_active: 'N', name: { notIn: ['iuser', 'IUSER'] } },
+        where: {
+          is_active: 'N',
+          ...hiddenUsersPrismaFilter,
+        },
       });
 
       const now = new Date();
@@ -463,14 +476,14 @@ export const userController = {
             gte: startOfMonth,
             lt: endOfMonth,
           },
-          name: { notIn: ['iuser', 'IUSER'] },
+          ...hiddenUsersPrismaFilter,
         },
       });
 
       res.success(
         'Users retrieved successfully',
         data
-          .filter((user: any) => user.name?.trim().toLowerCase() !== 'iuser')
+          .filter((user: any) => !isHiddenUser(user))
           .map((user: any) => serializeUser(user, true, true)),
         200,
         pagination,
@@ -514,7 +527,7 @@ export const userController = {
 
       const whereClause: any = {
         id,
-        name: { notIn: ['iuser', 'IUSER'] },
+        ...hiddenUsersPrismaFilter,
       };
 
       if (isScopeRestricted) {
@@ -586,7 +599,7 @@ export const userController = {
         },
       });
 
-      if (!user) {
+      if (!user || isHiddenUser(user)) {
         res.error('User not found', 404);
         return;
       }
@@ -610,20 +623,32 @@ export const userController = {
       });
 
       const subordinateCount = await prisma.users.count({
-        where: { reporting_to: id, is_active: 'Y' },
+        where: {
+          reporting_to: id,
+          ...hiddenUsersPrismaFilter,
+          is_active: 'Y',
+        },
       });
 
       let managerTeamCount = 0;
       if (user.reporting_to) {
         managerTeamCount = await prisma.users.count({
-          where: { reporting_to: Number(user.reporting_to), is_active: 'Y' },
+          where: {
+            reporting_to: Number(user.reporting_to),
+            ...hiddenUsersPrismaFilter,
+            is_active: 'Y',
+          },
         });
       }
 
       let managerTeamMembers: any[] = [];
       if (user.reporting_to) {
         managerTeamMembers = await prisma.users.findMany({
-          where: { reporting_to: Number(user.reporting_to), is_active: 'Y' },
+          where: {
+            reporting_to: Number(user.reporting_to),
+            ...hiddenUsersPrismaFilter,
+            is_active: 'Y',
+          },
           select: {
             id: true,
             name: true,
@@ -681,7 +706,7 @@ export const userController = {
         where: { id: targetUserId },
       });
 
-      if (!existingUser) {
+      if (!existingUser || isHiddenUser(existingUser)) {
         res.error('User not found', 404);
         return;
       }
@@ -1003,7 +1028,7 @@ export const userController = {
         },
       });
 
-      if (!user) {
+      if (!user || isHiddenUser(user)) {
         res.error('User not found', 404);
         return;
       }
@@ -1178,7 +1203,7 @@ export const userController = {
         },
       });
 
-      if (!user) {
+      if (!user || isHiddenUser(user)) {
         res.error('User not found', 404);
         return;
       }
@@ -1215,7 +1240,7 @@ export const userController = {
         where: { id: userId, is_active: 'Y' },
       });
 
-      if (!existingUser) {
+      if (!existingUser || isHiddenUser(existingUser)) {
         res.error('User not found', 404);
         return;
       }
@@ -1377,7 +1402,7 @@ export const userController = {
       const where: any = {
         is_active: 'Y',
         id: { not: 27 },
-        name: { notIn: ['iuser', 'IUSER'] },
+        ...hiddenUsersPrismaFilter,
       };
 
       if (isScopeRestricted) {
@@ -1472,7 +1497,7 @@ export const userController = {
       res.success(
         'Users dropdown fetched successfully',
         users
-          ?.filter(u => u.name?.trim().toLowerCase() !== 'iuser')
+          ?.filter(u => !isHiddenUser(u))
           .map(u => ({
             id: u.id,
             name: u.name,
@@ -1521,7 +1546,7 @@ export const userController = {
         where: { id },
       });
 
-      if (!existingUser) {
+      if (!existingUser || isHiddenUser(existingUser)) {
         res.error('User not found', 404);
         return;
       }

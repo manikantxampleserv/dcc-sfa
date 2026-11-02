@@ -7,6 +7,7 @@ exports.zonesController = exports.generateZoneCode = void 0;
 const paginate_1 = require("../../utils/paginate");
 const prisma_client_1 = __importDefault(require("../../configs/prisma.client"));
 const permissions_config_1 = require("../../configs/permissions.config");
+const hiddenUsers_config_1 = require("../../configs/hiddenUsers.config");
 const generateZoneCode = async (depotId) => {
     if (!depotId) {
         throw new Error('Depot ID is required for zone code generation');
@@ -397,6 +398,7 @@ exports.zonesController = {
             const supervisors = await prisma_client_1.default.users.findMany({
                 where: {
                     is_active: 'Y',
+                    ...hiddenUsers_config_1.hiddenUsersPrismaFilter,
                     user_role: {
                         name: {
                             in: [
@@ -448,7 +450,7 @@ exports.zonesController = {
             });
             res.json({
                 message: 'Supervisors retrieved successfully',
-                data: supervisors,
+                data: supervisors.filter(s => !(0, hiddenUsers_config_1.isHiddenUser)(s)),
             });
         }
         catch (error) {
