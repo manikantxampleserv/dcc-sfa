@@ -214,6 +214,15 @@ const serializeSurveyResponse = (item: any): SurveyResponseSerialized => ({
             name: ans.survey_answers_products.name,
             code: ans.survey_answers_products.code || null,
           }
+        : ans.survey_fields?.parent_option_value &&
+          ans.survey_fields.parent_option_value !== 'default'
+        ? {
+            id: /^\d+$/.test(ans.survey_fields.parent_option_value.trim())
+              ? Number(ans.survey_fields.parent_option_value.trim())
+              : 0,
+            name: ans.survey_fields.parent_option_value,
+            code: null,
+          }
         : null,
     })) || [],
   survey_response_customer: item.survey_response_customer
@@ -235,6 +244,82 @@ const serializeSurveyResponse = (item: any): SurveyResponseSerialized => ({
       }
     : null,
 });
+
+/**
+ * Enriches survey answer records with matched product data when product_id is null
+ * but parent_option_value contains a product name or numeric product ID.
+ *
+ * @param {any[]} responses Array of survey response objects
+ * @returns {Promise<void>}
+ */
+const enrichResponsesProducts = async (responses: any[]): Promise<void> => {
+  if (!Array.isArray(responses) || responses.length === 0) return;
+
+  const missingNames = new Set<string>();
+  const missingIds = new Set<number>();
+
+  for (const r of responses) {
+    const answers = r?.survey_answer_responses || [];
+    for (const a of answers) {
+      if (!a.survey_answers_products && a.survey_fields?.parent_option_value) {
+        const val = a.survey_fields.parent_option_value.trim();
+        if (val && val !== 'default') {
+          if (/^\d+$/.test(val)) {
+            missingIds.add(Number(val));
+          } else {
+            missingNames.add(val);
+          }
+        }
+      }
+    }
+  }
+
+  if (missingNames.size === 0 && missingIds.size === 0) return;
+
+  const matchedProducts = await prisma.products.findMany({
+    where: {
+      OR: [
+        ...(missingNames.size > 0
+          ? [{ name: { in: Array.from(missingNames) } }]
+          : []),
+        ...(missingIds.size > 0
+          ? [{ id: { in: Array.from(missingIds) } }]
+          : []),
+      ],
+    },
+    select: { id: true, name: true, code: true },
+  });
+
+  const nameMap = new Map<string, any>();
+  const idMap = new Map<number, any>();
+  for (const p of matchedProducts) {
+    nameMap.set(p.name.toLowerCase().trim(), p);
+    idMap.set(p.id, p);
+  }
+
+  for (const r of responses) {
+    const answers = r?.survey_answer_responses || [];
+    for (const a of answers) {
+      if (!a.survey_answers_products && a.survey_fields?.parent_option_value) {
+        const val = a.survey_fields.parent_option_value.trim();
+        if (val && val !== 'default') {
+          if (/^\d+$/.test(val)) {
+            const p = idMap.get(Number(val));
+            if (p) a.survey_answers_products = p;
+          } else {
+            const p = nameMap.get(val.toLowerCase());
+            if (p) {
+              a.survey_answers_products = p;
+            } else {
+              a.survey_answers_products = { id: 0, name: val, code: null };
+            }
+          }
+        }
+      }
+    }
+  }
+};
+
 export const surveyResponseController = {
   async createOrUpdateSurveyResponse(req: any, res: any) {
     const data = req.body;
@@ -819,6 +904,8 @@ export const surveyResponseController = {
         }),
       ]);
 
+      await enrichResponsesProducts(data);
+
       const serializedData = data
         .filter(
           (r: any) => !isHiddenUser(r.survey_responses_submitted_by_users)
@@ -863,6 +950,8 @@ export const surveyResponseController = {
 
       if (!record)
         return res.status(404).json({ message: 'Survey response not found' });
+
+      await enrichResponsesProducts([record]);
 
       res.json({
         message: 'Survey response fetched successfully',
@@ -1032,6 +1121,8 @@ export const surveyResponseController = {
         r => !isHiddenUser(r.survey_responses_submitted_by_users)
       );
 
+      await enrichResponsesProducts(responses);
+
       const WorkbookClass =
         (ExcelJS as any).Workbook ||
         (ExcelJS as any).default?.Workbook ||
@@ -1053,12 +1144,7 @@ export const surveyResponseController = {
 
       const isProductFormat =
         hasProductAnswers ||
-        responses.some(
-          r =>
-            r.surveys?.is_matrix === 'Y' ||
-            (r.surveys?.title &&
-              /sku|product|knmw|csd|van/i.test(r.surveys.title))
-        );
+        responses.some(r => r.surveys?.is_matrix === 'Y');
 
       const worksheet = workbook.addWorksheet('Survey Responses', {
         pageSetup: { paperSize: 9, orientation: 'landscape' },
@@ -1115,12 +1201,14 @@ export const surveyResponseController = {
             });
           } else {
             for (const ans of answers) {
+              const rawOpt = ans.survey_fields?.parent_option_value?.trim();
               const productName =
                 ans.survey_answers_products?.name ||
-                (ans.survey_fields?.parent_option_value &&
-                ans.survey_fields.parent_option_value !== 'default'
-                  ? ans.survey_fields.parent_option_value
-                  : ans.survey_fields?.label || '-');
+                (rawOpt && rawOpt !== 'default' ? rawOpt : '') ||
+                (ans.survey_fields?.field_type === 'product' && ans.answer
+                  ? ans.answer
+                  : '') ||
+                '-';
 
               worksheet.addRow({
                 response_id: r.id,

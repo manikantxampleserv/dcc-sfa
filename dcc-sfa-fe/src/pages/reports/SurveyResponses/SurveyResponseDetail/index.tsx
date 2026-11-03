@@ -79,7 +79,9 @@ const SurveyResponseDetail: React.FC = () => {
     const map = new Map();
     response.answers.forEach((ans: any) => {
       if (ans.product) {
-        map.set(ans.product.id, ans.product.name);
+        map.set(ans.product.id || ans.product.name, ans.product.name);
+      } else if (ans.field?.parent_option_value && ans.field.parent_option_value !== 'default') {
+        map.set(ans.field.parent_option_value, ans.field.parent_option_value);
       }
     });
     return Array.from(map.entries()).map(([id, name]) => ({ id, name }));

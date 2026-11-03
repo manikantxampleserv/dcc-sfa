@@ -317,6 +317,7 @@ interface BulkVisitInput {
         parent_id?: number;
         field_id: number;
         answer?: string;
+        product_id?: number;
       }>;
     };
   };
@@ -1948,7 +1949,11 @@ export const visitsController = {
                         where: { parent_id: createdInvoice.id },
                         select: { total_amount: true },
                       });
-                      const subtotal = invoiceItemsDb.reduce((sum: number, item: any) => sum + (Number(item.total_amount) || 0), 0);
+                      const subtotal = invoiceItemsDb.reduce(
+                        (sum: number, item: any) =>
+                          sum + (Number(item.total_amount) || 0),
+                        0
+                      );
 
                       await tx.invoices.update({
                         where: { id: createdInvoice.id },
@@ -2256,6 +2261,9 @@ export const visitsController = {
                         const answerData = {
                           parent_id: surveyResponseRecord.id,
                           field_id: answer.field_id,
+                          product_id: answer.product_id
+                            ? Number(answer.product_id)
+                            : null,
                           answer: answer.answer,
                         };
                         if (answer.id) {
@@ -2290,6 +2298,10 @@ export const visitsController = {
                         data: surveyAnswers.map((answer: any) => ({
                           parent_id: surveyResponseRecord.id,
                           field_id: answer.field_id,
+                          product_id: answer.product_id
+                            ? Number(answer.product_id)
+                            : null,
+
                           answer: answer.answer,
                         })),
                       });

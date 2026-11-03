@@ -503,6 +503,23 @@ exports.excelSyncController = {
                 });
                 if (!surveyAnswers || surveyAnswers.length === 0)
                     break;
+                const missingProductIds = new Set();
+                for (const ans of surveyAnswers) {
+                    if (!ans.survey_answers_products && ans.survey_fields?.parent_option_value) {
+                        const trimmed = ans.survey_fields.parent_option_value.trim();
+                        if (/^\d+$/.test(trimmed)) {
+                            missingProductIds.add(Number(trimmed));
+                        }
+                    }
+                }
+                const prodIdMap = new Map();
+                if (missingProductIds.size > 0) {
+                    const prods = await prisma_client_1.default.products.findMany({
+                        where: { id: { in: Array.from(missingProductIds) } },
+                        select: { id: true, name: true },
+                    });
+                    prods.forEach(p => prodIdMap.set(p.id, p.name));
+                }
                 const lines = [];
                 for (const ans of surveyAnswers) {
                     const resp = ans.survey_answer_responses;
@@ -511,6 +528,19 @@ exports.excelSyncController = {
                     if ((0, hiddenUsers_config_1.isHiddenUser)(user))
                         continue;
                     const prod = ans.survey_answers_products;
+                    const rawOpt = ans.survey_fields?.parent_option_value?.trim();
+                    let productName = prod?.name || '';
+                    if (!productName && rawOpt && rawOpt !== 'default') {
+                        if (/^\d+$/.test(rawOpt)) {
+                            productName = prodIdMap.get(Number(rawOpt)) || `Product #${rawOpt}`;
+                        }
+                        else {
+                            productName = rawOpt;
+                        }
+                    }
+                    if (!productName && ans.survey_fields?.field_type === 'product' && ans.answer) {
+                        productName = ans.answer;
+                    }
                     lines.push([
                         escapeCsv(ans.parent_id),
                         escapeCsv(formatDateISO(resp?.submitted_at || resp?.createdate)),
@@ -520,7 +550,7 @@ exports.excelSyncController = {
                         escapeCsv(cust?.code || ''),
                         escapeCsv(cust?.customer_type_customer?.type_name || cust?.type || ''),
                         escapeCsv(resp?.location || '–'),
-                        escapeCsv(prod?.name || ans.survey_fields?.label || ''),
+                        escapeCsv(productName || ''),
                         escapeCsv(ans.answer || '0'),
                     ].join(','));
                 }

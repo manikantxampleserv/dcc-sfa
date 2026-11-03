@@ -558,6 +558,25 @@ export const excelSyncController = {
 
         if (!surveyAnswers || surveyAnswers.length === 0) break;
 
+        const missingProductIds = new Set<number>();
+        for (const ans of surveyAnswers) {
+          if (!ans.survey_answers_products && ans.survey_fields?.parent_option_value) {
+            const trimmed = ans.survey_fields.parent_option_value.trim();
+            if (/^\d+$/.test(trimmed)) {
+              missingProductIds.add(Number(trimmed));
+            }
+          }
+        }
+
+        const prodIdMap = new Map<number, string>();
+        if (missingProductIds.size > 0) {
+          const prods = await prisma.products.findMany({
+            where: { id: { in: Array.from(missingProductIds) } },
+            select: { id: true, name: true },
+          });
+          prods.forEach(p => prodIdMap.set(p.id, p.name));
+        }
+
         const lines: string[] = [];
         for (const ans of surveyAnswers) {
           const resp = ans.survey_answer_responses;
@@ -565,6 +584,19 @@ export const excelSyncController = {
           const user = resp?.survey_responses_submitted_by_users;
           if (isHiddenUser(user)) continue;
           const prod = ans.survey_answers_products;
+
+          const rawOpt = ans.survey_fields?.parent_option_value?.trim();
+          let productName = prod?.name || '';
+          if (!productName && rawOpt && rawOpt !== 'default') {
+            if (/^\d+$/.test(rawOpt)) {
+              productName = prodIdMap.get(Number(rawOpt)) || `Product #${rawOpt}`;
+            } else {
+              productName = rawOpt;
+            }
+          }
+          if (!productName && ans.survey_fields?.field_type === 'product' && ans.answer) {
+            productName = ans.answer;
+          }
 
           lines.push(
             [
@@ -580,7 +612,7 @@ export const excelSyncController = {
                 cust?.customer_type_customer?.type_name || cust?.type || ''
               ),
               escapeCsv(resp?.location || '–'),
-              escapeCsv(prod?.name || ans.survey_fields?.label || ''),
+              escapeCsv(productName || ''),
               escapeCsv(ans.answer || '0'),
             ].join(',')
           );
