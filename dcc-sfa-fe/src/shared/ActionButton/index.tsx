@@ -59,6 +59,7 @@ const EditButton: React.FC<EditButtonProps> = ({
   disabled = false,
   tooltip = 'Edit',
   size = 'medium',
+  icon = <Edit fontSize="small" />,
 }) => {
   const button = (
     <IconButton
@@ -70,7 +71,7 @@ const EditButton: React.FC<EditButtonProps> = ({
       disabled={disabled}
       className="!bg-blue-100 !rounded hover:!bg-blue-200 !text-blue-600"
     >
-      <Edit fontSize="small" />
+      {icon}
     </IconButton>
   );
 

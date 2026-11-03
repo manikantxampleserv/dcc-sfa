@@ -35,6 +35,10 @@ const Layout: React.FC = () => {
       return 'Executive Dashboard';
     }
 
+    if (pathSegments.includes('cooler-360')) {
+      return 'Cooler 360';
+    }
+
     if (isNumeric && pathSegments.length > 1) {
       const parentSegment = pathSegments[pathSegments.length - 2];
       const parentLabel = parentSegment

@@ -2,10 +2,13 @@ import { body } from 'express-validator';
 
 export const createAssetMaintenanceValidation = [
   body('asset_id').isInt().withMessage('Asset ID must be an integer'),
-  body('technician_id').isInt().withMessage('Technician ID must be an integer'),
   body('maintenance_date')
     .isDate()
     .withMessage('Maintenance date must be a valid date'),
+  body('technician_id')
+    .optional({ nullable: true })
+    .isInt()
+    .withMessage('Technician ID must be an integer'),
   body('issue_reported')
     .optional()
     .isString()

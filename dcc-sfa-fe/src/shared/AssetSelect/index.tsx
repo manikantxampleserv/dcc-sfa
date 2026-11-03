@@ -302,7 +302,7 @@ const AssetSelect: React.FC<AssetSelectProps> = ({
       renderInput={(params: any) => (
         <TextField
           {...params}
-          label={`${label + (required ? ' *' : '')}`}
+          label={label ? `${label + (required ? ' *' : '')}` : ''}
           required={false}
           error={!!error}
           helperText={helperText}

@@ -1,10 +1,3 @@
-/**
- * @fileoverview Asset Maintenance Management Hooks with React Query and Toast Integration
- * @description Provides hooks for asset maintenance CRUD operations with automatic caching and toast notifications
- * @author DCC-SFA Team
- * @version 1.0.0
- */
-
 import { useQuery, type UseQueryOptions } from '@tanstack/react-query';
 import { useApiMutation } from './useApiMutation';
 import type { ApiResponse } from '../types/api.types';
@@ -14,7 +7,13 @@ export type {
   AssetMaintenance,
   CreateAssetMaintenancePayload,
   UpdateAssetMaintenancePayload,
+  AssignTechnicianPayload,
+  SubmitMobileRepairPayload,
+  CloseMaintenancePayload,
   AssetMaintenanceQueryParams,
+  AssetMaintenanceStats,
+  SparePartItem,
+  MaintenanceActivityLog,
 } from '../services/masters/AssetMaintenance';
 
 /**
@@ -27,12 +26,14 @@ export const assetMaintenanceQueryKeys = {
     [...assetMaintenanceQueryKeys.lists(), params] as const,
   details: () => [...assetMaintenanceQueryKeys.all, 'detail'] as const,
   detail: (id: number) => [...assetMaintenanceQueryKeys.details(), id] as const,
+  stats: () => [...assetMaintenanceQueryKeys.all, 'stats'] as const,
 };
 
 /**
  * Hook to fetch asset maintenances with pagination and filters
- * @param params - Query parameters for filtering and pagination
- * @param options - React Query options
+ *
+ * @param {assetMaintenanceService.AssetMaintenanceQueryParams} params Query parameters
+ * @param {UseQueryOptions} options React Query options
  * @returns Query result with asset maintenances data
  */
 export const useAssetMaintenances = (
@@ -52,8 +53,9 @@ export const useAssetMaintenances = (
 
 /**
  * Hook to fetch asset maintenance by ID
- * @param id - Asset Maintenance ID
- * @param options - React Query options
+ *
+ * @param {number} id Asset Maintenance ID
+ * @param {UseQueryOptions} options React Query options
  * @returns Query result with asset maintenance data
  */
 export const useAssetMaintenanceById = (
@@ -73,7 +75,21 @@ export const useAssetMaintenanceById = (
 };
 
 /**
+ * Hook to fetch dashboard KPI summary statistics
+ *
+ * @returns Query result with KPI numbers
+ */
+export const useMaintenanceDashboardStats = () => {
+  return useQuery({
+    queryKey: assetMaintenanceQueryKeys.stats(),
+    queryFn: assetMaintenanceService.fetchMaintenanceDashboardStats,
+    staleTime: 60 * 1000,
+  });
+};
+
+/**
  * Hook to create asset maintenance with automatic toast notifications
+ *
  * @returns Mutation object for creating asset maintenance
  */
 export const useCreateAssetMaintenance = () => {
@@ -86,6 +102,7 @@ export const useCreateAssetMaintenance = () => {
 
 /**
  * Hook to update asset maintenance with automatic toast notifications
+ *
  * @returns Mutation object for updating asset maintenance
  */
 export const useUpdateAssetMaintenance = () => {
@@ -103,7 +120,65 @@ export const useUpdateAssetMaintenance = () => {
 };
 
 /**
+ * Hook to assign technician and priority with automatic toast notifications
+ *
+ * @returns Mutation object for assigning technician
+ */
+export const useAssignMaintenanceTechnician = () => {
+  return useApiMutation({
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: number;
+      data: assetMaintenanceService.AssignTechnicianPayload;
+    }) => assetMaintenanceService.assignMaintenanceTechnician(id, data),
+    invalidateQueries: ['asset-maintenance'],
+    loadingMessage: 'Assigning technician...',
+  });
+};
+
+/**
+ * Hook to submit mobile repair result with automatic toast notifications
+ *
+ * @returns Mutation object for submitting repair result
+ */
+export const useSubmitMobileRepair = () => {
+  return useApiMutation({
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: number;
+      data: assetMaintenanceService.SubmitMobileRepairPayload;
+    }) => assetMaintenanceService.submitMobileRepair(id, data),
+    invalidateQueries: ['asset-maintenance'],
+    loadingMessage: 'Submitting repair result...',
+  });
+};
+
+/**
+ * Hook to close maintenance job with finalized costs
+ *
+ * @returns Mutation object for closing job
+ */
+export const useCloseMaintenanceJob = () => {
+  return useApiMutation({
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: number;
+      data: assetMaintenanceService.CloseMaintenancePayload;
+    }) => assetMaintenanceService.closeMaintenanceJob(id, data),
+    invalidateQueries: ['asset-maintenance'],
+    loadingMessage: 'Closing maintenance job...',
+  });
+};
+
+/**
  * Hook to delete asset maintenance with automatic toast notifications
+ *
  * @returns Mutation object for deleting asset maintenance
  */
 export const useDeleteAssetMaintenance = () => {
