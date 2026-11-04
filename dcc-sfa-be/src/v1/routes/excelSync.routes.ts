@@ -143,6 +143,11 @@ const allowExcelTokenAuth = async (
 
 /**
  * 1. Sales Data Endpoint
+ * Streams live sales CSV data.
+ * Query filters:
+ * - Date filters: start_date, end_date, from_date, to_date, date (Formats: DD-MM-YYYY, DD/MM/YYYY, YYYY-MM-DD, ISO).
+ * - Format: EvDate column is formatted as DD-MM-YYYY.
+ * - Hierarchy filters: depot_id, zone_id, route_id, customer_id, channel_id, category_id, type_id, user_id.
  */
 router.get(
   '/excel/sale-data',
@@ -158,6 +163,9 @@ router.get(
 
 /**
  * 2. Outlet Master Endpoint
+ * Streams flat outlet master CSV data.
+ * Query filters:
+ * - Hierarchy filters: depot_id, zone_id, route_id, search.
  */
 router.get(
   '/excel/outlet-master',
@@ -167,6 +175,11 @@ router.get(
 
 /**
  * 3. Survey Data Endpoint
+ * Streams questionnaire answer details CSV.
+ * Query filters:
+ * - Date filters: start_date, end_date, from_date, to_date, date (Formats: DD-MM-YYYY, DD/MM/YYYY, YYYY-MM-DD, ISO).
+ * - Format: Date column is formatted as DD-MM-YYYY.
+ * - Hierarchy filters: survey_id, user_id, customer_id.
  */
 router.get(
   '/excel/survey-data',
@@ -176,6 +189,11 @@ router.get(
 
 /**
  * 4. Van Load and Unload Detail Endpoint
+ * Streams inventory movement load/unload details CSV.
+ * Query filters:
+ * - Date filters: start_date, end_date, from_date, to_date, date (Formats: DD-MM-YYYY, DD/MM/YYYY, YYYY-MM-DD, ISO).
+ * - Format: Date column is formatted as DD-MM-YYYY.
+ * - Other filters: type (LOAD/UNLOAD), user_id.
  */
 router.get(
   '/excel/van-load-unload',

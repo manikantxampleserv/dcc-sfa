@@ -45,17 +45,17 @@ export class AssetMasterImportExportService extends ImportExportService<any> {
     },
     {
       masterTable: 'depots' as any,
-      masterKey: 'id',
-      masterDisplayFields: ['id', 'name', 'code'],
+      masterKey: 'code',
+      masterDisplayFields: ['code', 'name', 'id'],
       sheetName: 'Ref - Depots',
-      description: 'Use the ID from this sheet in the Depot ID column',
+      description: 'Use the Code from this sheet in the Depot Code column',
     },
     {
       masterTable: 'customers' as any,
-      masterKey: 'id',
-      masterDisplayFields: ['id', 'name', 'code'],
+      masterKey: 'code',
+      masterDisplayFields: ['code', 'name', 'id'],
       sheetName: 'Ref - Customers',
-      description: 'Use the ID from this sheet for customer locations',
+      description: 'Use the Code from this sheet in the Outlet Code column',
     },
   ];
   protected columns: ColumnDefinition[] = [
@@ -103,13 +103,13 @@ export class AssetMasterImportExportService extends ImportExportService<any> {
       description: 'Asset NFC Tag (optional)',
     },
     {
-      key: 'depot_id',
-      header: 'Depot ID',
+      key: 'depot_code',
+      header: 'Depot Code',
       width: 15,
       required: false,
-      type: 'number',
-      transform: value => (value ? parseInt(value) : null),
-      description: 'ID of the depot (optional)',
+      type: 'string',
+      transform: value => value?.toString().trim() || null,
+      description: 'Code of the depot (optional)',
     },
     {
       key: 'depot_name',
@@ -120,13 +120,13 @@ export class AssetMasterImportExportService extends ImportExportService<any> {
       description: 'Name of the depot (export only)',
     },
     {
-      key: 'outlet_id',
-      header: 'Outlet ID',
+      key: 'outlet_code',
+      header: 'Outlet Code',
       width: 15,
       required: false,
-      type: 'number',
-      transform: value => (value ? parseInt(value) : null),
-      description: 'ID of the outlet/customer (optional)',
+      type: 'string',
+      transform: value => value?.toString().trim() || null,
+      description: 'Code of the outlet/customer (optional)',
     },
     {
       key: 'outlet_name',
@@ -346,9 +346,9 @@ export class AssetMasterImportExportService extends ImportExportService<any> {
         serial_number: 'COOLER-001-2024',
         barcode: 'BC123456789',
         nfc_tag: 'NFC123456789',
-        depot_id: 1,
+        depot_code: 'DEP-001',
         depot_name: 'Main Depot',
-        outlet_id: null,
+        outlet_code: 'OUT-001',
         outlet_name: '',
         purchase_date: '2024-01-15',
         warranty_expiry: '2026-01-15',
@@ -658,9 +658,9 @@ export class AssetMasterImportExportService extends ImportExportService<any> {
         serial_number: asset.serial_number,
         barcode: asset.barcode || '',
         nfc_tag: asset.nfc_tag || '',
-        depot_id: asset.depot_id || '',
+        depot_code: asset.asset_master_depot?.code || '',
         depot_name: asset.asset_master_depot?.name || '',
-        outlet_id: asset.outlet_id || '',
+        outlet_code: asset.asset_master_outlet?.code || '',
         outlet_name: asset.asset_master_outlet?.name || '',
         name: asset.name || '',
         code: asset.code || '',
@@ -671,24 +671,24 @@ export class AssetMasterImportExportService extends ImportExportService<any> {
         asset_brand_id: asset.asset_brand_id || '',
         asset_brand_name: asset.asset_master_brands?.name || '',
         purchase_date: asset.purchase_date
-          ? (asset.purchase_date instanceof Date
-              ? asset.purchase_date.toISOString().split('T')[0]
-              : String(asset.purchase_date).split('T')[0])
+          ? asset.purchase_date instanceof Date
+            ? asset.purchase_date.toISOString().split('T')[0]
+            : String(asset.purchase_date).split('T')[0]
           : '',
         warranty_expiry: asset.warranty_expiry
-          ? (asset.warranty_expiry instanceof Date
-              ? asset.warranty_expiry.toISOString().split('T')[0]
-              : String(asset.warranty_expiry).split('T')[0])
+          ? asset.warranty_expiry instanceof Date
+            ? asset.warranty_expiry.toISOString().split('T')[0]
+            : String(asset.warranty_expiry).split('T')[0]
           : '',
         installation_date: asset.installation_date
-          ? (asset.installation_date instanceof Date
-              ? asset.installation_date.toISOString().split('T')[0]
-              : String(asset.installation_date).split('T')[0])
+          ? asset.installation_date instanceof Date
+            ? asset.installation_date.toISOString().split('T')[0]
+            : String(asset.installation_date).split('T')[0]
           : '',
         last_scanned_date: scanDate
-          ? (scanDate instanceof Date
-              ? scanDate.toISOString().split('T')[0]
-              : String(scanDate).split('T')[0])
+          ? scanDate instanceof Date
+            ? scanDate.toISOString().split('T')[0]
+            : String(scanDate).split('T')[0]
           : '',
         last_scanned_by: scannedByUser,
         current_location: asset.current_location || '',
@@ -696,15 +696,15 @@ export class AssetMasterImportExportService extends ImportExportService<any> {
         assigned_to: asset.assigned_to || '',
         is_active: asset.is_active || 'Y',
         created_date: asset.createdate
-          ? (asset.createdate instanceof Date
-              ? asset.createdate.toISOString().split('T')[0]
-              : String(asset.createdate).split('T')[0])
+          ? asset.createdate instanceof Date
+            ? asset.createdate.toISOString().split('T')[0]
+            : String(asset.createdate).split('T')[0]
           : '',
         created_by: asset.createdby || '',
         updated_date: asset.updatedate
-          ? (asset.updatedate instanceof Date
-              ? asset.updatedate.toISOString().split('T')[0]
-              : String(asset.updatedate).split('T')[0])
+          ? asset.updatedate instanceof Date
+            ? asset.updatedate.toISOString().split('T')[0]
+            : String(asset.updatedate).split('T')[0]
           : '',
         updated_by: asset.updatedby || '',
       };
@@ -760,22 +760,38 @@ export class AssetMasterImportExportService extends ImportExportService<any> {
       }
     }
 
-    if (data.depot_id) {
-      const depot = await prismaClient.depots.findUnique({
-        where: { id: data.depot_id },
+    if (data.depot_code || data.depot_id) {
+      const depot = await prismaClient.depots.findFirst({
+        where: {
+          OR: [
+            ...(data.depot_code
+              ? [{ code: String(data.depot_code).trim() }]
+              : []),
+            ...(data.depot_id ? [{ id: Number(data.depot_id) }] : []),
+          ],
+        },
       });
       if (!depot) {
-        return `Depot with ID ${data.depot_id} does not exist`;
+        return `Depot ${data.depot_code ? `with code '${data.depot_code}'` : `with ID ${data.depot_id}`} does not exist`;
       }
+      data.depot_id = depot.id;
     }
 
-    if (data.outlet_id) {
-      const outlet = await prismaClient.customers.findUnique({
-        where: { id: data.outlet_id },
+    if (data.outlet_code || data.outlet_id) {
+      const outlet = await prismaClient.customers.findFirst({
+        where: {
+          OR: [
+            ...(data.outlet_code
+              ? [{ code: String(data.outlet_code).trim() }]
+              : []),
+            ...(data.outlet_id ? [{ id: Number(data.outlet_id) }] : []),
+          ],
+        },
       });
       if (!outlet) {
-        return `Outlet with ID ${data.outlet_id} does not exist`;
+        return `Outlet ${data.outlet_code ? `with code '${data.outlet_code}'` : `with ID ${data.outlet_id}`} does not exist`;
       }
+      data.outlet_id = outlet.id;
     }
 
     return null;
