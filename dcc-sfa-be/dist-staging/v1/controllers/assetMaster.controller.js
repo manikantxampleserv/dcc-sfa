@@ -485,35 +485,44 @@ exports.assetMasterController = {
                     },
                 },
             });
-            const statsAndConditions = andConditions.filter((c) => !c.is_active);
-            const statsFilter = statsAndConditions.length > 0 ? { AND: statsAndConditions } : {};
-            const totalAssets = await prisma_client_1.default.asset_master.count({
-                where: statsFilter,
-            });
-            const activeAssets = await prisma_client_1.default.asset_master.count({
-                where: {
-                    ...statsFilter,
-                    is_active: 'Y',
-                },
-            });
-            const inactiveAssets = await prisma_client_1.default.asset_master.count({
-                where: {
-                    ...statsFilter,
-                    is_active: 'N',
-                },
-            });
-            const now = new Date();
-            const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-            const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-            const assetsThisMonth = await prisma_client_1.default.asset_master.count({
-                where: {
-                    ...statsFilter,
-                    createdate: {
-                        gte: startOfMonth,
-                        lte: endOfMonth,
+            let totalAssets = pagination?.total_count || 0;
+            let activeAssets = 0;
+            let inactiveAssets = 0;
+            let assetsThisMonth = 0;
+            try {
+                const statsAndConditions = andConditions.filter((c) => !c.is_active);
+                const statsFilter = statsAndConditions.length > 0 ? { AND: statsAndConditions } : {};
+                totalAssets = await prisma_client_1.default.asset_master.count({
+                    where: statsFilter,
+                });
+                activeAssets = await prisma_client_1.default.asset_master.count({
+                    where: {
+                        ...statsFilter,
+                        is_active: 'Y',
                     },
-                },
-            });
+                });
+                inactiveAssets = await prisma_client_1.default.asset_master.count({
+                    where: {
+                        ...statsFilter,
+                        is_active: 'N',
+                    },
+                });
+                const now = new Date();
+                const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+                const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+                assetsThisMonth = await prisma_client_1.default.asset_master.count({
+                    where: {
+                        ...statsFilter,
+                        createdate: {
+                            gte: startOfMonth,
+                            lte: endOfMonth,
+                        },
+                    },
+                });
+            }
+            catch (statsError) {
+                console.warn('Asset stats buffer pool warning:', statsError);
+            }
             res.success('Assets retrieved successfully', data.map((asset) => serializeAssetMaster(asset)), 200, pagination, {
                 total_assets: totalAssets,
                 active_assets: activeAssets,

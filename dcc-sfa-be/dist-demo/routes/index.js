@@ -31,6 +31,7 @@ const columnPreference_routes_1 = __importDefault(require("../v1/routes/columnPr
 const company_routes_1 = __importDefault(require("../v1/routes/company.routes"));
 const competitorActivity_routes_1 = __importDefault(require("../v1/routes/competitorActivity.routes"));
 const coolerInspections_routes_1 = __importDefault(require("../v1/routes/coolerInspections.routes"));
+const cooler360_routes_1 = __importDefault(require("../v1/routes/cooler360.routes"));
 const coolerInstallations_routes_1 = __importDefault(require("../v1/routes/coolerInstallations.routes"));
 const coolerSubTypes_routes_1 = __importDefault(require("../v1/routes/coolerSubTypes.routes"));
 const coolerTypes_routes_1 = __importDefault(require("../v1/routes/coolerTypes.routes"));
@@ -179,6 +180,7 @@ routes.use('/v1', assetMaintenance_routes_1.default);
 routes.use('/v1', competitorActivity_routes_1.default);
 routes.use('/v1', coolerInstallations_routes_1.default);
 routes.use('/v1', coolerInspections_routes_1.default);
+routes.use('/v1', cooler360_routes_1.default);
 routes.use('/v1', assetWarrantyClaims_routes_1.default);
 routes.use('/v1', vanInventory_routes_1.default);
 routes.use('/v1', reconciliation_routes_1.default);

@@ -4,10 +4,13 @@ exports.createAssetMaintenanceValidation = void 0;
 const express_validator_1 = require("express-validator");
 exports.createAssetMaintenanceValidation = [
     (0, express_validator_1.body)('asset_id').isInt().withMessage('Asset ID must be an integer'),
-    (0, express_validator_1.body)('technician_id').isInt().withMessage('Technician ID must be an integer'),
     (0, express_validator_1.body)('maintenance_date')
         .isDate()
         .withMessage('Maintenance date must be a valid date'),
+    (0, express_validator_1.body)('technician_id')
+        .optional({ nullable: true })
+        .isInt()
+        .withMessage('Technician ID must be an integer'),
     (0, express_validator_1.body)('issue_reported')
         .optional()
         .isString()
