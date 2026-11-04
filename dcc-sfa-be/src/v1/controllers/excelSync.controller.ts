@@ -24,10 +24,10 @@ const escapeCsv = (val: any): string => {
 };
 
 /**
- * Formats date into DD/MM/YYYY string to match Excel template.
+ * Formats date into DD-MM-YYYY string to match Excel template.
  *
  * @param {Date | string | null | undefined} date Input date
- * @returns {string} Formatted date string
+ * @returns {string} Formatted date string (DD-MM-YYYY)
  */
 const formatDateDMY = (date: Date | string | null | undefined): string => {
   if (!date) return '';
@@ -36,7 +36,50 @@ const formatDateDMY = (date: Date | string | null | undefined): string => {
   const day = String(d.getDate()).padStart(2, '0');
   const month = String(d.getMonth() + 1).padStart(2, '0');
   const year = d.getFullYear();
-  return `${day}/${month}/${year}`;
+  return `${day}-${month}-${year}`;
+};
+
+/**
+ * Parses user-supplied date filter strings supporting DD-MM-YYYY, DD/MM/YYYY, YYYY-MM-DD, or ISO.
+ *
+ * @param {string | null | undefined} input Raw date filter input
+ * @param {boolean} isEndOfDay Whether to set time to 23:59:59.999
+ * @returns {Date | null} Parsed Date object or null
+ */
+const parseFilterDate = (
+  input: string | null | undefined,
+  isEndOfDay: boolean = false
+): Date | null => {
+  if (!input) return null;
+  const cleanStr = String(input).trim();
+  if (!cleanStr) return null;
+
+  let d: Date | null = null;
+
+  /** Check for DD-MM-YYYY or DD/MM/YYYY format */
+  const dmyMatch = cleanStr.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})(.*)$/);
+  if (dmyMatch) {
+    const day = parseInt(dmyMatch[1], 10);
+    const month = parseInt(dmyMatch[2], 10) - 1;
+    const year = parseInt(dmyMatch[3], 10);
+    d = new Date(year, month, day);
+  } else {
+    /** Fallback to standard Date parsing */
+    const parsed = new Date(cleanStr);
+    if (!isNaN(parsed.getTime())) {
+      d = parsed;
+    }
+  }
+
+  if (!d || isNaN(d.getTime())) return null;
+
+  if (isEndOfDay) {
+    d.setHours(23, 59, 59, 999);
+  } else {
+    d.setHours(0, 0, 0, 0);
+  }
+
+  return d;
 };
 
 /**
@@ -73,22 +116,38 @@ export const excelSyncController = {
    */
   async getSalesData(req: Request, res: Response, _next: NextFunction) {
     try {
-      const { start_date, end_date, from_date, to_date } = req.query;
+      const { start_date, end_date, from_date, to_date, date, user_id } =
+        req.query;
 
-      const startDate = (start_date || from_date) as string | undefined;
-      const endDate = (end_date || to_date) as string | undefined;
+      const startDateRaw = (start_date ||
+        from_date ||
+        (req.query as any).startDate ||
+        (req.query as any).fromDate ||
+        date) as string | undefined;
+      const endDateRaw = (end_date ||
+        to_date ||
+        (req.query as any).endDate ||
+        (req.query as any).toDate ||
+        date) as string | undefined;
+
+      const parsedStart = parseFilterDate(startDateRaw, false);
+      const parsedEnd = parseFilterDate(endDateRaw, true);
       const BATCH_SIZE = 5000;
 
       const invoiceWhere: any = { is_active: 'Y' };
 
-      if (startDate || endDate) {
+      if (parsedStart || parsedEnd) {
         invoiceWhere.invoice_date = {};
-        if (startDate) invoiceWhere.invoice_date.gte = new Date(startDate);
-        if (endDate) {
-          const end = new Date(endDate);
-          end.setHours(23, 59, 59, 999);
-          invoiceWhere.invoice_date.lte = end;
-        }
+        if (parsedStart) invoiceWhere.invoice_date.gte = parsedStart;
+        if (parsedEnd) invoiceWhere.invoice_date.lte = parsedEnd;
+      }
+
+      if (user_id) {
+        const uid = Number(user_id);
+        invoiceWhere.OR = [
+          { salesperson_id: uid },
+          { salesperson_id: null, createdby: uid },
+        ];
       }
 
       const headers = [
@@ -126,6 +185,21 @@ export const excelSyncController = {
       res.write(headers.join(',') + '\r\n');
 
       const staffLookup = await getDepotStaffLookup();
+
+      /** In-memory users lookup to resolve salesperson from createdby when salesperson_id is null */
+      const usersList = await prisma.users.findMany({
+        where: { is_active: 'Y' },
+        select: {
+          id: true,
+          name: true,
+          employee_id: true,
+          sap_code: true,
+          depot_id: true,
+          reporting_to: true,
+          user_role: true,
+        },
+      });
+      const usersById = new Map<number, any>(usersList.map(u => [u.id, u]));
 
       let hasLineItems = true;
       let lastItemId: number | null = null;
@@ -179,7 +253,10 @@ export const excelSyncController = {
         for (const item of batch) {
           const inv = item.invoices;
           const cust = inv?.invoices_customers;
-          const sp = inv?.invoices_salesperson;
+          let sp = inv?.invoices_salesperson;
+          if (!sp && inv?.createdby) {
+            sp = usersById.get(Number(inv.createdby)) || null;
+          }
           if (isHiddenUser(sp)) continue;
           const prod = item.invoice_items_products;
           const depot = cust?.customer_depot;
@@ -195,9 +272,12 @@ export const excelSyncController = {
           const unitCase = Number((phyCase * conversionRate).toFixed(3));
           const turnover = Number(item.total_amount) || 0;
 
+          const dateVal = inv?.invoice_date || inv?.createdate;
+          if (!dateVal) continue;
+
           lines.push(
             [
-              escapeCsv(formatDateDMY(inv?.invoice_date)),
+              escapeCsv(formatDateDMY(dateVal)),
               escapeCsv(staff.depotName || depot?.name || ''),
               escapeCsv(staff.coordinatorName || ''),
               escapeCsv(staff.supervisorName || ''),
@@ -277,7 +357,10 @@ export const excelSyncController = {
           const lines: string[] = [];
           for (const inv of batchInvoices) {
             const cust = inv.invoices_customers;
-            const sp = inv.invoices_salesperson;
+            let sp = inv.invoices_salesperson;
+            if (!sp && inv.createdby) {
+              sp = usersById.get(Number(inv.createdby)) || null;
+            }
             if (isHiddenUser(sp)) continue;
             const depot = cust?.customer_depot;
 
@@ -287,9 +370,12 @@ export const excelSyncController = {
               depotName: depot?.name,
             });
 
+            const dateVal = inv.invoice_date || inv.createdate;
+            if (!dateVal) continue;
+
             lines.push(
               [
-                escapeCsv(formatDateDMY(inv.invoice_date)),
+                escapeCsv(formatDateDMY(dateVal)),
                 escapeCsv(staff.depotName || depot?.name || ''),
                 escapeCsv(staff.coordinatorName || ''),
                 escapeCsv(staff.supervisorName || ''),
@@ -485,10 +571,21 @@ export const excelSyncController = {
    */
   async getSurveyData(req: Request, res: Response, _next: NextFunction) {
     try {
-      const { start_date, end_date, from_date, to_date } = req.query;
+      const { start_date, end_date, from_date, to_date, date } = req.query;
 
-      const startDate = (start_date || from_date) as string | undefined;
-      const endDate = (end_date || to_date) as string | undefined;
+      const startDateRaw = (start_date ||
+        from_date ||
+        (req.query as any).startDate ||
+        (req.query as any).fromDate ||
+        date) as string | undefined;
+      const endDateRaw = (end_date ||
+        to_date ||
+        (req.query as any).endDate ||
+        (req.query as any).toDate ||
+        date) as string | undefined;
+
+      const parsedStart = parseFilterDate(startDateRaw, false);
+      const parsedEnd = parseFilterDate(endDateRaw, true);
       const BATCH_SIZE = 5000;
 
       const where: any = {
@@ -497,15 +594,13 @@ export const excelSyncController = {
         },
       };
 
-      if (startDate || endDate) {
+      if (parsedStart || parsedEnd) {
         where.survey_answer_responses.submitted_at = {};
-        if (startDate) {
-          where.survey_answer_responses.submitted_at.gte = new Date(startDate);
+        if (parsedStart) {
+          where.survey_answer_responses.submitted_at.gte = parsedStart;
         }
-        if (endDate) {
-          const end = new Date(endDate);
-          end.setHours(23, 59, 59, 999);
-          where.survey_answer_responses.submitted_at.lte = end;
+        if (parsedEnd) {
+          where.survey_answer_responses.submitted_at.lte = parsedEnd;
         }
       }
 
@@ -558,6 +653,28 @@ export const excelSyncController = {
 
         if (!surveyAnswers || surveyAnswers.length === 0) break;
 
+        const missingProductIds = new Set<number>();
+        for (const ans of surveyAnswers) {
+          if (
+            !ans.survey_answers_products &&
+            ans.survey_fields?.parent_option_value
+          ) {
+            const trimmed = ans.survey_fields.parent_option_value.trim();
+            if (/^\d+$/.test(trimmed)) {
+              missingProductIds.add(Number(trimmed));
+            }
+          }
+        }
+
+        const prodIdMap = new Map<number, string>();
+        if (missingProductIds.size > 0) {
+          const prods = await prisma.products.findMany({
+            where: { id: { in: Array.from(missingProductIds) } },
+            select: { id: true, name: true },
+          });
+          prods.forEach(p => prodIdMap.set(p.id, p.name));
+        }
+
         const lines: string[] = [];
         for (const ans of surveyAnswers) {
           const resp = ans.survey_answer_responses;
@@ -566,10 +683,28 @@ export const excelSyncController = {
           if (isHiddenUser(user)) continue;
           const prod = ans.survey_answers_products;
 
+          const rawOpt = ans.survey_fields?.parent_option_value?.trim();
+          let productName = prod?.name || '';
+          if (!productName && rawOpt && rawOpt !== 'default') {
+            if (/^\d+$/.test(rawOpt)) {
+              productName =
+                prodIdMap.get(Number(rawOpt)) || `Product #${rawOpt}`;
+            } else {
+              productName = rawOpt;
+            }
+          }
+          if (
+            !productName &&
+            ans.survey_fields?.field_type === 'product' &&
+            ans.answer
+          ) {
+            productName = ans.answer;
+          }
+
           lines.push(
             [
               escapeCsv(ans.parent_id),
-              escapeCsv(formatDateISO(resp?.submitted_at || resp?.createdate)),
+              escapeCsv(formatDateDMY(resp?.submitted_at || resp?.createdate)),
               escapeCsv(user?.name || ''),
               escapeCsv(
                 cust?.customer_routes?.code || cust?.customer_routes?.name || ''
@@ -580,7 +715,7 @@ export const excelSyncController = {
                 cust?.customer_type_customer?.type_name || cust?.type || ''
               ),
               escapeCsv(resp?.location || '–'),
-              escapeCsv(prod?.name || ans.survey_fields?.label || ''),
+              escapeCsv(productName || ''),
               escapeCsv(ans.answer || '0'),
             ].join(',')
           );
@@ -620,11 +755,22 @@ export const excelSyncController = {
    */
   async getVanLoadUnload(req: Request, res: Response, _next: NextFunction) {
     try {
-      const { start_date, end_date, from_date, to_date, type, user_id } =
+      const { start_date, end_date, from_date, to_date, date, type, user_id } =
         req.query;
 
-      const startDate = (start_date || from_date) as string | undefined;
-      const endDate = (end_date || to_date) as string | undefined;
+      const startDateRaw = (start_date ||
+        from_date ||
+        (req.query as any).startDate ||
+        (req.query as any).fromDate ||
+        date) as string | undefined;
+      const endDateRaw = (end_date ||
+        to_date ||
+        (req.query as any).endDate ||
+        (req.query as any).toDate ||
+        date) as string | undefined;
+
+      const parsedStart = parseFilterDate(startDateRaw, false);
+      const parsedEnd = parseFilterDate(endDateRaw, true);
       const BATCH_SIZE = 5000;
 
       const where: any = {
@@ -648,17 +794,13 @@ export const excelSyncController = {
         where.van_inventory_items_inventory.user_id = Number(user_id);
       }
 
-      if (startDate || endDate) {
+      if (parsedStart || parsedEnd) {
         where.van_inventory_items_inventory.document_date = {};
-        if (startDate) {
-          where.van_inventory_items_inventory.document_date.gte = new Date(
-            startDate
-          );
+        if (parsedStart) {
+          where.van_inventory_items_inventory.document_date.gte = parsedStart;
         }
-        if (endDate) {
-          const end = new Date(endDate);
-          end.setHours(23, 59, 59, 999);
-          where.van_inventory_items_inventory.document_date.lte = end;
+        if (parsedEnd) {
+          where.van_inventory_items_inventory.document_date.lte = parsedEnd;
         }
       }
 
@@ -733,7 +875,7 @@ export const excelSyncController = {
 
           lines.push(
             [
-              escapeCsv(formatDateISO(dateVal)),
+              escapeCsv(formatDateDMY(dateVal)),
               escapeCsv(typeVal),
               escapeCsv(inv?.id || item.parent_id),
               escapeCsv(user?.name || ''),

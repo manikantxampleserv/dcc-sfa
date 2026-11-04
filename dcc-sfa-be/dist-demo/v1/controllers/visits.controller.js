@@ -1501,6 +1501,9 @@ exports.visitsController = {
                                             const answerData = {
                                                 parent_id: surveyResponseRecord.id,
                                                 field_id: answer.field_id,
+                                                product_id: answer.product_id
+                                                    ? Number(answer.product_id)
+                                                    : null,
                                                 answer: answer.answer,
                                             };
                                             if (answer.id) {
@@ -1534,6 +1537,9 @@ exports.visitsController = {
                                             data: surveyAnswers.map((answer) => ({
                                                 parent_id: surveyResponseRecord.id,
                                                 field_id: answer.field_id,
+                                                product_id: answer.product_id
+                                                    ? Number(answer.product_id)
+                                                    : null,
                                                 answer: answer.answer,
                                             })),
                                         });
