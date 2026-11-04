@@ -301,7 +301,27 @@ export async function resolveRequesterDepotId(
   });
 
   if (userDepots.length === 0) {
-    return null;
+    if (requestDataStr) {
+      try {
+        const parsedData = JSON.parse(requestDataStr);
+        const potentialDepotId =
+          parsedData.location_id ||
+          parsedData.depot_id ||
+          parsedData.customer_data?.depot_id ||
+          parsedData.customer_data?.location_id;
+
+        if (potentialDepotId) {
+          return Number(potentialDepotId);
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
+    const requester = await tx.users.findUnique({
+      where: { id: requesterId },
+      select: { depot_id: true },
+    });
+    return requester?.depot_id || null;
   }
 
   if (userDepots.length === 1) {
@@ -707,14 +727,29 @@ export const createRequest = async (data: {
       data.request_data
     );
 
+    let requesterZoneId = requester.zone_id;
+    if (!requesterZoneId && requesterDepotId) {
+      try {
+        const depotRecord = await prisma.depots.findUnique({
+          where: { id: requesterDepotId },
+          select: { parent_id: true },
+        });
+        if (depotRecord?.parent_id) {
+          requesterZoneId = depotRecord.parent_id;
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
+
     let workflowSteps;
     let workflowType = 'NONE';
 
-    if (requester.zone_id && requesterDepotId) {
+    if (requesterZoneId && requesterDepotId) {
       workflowSteps = await prisma.approval_work_flow.findMany({
         where: {
           request_type: data.request_type,
-          zone_id: requester.zone_id,
+          zone_id: requesterZoneId,
           depot_id: requesterDepotId,
           is_active: 'Y',
         },
@@ -730,11 +765,11 @@ export const createRequest = async (data: {
       }
     }
 
-    if ((!workflowSteps || workflowSteps.length === 0) && requester.zone_id) {
+    if ((!workflowSteps || workflowSteps.length === 0) && requesterZoneId) {
       workflowSteps = await prisma.approval_work_flow.findMany({
         where: {
           request_type: data.request_type,
-          zone_id: requester.zone_id,
+          zone_id: requesterZoneId,
           depot_id: null,
           is_active: 'Y',
         },
@@ -1114,16 +1149,46 @@ export const createRequest = async (data: {
         const customerData = requestData.customer_data;
         const customerImages = requestData.customer_images || [];
 
-        const { platform_type, ...customerDataWithoutPlatform } = customerData;
+        const {
+          platform_type,
+          is_default_for_depot,
+          ...customerDataWithoutPlatform
+        } = customerData;
 
         const createdCustomer = await prisma.customers.create({
           data: customerDataWithoutPlatform,
         });
 
+        if (is_default_for_depot && createdCustomer.depot_id) {
+          await prisma.depots.update({
+            where: { id: createdCustomer.depot_id },
+            data: { default_outlet_id: createdCustomer.id },
+          });
+        }
+
+        await prisma.sfa_d_requests.update({
+          where: { id: request.id },
+          data: { reference_id: createdCustomer.id },
+        });
+
         if (customerImages.length > 0) {
           await prisma.customer_image.createMany({
             data: customerImages.map((img: any) => ({
-              ...img,
+              ...(typeof img === 'string'
+                ? {
+                    image_url: img,
+                    is_active: 'Y',
+                    createdby: data.createdby || 1,
+                    createdate: new Date(),
+                    log_inst: 1,
+                  }
+                : {
+                    is_active: 'Y',
+                    createdby: data.createdby || 1,
+                    createdate: new Date(),
+                    log_inst: 1,
+                    ...img,
+                  }),
               customer_id: createdCustomer.id,
             })),
           });
@@ -1463,10 +1528,25 @@ export const requestsController = {
             requestData.request_data
           );
 
+          let requesterZoneId = requester.zone_id;
+          if (!requesterZoneId && resolvedDepotId) {
+            try {
+              const depotRecord = await tx.depots.findUnique({
+                where: { id: resolvedDepotId },
+                select: { parent_id: true },
+              });
+              if (depotRecord?.parent_id) {
+                requesterZoneId = depotRecord.parent_id;
+              }
+            } catch (e) {
+              // ignore
+            }
+          }
+
           const { workflow: workflowSteps, workflowType } =
             await getWorkflowForRequest(
               request_type,
-              requester.zone_id,
+              requesterZoneId,
               resolvedDepotId
             );
 
@@ -2942,17 +3022,46 @@ export const requestsController = {
               const customerData = requestData.customer_data;
               const customerImages = requestData.customer_images || [];
 
-              const { platform_type, ...customerDataWithoutPlatform } =
-                customerData;
+              const {
+                platform_type,
+                is_default_for_depot,
+                ...customerDataWithoutPlatform
+              } = customerData;
 
               const createdCustomer = await tx.customers.create({
                 data: customerDataWithoutPlatform,
               });
 
+              if (is_default_for_depot && createdCustomer.depot_id) {
+                await tx.depots.update({
+                  where: { id: createdCustomer.depot_id },
+                  data: { default_outlet_id: createdCustomer.id },
+                });
+              }
+
+              await tx.sfa_d_requests.update({
+                where: { id: request.id },
+                data: { reference_id: createdCustomer.id },
+              });
+
               if (customerImages.length > 0) {
                 await tx.customer_image.createMany({
                   data: customerImages.map((img: any) => ({
-                    ...img,
+                    ...(typeof img === 'string'
+                      ? {
+                          image_url: img,
+                          is_active: 'Y',
+                          createdby: userId,
+                          createdate: new Date(),
+                          log_inst: 1,
+                        }
+                      : {
+                          is_active: 'Y',
+                          createdby: userId,
+                          createdate: new Date(),
+                          log_inst: 1,
+                          ...img,
+                        }),
                     customer_id: createdCustomer.id,
                   })),
                 });
