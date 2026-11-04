@@ -764,6 +764,29 @@ export const assetMaintenanceController = {
             ...(updateData.maintenance_date
               ? { maintenance_date: new Date(updateData.maintenance_date) }
               : {}),
+            ...((updateData.status && String(updateData.status).toLowerCase() === 'repaired')
+              ? {
+                  status: 'repaired',
+                  repaired_date: updateData.repaired_date
+                    ? new Date(updateData.repaired_date)
+                    : new Date(),
+                  status_after_repair:
+                    updateData.status_after_repair ||
+                    existing.status_after_repair ||
+                    'working',
+                }
+              : {}),
+            ...((updateData.status && String(updateData.status).toLowerCase() === 'closed')
+              ? {
+                  status: 'closed',
+                  closed_date: updateData.closed_date
+                    ? new Date(updateData.closed_date)
+                    : new Date(),
+                }
+              : {}),
+            ...(updateData.repair_photos && typeof updateData.repair_photos !== 'string'
+              ? { repair_photos: JSON.stringify(updateData.repair_photos) }
+              : {}),
             updatedby: req.user?.id || 1,
             updatedate: new Date(),
           },
@@ -779,6 +802,9 @@ export const assetMaintenanceController = {
                 asset_master_depot: {
                   select: { id: true, name: true },
                 },
+                cooler_asset_master: {
+                  select: { id: true },
+                },
               },
             },
             asset_maintenance_technician: true,
@@ -786,6 +812,130 @@ export const assetMaintenanceController = {
           },
         });
       });
+
+      /** Detect status transition and log corresponding timeline activity */
+      const prevStatus = (existing.status || 'open').toLowerCase();
+      const newStatus = (updated.status || 'open').toLowerCase();
+      const statusChanged = prevStatus !== newStatus;
+
+      if (newStatus === 'repaired' && (statusChanged || updateData.status)) {
+        const statusAfterRepair =
+          updated.status_after_repair ||
+          updateData.status_after_repair ||
+          'working';
+
+        /** When repaired and in working condition, synchronize asset and cooler status */
+        if (statusAfterRepair === 'working') {
+          await prisma.asset_master.update({
+            where: { id: updated.asset_id },
+            data: { current_status: 'working' },
+          });
+
+          await prisma.coolers.updateMany({
+            where: { asset_master_id: updated.asset_id },
+            data: { status: 'working' },
+          });
+        }
+
+        const actionTaken =
+          updated.action_taken ||
+          updateData.action_taken ||
+          updateData.notes ||
+          'Maintenance repair completed';
+
+        /** Log repair event in Cooler 360 timeline */
+        await logAssetActivity({
+          assetId: updated.asset_id,
+          coolerId:
+            (updated.asset_maintenance_master as any)?.cooler_asset_master?.[0]
+              ?.id || null,
+          eventType: 'maintenance',
+          title: `Ticket ${updated.job_number || `MT-${updated.id}`} repaired`,
+          description: `Action taken: ${actionTaken} · Status: ${statusAfterRepair}`,
+          status: 'repaired',
+          locationName:
+            updated.asset_maintenance_master?.asset_master_outlet?.name ||
+            updated.asset_maintenance_master?.asset_master_depot?.name ||
+            null,
+          customerId: updated.asset_maintenance_master?.outlet_id || null,
+          depotId: updated.asset_maintenance_master?.depot_id || null,
+          performedBy: req.user?.id || updated.technician_id || 1,
+          cost: updated.cost ? Number(updated.cost) : undefined,
+          sourceTable: 'asset_maintenance',
+          sourceId: updated.id,
+          meta: {
+            action_taken: actionTaken,
+            status_after_repair: statusAfterRepair,
+            parts: updated.spares?.map((s: any) => ({
+              name: s.name,
+              qty: s.quantity,
+              cost: Number(s.cost),
+            })),
+            log: `Status updated from ${prevStatus} to repaired`,
+          },
+        });
+      } else if (newStatus === 'closed' && statusChanged) {
+        await logAssetActivity({
+          assetId: updated.asset_id,
+          coolerId:
+            (updated.asset_maintenance_master as any)?.cooler_asset_master?.[0]
+              ?.id || null,
+          eventType: 'maintenance',
+          title: `Ticket ${updated.job_number || `MT-${updated.id}`} closed`,
+          description: `Closed with total cost TZS ${(updated.cost || 0).toLocaleString()}`,
+          status: 'closed',
+          cost: Number(updated.cost) || 0,
+          locationName:
+            updated.asset_maintenance_master?.asset_master_outlet?.name ||
+            updated.asset_maintenance_master?.asset_master_depot?.name ||
+            null,
+          customerId: updated.asset_maintenance_master?.outlet_id || null,
+          depotId: updated.asset_maintenance_master?.depot_id || null,
+          performedBy: req.user?.id || 1,
+          sourceTable: 'asset_maintenance',
+          sourceId: updated.id,
+        });
+      } else if (newStatus === 'assigned' && statusChanged) {
+        await logAssetActivity({
+          assetId: updated.asset_id,
+          coolerId:
+            (updated.asset_maintenance_master as any)?.cooler_asset_master?.[0]
+              ?.id || null,
+          eventType: 'maintenance',
+          title: `Ticket ${updated.job_number || `MT-${updated.id}`} assigned`,
+          description: `Assigned to ${updated.asset_maintenance_technician?.name || 'Technician'} · Priority: ${updated.priority}`,
+          status: 'assigned',
+          locationName:
+            updated.asset_maintenance_master?.asset_master_outlet?.name ||
+            updated.asset_maintenance_master?.asset_master_depot?.name ||
+            null,
+          customerId: updated.asset_maintenance_master?.outlet_id || null,
+          depotId: updated.asset_maintenance_master?.depot_id || null,
+          performedBy: req.user?.id || 1,
+          sourceTable: 'asset_maintenance',
+          sourceId: updated.id,
+        });
+      } else if (statusChanged) {
+        await logAssetActivity({
+          assetId: updated.asset_id,
+          coolerId:
+            (updated.asset_maintenance_master as any)?.cooler_asset_master?.[0]
+              ?.id || null,
+          eventType: 'maintenance',
+          title: `Ticket ${updated.job_number || `MT-${updated.id}`} updated`,
+          description: `Status changed from ${prevStatus} to ${newStatus}`,
+          status: newStatus,
+          locationName:
+            updated.asset_maintenance_master?.asset_master_outlet?.name ||
+            updated.asset_maintenance_master?.asset_master_depot?.name ||
+            null,
+          customerId: updated.asset_maintenance_master?.outlet_id || null,
+          depotId: updated.asset_maintenance_master?.depot_id || null,
+          performedBy: req.user?.id || 1,
+          sourceTable: 'asset_maintenance',
+          sourceId: updated.id,
+        });
+      }
 
       const replaceReview = await checkReplaceReview(updated.asset_id);
 

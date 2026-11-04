@@ -74,7 +74,7 @@ export interface Cooler360OpenTicket {
 
 export interface Cooler360Activity {
   id: number;
-  type: 'mov' | 'ver' | 'ins' | 'mnt';
+  type: 'movement' | 'verification' | 'inspection' | 'maintenance' | string;
   date: string;
   title: string;
   badge?: {
@@ -125,9 +125,10 @@ export const fetchCooler360Data = async (
   identifier?: string
 ): Promise<Cooler360Payload> => {
   try {
-    const url = identifier && identifier.trim().length > 0
-      ? `/cooler-360/${encodeURIComponent(identifier.trim())}`
-      : '/cooler-360';
+    const url =
+      identifier && identifier.trim().length > 0
+        ? `/cooler-360/${encodeURIComponent(identifier.trim())}`
+        : '/cooler-360';
     const response = await axiosInstance.get(url);
     return response.data.data;
   } catch (error: any) {
@@ -137,4 +138,3 @@ export const fetchCooler360Data = async (
     );
   }
 };
-

@@ -61,9 +61,9 @@ const Cooler360Page: React.FC = () => {
     }
   }, [urlIdentifier, queryIdentifier]);
 
-  /** Filter tab for history timeline: all | mov | ver | ins | mnt */
+  /** Filter tab for history timeline: all | movement | verification | inspection | maintenance */
   const [historyFilter, setHistoryFilter] = useState<
-    'all' | 'mov' | 'ver' | 'ins' | 'mnt'
+    'all' | 'movement' | 'verification' | 'inspection' | 'maintenance'
   >('all');
 
   /** Expanded maintenance item ids in history */
@@ -134,7 +134,10 @@ const Cooler360Page: React.FC = () => {
   const filteredActivities = useMemo(() => {
     if (!coolerData?.activities) return [];
     if (historyFilter === 'all') return coolerData.activities;
-    return coolerData.activities.filter(a => a.type === historyFilter);
+    return coolerData.activities.filter(a => {
+      const t = String(a.type || '').toLowerCase();
+      return t === historyFilter;
+    });
   }, [coolerData?.activities, historyFilter]);
 
   const asset = coolerData?.asset;
@@ -882,24 +885,24 @@ const Cooler360Page: React.FC = () => {
                       </div>
 
                       {/** Col 2: Icon Badge */}
-                      <div className="pt-0.5">
-                        {item.type === 'ver' && (
-                          <div className="w-9 h-9 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center border border-emerald-200">
+                      <div>
+                        {item.type === 'verification' && (
+                          <div className="w-10 h-10 rounded bg-emerald-100 text-emerald-600 flex items-center justify-center">
                             <CheckCircle size={17} />
                           </div>
                         )}
-                        {item.type === 'ins' && (
-                          <div className="w-9 h-9 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center border border-amber-200">
+                        {item.type === 'inspection' && (
+                          <div className="w-10 h-10 rounded bg-amber-100 text-amber-600 flex items-center justify-center">
                             <AlertTriangle size={17} />
                           </div>
                         )}
-                        {item.type === 'mnt' && (
-                          <div className="w-9 h-9 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center border border-purple-200">
+                        {item.type === 'maintenance' && (
+                          <div className="w-10 h-10 rounded bg-purple-100 text-purple-600 flex items-center justify-center">
                             <Wrench size={17} />
                           </div>
                         )}
-                        {item.type === 'mov' && (
-                          <div className="w-9 h-9 rounded-lg bg-sky-100 text-sky-600 flex items-center justify-center border border-sky-200">
+                        {item.type === 'movement' && (
+                          <div className="w-10 h-10 rounded bg-sky-100 text-sky-600 flex items-center justify-center">
                             <Truck size={17} />
                           </div>
                         )}
@@ -938,11 +941,11 @@ const Cooler360Page: React.FC = () => {
 
                         {/** Expandable parts and lifecycle history */}
                         {item.spares && item.spares.length > 0 && (
-                          <div className="mt-2.5 pt-2 border-t border-gray-100">
+                          <div>
                             <button
                               type="button"
                               onClick={() => toggleHistoryExpand(item.id)}
-                              className="inline-flex items-center gap-1 text-xs text-primary-600 hover:underline font-medium"
+                              className="inline-flex items-center gap-1 text-xs text-primary-600 font-medium"
                             >
                               <span>Spares, cost and status history</span>
                               {isExpanded ? (
@@ -953,29 +956,27 @@ const Cooler360Page: React.FC = () => {
                             </button>
 
                             {isExpanded && (
-                              <div className="mt-2 bg-gray-100 rounded-lg p-3 border border-gray-200 space-y-2">
+                              <div className="mt-2 bg-gray-100 rounded border border-gray-200 space-y-2">
                                 <table className="w-full text-left text-xs">
                                   <thead className="text-[10px] uppercase tracking-wider text-gray-400 border-b border-gray-200 font-semibold">
                                     <tr>
-                                      <th className="py-1 px-2">Part</th>
-                                      <th className="py-1 px-2 text-right w-16">
+                                      <th className="p-2">Part</th>
+                                      <th className="p-2 text-right w-16">
                                         Qty
                                       </th>
-                                      <th className="py-1 px-2 text-right">
-                                        Cost
-                                      </th>
+                                      <th className="p-2 text-right">Cost</th>
                                     </tr>
                                   </thead>
                                   <tbody className="divide-y divide-gray-100">
                                     {item.spares.map((sp, sIdx) => (
                                       <tr key={sIdx}>
-                                        <td className="py-1.5 px-2 text-gray-800">
+                                        <td className="p-2 text-gray-800">
                                           {sp.name}
                                         </td>
-                                        <td className="py-1.5 px-2 text-right text-gray-600 tabular-nums">
+                                        <td className="p-2 text-right text-gray-600 tabular-nums">
                                           {sp.qty}
                                         </td>
-                                        <td className="py-1.5 px-2 text-right font-semibold text-gray-900 tabular-nums">
+                                        <td className="p-2 text-right font-semibold text-gray-900 tabular-nums">
                                           {formatCurrency(sp.cost)}
                                         </td>
                                       </tr>

@@ -229,13 +229,26 @@ export const cooler360Controller = {
         });
 
         let tone: 'good' | 'warn' | 'alert' | 'neu' = 'neu';
-        if (a.status === 'working' || a.status === 'closed') tone = 'good';
+        if (a.status === 'working' || a.status === 'closed' || a.status === 'repaired') tone = 'good';
         else if (a.status === 'assigned' || a.status === 'open') tone = 'warn';
         else if (a.status === 'not_working' || a.status === 'partially_working') tone = 'alert';
 
+        const typeMap: Record<string, 'mov' | 'ver' | 'ins' | 'mnt'> = {
+          movement: 'mov',
+          mov: 'mov',
+          verification: 'ver',
+          ver: 'ver',
+          inspection: 'ins',
+          ins: 'ins',
+          maintenance: 'mnt',
+          mnt: 'mnt',
+        };
+        const normalizedType =
+          typeMap[String(a.event_type).toLowerCase()] || 'mnt';
+
         return {
           id: a.id,
-          type: a.event_type as 'mov' | 'ver' | 'ins' | 'mnt',
+          type: normalizedType,
           date: `${dateStr}, ${timeStr}`,
           title: a.title,
           badge: a.status
@@ -285,26 +298,42 @@ export const cooler360Controller = {
       );
 
       /** Health Strip KPIs calculation */
-      const lastVerifiedDate = asset.last_scanned_date
-        ? new Date(asset.last_scanned_date)
-        : null;
-
-      const lastVerifiedKpi = {
-        value: lastVerifiedDate ? formatTimeAgo(lastVerifiedDate) : 'Never',
-        sub: lastVerifiedDate
-          ? `${formatDate(lastVerifiedDate)} · ${asset.asset_master_last_read?.name || 'System'}`
-          : 'No verification scans',
-        status: (lastVerifiedDate ? 'good' : 'warn') as 'good' | 'warn',
-      };
-
-      /** Latest inspection check */
       const latestInspection = await prisma.cooler_inspections.findFirst({
         where: {
-          ...(linkedCooler ? { cooler_id: linkedCooler.id } : {}),
+          ...(linkedCooler ? { cooler_id: linkedCooler.id } : { cooler_id: -1 }),
         },
         orderBy: { createdate: 'desc' },
         include: { users: { select: { name: true } } },
       });
+
+      const latestVerificationActivity = rawActivities.find(
+        a => a.event_type === 'verification'
+      );
+
+      const lastVerifiedDate = asset.last_scanned_date
+        ? new Date(asset.last_scanned_date)
+        : latestVerificationActivity
+          ? new Date(latestVerificationActivity.event_date)
+          : linkedCooler?.last_scanned_date
+            ? new Date(linkedCooler.last_scanned_date)
+            : latestInspection?.inspection_date
+              ? new Date(latestInspection.inspection_date)
+              : latestInspection?.createdate
+                ? new Date(latestInspection.createdate)
+                : null;
+
+      const lastVerifiedBy =
+        asset.asset_master_last_read?.name ||
+        latestVerificationActivity?.performed_by_name ||
+        latestInspection?.users?.name ||
+        'System';
+      const lastVerifiedKpi = {
+        value: lastVerifiedDate ? formatTimeAgo(lastVerifiedDate) : 'Never',
+        sub: lastVerifiedDate
+          ? `${formatDate(lastVerifiedDate)} · ${lastVerifiedBy}`
+          : 'No verification scans',
+        status: (lastVerifiedDate ? 'good' : 'warn') as 'good' | 'warn',
+      };
 
       const lastInspectionKpi = {
         value: latestInspection
@@ -504,8 +533,7 @@ export const cooler360Controller = {
           lastScanned: lastVerifiedDate
             ? `${formatDate(lastVerifiedDate)}, ${lastVerifiedDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`
             : 'Not scanned',
-          lastScannedBy:
-            asset.asset_master_last_read?.name || 'N/A',
+          lastScannedBy: lastVerifiedBy || 'N/A',
           brand: brandTitle || 'N/A',
           status: asset.current_status || (placement.isDeployed ? 'Deployed' : 'In Depot'),
           isActive: asset.is_active === 'Y',

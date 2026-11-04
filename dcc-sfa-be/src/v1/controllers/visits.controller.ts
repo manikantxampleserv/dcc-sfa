@@ -2172,6 +2172,23 @@ export const visitsController = {
                       },
                     });
 
+                    /** Keep asset_master in sync with cooler scan date */
+                    if (asset?.id) {
+                      await tx.asset_master.update({
+                        where: {
+                          id: asset.id,
+                        },
+                        data: {
+                          last_scanned_date: inspectionDate,
+                          last_read_by:
+                            (req as any).user?.id || visit.createdby || 1,
+                          updatedate: new Date(),
+                          updatedby:
+                            (req as any).user?.id || visit.createdby || 1,
+                        },
+                      });
+                    }
+
                     const processedInspectionData = {
                       cooler_id: cooler.id,
                       visit_id: visitId,
