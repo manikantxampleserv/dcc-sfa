@@ -72,9 +72,20 @@ export interface Cooler360OpenTicket {
   costSoFar: number;
 }
 
+export type CoolerActivityType =
+  | 'mov'
+  | 'ver'
+  | 'ins'
+  | 'mnt'
+  | 'movement'
+  | 'verification'
+  | 'inspection'
+  | 'maintenance'
+  | (string & {});
+
 export interface Cooler360Activity {
   id: number;
-  type: 'movement' | 'verification' | 'inspection' | 'maintenance' | string;
+  type: CoolerActivityType;
   date: string;
   title: string;
   badge?: {

@@ -1,6 +1,8 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
 import prisma from '../../configs/prisma.client';
+import { jwtConfig } from '../../configs/jwt.config';
 import { authenticateToken } from '../../middlewares/auth.middleware';
 import { excelSyncController } from '../controllers/excelSync.controller';
 
@@ -109,18 +111,79 @@ const allowExcelTokenAuth = async (
     }
 
     /**
-     * Map Query Param or x-api-key or raw token to Bearer Authorization header
+     * Map Query Param, x-api-key, or raw token to Bearer Authorization header
      */
-    if (!rawAuth && queryToken) {
-      req.headers['authorization'] = `Bearer ${queryToken}`;
-    } else if (!rawAuth && apiKeyHeader) {
-      req.headers['authorization'] = `Bearer ${apiKeyHeader}`;
-    } else if (
-      rawAuth &&
-      !rawAuth.startsWith('Bearer ') &&
-      !rawAuth.startsWith('Basic ')
-    ) {
-      req.headers['authorization'] = `Bearer ${rawAuth}`;
+    let token = queryToken || apiKeyHeader;
+    if (!token && rawAuth) {
+      if (rawAuth.startsWith('Bearer ')) {
+        token = rawAuth.substring(7).trim();
+      } else if (!rawAuth.startsWith('Basic ')) {
+        token = rawAuth.trim();
+      }
+    }
+
+    if (token) {
+      req.headers['authorization'] = `Bearer ${token}`;
+      let decoded: any = null;
+      try {
+        decoded = jwt.verify(token, jwtConfig.secret) as { id: number };
+      } catch (err: any) {
+        if (err.name === 'TokenExpiredError') {
+          /**
+           * For Excel Live Sync, allow token decode with ignoreExpiration
+           * so Excel scheduled refresh doesn't break daily at 11:30 PM,
+           * provided the user is still active in the database.
+           */
+          try {
+            decoded = jwt.verify(token, jwtConfig.secret, {
+              ignoreExpiration: true,
+            }) as { id: number };
+          } catch (_ignoreErr) {
+            decoded = null;
+          }
+        }
+      }
+
+      if (decoded && decoded.id) {
+        const user = await prisma.users.findFirst({
+          where: {
+            id: Number(decoded.id),
+            is_active: 'Y',
+          },
+          include: {
+            user_role: {
+              include: {
+                roles_permission: {
+                  include: {
+                    permission: true,
+                  },
+                },
+              },
+            },
+          },
+        });
+
+        if (user) {
+          (req as any).user = {
+            id: user.id,
+            email: user.email,
+            employee_id: user.employee_id,
+            name: user.name,
+            role: user.user_role?.name || 'Admin',
+            version: user.version ?? null,
+            permissions:
+              user.user_role?.roles_permission
+                ?.filter(
+                  rp => rp.is_active === 'Y' && rp.permission?.is_active === 'Y'
+                )
+                ?.map(rp => rp.permission!.name) || [],
+            parent_id: user.parent_id,
+            depot_id: user.depot_id,
+            zone_id: user.zone_id,
+          };
+          return next();
+        }
+      }
     }
 
     if (!req.headers['authorization']) {

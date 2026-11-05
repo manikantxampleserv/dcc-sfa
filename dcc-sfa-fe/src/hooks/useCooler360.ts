@@ -13,6 +13,7 @@ export type {
   Cooler360Placement,
   Cooler360OpenTicket,
   Cooler360Activity,
+  CoolerActivityType,
   Cooler360DataCheck,
 } from '../services/masters/Cooler360';
 
@@ -47,4 +48,3 @@ export const useCooler360 = (
     ...options,
   });
 };
-

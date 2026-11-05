@@ -61,10 +61,8 @@ const Cooler360Page: React.FC = () => {
     }
   }, [urlIdentifier, queryIdentifier]);
 
-  /** Filter tab for history timeline: all | movement | verification | inspection | maintenance */
-  const [historyFilter, setHistoryFilter] = useState<
-    'all' | 'movement' | 'verification' | 'inspection' | 'maintenance'
-  >('all');
+  /** Filter tab for history timeline: all | mov | ver | ins | mnt */
+  const [historyFilter, setHistoryFilter] = useState<string>('all');
 
   /** Expanded maintenance item ids in history */
   const [expandedHistories, setExpandedHistories] = useState<Set<number>>(
@@ -136,6 +134,18 @@ const Cooler360Page: React.FC = () => {
     if (historyFilter === 'all') return coolerData.activities;
     return coolerData.activities.filter(a => {
       const t = String(a.type || '').toLowerCase();
+      if (historyFilter === 'mov' || historyFilter === 'movement') {
+        return t === 'mov' || t === 'movement';
+      }
+      if (historyFilter === 'ver' || historyFilter === 'verification') {
+        return t === 'ver' || t === 'verification';
+      }
+      if (historyFilter === 'ins' || historyFilter === 'inspection') {
+        return t === 'ins' || t === 'inspection';
+      }
+      if (historyFilter === 'mnt' || historyFilter === 'maintenance') {
+        return t === 'mnt' || t === 'maintenance';
+      }
       return t === historyFilter;
     });
   }, [coolerData?.activities, historyFilter]);
@@ -886,22 +896,26 @@ const Cooler360Page: React.FC = () => {
 
                       {/** Col 2: Icon Badge */}
                       <div>
-                        {item.type === 'verification' && (
+                        {(item.type === 'ver' ||
+                          item.type === 'verification') && (
                           <div className="w-10 h-10 rounded bg-emerald-100 text-emerald-600 flex items-center justify-center">
                             <CheckCircle size={17} />
                           </div>
                         )}
-                        {item.type === 'inspection' && (
+                        {(item.type === 'ins' ||
+                          item.type === 'inspection') && (
                           <div className="w-10 h-10 rounded bg-amber-100 text-amber-600 flex items-center justify-center">
                             <AlertTriangle size={17} />
                           </div>
                         )}
-                        {item.type === 'maintenance' && (
+                        {(item.type === 'mnt' ||
+                          item.type === 'maintenance') && (
                           <div className="w-10 h-10 rounded bg-purple-100 text-purple-600 flex items-center justify-center">
                             <Wrench size={17} />
                           </div>
                         )}
-                        {item.type === 'movement' && (
+                        {(item.type === 'mov' ||
+                          item.type === 'movement') && (
                           <div className="w-10 h-10 rounded bg-sky-100 text-sky-600 flex items-center justify-center">
                             <Truck size={17} />
                           </div>
