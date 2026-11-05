@@ -54,18 +54,18 @@ export default function EntityModal({
   const trendData = useMemo(() => {
     const map: Record<string, number> = {};
     mayData.forEach(r => {
-      const d = r.Date; 
+      const d = r.Date;
       if (!map[d]) map[d] = 0;
       map[d] += r.UC;
     });
     const sortedDates = Object.keys(map).sort();
     return {
-      labels: sortedDates.map(d => d.slice(5).replace('-', '/')), 
+      labels: sortedDates.map(d => d.slice(5).replace('-', '/')),
       datasets: [
         {
           label: 'Daily UC',
           data: sortedDates.map(d => map[d]),
-          backgroundColor: '#f87171', 
+          backgroundColor: '#f87171',
           borderRadius: 4,
           barPercentage: 0.8,
           maxBarThickness: 40,
@@ -102,23 +102,6 @@ export default function EntityModal({
           {entity.dim}: {entity.name}
         </h2>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <button
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              padding: '6px 12px',
-              borderRadius: 6,
-              border: `1px solid ${C.border}`,
-              background: C.bg,
-              cursor: 'pointer',
-              fontSize: 13,
-              fontWeight: 600,
-              color: C.text,
-            }}
-          >
-            📊 Export
-          </button>
           <IconButton
             onClick={onClose}
             size="small"

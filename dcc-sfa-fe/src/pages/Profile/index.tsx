@@ -131,7 +131,7 @@ const Profile: React.FC = () => {
   const currentProfileImage = previewUrl || user.profile_image || undefined;
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4">
       {/* Header */}
       <div className="bg-white shadow-sm p-6 rounded-lg border border-gray-100">
         <div className="flex justify-between items-center">
@@ -178,7 +178,7 @@ const Profile: React.FC = () => {
       </div>
 
       {/* Main Content */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Left Column - Profile Image & Basic Info */}
         <div className="lg:col-span-1">
           <div className="bg-white shadow-sm p-6 rounded-lg border border-gray-100">

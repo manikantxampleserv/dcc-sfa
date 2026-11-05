@@ -711,7 +711,7 @@ const DataTable: React.FC<TableProps> = React.memo(
           <span style={{ fontSize: 11, color: C.muted }}>
             {sorted.length === 0
               ? 'No results'
-              : `${page * PAGE + 1}–${Math.min((page + 1) * PAGE, sorted.length)} of ${sorted.length}`}
+              : `${page * PAGE + 1}-${Math.min((page + 1) * PAGE, sorted.length)} of ${sorted.length}`}
           </span>
           <div style={{ display: 'flex', gap: 5 }}>
             {['← Prev', 'Next →'].map((lbl, idx) => (
@@ -866,6 +866,8 @@ const SalesControlTower: React.FC = () => {
         startDate: filters.startDate,
         endDate: filters.endDate,
         depot_id: filters.depot || undefined,
+        coordinator_id: filters.coord || undefined,
+        supervisor_id: filters.sup || undefined,
         route_id: filters.route || undefined,
         salesman_id: filters.sal || undefined,
         brand_id: filters.brand || undefined,
@@ -1100,7 +1102,7 @@ const SalesControlTower: React.FC = () => {
       {
         color: 'blue',
         icon: '📦',
-        label: 'Disc. Qty (UC–PC)',
+        label: 'Disc. Qty (UC-PC)',
         val: FMT(mayAgg.totalUC - mayAgg.totalPC),
         sub: 'Potential uplift',
         cls: 'info' as const,
@@ -2038,7 +2040,7 @@ const SalesControlTower: React.FC = () => {
                   padding: '8px 11px',
                   fontSize: 11.5,
                   color: 'rgba(255,255,255,.9)',
-                  border: `1px solid ${execActive === i ? 'rgba(255,255,255,.6)' : 'rgba(255,255,255,.14)'}`,
+                  border: `1px solid ${execActive === i ? 'rgba(255,255,255,.2)' : 'rgba(255,255,255,.14)'}`,
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'flex-start',
