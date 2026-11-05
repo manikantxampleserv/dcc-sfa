@@ -1551,7 +1551,13 @@ export const customerController = {
 
       const depotExists = await prisma.depots.findUnique({
         where: { id: depotId },
-        select: { id: true, name: true },
+        select: {
+          id: true,
+          name: true,
+          district_id: true,
+          city_id: true,
+          region_id: true,
+        },
       });
 
       if (!depotExists) {
@@ -1571,6 +1577,8 @@ export const customerController = {
         freeze_location,
         is_freeze_location,
         freezeLocation,
+        customer_images,
+        platform_type: bodyPlatformType,
         ...otherData
       } = data;
 
@@ -1584,7 +1592,7 @@ export const customerController = {
       const parsedFreezeLocation =
         parseFreezeLocation(incomingFreezeRaw) ?? false;
 
-      const processedData = {
+      const processedData: any = {
         ...otherData,
         credit_limit: credit_limit === '' ? null : credit_limit,
         outstanding_amount:
@@ -1594,91 +1602,284 @@ export const customerController = {
         freeze_location: parsedFreezeLocation,
       };
 
-      const newCode = await generateCustomerCode(depotId);
-      const customer = await prisma.customers.create({
-        data: {
-          ...processedData,
-          code: data.code || newCode,
-          createdby: req.user?.id || 1,
-          log_inst: data.log_inst || 1,
-          createdate: new Date(),
-        },
+      if ('zone_id' in processedData) {
+        if (!processedData.zones_id && processedData.zone_id) {
+          processedData.zones_id = processedData.zone_id;
+        }
+        delete processedData.zone_id;
+      }
+
+      let customerCode = data.code || (await generateCustomerCode(depotId));
+      let attempts = 0;
+      const maxAttempts = 10;
+      while (attempts < maxAttempts) {
+        const codeInCustomers = await prisma.customers.findUnique({
+          where: { code: customerCode },
+        });
+
+        const codeInPendingRequests = await prisma.sfa_d_requests.findFirst({
+          where: {
+            request_type: 'CUSTOMER_CREATION',
+            status: 'P',
+            request_data: {
+              contains: `"code":"${customerCode}"`,
+            },
+          },
+        });
+
+        if (!codeInCustomers && !codeInPendingRequests) break;
+
+        const timestamp = Date.now().toString().slice(-4);
+        customerCode = `${customerCode.slice(0, -3)}${timestamp}`;
+        attempts++;
+      }
+
+      // 1. NFC Code: if left blank/empty, use the outlet code (customerCode)
+      const rawNfc =
+        data.nfc_tag_code !== undefined && data.nfc_tag_code !== null
+          ? String(data.nfc_tag_code).trim()
+          : data.nfc_code !== undefined && data.nfc_code !== null
+            ? String(data.nfc_code).trim()
+            : data.nfc !== undefined && data.nfc !== null
+              ? String(data.nfc).trim()
+              : '';
+
+      const nfcTagCode = rawNfc !== '' ? rawNfc : customerCode;
+      processedData.nfc_tag_code = nfcTagCode;
+      delete processedData.nfc_code;
+      delete processedData.nfc;
+
+      // 2. District: if left blank, resolve from selected depot or city
+      let resolvedDistrictId: number | null = null;
+      if (
+        data.district_id !== undefined &&
+        data.district_id !== null &&
+        data.district_id !== ''
+      ) {
+        resolvedDistrictId = Number(data.district_id);
+      } else if (
+        data.district !== undefined &&
+        data.district !== null &&
+        String(data.district).trim() !== ''
+      ) {
+        const distStr = String(data.district).trim();
+        if (/^\d+$/.test(distStr)) {
+          resolvedDistrictId = Number(distStr);
+        } else {
+          const matchedDistrict = await prisma.districts.findFirst({
+            where: {
+              OR: [
+                { name: { equals: distStr } },
+                { code: { equals: distStr } },
+              ],
+            },
+            select: { id: true },
+          });
+          if (matchedDistrict) {
+            resolvedDistrictId = matchedDistrict.id;
+          }
+        }
+      }
+
+      if (!resolvedDistrictId) {
+        if (depotExists.district_id) {
+          resolvedDistrictId = depotExists.district_id;
+        } else if (data.city_id) {
+          const cityRecord = await prisma.cities.findUnique({
+            where: { id: Number(data.city_id) },
+            select: { district_id: true },
+          });
+          if (cityRecord?.district_id) {
+            resolvedDistrictId = cityRecord.district_id;
+          }
+        }
+      }
+
+      processedData.district_id = resolvedDistrictId;
+      delete processedData.district;
+
+      // Fallback for region_id and city_id from depot if left blank
+      if (
+        (processedData.region_id === undefined ||
+          processedData.region_id === null ||
+          processedData.region_id === '') &&
+        depotExists.region_id
+      ) {
+        processedData.region_id = depotExists.region_id;
+      }
+
+      if (
+        (processedData.city_id === undefined ||
+          processedData.city_id === null ||
+          processedData.city_id === '') &&
+        depotExists.city_id
+      ) {
+        processedData.city_id = depotExists.city_id;
+      }
+
+      const customerCreationData = {
+        ...processedData,
+        depot_id: depotId,
+        code: customerCode,
+        createdby: req.user?.id || 1,
+        log_inst: data.log_inst || 1,
+        createdate: new Date(),
+        is_default_for_depot: !!is_default_for_depot,
+      };
+
+      const platform_type =
+        req.headers['platform_type'] || bodyPlatformType || 'web';
+
+      const customerCreationRequest = await createRequest({
+        requester_id: req.user?.id || 1,
+        request_type: 'CUSTOMER_CREATION',
+        reference_id: null,
+        request_data: JSON.stringify({
+          customer_data: customerCreationData,
+          customer_images: customer_images || [],
+          platform_type,
+          requested_by: req.user?.name || 'Unknown User',
+          requested_date: new Date().toISOString(),
+        }),
+        createdby: req.user?.id || 1,
+        log_inst: data.log_inst || 1,
+      });
+
+      const requestWithApprovals = await prisma.sfa_d_requests.findUnique({
+        where: { id: customerCreationRequest.id },
         include: {
-          customer_zones: true,
-          customer_routes: true,
-          customer_users: true,
-          customer_type_customer: {
-            select: {
-              id: true,
-              type_name: true,
-              type_code: true,
+          sfa_d_requests_approvals_request: {
+            include: {
+              sfa_d_requests_approvals_approver: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                  profile_image: true,
+                  employee_id: true,
+                },
+              },
             },
-          },
-          customer_channel_customer: {
-            select: {
-              id: true,
-              channel_name: true,
-              channel_code: true,
-            },
-          },
-          default_for_depots: {
-            select: {
-              id: true,
-              name: true,
-              code: true,
-            },
+            orderBy: { sequence: 'asc' },
           },
         },
       });
 
-      if (is_default_for_depot && customer.depot_id) {
-        await prisma.depots.update({
-          where: { id: customer.depot_id },
-          data: { default_outlet_id: customer.id },
+      const isApprovalRequired =
+        requestWithApprovals?.sfa_d_requests_approvals_request &&
+        requestWithApprovals.sfa_d_requests_approvals_request.length > 0 &&
+        requestWithApprovals.status !== 'A';
+
+      if (!isApprovalRequired) {
+        if (is_default_for_depot && depotId) {
+          const createdCust = await prisma.customers.findFirst({
+            where: {
+              OR: [
+                ...(requestWithApprovals?.reference_id
+                  ? [{ id: requestWithApprovals.reference_id }]
+                  : []),
+                { code: customerCode },
+              ],
+            },
+            select: { id: true },
+          });
+
+          if (createdCust) {
+            await prisma.depots.update({
+              where: { id: depotId },
+              data: { default_outlet_id: createdCust.id },
+            });
+          }
+        }
+
+        const finalCustomer = await prisma.customers.findFirst({
+          where: {
+            OR: [
+              ...(requestWithApprovals?.reference_id
+                ? [{ id: requestWithApprovals.reference_id }]
+                : []),
+              { code: customerCode },
+            ],
+          },
+          include: {
+            customer_zones: true,
+            customer_routes: true,
+            customer_users: true,
+            customers_districts: {
+              select: {
+                id: true,
+                name: true,
+                code: true,
+              },
+            },
+            customers_city: {
+              select: {
+                id: true,
+                name: true,
+                code: true,
+              },
+            },
+            customers_regions: {
+              select: {
+                id: true,
+                name: true,
+                code: true,
+              },
+            },
+            customer_type_customer: {
+              select: {
+                id: true,
+                type_name: true,
+                type_code: true,
+              },
+            },
+            customer_channel_customer: {
+              select: {
+                id: true,
+                channel_name: true,
+                channel_code: true,
+              },
+            },
+            customer_depot: {
+              select: {
+                id: true,
+                name: true,
+                code: true,
+              },
+            },
+            default_for_depots: {
+              select: {
+                id: true,
+                name: true,
+                code: true,
+              },
+            },
+          },
+        });
+
+        const serializedCustomer = await serializeCustomer(finalCustomer);
+        return res.status(201).json({
+          message: 'Customer created successfully',
+          data: serializedCustomer,
+          approval_required: false,
+          request_id: customerCreationRequest.id,
         });
       }
 
-      const finalCustomer = await prisma.customers.findUnique({
-        where: { id: customer.id },
-        include: {
-          customer_zones: true,
-          customer_routes: true,
-          customer_users: true,
-          customer_type_customer: {
-            select: {
-              id: true,
-              type_name: true,
-              type_code: true,
-            },
-          },
-          customer_channel_customer: {
-            select: {
-              id: true,
-              channel_name: true,
-              channel_code: true,
-            },
-          },
-          customer_depot: {
-            select: {
-              id: true,
-              name: true,
-              code: true,
-            },
-          },
-          default_for_depots: {
-            select: {
-              id: true,
-              name: true,
-              code: true,
-            },
-          },
+      return res.status(201).json({
+        message: 'Customer creation request submitted for approval',
+        approval_required: true,
+        data: {
+          request_id: customerCreationRequest.id,
+          request_type: 'CUSTOMER_CREATION',
+          status: customerCreationRequest.status || 'P',
+          approval_required: true,
+          customer_code: customerCode,
+          customer_name: data.name,
+          customer_data: customerCreationData,
+          approvals:
+            requestWithApprovals?.sfa_d_requests_approvals_request || [],
         },
-      });
-
-      const serializedCustomer = await serializeCustomer(finalCustomer);
-      res.status(201).json({
-        message: 'Customer created successfully',
-        data: serializedCustomer,
       });
     } catch (error: any) {
       console.error('Create Customer Error:', error);

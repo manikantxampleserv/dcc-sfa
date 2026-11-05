@@ -254,7 +254,26 @@ async function resolveRequesterDepotId(tx, requesterId, requestType, requestData
         select: { depot_id: true },
     });
     if (userDepots.length === 0) {
-        return null;
+        if (requestDataStr) {
+            try {
+                const parsedData = JSON.parse(requestDataStr);
+                const potentialDepotId = parsedData.location_id ||
+                    parsedData.depot_id ||
+                    parsedData.customer_data?.depot_id ||
+                    parsedData.customer_data?.location_id;
+                if (potentialDepotId) {
+                    return Number(potentialDepotId);
+                }
+            }
+            catch (e) {
+                // ignore
+            }
+        }
+        const requester = await tx.users.findUnique({
+            where: { id: requesterId },
+            select: { depot_id: true },
+        });
+        return requester?.depot_id || null;
     }
     if (userDepots.length === 1) {
         return userDepots[0].depot_id;
@@ -587,13 +606,28 @@ const createRequest = async (data) => {
         });
         console.log('Request created:', request.id);
         const requesterDepotId = await resolveRequesterDepotId(prisma_client_1.default, data.requester_id, data.request_type, data.request_data);
+        let requesterZoneId = requester.zone_id;
+        if (!requesterZoneId && requesterDepotId) {
+            try {
+                const depotRecord = await prisma_client_1.default.depots.findUnique({
+                    where: { id: requesterDepotId },
+                    select: { parent_id: true },
+                });
+                if (depotRecord?.parent_id) {
+                    requesterZoneId = depotRecord.parent_id;
+                }
+            }
+            catch (e) {
+                // ignore
+            }
+        }
         let workflowSteps;
         let workflowType = 'NONE';
-        if (requester.zone_id && requesterDepotId) {
+        if (requesterZoneId && requesterDepotId) {
             workflowSteps = await prisma_client_1.default.approval_work_flow.findMany({
                 where: {
                     request_type: data.request_type,
-                    zone_id: requester.zone_id,
+                    zone_id: requesterZoneId,
                     depot_id: requesterDepotId,
                     is_active: 'Y',
                 },
@@ -608,11 +642,11 @@ const createRequest = async (data) => {
                 workflowType = 'ZONE_DEPOT_SPECIFIC';
             }
         }
-        if ((!workflowSteps || workflowSteps.length === 0) && requester.zone_id) {
+        if ((!workflowSteps || workflowSteps.length === 0) && requesterZoneId) {
             workflowSteps = await prisma_client_1.default.approval_work_flow.findMany({
                 where: {
                     request_type: data.request_type,
-                    zone_id: requester.zone_id,
+                    zone_id: requesterZoneId,
                     depot_id: null,
                     is_active: 'Y',
                 },
@@ -911,14 +945,38 @@ const createRequest = async (data) => {
                 const requestData = JSON.parse(data.request_data || '{}');
                 const customerData = requestData.customer_data;
                 const customerImages = requestData.customer_images || [];
-                const { platform_type, ...customerDataWithoutPlatform } = customerData;
+                const { platform_type, is_default_for_depot, ...customerDataWithoutPlatform } = customerData;
                 const createdCustomer = await prisma_client_1.default.customers.create({
                     data: customerDataWithoutPlatform,
+                });
+                if (is_default_for_depot && createdCustomer.depot_id) {
+                    await prisma_client_1.default.depots.update({
+                        where: { id: createdCustomer.depot_id },
+                        data: { default_outlet_id: createdCustomer.id },
+                    });
+                }
+                await prisma_client_1.default.sfa_d_requests.update({
+                    where: { id: request.id },
+                    data: { reference_id: createdCustomer.id },
                 });
                 if (customerImages.length > 0) {
                     await prisma_client_1.default.customer_image.createMany({
                         data: customerImages.map((img) => ({
-                            ...img,
+                            ...(typeof img === 'string'
+                                ? {
+                                    image_url: img,
+                                    is_active: 'Y',
+                                    createdby: data.createdby || 1,
+                                    createdate: new Date(),
+                                    log_inst: 1,
+                                }
+                                : {
+                                    is_active: 'Y',
+                                    createdby: data.createdby || 1,
+                                    createdate: new Date(),
+                                    log_inst: 1,
+                                    ...img,
+                                }),
                             customer_id: createdCustomer.id,
                         })),
                     });
@@ -1187,7 +1245,22 @@ exports.requestsController = {
                 });
                 console.log(' Request created, ID:', request.id);
                 const resolvedDepotId = await resolveRequesterDepotId(tx, Number(requestData.requester_id), request_type, requestData.request_data);
-                const { workflow: workflowSteps, workflowType } = await getWorkflowForRequest(request_type, requester.zone_id, resolvedDepotId);
+                let requesterZoneId = requester.zone_id;
+                if (!requesterZoneId && resolvedDepotId) {
+                    try {
+                        const depotRecord = await tx.depots.findUnique({
+                            where: { id: resolvedDepotId },
+                            select: { parent_id: true },
+                        });
+                        if (depotRecord?.parent_id) {
+                            requesterZoneId = depotRecord.parent_id;
+                        }
+                    }
+                    catch (e) {
+                        // ignore
+                    }
+                }
+                const { workflow: workflowSteps, workflowType } = await getWorkflowForRequest(request_type, requesterZoneId, resolvedDepotId);
                 if (!workflowSteps || workflowSteps.length === 0) {
                     throw new Error(`No approval workflow defined for '${request_type}'`);
                 }
@@ -2370,14 +2443,38 @@ exports.requestsController = {
                         const requestData = JSON.parse(request.request_data || '{}');
                         const customerData = requestData.customer_data;
                         const customerImages = requestData.customer_images || [];
-                        const { platform_type, ...customerDataWithoutPlatform } = customerData;
+                        const { platform_type, is_default_for_depot, ...customerDataWithoutPlatform } = customerData;
                         const createdCustomer = await tx.customers.create({
                             data: customerDataWithoutPlatform,
+                        });
+                        if (is_default_for_depot && createdCustomer.depot_id) {
+                            await tx.depots.update({
+                                where: { id: createdCustomer.depot_id },
+                                data: { default_outlet_id: createdCustomer.id },
+                            });
+                        }
+                        await tx.sfa_d_requests.update({
+                            where: { id: request.id },
+                            data: { reference_id: createdCustomer.id },
                         });
                         if (customerImages.length > 0) {
                             await tx.customer_image.createMany({
                                 data: customerImages.map((img) => ({
-                                    ...img,
+                                    ...(typeof img === 'string'
+                                        ? {
+                                            image_url: img,
+                                            is_active: 'Y',
+                                            createdby: userId,
+                                            createdate: new Date(),
+                                            log_inst: 1,
+                                        }
+                                        : {
+                                            is_active: 'Y',
+                                            createdby: userId,
+                                            createdate: new Date(),
+                                            log_inst: 1,
+                                            ...img,
+                                        }),
                                     customer_id: createdCustomer.id,
                                 })),
                             });
