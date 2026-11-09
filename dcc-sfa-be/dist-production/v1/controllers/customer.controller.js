@@ -12,32 +12,38 @@ const permissions_config_1 = require("../../configs/permissions.config");
 const generateCustomerCode = async (depotId) => {
     const depot = await prisma_client_1.default.depots.findUnique({
         where: { id: depotId },
-        select: { name: true },
+        select: { name: true, code: true },
     });
     if (!depot) {
         throw new Error('Depot not found');
     }
-    const depotPrefix = depot.name
-        .slice(0, 3)
+    const depotPrefix = (depot.code?.trim() || depot.name.slice(0, 3))
         .toUpperCase()
         .replace(/[^A-Z]/g, '');
-    const lastCustomer = await prisma_client_1.default.customers.findFirst({
+    // Fetch ALL customers for this depot prefix, then find the max numeric suffix
+    const allDepotCustomers = await prisma_client_1.default.customers.findMany({
         where: {
             code: {
                 startsWith: depotPrefix,
             },
         },
-        orderBy: { id: 'desc' },
         select: { code: true },
     });
     let newNumber = 1;
-    if (lastCustomer && lastCustomer.code) {
-        const match = lastCustomer.code.match(/(\d+)$/);
-        if (match) {
-            newNumber = parseInt(match[1], 10) + 1;
+    const padLength = 7; // Standard format: prefix + 7 digits (e.g. MOS0111965)
+    if (allDepotCustomers.length > 0) {
+        let maxNum = 0;
+        for (const c of allDepotCustomers) {
+            const match = c.code.match(/(\d+)$/);
+            if (match) {
+                const num = parseInt(match[1], 10);
+                if (num > maxNum) maxNum = num;
+            }
         }
+        newNumber = maxNum + 1;
     }
-    const code = `${depotPrefix}${newNumber.toString().padStart(2, '0')}`;
+    const code = `${depotPrefix}${newNumber.toString().padStart(padLength, '0')}`;
+    console.log(`[CODE-GEN v2] depot=${depotPrefix} customers=${allDepotCustomers.length} max=${newNumber - 1} generated=${code}`);
     return code;
 };
 const serializeCustomer = async (customer, defaultOutletIdSet) => {
@@ -673,8 +679,13 @@ exports.customerController = {
                                 });
                                 if (!codeExists)
                                     break;
-                                const timestamp = Date.now().toString().slice(-4);
-                                uniqueCode = `${uniqueCode.slice(0, -3)}${timestamp}`;
+                                const collisionMatch1 = uniqueCode.match(/^([A-Z]+)(\d+)$/);
+                                if (collisionMatch1) {
+                                    const pfx = collisionMatch1[1];
+                                    const padLen = collisionMatch1[2].length;
+                                    const nextNum = parseInt(collisionMatch1[2], 10) + 1;
+                                    uniqueCode = `${pfx}${nextNum.toString().padStart(padLen, '0')}`;
+                                }
                                 attempts++;
                             }
                             if (attempts >= maxAttempts) {
@@ -1376,7 +1387,17 @@ exports.customerController = {
                 }
                 delete processedData.zone_id;
             }
-            let customerCode = data.code || (await generateCustomerCode(depotId));
+            const providedCode = data.code ? String(data.code).trim() : '';
+            let customerCode = providedCode || (await generateCustomerCode(depotId));
+            const matchPrefix = customerCode.match(/^([A-Za-z]+)(\d+)$/);
+            if (matchPrefix) {
+                const pfx = matchPrefix[1].toUpperCase();
+                let digits = matchPrefix[2];
+                if (!digits.startsWith('0')) {
+                    digits = `0${digits}`;
+                }
+                customerCode = `${pfx}${digits}`;
+            }
             let attempts = 0;
             const maxAttempts = 10;
             while (attempts < maxAttempts) {
@@ -1394,8 +1415,13 @@ exports.customerController = {
                 });
                 if (!codeInCustomers && !codeInPendingRequests)
                     break;
-                const timestamp = Date.now().toString().slice(-4);
-                customerCode = `${customerCode.slice(0, -3)}${timestamp}`;
+                const collisionMatch2 = customerCode.match(/^([A-Z]+)(\d+)$/);
+                if (collisionMatch2) {
+                    const pfx = collisionMatch2[1];
+                    const padLen = collisionMatch2[2].length;
+                    const nextNum = parseInt(collisionMatch2[2], 10) + 1;
+                    customerCode = `${pfx}${nextNum.toString().padStart(padLen, '0')}`;
+                }
                 attempts++;
             }
             // 1. NFC Code: if left blank/empty, use the outlet code (customerCode)
