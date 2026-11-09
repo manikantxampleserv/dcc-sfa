@@ -1,4 +1,4 @@
-"use strict";
+﻿"use strict";
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -12,32 +12,32 @@ const permissions_config_1 = require("../../configs/permissions.config");
 const generateCustomerCode = async (depotId) => {
     const depot = await prisma_client_1.default.depots.findUnique({
         where: { id: depotId },
-        select: { name: true },
+        select: { name: true, code: true },
     });
     if (!depot) {
         throw new Error('Depot not found');
     }
-    const depotPrefix = depot.name
-        .slice(0, 3)
+    const depotPrefix = (depot.code?.trim() || depot.name.slice(0, 3))
         .toUpperCase()
         .replace(/[^A-Z]/g, '');
-    const lastCustomer = await prisma_client_1.default.customers.findFirst({
-        where: {
-            code: {
-                startsWith: depotPrefix,
-            },
-        },
-        orderBy: { id: 'desc' },
+    const allDepotCustomers = await prisma_client_1.default.customers.findMany({
+        where: { code: { startsWith: depotPrefix } },
         select: { code: true },
     });
     let newNumber = 1;
-    if (lastCustomer && lastCustomer.code) {
-        const match = lastCustomer.code.match(/(\d+)$/);
-        if (match) {
-            newNumber = parseInt(match[1], 10) + 1;
+    const padLength = 7;
+    if (allDepotCustomers.length > 0) {
+        let maxNum = 0;
+        for (const c of allDepotCustomers) {
+            const match = c.code.match(/(\d+)$/);
+            if (match) {
+                const num = parseInt(match[1], 10);
+                if (num > maxNum) maxNum = num;
+            }
         }
+        newNumber = maxNum + 1;
     }
-    const code = `${depotPrefix}${newNumber.toString().padStart(2, '0')}`;
+    const code = ``; 
     return code;
 };
 const serializeCustomer = async (customer, defaultOutletIdSet) => {
