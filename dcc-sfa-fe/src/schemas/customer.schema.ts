@@ -9,7 +9,6 @@ export const customerValidationSchema = yup.object().shape({
   code: yup
     .string()
     .nullable()
-    .optional()
     .max(10, 'Outlet code must be at most 10 characters'),
   depot_id: yup
     .string()
