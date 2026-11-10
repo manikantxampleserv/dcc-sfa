@@ -10,7 +10,7 @@ const depotStaff_util_1 = require("../../utils/depotStaff.util");
 const exceljs_1 = __importDefault(require("exceljs"));
 const cache = new Map();
 const CACHE_TTL = 5 * 60 * 1000;
-const CACHE_VERSION = 'v8';
+const CACHE_VERSION = 'v9';
 const invoiceSelect = {
     id: true,
     invoice_date: true,
@@ -151,404 +151,6 @@ const invoiceSelect = {
         },
     },
 };
-/**
- * SQL Server Stored Procedure definition for Sales Control Tower dashboard.
- * Aggregates all dimensions (Depot, Route, Salesman, Brand, Pack, SKU, Channel, Date),
- * calculates PC, UC, TV, and returns a unified JSON payload in ~50ms.
- */
-const SP_SALES_CONTROL_TOWER_SQL = `
-CREATE OR ALTER PROCEDURE sp_GetSalesControlTowerAggregations
-    @StartDate DATETIME = NULL,
-    @EndDate DATETIME = NULL,
-    @DepotId INT = NULL,
-    @DepotName NVARCHAR(150) = NULL,
-    @RouteId INT = NULL,
-    @RouteName NVARCHAR(150) = NULL,
-    @SalesmanId INT = NULL,
-    @SalesmanName NVARCHAR(150) = NULL,
-    @CoordinatorId INT = NULL,
-    @CoordinatorName NVARCHAR(150) = NULL,
-    @SupervisorId INT = NULL,
-    @SupervisorName NVARCHAR(150) = NULL,
-    @BrandId INT = NULL,
-    @BrandName NVARCHAR(150) = NULL,
-    @Pack NVARCHAR(150) = NULL,
-    @Channel NVARCHAR(150) = NULL
-AS
-BEGIN
-    SET NOCOUNT ON;
-    SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
-
-    CREATE TABLE #FilteredItems (
-        InvoiceId INT NOT NULL,
-        CustomerId INT NOT NULL,
-        DateKey VARCHAR(10) NOT NULL,
-        DepotName NVARCHAR(150) NOT NULL,
-        RouteName NVARCHAR(150) NOT NULL,
-        SalesmanName NVARCHAR(150) NOT NULL,
-        ChannelName NVARCHAR(150) NOT NULL,
-        BrandName NVARCHAR(150) NOT NULL,
-        PackName NVARCHAR(150) NOT NULL,
-        SKUName NVARCHAR(150) NOT NULL,
-        OutletCode NVARCHAR(100),
-        OutletName NVARCHAR(255),
-        PC DECIMAL(18, 4) NOT NULL,
-        UC DECIMAL(18, 4) NOT NULL,
-        TV DECIMAL(18, 2) NOT NULL
-    );
-
-    INSERT INTO #FilteredItems (
-        InvoiceId,
-        CustomerId,
-        DateKey,
-        DepotName,
-        RouteName,
-        SalesmanName,
-        ChannelName,
-        BrandName,
-        PackName,
-        SKUName,
-        OutletCode,
-        OutletName,
-        PC,
-        UC,
-        TV
-    )
-    SELECT
-        inv.id AS InvoiceId,
-        inv.customer_id AS CustomerId,
-        CONVERT(VARCHAR(10), inv.invoice_date, 120) AS DateKey,
-        COALESCE(cd.name, crd.name, ud.name, srd.name, 'Unassigned') AS DepotName,
-        COALESCE(cr.name, sr.name, 'Unassigned') AS RouteName,
-        COALESCE(sp.name, r_sp_u.name, 'Unassigned') AS SalesmanName,
-        COALESCE(cc.category_name, 'Unassigned') AS ChannelName,
-        COALESCE(b.name, 'Unknown') AS BrandName,
-        COALESCE(psc.sub_category_name, 'Unknown') AS PackName,
-        COALESCE(p.name, 'Unknown') AS SKUName,
-        cust.code AS OutletCode,
-        cust.name AS OutletName,
-        (CAST(ISNULL(ii.quantity, 0) AS DECIMAL(18, 4)) + 
-            CASE WHEN ISNULL(ii.conversion_factor, 1) > 0 
-                 THEN CAST(ISNULL(ii.base_quantity, 0) AS DECIMAL(18, 4)) / CAST(ii.conversion_factor AS DECIMAL(18, 4)) 
-                 ELSE 0 END
-        ) AS PC,
-        ((CAST(ISNULL(ii.quantity, 0) AS DECIMAL(18, 4)) + 
-            CASE WHEN ISNULL(ii.conversion_factor, 1) > 0 
-                 THEN CAST(ISNULL(ii.base_quantity, 0) AS DECIMAL(18, 4)) / CAST(ii.conversion_factor AS DECIMAL(18, 4)) 
-                 ELSE 0 END
-        ) * CAST(ISNULL(p.unit_case_conversion_rate, 1) AS DECIMAL(18, 4))) AS UC,
-        COALESCE(
-            CAST(ii.total_amount AS DECIMAL(18, 2)),
-            CAST(ISNULL(ii.unit_price, 0) * (CAST(ISNULL(ii.quantity, 0) AS DECIMAL(18, 4)) + 
-                CASE WHEN ISNULL(ii.conversion_factor, 1) > 0 
-                     THEN CAST(ISNULL(ii.base_quantity, 0) AS DECIMAL(18, 4)) / CAST(ii.conversion_factor AS DECIMAL(18, 4)) 
-                     ELSE 0 END
-            ) AS DECIMAL(18, 2))
-        ) AS TV
-    FROM invoices inv
-    INNER JOIN invoice_items ii ON ii.parent_id = inv.id
-    INNER JOIN products p ON p.id = ii.product_id
-    LEFT JOIN brands b ON b.id = p.brand_id
-    LEFT JOIN product_sub_categories psc ON psc.id = p.sub_category_id
-    LEFT JOIN customers cust ON cust.id = inv.customer_id AND cust.is_active = 'Y'
-    LEFT JOIN customer_category cc ON cc.id = cust.customer_category_id
-    LEFT JOIN depots cd ON cd.id = cust.depot_id
-    LEFT JOIN routes cr ON cr.id = cust.route_id
-    LEFT JOIN depots crd ON crd.id = cr.depot_id
-    LEFT JOIN users sp ON sp.id = COALESCE(inv.salesperson_id, inv.createdby)
-    LEFT JOIN depots ud ON ud.id = sp.depot_id
-    OUTER APPLY (
-        SELECT TOP 1 u.name 
-        FROM route_salespersons rs_sub 
-        INNER JOIN users u ON u.id = rs_sub.user_id 
-        WHERE rs_sub.route_id = cust.route_id AND rs_sub.is_active = 'Y'
-    ) r_sp_u
-    OUTER APPLY (
-        SELECT TOP 1 rs_sr.route_id 
-        FROM route_salespersons rs_sr 
-        WHERE rs_sr.user_id = sp.id AND rs_sr.is_active = 'Y'
-    ) sp_r
-    LEFT JOIN routes sr ON sr.id = sp_r.route_id
-    LEFT JOIN depots srd ON srd.id = sr.depot_id
-    OUTER APPLY (
-        SELECT TOP 1 u.id, u.name 
-        FROM users u 
-        WHERE u.id = cd.coordinator_id
-        UNION ALL
-        SELECT TOP 1 u.id, u.name
-        FROM user_depots ud_c
-        INNER JOIN users u ON u.id = ud_c.user_id
-        INNER JOIN roles r ON r.id = u.role_id
-        WHERE ud_c.depot_id = COALESCE(cd.id, crd.id, ud.id, srd.id)
-          AND ud_c.is_active = 'Y'
-          AND (r.name LIKE '%coordinator%' OR r.role_key LIKE '%coordinator%')
-    ) cd_coord
-    OUTER APPLY (
-        SELECT TOP 1 u.id, u.name 
-        FROM users u 
-        WHERE u.id = cd.supervisor_id
-        UNION ALL
-        SELECT TOP 1 u.id, u.name
-        FROM user_depots ud_s
-        INNER JOIN users u ON u.id = ud_s.user_id
-        INNER JOIN roles r ON r.id = u.role_id
-        WHERE ud_s.depot_id = COALESCE(cd.id, crd.id, ud.id, srd.id)
-          AND ud_s.is_active = 'Y'
-          AND (r.name LIKE '%supervisor%' OR r.role_key LIKE '%supervisor%')
-    ) cd_sup
-    WHERE inv.is_active = 'Y'
-      AND (@StartDate IS NULL OR inv.invoice_date >= @StartDate)
-      AND (@EndDate IS NULL OR inv.invoice_date <= @EndDate)
-      AND (sp.name IS NULL OR (
-          LOWER(sp.name) NOT IN ('iuser', 'excel sync admin') 
-          AND ISNULL(sp.employee_id, '') <> 'EXCEL_SYNC_01'
-          AND ISNULL(sp.email, '') <> 'excel.sync@dcc.com'
-      ))
-      AND (@SalesmanId IS NULL OR inv.salesperson_id = @SalesmanId OR inv.createdby = @SalesmanId)
-      AND (@SalesmanName IS NULL OR COALESCE(sp.name, r_sp_u.name) = @SalesmanName)
-      AND (@DepotId IS NULL OR COALESCE(cust.depot_id, cr.depot_id, sp.depot_id, sr.depot_id) = @DepotId)
-      AND (@DepotName IS NULL OR COALESCE(cd.name, crd.name, ud.name, srd.name) = @DepotName)
-      AND (@RouteId IS NULL OR COALESCE(cust.route_id, sp_r.route_id) = @RouteId)
-      AND (@RouteName IS NULL OR COALESCE(cr.name, sr.name) = @RouteName)
-      AND (@Channel IS NULL OR COALESCE(cc.category_name, 'Unassigned') = @Channel)
-      AND (@CoordinatorId IS NULL OR cd_coord.id = @CoordinatorId)
-      AND (@CoordinatorName IS NULL OR cd_coord.name = @CoordinatorName)
-      AND (@SupervisorId IS NULL OR cd_sup.id = @SupervisorId)
-      AND (@SupervisorName IS NULL OR cd_sup.name = @SupervisorName)
-      AND (@BrandId IS NULL OR p.brand_id = @BrandId)
-      AND (@BrandName IS NULL OR COALESCE(b.name, 'Unknown') = @BrandName)
-      AND (@Pack IS NULL OR COALESCE(psc.sub_category_name, 'Unknown') = @Pack);
-
-    DECLARE @newOutlets INT;
-
-    SELECT @newOutlets = COUNT(DISTINCT cust.id)
-    FROM customers cust
-    LEFT JOIN depots cd ON cd.id = cust.depot_id
-    LEFT JOIN routes cr ON cr.id = cust.route_id
-    LEFT JOIN depots crd ON crd.id = cr.depot_id
-    LEFT JOIN users sp ON sp.id = cust.salesperson_id
-    LEFT JOIN customer_category cc ON cc.id = cust.customer_category_id
-    OUTER APPLY (
-        SELECT TOP 1 u.id, u.name 
-        FROM users u 
-        WHERE u.id = cd.coordinator_id
-        UNION ALL
-        SELECT TOP 1 u.id, u.name
-        FROM user_depots ud_c
-        INNER JOIN users u ON u.id = ud_c.user_id
-        INNER JOIN roles r ON r.id = u.role_id
-        WHERE ud_c.depot_id = COALESCE(cd.id, crd.id)
-          AND ud_c.is_active = 'Y'
-          AND (r.name LIKE '%coordinator%' OR r.role_key LIKE '%coordinator%')
-    ) cd_coord
-    OUTER APPLY (
-        SELECT TOP 1 u.id, u.name 
-        FROM users u 
-        WHERE u.id = cd.supervisor_id
-        UNION ALL
-        SELECT TOP 1 u.id, u.name
-        FROM user_depots ud_s
-        INNER JOIN users u ON u.id = ud_s.user_id
-        INNER JOIN roles r ON r.id = u.role_id
-        WHERE ud_s.depot_id = COALESCE(cd.id, crd.id)
-          AND ud_s.is_active = 'Y'
-          AND (r.name LIKE '%supervisor%' OR r.role_key LIKE '%supervisor%')
-    ) cd_sup
-    WHERE cust.is_active = 'Y'
-      AND (@StartDate IS NULL OR cust.createdate >= @StartDate)
-      AND (@EndDate IS NULL OR cust.createdate <= @EndDate)
-      AND (@DepotId IS NULL OR COALESCE(cust.depot_id, cr.depot_id) = @DepotId)
-      AND (@DepotName IS NULL OR COALESCE(cd.name, crd.name) = @DepotName)
-      AND (@RouteId IS NULL OR cust.route_id = @RouteId)
-      AND (@RouteName IS NULL OR cr.name = @RouteName)
-      AND (@SalesmanId IS NULL OR cust.salesperson_id = @SalesmanId)
-      AND (@SalesmanName IS NULL OR sp.name = @SalesmanName)
-      AND (@Channel IS NULL OR COALESCE(cc.category_name, 'Unassigned') = @Channel)
-      AND (@CoordinatorId IS NULL OR cd_coord.id = @CoordinatorId)
-      AND (@CoordinatorName IS NULL OR cd_coord.name = @CoordinatorName)
-      AND (@SupervisorId IS NULL OR cd_sup.id = @SupervisorId)
-      AND (@SupervisorName IS NULL OR cd_sup.name = @SupervisorName);
-
-    DECLARE @jsonResult NVARCHAR(MAX);
-
-    SET @jsonResult = (
-        SELECT 
-            ISNULL(@newOutlets, 0) AS newOutlets,
-            JSON_QUERY((
-                SELECT 
-                    CAST(ISNULL(SUM(UC), 0) AS FLOAT) AS totalUC,
-                    CAST(ISNULL(SUM(PC), 0) AS FLOAT) AS totalPC,
-                    CAST(ISNULL(SUM(TV), 0) AS FLOAT) AS totalTV
-                FROM #FilteredItems
-                FOR JSON PATH, WITHOUT_ARRAY_WRAPPER
-            )) AS totals,
-
-            JSON_QUERY((
-                SELECT 
-                    DepotName AS [key],
-                    CAST(ISNULL(SUM(UC), 0) AS FLOAT) AS UC,
-                    CAST(ISNULL(SUM(PC), 0) AS FLOAT) AS PC,
-                    CAST(ISNULL(SUM(TV), 0) AS FLOAT) AS TV,
-                    COUNT(DISTINCT InvoiceId) AS [count]
-                FROM #FilteredItems
-                WHERE DepotName <> 'Unknown' AND DepotName <> ''
-                GROUP BY DepotName
-                FOR JSON PATH
-            )) AS byDepot,
-
-            JSON_QUERY((
-                SELECT 
-                    RouteName AS [key],
-                    DepotName AS Depot,
-                    CAST(ISNULL(SUM(UC), 0) AS FLOAT) AS UC,
-                    CAST(ISNULL(SUM(PC), 0) AS FLOAT) AS PC,
-                    CAST(ISNULL(SUM(TV), 0) AS FLOAT) AS TV,
-                    COUNT(DISTINCT InvoiceId) AS [count]
-                FROM #FilteredItems
-                WHERE RouteName <> 'Unknown' AND RouteName <> ''
-                GROUP BY RouteName, DepotName
-                FOR JSON PATH
-            )) AS byRoute,
-
-            JSON_QUERY((
-                SELECT 
-                    SalesmanName AS [key],
-                    CAST(ISNULL(SUM(UC), 0) AS FLOAT) AS UC,
-                    CAST(ISNULL(SUM(PC), 0) AS FLOAT) AS PC,
-                    CAST(ISNULL(SUM(TV), 0) AS FLOAT) AS TV,
-                    COUNT(DISTINCT InvoiceId) AS [count]
-                FROM #FilteredItems
-                WHERE SalesmanName <> 'Unknown' AND SalesmanName <> ''
-                GROUP BY SalesmanName
-                FOR JSON PATH
-            )) AS bySal,
-
-            JSON_QUERY((
-                SELECT 
-                    BrandName AS [key],
-                    CAST(ISNULL(SUM(UC), 0) AS FLOAT) AS UC,
-                    CAST(ISNULL(SUM(PC), 0) AS FLOAT) AS PC,
-                    CAST(ISNULL(SUM(TV), 0) AS FLOAT) AS TV,
-                    0 AS [count]
-                FROM #FilteredItems
-                WHERE BrandName <> 'Unknown' AND BrandName <> ''
-                GROUP BY BrandName
-                FOR JSON PATH
-            )) AS byBrand,
-
-            JSON_QUERY((
-                SELECT 
-                    PackName AS [key],
-                    CAST(ISNULL(SUM(UC), 0) AS FLOAT) AS UC,
-                    CAST(ISNULL(SUM(PC), 0) AS FLOAT) AS PC,
-                    CAST(ISNULL(SUM(TV), 0) AS FLOAT) AS TV,
-                    0 AS [count]
-                FROM #FilteredItems
-                WHERE PackName <> 'Unknown' AND PackName <> ''
-                GROUP BY PackName
-                FOR JSON PATH
-            )) AS byPack,
-
-            JSON_QUERY((
-                SELECT 
-                    SKUName AS [key],
-                    CAST(ISNULL(SUM(UC), 0) AS FLOAT) AS UC,
-                    CAST(ISNULL(SUM(PC), 0) AS FLOAT) AS PC,
-                    CAST(ISNULL(SUM(TV), 0) AS FLOAT) AS TV,
-                    0 AS [count]
-                FROM #FilteredItems
-                WHERE SKUName <> 'Unknown' AND SKUName <> ''
-                GROUP BY SKUName
-                FOR JSON PATH
-            )) AS bySKU,
-
-            JSON_QUERY((
-                SELECT 
-                    ChannelName AS [key],
-                    CAST(ISNULL(SUM(UC), 0) AS FLOAT) AS UC,
-                    CAST(ISNULL(SUM(PC), 0) AS FLOAT) AS PC,
-                    CAST(ISNULL(SUM(TV), 0) AS FLOAT) AS TV,
-                    COUNT(DISTINCT InvoiceId) AS [count]
-                FROM #FilteredItems
-                WHERE ChannelName <> 'Unknown' AND ChannelName <> ''
-                GROUP BY ChannelName
-                FOR JSON PATH
-            )) AS byCh,
-
-            JSON_QUERY((
-                SELECT 
-                    DateKey AS [key],
-                    CAST(ISNULL(SUM(UC), 0) AS FLOAT) AS UC,
-                    CAST(ISNULL(SUM(PC), 0) AS FLOAT) AS PC,
-                    CAST(ISNULL(SUM(TV), 0) AS FLOAT) AS TV,
-                    COUNT(DISTINCT InvoiceId) AS [count]
-                FROM #FilteredItems
-                WHERE DateKey <> 'Unknown' AND DateKey <> ''
-                GROUP BY DateKey
-                FOR JSON PATH
-            )) AS byDate,
-
-            JSON_QUERY((
-                SELECT 
-                    InvoiceId AS id,
-                    DateKey AS [Date],
-                    DepotName AS Depot,
-                    RouteName AS Route,
-                    SalesmanName AS Salesman,
-                    OutletCode,
-                    OutletName,
-                    ChannelName AS CustomerChannel,
-                    MIN(BrandName) AS Brand,
-                    MIN(PackName) AS Pack,
-                    MIN(SKUName) AS SKU,
-                    CAST(ISNULL(SUM(UC), 0) AS FLOAT) AS UC,
-                    CAST(ISNULL(SUM(PC), 0) AS FLOAT) AS PC,
-                    CAST(ISNULL(SUM(TV), 0) AS FLOAT) AS TV,
-                    100 AS StrikeRate,
-                    CAST(0 AS BIT) AS IsNew
-                FROM #FilteredItems
-                GROUP BY InvoiceId, DateKey, DepotName, RouteName, SalesmanName, OutletCode, OutletName, ChannelName
-                ORDER BY InvoiceId DESC
-                FOR JSON PATH
-            )) AS rows,
-
-            JSON_QUERY((
-                SELECT 
-                    c.id,
-                    c.name,
-                    c.code,
-                    CAST(c.latitude AS FLOAT) AS latitude,
-                    CAST(c.longitude AS FLOAT) AS longitude
-                FROM customers c
-                WHERE c.id IN (SELECT DISTINCT CustomerId FROM #FilteredItems)
-                  AND c.latitude IS NOT NULL
-                  AND c.longitude IS NOT NULL
-                FOR JSON PATH
-            )) AS mapCustomers
-
-        FOR JSON PATH, WITHOUT_ARRAY_WRAPPER
-    );
-
-    SELECT @jsonResult AS jsonResult;
-
-    DROP TABLE #FilteredItems;
-END;
-`;
-let isSpEnsured = false;
-/**
- * Ensures that the Stored Procedure sp_GetSalesControlTowerAggregations exists in SQL Server.
- */
-async function ensureStoredProcedure() {
-    if (isSpEnsured)
-        return;
-    try {
-        await prisma_client_1.default.$executeRawUnsafe(SP_SALES_CONTROL_TOWER_SQL);
-        isSpEnsured = true;
-    }
-    catch (err) {
-        console.warn('Could not auto-ensure sp_GetSalesControlTowerAggregations:', err);
-    }
-}
 /**
  * Escapes string safely for inclusion in dynamic SQL statements.
  *
@@ -695,6 +297,8 @@ function formatAggFromSP(rawInput, staffLookup) {
         return createEmptyAgg();
     const raw = safeParseJson(rawInput);
     const rawByDepot = safeParseJson(raw.byDepot) || [];
+    const rawByCoord = safeParseJson(raw.byCoord) || [];
+    const rawBySup = safeParseJson(raw.bySup) || [];
     const rawByRoute = safeParseJson(raw.byRoute) || [];
     const rawBySal = safeParseJson(raw.bySal) || [];
     const rawByBrand = safeParseJson(raw.byBrand) || [];
@@ -724,7 +328,9 @@ function formatAggFromSP(rawInput, staffLookup) {
         map[key].TV += val;
         map[key].count += count;
     };
-    /** 1. Process By Depot & derive Coordinator / Supervisor metrics */
+    const hasDirectCoord = Array.isArray(rawByCoord) && rawByCoord.length > 0;
+    const hasDirectSup = Array.isArray(rawBySup) && rawBySup.length > 0;
+    /** 1. Process By Depot & derive Coordinator / Supervisor metrics if not directly provided */
     for (const item of Array.isArray(rawByDepot) ? rawByDepot : []) {
         const dName = item.key;
         const uc = Number(item.UC) || 0;
@@ -732,13 +338,31 @@ function formatAggFromSP(rawInput, staffLookup) {
         const tv = Number(item.TV) || 0;
         const count = Number(item.count) || 0;
         acc(byDepot, dName, uc, pc, tv, count);
-        const staff = staffLookup.resolveStaff({
-            depotName: dName !== 'Unassigned' ? dName : undefined,
-        });
-        const cName = staff.coordinatorName || 'Unassigned';
-        const supName = staff.supervisorName || 'Unassigned';
-        acc(byCoord, cName, uc, pc, tv, count);
-        acc(bySup, supName, uc, pc, tv, count);
+        if (!hasDirectCoord || !hasDirectSup) {
+            const staff = staffLookup.resolveStaff({
+                depotName: dName !== 'Unassigned' ? dName : undefined,
+            });
+            if (!hasDirectCoord) {
+                const cName = staff.coordinatorName || 'Unassigned';
+                acc(byCoord, cName, uc, pc, tv, count);
+            }
+            if (!hasDirectSup) {
+                const supName = staff.supervisorName || 'Unassigned';
+                acc(bySup, supName, uc, pc, tv, count);
+            }
+        }
+    }
+    /** Direct Coordinator aggregations from SP */
+    if (hasDirectCoord) {
+        for (const item of rawByCoord) {
+            acc(byCoord, item.key, Number(item.UC) || 0, Number(item.PC) || 0, Number(item.TV) || 0, Number(item.count) || 0);
+        }
+    }
+    /** Direct Supervisor aggregations from SP */
+    if (hasDirectSup) {
+        for (const item of rawBySup) {
+            acc(bySup, item.key, Number(item.UC) || 0, Number(item.PC) || 0, Number(item.TV) || 0, Number(item.count) || 0);
+        }
     }
     /** 2. Process By Route */
     for (const item of Array.isArray(rawByRoute) ? rawByRoute : []) {
@@ -748,11 +372,21 @@ function formatAggFromSP(rawInput, staffLookup) {
         const pc = Number(item.PC) || 0;
         const tv = Number(item.TV) || 0;
         const count = Number(item.count) || 0;
-        const staff = staffLookup.resolveStaff({
-            depotName: dName !== 'Unassigned' ? dName : undefined,
-        });
-        const cName = staff.coordinatorName || 'Unassigned';
-        const supName = staff.supervisorName || 'Unassigned';
+        let cName = item.Coordinator && item.Coordinator !== 'Unassigned'
+            ? item.Coordinator
+            : '';
+        let supName = item.Supervisor && item.Supervisor !== 'Unassigned'
+            ? item.Supervisor
+            : '';
+        if (!cName || !supName) {
+            const staff = staffLookup.resolveStaff({
+                depotName: dName !== 'Unassigned' ? dName : undefined,
+            });
+            if (!cName)
+                cName = staff.coordinatorName || 'Unassigned';
+            if (!supName)
+                supName = staff.supervisorName || 'Unassigned';
+        }
         acc(byRoute, rName, uc, pc, tv, count, {
             Depot: dName,
             Coordinator: cName,
@@ -773,30 +407,38 @@ function formatAggFromSP(rawInput, staffLookup) {
     }
     /** 6. Process By Brand */
     for (const item of Array.isArray(rawByBrand) ? rawByBrand : []) {
-        acc(byBrand, item.key, Number(item.UC) || 0, Number(item.PC) || 0, Number(item.TV) || 0, 0);
+        acc(byBrand, item.key, Number(item.UC) || 0, Number(item.PC) || 0, Number(item.TV) || 0, Number(item.count) || 0);
     }
     /** 7. Process By Pack */
     for (const item of Array.isArray(rawByPack) ? rawByPack : []) {
-        acc(byPack, item.key, Number(item.UC) || 0, Number(item.PC) || 0, Number(item.TV) || 0, 0);
+        acc(byPack, item.key, Number(item.UC) || 0, Number(item.PC) || 0, Number(item.TV) || 0, Number(item.count) || 0);
     }
     /** 8. Process By SKU */
     for (const item of Array.isArray(rawBySKU) ? rawBySKU : []) {
-        acc(bySKU, item.key, Number(item.UC) || 0, Number(item.PC) || 0, Number(item.TV) || 0, 0);
+        acc(bySKU, item.key, Number(item.UC) || 0, Number(item.PC) || 0, Number(item.TV) || 0, Number(item.count) || 0);
     }
     /** 9. Process Sample Rows */
     const rows = (Array.isArray(rawRows) ? rawRows : []).map((r) => {
-        const staff = staffLookup.resolveStaff({
-            depotName: r.Depot !== 'Unassigned' ? r.Depot : undefined,
-        });
+        let cName = r.Coordinator && r.Coordinator !== 'Unassigned' ? r.Coordinator : '';
+        let supName = r.Supervisor && r.Supervisor !== 'Unassigned' ? r.Supervisor : '';
+        if (!cName || !supName) {
+            const staff = staffLookup.resolveStaff({
+                depotName: r.Depot !== 'Unassigned' ? r.Depot : undefined,
+            });
+            if (!cName)
+                cName = staff.coordinatorName || 'Unassigned';
+            if (!supName)
+                supName = staff.supervisorName || 'Unassigned';
+        }
         return {
             ...r,
-            Coordinator: staff.coordinatorName || 'Unassigned',
-            Supervisor: staff.supervisorName || 'Unassigned',
+            Coordinator: cName,
+            Supervisor: supName,
             UC: Number(r.UC) || 0,
             PC: Number(r.PC) || 0,
             TV: Number(r.TV) || 0,
-            StrikeRate: 100,
-            IsNew: false,
+            StrikeRate: Number(r.StrikeRate) || 100,
+            IsNew: Boolean(r.IsNew),
         };
     });
     const parsedTotals = safeParseJson(raw.totals);
@@ -936,7 +578,6 @@ exports.salesControlTowerController = {
              * Primary fast path: Execute SQL Server Stored Procedure for instant aggregations.
              */
             try {
-                await ensureStoredProcedure();
                 const [currentSPResult, prevSPResult, filterOptions] = await Promise.all([
                     runDashboardSP({
                         startDate: startDate,
@@ -1074,11 +715,17 @@ exports.salesControlTowerController = {
                     if (visits > 0) {
                         strikeRate = (productiveVisits / visits) * 100;
                     }
-                    mayAgg.avgStrike = Number(strikeRate.toFixed(1));
+                    const formattedStrikeRate = Number(strikeRate.toFixed(1));
+                    mayAgg.avgStrike = formattedStrikeRate;
                     mayAgg.newOutlets =
                         Number(currentSPResult.newOutlets) || currentNewOutlets || 0;
                     aprAgg.newOutlets =
                         Number(prevSPResult?.newOutlets) || prevNewOutlets || 0;
+                    if (Array.isArray(mayAgg.rows) && visits > 0) {
+                        mayAgg.rows.forEach((r) => {
+                            r.StrikeRate = formattedStrikeRate;
+                        });
+                    }
                     const responseData = {
                         success: true,
                         data: {
@@ -1368,8 +1015,14 @@ exports.salesControlTowerController = {
                         UC: invUC,
                         PC: invPC,
                         TV: invValue,
-                        StrikeRate: 100,
-                        IsNew: false,
+                        StrikeRate: strikeRate ? Number(strikeRate.toFixed(1)) : 100,
+                        IsNew: Boolean(inv.invoices_customers?.createdate &&
+                            startDate &&
+                            new Date(inv.invoices_customers.createdate) >=
+                                new Date(startDate) &&
+                            (!endDate ||
+                                new Date(inv.invoices_customers.createdate) <=
+                                    new Date(`${endDate} 23:59:59.999`))),
                     });
                 }
                 return {
@@ -1675,30 +1328,38 @@ exports.salesControlTowerController = {
         LEFT JOIN routes sr ON sr.id = sp_r.route_id
         LEFT JOIN depots srd ON srd.id = sr.depot_id
         OUTER APPLY (
-            SELECT TOP 1 u.id, u.name 
-            FROM users u 
-            WHERE u.id = cd.coordinator_id
-            UNION ALL
-            SELECT TOP 1 u.id, u.name
-            FROM user_depots ud_c
-            INNER JOIN users u ON u.id = ud_c.user_id
-            INNER JOIN roles r ON r.id = u.role_id
-            WHERE ud_c.depot_id = COALESCE(cd.id, crd.id, ud.id, srd.id)
-              AND ud_c.is_active = 'Y'
-              AND (r.name LIKE '%coordinator%' OR r.role_key LIKE '%coordinator%')
+            SELECT TOP 1 sub.id, sub.name 
+            FROM (
+                SELECT u.id, u.name, 1 AS prio
+                FROM users u 
+                WHERE u.id = cd.coordinator_id
+                UNION ALL
+                SELECT u.id, u.name, 2 AS prio
+                FROM user_depots ud_c
+                INNER JOIN users u ON u.id = ud_c.user_id
+                INNER JOIN roles r ON r.id = u.role_id
+                WHERE ud_c.depot_id = COALESCE(cd.id, crd.id, ud.id, srd.id)
+                  AND ud_c.is_active = 'Y'
+                  AND (r.name LIKE '%coordinator%' OR r.role_key LIKE '%coordinator%')
+            ) sub
+            ORDER BY sub.prio
         ) cd_coord
         OUTER APPLY (
-            SELECT TOP 1 u.id, u.name 
-            FROM users u 
-            WHERE u.id = cd.supervisor_id
-            UNION ALL
-            SELECT TOP 1 u.id, u.name
-            FROM user_depots ud_s
-            INNER JOIN users u ON u.id = ud_s.user_id
-            INNER JOIN roles r ON r.id = u.role_id
-            WHERE ud_s.depot_id = COALESCE(cd.id, crd.id, ud.id, srd.id)
-              AND ud_s.is_active = 'Y'
-              AND (r.name LIKE '%supervisor%' OR r.role_key LIKE '%supervisor%')
+            SELECT TOP 1 sub.id, sub.name 
+            FROM (
+                SELECT u.id, u.name, 1 AS prio
+                FROM users u 
+                WHERE u.id = cd.supervisor_id
+                UNION ALL
+                SELECT u.id, u.name, 2 AS prio
+                FROM user_depots ud_s
+                INNER JOIN users u ON u.id = ud_s.user_id
+                INNER JOIN roles r ON r.id = u.role_id
+                WHERE ud_s.depot_id = COALESCE(cd.id, crd.id, ud.id, srd.id)
+                  AND ud_s.is_active = 'Y'
+                  AND (r.name LIKE '%supervisor%' OR r.role_key LIKE '%supervisor%')
+            ) sub
+            ORDER BY sub.prio
         ) cd_sup
         WHERE inv.is_active = 'Y'
           AND (${startSql} IS NULL OR inv.invoice_date >= ${startSql})

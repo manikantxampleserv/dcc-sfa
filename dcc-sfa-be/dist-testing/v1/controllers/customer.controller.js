@@ -1,4 +1,4 @@
-﻿"use strict";
+"use strict";
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -10,6 +10,7 @@ const blackbaze_1 = require("../../utils/blackbaze");
 const requests_controller_1 = require("./requests.controller");
 const permissions_config_1 = require("../../configs/permissions.config");
 const generateCustomerCode = async (depotId) => {
+    console.log('>>> [DEBUG] generateCustomerCode CALLED for depotId:', depotId);
     const depot = await prisma_client_1.default.depots.findUnique({
         where: { id: depotId },
         select: { name: true, code: true },
@@ -17,27 +18,35 @@ const generateCustomerCode = async (depotId) => {
     if (!depot) {
         throw new Error('Depot not found');
     }
-    const depotPrefix = (depot.code?.trim() || depot.name.slice(0, 3))
+    const depotPrefix = (depot.code?.trim() ||
+        depot.name.slice(0, 3))
         .toUpperCase()
         .replace(/[^A-Z]/g, '');
+    // Fetch ALL customers for this depot prefix, then find the max numeric suffix
     const allDepotCustomers = await prisma_client_1.default.customers.findMany({
-        where: { code: { startsWith: depotPrefix } },
+        where: {
+            code: {
+                startsWith: depotPrefix,
+            },
+        },
         select: { code: true },
     });
     let newNumber = 1;
-    const padLength = 7;
+    const padLength = 7; // Standard format: 3-letter prefix + 7 digits (e.g. MOS0111965)
     if (allDepotCustomers.length > 0) {
         let maxNum = 0;
         for (const c of allDepotCustomers) {
             const match = c.code.match(/(\d+)$/);
             if (match) {
                 const num = parseInt(match[1], 10);
-                if (num > maxNum) maxNum = num;
+                if (num > maxNum)
+                    maxNum = num;
             }
         }
         newNumber = maxNum + 1;
     }
-    const code = ``; 
+    const code = `${depotPrefix}${newNumber.toString().padStart(padLength, '0')}`;
+    console.log(`[CODE-GEN v2] depot=${depotPrefix} customers=${allDepotCustomers.length} max=${newNumber - 1} generated=${code}`);
     return code;
 };
 const serializeCustomer = async (customer, defaultOutletIdSet) => {
@@ -673,8 +682,14 @@ exports.customerController = {
                                 });
                                 if (!codeExists)
                                     break;
-                                const timestamp = Date.now().toString().slice(-4);
-                                uniqueCode = `${uniqueCode.slice(0, -3)}${timestamp}`;
+                                // Increment the numeric suffix while preserving prefix + padding
+                                const collisionMatch = uniqueCode.match(/^([A-Z]+)(\d+)$/);
+                                if (collisionMatch) {
+                                    const prefix = collisionMatch[1];
+                                    const padLen = collisionMatch[2].length;
+                                    const nextNum = parseInt(collisionMatch[2], 10) + 1;
+                                    uniqueCode = `${prefix}${nextNum.toString().padStart(padLen, '0')}`;
+                                }
                                 attempts++;
                             }
                             if (attempts >= maxAttempts) {
@@ -1331,6 +1346,7 @@ exports.customerController = {
     },
     async createCustomers(req, res) {
         try {
+            console.log('>>> [DEBUG] createCustomers CALLED with body:', JSON.stringify(req.body));
             const data = req.body;
             if (!data.name) {
                 return res.status(400).json({ message: 'Customer name is required' });
@@ -1376,7 +1392,19 @@ exports.customerController = {
                 }
                 delete processedData.zone_id;
             }
-            let customerCode = data.code || (await generateCustomerCode(depotId));
+            const providedCode = data.code ? String(data.code).trim() : '';
+            let customerCode = providedCode || (await generateCustomerCode(depotId));
+            // Ensure standard format: prefix + leading 0 + number (e.g. MOS0111973, ARUS0150015, MOSDF011)
+            const matchPrefix = customerCode.match(/^([A-Za-z]+)(\d+)$/);
+            if (matchPrefix) {
+                const pfx = matchPrefix[1].toUpperCase();
+                let digits = matchPrefix[2];
+                if (!digits.startsWith('0')) {
+                    digits = `0${digits}`;
+                }
+                customerCode = `${pfx}${digits}`;
+            }
+            console.log('>>> [DEBUG] customerCode before collision check:', customerCode, 'data.code was:', data.code);
             let attempts = 0;
             const maxAttempts = 10;
             while (attempts < maxAttempts) {
@@ -1394,8 +1422,14 @@ exports.customerController = {
                 });
                 if (!codeInCustomers && !codeInPendingRequests)
                     break;
-                const timestamp = Date.now().toString().slice(-4);
-                customerCode = `${customerCode.slice(0, -3)}${timestamp}`;
+                // Increment the numeric suffix while preserving prefix + padding
+                const collisionMatch = customerCode.match(/^([A-Z]+)(\d+)$/);
+                if (collisionMatch) {
+                    const prefix = collisionMatch[1];
+                    const padLen = collisionMatch[2].length;
+                    const nextNum = parseInt(collisionMatch[2], 10) + 1;
+                    customerCode = `${prefix}${nextNum.toString().padStart(padLen, '0')}`;
+                }
                 attempts++;
             }
             // 1. NFC Code: if left blank/empty, use the outlet code (customerCode)

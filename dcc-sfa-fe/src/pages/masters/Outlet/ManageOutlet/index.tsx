@@ -271,9 +271,9 @@ const ManageOutlet: React.FC<ManageOutletProps> = ({
             <Input
               name="code"
               label="Outlet Code"
-              placeholder="Enter outlet code"
+              placeholder="Leave blank to auto-generate"
               formik={formik}
-              required
+              inputProps={{ maxLength: 10 }}
             />
 
             <DepotSelect
