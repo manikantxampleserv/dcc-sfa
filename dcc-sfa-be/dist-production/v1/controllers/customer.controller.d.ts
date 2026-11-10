@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+export declare const normalizeCustomerCode: (rawCode: string) => string;
 export declare const customerController: {
     uploadCustomerImages(req: any, res: any): Promise<any>;
     bulkUpsertCustomers(req: any, res: any): Promise<any>;
