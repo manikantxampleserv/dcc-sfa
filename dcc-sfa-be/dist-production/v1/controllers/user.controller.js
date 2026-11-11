@@ -116,6 +116,7 @@ const serializeUser = (user, includeCreatedAt = false, includeUpdatedAt = false)
             }))
             : [],
 });
+console.log('searlizer');
 exports.userController = {
     async createUser(req, res) {
         try {
