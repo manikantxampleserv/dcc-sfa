@@ -122,6 +122,7 @@ const serializeUser = (
             }))
         : [],
 });
+console.log('searlizer');
 
 export const userController = {
   async createUser(req: any, res: any): Promise<void> {
