@@ -58,11 +58,13 @@ const serializeUser = (
       }
     : null,
   depots: user.users_depots_users
-    ? user.users_depots_users.map((ud: any) => ({
-        id: ud.user_depots_depot_id.id,
-        name: ud.user_depots_depot_id.name,
-        code: ud.user_depots_depot_id.code,
-      }))
+    ? user.users_depots_users
+        .filter((ud: any) => ud && ud.user_depots_depot_id)
+        .map((ud: any) => ({
+          id: ud.user_depots_depot_id.id,
+          name: ud.user_depots_depot_id.name,
+          code: ud.user_depots_depot_id.code,
+        }))
     : [],
 
   reporting_manager: user.users
@@ -89,20 +91,9 @@ const serializeUser = (
     : null,
   routes:
     user.route_salespersons && user.route_salespersons.length > 0
-      ? user.route_salespersons.map((rs: any) => ({
-          id: rs.route.id,
-          name: rs.route.name,
-          code: rs.route.code,
-          description: rs.route.description,
-          start_location: rs.route.start_location,
-          end_location: rs.route.end_location,
-          estimated_distance: rs.route.estimated_distance,
-          estimated_time: rs.route.estimated_time,
-          role: rs.role,
-          assigned_at: rs.assigned_at,
-        }))
-      : user.sub_inventory_parent?.route_salespersons
-        ? user.sub_inventory_parent.route_salespersons.map((rs: any) => ({
+      ? user.route_salespersons
+          .filter((rs: any) => rs && rs.route)
+          .map((rs: any) => ({
             id: rs.route.id,
             name: rs.route.name,
             code: rs.route.code,
@@ -114,6 +105,21 @@ const serializeUser = (
             role: rs.role,
             assigned_at: rs.assigned_at,
           }))
+      : user.sub_inventory_parent?.route_salespersons
+        ? user.sub_inventory_parent.route_salespersons
+            .filter((rs: any) => rs && rs.route)
+            .map((rs: any) => ({
+              id: rs.route.id,
+              name: rs.route.name,
+              code: rs.route.code,
+              description: rs.route.description,
+              start_location: rs.route.start_location,
+              end_location: rs.route.end_location,
+              estimated_distance: rs.route.estimated_distance,
+              estimated_time: rs.route.estimated_time,
+              role: rs.role,
+              assigned_at: rs.assigned_at,
+            }))
         : [],
 });
 
