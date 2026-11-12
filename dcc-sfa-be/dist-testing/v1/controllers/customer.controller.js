@@ -3,14 +3,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.customerController = void 0;
+exports.customerController = exports.normalizeCustomerCode = void 0;
 const paginate_1 = require("../../utils/paginate");
 const prisma_client_1 = __importDefault(require("../../configs/prisma.client"));
 const blackbaze_1 = require("../../utils/blackbaze");
 const requests_controller_1 = require("./requests.controller");
 const permissions_config_1 = require("../../configs/permissions.config");
 const generateCustomerCode = async (depotId) => {
-    console.log('>>> [DEBUG] generateCustomerCode CALLED for depotId:', depotId);
     const depot = await prisma_client_1.default.depots.findUnique({
         where: { id: depotId },
         select: { name: true, code: true },
@@ -18,11 +17,15 @@ const generateCustomerCode = async (depotId) => {
     if (!depot) {
         throw new Error('Depot not found');
     }
-    const depotPrefix = (depot.code?.trim() ||
-        depot.name.slice(0, 3))
+    let depotPrefix = (depot.code?.trim() || depot.name.slice(0, 3))
         .toUpperCase()
         .replace(/[^A-Z]/g, '');
-    // Fetch ALL customers for this depot prefix, then find the max numeric suffix
+    if (!depotPrefix) {
+        depotPrefix = 'CUS';
+    }
+    if (depotPrefix.length > 5) {
+        depotPrefix = depotPrefix.slice(0, 3);
+    }
     const allDepotCustomers = await prisma_client_1.default.customers.findMany({
         where: {
             code: {
@@ -31,24 +34,77 @@ const generateCustomerCode = async (depotId) => {
         },
         select: { code: true },
     });
-    let newNumber = 1;
-    const padLength = 7; // Standard format: 3-letter prefix + 7 digits (e.g. MOS0111965)
-    if (allDepotCustomers.length > 0) {
-        let maxNum = 0;
-        for (const c of allDepotCustomers) {
-            const match = c.code.match(/(\d+)$/);
-            if (match) {
-                const num = parseInt(match[1], 10);
-                if (num > maxNum)
-                    maxNum = num;
+    const pendingRequests = await prisma_client_1.default.sfa_d_requests.findMany({
+        where: {
+            request_type: 'CUSTOMER_CREATION',
+            status: 'P',
+            request_data: {
+                contains: depotPrefix,
+            },
+        },
+        select: { request_data: true },
+    });
+    let maxNum = 0;
+    for (const c of allDepotCustomers) {
+        const match = c.code.match(/(\d+)$/);
+        if (match) {
+            const num = parseInt(match[1], 10);
+            if (num > maxNum)
+                maxNum = num;
+        }
+    }
+    for (const req of pendingRequests) {
+        if (!req.request_data)
+            continue;
+        try {
+            const parsed = JSON.parse(req.request_data);
+            const reqCode = parsed?.customer_data?.code;
+            if (typeof reqCode === 'string' && reqCode.startsWith(depotPrefix)) {
+                const match = reqCode.match(/(\d+)$/);
+                if (match) {
+                    const num = parseInt(match[1], 10);
+                    if (num > maxNum)
+                        maxNum = num;
+                }
             }
         }
-        newNumber = maxNum + 1;
+        catch { }
     }
-    const code = `${depotPrefix}${newNumber.toString().padStart(padLength, '0')}`;
-    console.log(`[CODE-GEN v2] depot=${depotPrefix} customers=${allDepotCustomers.length} max=${newNumber - 1} generated=${code}`);
+    const padLength = Math.max(10 - depotPrefix.length, 1);
+    const newNumber = maxNum > 0 ? maxNum + 1 : 1;
+    let code = `${depotPrefix}${newNumber.toString().padStart(padLength, '0')}`;
+    if (code.length > 10) {
+        code = code.slice(0, 10);
+    }
     return code;
 };
+const normalizeCustomerCode = (rawCode) => {
+    let code = (rawCode || '').trim().toUpperCase().replace(/\s+/g, '');
+    if (!code)
+        return code;
+    const match = code.match(/^([A-Z]+)(\d+)$/);
+    if (match) {
+        const pfx = match[1];
+        let digits = match[2];
+        if (!digits.startsWith('0')) {
+            if (pfx.length + digits.length + 1 <= 10) {
+                digits = `0${digits}`;
+            }
+        }
+        code = `${pfx}${digits}`;
+    }
+    else if (/^\d+$/.test(code)) {
+        // Pure digits: ensure leading 0 if not present
+        if (!code.startsWith('0') && code.length + 1 <= 10) {
+            code = `0${code}`;
+        }
+    }
+    if (code.length > 10) {
+        code = code.slice(0, 10);
+    }
+    return code;
+};
+exports.normalizeCustomerCode = normalizeCustomerCode;
 const serializeCustomer = async (customer, defaultOutletIdSet) => {
     if (!customer) {
         return {};
@@ -673,22 +729,26 @@ exports.customerController = {
                         let oldProfilePic = null;
                         let isUpdate = false;
                         if (!existingCustomer) {
-                            let uniqueCode = await generateCustomerCode(final_depot_id);
+                            let uniqueCode = cleanData.code
+                                ? (0, exports.normalizeCustomerCode)(cleanData.code)
+                                : await generateCustomerCode(final_depot_id);
                             let attempts = 0;
-                            const maxAttempts = 10;
+                            const maxAttempts = 20;
                             while (attempts < maxAttempts) {
                                 const codeExists = await prisma_client_1.default.customers.findUnique({
                                     where: { code: uniqueCode },
                                 });
                                 if (!codeExists)
                                     break;
-                                // Increment the numeric suffix while preserving prefix + padding
                                 const collisionMatch = uniqueCode.match(/^([A-Z]+)(\d+)$/);
                                 if (collisionMatch) {
                                     const prefix = collisionMatch[1];
                                     const padLen = collisionMatch[2].length;
                                     const nextNum = parseInt(collisionMatch[2], 10) + 1;
                                     uniqueCode = `${prefix}${nextNum.toString().padStart(padLen, '0')}`;
+                                    if (uniqueCode.length > 10) {
+                                        uniqueCode = uniqueCode.slice(0, 10);
+                                    }
                                 }
                                 attempts++;
                             }
@@ -1393,20 +1453,16 @@ exports.customerController = {
                 delete processedData.zone_id;
             }
             const providedCode = data.code ? String(data.code).trim() : '';
-            let customerCode = providedCode || (await generateCustomerCode(depotId));
-            // Ensure standard format: prefix + leading 0 + number (e.g. MOS0111973, ARUS0150015, MOSDF011)
-            const matchPrefix = customerCode.match(/^([A-Za-z]+)(\d+)$/);
-            if (matchPrefix) {
-                const pfx = matchPrefix[1].toUpperCase();
-                let digits = matchPrefix[2];
-                if (!digits.startsWith('0')) {
-                    digits = `0${digits}`;
-                }
-                customerCode = `${pfx}${digits}`;
+            let customerCode = '';
+            if (providedCode) {
+                customerCode = (0, exports.normalizeCustomerCode)(providedCode);
+            }
+            else {
+                customerCode = await generateCustomerCode(depotId);
             }
             console.log('>>> [DEBUG] customerCode before collision check:', customerCode, 'data.code was:', data.code);
             let attempts = 0;
-            const maxAttempts = 10;
+            const maxAttempts = 20;
             while (attempts < maxAttempts) {
                 const codeInCustomers = await prisma_client_1.default.customers.findUnique({
                     where: { code: customerCode },
@@ -1422,13 +1478,16 @@ exports.customerController = {
                 });
                 if (!codeInCustomers && !codeInPendingRequests)
                     break;
-                // Increment the numeric suffix while preserving prefix + padding
+                // Increment the numeric suffix while preserving the code's own padding
                 const collisionMatch = customerCode.match(/^([A-Z]+)(\d+)$/);
                 if (collisionMatch) {
                     const prefix = collisionMatch[1];
                     const padLen = collisionMatch[2].length;
                     const nextNum = parseInt(collisionMatch[2], 10) + 1;
                     customerCode = `${prefix}${nextNum.toString().padStart(padLen, '0')}`;
+                    if (customerCode.length > 10) {
+                        customerCode = customerCode.slice(0, 10);
+                    }
                 }
                 attempts++;
             }
@@ -2423,6 +2482,9 @@ exports.customerController = {
             };
             if (parsedFreezeLocation !== undefined) {
                 data.freeze_location = parsedFreezeLocation;
+            }
+            if (otherData.code) {
+                data.code = (0, exports.normalizeCustomerCode)(otherData.code);
             }
             const customer = await prisma_client_1.default.customers.update({
                 where: { id: Number(id) },
