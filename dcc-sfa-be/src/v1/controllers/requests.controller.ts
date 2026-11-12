@@ -853,8 +853,9 @@ export const createRequest = async (data: {
 
         setImmediate(async () => {
           try {
-            const { vanInventoryController } =
-              await import('./vanInventory.controller');
+            const { vanInventoryController } = await import(
+              './vanInventory.controller'
+            );
 
             let vanInventoryIdToProcess: number | null = null;
             let reqData: any = null;
@@ -1204,6 +1205,27 @@ export const createRequest = async (data: {
             updatedby: data.createdby,
             updatedate: new Date(),
           },
+        });
+
+        setImmediate(async () => {
+          try {
+            const { vanInventoryController } = await import(
+              './vanInventory.controller'
+            );
+            await vanInventoryController.processApprovedVanInventoryStock(
+              Number(data.reference_id),
+              data.createdby,
+              data.request_data ? JSON.parse(data.request_data) : null
+            );
+            console.log(
+              `Completed auto-approved stock processing for VAN_INVENTORY ${data.reference_id}`
+            );
+          } catch (err) {
+            console.error(
+              'Error processing auto-approved van inventory stock:',
+              err
+            );
+          }
         });
       }
 
@@ -3117,8 +3139,9 @@ export const requestsController = {
             `Approved VAN_INVENTORY request detected: requestId=${result.request.id}, referenceId=${result.request.reference_id}`
           );
           try {
-            const { vanInventoryController } =
-              await import('../controllers/vanInventory.controller');
+            const { vanInventoryController } = await import(
+              './vanInventory.controller'
+            );
             await vanInventoryController.processApprovedVanInventoryStock(
               result.request.reference_id,
               userId,
@@ -3131,9 +3154,30 @@ export const requestsController = {
             );
           } catch (err) {
             console.error(
-              'Error processing approved van inventory stock:',
+              'Error processing approved van inventory stock, retrying once in 1s...',
               err
             );
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            try {
+              const { vanInventoryController } = await import(
+                './vanInventory.controller'
+              );
+              await vanInventoryController.processApprovedVanInventoryStock(
+                result.request.reference_id,
+                userId,
+                result.request.request_data
+                  ? JSON.parse(result.request.request_data)
+                  : null
+              );
+              console.log(
+                `Retry succeeded: completed stock processing for approved VAN_INVENTORY request ${result.request.reference_id}`
+              );
+            } catch (retryErr) {
+              console.error(
+                'Retry also failed for approved van inventory stock:',
+                retryErr
+              );
+            }
           }
         }
         // if (
@@ -3171,8 +3215,9 @@ export const requestsController = {
           result.request.reference_id
         ) {
           try {
-            const { vanInventoryController } =
-              await import('../controllers/vanInventory.controller');
+            const { vanInventoryController } = await import(
+              '../controllers/vanInventory.controller'
+            );
 
             const vanInventoryId =
               await vanInventoryController.createVanInventoryFromReconciliation(
@@ -3674,11 +3719,13 @@ export const requestsController = {
             reference_details: referenceDetails,
             request_images:
               request.status === 'P'
-                ? (request.sfa_d_request_images_sfa_d_request || []).map((img: any) => ({
-                    id: img.id,
-                    image_url: img.image_url,
-                    caption: img.caption,
-                  }))
+                ? (request.sfa_d_request_images_sfa_d_request || []).map(
+                    (img: any) => ({
+                      id: img.id,
+                      image_url: img.image_url,
+                      caption: img.caption,
+                    })
+                  )
                 : [],
             approvals: [
               {

@@ -51,7 +51,7 @@ const parseConnectionString = (connectionString: string): MssqlConfig => {
     requestTimeout: 6000000,
     pool: {
       max: 20,
-      min: 1,
+      min: 0,
       idleTimeoutMillis: 30000,
       acquireTimeoutMillis: 60000,
       createTimeoutMillis: 30000,
@@ -74,8 +74,8 @@ export const getPrisma = (): PrismaClient => {
       log:
         process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
       transactionOptions: {
-        maxWait: 5000,
-        timeout: 10000,
+        maxWait: 15000,
+        timeout: 60000,
         isolationLevel: 'ReadCommitted',
       },
     });
