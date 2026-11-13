@@ -422,7 +422,9 @@ const PromotionMaterialsIssuedReport: React.FC = () => {
             <DepotSelect
               label=""
               value={depotId}
-              onChange={val => setDepotId(val)}
+              onChange={(_e, depot) =>
+                setDepotId(depot?.id ? Number(depot.id) : undefined)
+              }
               placeholder="All Depots"
               size="small"
             />
@@ -437,7 +439,9 @@ const PromotionMaterialsIssuedReport: React.FC = () => {
                 name=""
                 label="All Items"
                 value={assetId}
-                onChange={val => setAssetId(val)}
+                onChange={(_e, asset) =>
+                  setAssetId(asset?.id ? Number(asset.id) : undefined)
+                }
               />
             </div>
           </div>

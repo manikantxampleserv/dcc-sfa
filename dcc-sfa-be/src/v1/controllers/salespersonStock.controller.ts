@@ -655,6 +655,11 @@ async function handleAllSalespersons(
     search,
   } = req.query;
 
+  let parsedDepotId: number | null = null;
+  if (depot_id) {
+    parsedDepotId = parseInt(depot_id as string, 10);
+  }
+
   const usersWhere: any = {
     AND: [
       {
@@ -685,6 +690,21 @@ async function handleAllSalespersons(
   };
   if (supervisor_id) {
     usersWhere.reporting_to = parseInt(supervisor_id as string, 10);
+  }
+  if (parsedDepotId) {
+    usersWhere.AND.push({
+      OR: [
+        { depot_id: parsedDepotId },
+        {
+          users_depots_users: {
+            some: {
+              depot_id: parsedDepotId,
+              OR: [{ is_active: 'Y' }, { is_active: null }],
+            },
+          },
+        },
+      ],
+    });
   }
 
   const user = (req as any).user;
@@ -759,11 +779,6 @@ async function handleAllSalespersons(
   let overallVanInventories = 0;
   let overallBatches = 0;
   let overallSerials = 0;
-
-  let parsedDepotId: number | null = null;
-  if (depot_id) {
-    parsedDepotId = parseInt(depot_id as string, 10);
-  }
 
   const allSalespersonIds = allSalespersons.map(sp => sp.id);
 
@@ -908,7 +923,10 @@ async function handleAllSalespersons(
       seenDepotIds.add(sp.user_depot.id);
     }
 
-    const primaryDepot = depotsList[0] || null;
+    const primaryDepot =
+      (parsedDepotId ? depotsList.find(d => d.id === parsedDepotId) : null) ||
+      depotsList[0] ||
+      null;
     const depotNameStr = primaryDepot?.name || null;
 
     consolidated.push({

@@ -132,7 +132,6 @@ export const excelSyncController = {
 
       const parsedStart = parseFilterDate(startDateRaw, false);
       const parsedEnd = parseFilterDate(endDateRaw, true);
-      const BATCH_SIZE = 5000;
 
       const invoiceWhere: any = { is_active: 'Y' };
 
@@ -144,10 +143,12 @@ export const excelSyncController = {
 
       if (user_id) {
         const uid = Number(user_id);
-        invoiceWhere.OR = [
-          { salesperson_id: uid },
-          { salesperson_id: null, createdby: uid },
-        ];
+        if (!isNaN(uid)) {
+          invoiceWhere.OR = [
+            { salesperson_id: uid },
+            { salesperson_id: null, createdby: uid },
+          ];
+        }
       }
 
       const headers = [
@@ -201,197 +202,130 @@ export const excelSyncController = {
       });
       const usersById = new Map<number, any>(usersList.map(u => [u.id, u]));
 
-      let hasLineItems = true;
-      let lastItemId: number | null = null;
-      let totalExported = 0;
+      const INVOICE_BATCH_SIZE = 100;
+      let lastInvId: number | null = null;
       let hasMore = true;
 
       while (hasMore) {
-        const batch: any[] = await prisma.invoice_items.findMany({
-          where: { invoices: invoiceWhere },
-          take: BATCH_SIZE,
-          ...(lastItemId !== null
-            ? { skip: 1, cursor: { id: lastItemId } }
-            : {}),
+        const batch: any[] = await prisma.invoices.findMany({
+          where: invoiceWhere,
+          take: INVOICE_BATCH_SIZE,
+          ...(lastInvId !== null ? { skip: 1, cursor: { id: lastInvId } } : {}),
           orderBy: { id: 'desc' },
-          include: {
-            invoices: {
-              include: {
-                invoices_customers: {
-                  include: {
-                    customer_depot: true,
-                    customer_zones: true,
-                    customer_routes: true,
-                    customer_channel_customer: true,
-                    customer_type_customer: true,
+          select: {
+            id: true,
+            invoice_date: true,
+            createdate: true,
+            invoice_number: true,
+            total_amount: true,
+            salesperson_id: true,
+            createdby: true,
+            invoice_items: {
+              select: {
+                id: true,
+                quantity: true,
+                base_quantity: true,
+                conversion_factor: true,
+                total_amount: true,
+                notes: true,
+                unit: true,
+                product_name: true,
+                invoice_items_products: {
+                  select: {
+                    code: true,
+                    name: true,
+                    unit_case_conversion_rate: true,
+                    product_categories_products: {
+                      select: { category_name: true },
+                    },
+                    product_flavours_products: { select: { name: true } },
+                    product_volumes_products: { select: { name: true } },
+                    product_brands: { select: { name: true } },
+                    product_types_products: { select: { name: true } },
+                    product_unit_of_measurement: {
+                      select: { name: true, conversion_rate: true },
+                    },
                   },
                 },
-                invoices_salesperson: true,
               },
             },
-            invoice_items_products: {
-              include: {
-                product_categories_products: true,
-                product_flavours_products: true,
-                product_volumes_products: true,
-                product_brands: true,
-                product_types_products: true,
-                product_unit_of_measurement: true,
+            invoices_customers: {
+              select: {
+                code: true,
+                name: true,
+                customer_channel_customer: { select: { channel_name: true } },
+                customer_type_customer: { select: { type_name: true } },
+                customer_zones: { select: { name: true } },
+                customer_depot: { select: { id: true, name: true } },
+                customer_routes: { select: { code: true, name: true } },
+              },
+            },
+            invoices_salesperson: {
+              select: {
+                id: true,
+                name: true,
+                employee_id: true,
+                sap_code: true,
               },
             },
           },
         });
 
         if (!batch || batch.length === 0) {
-          if (totalExported === 0) {
-            hasLineItems = false;
-          }
           break;
         }
 
         const lines: string[] = [];
-        for (const item of batch) {
-          const inv = item.invoices;
-          const cust = inv?.invoices_customers;
-          let sp = inv?.invoices_salesperson;
-          if (!sp && inv?.createdby) {
+        for (const inv of batch) {
+          const cust = inv.invoices_customers;
+          let sp = inv.invoices_salesperson;
+          if (!sp && inv.createdby) {
             sp = usersById.get(Number(inv.createdby)) || null;
           }
           if (isHiddenUser(sp)) continue;
-          const prod = item.invoice_items_products;
-          const depot = cust?.customer_depot;
 
+          const depot = cust?.customer_depot;
           const staff = staffLookup.resolveStaff({
             customerDepot: depot,
             salesperson: sp,
             depotName: depot?.name,
           });
 
-          const phyCase = Number(item.quantity) || 0;
-          const conversionRate = Number(prod?.unit_case_conversion_rate) || 1;
-          const unitCase = Number((phyCase * conversionRate).toFixed(3));
-          const turnover = Number(item.total_amount) || 0;
-
-          const dateVal = inv?.invoice_date || inv?.createdate;
+          const dateVal = inv.invoice_date || inv.createdate;
           if (!dateVal) continue;
+          const evDate = formatDateDMY(dateVal);
+          const depotName = staff.depotName || depot?.name || '';
+          const coordinatorName = staff.coordinatorName || '';
+          const supervisorName = staff.supervisorName || '';
+          const sellerCode = sp?.employee_id || sp?.sap_code || '';
+          const salesmanName = sp?.name || '';
+          const outletCode = cust?.code || '';
+          const outletName = cust?.name || '';
+          const zoneName = cust?.customer_zones?.name || '';
+          const routeName =
+            cust?.customer_routes?.name || cust?.customer_routes?.code || '';
+          const channelName =
+            cust?.customer_channel_customer?.channel_name || '';
+          const typeName = cust?.customer_type_customer?.type_name || '';
+          const invNumber = inv.invoice_number || '';
 
-          lines.push(
-            [
-              escapeCsv(formatDateDMY(dateVal)),
-              escapeCsv(staff.depotName || depot?.name || ''),
-              escapeCsv(staff.coordinatorName || ''),
-              escapeCsv(staff.supervisorName || ''),
-              escapeCsv(sp?.employee_id || sp?.sap_code || ''),
-              escapeCsv(sp?.name || ''),
-              escapeCsv(cust?.code || ''),
-              escapeCsv(cust?.name || ''),
-              escapeCsv(cust?.customer_zones?.name || ''),
-              escapeCsv(
-                cust?.customer_routes?.code || cust?.customer_routes?.name || ''
-              ),
-              escapeCsv(cust?.customer_channel_customer?.channel_name || ''),
-              escapeCsv(cust?.customer_type_customer?.type_name || ''),
-              escapeCsv(inv?.invoice_number || ''),
-              escapeCsv(item.notes || ''),
-              escapeCsv(prod?.product_categories_products?.category_name || ''),
-              escapeCsv(prod?.product_flavours_products?.name || ''),
-              escapeCsv(prod?.product_volumes_products?.name || ''),
-              escapeCsv(prod?.product_brands?.name || ''),
-              escapeCsv(prod?.code || ''),
-              escapeCsv(prod?.name || item.product_name || ''),
-              escapeCsv(
-                prod?.product_types_products?.name ||
-                  prod?.product_unit_of_measurement?.name ||
-                  item.unit ||
-                  ''
-              ),
-              escapeCsv(phyCase),
-              escapeCsv(unitCase),
-              escapeCsv(turnover),
-            ].join(',')
-          );
-        }
-
-        if (lines.length > 0) {
-          res.write(lines.join('\r\n') + '\r\n');
-        }
-
-        totalExported += batch.length;
-        lastItemId = batch[batch.length - 1].id;
-        if (batch.length < BATCH_SIZE) {
-          hasMore = false;
-        }
-      }
-
-      if (!hasLineItems) {
-        /**
-         * Fallback to invoice header level when line items are not populated
-         */
-        let lastInvId: number | null = null;
-        let hasMoreInv = true;
-
-        while (hasMoreInv) {
-          const batchInvoices: any[] = await prisma.invoices.findMany({
-            where: invoiceWhere,
-            take: BATCH_SIZE,
-            ...(lastInvId !== null
-              ? { skip: 1, cursor: { id: lastInvId } }
-              : {}),
-            orderBy: { id: 'desc' },
-            include: {
-              invoices_customers: {
-                include: {
-                  customer_depot: true,
-                  customer_zones: true,
-                  customer_routes: true,
-                  customer_channel_customer: true,
-                  customer_type_customer: true,
-                },
-              },
-              invoices_salesperson: true,
-            },
-          });
-
-          if (!batchInvoices || batchInvoices.length === 0) break;
-
-          const lines: string[] = [];
-          for (const inv of batchInvoices) {
-            const cust = inv.invoices_customers;
-            let sp = inv.invoices_salesperson;
-            if (!sp && inv.createdby) {
-              sp = usersById.get(Number(inv.createdby)) || null;
-            }
-            if (isHiddenUser(sp)) continue;
-            const depot = cust?.customer_depot;
-
-            const staff = staffLookup.resolveStaff({
-              customerDepot: depot,
-              salesperson: sp,
-              depotName: depot?.name,
-            });
-
-            const dateVal = inv.invoice_date || inv.createdate;
-            if (!dateVal) continue;
-
+          const items = inv.invoice_items || [];
+          if (items.length === 0) {
             lines.push(
               [
-                escapeCsv(formatDateDMY(dateVal)),
-                escapeCsv(staff.depotName || depot?.name || ''),
-                escapeCsv(staff.coordinatorName || ''),
-                escapeCsv(staff.supervisorName || ''),
-                escapeCsv(sp?.employee_id || sp?.sap_code || ''),
-                escapeCsv(sp?.name || ''),
-                escapeCsv(cust?.code || ''),
-                escapeCsv(cust?.name || ''),
-                escapeCsv(cust?.customer_zones?.name || ''),
-                escapeCsv(
-                  cust?.customer_routes?.code ||
-                    cust?.customer_routes?.name ||
-                    ''
-                ),
-                escapeCsv(cust?.customer_channel_customer?.channel_name || ''),
-                escapeCsv(cust?.customer_type_customer?.type_name || ''),
-                escapeCsv(inv.invoice_number),
+                escapeCsv(evDate),
+                escapeCsv(depotName),
+                escapeCsv(coordinatorName),
+                escapeCsv(supervisorName),
+                escapeCsv(sellerCode),
+                escapeCsv(salesmanName),
+                escapeCsv(outletCode),
+                escapeCsv(outletName),
+                escapeCsv(zoneName),
+                escapeCsv(routeName),
+                escapeCsv(channelName),
+                escapeCsv(typeName),
+                escapeCsv(invNumber),
                 escapeCsv(''),
                 escapeCsv(''),
                 escapeCsv(''),
@@ -405,17 +339,70 @@ export const excelSyncController = {
                 escapeCsv(Number(inv.total_amount) || 0),
               ].join(',')
             );
-          }
+          } else {
+            for (const item of items) {
+              const prod = item.invoice_items_products;
+              const qty = Number(item.quantity) || 0;
+              const baseQty = Number(item.base_quantity) || 0;
+              const convFactor =
+                Number(item.conversion_factor) ||
+                Number(prod?.product_unit_of_measurement?.conversion_rate) ||
+                1;
 
-          if (lines.length > 0) {
-            res.write(lines.join('\r\n') + '\r\n');
-          }
+              const rawPhyCase =
+                qty + (convFactor > 0 ? baseQty / convFactor : 0);
+              const phyCase = Number(rawPhyCase.toFixed(4));
+              const conversionRate =
+                Number(prod?.unit_case_conversion_rate) || 1;
+              const unitCase = Number((rawPhyCase * conversionRate).toFixed(3));
+              const turnover = Number(item.total_amount) || 0;
 
-          totalExported += batchInvoices.length;
-          lastInvId = batchInvoices[batchInvoices.length - 1].id;
-          if (batchInvoices.length < BATCH_SIZE) {
-            hasMoreInv = false;
+              lines.push(
+                [
+                  escapeCsv(evDate),
+                  escapeCsv(depotName),
+                  escapeCsv(coordinatorName),
+                  escapeCsv(supervisorName),
+                  escapeCsv(sellerCode),
+                  escapeCsv(salesmanName),
+                  escapeCsv(outletCode),
+                  escapeCsv(outletName),
+                  escapeCsv(zoneName),
+                  escapeCsv(routeName),
+                  escapeCsv(channelName),
+                  escapeCsv(typeName),
+                  escapeCsv(invNumber),
+                  escapeCsv(item.notes || ''),
+                  escapeCsv(
+                    prod?.product_categories_products?.category_name || ''
+                  ),
+                  escapeCsv(prod?.product_flavours_products?.name || ''),
+                  escapeCsv(prod?.product_volumes_products?.name || ''),
+                  escapeCsv(prod?.product_brands?.name || ''),
+                  escapeCsv(prod?.code || ''),
+                  escapeCsv(prod?.name || item.product_name || ''),
+                  escapeCsv(
+                    prod?.product_types_products?.name ||
+                      prod?.product_unit_of_measurement?.name ||
+                      item.unit ||
+                      ''
+                  ),
+                  escapeCsv(phyCase),
+                  escapeCsv(unitCase),
+                  escapeCsv(turnover),
+                ].join(',')
+              );
+            }
           }
+        }
+
+        if (lines.length > 0) {
+          res.write(lines.join('\r\n') + '\r\n');
+        }
+
+        lastInvId = batch[batch.length - 1].id;
+        if (batch.length < INVOICE_BATCH_SIZE) {
+          hasMore = false;
         }
       }
 

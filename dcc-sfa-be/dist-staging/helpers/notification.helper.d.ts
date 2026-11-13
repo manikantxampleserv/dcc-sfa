@@ -25,9 +25,9 @@ export declare function createNotification(params: CreateNotificationParams): Pr
     user_id: number;
     expires_at: Date | null;
     priority: string | null;
-    title: string;
     type: string;
     category: string;
+    title: string;
     message: string;
     data: string | null;
     is_read: string;
@@ -49,9 +49,9 @@ export declare function createNotificationsForUsers(params: CreateNotificationPa
     user_id: number;
     expires_at: Date | null;
     priority: string | null;
-    title: string;
     type: string;
     category: string;
+    title: string;
     message: string;
     data: string | null;
     is_read: string;
@@ -71,9 +71,9 @@ export declare function createOrderNotification(userId: number, orderId: number,
     user_id: number;
     expires_at: Date | null;
     priority: string | null;
-    title: string;
     type: string;
     category: string;
+    title: string;
     message: string;
     data: string | null;
     is_read: string;
@@ -93,9 +93,9 @@ export declare function createWorkflowNotification(userId: number, workflowId: n
     user_id: number;
     expires_at: Date | null;
     priority: string | null;
-    title: string;
     type: string;
     category: string;
+    title: string;
     message: string;
     data: string | null;
     is_read: string;
@@ -115,9 +115,9 @@ export declare function createRouteExceptionNotification(userId: number, excepti
     user_id: number;
     expires_at: Date | null;
     priority: string | null;
-    title: string;
     type: string;
     category: string;
+    title: string;
     message: string;
     data: string | null;
     is_read: string;
