@@ -48,7 +48,14 @@ interface OrderSerialized {
     name: string;
     code: string;
     type: string;
-    route?: { id: number; name: string; code: string } | null;
+    route?: {
+      id: number;
+      name: string;
+      code: string;
+      route_code?: string;
+      route_name?: string;
+      system_route_code?: string;
+    } | null;
     outstanding_amount?: number | null;
     credit_limit?: number | null;
     latitude?: number | null;
@@ -140,7 +147,14 @@ const serializeOrder = (order: any): OrderSerialized => ({
           ? {
               id: order.orders_customers.customer_routes.id,
               name: order.orders_customers.customer_routes.name,
-              code: order.orders_customers.customer_routes.code,
+              code:
+                order.orders_customers.customer_routes.name ||
+                order.orders_customers.customer_routes.code,
+              route_code:
+                order.orders_customers.customer_routes.name ||
+                order.orders_customers.customer_routes.code,
+              route_name: order.orders_customers.customer_routes.name,
+              system_route_code: order.orders_customers.customer_routes.code,
             }
           : null,
       }

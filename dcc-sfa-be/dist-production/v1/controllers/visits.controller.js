@@ -90,7 +90,18 @@ function serializeVisit(visit) {
                 email: visit.visits_salesperson.email,
             }
             : null,
-        route: visit.visit_customers?.customer_routes || visit.visit_routes,
+        route: (() => {
+            const r = visit.visit_customers?.customer_routes || visit.visit_routes;
+            if (!r)
+                return null;
+            return {
+                ...r,
+                code: r.name || r.code,
+                route_code: r.name || r.code,
+                route_name: r.name,
+                system_route_code: r.code,
+            };
+        })(),
         zone: visit.visit_customers?.customer_zones || visit.visit_zones,
         payments: visit.payments?.map((payment) => ({
             id: payment.id,
@@ -2251,9 +2262,20 @@ exports.visitsController = {
                             email: visit.visits_salesperson.email,
                         }
                         : null,
-                    route: visit.visit_customers?.customer_routes ||
-                        visit.visit_routes ||
-                        null,
+                    route: (() => {
+                        const r = visit.visit_customers?.customer_routes ||
+                            visit.visit_routes ||
+                            null;
+                        if (!r)
+                            return null;
+                        return {
+                            ...r,
+                            code: r.name || r.code,
+                            route_code: r.name || r.code,
+                            route_name: r.name,
+                            system_route_code: r.code,
+                        };
+                    })(),
                     zone: visit.visit_customers?.customer_zones || visit.visit_zones || null,
                     orders: orders,
                     payments: payments,

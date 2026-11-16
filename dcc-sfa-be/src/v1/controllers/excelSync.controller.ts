@@ -508,7 +508,7 @@ export const excelSyncController = {
               escapeCsv(c.customer_depot?.name || ''),
               escapeCsv(c.customer_zones?.name || ''),
               escapeCsv(
-                c.customer_routes?.code || c.customer_routes?.name || ''
+                c.customer_routes?.name || c.customer_routes?.code || ''
               ),
               escapeCsv(c.customer_type_customer?.type_name || c.type || ''),
               escapeCsv(c.customer_channel_customer?.channel_name || ''),
@@ -694,7 +694,7 @@ export const excelSyncController = {
               escapeCsv(formatDateDMY(resp?.submitted_at || resp?.createdate)),
               escapeCsv(user?.name || ''),
               escapeCsv(
-                cust?.customer_routes?.code || cust?.customer_routes?.name || ''
+                cust?.customer_routes?.name || cust?.customer_routes?.code || ''
               ),
               escapeCsv(cust?.name || ''),
               escapeCsv(cust?.code || ''),

@@ -148,6 +148,12 @@ const serializeCustomer = async (
     credit_limit: customer.credit_limit?.toString() || null,
     outstanding_amount: customer.outstanding_amount?.toString() || '0',
     route_id: customer.route_id || null,
+    route_name: customer.customer_routes?.name || null,
+    route_code:
+      customer.customer_routes?.name ||
+      customer.customer_routes?.code ||
+      null,
+    system_route_code: customer.customer_routes?.code || null,
     salesperson_id: customer.salesperson_id || null,
     nfc_tag_code: customer.nfc_tag_code || null,
     last_visit_date: customer.last_visit_date || null,
@@ -171,7 +177,13 @@ const serializeCustomer = async (
       ? {
           id: customer.customer_routes.id,
           name: customer.customer_routes.name,
-          code: customer.customer_routes.code,
+          code:
+            customer.customer_routes.name || customer.customer_routes.code,
+          route_code:
+            customer.customer_routes.name || customer.customer_routes.code,
+          route_name: customer.customer_routes.name,
+          actual_route_code: customer.customer_routes.name,
+          system_route_code: customer.customer_routes.code,
           description: customer.customer_routes.description || null,
           start_location: customer.customer_routes.start_location || null,
           end_location: customer.customer_routes.end_location || null,
@@ -2036,6 +2048,8 @@ export const customerController = {
             { code: { contains: searchLower } },
             { email: { contains: searchLower } },
             { phone_number: { contains: searchLower } },
+            { customer_routes: { name: { contains: searchLower } } },
+            { customer_routes: { code: { contains: searchLower } } },
           ],
         }),
         ...(city_id && { city_id: Number(city_id) }),
@@ -3854,7 +3868,10 @@ export const customerController = {
           ? {
               id: v.visit_routes.id,
               name: v.visit_routes.name,
-              code: v.visit_routes.code,
+              code: v.visit_routes.name || v.visit_routes.code,
+              route_code: v.visit_routes.name || v.visit_routes.code,
+              route_name: v.visit_routes.name,
+              system_route_code: v.visit_routes.code,
             }
           : null,
       }));

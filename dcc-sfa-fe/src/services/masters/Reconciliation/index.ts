@@ -67,6 +67,9 @@ export interface GetReconciliationParams {
   salesman_id?: number;
   depot_id?: number;
   date?: string;
+  time_filter?: string;
+  start_date?: string;
+  end_date?: string;
   status?: string;
   rec_status?: string;
   approval_status?: string;

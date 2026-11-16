@@ -124,9 +124,6 @@ export const salespersonStockController = {
         ],
         is_active: 'Y',
       };
-      if (parsedDepotId) {
-        stockWhere.location_id = parsedDepotId;
-      }
       if (product_id) {
         stockWhere.product_id = parseInt(product_id as string, 10);
       }
@@ -699,7 +696,7 @@ async function handleAllSalespersons(
           users_depots_users: {
             some: {
               depot_id: parsedDepotId,
-              OR: [{ is_active: 'Y' }, { is_active: null }],
+              is_active: 'Y',
             },
           },
         },
@@ -746,6 +743,7 @@ async function handleAllSalespersons(
       profile_image: true,
       address: true,
       sap_code: true,
+      depot_id: true,
       user_role: { select: { name: true } },
       sub_inventory_users: {
         where: { is_active: 'Y' },
@@ -800,7 +798,6 @@ async function handleAllSalespersons(
     ],
     is_active: 'Y',
   };
-  if (parsedDepotId) stockWhere.location_id = parsedDepotId;
   if (product_id) stockWhere.product_id = parseInt(product_id as string, 10);
 
   const stockRecordsAll = await prisma.inventory_stock.findMany({
@@ -921,6 +918,12 @@ async function handleAllSalespersons(
         code: sp.user_depot.code,
       });
       seenDepotIds.add(sp.user_depot.id);
+    }
+
+    if (parsedDepotId) {
+      const hasDepot =
+        sp.depot_id === parsedDepotId || seenDepotIds.has(parsedDepotId);
+      if (!hasDepot) continue;
     }
 
     const primaryDepot =

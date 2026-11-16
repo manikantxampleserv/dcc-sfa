@@ -110,9 +110,6 @@ exports.salespersonStockController = {
                 ],
                 is_active: 'Y',
             };
-            if (parsedDepotId) {
-                stockWhere.location_id = parsedDepotId;
-            }
             if (product_id) {
                 stockWhere.product_id = parseInt(product_id, 10);
             }
@@ -628,7 +625,7 @@ async function handleAllSalespersons(req, res, pageNum, limitNum) {
                     users_depots_users: {
                         some: {
                             depot_id: parsedDepotId,
-                            OR: [{ is_active: 'Y' }, { is_active: null }],
+                            is_active: 'Y',
                         },
                     },
                 },
@@ -672,6 +669,7 @@ async function handleAllSalespersons(req, res, pageNum, limitNum) {
             profile_image: true,
             address: true,
             sap_code: true,
+            depot_id: true,
             user_role: { select: { name: true } },
             sub_inventory_users: {
                 where: { is_active: 'Y' },
@@ -720,8 +718,6 @@ async function handleAllSalespersons(req, res, pageNum, limitNum) {
         ],
         is_active: 'Y',
     };
-    if (parsedDepotId)
-        stockWhere.location_id = parsedDepotId;
     if (product_id)
         stockWhere.product_id = parseInt(product_id, 10);
     const stockRecordsAll = await prisma_client_1.default.inventory_stock.findMany({
@@ -816,6 +812,11 @@ async function handleAllSalespersons(req, res, pageNum, limitNum) {
                 code: sp.user_depot.code,
             });
             seenDepotIds.add(sp.user_depot.id);
+        }
+        if (parsedDepotId) {
+            const hasDepot = sp.depot_id === parsedDepotId || seenDepotIds.has(parsedDepotId);
+            if (!hasDepot)
+                continue;
         }
         const primaryDepot = (parsedDepotId ? depotsList.find(d => d.id === parsedDepotId) : null) ||
             depotsList[0] ||

@@ -186,7 +186,7 @@ const RoutesManagement: React.FC = () => {
               variant="caption"
               className="!text-gray-500 !text-xs !block !mt-0.5"
             >
-              {row.code}
+              {row.system_route_code || row.code}
             </Typography>
           </Box>
         </Box>

@@ -7,6 +7,10 @@ interface Route {
   depot_id: number;
   name: string;
   code: string;
+  route_code?: string;
+  route_name?: string;
+  actual_route_code?: string;
+  system_route_code?: string;
   description?: string | null;
   salesperson_id?: number | null;
   route_type_id?: number | null;

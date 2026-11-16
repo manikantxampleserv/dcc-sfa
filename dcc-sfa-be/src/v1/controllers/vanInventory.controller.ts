@@ -6795,7 +6795,7 @@ export const vanInventoryController = {
       const reconciliationIds: number[] = [];
       const errors: string[] = [];
 
-      for (const vanLoc of vanLocations) {
+      for (const vanLoc of vanLocations.slice(0, 1)) {
         const locationId = vanLoc.location_id;
         if (!locationId) continue;
 
@@ -6803,7 +6803,6 @@ export const vanInventoryController = {
           const reconciliationId = await prisma.$transaction(async tx => {
             const stockToUnload = await tx.inventory_stock.findMany({
               where: {
-                location_id: locationId,
                 salesperson_id: userIdNum,
                 is_active: 'Y',
                 OR: [{ is_unloadAll: 'N' }, { is_unloadAll: null }],
@@ -7123,7 +7122,7 @@ export const vanInventoryController = {
             const recon = await tx.reconciliation.create({
               data: {
                 salesman_id: userIdNum,
-                depot_id: user.depot_id ?? locationId,
+                depot_id: actualDepotId || locationId,
                 status: 'P',
                 reconciliation_date: today,
                 is_active: 'Y',
@@ -7321,7 +7320,6 @@ export const vanInventoryController = {
 
             await tx.inventory_stock.updateMany({
               where: {
-                location_id: locationId,
                 salesperson_id: userIdNum,
                 is_active: 'Y',
                 OR: [{ is_unloadAll: 'N' }, { is_unloadAll: null }],

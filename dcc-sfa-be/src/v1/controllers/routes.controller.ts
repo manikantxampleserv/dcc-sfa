@@ -9,6 +9,10 @@ interface RouteSerialized {
   depot_id: number;
   name: string;
   code: string;
+  route_code?: string;
+  route_name?: string;
+  actual_route_code?: string;
+  system_route_code?: string;
   description?: string | null;
   salesperson_id?: number | null;
   route_type_id: number;
@@ -105,7 +109,11 @@ const serializeRoute = (route: any): RouteSerialized => ({
   parent_id: route.parent_id,
   depot_id: route.depot_id,
   name: route.name,
-  code: route.code,
+  code: route.name || route.code,
+  route_code: route.name || route.code,
+  route_name: route.name,
+  actual_route_code: route.name,
+  system_route_code: route.code,
   description: route.description,
   salesperson_id: route.salesperson_id,
   route_type_id: route.route_type_id,

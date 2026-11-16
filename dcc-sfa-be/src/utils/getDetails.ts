@@ -139,6 +139,20 @@ async function getRequestDetailsByType(
                 });
                 routeName = r ? r.name || r.code : null;
               }
+              if (channelId) {
+                const ch = await prisma.customer_channel.findUnique({
+                  where: { id: Number(channelId) },
+                  select: { channel_name: true },
+                });
+                channelName = ch?.channel_name || null;
+              }
+              if (typeId) {
+                const ct = await prisma.customer_type.findUnique({
+                  where: { id: Number(typeId) },
+                  select: { type_name: true },
+                });
+                typeName = ct?.type_name || null;
+              }
 
               const result = {
                 customer_status: 'Pending Creation',

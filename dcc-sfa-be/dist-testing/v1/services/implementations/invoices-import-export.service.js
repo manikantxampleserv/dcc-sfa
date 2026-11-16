@@ -806,9 +806,9 @@ class InvoicesImportExportService extends import_export_service_1.ImportExportSe
     writeInvoicesToWorksheet(worksheet, data, staffLookup) {
         for (const inv of data) {
             const invDate = inv.invoice_date ? new Date(inv.invoice_date) : '';
-            const route = inv.invoices_customers?.customer_routes?.code ||
+            const route = inv.invoices_customers?.customer_routes?.name ||
+                inv.invoices_salesperson?.route_salespersons?.[0]?.route?.name ||
                 inv.invoices_customers?.customer_routes?.name ||
-                inv.invoices_salesperson?.route_salespersons?.[0]?.route?.code ||
                 inv.invoices_salesperson?.route_salespersons?.[0]?.route?.name ||
                 '';
             const routeSalesman = inv.invoices_customers?.customer_routes?.salespersons?.[0]?.user;
