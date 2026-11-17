@@ -678,7 +678,15 @@ export const assetMovementsController = {
         const now = new Date();
         if (timeFilter === 'today') {
           dateRange.gte = new Date(
-            Date.UTC(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0)
+            Date.UTC(
+              now.getFullYear(),
+              now.getMonth(),
+              now.getDate(),
+              0,
+              0,
+              0,
+              0
+            )
           );
           dateRange.lte = new Date(
             Date.UTC(
@@ -736,15 +744,7 @@ export const assetMovementsController = {
             Date.UTC(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0)
           );
           dateRange.lte = new Date(
-            Date.UTC(
-              now.getFullYear(),
-              now.getMonth() + 1,
-              0,
-              23,
-              59,
-              59,
-              999
-            )
+            Date.UTC(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999)
           );
         } else if (timeFilter === 'prev_month') {
           dateRange.gte = new Date(
@@ -904,25 +904,63 @@ export const assetMovementsController = {
         }
       }
 
-      const totalAssetMovements = await prisma.asset_movements.count();
-      const activeAssetMovements = await prisma.asset_movements.count({
-        where: { is_active: 'Y' },
-      });
-      const inactiveAssetMovements = await prisma.asset_movements.count({
-        where: { is_active: 'N' },
-      });
-      const thisMonthAssetMovements = await prisma.asset_movements.count({
-        where: {
-          createdate: {
-            gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
-            lte: new Date(
-              new Date().getFullYear(),
-              new Date().getMonth() + 1,
-              0
-            ),
+      const statsFilters: any = {
+        ...(dateRange.gte || dateRange.lte ? { movement_date: dateRange } : {}),
+        ...(search && filters.OR ? { OR: filters.OR } : {}),
+        ...(typeLower && { movement_type: typeLower }),
+        ...(performed_by && { performed_by: Number(performed_by) }),
+        ...(asset_type_id && filters.asset_movement_assets
+          ? { asset_movement_assets: filters.asset_movement_assets }
+          : {}),
+      };
+
+      const nonDateStatsFilters: any = {
+        ...(search && filters.OR ? { OR: filters.OR } : {}),
+        ...(typeLower && { movement_type: typeLower }),
+        ...(performed_by && { performed_by: Number(performed_by) }),
+        ...(asset_type_id && filters.asset_movement_assets
+          ? { asset_movement_assets: filters.asset_movement_assets }
+          : {}),
+      };
+
+      const now = new Date();
+      const firstDayOfMonth = new Date(
+        Date.UTC(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0)
+      );
+      const lastDayOfMonth = new Date(
+        Date.UTC(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999)
+      );
+
+      const [
+        totalAssetMovements,
+        activeAssetMovements,
+        inactiveAssetMovements,
+        thisMonthAssetMovements,
+      ] = await Promise.all([
+        prisma.asset_movements.count({
+          where:
+            statusLower === 'active'
+              ? { ...statsFilters, is_active: 'Y' }
+              : statusLower === 'inactive'
+                ? { ...statsFilters, is_active: 'N' }
+                : statsFilters,
+        }),
+        prisma.asset_movements.count({
+          where: { ...statsFilters, is_active: 'Y' },
+        }),
+        prisma.asset_movements.count({
+          where: { ...statsFilters, is_active: 'N' },
+        }),
+        prisma.asset_movements.count({
+          where: {
+            ...nonDateStatsFilters,
+            movement_date: {
+              gte: firstDayOfMonth,
+              lte: lastDayOfMonth,
+            },
           },
-        },
-      });
+        }),
+      ]);
 
       res.success(
         'Asset movements retrieved successfully',

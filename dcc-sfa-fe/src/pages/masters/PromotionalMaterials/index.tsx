@@ -71,8 +71,14 @@ const PromotionalMaterialsManagement: React.FC = () => {
   );
 
   const materials = materialsResponse?.data || [];
-  const totalCount = materialsResponse?.pagination?.total || 0;
-  const currentPage = (materialsResponse?.pagination?.page || 1) - 1;
+  const totalCount =
+    materialsResponse?.pagination?.total_count ??
+    materialsResponse?.pagination?.total ??
+    0;
+  const currentPage =
+    (materialsResponse?.pagination?.current_page ??
+      materialsResponse?.pagination?.page ??
+      1) - 1;
 
   const deleteMaterialMutation = useDeletePromotionalMaterial();
   const exportToExcelMutation = useExportToExcel();
