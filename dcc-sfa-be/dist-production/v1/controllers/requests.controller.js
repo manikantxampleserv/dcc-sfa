@@ -36,7 +36,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.requestsController = exports.createRequest = void 0;
+exports.requestsController = exports.createRequest = exports.extractRequestImages = void 0;
 exports.resolveRequesterDepotId = resolveRequesterDepotId;
 const emailTemplates_1 = require("../../utils/emailTemplates");
 const templateKeyMap_1 = __importDefault(require("../../utils/templateKeyMap"));
@@ -47,6 +47,41 @@ const requestTypes_1 = require("../../mock/requestTypes");
 const prisma_client_1 = __importDefault(require("../../configs/prisma.client"));
 const approvalWorkflow_helper_1 = require("../../helpers/approvalWorkflow.helper");
 const blackbaze_1 = require("../../utils/blackbaze");
+const extractRequestImages = (request) => {
+    if (request.status !== 'P')
+        return [];
+    if (request.sfa_d_request_images_sfa_d_request &&
+        request.sfa_d_request_images_sfa_d_request.length > 0) {
+        return request.sfa_d_request_images_sfa_d_request.map((img) => ({
+            id: img.id,
+            image_url: img.image_url,
+            caption: img.caption,
+        }));
+    }
+    // Fallback for CUSTOMER_CREATION requests where images may be stored in request_data
+    if (request.request_type === 'CUSTOMER_CREATION' && request.request_data) {
+        try {
+            const parsed = typeof request.request_data === 'string'
+                ? JSON.parse(request.request_data)
+                : request.request_data;
+            const rawImgs = parsed?.customer_images || [];
+            const imgList = (Array.isArray(rawImgs) ? rawImgs : [rawImgs])
+                .map((img, idx) => ({
+                id: idx + 1,
+                image_url: typeof img === 'string' ? img : img?.image_url,
+                caption: typeof img === 'object' && img?.caption
+                    ? img.caption
+                    : `Outlet Image ${idx + 1}`,
+            }))
+                .filter((item) => Boolean(item.image_url));
+            if (imgList.length > 0)
+                return imgList;
+        }
+        catch { }
+    }
+    return [];
+};
+exports.extractRequestImages = extractRequestImages;
 const serializeRequest = (request) => ({
     id: request.id,
     requester_id: request.requester_id,
@@ -61,13 +96,7 @@ const serializeRequest = (request) => ({
     updatedby: request.updatedby,
     log_inst: request.log_inst,
     reference_details: request.reference_details || null,
-    request_images: request.status === 'P'
-        ? (request.sfa_d_request_images_sfa_d_request || []).map((img) => ({
-            id: img.id,
-            image_url: img.image_url,
-            caption: img.caption,
-        }))
-        : [],
+    request_images: (0, exports.extractRequestImages)(request),
     requester: request.sfa_d_requests_requester
         ? {
             id: request.sfa_d_requests_requester.id,
@@ -2950,13 +2979,7 @@ exports.requestsController = {
                     log_inst: request.log_inst,
                     requester: request.sfa_d_requests_requester,
                     reference_details: referenceDetails,
-                    request_images: request.status === 'P'
-                        ? (request.sfa_d_request_images_sfa_d_request || []).map((img) => ({
-                            id: img.id,
-                            image_url: img.image_url,
-                            caption: img.caption,
-                        }))
-                        : [],
+                    request_images: (0, exports.extractRequestImages)(request),
                     approvals: [
                         {
                             id: approval.id,

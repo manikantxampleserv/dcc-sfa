@@ -1,4 +1,9 @@
 import { Request, Response } from 'express';
+export declare const extractRequestImages: (request: any) => Array<{
+    id: number;
+    image_url: string;
+    caption?: string | null;
+}>;
 export declare function resolveRequesterDepotId(tx: any, requesterId: number, requestType: string, requestDataStr?: string | null): Promise<number | null>;
 export declare const createRequest: (data: {
     requester_id: number;

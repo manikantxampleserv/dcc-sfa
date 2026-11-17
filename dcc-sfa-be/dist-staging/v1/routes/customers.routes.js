@@ -8,7 +8,7 @@ const multer_1 = require("../../utils/multer");
 const validation_middleware_1 = require("../../middlewares/validation.middleware");
 const customers_validation_1 = require("../validations/customers.validation");
 const router = (0, express_1.Router)();
-router.post('/customers', auth_middleware_1.authenticateToken, (0, audit_middleware_1.auditCreate)('customers'), (0, auth_middleware_1.requirePermission)([{ module: 'outlet', action: 'create' }]), customers_validation_1.createCustomerValidation, validation_middleware_1.validate, customer_controller_1.customerController.createCustomers);
+router.post('/customers', auth_middleware_1.authenticateToken, multer_1.upload.any(), (0, audit_middleware_1.auditCreate)('customers'), (0, auth_middleware_1.requirePermission)([{ module: 'outlet', action: 'create' }]), customers_validation_1.createCustomerValidation, validation_middleware_1.validate, customer_controller_1.customerController.createCustomers);
 router.post('/customers/location-change-request', auth_middleware_1.authenticateToken, multer_1.upload.array('images'), customer_controller_1.customerController.createLocationChangeRequest);
 router.get('/customers', auth_middleware_1.authenticateToken, (0, auth_middleware_1.requirePermission)([{ module: 'outlet', action: 'read' }]), customer_controller_1.customerController.getAllCustomers);
 router.get('/customers/:id', auth_middleware_1.authenticateToken, (0, auth_middleware_1.requirePermission)([{ module: 'outlet', action: 'read' }]), customer_controller_1.customerController.getCustomersById);
