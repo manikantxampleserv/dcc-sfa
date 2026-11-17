@@ -45,6 +45,48 @@ interface RequestSerialized {
   }[];
 }
 
+export const extractRequestImages = (
+  request: any
+): Array<{ id: number; image_url: string; caption?: string | null }> => {
+  if (request.status !== 'P') return [];
+
+  if (
+    request.sfa_d_request_images_sfa_d_request &&
+    request.sfa_d_request_images_sfa_d_request.length > 0
+  ) {
+    return request.sfa_d_request_images_sfa_d_request.map((img: any) => ({
+      id: img.id,
+      image_url: img.image_url,
+      caption: img.caption,
+    }));
+  }
+
+  // Fallback for CUSTOMER_CREATION requests where images may be stored in request_data
+  if (request.request_type === 'CUSTOMER_CREATION' && request.request_data) {
+    try {
+      const parsed =
+        typeof request.request_data === 'string'
+          ? JSON.parse(request.request_data)
+          : request.request_data;
+      const rawImgs = parsed?.customer_images || [];
+      const imgList = (Array.isArray(rawImgs) ? rawImgs : [rawImgs])
+        .map((img: any, idx: number) => ({
+          id: idx + 1,
+          image_url: typeof img === 'string' ? img : img?.image_url,
+          caption:
+            typeof img === 'object' && img?.caption
+              ? img.caption
+              : `Outlet Image ${idx + 1}`,
+        }))
+        .filter((item: any) => Boolean(item.image_url));
+
+      if (imgList.length > 0) return imgList;
+    } catch {}
+  }
+
+  return [];
+};
+
 const serializeRequest = (request: any): RequestSerialized => ({
   id: request.id,
   requester_id: request.requester_id,
@@ -59,14 +101,7 @@ const serializeRequest = (request: any): RequestSerialized => ({
   updatedby: request.updatedby,
   log_inst: request.log_inst,
   reference_details: request.reference_details || null,
-  request_images:
-    request.status === 'P'
-      ? (request.sfa_d_request_images_sfa_d_request || []).map((img: any) => ({
-          id: img.id,
-          image_url: img.image_url,
-          caption: img.caption,
-        }))
-      : [],
+  request_images: extractRequestImages(request),
   requester: request.sfa_d_requests_requester
     ? {
         id: request.sfa_d_requests_requester.id,
@@ -3717,16 +3752,7 @@ export const requestsController = {
             log_inst: request.log_inst,
             requester: request.sfa_d_requests_requester,
             reference_details: referenceDetails,
-            request_images:
-              request.status === 'P'
-                ? (request.sfa_d_request_images_sfa_d_request || []).map(
-                    (img: any) => ({
-                      id: img.id,
-                      image_url: img.image_url,
-                      caption: img.caption,
-                    })
-                  )
-                : [],
+            request_images: extractRequestImages(request),
             approvals: [
               {
                 id: approval.id,

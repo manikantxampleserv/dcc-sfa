@@ -926,6 +926,28 @@ export const customerController = {
                 }
               }
 
+              if (customerImageData.length === 0) {
+                const existingImgs =
+                  customerData.customer_images ||
+                  customerData.outlet_images ||
+                  [];
+                const list = Array.isArray(existingImgs)
+                  ? existingImgs
+                  : [existingImgs];
+                for (const img of list) {
+                  const url = typeof img === 'string' ? img : img?.image_url;
+                  if (url) {
+                    customerImageData.push({
+                      image_url: url,
+                      is_active: 'Y',
+                      createdby: req.user?.id || 1,
+                      createdate: new Date(),
+                      log_inst: 1,
+                    });
+                  }
+                }
+              }
+
               try {
                 const customerCreationRequest = await createRequest({
                   requester_id: req.user?.id || 1,
@@ -941,6 +963,26 @@ export const customerController = {
                   createdby: req.user?.id || 1,
                   log_inst: 1,
                 });
+
+                if (customerImageData.length > 0) {
+                  try {
+                    await prisma.sfa_d_request_images.createMany({
+                      data: customerImageData.map((img: any, idx: number) => ({
+                        request_id: customerCreationRequest.id,
+                        image_url: img.image_url,
+                        caption: `Outlet Image ${idx + 1}`,
+                        createdby: req.user?.id || 1,
+                        createdate: new Date(),
+                        is_active: 'Y',
+                      })),
+                    });
+                  } catch (imgErr) {
+                    console.error(
+                      'Error saving request images for bulk customer creation:',
+                      imgErr
+                    );
+                  }
+                }
 
                 const requestWithApprovals =
                   await prisma.sfa_d_requests.findUnique({
@@ -1623,9 +1665,10 @@ export const customerController = {
         return res.status(400).json({ message: 'Customer name is required' });
       }
 
-      const depotId = data.depot_id || data.zone_id || data.zones_id;
+      const rawDepotId = data.depot_id || data.zone_id || data.zones_id;
+      const depotId = rawDepotId ? Number(rawDepotId) : NaN;
 
-      if (!depotId) {
+      if (!depotId || isNaN(depotId)) {
         return res.status(400).json({ message: 'Depot selection is required' });
       }
 
@@ -1658,6 +1701,15 @@ export const customerController = {
         is_freeze_location,
         freezeLocation,
         customer_images,
+        outlet_images,
+        images,
+        image,
+        customer_image,
+        outlet_image,
+        profile_picture,
+        profile_pic,
+        profile,
+        avatar,
         platform_type: bodyPlatformType,
         ...otherData
       } = data;
@@ -1681,6 +1733,16 @@ export const customerController = {
         longitude: longitude === '' ? null : longitude,
         freeze_location: parsedFreezeLocation,
       };
+
+      const incomingProfile =
+        profile_picture ||
+        profile_pic ||
+        profile ||
+        avatar ||
+        data.profile_picture;
+      if (incomingProfile && typeof incomingProfile === 'string') {
+        processedData.profile_picture = incomingProfile.trim();
+      }
 
       if ('zone_id' in processedData) {
         if (!processedData.zones_id && processedData.zone_id) {
@@ -1723,7 +1785,6 @@ export const customerController = {
 
         if (!codeInCustomers && !codeInPendingRequests) break;
 
-        // Increment the numeric suffix while preserving the code's own padding
         const collisionMatch = customerCode.match(/^([A-Z]+)(\d+)$/);
         if (collisionMatch) {
           const prefix = collisionMatch[1];
@@ -1737,7 +1798,6 @@ export const customerController = {
         attempts++;
       }
 
-      // 1. NFC Code: if left blank/empty, use the outlet code (customerCode)
       const rawNfc =
         data.nfc_tag_code !== undefined && data.nfc_tag_code !== null
           ? String(data.nfc_tag_code).trim()
@@ -1752,7 +1812,6 @@ export const customerController = {
       delete processedData.nfc_code;
       delete processedData.nfc;
 
-      // 2. District: if left blank, resolve from selected depot or city
       let resolvedDistrictId: number | null = null;
       if (
         data.district_id !== undefined &&
@@ -1801,7 +1860,6 @@ export const customerController = {
       processedData.district_id = resolvedDistrictId;
       delete processedData.district;
 
-      // Fallback for region_id and city_id from depot if left blank
       if (
         (processedData.region_id === undefined ||
           processedData.region_id === null ||
@@ -1820,14 +1878,100 @@ export const customerController = {
         processedData.city_id = depotExists.city_id;
       }
 
+      const intFields = [
+        'customer_type_id',
+        'customer_channel_id',
+        'customer_category_id',
+        'route_id',
+        'salesperson_id',
+        'city_id',
+        'district_id',
+        'region_id',
+        'zones_id',
+      ];
+      for (const field of intFields) {
+        if (
+          processedData[field] !== undefined &&
+          processedData[field] !== null &&
+          processedData[field] !== ''
+        ) {
+          processedData[field] = Number(processedData[field]);
+        } else if (processedData[field] === '') {
+          processedData[field] = null;
+        }
+      }
+
+      const rawFiles: Express.Multer.File[] = Array.isArray(req.files)
+        ? (req.files as Express.Multer.File[])
+        : (Object.values(
+            (req.files as any) || {}
+          ).flat() as Express.Multer.File[]);
+
+      const uploadedImageUrls: string[] = [];
+
+      for (const file of rawFiles) {
+        const fieldName = (file.fieldname || '').toLowerCase();
+        if (fieldName.includes('profile') || fieldName.includes('avatar')) {
+          const pFileName = `customer-profiles/${Date.now()}-${file.originalname}`;
+          try {
+            const pUrl = await uploadFile(
+              file.buffer,
+              pFileName,
+              file.mimetype
+            );
+            if (pUrl) {
+              processedData.profile_picture = pUrl;
+            }
+          } catch (uploadErr) {
+            console.error('Error uploading profile picture:', uploadErr);
+          }
+        } else {
+          const oFileName = `customer-images/${Date.now()}-${uploadedImageUrls.length}-${file.originalname}`;
+          try {
+            const imageUrl = await uploadFile(
+              file.buffer,
+              oFileName,
+              file.mimetype
+            );
+            if (imageUrl) {
+              uploadedImageUrls.push(imageUrl);
+            }
+          } catch (uploadError: any) {
+            console.error(`Error uploading customer image:`, uploadError);
+          }
+        }
+      }
+
+      let textImages: any[] = [];
+      const incomingImages =
+        customer_images ||
+        outlet_images ||
+        images ||
+        image ||
+        customer_image ||
+        outlet_image ||
+        [];
+      if (typeof incomingImages === 'string') {
+        try {
+          textImages = JSON.parse(incomingImages);
+        } catch {
+          textImages = [incomingImages];
+        }
+      } else if (Array.isArray(incomingImages)) {
+        textImages = incomingImages;
+      }
+
+      const rawCustomerImages = [...uploadedImageUrls, ...textImages];
+
       const customerCreationData = {
         ...processedData,
         depot_id: depotId,
         code: customerCode,
         createdby: req.user?.id || 1,
-        log_inst: data.log_inst || 1,
+        log_inst: data.log_inst ? Number(data.log_inst) : 1,
         createdate: new Date(),
-        is_default_for_depot: !!is_default_for_depot,
+        is_default_for_depot:
+          is_default_for_depot === true || is_default_for_depot === 'true',
       };
 
       const platform_type =
@@ -1839,7 +1983,7 @@ export const customerController = {
         reference_id: null,
         request_data: JSON.stringify({
           customer_data: customerCreationData,
-          customer_images: customer_images || [],
+          customer_images: rawCustomerImages,
           platform_type,
           requested_by: req.user?.name || 'Unknown User',
           requested_date: new Date().toISOString(),
@@ -1847,6 +1991,31 @@ export const customerController = {
         createdby: req.user?.id || 1,
         log_inst: data.log_inst || 1,
       });
+
+      if (rawCustomerImages.length > 0) {
+        try {
+          await prisma.sfa_d_request_images.createMany({
+            data: rawCustomerImages
+              .map((img: any, idx: number) => ({
+                request_id: customerCreationRequest.id,
+                image_url: typeof img === 'string' ? img : img?.image_url,
+                caption:
+                  typeof img === 'object' && img?.caption
+                    ? img.caption
+                    : `Outlet Image ${idx + 1}`,
+                createdby: req.user?.id || 1,
+                createdate: new Date(),
+                is_active: 'Y',
+              }))
+              .filter((item: any) => Boolean(item.image_url)),
+          });
+        } catch (imgErr) {
+          console.error(
+            'Error saving request images for customer creation:',
+            imgErr
+          );
+        }
+      }
 
       const requestWithApprovals = await prisma.sfa_d_requests.findUnique({
         where: { id: customerCreationRequest.id },
@@ -1980,6 +2149,7 @@ export const customerController = {
           customer_code: customerCode,
           customer_name: data.name,
           customer_data: customerCreationData,
+          customer_images: rawCustomerImages,
           approvals:
             requestWithApprovals?.sfa_d_requests_approvals_request || [],
         },
@@ -3972,7 +4142,6 @@ export const customerController = {
         return responseItem;
       });
 
-      // Include surveys that were submitted ad-hoc for this customer even if not previously targeted
       surveyResponses.forEach(sr => {
         if (sr.surveys && !surveyMap.has(sr.surveys.id)) {
           surveyMap.set(sr.surveys.id, {

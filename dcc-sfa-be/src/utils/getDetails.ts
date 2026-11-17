@@ -107,6 +107,17 @@ async function getRequestDetailsByType(
             const customerData = parsedData.customer_data;
 
             if (customerData) {
+              const rawCustomerImages = parsedData.customer_images || [];
+              const customerImages = (
+                Array.isArray(rawCustomerImages)
+                  ? rawCustomerImages
+                  : [rawCustomerImages]
+              )
+                .map((img: any) =>
+                  typeof img === 'string' ? img : img?.image_url
+                )
+                .filter(Boolean);
+
               const result = {
                 customer_status: 'Pending Creation',
                 customer_id: 'Pending',
@@ -119,6 +130,8 @@ async function getRequestDetailsByType(
                 platform_type: parsedData.platform_type || 'N/A',
                 requested_by: parsedData.requested_by || 'N/A',
                 requested_date: parsedData.requested_date || 'N/A',
+                profile_picture: customerData.profile_picture || null,
+                customer_images: customerImages,
                 message: 'Customer creation request - customer not yet created',
               };
               return result;

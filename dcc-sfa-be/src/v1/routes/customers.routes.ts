@@ -18,6 +18,7 @@ const router = Router();
 router.post(
   '/customers',
   authenticateToken,
+  upload.any(),
   auditCreate('customers'),
   requirePermission([{ module: 'outlet', action: 'create' }]),
   createCustomerValidation,
