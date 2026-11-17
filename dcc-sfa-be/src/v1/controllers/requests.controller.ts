@@ -330,28 +330,47 @@ export async function resolveRequesterDepotId(
   requestType: string,
   requestDataStr?: string | null
 ): Promise<number | null> {
+  // If request_data contains an explicit depot or location, check it first
+  if (requestDataStr) {
+    try {
+      const parsedData = JSON.parse(requestDataStr);
+      const potentialDepotId =
+        parsedData.depot_id ||
+        parsedData.location_id ||
+        parsedData.from_depot_id ||
+        parsedData.to_depot_id ||
+        parsedData.customer_data?.depot_id ||
+        parsedData.customer_data?.location_id;
+
+      if (potentialDepotId) {
+        const depotIdNum = Number(potentialDepotId);
+        if (requestType === 'ASSET_MOVEMENT_APPROVAL') {
+          return depotIdNum;
+        }
+
+        const userDepots = await tx.user_depots.findMany({
+          where: { user_id: requesterId, is_active: 'Y' },
+          select: { depot_id: true },
+        });
+
+        if (
+          userDepots.length === 0 ||
+          userDepots.some((ud: any) => ud.depot_id === depotIdNum)
+        ) {
+          return depotIdNum;
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
+  }
+
   const userDepots = await tx.user_depots.findMany({
     where: { user_id: requesterId, is_active: 'Y' },
     select: { depot_id: true },
   });
 
   if (userDepots.length === 0) {
-    if (requestDataStr) {
-      try {
-        const parsedData = JSON.parse(requestDataStr);
-        const potentialDepotId =
-          parsedData.location_id ||
-          parsedData.depot_id ||
-          parsedData.customer_data?.depot_id ||
-          parsedData.customer_data?.location_id;
-
-        if (potentialDepotId) {
-          return Number(potentialDepotId);
-        }
-      } catch (e) {
-        // ignore
-      }
-    }
     const requester = await tx.users.findUnique({
       where: { id: requesterId },
       select: { depot_id: true },
@@ -361,26 +380,6 @@ export async function resolveRequesterDepotId(
 
   if (userDepots.length === 1) {
     return userDepots[0].depot_id;
-  }
-
-  if (requestDataStr) {
-    try {
-      const parsedData = JSON.parse(requestDataStr);
-      const potentialDepotId =
-        parsedData.location_id ||
-        parsedData.depot_id ||
-        parsedData.customer_data?.depot_id ||
-        parsedData.customer_data?.location_id;
-
-      if (potentialDepotId) {
-        const depotIdNum = Number(potentialDepotId);
-        if (userDepots.some((ud: any) => ud.depot_id === depotIdNum)) {
-          return depotIdNum;
-        }
-      }
-    } catch (e) {
-      // ignore
-    }
   }
 
   return userDepots[0].depot_id;
@@ -755,15 +754,75 @@ export const createRequest = async (data: {
 
     console.log('Request created:', request.id);
 
-    const requesterDepotId = await resolveRequesterDepotId(
+    let requesterDepotId = await resolveRequesterDepotId(
       prisma,
       data.requester_id,
       data.request_type,
       data.request_data
     );
 
+    // For ASSET_MOVEMENT_APPROVAL, ensure the depot is derived from the movement record
+    if (data.request_type === 'ASSET_MOVEMENT_APPROVAL') {
+      let movementDepotId: number | null = null;
+
+      if (data.request_data) {
+        try {
+          const parsed = JSON.parse(data.request_data);
+          movementDepotId =
+            parsed.depot_id ||
+            parsed.from_depot_id ||
+            parsed.to_depot_id ||
+            null;
+        } catch (e) {}
+      }
+
+      // Fallback: look up asset movement by reference_id directly
+      if (!movementDepotId && data.reference_id) {
+        try {
+          const movement = await prisma.asset_movements.findUnique({
+            where: { id: data.reference_id },
+            select: {
+              from_depot_id: true,
+              to_depot_id: true,
+              from_direction: true,
+              to_direction: true,
+              from_customer_id: true,
+              movement_type: true,
+            },
+          });
+          if (movement) {
+            if (
+              movement.movement_type?.toLowerCase() === 'return' &&
+              movement.from_customer_id
+            ) {
+              const cust = await prisma.customers.findUnique({
+                where: { id: movement.from_customer_id },
+                select: { depot_id: true },
+              });
+              movementDepotId =
+                cust?.depot_id || movement.to_depot_id || null;
+            } else {
+              movementDepotId =
+                (movement.from_direction === 'depot'
+                  ? movement.from_depot_id
+                  : movement.to_depot_id) ||
+                movement.from_depot_id ||
+                movement.to_depot_id ||
+                null;
+            }
+          }
+        } catch (e) {
+          console.error('Error resolving asset movement depot:', e);
+        }
+      }
+
+      if (movementDepotId) {
+        requesterDepotId = movementDepotId;
+      }
+    }
+
     let requesterZoneId = requester.zone_id;
-    if (!requesterZoneId && requesterDepotId) {
+    if (requesterDepotId) {
       try {
         const depotRecord = await prisma.depots.findUnique({
           where: { id: requesterDepotId },
@@ -772,9 +831,7 @@ export const createRequest = async (data: {
         if (depotRecord?.parent_id) {
           requesterZoneId = depotRecord.parent_id;
         }
-      } catch (e) {
-        // ignore
-      }
+      } catch (e) {}
     }
 
     let workflowSteps;
@@ -1578,15 +1635,68 @@ export const requestsController = {
 
           console.log(' Request created, ID:', request.id);
 
-          const resolvedDepotId = await resolveRequesterDepotId(
+          let resolvedDepotId = await resolveRequesterDepotId(
             tx,
             Number(requestData.requester_id),
             request_type,
             requestData.request_data
           );
 
+          if (request_type === 'ASSET_MOVEMENT_APPROVAL') {
+            let movementDepotId: number | null = null;
+            if (requestData.request_data) {
+              try {
+                const parsed = JSON.parse(requestData.request_data);
+                movementDepotId =
+                  parsed.depot_id ||
+                  parsed.from_depot_id ||
+                  parsed.to_depot_id ||
+                  null;
+              } catch (e) {}
+            }
+            if (!movementDepotId && requestData.reference_id) {
+              try {
+                const movement = await tx.asset_movements.findUnique({
+                  where: { id: Number(requestData.reference_id) },
+                  select: {
+                    from_depot_id: true,
+                    to_depot_id: true,
+                    from_direction: true,
+                    to_direction: true,
+                    from_customer_id: true,
+                    movement_type: true,
+                  },
+                });
+                if (movement) {
+                  if (
+                    movement.movement_type?.toLowerCase() === 'return' &&
+                    movement.from_customer_id
+                  ) {
+                    const cust = await tx.customers.findUnique({
+                      where: { id: movement.from_customer_id },
+                      select: { depot_id: true },
+                    });
+                    movementDepotId =
+                      cust?.depot_id || movement.to_depot_id || null;
+                  } else {
+                    movementDepotId =
+                      (movement.from_direction === 'depot'
+                        ? movement.from_depot_id
+                        : movement.to_depot_id) ||
+                      movement.from_depot_id ||
+                      movement.to_depot_id ||
+                      null;
+                  }
+                }
+              } catch (e) {}
+            }
+            if (movementDepotId) {
+              resolvedDepotId = movementDepotId;
+            }
+          }
+
           let requesterZoneId = requester.zone_id;
-          if (!requesterZoneId && resolvedDepotId) {
+          if (resolvedDepotId) {
             try {
               const depotRecord = await tx.depots.findUnique({
                 where: { id: resolvedDepotId },
