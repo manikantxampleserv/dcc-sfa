@@ -89,6 +89,9 @@ export interface AssetMovementQueryParams {
   search?: string;
   status?: string;
   movement_type?: string;
+  time_filter?: string;
+  start_date?: string;
+  end_date?: string;
 }
 
 export interface AssetMovementStats {

@@ -660,6 +660,12 @@ export const assetMovementsController = {
         asset_type_id,
         performed_by,
         movement_type,
+        start_date,
+        end_date,
+        startDate: qStartDate,
+        endDate: qEndDate,
+        time_filter,
+        timeFilter: qTimeFilter,
       } = req.query;
       const pageNum = parseInt(page as string, 10) || 1;
       const limitNum = parseInt(limit as string, 10) || 10;
@@ -669,7 +675,126 @@ export const assetMovementsController = {
         ? (movement_type as string).toLowerCase()
         : '';
 
+      const startDate = (start_date || qStartDate || req.query.from_date) as
+        | string
+        | undefined;
+      const endDate = (end_date || qEndDate || req.query.to_date) as
+        | string
+        | undefined;
+      const timeFilter = (time_filter || qTimeFilter) as string | undefined;
+
+      const dateRange: any = {};
+      if (startDate) {
+        const s = new Date(
+          startDate.includes('T') ? startDate : `${startDate}T00:00:00.000Z`
+        );
+        if (!isNaN(s.getTime())) dateRange.gte = s;
+      }
+      if (endDate) {
+        const e = new Date(
+          endDate.includes('T') ? endDate : `${endDate}T23:59:59.999Z`
+        );
+        if (!isNaN(e.getTime())) dateRange.lte = e;
+      }
+
+      if (!startDate && !endDate && timeFilter && timeFilter !== 'all') {
+        const now = new Date();
+        if (timeFilter === 'today') {
+          dateRange.gte = new Date(
+            Date.UTC(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0)
+          );
+          dateRange.lte = new Date(
+            Date.UTC(
+              now.getFullYear(),
+              now.getMonth(),
+              now.getDate(),
+              23,
+              59,
+              59,
+              999
+            )
+          );
+        } else if (timeFilter === 'yesterday') {
+          dateRange.gte = new Date(
+            Date.UTC(
+              now.getFullYear(),
+              now.getMonth(),
+              now.getDate() - 1,
+              0,
+              0,
+              0,
+              0
+            )
+          );
+          dateRange.lte = new Date(
+            Date.UTC(
+              now.getFullYear(),
+              now.getMonth(),
+              now.getDate() - 1,
+              23,
+              59,
+              59,
+              999
+            )
+          );
+        } else if (timeFilter === 'this_week') {
+          const day = now.getDay();
+          const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+          dateRange.gte = new Date(
+            Date.UTC(now.getFullYear(), now.getMonth(), diff, 0, 0, 0, 0)
+          );
+          dateRange.lte = new Date(
+            Date.UTC(
+              now.getFullYear(),
+              now.getMonth(),
+              now.getDate(),
+              23,
+              59,
+              59,
+              999
+            )
+          );
+        } else if (timeFilter === 'this_month') {
+          dateRange.gte = new Date(
+            Date.UTC(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0)
+          );
+          dateRange.lte = new Date(
+            Date.UTC(
+              now.getFullYear(),
+              now.getMonth() + 1,
+              0,
+              23,
+              59,
+              59,
+              999
+            )
+          );
+        } else if (timeFilter === 'prev_month') {
+          dateRange.gte = new Date(
+            Date.UTC(now.getFullYear(), now.getMonth() - 1, 1, 0, 0, 0, 0)
+          );
+          dateRange.lte = new Date(
+            Date.UTC(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999)
+          );
+        } else if (timeFilter === 'this_year') {
+          dateRange.gte = new Date(
+            Date.UTC(now.getFullYear(), 0, 1, 0, 0, 0, 0)
+          );
+          dateRange.lte = new Date(
+            Date.UTC(now.getFullYear(), 11, 31, 23, 59, 59, 999)
+          );
+        } else if (timeFilter === 'prev_year') {
+          dateRange.gte = new Date(
+            Date.UTC(now.getFullYear() - 1, 0, 1, 0, 0, 0, 0)
+          );
+          dateRange.lte = new Date(
+            Date.UTC(now.getFullYear() - 1, 11, 31, 23, 59, 59, 999)
+          );
+        }
+      }
+
       const filters: any = {
+        ...(dateRange.gte || dateRange.lte ? { movement_date: dateRange } : {}),
         ...(search && {
           OR: [
             {

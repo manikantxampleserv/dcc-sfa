@@ -37,6 +37,9 @@ const serializeSettings = (
   smtp_password: settings.smtp_password,
   currency_id: settings.currency_id,
   customer_grading_cron_time: settings.customer_grading_cron_time,
+  excel_api_username: settings.excel_api_username || null,
+  excel_api_password: settings.excel_api_password || null,
+  excel_api_key: settings.excel_api_key || null,
   ...(includeCreatedAt && { created_date: settings.created_date }),
   ...(includeUpdatedAt && { updated_date: settings.updated_date }),
 
@@ -144,6 +147,9 @@ export const settingsController = {
         smtp_mail_from_name,
         currency_id,
         customer_grading_cron_time,
+        excel_api_username,
+        excel_api_password,
+        excel_api_key,
       } = req.body;
 
       const data: any = {
@@ -174,6 +180,9 @@ export const settingsController = {
         ...(customer_grading_cron_time !== undefined && {
           customer_grading_cron_time,
         }),
+        ...(excel_api_username !== undefined && { excel_api_username }),
+        ...(excel_api_password !== undefined && { excel_api_password }),
+        ...(excel_api_key !== undefined && { excel_api_key }),
         updated_date: new Date(),
         updated_by: req.user?.id,
       };

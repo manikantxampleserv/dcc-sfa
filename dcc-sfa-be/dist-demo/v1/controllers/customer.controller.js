@@ -485,7 +485,11 @@ exports.customerController = {
                     message: 'Request body is missing',
                 });
             }
-            if (!req.body.customers) {
+            let rawCustomers = req.body?.customers;
+            if (!rawCustomers && Array.isArray(req.body)) {
+                rawCustomers = req.body;
+            }
+            if (!rawCustomers) {
                 return res.status(400).json({
                     success: false,
                     message: 'customers field is required',
@@ -493,15 +497,15 @@ exports.customerController = {
             }
             const platform_type = req.headers['platform_type'] || req.body.platform_type || 'web';
             let customersData;
-            if (typeof req.body.customers === 'string') {
-                if (!req.body.customers.trim()) {
+            if (typeof rawCustomers === 'string') {
+                if (!rawCustomers.trim()) {
                     return res.status(400).json({
                         success: false,
                         message: 'customers field cannot be empty',
                     });
                 }
                 try {
-                    customersData = JSON.parse(req.body.customers);
+                    customersData = JSON.parse(rawCustomers);
                 }
                 catch (error) {
                     return res.status(400).json({
@@ -511,9 +515,11 @@ exports.customerController = {
                 }
             }
             else {
-                customersData = req.body.customers;
+                customersData = rawCustomers;
                 customersData.forEach((customer) => {
-                    delete customer.code;
+                    if (!customer.code) {
+                        delete customer.code;
+                    }
                 });
             }
             const uploadedFiles = req.files || {};
@@ -616,17 +622,30 @@ exports.customerController = {
                 for (let customerIndex = 0; customerIndex < customersData.length; customerIndex++) {
                     const customerData = customersData[customerIndex];
                     try {
-                        const depot_id = customerData.depot_id ||
+                        const rawDepotId = customerData.depot_id ||
                             customerData.zone_id ||
                             customerData.zones_id;
-                        const route_id = customerData.route_id;
-                        let final_depot_id = depot_id;
+                        const route_id = customerData.route_id
+                            ? Number(customerData.route_id)
+                            : undefined;
+                        let final_depot_id = rawDepotId ? Number(rawDepotId) : undefined;
                         if (!final_depot_id && route_id) {
                             const route = await prisma_client_1.default.routes.findUnique({
                                 where: { id: route_id },
                                 select: { depot_id: true },
                             });
-                            final_depot_id = route?.depot_id;
+                            final_depot_id = route?.depot_id
+                                ? Number(route.depot_id)
+                                : undefined;
+                        }
+                        if (!final_depot_id) {
+                            const defaultDepot = await prisma_client_1.default.depots.findFirst({
+                                where: { is_active: 'Y' },
+                                select: { id: true },
+                            });
+                            if (defaultDepot) {
+                                final_depot_id = defaultDepot.id;
+                            }
                         }
                         const salesperson_id = customerData.salesperson_id;
                         const customer_type_id = customerData.customer_type_id;
@@ -644,8 +663,7 @@ exports.customerController = {
                                 continue;
                             }
                         }
-                        else if (final_depot_id === undefined ||
-                            final_depot_id === null) {
+                        else {
                             results.errors.push({
                                 customer: customerData,
                                 reason: 'Depot selection is required',
@@ -653,9 +671,10 @@ exports.customerController = {
                             continue;
                         }
                         if (customerData.city_id !== undefined &&
-                            customerData.city_id !== null) {
+                            customerData.city_id !== null &&
+                            customerData.city_id !== '') {
                             const cityExists = await prisma_client_1.default.cities.findUnique({
-                                where: { id: customerData.city_id },
+                                where: { id: Number(customerData.city_id) },
                                 select: { id: true },
                             });
                             if (!cityExists) {
@@ -667,9 +686,10 @@ exports.customerController = {
                             }
                         }
                         if (customerData.district_id !== undefined &&
-                            customerData.district_id !== null) {
+                            customerData.district_id !== null &&
+                            customerData.district_id !== '') {
                             const districtExists = await prisma_client_1.default.districts.findUnique({
-                                where: { id: customerData.district_id },
+                                where: { id: Number(customerData.district_id) },
                                 select: { id: true },
                             });
                             if (!districtExists) {
@@ -681,9 +701,10 @@ exports.customerController = {
                             }
                         }
                         if (customerData.region_id !== undefined &&
-                            customerData.region_id !== null) {
+                            customerData.region_id !== null &&
+                            customerData.region_id !== '') {
                             const regionExists = await prisma_client_1.default.regions.findUnique({
-                                where: { id: customerData.region_id },
+                                where: { id: Number(customerData.region_id) },
                                 select: { id: true },
                             });
                             if (!regionExists) {
@@ -818,6 +839,26 @@ exports.customerController = {
                                     }
                                 }
                             }
+                            if (customerImageData.length === 0) {
+                                const existingImgs = customerData.customer_images ||
+                                    customerData.outlet_images ||
+                                    [];
+                                const list = Array.isArray(existingImgs)
+                                    ? existingImgs
+                                    : [existingImgs];
+                                for (const img of list) {
+                                    const url = typeof img === 'string' ? img : img?.image_url;
+                                    if (url) {
+                                        customerImageData.push({
+                                            image_url: url,
+                                            is_active: 'Y',
+                                            createdby: req.user?.id || 1,
+                                            createdate: new Date(),
+                                            log_inst: 1,
+                                        });
+                                    }
+                                }
+                            }
                             try {
                                 const customerCreationRequest = await (0, requests_controller_1.createRequest)({
                                     requester_id: req.user?.id || 1,
@@ -833,6 +874,23 @@ exports.customerController = {
                                     createdby: req.user?.id || 1,
                                     log_inst: 1,
                                 });
+                                if (customerImageData.length > 0) {
+                                    try {
+                                        await prisma_client_1.default.sfa_d_request_images.createMany({
+                                            data: customerImageData.map((img, idx) => ({
+                                                request_id: customerCreationRequest.id,
+                                                image_url: img.image_url,
+                                                caption: `Outlet Image ${idx + 1}`,
+                                                createdby: req.user?.id || 1,
+                                                createdate: new Date(),
+                                                is_active: 'Y',
+                                            })),
+                                        });
+                                    }
+                                    catch (imgErr) {
+                                        console.error('Error saving request images for bulk customer creation:', imgErr);
+                                    }
+                                }
                                 const requestWithApprovals = await prisma_client_1.default.sfa_d_requests.findUnique({
                                     where: { id: customerCreationRequest.id },
                                     include: {
@@ -1420,8 +1478,9 @@ exports.customerController = {
             if (!data.name) {
                 return res.status(400).json({ message: 'Customer name is required' });
             }
-            const depotId = data.depot_id || data.zone_id || data.zones_id;
-            if (!depotId) {
+            const rawDepotId = data.depot_id || data.zone_id || data.zones_id;
+            const depotId = rawDepotId ? Number(rawDepotId) : NaN;
+            if (!depotId || isNaN(depotId)) {
                 return res.status(400).json({ message: 'Depot selection is required' });
             }
             const depotExists = await prisma_client_1.default.depots.findUnique({
@@ -1440,7 +1499,7 @@ exports.customerController = {
                     .json({ message: 'Selected depot does not exist' });
             }
             data.depot_id = depotId;
-            const { credit_limit, outstanding_amount, latitude, longitude, is_default_for_depot, freeze_location, is_freeze_location, freezeLocation, customer_images, platform_type: bodyPlatformType, ...otherData } = data;
+            const { credit_limit, outstanding_amount, latitude, longitude, is_default_for_depot, freeze_location, is_freeze_location, freezeLocation, customer_images, outlet_images, images, image, customer_image, outlet_image, profile_picture, profile_pic, profile, avatar, platform_type: bodyPlatformType, ...otherData } = data;
             const incomingFreezeRaw = freeze_location !== undefined
                 ? freeze_location
                 : is_freeze_location !== undefined
@@ -1455,6 +1514,14 @@ exports.customerController = {
                 longitude: longitude === '' ? null : longitude,
                 freeze_location: parsedFreezeLocation,
             };
+            const incomingProfile = profile_picture ||
+                profile_pic ||
+                profile ||
+                avatar ||
+                data.profile_picture;
+            if (incomingProfile && typeof incomingProfile === 'string') {
+                processedData.profile_picture = incomingProfile.trim();
+            }
             if ('zone_id' in processedData) {
                 if (!processedData.zones_id && processedData.zone_id) {
                     processedData.zones_id = processedData.zone_id;
@@ -1487,7 +1554,6 @@ exports.customerController = {
                 });
                 if (!codeInCustomers && !codeInPendingRequests)
                     break;
-                // Increment the numeric suffix while preserving the code's own padding
                 const collisionMatch = customerCode.match(/^([A-Z]+)(\d+)$/);
                 if (collisionMatch) {
                     const prefix = collisionMatch[1];
@@ -1500,7 +1566,6 @@ exports.customerController = {
                 }
                 attempts++;
             }
-            // 1. NFC Code: if left blank/empty, use the outlet code (customerCode)
             const rawNfc = data.nfc_tag_code !== undefined && data.nfc_tag_code !== null
                 ? String(data.nfc_tag_code).trim()
                 : data.nfc_code !== undefined && data.nfc_code !== null
@@ -1512,7 +1577,6 @@ exports.customerController = {
             processedData.nfc_tag_code = nfcTagCode;
             delete processedData.nfc_code;
             delete processedData.nfc;
-            // 2. District: if left blank, resolve from selected depot or city
             let resolvedDistrictId = null;
             if (data.district_id !== undefined &&
                 data.district_id !== null &&
@@ -1557,7 +1621,6 @@ exports.customerController = {
             }
             processedData.district_id = resolvedDistrictId;
             delete processedData.district;
-            // Fallback for region_id and city_id from depot if left blank
             if ((processedData.region_id === undefined ||
                 processedData.region_id === null ||
                 processedData.region_id === '') &&
@@ -1570,14 +1633,86 @@ exports.customerController = {
                 depotExists.city_id) {
                 processedData.city_id = depotExists.city_id;
             }
+            const intFields = [
+                'customer_type_id',
+                'customer_channel_id',
+                'customer_category_id',
+                'route_id',
+                'salesperson_id',
+                'city_id',
+                'district_id',
+                'region_id',
+                'zones_id',
+            ];
+            for (const field of intFields) {
+                if (processedData[field] !== undefined &&
+                    processedData[field] !== null &&
+                    processedData[field] !== '') {
+                    processedData[field] = Number(processedData[field]);
+                }
+                else if (processedData[field] === '') {
+                    processedData[field] = null;
+                }
+            }
+            const rawFiles = Array.isArray(req.files)
+                ? req.files
+                : Object.values(req.files || {}).flat();
+            const uploadedImageUrls = [];
+            for (const file of rawFiles) {
+                const fieldName = (file.fieldname || '').toLowerCase();
+                if (fieldName.includes('profile') || fieldName.includes('avatar')) {
+                    const pFileName = `customer-profiles/${Date.now()}-${file.originalname}`;
+                    try {
+                        const pUrl = await (0, blackbaze_1.uploadFile)(file.buffer, pFileName, file.mimetype);
+                        if (pUrl) {
+                            processedData.profile_picture = pUrl;
+                        }
+                    }
+                    catch (uploadErr) {
+                        console.error('Error uploading profile picture:', uploadErr);
+                    }
+                }
+                else {
+                    const oFileName = `customer-images/${Date.now()}-${uploadedImageUrls.length}-${file.originalname}`;
+                    try {
+                        const imageUrl = await (0, blackbaze_1.uploadFile)(file.buffer, oFileName, file.mimetype);
+                        if (imageUrl) {
+                            uploadedImageUrls.push(imageUrl);
+                        }
+                    }
+                    catch (uploadError) {
+                        console.error(`Error uploading customer image:`, uploadError);
+                    }
+                }
+            }
+            let textImages = [];
+            const incomingImages = customer_images ||
+                outlet_images ||
+                images ||
+                image ||
+                customer_image ||
+                outlet_image ||
+                [];
+            if (typeof incomingImages === 'string') {
+                try {
+                    textImages = JSON.parse(incomingImages);
+                }
+                catch {
+                    textImages = [incomingImages];
+                }
+            }
+            else if (Array.isArray(incomingImages)) {
+                textImages = incomingImages;
+            }
+            const rawCustomerImages = [...uploadedImageUrls, ...textImages];
             const customerCreationData = {
                 ...processedData,
                 depot_id: depotId,
                 code: customerCode,
                 createdby: req.user?.id || 1,
-                log_inst: data.log_inst || 1,
+                log_inst: data.log_inst ? Number(data.log_inst) : 1,
                 createdate: new Date(),
-                is_default_for_depot: !!is_default_for_depot,
+                is_default_for_depot: is_default_for_depot === true || is_default_for_depot === 'true',
             };
             const platform_type = req.headers['platform_type'] || bodyPlatformType || 'web';
             const customerCreationRequest = await (0, requests_controller_1.createRequest)({
@@ -1586,7 +1721,7 @@ exports.customerController = {
                 reference_id: null,
                 request_data: JSON.stringify({
                     customer_data: customerCreationData,
-                    customer_images: customer_images || [],
+                    customer_images: rawCustomerImages,
                     platform_type,
                     requested_by: req.user?.name || 'Unknown User',
                     requested_date: new Date().toISOString(),
@@ -1594,6 +1729,27 @@ exports.customerController = {
                 createdby: req.user?.id || 1,
                 log_inst: data.log_inst || 1,
             });
+            if (rawCustomerImages.length > 0) {
+                try {
+                    await prisma_client_1.default.sfa_d_request_images.createMany({
+                        data: rawCustomerImages
+                            .map((img, idx) => ({
+                            request_id: customerCreationRequest.id,
+                            image_url: typeof img === 'string' ? img : img?.image_url,
+                            caption: typeof img === 'object' && img?.caption
+                                ? img.caption
+                                : `Outlet Image ${idx + 1}`,
+                            createdby: req.user?.id || 1,
+                            createdate: new Date(),
+                            is_active: 'Y',
+                        }))
+                            .filter((item) => Boolean(item.image_url)),
+                    });
+                }
+                catch (imgErr) {
+                    console.error('Error saving request images for customer creation:', imgErr);
+                }
+            }
             const requestWithApprovals = await prisma_client_1.default.sfa_d_requests.findUnique({
                 where: { id: customerCreationRequest.id },
                 include: {
@@ -1719,6 +1875,7 @@ exports.customerController = {
                     customer_code: customerCode,
                     customer_name: data.name,
                     customer_data: customerCreationData,
+                    customer_images: rawCustomerImages,
                     approvals: requestWithApprovals?.sfa_d_requests_approvals_request || [],
                 },
             });
@@ -3498,7 +3655,6 @@ exports.customerController = {
                 responsesBySurveyId.set(sr.parent_id, existingList);
                 return responseItem;
             });
-            // Include surveys that were submitted ad-hoc for this customer even if not previously targeted
             surveyResponses.forEach(sr => {
                 if (sr.surveys && !surveyMap.has(sr.surveys.id)) {
                     surveyMap.set(sr.surveys.id, {

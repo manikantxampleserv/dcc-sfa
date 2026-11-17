@@ -28,6 +28,7 @@ import React, { useCallback, useState } from 'react';
 import { ActionButton, DeleteButton, EditButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
 import { CurrentApproverTooltip } from 'shared/CurrentApproverTooltip';
+import { DateRangeFilter, type CustomDateRange } from 'shared/DateRangeFilter';
 import { PopConfirm } from 'shared/DeleteConfirmation';
 import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
@@ -41,6 +42,11 @@ const AssetMovementManagement: React.FC = () => {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
+  const [timeFilter, setTimeFilter] = useState<string>('all');
+  const [customDateRange, setCustomDateRange] = useState<CustomDateRange>({
+    start: '',
+    end: '',
+  });
   const [selectedMovement, setSelectedMovement] =
     useState<AssetMovement | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -62,6 +68,15 @@ const AssetMovementManagement: React.FC = () => {
       limit,
       status: statusFilter === 'all' ? undefined : statusFilter,
       movement_type: typeFilter === 'all' ? undefined : typeFilter,
+      time_filter: timeFilter !== 'all' ? timeFilter : undefined,
+      start_date:
+        timeFilter === 'custom' && customDateRange.start
+          ? customDateRange.start
+          : undefined,
+      end_date:
+        timeFilter === 'custom' && customDateRange.end
+          ? customDateRange.end
+          : undefined,
     },
     {
       enabled: isRead,
@@ -113,10 +128,19 @@ const AssetMovementManagement: React.FC = () => {
 
   const handleExportToExcel = useCallback(async () => {
     try {
-      const filters = {
+      const filters: Record<string, any> = {
         search,
         status: statusFilter === 'all' ? undefined : statusFilter,
         movement_type: typeFilter === 'all' ? undefined : typeFilter,
+        time_filter: timeFilter !== 'all' ? timeFilter : undefined,
+        start_date:
+          timeFilter === 'custom' && customDateRange.start
+            ? customDateRange.start
+            : undefined,
+        end_date:
+          timeFilter === 'custom' && customDateRange.end
+            ? customDateRange.end
+            : undefined,
       };
 
       await exportToExcelMutation.mutateAsync({
@@ -126,7 +150,14 @@ const AssetMovementManagement: React.FC = () => {
     } catch (error) {
       console.error('Error exporting asset movements:', error);
     }
-  }, [exportToExcelMutation, search, statusFilter]);
+  }, [
+    exportToExcelMutation,
+    search,
+    statusFilter,
+    typeFilter,
+    timeFilter,
+    customDateRange,
+  ]);
 
   const getMovementTypeColor = (
     type: string
@@ -393,13 +424,29 @@ const AssetMovementManagement: React.FC = () => {
 
   return (
     <>
-      <Box className="!mb-3 !flex !justify-between !items-center">
+      <Box className="!mb-3 !flex !justify-between !items-center !flex-wrap !gap-3">
         <Box>
           <p className="!font-bold text-xl !text-gray-900">Asset Movement</p>
           <p className="!text-gray-500 text-sm">
             Track and manage asset movements across locations
           </p>
         </Box>
+        <DateRangeFilter
+          timeFilter={timeFilter}
+          setTimeFilter={val => {
+            setTimeFilter(val);
+            setPage(1);
+          }}
+          customDateRange={customDateRange}
+          setCustomDateRange={updater => {
+            setCustomDateRange(prev => {
+              const next =
+                typeof updater === 'function' ? updater(prev) : updater;
+              return next;
+            });
+            setPage(1);
+          }}
+        />
       </Box>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">

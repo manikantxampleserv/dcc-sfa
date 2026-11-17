@@ -624,6 +624,9 @@ model companies {
   smtp_mail_from_name        String?     @db.NVarChar(200)
   currency_id                Int?
   customer_grading_cron_time String?     @default("0 0 * * *") @db.VarChar(50)
+  excel_api_username         String?     @db.NVarChar(255)
+  excel_api_password         String?     @db.NVarChar(255)
+  excel_api_key              String?     @db.NVarChar(255)
   companies_currencies       currencies? @relation(fields: [currency_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   depot_companies            depots[]
   users                      users[]

@@ -16,7 +16,14 @@ import {
 import { useFormik } from 'formik';
 import { useCurrencies } from 'hooks/useCurrencies';
 import { useSettings, useUpdateSettings } from 'hooks/useSettings';
-import { Settings as SettingsIcon } from 'lucide-react';
+import {
+  Check,
+  Copy,
+  FileSpreadsheet,
+  Info,
+  RefreshCw,
+  Settings as SettingsIcon,
+} from 'lucide-react';
 import React, { useState } from 'react';
 import Button from 'shared/Button';
 import Input from 'shared/Input';
@@ -41,10 +48,13 @@ const validationSchema = Yup.object({
   smtp_mail_from_address: Yup.string().email('Invalid from email address'),
   currency_id: Yup.number().nullable(),
   customer_grading_cron_time: Yup.string(),
+  excel_api_username: Yup.string().nullable(),
+  excel_api_password: Yup.string().nullable(),
+  excel_api_key: Yup.string().nullable(),
 });
 
 const SystemSettings: React.FC = () => {
-  const { data: settingsResponse, isLoading } = useSettings();
+  const { data: settingsResponse, isLoading, refetch } = useSettings();
   const updateSettingsMutation = useUpdateSettings();
   const { data: currenciesResponse } = useCurrencies({
     status: 'active',
@@ -52,9 +62,89 @@ const SystemSettings: React.FC = () => {
   });
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [copiedEndpoint, setCopiedEndpoint] = useState<string | null>(null);
+  const [copiedEndpointWithKey, setCopiedEndpointWithKey] = useState<
+    string | null
+  >(null);
+  const [apiKeyCopied, setApiKeyCopied] = useState<boolean>(false);
 
   const settings = settingsResponse?.data;
   const currencies = currenciesResponse?.data || [];
+
+  const apiBase = (
+    import.meta.env?.VITE_API_BASE_URL || `${window.location.origin}/api/v1`
+  ).replace(/\/$/, '');
+  const excelBaseUrl = apiBase.endsWith('/v1')
+    ? `${apiBase}/excel`
+    : `${apiBase}/api/v1/excel`;
+
+  const excelEndpoints = [
+    {
+      id: 'outlet-master',
+      name: 'Outlet Master',
+      endpoint: `${excelBaseUrl}/outlet-master`,
+      description:
+        'All active outlets with route, depot, customer channel, and coordinate details.',
+    },
+    {
+      id: 'sales-data',
+      name: 'Sales Data',
+      endpoint: `${excelBaseUrl}/sales-data`,
+      description:
+        'Detailed item-level invoice sales records, category, SKU, turnover, and volume.',
+    },
+    {
+      id: 'survey-data',
+      name: 'Survey Data',
+      endpoint: `${excelBaseUrl}/survey-data`,
+      description:
+        'Customer survey questionnaire responses with questions and answers.',
+    },
+    {
+      id: 'van-load-unload',
+      name: 'Van Load & Unload',
+      endpoint: `${excelBaseUrl}/van-load-unload`,
+      description:
+        'Van inventory movement history, daily stock loading and unloading transactions.',
+    },
+  ];
+
+  /**
+   * Generates a secure random live API key for Excel synchronization.
+   */
+  const handleGenerateApiKey = () => {
+    const randomHex = Array.from(crypto.getRandomValues(new Uint8Array(16)))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('');
+    const newKey = `dcc_live_${randomHex}`;
+    formik.setFieldValue('excel_api_key', newKey);
+  };
+
+  /**
+   * Copies text to the user clipboard and triggers temporary copied indicator state.
+   *
+   * @param {string} text Text or URL string to copy
+   * @param {'apikey' | 'endpoint' | 'endpointWithKey'} type Target copy category
+   * @param {string} [endpointId] Optional ID of the endpoint card
+   */
+  const handleCopyText = (
+    text: string,
+    type: 'apikey' | 'endpoint' | 'endpointWithKey',
+    endpointId?: string
+  ) => {
+    if (!text) return;
+    navigator.clipboard.writeText(text);
+    if (type === 'apikey') {
+      setApiKeyCopied(true);
+      setTimeout(() => setApiKeyCopied(false), 2000);
+    } else if (type === 'endpointWithKey' && endpointId) {
+      setCopiedEndpointWithKey(endpointId);
+      setTimeout(() => setCopiedEndpointWithKey(null), 2000);
+    } else if (endpointId) {
+      setCopiedEndpoint(endpointId);
+      setTimeout(() => setCopiedEndpoint(null), 2000);
+    }
+  };
 
   const formik = useFormik({
     initialValues: {
@@ -77,6 +167,9 @@ const SystemSettings: React.FC = () => {
       currency_id: settings?.currency_id || null,
       customer_grading_cron_time:
         settings?.customer_grading_cron_time || '0 0 * * *',
+      excel_api_username: settings?.excel_api_username || '',
+      excel_api_password: settings?.excel_api_password || '',
+      excel_api_key: settings?.excel_api_key || '',
     },
     validationSchema,
     enableReinitialize: true,
@@ -119,6 +212,9 @@ const SystemSettings: React.FC = () => {
           'customer_grading_cron_time',
           values.customer_grading_cron_time || ''
         );
+        formData.append('excel_api_username', values.excel_api_username || '');
+        formData.append('excel_api_password', values.excel_api_password || '');
+        formData.append('excel_api_key', values.excel_api_key || '');
 
         if (uploadedFile) {
           formData.append('logo', uploadedFile);
@@ -230,10 +326,16 @@ const SystemSettings: React.FC = () => {
 
   if (!settings) {
     return (
-      <Box>
-        <Typography variant="h6" className="!text-gray-900">
+      <Box className="p-8 text-center bg-white rounded-lg border border-gray-200">
+        <Typography variant="h6" className="!text-gray-700 !mb-2">
           No settings found
         </Typography>
+        <Typography variant="body2" className="!text-gray-500 !mb-4">
+          Unable to load company settings. Please refresh or retry.
+        </Typography>
+        <Button variant="contained" onClick={() => refetch()}>
+          Retry
+        </Button>
       </Box>
     );
   }
@@ -486,6 +588,257 @@ const SystemSettings: React.FC = () => {
               <MenuItem value="0 0 1 * *">Every Month (1st Midnight)</MenuItem>
             </Select>
           </Box>
+        </div>
+
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+          <Box className="flex items-center justify-between p-3">
+            <Box className="flex items-center gap-2">
+              <FileSpreadsheet className="w-5 h-5 text-emerald-600" />
+              <Typography
+                variant="h6"
+                className="!font-semibold !text-gray-900"
+              >
+                Excel API & Power Query Integration
+              </Typography>
+            </Box>
+            <span className="text-xs font-medium px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-full border border-emerald-200">
+              Live CSV Streams
+            </span>
+          </Box>
+          <Divider />
+
+          <div className="p-4 space-y-6">
+            <div>
+              <Typography
+                variant="subtitle2"
+                className="!font-semibold !text-gray-800 !mb-3"
+              >
+                API Authentication Credentials
+              </Typography>
+              <Box className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Input
+                  name="excel_api_username"
+                  formik={formik}
+                  label="Excel API Username (Basic Auth)"
+                  placeholder="e.g. excel_sync"
+                  fullWidth
+                />
+                <Input
+                  name="excel_api_password"
+                  formik={formik}
+                  label="Excel API Password (Basic Auth)"
+                  placeholder="Enter strong password for Excel sync"
+                  type="password"
+                  autoComplete="new-password"
+                  fullWidth
+                />
+              </Box>
+
+              <Box className="mt-4">
+                <Typography
+                  variant="body2"
+                  className="!font-medium !text-gray-700 !mb-1"
+                >
+                  Excel API Key (For Direct URL Access &amp; Power BI)
+                </Typography>
+                <div className="flex gap-2 items-center">
+                  <div className="flex-1">
+                    <Input
+                      name="excel_api_key"
+                      formik={formik}
+                      placeholder="dcc_live_..."
+                      fullWidth
+                    />
+                  </div>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    startIcon={<RefreshCw className="w-4 h-4" />}
+                    onClick={handleGenerateApiKey}
+                    className="!whitespace-nowrap !h-10"
+                  >
+                    {formik.values.excel_api_key
+                      ? 'Regenerate'
+                      : 'Generate Key'}
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    startIcon={
+                      apiKeyCopied ? (
+                        <Check className="w-4 h-4 text-green-600" />
+                      ) : (
+                        <Copy className="w-4 h-4" />
+                      )
+                    }
+                    onClick={() =>
+                      handleCopyText(
+                        formik.values.excel_api_key || '',
+                        'apikey'
+                      )
+                    }
+                    disabled={!formik.values.excel_api_key}
+                    className="!whitespace-nowrap !h-10"
+                  >
+                    {apiKeyCopied ? 'Copied' : 'Copy Key'}
+                  </Button>
+                </div>
+                <Typography
+                  variant="caption"
+                  className="!block !mt-1 !text-gray-500"
+                >
+                  Attach this key to endpoints using &quot;Copy with Key&quot;
+                  below. Excel or Power BI will load live data instantly without
+                  requiring username/password credentials.
+                </Typography>
+              </Box>
+            </div>
+
+            <div>
+              <Typography
+                variant="subtitle2"
+                className="!font-semibold !text-gray-800 !mb-2"
+              >
+                Available Excel Data Endpoints
+              </Typography>
+              <Typography
+                variant="body2"
+                className="!text-gray-500 !mb-3 !text-xs"
+              >
+                Copy any endpoint URL below and paste it directly into Microsoft
+                Excel Power Query (Data → From Web).
+              </Typography>
+
+              <div className="space-y-3">
+                {excelEndpoints.map(ep => (
+                  <div
+                    key={ep.id}
+                    className="p-3 rounded-lg border border-gray-200 bg-gray-50 flex flex-col md:flex-row md:items-center justify-between gap-3"
+                  >
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-sm text-gray-900">
+                          {ep.name}
+                        </span>
+                        <span className="text-xs px-2 py-0.5 rounded font-mono font-medium bg-blue-100 text-blue-800">
+                          GET
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-500">{ep.description}</p>
+                      <code className="text-xs text-gray-700 font-mono bg-white px-2 py-1 rounded border border-gray-200 block break-all">
+                        {ep.endpoint}
+                      </code>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2 self-start md:self-center shrink-0">
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        startIcon={
+                          copiedEndpoint === ep.id ? (
+                            <Check className="w-4 h-4 text-green-600" />
+                          ) : (
+                            <Copy className="w-4 h-4" />
+                          )
+                        }
+                        onClick={() =>
+                          handleCopyText(ep.endpoint, 'endpoint', ep.id)
+                        }
+                        className="!whitespace-nowrap"
+                      >
+                        {copiedEndpoint === ep.id ? 'Copied URL' : 'Copy URL'}
+                      </Button>
+                      {formik.values.excel_api_key && (
+                        <Button
+                          variant="contained"
+                          size="small"
+                          startIcon={
+                            copiedEndpointWithKey === ep.id ? (
+                              <Check className="w-4 h-4 text-white" />
+                            ) : (
+                              <Copy className="w-4 h-4" />
+                            )
+                          }
+                          onClick={() =>
+                            handleCopyText(
+                              `${ep.endpoint}?apiKey=${encodeURIComponent(
+                                formik.values.excel_api_key
+                              )}`,
+                              'endpointWithKey',
+                              ep.id
+                            )
+                          }
+                          className="!whitespace-nowrap !bg-emerald-600 hover:!bg-emerald-700 !text-white"
+                        >
+                          {copiedEndpointWithKey === ep.id
+                            ? 'Copied URL + Key'
+                            : 'Copy with Key'}
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="p-4 rounded-lg bg-blue-50 border border-blue-200">
+              <div className="flex items-start gap-1">
+                <Info className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+                <div className="text-xs text-blue-900 space-y-2">
+                  <p className="font-semibold text-sm">
+                    How to Connect in Microsoft Excel (Power Query):
+                  </p>
+                  <ol className="list-decimal list-inside space-y-1.5 pl-1 text-blue-800">
+                    <li>
+                      In Excel, go to the <strong>Data</strong> tab and click{' '}
+                      <strong>From Web</strong>.
+                    </li>
+                    <li>
+                      Paste the endpoint URL and click <strong>OK</strong>.
+                    </li>
+                    <li>
+                      When the <strong>&quot;Access Web content&quot;</strong>{' '}
+                      dialog appears, choose either method:
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
+                        <div className="p-2.5 rounded bg-white border border-blue-200">
+                          <p className="font-bold text-emerald-800 mb-1">
+                            Method 1 : Basic Auth
+                          </p>
+                          <p className="text-gray-700">
+                            1. Click <strong>Basic</strong> on the left menu
+                            (above Web API).
+                            <br />
+                            2. Enter your <strong>
+                              Excel API Username
+                            </strong>{' '}
+                            and <strong>Password</strong>.<br />
+                            3. Click <strong>Connect</strong>.
+                          </p>
+                        </div>
+                        <div className="p-2.5 rounded bg-white border border-blue-200">
+                          <p className="font-bold text-blue-800 mb-1">
+                            Method 2: Direct URL with Key
+                          </p>
+                          <p className="text-gray-700">
+                            1. Click <strong>Copy with Key</strong> above to get
+                            the URL with <code>?apiKey=...</code>.<br />
+                            2. Select <strong>Anonymous</strong> on the left
+                            menu.
+                            <br />
+                            3. Click <strong>Connect</strong>.
+                          </p>
+                        </div>
+                      </div>
+                    </li>
+                    <li>
+                      Click <strong>Connect</strong>, then click{' '}
+                      <strong>Load</strong> to import live data into your
+                      spreadsheet.
+                    </li>
+                  </ol>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <Box className="flex justify-end gap-3">
