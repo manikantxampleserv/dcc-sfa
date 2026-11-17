@@ -18,6 +18,7 @@ export const useSettings = () => {
     queryKey: settingsQueryKeys.detail(),
     queryFn: () => settingsService.fetchSettings(),
     staleTime: 5 * 60 * 1000,
+    refetchOnMount: 'always',
   });
 };
 

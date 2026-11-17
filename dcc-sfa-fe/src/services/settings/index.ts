@@ -26,6 +26,9 @@ export interface Settings {
   smtp_mail_from_address?: string | null;
   currency_id?: number | null;
   customer_grading_cron_time: string;
+  excel_api_username?: string | null;
+  excel_api_password?: string | null;
+  excel_api_key?: string | null;
   created_date?: string;
   updated_date?: string;
   users?: Array<{
@@ -64,6 +67,9 @@ export interface UpdateSettingsPayload {
   smtp_username?: string;
   smtp_password?: string;
   currency_id?: number | null;
+  excel_api_username?: string;
+  excel_api_password?: string;
+  excel_api_key?: string;
 }
 
 export const fetchSettings = async (): Promise<ApiResponse<Settings>> => {

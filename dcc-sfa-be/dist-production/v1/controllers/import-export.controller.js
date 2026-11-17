@@ -306,6 +306,7 @@ exports.importExportController = {
                     : Object.keys(parsedFilters).length > 0
                         ? parsedFilters
                         : undefined,
+                rawFilters: req.query,
                 limit: limit ? parseInt(limit) : undefined,
                 orderBy: { [sortField]: sortOrder },
             };
