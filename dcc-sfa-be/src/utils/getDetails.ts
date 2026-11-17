@@ -107,16 +107,52 @@ async function getRequestDetailsByType(
             const customerData = parsedData.customer_data;
 
             if (customerData) {
-              const rawCustomerImages = parsedData.customer_images || [];
-              const customerImages = (
-                Array.isArray(rawCustomerImages)
-                  ? rawCustomerImages
-                  : [rawCustomerImages]
-              )
-                .map((img: any) =>
-                  typeof img === 'string' ? img : img?.image_url
-                )
-                .filter(Boolean);
+              let depotName: string | null = null;
+              let routeName: string | null = null;
+              let channelName: string | null = null;
+              let typeName: string | null = null;
+
+              const depotId =
+                customerData.depot_id ||
+                customerData.customer_depot?.connect?.id;
+              const routeId =
+                customerData.route_id ||
+                customerData.customer_routes?.connect?.id;
+              const channelId =
+                customerData.customer_channel_id ||
+                customerData.customer_channel_customer?.connect?.id;
+              const typeId =
+                customerData.customer_type_id ||
+                customerData.customer_type_customer?.connect?.id;
+
+              if (depotId) {
+                const d = await prisma.depots.findUnique({
+                  where: { id: Number(depotId) },
+                  select: { name: true },
+                });
+                depotName = d?.name || null;
+              }
+              if (routeId) {
+                const r = await prisma.routes.findUnique({
+                  where: { id: Number(routeId) },
+                  select: { name: true, code: true },
+                });
+                routeName = r ? r.name || r.code : null;
+              }
+              if (channelId) {
+                const ch = await prisma.customer_channel.findUnique({
+                  where: { id: Number(channelId) },
+                  select: { channel_name: true },
+                });
+                channelName = ch?.channel_name || null;
+              }
+              if (typeId) {
+                const ct = await prisma.customer_type.findUnique({
+                  where: { id: Number(typeId) },
+                  select: { type_name: true },
+                });
+                typeName = ct?.type_name || null;
+              }
 
               const result = {
                 customer_status: 'Pending Creation',
@@ -125,13 +161,21 @@ async function getRequestDetailsByType(
                 customer_code: customerData.code || 'N/A',
                 customer_email: customerData.email || 'N/A',
                 customer_phone: customerData.phone_number || 'N/A',
+                contact_person: customerData.contact_person || 'N/A',
+                customer_address: customerData.address || 'N/A',
                 customer_city: customerData.city || 'N/A',
                 customer_state: customerData.state || 'N/A',
+                latitude: customerData.latitude ?? null,
+                longitude: customerData.longitude ?? null,
+                profile_picture: customerData.profile_picture || null,
+                customer_images: parsedData.customer_images || [],
+                depot_name: depotName,
+                route_name: routeName,
+                channel_name: channelName,
+                type_name: typeName,
                 platform_type: parsedData.platform_type || 'N/A',
                 requested_by: parsedData.requested_by || 'N/A',
                 requested_date: parsedData.requested_date || 'N/A',
-                profile_picture: customerData.profile_picture || null,
-                customer_images: customerImages,
                 message: 'Customer creation request - customer not yet created',
               };
               return result;

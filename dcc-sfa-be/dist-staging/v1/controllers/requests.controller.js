@@ -992,6 +992,16 @@ const createRequest = async (data) => {
                         updatedate: new Date(),
                     },
                 });
+                setImmediate(async () => {
+                    try {
+                        const { vanInventoryController } = await Promise.resolve().then(() => __importStar(require('./vanInventory.controller')));
+                        await vanInventoryController.processApprovedVanInventoryStock(Number(data.reference_id), data.createdby, data.request_data ? JSON.parse(data.request_data) : null);
+                        console.log(`Completed auto-approved stock processing for VAN_INVENTORY ${data.reference_id}`);
+                    }
+                    catch (err) {
+                        console.error('Error processing auto-approved van inventory stock:', err);
+                    }
+                });
             }
             if (data.request_type === 'PROMOTION_MATERIAL_ISSUE' &&
                 data.reference_id) {
@@ -2513,14 +2523,25 @@ exports.requestsController = {
                     result.request.reference_id) {
                     console.log(`Approved VAN_INVENTORY request detected: requestId=${result.request.id}, referenceId=${result.request.reference_id}`);
                     try {
-                        const { vanInventoryController } = await Promise.resolve().then(() => __importStar(require('../controllers/vanInventory.controller')));
+                        const { vanInventoryController } = await Promise.resolve().then(() => __importStar(require('./vanInventory.controller')));
                         await vanInventoryController.processApprovedVanInventoryStock(result.request.reference_id, userId, result.request.request_data
                             ? JSON.parse(result.request.request_data)
                             : null);
                         console.log(`Completed stock processing for approved VAN_INVENTORY request ${result.request.reference_id}`);
                     }
                     catch (err) {
-                        console.error('Error processing approved van inventory stock:', err);
+                        console.error('Error processing approved van inventory stock, retrying once in 1s...', err);
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                        try {
+                            const { vanInventoryController } = await Promise.resolve().then(() => __importStar(require('./vanInventory.controller')));
+                            await vanInventoryController.processApprovedVanInventoryStock(result.request.reference_id, userId, result.request.request_data
+                                ? JSON.parse(result.request.request_data)
+                                : null);
+                            console.log(`Retry succeeded: completed stock processing for approved VAN_INVENTORY request ${result.request.reference_id}`);
+                        }
+                        catch (retryErr) {
+                            console.error('Retry also failed for approved van inventory stock:', retryErr);
+                        }
                     }
                 }
                 // if (

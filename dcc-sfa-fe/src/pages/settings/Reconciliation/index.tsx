@@ -9,8 +9,8 @@ import { AlertCircle, BarChart, ClipboardList, DollarSign } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ActionButton } from 'shared/ActionButton';
+import DateRangeFilter, { type CustomDateRange } from 'shared/DateRangeFilter';
 import DepotSelect from 'shared/DepotSelect';
-import Input from 'shared/Input';
 import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import StatsCard from 'shared/StatsCard';
@@ -19,11 +19,21 @@ import { formatDate, formatDateTime } from 'utils/dateUtils';
 
 export default function Reconciliation() {
   const navigate = useNavigate();
+  const todayStr = new Date().toISOString().split('T')[0];
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedDate, setSelectedDate] = useState(
-    sessionStorage.getItem('reconciliation_date_filter') ||
-      new Date().toISOString().split('T')[0]
+  const [timeFilter, setTimeFilter] = useState<string>(
+    sessionStorage.getItem('reconciliation_time_filter') || 'today'
   );
+  const [customDateRange, setCustomDateRange] = useState<CustomDateRange>({
+    start:
+      sessionStorage.getItem('reconciliation_start_date') ||
+      sessionStorage.getItem('reconciliation_date_filter') ||
+      todayStr,
+    end:
+      sessionStorage.getItem('reconciliation_end_date') ||
+      sessionStorage.getItem('reconciliation_date_filter') ||
+      todayStr,
+  });
   const [depotFilter, setDepotFilter] = useState<number | undefined>(undefined);
   const [approvalStatusFilter, setApprovalStatusFilter] = useState('all');
   const [page, setPage] = useState(1);
@@ -37,7 +47,15 @@ export default function Reconciliation() {
       limit,
       search: searchQuery || undefined,
       depot_id: depotFilter,
-      date: selectedDate || undefined,
+      time_filter: timeFilter !== 'all' ? timeFilter : undefined,
+      start_date:
+        timeFilter === 'custom' && customDateRange.start
+          ? customDateRange.start
+          : undefined,
+      end_date:
+        timeFilter === 'custom' && customDateRange.end
+          ? customDateRange.end
+          : undefined,
       status: 'all',
       rec_status:
         approvalStatusFilter === 'all' ? undefined : approvalStatusFilter,
@@ -168,6 +186,25 @@ export default function Reconciliation() {
             salesman.
           </p>
         </Box>
+        <DateRangeFilter
+          timeFilter={timeFilter}
+          setTimeFilter={val => {
+            setTimeFilter(val);
+            sessionStorage.setItem('reconciliation_time_filter', val);
+            setPage(1);
+          }}
+          customDateRange={customDateRange}
+          setCustomDateRange={updater => {
+            setCustomDateRange(prev => {
+              const next =
+                typeof updater === 'function' ? updater(prev) : updater;
+              sessionStorage.setItem('reconciliation_start_date', next.start);
+              sessionStorage.setItem('reconciliation_end_date', next.end);
+              return next;
+            });
+            setPage(1);
+          }}
+        />
       </Box>
 
       {/* Stats Area */}
@@ -242,19 +279,6 @@ export default function Reconciliation() {
                 className="!w-64"
               />
               <div className="flex items-center gap-2">
-                <Input
-                  type="date"
-                  value={selectedDate}
-                  onChange={e => {
-                    setSelectedDate(e.target.value);
-                    sessionStorage.setItem(
-                      'reconciliation_date_filter',
-                      e.target.value
-                    );
-                    setPage(1);
-                  }}
-                  className="!w-44"
-                />
                 <Select
                   value={approvalStatusFilter}
                   onChange={e => {

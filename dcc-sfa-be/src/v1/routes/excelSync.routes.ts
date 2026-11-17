@@ -109,10 +109,31 @@ const allowExcelTokenAuth = async (
     }
 
     /**
-     * Map Query Param or x-api-key or raw token to Bearer Authorization header
+     * Map Query Param or x-api-key or raw token to Bearer Authorization header.
+     * Sanitizes tokens where trailing query parameters were accidentally concatenated.
      */
-    if (!rawAuth && queryToken) {
-      req.headers['authorization'] = `Bearer ${queryToken}`;
+    let cleanToken = queryToken;
+    if (cleanToken && cleanToken.includes('.')) {
+      const parts = cleanToken.split('.');
+      if (parts.length >= 3 && parts[2].length > 43) {
+        const sigPart = parts[2];
+        const extra = sigPart.substring(43);
+        const sigClean = sigPart.substring(0, 43);
+        cleanToken = `${parts[0]}.${parts[1]}.${sigClean}`;
+
+        if (!req.query.start_date) {
+          const sdMatch = extra.match(/start_date=([^&]+)/);
+          if (sdMatch) {
+            req.query.start_date = sdMatch[1];
+          } else if (req.query.end_date) {
+            req.query.start_date = req.query.end_date;
+          }
+        }
+      }
+    }
+
+    if (!rawAuth && cleanToken) {
+      req.headers['authorization'] = `Bearer ${cleanToken}`;
     } else if (!rawAuth && apiKeyHeader) {
       req.headers['authorization'] = `Bearer ${apiKeyHeader}`;
     } else if (

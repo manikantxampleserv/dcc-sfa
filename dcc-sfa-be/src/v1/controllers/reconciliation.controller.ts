@@ -7,6 +7,7 @@ import { createRequest } from './requests.controller';
 import { isAdminRole } from '../../configs/permissions.config';
 import { exportReconciliationExcelService } from '../services/reconciliation-export.service';
 import { exportReconciliationPdfService } from '../services/reconciliation-pdf-export.service';
+import { getTimeFilter } from '../../utils/dateFilters';
 
 const resolveStatusFilter = (status: string) => {
   if (status === 'Pending')
@@ -37,6 +38,15 @@ export const reconciliationController = {
         : null;
       const depotId = req.query.depot_id ? Number(req.query.depot_id) : null;
       const date = req.query.date ? String(req.query.date).trim() : '';
+      const timeFilter = req.query.time_filter
+        ? String(req.query.time_filter).trim()
+        : undefined;
+      const startDate = (req.query.start_date || req.query.from_date)
+        ? String(req.query.start_date || req.query.from_date).trim()
+        : undefined;
+      const endDate = (req.query.end_date || req.query.to_date)
+        ? String(req.query.end_date || req.query.to_date).trim()
+        : undefined;
       const status = req.query.status ? String(req.query.status).trim() : '';
       const recStatus =
         req.query.rec_status || req.query.approval_status
@@ -69,7 +79,75 @@ export const reconciliationController = {
       }
       if (salesmanId) reconcFilters.salesman_id = salesmanId;
       if (depotId) reconcFilters.depot_id = depotId;
-      if (date) {
+
+      if (startDate || endDate) {
+        const dateRange: any = {};
+        if (startDate) {
+          const s = new Date(
+            startDate.includes('T') ? startDate : `${startDate}T00:00:00.000Z`
+          );
+          if (!isNaN(s.getTime())) dateRange.gte = s;
+        }
+        if (endDate) {
+          const e = new Date(
+            endDate.includes('T') ? endDate : `${endDate}T23:59:59.999Z`
+          );
+          if (!isNaN(e.getTime())) dateRange.lte = e;
+        }
+        if (dateRange.gte || dateRange.lte) {
+          reconcFilters.reconciliation_date = dateRange;
+        }
+      } else if (timeFilter === 'today') {
+        const now = new Date();
+        const startToday = new Date(
+          Date.UTC(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0)
+        );
+        const endToday = new Date(
+          Date.UTC(
+            now.getFullYear(),
+            now.getMonth(),
+            now.getDate(),
+            23,
+            59,
+            59,
+            999
+          )
+        );
+        reconcFilters.reconciliation_date = { gte: startToday, lte: endToday };
+      } else if (timeFilter === 'yesterday') {
+        const now = new Date();
+        const yesterday = new Date(
+          Date.UTC(
+            now.getFullYear(),
+            now.getMonth(),
+            now.getDate() - 1,
+            0,
+            0,
+            0,
+            0
+          )
+        );
+        const endYesterday = new Date(
+          Date.UTC(
+            now.getFullYear(),
+            now.getMonth(),
+            now.getDate() - 1,
+            23,
+            59,
+            59,
+            999
+          )
+        );
+        reconcFilters.reconciliation_date = {
+          gte: yesterday,
+          lte: endYesterday,
+        };
+      } else if (timeFilter && timeFilter !== 'all') {
+        const tf = getTimeFilter(timeFilter);
+        if (tf) {
+          reconcFilters.reconciliation_date = tf;
+        }
+      } else if (date) {
         const d = new Date(date);
         if (!isNaN(d.getTime())) reconcFilters.reconciliation_date = d;
       }

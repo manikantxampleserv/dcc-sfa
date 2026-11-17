@@ -50,6 +50,19 @@ const serializeUser = (
         unload_time: user.user_role.unload_time,
       }
     : null,
+  depot: user.user_depot
+    ? {
+        id: user.user_depot.id,
+        name: user.user_depot.name,
+        code: user.user_depot.code,
+      }
+    : user.users_depots_users?.[0]?.user_depots_depot_id
+    ? {
+        id: user.users_depots_users[0].user_depots_depot_id.id,
+        name: user.users_depots_users[0].user_depots_depot_id.name,
+        code: user.users_depots_users[0].user_depots_depot_id.code,
+      }
+    : null,
   company: user.companies
     ? {
         id: user.companies.id,
@@ -1147,6 +1160,7 @@ export const userController = {
               },
             },
           },
+          user_depot: true,
           companies: {
             include: {
               companies_currencies: true,
@@ -1215,7 +1229,7 @@ export const userController = {
         return;
       }
 
-      const serializedUser = serializeUser(user);
+      const serializedUser = serializeUser(user, true, true);
 
       const response = {
         ...serializedUser,

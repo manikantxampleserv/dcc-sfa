@@ -55,20 +55,34 @@ exports.assetMaintenanceController = {
     async createAssetMaintenance(req, res) {
         try {
             const { spares, ...maintenanceData } = req.body;
-            if (!maintenanceData.asset_id ||
-                !maintenanceData.technician_id ||
-                !maintenanceData.maintenance_date) {
+            if (!maintenanceData.asset_id || !maintenanceData.maintenance_date) {
                 return res.status(400).json({
-                    message: 'asset_id, technician_id, and maintenance_date are required',
+                    message: 'asset_id and maintenance_date are required',
                 });
             }
             const asset = await prisma_client_1.default.asset_master.findUnique({
-                where: { id: maintenanceData.asset_id },
+                where: { id: Number(maintenanceData.asset_id) },
             });
             if (!asset) {
                 return res.status(404).json({
                     message: 'Asset not found',
                 });
+            }
+            const assignedTechnicianId = maintenanceData.technician_id
+                ? Number(maintenanceData.technician_id)
+                : req.user?.id || 1;
+            let resolvedRemarks = maintenanceData.remarks || '';
+            const extraTags = [];
+            if (maintenanceData.repair_location) {
+                extraTags.push(`Location: ${maintenanceData.repair_location}`);
+            }
+            if (maintenanceData.status) {
+                extraTags.push(`Status: ${maintenanceData.status}`);
+            }
+            if (extraTags.length > 0) {
+                resolvedRemarks = resolvedRemarks
+                    ? `${resolvedRemarks} (${extraTags.join(', ')})`
+                    : extraTags.join(', ');
             }
             const sparesToCreate = Array.isArray(spares) && spares.length > 0
                 ? spares
@@ -81,8 +95,18 @@ exports.assetMaintenanceController = {
                 : [];
             const record = await prisma_client_1.default.asset_maintenance.create({
                 data: {
-                    ...maintenanceData,
+                    asset_id: Number(maintenanceData.asset_id),
+                    technician_id: assignedTechnicianId,
                     maintenance_date: new Date(maintenanceData.maintenance_date),
+                    issue_reported: maintenanceData.issue_reported || null,
+                    action_taken: maintenanceData.action_taken || null,
+                    cost: maintenanceData.cost !== undefined &&
+                        maintenanceData.cost !== null &&
+                        maintenanceData.cost !== ''
+                        ? Number(maintenanceData.cost)
+                        : null,
+                    remarks: resolvedRemarks || null,
+                    is_active: maintenanceData.is_active || 'Y',
                     createdby: req.user?.id || 1,
                     createdate: new Date(),
                     log_inst: maintenanceData.log_inst || 1,
@@ -217,7 +241,8 @@ exports.assetMaintenanceController = {
             });
             if (!existing)
                 return res.status(404).json({ message: 'Asset maintenance not found' });
-            const { spares, ...updateData } = req.body;
+            const { spares, ...rawUpdateData } = req.body;
+            const { status: _status, repair_location: _loc, createdate: _cdate, createdby: _cby, id: _id, ...updateData } = rawUpdateData;
             const updated = await prisma_client_1.default.$transaction(async (tx) => {
                 if (spares !== undefined) {
                     await tx.asset_maintenance_spares.deleteMany({
@@ -245,6 +270,19 @@ exports.assetMaintenanceController = {
                         ...updateData,
                         ...(updateData.maintenance_date
                             ? { maintenance_date: new Date(updateData.maintenance_date) }
+                            : {}),
+                        ...(updateData.asset_id
+                            ? { asset_id: Number(updateData.asset_id) }
+                            : {}),
+                        ...(updateData.technician_id
+                            ? { technician_id: Number(updateData.technician_id) }
+                            : {}),
+                        ...(updateData.cost !== undefined
+                            ? {
+                                cost: updateData.cost !== null && updateData.cost !== ''
+                                    ? Number(updateData.cost)
+                                    : null,
+                            }
                             : {}),
                         updatedby: req.user?.id || updateData.updatedby || 1,
                         updatedate: new Date(),

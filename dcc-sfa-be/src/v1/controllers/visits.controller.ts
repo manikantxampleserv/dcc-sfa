@@ -58,7 +58,15 @@ interface VisitSerialized {
     is_active: string;
   } | null;
   salesperson?: { id: number; name: string; email: string } | null;
-  route?: { id: number; name: string; code: string } | null;
+  route?: {
+    id: number;
+    name: string;
+    code: string;
+    route_code?: string;
+    route_name?: string;
+    system_route_code?: string;
+    [key: string]: any;
+  } | null;
   zone?: { id: number; name: string; code: string } | null;
 
   orders?: Array<{
@@ -406,7 +414,17 @@ function serializeVisit(visit: any) {
         }
       : null,
 
-    route: visit.visit_customers?.customer_routes || visit.visit_routes,
+    route: (() => {
+      const r = visit.visit_customers?.customer_routes || visit.visit_routes;
+      if (!r) return null;
+      return {
+        ...r,
+        code: r.name || r.code,
+        route_code: r.name || r.code,
+        route_name: r.name,
+        system_route_code: r.code,
+      };
+    })(),
     zone: visit.visit_customers?.customer_zones || visit.visit_zones,
     payments:
       visit.payments?.map((payment: any) => ({
@@ -3183,10 +3201,20 @@ export const visitsController = {
                 email: visit.visits_salesperson.email,
               }
             : null,
-          route:
-            visit.visit_customers?.customer_routes ||
-            visit.visit_routes ||
-            null,
+          route: (() => {
+            const r =
+              visit.visit_customers?.customer_routes ||
+              visit.visit_routes ||
+              null;
+            if (!r) return null;
+            return {
+              ...r,
+              code: r.name || r.code,
+              route_code: r.name || r.code,
+              route_name: r.name,
+              system_route_code: r.code,
+            };
+          })(),
           zone:
             visit.visit_customers?.customer_zones || visit.visit_zones || null,
           orders: orders,

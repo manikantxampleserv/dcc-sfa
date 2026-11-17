@@ -110,9 +110,6 @@ exports.salespersonStockController = {
                 ],
                 is_active: 'Y',
             };
-            if (parsedDepotId) {
-                stockWhere.location_id = parsedDepotId;
-            }
             if (product_id) {
                 stockWhere.product_id = parseInt(product_id, 10);
             }
@@ -585,6 +582,10 @@ exports.salespersonStockController = {
 };
 async function handleAllSalespersons(req, res, pageNum, limitNum) {
     const { product_id, batch_status, serial_status, depot_id, supervisor_id, search, } = req.query;
+    let parsedDepotId = null;
+    if (depot_id) {
+        parsedDepotId = parseInt(depot_id, 10);
+    }
     const usersWhere = {
         AND: [
             {
@@ -615,6 +616,21 @@ async function handleAllSalespersons(req, res, pageNum, limitNum) {
     };
     if (supervisor_id) {
         usersWhere.reporting_to = parseInt(supervisor_id, 10);
+    }
+    if (parsedDepotId) {
+        usersWhere.AND.push({
+            OR: [
+                { depot_id: parsedDepotId },
+                {
+                    users_depots_users: {
+                        some: {
+                            depot_id: parsedDepotId,
+                            is_active: 'Y',
+                        },
+                    },
+                },
+            ],
+        });
     }
     const user = req.user;
     let isScopeRestricted = false;
@@ -653,6 +669,7 @@ async function handleAllSalespersons(req, res, pageNum, limitNum) {
             profile_image: true,
             address: true,
             sap_code: true,
+            depot_id: true,
             user_role: { select: { name: true } },
             sub_inventory_users: {
                 where: { is_active: 'Y' },
@@ -685,10 +702,6 @@ async function handleAllSalespersons(req, res, pageNum, limitNum) {
     let overallVanInventories = 0;
     let overallBatches = 0;
     let overallSerials = 0;
-    let parsedDepotId = null;
-    if (depot_id) {
-        parsedDepotId = parseInt(depot_id, 10);
-    }
     const allSalespersonIds = allSalespersons.map(sp => sp.id);
     /** Bulk fetch van inventory counts */
     const vanInventoriesCounts = await prisma_client_1.default.van_inventory.groupBy({
@@ -705,8 +718,6 @@ async function handleAllSalespersons(req, res, pageNum, limitNum) {
         ],
         is_active: 'Y',
     };
-    if (parsedDepotId)
-        stockWhere.location_id = parsedDepotId;
     if (product_id)
         stockWhere.product_id = parseInt(product_id, 10);
     const stockRecordsAll = await prisma_client_1.default.inventory_stock.findMany({
@@ -802,7 +813,14 @@ async function handleAllSalespersons(req, res, pageNum, limitNum) {
             });
             seenDepotIds.add(sp.user_depot.id);
         }
-        const primaryDepot = depotsList[0] || null;
+        if (parsedDepotId) {
+            const hasDepot = sp.depot_id === parsedDepotId || seenDepotIds.has(parsedDepotId);
+            if (!hasDepot)
+                continue;
+        }
+        const primaryDepot = (parsedDepotId ? depotsList.find(d => d.id === parsedDepotId) : null) ||
+            depotsList[0] ||
+            null;
         const depotNameStr = primaryDepot?.name || null;
         consolidated.push({
             salesperson_id: sp.id,

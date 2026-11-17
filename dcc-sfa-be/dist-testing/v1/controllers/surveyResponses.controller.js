@@ -930,8 +930,8 @@ exports.surveyResponseController = {
                     const salesperson = r.survey_responses_submitted_by_users?.name ||
                         r.survey_responses_submitted_by_users?.employee_id ||
                         '-';
-                    const routeCode = r.survey_response_customer?.customer_routes?.code ||
-                        r.survey_response_customer?.customer_routes?.name ||
+                    const routeCode = r.survey_response_customer?.customer_routes?.name ||
+                        r.survey_response_customer?.customer_routes?.code ||
                         '-';
                     const customerName = r.survey_response_customer?.name || '-';
                     const customerCode = r.survey_response_customer?.code || '-';
@@ -1009,8 +1009,8 @@ exports.surveyResponseController = {
                     const salesperson = r.survey_responses_submitted_by_users?.name ||
                         r.survey_responses_submitted_by_users?.employee_id ||
                         '-';
-                    const routeCode = r.survey_response_customer?.customer_routes?.code ||
-                        r.survey_response_customer?.customer_routes?.name ||
+                    const routeCode = r.survey_response_customer?.customer_routes?.name ||
+                        r.survey_response_customer?.customer_routes?.code ||
                         '-';
                     const rowData = {
                         response_id: r.id,

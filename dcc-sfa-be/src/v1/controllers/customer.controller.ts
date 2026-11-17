@@ -148,6 +148,12 @@ const serializeCustomer = async (
     credit_limit: customer.credit_limit?.toString() || null,
     outstanding_amount: customer.outstanding_amount?.toString() || '0',
     route_id: customer.route_id || null,
+    route_name: customer.customer_routes?.name || null,
+    route_code:
+      customer.customer_routes?.name ||
+      customer.customer_routes?.code ||
+      null,
+    system_route_code: customer.customer_routes?.code || null,
     salesperson_id: customer.salesperson_id || null,
     nfc_tag_code: customer.nfc_tag_code || null,
     last_visit_date: customer.last_visit_date || null,
@@ -171,7 +177,13 @@ const serializeCustomer = async (
       ? {
           id: customer.customer_routes.id,
           name: customer.customer_routes.name,
-          code: customer.customer_routes.code,
+          code:
+            customer.customer_routes.name || customer.customer_routes.code,
+          route_code:
+            customer.customer_routes.name || customer.customer_routes.code,
+          route_name: customer.customer_routes.name,
+          actual_route_code: customer.customer_routes.name,
+          system_route_code: customer.customer_routes.code,
           description: customer.customer_routes.description || null,
           start_location: customer.customer_routes.start_location || null,
           end_location: customer.customer_routes.end_location || null,
@@ -516,7 +528,12 @@ export const customerController = {
         });
       }
 
-      if (!req.body.customers) {
+      let rawCustomers = req.body?.customers;
+      if (!rawCustomers && Array.isArray(req.body)) {
+        rawCustomers = req.body;
+      }
+
+      if (!rawCustomers) {
         return res.status(400).json({
           success: false,
           message: 'customers field is required',
@@ -527,15 +544,15 @@ export const customerController = {
         req.headers['platform_type'] || req.body.platform_type || 'web';
 
       let customersData;
-      if (typeof req.body.customers === 'string') {
-        if (!req.body.customers.trim()) {
+      if (typeof rawCustomers === 'string') {
+        if (!rawCustomers.trim()) {
           return res.status(400).json({
             success: false,
             message: 'customers field cannot be empty',
           });
         }
         try {
-          customersData = JSON.parse(req.body.customers);
+          customersData = JSON.parse(rawCustomers);
         } catch (error: any) {
           return res.status(400).json({
             success: false,
@@ -543,9 +560,11 @@ export const customerController = {
           });
         }
       } else {
-        customersData = req.body.customers;
+        customersData = rawCustomers;
         customersData.forEach((customer: any) => {
-          delete customer.code;
+          if (!customer.code) {
+            delete customer.code;
+          }
         });
       }
 
@@ -690,20 +709,35 @@ export const customerController = {
           const customerData = customersData[customerIndex];
 
           try {
-            const depot_id =
+            const rawDepotId =
               customerData.depot_id ||
               customerData.zone_id ||
               customerData.zones_id;
-            const route_id = customerData.route_id;
-            let final_depot_id = depot_id;
+            const route_id = customerData.route_id
+              ? Number(customerData.route_id)
+              : undefined;
+            let final_depot_id = rawDepotId ? Number(rawDepotId) : undefined;
 
             if (!final_depot_id && route_id) {
               const route = await prisma.routes.findUnique({
                 where: { id: route_id },
                 select: { depot_id: true },
               });
-              final_depot_id = route?.depot_id;
+              final_depot_id = route?.depot_id
+                ? Number(route.depot_id)
+                : undefined;
             }
+
+            if (!final_depot_id) {
+              const defaultDepot = await prisma.depots.findFirst({
+                where: { is_active: 'Y' },
+                select: { id: true },
+              });
+              if (defaultDepot) {
+                final_depot_id = defaultDepot.id;
+              }
+            }
+
             const salesperson_id = customerData.salesperson_id;
             const customer_type_id = customerData.customer_type_id;
             const customer_channel_id = customerData.customer_channel_id;
@@ -721,10 +755,7 @@ export const customerController = {
                 });
                 continue;
               }
-            } else if (
-              final_depot_id === undefined ||
-              final_depot_id === null
-            ) {
+            } else {
               results.errors.push({
                 customer: customerData,
                 reason: 'Depot selection is required',
@@ -734,10 +765,11 @@ export const customerController = {
 
             if (
               customerData.city_id !== undefined &&
-              customerData.city_id !== null
+              customerData.city_id !== null &&
+              customerData.city_id !== ''
             ) {
               const cityExists = await prisma.cities.findUnique({
-                where: { id: customerData.city_id },
+                where: { id: Number(customerData.city_id) },
                 select: { id: true },
               });
 
@@ -752,10 +784,11 @@ export const customerController = {
 
             if (
               customerData.district_id !== undefined &&
-              customerData.district_id !== null
+              customerData.district_id !== null &&
+              customerData.district_id !== ''
             ) {
               const districtExists = await prisma.districts.findUnique({
-                where: { id: customerData.district_id },
+                where: { id: Number(customerData.district_id) },
                 select: { id: true },
               });
 
@@ -770,10 +803,11 @@ export const customerController = {
 
             if (
               customerData.region_id !== undefined &&
-              customerData.region_id !== null
+              customerData.region_id !== null &&
+              customerData.region_id !== ''
             ) {
               const regionExists = await prisma.regions.findUnique({
-                where: { id: customerData.region_id },
+                where: { id: Number(customerData.region_id) },
                 select: { id: true },
               });
 
@@ -2206,6 +2240,8 @@ export const customerController = {
             { code: { contains: searchLower } },
             { email: { contains: searchLower } },
             { phone_number: { contains: searchLower } },
+            { customer_routes: { name: { contains: searchLower } } },
+            { customer_routes: { code: { contains: searchLower } } },
           ],
         }),
         ...(city_id && { city_id: Number(city_id) }),
@@ -4024,7 +4060,10 @@ export const customerController = {
           ? {
               id: v.visit_routes.id,
               name: v.visit_routes.name,
-              code: v.visit_routes.code,
+              code: v.visit_routes.name || v.visit_routes.code,
+              route_code: v.visit_routes.name || v.visit_routes.code,
+              route_name: v.visit_routes.name,
+              system_route_code: v.visit_routes.code,
             }
           : null,
       }));

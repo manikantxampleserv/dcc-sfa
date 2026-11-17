@@ -321,8 +321,8 @@ const CreditMemoReport: React.FC = () => {
             <DepotSelect
               label="Depot"
               value={depotId}
-              onChange={val => {
-                setDepotId(val);
+              onChange={(_e, depot) => {
+                setDepotId(depot?.id ? Number(depot.id) : undefined);
                 setPage(1);
               }}
               placeholder="All Depots"

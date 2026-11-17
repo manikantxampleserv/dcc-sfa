@@ -1173,8 +1173,8 @@ export const surveyResponseController = {
             '-';
 
           const routeCode =
-            r.survey_response_customer?.customer_routes?.code ||
             r.survey_response_customer?.customer_routes?.name ||
+            r.survey_response_customer?.customer_routes?.code ||
             '-';
 
           const customerName = r.survey_response_customer?.name || '-';
@@ -1264,8 +1264,8 @@ export const surveyResponseController = {
             '-';
 
           const routeCode =
-            r.survey_response_customer?.customer_routes?.code ||
             r.survey_response_customer?.customer_routes?.name ||
+            r.survey_response_customer?.customer_routes?.code ||
             '-';
 
           const rowData: Record<string, string | number> = {

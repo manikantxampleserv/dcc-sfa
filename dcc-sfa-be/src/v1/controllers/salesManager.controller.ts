@@ -3299,7 +3299,10 @@ export const salesManagerController = {
           outlet_code: outlet?.code || '',
           route_id: outlet?.route_id || null,
           route_name: outlet?.customer_routes?.name || 'Unassigned Route',
-          route_code: outlet?.customer_routes?.code || '',
+          route_code:
+            outlet?.customer_routes?.name ||
+            outlet?.customer_routes?.code ||
+            '',
           subtitle: `${outlet?.code}  ${outlet?.customer_routes?.name || 'Route'}`,
           status: status,
           cooler_id: ci.coolers?.id,
@@ -3663,7 +3666,10 @@ export const salesManagerController = {
             outlet_code: outlet.code,
             route_id: outlet.route_id,
             route_name: outlet.customer_routes?.name,
-            route_code: outlet.customer_routes?.code || '',
+            route_code:
+              outlet.customer_routes?.name ||
+              outlet.customer_routes?.code ||
+              '',
             subtitle: `${outlet.code}  ${outlet.customer_routes?.name}`,
             status: isNeverVisited ? 'Never' : `${daysAgo} days ago`,
             last_visited_days_ago: daysAgo,

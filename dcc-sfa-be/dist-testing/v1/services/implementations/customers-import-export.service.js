@@ -771,6 +771,7 @@ class CustomersImportExportService extends import_export_service_1.ImportExportS
                 { city: { contains: searchStr } },
                 { customer_depot: { name: { contains: searchStr } } },
                 { customer_zones: { name: { contains: searchStr } } },
+                { customer_routes: { name: { contains: searchStr } } },
                 { customer_routes: { code: { contains: searchStr } } },
             ];
         }
@@ -843,8 +844,8 @@ class CustomersImportExportService extends import_export_service_1.ImportExportS
                 name: customer.name || '',
                 depot: customer.customer_depot?.name || '',
                 zone: customer.customer_zones?.name || '',
-                route: customer.customer_routes?.code ||
-                    customer.customer_routes?.name ||
+                route: customer.customer_routes?.name ||
+                    customer.customer_routes?.code ||
                     '',
                 outlet_type: customer.customer_type_customer?.type_name || '',
                 outlet_channel: customer.customer_channel_customer?.channel_code ||

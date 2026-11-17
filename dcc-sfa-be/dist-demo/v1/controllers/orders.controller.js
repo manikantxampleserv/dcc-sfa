@@ -63,7 +63,12 @@ const serializeOrder = (order) => ({
                 ? {
                     id: order.orders_customers.customer_routes.id,
                     name: order.orders_customers.customer_routes.name,
-                    code: order.orders_customers.customer_routes.code,
+                    code: order.orders_customers.customer_routes.name ||
+                        order.orders_customers.customer_routes.code,
+                    route_code: order.orders_customers.customer_routes.name ||
+                        order.orders_customers.customer_routes.code,
+                    route_name: order.orders_customers.customer_routes.name,
+                    system_route_code: order.orders_customers.customer_routes.code,
                 }
                 : null,
         }

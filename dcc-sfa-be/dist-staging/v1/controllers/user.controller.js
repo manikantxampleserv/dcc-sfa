@@ -48,6 +48,19 @@ const serializeUser = (user, includeCreatedAt = false, includeUpdatedAt = false)
             unload_time: user.user_role.unload_time,
         }
         : null,
+    depot: user.user_depot
+        ? {
+            id: user.user_depot.id,
+            name: user.user_depot.name,
+            code: user.user_depot.code,
+        }
+        : user.users_depots_users?.[0]?.user_depots_depot_id
+            ? {
+                id: user.users_depots_users[0].user_depots_depot_id.id,
+                name: user.users_depots_users[0].user_depots_depot_id.name,
+                code: user.users_depots_users[0].user_depots_depot_id.code,
+            }
+            : null,
     company: user.companies
         ? {
             id: user.companies.id,
@@ -56,7 +69,9 @@ const serializeUser = (user, includeCreatedAt = false, includeUpdatedAt = false)
         }
         : null,
     depots: user.users_depots_users
-        ? user.users_depots_users.map((ud) => ({
+        ? user.users_depots_users
+            .filter((ud) => ud && ud.user_depots_depot_id)
+            .map((ud) => ({
             id: ud.user_depots_depot_id.id,
             name: ud.user_depots_depot_id.name,
             code: ud.user_depots_depot_id.code,
@@ -83,7 +98,9 @@ const serializeUser = (user, includeCreatedAt = false, includeUpdatedAt = false)
         }
         : null,
     routes: user.route_salespersons && user.route_salespersons.length > 0
-        ? user.route_salespersons.map((rs) => ({
+        ? user.route_salespersons
+            .filter((rs) => rs && rs.route)
+            .map((rs) => ({
             id: rs.route.id,
             name: rs.route.name,
             code: rs.route.code,
@@ -96,7 +113,9 @@ const serializeUser = (user, includeCreatedAt = false, includeUpdatedAt = false)
             assigned_at: rs.assigned_at,
         }))
         : user.sub_inventory_parent?.route_salespersons
-            ? user.sub_inventory_parent.route_salespersons.map((rs) => ({
+            ? user.sub_inventory_parent.route_salespersons
+                .filter((rs) => rs && rs.route)
+                .map((rs) => ({
                 id: rs.route.id,
                 name: rs.route.name,
                 code: rs.route.code,
@@ -110,6 +129,7 @@ const serializeUser = (user, includeCreatedAt = false, includeUpdatedAt = false)
             }))
             : [],
 });
+console.log('searlizer');
 exports.userController = {
     async createUser(req, res) {
         try {
@@ -979,6 +999,7 @@ exports.userController = {
                             },
                         },
                     },
+                    user_depot: true,
                     companies: {
                         include: {
                             companies_currencies: true,
@@ -1045,7 +1066,7 @@ exports.userController = {
                 res.error('User not found', 404);
                 return;
             }
-            const serializedUser = serializeUser(user);
+            const serializedUser = serializeUser(user, true, true);
             const response = {
                 ...serializedUser,
             };

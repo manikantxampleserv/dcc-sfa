@@ -124,9 +124,6 @@ export const salespersonStockController = {
         ],
         is_active: 'Y',
       };
-      if (parsedDepotId) {
-        stockWhere.location_id = parsedDepotId;
-      }
       if (product_id) {
         stockWhere.product_id = parseInt(product_id as string, 10);
       }
@@ -655,6 +652,11 @@ async function handleAllSalespersons(
     search,
   } = req.query;
 
+  let parsedDepotId: number | null = null;
+  if (depot_id) {
+    parsedDepotId = parseInt(depot_id as string, 10);
+  }
+
   const usersWhere: any = {
     AND: [
       {
@@ -685,6 +687,21 @@ async function handleAllSalespersons(
   };
   if (supervisor_id) {
     usersWhere.reporting_to = parseInt(supervisor_id as string, 10);
+  }
+  if (parsedDepotId) {
+    usersWhere.AND.push({
+      OR: [
+        { depot_id: parsedDepotId },
+        {
+          users_depots_users: {
+            some: {
+              depot_id: parsedDepotId,
+              is_active: 'Y',
+            },
+          },
+        },
+      ],
+    });
   }
 
   const user = (req as any).user;
@@ -726,6 +743,7 @@ async function handleAllSalespersons(
       profile_image: true,
       address: true,
       sap_code: true,
+      depot_id: true,
       user_role: { select: { name: true } },
       sub_inventory_users: {
         where: { is_active: 'Y' },
@@ -760,11 +778,6 @@ async function handleAllSalespersons(
   let overallBatches = 0;
   let overallSerials = 0;
 
-  let parsedDepotId: number | null = null;
-  if (depot_id) {
-    parsedDepotId = parseInt(depot_id as string, 10);
-  }
-
   const allSalespersonIds = allSalespersons.map(sp => sp.id);
 
   /** Bulk fetch van inventory counts */
@@ -785,7 +798,6 @@ async function handleAllSalespersons(
     ],
     is_active: 'Y',
   };
-  if (parsedDepotId) stockWhere.location_id = parsedDepotId;
   if (product_id) stockWhere.product_id = parseInt(product_id as string, 10);
 
   const stockRecordsAll = await prisma.inventory_stock.findMany({
@@ -908,7 +920,16 @@ async function handleAllSalespersons(
       seenDepotIds.add(sp.user_depot.id);
     }
 
-    const primaryDepot = depotsList[0] || null;
+    if (parsedDepotId) {
+      const hasDepot =
+        sp.depot_id === parsedDepotId || seenDepotIds.has(parsedDepotId);
+      if (!hasDepot) continue;
+    }
+
+    const primaryDepot =
+      (parsedDepotId ? depotsList.find(d => d.id === parsedDepotId) : null) ||
+      depotsList[0] ||
+      null;
     const depotNameStr = primaryDepot?.name || null;
 
     consolidated.push({
