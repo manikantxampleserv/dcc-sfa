@@ -1,42 +1,10 @@
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AssetMovementsImportExportService = void 0;
+const exceljs_1 = __importDefault(require("exceljs"));
 const import_export_service_1 = require("../base/import-export.service");
 const prisma_client_1 = __importDefault(require("../../../configs/prisma.client"));
 class AssetMovementsImportExportService extends import_export_service_1.ImportExportService {
@@ -533,24 +501,137 @@ class AssetMovementsImportExportService extends import_export_service_1.ImportEx
         });
     }
     async exportToExcel(options = {}) {
+        const rawFilters = {
+            ...(options.rawFilters || {}),
+            ...(options.filters || {}),
+        };
+        const startDate = rawFilters.start_date || rawFilters.startDate || rawFilters.from_date;
+        const endDate = rawFilters.end_date || rawFilters.endDate || rawFilters.to_date;
+        const timeFilter = rawFilters.time_filter || rawFilters.timeFilter;
+        const statusFilter = rawFilters.status;
+        const movementType = rawFilters.movement_type;
+        const search = rawFilters.search;
+        const where = {};
+        if (statusFilter && statusFilter !== 'all') {
+            where.is_active = statusFilter.toLowerCase() === 'active' ? 'Y' : 'N';
+        }
+        if (movementType && movementType !== 'all') {
+            where.movement_type = { equals: movementType };
+        }
+        if (startDate || endDate) {
+            const dateRange = {};
+            if (startDate) {
+                const s = new Date(startDate.includes('T') ? startDate : `${startDate}T00:00:00.000Z`);
+                if (!isNaN(s.getTime()))
+                    dateRange.gte = s;
+            }
+            if (endDate) {
+                const e = new Date(endDate.includes('T') ? endDate : `${endDate}T23:59:59.999Z`);
+                if (!isNaN(e.getTime()))
+                    dateRange.lte = e;
+            }
+            if (dateRange.gte || dateRange.lte) {
+                where.movement_date = dateRange;
+            }
+        }
+        else if (timeFilter && timeFilter !== 'all') {
+            const now = new Date();
+            const dateRange = {};
+            if (timeFilter === 'today') {
+                dateRange.gte = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0));
+                dateRange.lte = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999));
+            }
+            else if (timeFilter === 'yesterday') {
+                dateRange.gte = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate() - 1, 0, 0, 0, 0));
+                dateRange.lte = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate() - 1, 23, 59, 59, 999));
+            }
+            else if (timeFilter === 'this_week') {
+                const day = now.getDay();
+                const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+                dateRange.gte = new Date(Date.UTC(now.getFullYear(), now.getMonth(), diff, 0, 0, 0, 0));
+                dateRange.lte = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999));
+            }
+            else if (timeFilter === 'this_month') {
+                dateRange.gte = new Date(Date.UTC(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0));
+                dateRange.lte = new Date(Date.UTC(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999));
+            }
+            else if (timeFilter === 'prev_month') {
+                dateRange.gte = new Date(Date.UTC(now.getFullYear(), now.getMonth() - 1, 1, 0, 0, 0, 0));
+                dateRange.lte = new Date(Date.UTC(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999));
+            }
+            else if (timeFilter === 'this_year') {
+                dateRange.gte = new Date(Date.UTC(now.getFullYear(), 0, 1, 0, 0, 0, 0));
+                dateRange.lte = new Date(Date.UTC(now.getFullYear(), 11, 31, 23, 59, 59, 999));
+            }
+            else if (timeFilter === 'prev_year') {
+                dateRange.gte = new Date(Date.UTC(now.getFullYear() - 1, 0, 1, 0, 0, 0, 0));
+                dateRange.lte = new Date(Date.UTC(now.getFullYear() - 1, 11, 31, 23, 59, 59, 999));
+            }
+            if (dateRange.gte || dateRange.lte) {
+                where.movement_date = dateRange;
+            }
+        }
+        if (search) {
+            const searchLower = String(search).toLowerCase();
+            where.OR = [
+                { notes: { contains: searchLower } },
+                { movement_type: { contains: searchLower } },
+                { from_direction: { contains: searchLower } },
+                { to_direction: { contains: searchLower } },
+                {
+                    asset_movement_assets: {
+                        some: {
+                            asset_movement_assets_asset: {
+                                OR: [
+                                    { name: { contains: searchLower } },
+                                    { serial_number: { contains: searchLower } },
+                                    { code: { contains: searchLower } },
+                                ],
+                            },
+                        },
+                    },
+                },
+                { asset_movement_from_customer: { name: { contains: searchLower } } },
+                { asset_movement_to_customer: { name: { contains: searchLower } } },
+                { asset_movement_from_depot: { name: { contains: searchLower } } },
+                { asset_movement_to_depot: { name: { contains: searchLower } } },
+                { asset_movements_performed_by: { name: { contains: searchLower } } },
+            ];
+        }
         const query = {
-            where: options.filters,
+            where,
             orderBy: options.orderBy || { movement_date: 'desc' },
             include: {
                 asset_movement_assets: {
                     include: {
                         asset_movement_assets_asset: {
                             select: {
+                                id: true,
                                 name: true,
                                 serial_number: true,
+                                code: true,
                             },
                         },
                     },
                 },
+                asset_movement_from_depot: {
+                    select: { id: true, name: true, code: true },
+                },
+                asset_movement_to_depot: {
+                    select: { id: true, name: true, code: true },
+                },
+                asset_movement_from_customer: {
+                    select: { id: true, name: true, code: true },
+                },
+                asset_movement_to_customer: {
+                    select: { id: true, name: true, code: true },
+                },
                 asset_movements_performed_by: {
                     select: {
+                        id: true,
                         name: true,
                         email: true,
+                        employee_id: true,
                     },
                 },
             },
@@ -558,20 +639,45 @@ class AssetMovementsImportExportService extends import_export_service_1.ImportEx
         if (options.limit)
             query.take = options.limit;
         const data = await this.getModel().findMany(query);
-        const ExcelJS = await Promise.resolve().then(() => __importStar(require('exceljs')));
-        const workbook = new ExcelJS.Workbook();
+        const userIds = Array.from(new Set(data
+            .flatMap((m) => [m.createdby, m.updatedby])
+            .filter((id) => typeof id === 'number' && id > 0)));
+        const users = userIds.length > 0
+            ? await prisma_client_1.default.users.findMany({
+                where: { id: { in: userIds } },
+                select: { id: true, name: true },
+            })
+            : [];
+        const userMap = new Map(users.map(u => [u.id, u.name]));
+        const WorkbookClass = exceljs_1.default.Workbook ||
+            exceljs_1.default.default?.Workbook ||
+            exceljs_1.default.default ||
+            exceljs_1.default;
+        const workbook = new WorkbookClass();
         const worksheet = workbook.addWorksheet(this.displayName);
         const exportColumns = [
-            { header: 'Movement ID', key: 'id', width: 12 },
-            ...this.columns,
-            { header: 'Asset Name', key: 'asset_name', width: 25 },
-            { header: 'Asset Serial', key: 'asset_serial', width: 20 },
+            { header: 'Movement ID', key: 'id', width: 14 },
+            { header: 'Asset ID', key: 'asset_id', width: 14 },
+            { header: 'Asset Name', key: 'asset_name', width: 28 },
+            { header: 'Asset Serial', key: 'asset_serial', width: 22 },
+            { header: 'From Direction', key: 'from_direction', width: 16 },
+            { header: 'From Depot Name', key: 'from_depot_name', width: 24 },
+            { header: 'From Customer Code', key: 'from_customer_code', width: 22 },
+            { header: 'From Customer Name', key: 'from_customer_name', width: 28 },
+            { header: 'To Direction', key: 'to_direction', width: 16 },
+            { header: 'To Depot Name', key: 'to_depot_name', width: 24 },
+            { header: 'To Customer Code', key: 'to_customer_code', width: 22 },
+            { header: 'To Customer Name', key: 'to_customer_name', width: 28 },
+            { header: 'Movement Type', key: 'movement_type', width: 18 },
+            { header: 'Movement Date', key: 'movement_date', width: 16 },
             { header: 'Performed By Name', key: 'performed_by_name', width: 25 },
-            { header: 'Performed By Email', key: 'performed_by_email', width: 30 },
-            { header: 'Created Date', key: 'created_date', width: 20 },
-            { header: 'Created By', key: 'created_by', width: 15 },
-            { header: 'Updated Date', key: 'updated_date', width: 20 },
-            { header: 'Updated By', key: 'updated_by', width: 15 },
+            { header: 'Performed By Email', key: 'performed_by_email', width: 28 },
+            { header: 'Notes', key: 'notes', width: 30 },
+            { header: 'Is Active', key: 'is_active', width: 12 },
+            { header: 'Created Date', key: 'created_date', width: 16 },
+            { header: 'Created By', key: 'created_by_name', width: 22 },
+            { header: 'Updated Date', key: 'updated_date', width: 16 },
+            { header: 'Updated By', key: 'updated_by_name', width: 22 },
         ];
         worksheet.columns = exportColumns.map(col => ({
             header: col.header,
@@ -587,24 +693,13 @@ class AssetMovementsImportExportService extends import_export_service_1.ImportEx
         };
         headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
         headerRow.height = 25;
-        const exportData = await this.transformDataForExport(data);
         let totalMovements = 0;
         let activeMovements = 0;
         let inactiveMovements = 0;
         const movementTypeCount = {};
         const assetMovementCount = {};
-        exportData.forEach((row, index) => {
-            const movement = data[index];
-            row.id = movement.id;
-            row.asset_name =
-                movement.asset_movement_assets?.[0]?.asset_movement_assets_asset
-                    ?.name || '';
-            row.asset_serial =
-                movement.asset_movement_assets?.[0]?.asset_movement_assets_asset
-                    ?.serial_number || '';
-            row.performed_by_name = movement.asset_movements_performed_by?.name || '';
-            row.performed_by_email =
-                movement.asset_movements_performed_by?.email || '';
+        const rowsToExport = [];
+        for (const movement of data) {
             totalMovements++;
             if (movement.is_active === 'Y')
                 activeMovements++;
@@ -614,9 +709,61 @@ class AssetMovementsImportExportService extends import_export_service_1.ImportEx
                 movementTypeCount[movement.movement_type] =
                     (movementTypeCount[movement.movement_type] || 0) + 1;
             }
-            const assetName = movement.asset_movement_assets?.[0]?.asset_movement_assets_asset
-                ?.name || 'Unknown';
-            assetMovementCount[assetName] = (assetMovementCount[assetName] || 0) + 1;
+            const baseRow = {
+                id: movement.id,
+                from_direction: movement.from_direction || '',
+                from_depot_name: movement.asset_movement_from_depot?.name || '',
+                from_customer_code: movement.asset_movement_from_customer?.code || '',
+                from_customer_name: movement.asset_movement_from_customer?.name || '',
+                to_direction: movement.to_direction || '',
+                to_depot_name: movement.asset_movement_to_depot?.name || '',
+                to_customer_code: movement.asset_movement_to_customer?.code || '',
+                to_customer_name: movement.asset_movement_to_customer?.name || '',
+                movement_type: movement.movement_type || '',
+                movement_date: movement.movement_date
+                    ? new Date(movement.movement_date).toISOString().split('T')[0]
+                    : '',
+                performed_by_name: movement.asset_movements_performed_by?.name ||
+                    (movement.performed_by ? String(movement.performed_by) : ''),
+                performed_by_email: movement.asset_movements_performed_by?.email || '',
+                notes: movement.notes || '',
+                is_active: movement.is_active || 'Y',
+                created_date: movement.createdate
+                    ? new Date(movement.createdate).toISOString().split('T')[0]
+                    : '',
+                created_by_name: userMap.get(movement.createdby) ||
+                    (movement.createdby ? String(movement.createdby) : ''),
+                updated_date: movement.updatedate
+                    ? new Date(movement.updatedate).toISOString().split('T')[0]
+                    : '',
+                updated_by_name: userMap.get(movement.updatedby) ||
+                    (movement.updatedby ? String(movement.updatedby) : ''),
+            };
+            const assets = movement.asset_movement_assets || [];
+            if (assets.length > 0) {
+                for (const assetRel of assets) {
+                    const assetObj = assetRel.asset_movement_assets_asset;
+                    const assetName = assetObj?.name || 'Unknown';
+                    assetMovementCount[assetName] =
+                        (assetMovementCount[assetName] || 0) + 1;
+                    rowsToExport.push({
+                        ...baseRow,
+                        asset_id: assetRel.asset_id || '',
+                        asset_name: assetName,
+                        asset_serial: assetObj?.serial_number || '',
+                    });
+                }
+            }
+            else {
+                rowsToExport.push({
+                    ...baseRow,
+                    asset_id: '',
+                    asset_name: '',
+                    asset_serial: '',
+                });
+            }
+        }
+        rowsToExport.forEach((row, index) => {
             const excelRow = worksheet.addRow(row);
             if (index % 2 === 0) {
                 excelRow.fill = {
@@ -634,7 +781,7 @@ class AssetMovementsImportExportService extends import_export_service_1.ImportEx
                 };
             });
             const typeCell = excelRow.getCell('movement_type');
-            switch (movement.movement_type?.toLowerCase()) {
+            switch (String(row.movement_type || '').toLowerCase()) {
                 case 'transfer':
                     typeCell.font = { color: { argb: 'FF0000FF' }, bold: true };
                     break;
@@ -650,12 +797,15 @@ class AssetMovementsImportExportService extends import_export_service_1.ImportEx
                 case 'return':
                     typeCell.font = { color: { argb: 'FF008000' }, bold: true };
                     break;
+                case 'installation':
+                    typeCell.font = { color: { argb: 'FF0070C0' }, bold: true };
+                    break;
             }
         });
-        if (data.length > 0) {
+        if (rowsToExport.length > 0) {
             worksheet.autoFilter = {
                 from: 'A1',
-                to: `${String.fromCharCode(64 + exportColumns.length)}${data.length + 1}`,
+                to: `${String.fromCharCode(64 + exportColumns.length)}${rowsToExport.length + 1}`,
             };
         }
         worksheet.views = [{ state: 'frozen', ySplit: 1 }];

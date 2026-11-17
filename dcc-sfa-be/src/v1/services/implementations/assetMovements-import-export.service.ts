@@ -741,8 +741,8 @@ export class AssetMovementsImportExportService extends ImportExportService<any> 
 
     const data = await this.getModel().findMany(query);
 
-    const userIds = Array.from(
-      new Set(
+    const userIds: number[] = Array.from(
+      new Set<number>(
         data
           .flatMap((m: any) => [m.createdby, m.updatedby])
           .filter((id: any): id is number => typeof id === 'number' && id > 0)

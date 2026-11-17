@@ -291,6 +291,7 @@ exports.assetMovementsController = {
                     return res.status(400).json({ message: 'To depot not found' });
                 }
             }
+            let fromCustomerRecord = null;
             if (fromCustomerId) {
                 const fromCustomer = await prisma_client_1.default.customers.findUnique({
                     where: { id: fromCustomerId },
@@ -298,6 +299,7 @@ exports.assetMovementsController = {
                 if (!fromCustomer) {
                     return res.status(400).json({ message: 'From customer not found' });
                 }
+                fromCustomerRecord = fromCustomer;
             }
             if (toCustomerId) {
                 const toCustomer = await prisma_client_1.default.customers.findUnique({
@@ -409,19 +411,40 @@ exports.assetMovementsController = {
             catch (updateError) {
                 console.error('Error updating asset master records:', updateError);
             }
+            let movementDepotId = null;
+            if (data.movement_type?.toLowerCase() === 'return') {
+                movementDepotId =
+                    fromCustomerRecord?.depot_id || toDepotId || fromDepotId;
+            }
+            else {
+                movementDepotId =
+                    (fromDirection === 'depot' ? fromDepotId : toDepotId) ||
+                        fromDepotId ||
+                        toDepotId;
+            }
             setTimeout(async () => {
                 try {
                     await (0, requests_controller_1.createRequest)({
                         requester_id: data.performed_by,
                         request_type: 'ASSET_MOVEMENT_APPROVAL',
                         reference_id: assetMovement.id,
+                        request_data: JSON.stringify({
+                            depot_id: movementDepotId,
+                            from_depot_id: fromDepotId,
+                            to_depot_id: toDepotId,
+                            from_customer_id: fromCustomerId,
+                            to_customer_id: toCustomerId,
+                            movement_type: data.movement_type,
+                            from_direction: fromDirection,
+                            to_direction: toDirection,
+                        }),
                         createdby: req.user?.id || 1,
                         log_inst: 1,
                     });
-                    console.log(`Legacy approval request created for asset movement: ${assetMovement.id}`);
+                    console.log(`Approval request created for asset movement: ${assetMovement.id}`);
                 }
                 catch (requestError) {
-                    console.error('Error creating legacy approval request:', requestError);
+                    console.error('Error creating approval request for asset movement:', requestError);
                 }
             }, 500);
             if (isInstallation) {
@@ -454,7 +477,7 @@ exports.assetMovementsController = {
     },
     async getAllAssetMovements(req, res) {
         try {
-            const { page, limit, search, status, asset_type_id, performed_by, movement_type, } = req.query;
+            const { page, limit, search, status, asset_type_id, performed_by, movement_type, start_date, end_date, startDate: qStartDate, endDate: qEndDate, time_filter, timeFilter: qTimeFilter, } = req.query;
             const pageNum = parseInt(page, 10) || 1;
             const limitNum = parseInt(limit, 10) || 10;
             const searchLower = search ? search.toLowerCase() : '';
@@ -462,7 +485,55 @@ exports.assetMovementsController = {
             const typeLower = movement_type
                 ? movement_type.toLowerCase()
                 : '';
+            const startDate = (start_date || qStartDate || req.query.from_date);
+            const endDate = (end_date || qEndDate || req.query.to_date);
+            const timeFilter = (time_filter || qTimeFilter);
+            const dateRange = {};
+            if (startDate) {
+                const s = new Date(startDate.includes('T') ? startDate : `${startDate}T00:00:00.000Z`);
+                if (!isNaN(s.getTime()))
+                    dateRange.gte = s;
+            }
+            if (endDate) {
+                const e = new Date(endDate.includes('T') ? endDate : `${endDate}T23:59:59.999Z`);
+                if (!isNaN(e.getTime()))
+                    dateRange.lte = e;
+            }
+            if (!startDate && !endDate && timeFilter && timeFilter !== 'all') {
+                const now = new Date();
+                if (timeFilter === 'today') {
+                    dateRange.gte = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0));
+                    dateRange.lte = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999));
+                }
+                else if (timeFilter === 'yesterday') {
+                    dateRange.gte = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate() - 1, 0, 0, 0, 0));
+                    dateRange.lte = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate() - 1, 23, 59, 59, 999));
+                }
+                else if (timeFilter === 'this_week') {
+                    const day = now.getDay();
+                    const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+                    dateRange.gte = new Date(Date.UTC(now.getFullYear(), now.getMonth(), diff, 0, 0, 0, 0));
+                    dateRange.lte = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999));
+                }
+                else if (timeFilter === 'this_month') {
+                    dateRange.gte = new Date(Date.UTC(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0));
+                    dateRange.lte = new Date(Date.UTC(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999));
+                }
+                else if (timeFilter === 'prev_month') {
+                    dateRange.gte = new Date(Date.UTC(now.getFullYear(), now.getMonth() - 1, 1, 0, 0, 0, 0));
+                    dateRange.lte = new Date(Date.UTC(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999));
+                }
+                else if (timeFilter === 'this_year') {
+                    dateRange.gte = new Date(Date.UTC(now.getFullYear(), 0, 1, 0, 0, 0, 0));
+                    dateRange.lte = new Date(Date.UTC(now.getFullYear(), 11, 31, 23, 59, 59, 999));
+                }
+                else if (timeFilter === 'prev_year') {
+                    dateRange.gte = new Date(Date.UTC(now.getFullYear() - 1, 0, 1, 0, 0, 0, 0));
+                    dateRange.lte = new Date(Date.UTC(now.getFullYear() - 1, 11, 31, 23, 59, 59, 999));
+                }
+            }
             const filters = {
+                ...(dateRange.gte || dateRange.lte ? { movement_date: dateRange } : {}),
                 ...(search && {
                     OR: [
                         {
@@ -586,21 +657,50 @@ exports.assetMovementsController = {
                     }
                 }
             }
-            const totalAssetMovements = await prisma_client_1.default.asset_movements.count();
-            const activeAssetMovements = await prisma_client_1.default.asset_movements.count({
-                where: { is_active: 'Y' },
-            });
-            const inactiveAssetMovements = await prisma_client_1.default.asset_movements.count({
-                where: { is_active: 'N' },
-            });
-            const thisMonthAssetMovements = await prisma_client_1.default.asset_movements.count({
-                where: {
-                    createdate: {
-                        gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
-                        lte: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0),
+            const statsFilters = {
+                ...(dateRange.gte || dateRange.lte ? { movement_date: dateRange } : {}),
+                ...(search && filters.OR ? { OR: filters.OR } : {}),
+                ...(typeLower && { movement_type: typeLower }),
+                ...(performed_by && { performed_by: Number(performed_by) }),
+                ...(asset_type_id && filters.asset_movement_assets
+                    ? { asset_movement_assets: filters.asset_movement_assets }
+                    : {}),
+            };
+            const nonDateStatsFilters = {
+                ...(search && filters.OR ? { OR: filters.OR } : {}),
+                ...(typeLower && { movement_type: typeLower }),
+                ...(performed_by && { performed_by: Number(performed_by) }),
+                ...(asset_type_id && filters.asset_movement_assets
+                    ? { asset_movement_assets: filters.asset_movement_assets }
+                    : {}),
+            };
+            const now = new Date();
+            const firstDayOfMonth = new Date(Date.UTC(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0));
+            const lastDayOfMonth = new Date(Date.UTC(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999));
+            const [totalAssetMovements, activeAssetMovements, inactiveAssetMovements, thisMonthAssetMovements,] = await Promise.all([
+                prisma_client_1.default.asset_movements.count({
+                    where: statusLower === 'active'
+                        ? { ...statsFilters, is_active: 'Y' }
+                        : statusLower === 'inactive'
+                            ? { ...statsFilters, is_active: 'N' }
+                            : statsFilters,
+                }),
+                prisma_client_1.default.asset_movements.count({
+                    where: { ...statsFilters, is_active: 'Y' },
+                }),
+                prisma_client_1.default.asset_movements.count({
+                    where: { ...statsFilters, is_active: 'N' },
+                }),
+                prisma_client_1.default.asset_movements.count({
+                    where: {
+                        ...nonDateStatsFilters,
+                        movement_date: {
+                            gte: firstDayOfMonth,
+                            lte: lastDayOfMonth,
+                        },
                     },
-                },
-            });
+                }),
+            ]);
             res.success('Asset movements retrieved successfully', data.map((m) => serializeAssetMovement(m, approverMap.get(m.id))), 200, pagination, {
                 total_records: totalAssetMovements,
                 active_records: activeAssetMovements,
@@ -777,10 +877,57 @@ exports.assetMovementsController = {
                         console.error('Error creating approval workflow for updated movement:', workflowError);
                     }
                     try {
+                        const editFromDepotId = updateData.from_depot_id !== undefined
+                            ? updateData.from_depot_id
+                            : existing.from_depot_id;
+                        const editToDepotId = updateData.to_depot_id !== undefined
+                            ? updateData.to_depot_id
+                            : existing.to_depot_id;
+                        const editFromDir = updateData.from_direction || existing.from_direction;
+                        const editToDir = updateData.to_direction || existing.to_direction;
+                        const effectiveMovementType = (updateData.movement_type ||
+                            existing.movement_type ||
+                            '').toLowerCase();
+                        let editMovementDepotId = null;
+                        if (effectiveMovementType === 'return') {
+                            const custId = updateData.from_customer_id !== undefined
+                                ? updateData.from_customer_id
+                                : existing.from_customer_id;
+                            let custDepotId = null;
+                            if (custId) {
+                                const cust = await prisma_client_1.default.customers.findUnique({
+                                    where: { id: Number(custId) },
+                                    select: { depot_id: true },
+                                });
+                                custDepotId = cust?.depot_id || null;
+                            }
+                            editMovementDepotId =
+                                custDepotId || editToDepotId || editFromDepotId;
+                        }
+                        else {
+                            editMovementDepotId =
+                                (editFromDir === 'depot' ? editFromDepotId : editToDepotId) ||
+                                    editFromDepotId ||
+                                    editToDepotId;
+                        }
                         await (0, requests_controller_1.createRequest)({
                             requester_id: existing.performed_by,
                             request_type: 'ASSET_MOVEMENT_APPROVAL',
                             reference_id: Number(id),
+                            request_data: JSON.stringify({
+                                depot_id: editMovementDepotId,
+                                from_depot_id: editFromDepotId,
+                                to_depot_id: editToDepotId,
+                                from_customer_id: updateData.from_customer_id !== undefined
+                                    ? updateData.from_customer_id
+                                    : existing.from_customer_id,
+                                to_customer_id: updateData.to_customer_id !== undefined
+                                    ? updateData.to_customer_id
+                                    : existing.to_customer_id,
+                                movement_type: updateData.movement_type || existing.movement_type,
+                                from_direction: editFromDir,
+                                to_direction: editToDir,
+                            }),
                             createdby: req.user?.id || 1,
                             log_inst: 1,
                         });

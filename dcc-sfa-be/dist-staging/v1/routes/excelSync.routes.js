@@ -41,6 +41,44 @@ const allowExcelTokenAuth = async (req, res, next) => {
         const queryToken = (req.query.token ||
             req.query.apiKey ||
             req.query.key);
+        let companyExcelCreds = null;
+        try {
+            companyExcelCreds = (await prisma_client_1.default.companies.findFirst({
+                select: {
+                    excel_api_username: true,
+                    excel_api_password: true,
+                    excel_api_key: true,
+                },
+            }));
+        }
+        catch (_e) {
+            /** Columns might not exist yet before migration */
+        }
+        /**
+         * Check Excel Web API Key via query param, x-api-key header, or raw Authorization header
+         */
+        const candidateApiKey = queryToken ||
+            apiKeyHeader ||
+            (rawAuth && rawAuth.startsWith('Bearer ')
+                ? rawAuth.substring(7).trim()
+                : rawAuth && !rawAuth.startsWith('Basic ')
+                    ? rawAuth.trim()
+                    : null);
+        if (companyExcelCreds?.excel_api_key &&
+            candidateApiKey &&
+            candidateApiKey === companyExcelCreds.excel_api_key) {
+            req.user = {
+                id: 1,
+                email: companyExcelCreds.excel_api_username || 'excel_sync@dcc.co.tz',
+                employee_id: 'EXCEL_SYNC',
+                name: 'Excel API Service',
+                role: 'Admin',
+                permissions: ['all'],
+                depot_id: null,
+                zone_id: null,
+            };
+            return next();
+        }
         /**
          * Handle Excel Basic Authentication tab (Authorization: Basic base64(email:password))
          */
@@ -51,6 +89,23 @@ const allowExcelTokenAuth = async (req, res, next) => {
             if (colonIndex !== -1) {
                 const username = decoded.substring(0, colonIndex).trim();
                 const password = decoded.substring(colonIndex + 1);
+                /** Check company-level dedicated Excel credentials */
+                if (companyExcelCreds?.excel_api_username &&
+                    companyExcelCreds?.excel_api_password &&
+                    username === companyExcelCreds.excel_api_username &&
+                    password === companyExcelCreds.excel_api_password) {
+                    req.user = {
+                        id: 1,
+                        email: companyExcelCreds.excel_api_username,
+                        employee_id: 'EXCEL_SYNC',
+                        name: 'Excel API Service',
+                        role: 'Admin',
+                        permissions: ['all'],
+                        depot_id: null,
+                        zone_id: null,
+                    };
+                    return next();
+                }
                 const user = await prisma_client_1.default.users.findFirst({
                     where: {
                         OR: [{ email: { equals: username } }, { employee_id: username }],
