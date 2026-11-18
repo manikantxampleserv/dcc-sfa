@@ -389,7 +389,7 @@ exports.excelSyncController = {
     /**
      * 2. Outlet Master Endpoint (CSV Only)
      * Headers: Outlet Code, Outlet Name, Depot, Zone, Route, Outlet Type,
-     * Outlet Channel, Outlet Category, Region, District, Contact Person, Phone Number, Latitude, Longitude.
+     * Outlet Channel, Outlet Category, Region, District, Contact Person, Phone Number, Latitude, Longitude, Created Date, Created By.
      *
      * @param {Request} req Express request
      * @param {Response} res Express response
@@ -430,10 +430,13 @@ exports.excelSyncController = {
                 'Phone Number',
                 'Latitude',
                 'Longitude',
+                'Created Date',
+                'Created By',
             ];
             res.setHeader('Content-Type', 'text/csv; charset=utf-8');
             res.setHeader('Content-Disposition', `attachment; filename=outlet_master_${Date.now()}.csv`);
             res.write(headers.join(',') + '\r\n');
+            const creatorMap = new Map();
             let lastCustId = null;
             let totalExported = 0;
             let hasMore = true;
@@ -458,6 +461,16 @@ exports.excelSyncController = {
                 });
                 if (!customers || customers.length === 0)
                     break;
+                const missingUserIds = Array.from(new Set(customers
+                    .map(c => c.createdby)
+                    .filter((id) => typeof id === 'number' && id > 0 && !creatorMap.has(id))));
+                if (missingUserIds.length > 0) {
+                    const fetchedUsers = await prisma_client_1.default.users.findMany({
+                        where: { id: { in: missingUserIds } },
+                        select: { id: true, name: true },
+                    });
+                    fetchedUsers.forEach(u => creatorMap.set(u.id, u.name));
+                }
                 const lines = [];
                 for (const c of customers) {
                     lines.push([
@@ -475,6 +488,8 @@ exports.excelSyncController = {
                         escapeCsv(c.phone_number || ''),
                         escapeCsv(c.latitude ? String(c.latitude) : ''),
                         escapeCsv(c.longitude ? String(c.longitude) : ''),
+                        escapeCsv(formatDateDMY(c.createdate)),
+                        escapeCsv(creatorMap.get(c.createdby) || ''),
                     ].join(','));
                 }
                 if (lines.length > 0) {

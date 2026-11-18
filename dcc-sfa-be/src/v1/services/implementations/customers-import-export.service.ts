@@ -483,6 +483,22 @@ export class CustomersImportExportService extends ImportExportService<any> {
   }
 
   protected async transformDataForExport(data: any[]): Promise<any[]> {
+    const userIds: number[] = Array.from(
+      new Set<number>(
+        data
+          .map((c: any) => c.createdby)
+          .filter((id: any): id is number => typeof id === 'number' && id > 0)
+      )
+    );
+    const users =
+      userIds.length > 0
+        ? await prisma.users.findMany({
+            where: { id: { in: userIds } },
+            select: { id: true, name: true },
+          })
+        : [];
+    const userMap = new Map(users.map(u => [u.id, u.name]));
+
     return data.map(customer => ({
       id: customer.id,
 
@@ -524,7 +540,7 @@ export class CustomersImportExportService extends ImportExportService<any> {
       created_date: customer.createdate
         ? new Date(customer.createdate).toISOString().split('T')[0]
         : '',
-      created_by: customer.createdby || '',
+      created_by: userMap.get(customer.createdby) || '',
       updated_date: customer.updatedate
         ? new Date(customer.updatedate).toISOString().split('T')[0]
         : '',
@@ -817,10 +833,16 @@ export class CustomersImportExportService extends ImportExportService<any> {
     if (rawFilters.customer_type_id && rawFilters.customer_type_id !== 'all') {
       where.customer_type_id = Number(rawFilters.customer_type_id);
     }
-    if (rawFilters.customer_channel_id && rawFilters.customer_channel_id !== 'all') {
+    if (
+      rawFilters.customer_channel_id &&
+      rawFilters.customer_channel_id !== 'all'
+    ) {
       where.customer_channel_id = Number(rawFilters.customer_channel_id);
     }
-    if (rawFilters.customer_category_id && rawFilters.customer_category_id !== 'all') {
+    if (
+      rawFilters.customer_category_id &&
+      rawFilters.customer_category_id !== 'all'
+    ) {
       where.customer_category_id = Number(rawFilters.customer_category_id);
     }
     if (rawFilters.route_id && rawFilters.route_id !== 'all') {
@@ -886,6 +908,22 @@ export class CustomersImportExportService extends ImportExportService<any> {
 
     const data = await this.getModel().findMany(query);
 
+    const userIds: number[] = Array.from(
+      new Set<number>(
+        data
+          .map((c: any) => c.createdby)
+          .filter((id: any): id is number => typeof id === 'number' && id > 0)
+      )
+    );
+    const users =
+      userIds.length > 0
+        ? await prisma.users.findMany({
+            where: { id: { in: userIds } },
+            select: { id: true, name: true },
+          })
+        : [];
+    const userMap = new Map(users.map(u => [u.id, u.name]));
+
     const WorkbookConstructor =
       (ExcelJS as any).Workbook ||
       (ExcelJS as any).default?.Workbook ||
@@ -909,6 +947,8 @@ export class CustomersImportExportService extends ImportExportService<any> {
       { header: 'Phone Number', key: 'phone_number', width: 20 },
       { header: 'Latitude', key: 'latitude', width: 14 },
       { header: 'Longitude', key: 'longitude', width: 14 },
+      { header: 'Created Date', key: 'created_date', width: 16 },
+      { header: 'Created By', key: 'created_by', width: 24 },
     ];
 
     const headerRow = worksheet.getRow(1);
@@ -947,6 +987,10 @@ export class CustomersImportExportService extends ImportExportService<any> {
           customer.longitude !== null && customer.longitude !== undefined
             ? Number(customer.longitude)
             : '',
+        created_date: customer.createdate
+          ? new Date(customer.createdate).toISOString().split('T')[0]
+          : '',
+        created_by: userMap.get(customer.createdby) || '',
       });
 
       row.height = 19;
@@ -970,4 +1014,3 @@ export class CustomersImportExportService extends ImportExportService<any> {
     return Buffer.from(buffer);
   }
 }
-

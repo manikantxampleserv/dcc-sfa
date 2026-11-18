@@ -22,7 +22,7 @@ export declare const excelSyncController: {
     /**
      * 2. Outlet Master Endpoint (CSV Only)
      * Headers: Outlet Code, Outlet Name, Depot, Zone, Route, Outlet Type,
-     * Outlet Channel, Outlet Category, Region, District, Contact Person, Phone Number, Latitude, Longitude.
+     * Outlet Channel, Outlet Category, Region, District, Contact Person, Phone Number, Latitude, Longitude, Created Date, Created By.
      *
      * @param {Request} req Express request
      * @param {Response} res Express response
