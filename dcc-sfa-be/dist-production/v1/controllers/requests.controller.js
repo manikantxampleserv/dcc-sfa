@@ -1749,6 +1749,10 @@ exports.requestsController = {
                 if (!request) {
                     throw new Error('Request not found');
                 }
+                if (request.status === 'R' ||
+                    request.overall_status?.toUpperCase() === 'REJECTED') {
+                    throw new Error('This request has already been rejected and cannot be processed further');
+                }
                 const currentApproval = await tx.sfa_d_request_approvals.findUnique({
                     where: { id: Number(approval_id) },
                     include: {
@@ -1768,7 +1772,7 @@ exports.requestsController = {
                 if (currentApproval.status !== 'P') {
                     throw new Error('This approval has already been processed');
                 }
-                if (action === 'A' && currentApproval.sequence > 1) {
+                if (currentApproval.sequence > 1) {
                     const previousApprovals = await tx.sfa_d_request_approvals.findMany({
                         where: {
                             request_id: Number(request_id),
@@ -1778,9 +1782,13 @@ exports.requestsController = {
                         },
                         orderBy: { sequence: 'asc' },
                     });
+                    const rejectedPrevious = previousApprovals.find(approval => approval.status === 'R');
+                    if (rejectedPrevious) {
+                        throw new Error(`Cannot process. Request was already rejected at sequence ${rejectedPrevious.sequence}`);
+                    }
                     const notApproved = previousApprovals.find(approval => approval.status !== 'A');
                     if (notApproved) {
-                        throw new Error(`Cannot approve. Sequence ${notApproved.sequence} must be approved first`);
+                        throw new Error(`Cannot ${action === 'A' ? 'approve' : 'reject'}. Sequence ${notApproved.sequence} must be approved first`);
                     }
                 }
                 await tx.sfa_d_request_approvals.update({
@@ -1801,6 +1809,16 @@ exports.requestsController = {
                             overall_status: 'REJECTED',
                             updatedby: userId,
                             updatedate: new Date(),
+                        },
+                    });
+                    // Remove all subsequent pending approval steps so the request never goes to next approvers
+                    await tx.sfa_d_request_approvals.deleteMany({
+                        where: {
+                            request_id: Number(request_id),
+                            sequence: {
+                                gt: currentApproval.sequence,
+                            },
+                            status: 'P',
                         },
                     });
                     if (request.request_type === 'LOCATION_RESET') {
@@ -3043,27 +3061,33 @@ exports.requestsController = {
             // const requestIds = myApprovals.map(approval => approval.request_id);
             const validApprovals = myApprovals.filter(approval => approval.sfa_d_requests_approvals_request !== null);
             const requestIds = validApprovals.map(approval => approval.request_id);
-            const previousPendingApprovals = await prisma_client_1.default.sfa_d_request_approvals.findMany({
+            const unapprovedSteps = await prisma_client_1.default.sfa_d_request_approvals.findMany({
                 where: {
                     request_id: { in: requestIds },
-                    status: 'P',
+                    status: { not: 'A' },
                 },
                 select: {
                     request_id: true,
                     sequence: true,
                 },
             });
-            const pendingSequencesMap = new Map();
-            previousPendingApprovals.forEach(approval => {
-                if (!pendingSequencesMap.has(approval.request_id)) {
-                    pendingSequencesMap.set(approval.request_id, []);
+            const unapprovedSequencesMap = new Map();
+            unapprovedSteps.forEach(approval => {
+                if (!unapprovedSequencesMap.has(approval.request_id)) {
+                    unapprovedSequencesMap.set(approval.request_id, []);
                 }
-                pendingSequencesMap.get(approval.request_id).push(approval.sequence);
+                unapprovedSequencesMap.get(approval.request_id).push(approval.sequence);
             });
             const filteredApprovals = validApprovals.filter(approval => {
-                const pendingSequences = pendingSequencesMap.get(approval.request_id) || [];
-                const hasPreviousPending = pendingSequences.some(seq => seq < approval.sequence);
-                return !hasPreviousPending;
+                const request = approval.sfa_d_requests_approvals_request;
+                if (approval.status === 'P' &&
+                    (request.status === 'R' ||
+                        request.overall_status?.toUpperCase() === 'REJECTED')) {
+                    return false;
+                }
+                const unapprovedSequences = unapprovedSequencesMap.get(approval.request_id) || [];
+                const hasPreviousUnapproved = unapprovedSequences.some(seq => seq < approval.sequence);
+                return !hasPreviousUnapproved;
             });
             let requests = await Promise.all(filteredApprovals.map(async (approval) => {
                 const request = approval.sfa_d_requests_approvals_request;
