@@ -104,9 +104,9 @@ const ManagePromotionalMaterial: React.FC<ManagePromotionalMaterialProps> = ({
         isEdit ? 'Edit Promotional Material' : 'Create Promotional Material'
       }
     >
-      <Box className="!p-6">
-        <form onSubmit={formik.handleSubmit} className="!space-y-6">
-          <Box className="!grid !grid-cols-1 md:!grid-cols-2 !gap-6">
+      <Box className="!p-4">
+        <form onSubmit={formik.handleSubmit} className="!space-y-4">
+          <Box className="!grid !grid-cols-1 md:!grid-cols-2 !gap-4">
             <Input
               name="name"
               label="Material Name"
