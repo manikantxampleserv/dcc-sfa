@@ -97,20 +97,20 @@ const OrganizationChart: React.FC = () => {
               variant="rounded"
               width="40%"
               height={44}
-              className="!rounded-xl"
+              className="!rounded-lg"
             />
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 pb-20">
             {Array.from(new Array(12)).map((_, index) => (
               <div
                 key={index}
-                className="w-full flex flex-col items-center justify-start p-3 rounded-xl border-2 border-gray-100 shadow-sm bg-white"
+                className="w-full flex flex-col items-center justify-start p-3 rounded-lg border-2 border-gray-100 shadow-sm bg-white"
               >
                 <Skeleton
                   variant="rounded"
                   width={56}
                   height={56}
-                  className="!rounded-xl mb-3"
+                  className="!rounded-lg mb-3"
                 />
                 <Skeleton
                   variant="text"
@@ -132,7 +132,7 @@ const OrganizationChart: React.FC = () => {
       ) : (
         <div className="flex flex-col w-full">
           <div className="flex justify-between items-center mb-4">
-            <div className="flex items-center gap-1 bg-white p-1.5 pr-2 rounded-xl border border-gray-200 shadow-sm max-w-[65%] sm:max-w-[70%]">
+            <div className="flex items-center gap-1 bg-white p-1.5 pr-2 rounded-lg border border-gray-200 shadow-sm max-w-[65%] sm:max-w-[70%]">
               <span className="shrink-0">
                 <ActionButton
                   size="small"
@@ -242,7 +242,7 @@ const OrganizationChart: React.FC = () => {
                       setCurrentPath(prev => [...prev, node]);
                     }
                   }}
-                  className={`w-full group relative flex flex-col items-center justify-start p-3 rounded-xl border-2 shadow-sm transition-all duration-200 ${borderClass} ${highlightClass} cursor-pointer`}
+                  className={`w-full group relative flex flex-col items-center justify-start p-3 rounded-lg border-2 shadow-sm transition-all duration-200 ${borderClass} ${highlightClass} cursor-pointer`}
                 >
                   {hasChildren && (
                     <div
@@ -253,7 +253,7 @@ const OrganizationChart: React.FC = () => {
                     </div>
                   )}
                   <div
-                    className={`rounded-xl flex justify-center items-center mb-3 text-3xl p-3 transition-transform group-hover:scale-110 ${colorClass}`}
+                    className={`rounded-lg flex justify-center items-center mb-3 text-3xl p-3 transition-transform group-hover:scale-110 ${colorClass}`}
                   >
                     {Icon}
                   </div>

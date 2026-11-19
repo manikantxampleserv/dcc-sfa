@@ -231,7 +231,7 @@ const PromotionMaterialsIssueList = () => {
             size="small"
           />
 
-          {row.approval_status !== 'P' && (
+          {row.approval_status === 'A' && (
             <PrintButton
               onClick={() => setPrintIssue(row)}
               tooltip="Print Goods Issue Note"
