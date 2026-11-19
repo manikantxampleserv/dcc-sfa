@@ -33,7 +33,7 @@ import GoodsIssueNoteModal from './GoodsIssueNote';
 import ManagePromotionalIssue from './ManagePromotionalIssue';
 
 const PromotionMaterialsIssueList = () => {
-  const [page] = useState(1);
+  const [page, setPage] = useState(1);
   const [limit] = useState(10);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -63,7 +63,15 @@ const PromotionMaterialsIssueList = () => {
   const deleteMutation = useDeletePromotionMaterialsIssue();
 
   const issues = response?.data || [];
-  const totalItems = response?.meta?.total_count || 0;
+  const totalItems =
+    response?.pagination?.total_count ??
+    response?.meta?.total_count ??
+    response?.meta?.total ??
+    0;
+
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage + 1);
+  };
 
   const columns: TableColumn<PromotionMaterialsIssue>[] = [
     {
@@ -331,12 +339,18 @@ const PromotionMaterialsIssueList = () => {
                 <SearchInput
                   placeholder="Search Materials..."
                   value={search}
-                  onChange={val => setSearch(val)}
+                  onChange={val => {
+                    setSearch(val);
+                    setPage(1);
+                  }}
                   debounceMs={400}
                 />
                 <Select
                   value={statusFilter}
-                  onChange={(e: any) => setStatusFilter(e.target.value)}
+                  onChange={(e: any) => {
+                    setStatusFilter(e.target.value);
+                    setPage(1);
+                  }}
                   className="!w-40"
                   disableClearable
                   label=""
@@ -361,6 +375,7 @@ const PromotionMaterialsIssueList = () => {
                       } else {
                         setDepotFilter(String(depot.id));
                       }
+                      setPage(1);
                     }}
                     fullWidth={true}
                   />
@@ -386,6 +401,7 @@ const PromotionMaterialsIssueList = () => {
           totalCount={totalItems}
           page={page - 1}
           rowsPerPage={limit}
+          onPageChange={handlePageChange}
         />
       </Box>
 
