@@ -158,15 +158,19 @@ const AssetMaintenanceManagement: React.FC = () => {
         <Box className="flex flex-col gap-1">
           <Box className="flex items-center gap-1">
             <Wrench className="h-3 w-3 text-gray-400" />
-            <span className="text-xs italic">
-              {row.issue_reported || 'No issue reported'}
-            </span>
+            <Tooltip title={row.issue_reported} placement="top" arrow>
+              <span className="text-xs italic truncate max-w-72 pr-5">
+                {row.issue_reported || 'No issue reported'}
+              </span>
+            </Tooltip>
           </Box>
           <Box className="flex items-center gap-1">
             <FileText className="h-3 w-3 text-gray-400" />
-            <span className="text-xs italic">
-              {row.action_taken || 'No action taken'}
-            </span>
+            <Tooltip title={row.action_taken} placement="top" arrow>
+              <span className="text-xs italic truncate max-w-72 pr-5">
+                {row.action_taken || 'No action taken'}
+              </span>
+            </Tooltip>
           </Box>
         </Box>
       ),
