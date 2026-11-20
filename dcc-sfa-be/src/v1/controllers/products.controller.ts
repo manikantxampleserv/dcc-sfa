@@ -119,6 +119,102 @@ const productInclude = {
   product_shelf_life_products: true,
 };
 
+const productListInclude = {
+  product_product_batches: {
+    include: {
+      batch_lot_product_batches: true,
+    },
+  },
+  product_brands: true,
+  product_unit_of_measurement: true,
+  product_categories_products: true,
+  product_sub_categories_products: true,
+  products_subunits: true,
+  products_route_type: true,
+  products_outlet_group: true,
+  product_tax_master: true,
+  product_types_products: true,
+  product_target_groups_products: true,
+  product_web_orders_products: true,
+  product_volumes_products: true,
+  product_flavours_products: true,
+  product_shelf_life_products: true,
+};
+
+interface ProductStats {
+  total_products: number;
+  active_products: number;
+  inactive_products: number;
+  new_products_this_month: number;
+}
+
+let cachedProductStats: ProductStats | null = null;
+let cachedProductStatsTime = 0;
+const STATS_CACHE_TTL = 2 * 60 * 1000; // 2 minutes
+let inFlightProductStatsPromise: Promise<ProductStats> | null = null;
+
+async function getCachedProductStats(): Promise<ProductStats> {
+  const now = Date.now();
+  if (cachedProductStats && now - cachedProductStatsTime < STATS_CACHE_TTL) {
+    return cachedProductStats;
+  }
+  if (inFlightProductStatsPromise) {
+    return inFlightProductStatsPromise;
+  }
+
+  inFlightProductStatsPromise = (async () => {
+    try {
+      const nowDate = new Date();
+      const startOfMonth = new Date(
+        nowDate.getFullYear(),
+        nowDate.getMonth(),
+        1
+      );
+      const endOfMonth = new Date(
+        nowDate.getFullYear(),
+        nowDate.getMonth() + 1,
+        0,
+        23,
+        59,
+        59,
+        999
+      );
+
+      const [
+        total_products,
+        active_products,
+        inactive_products,
+        new_products_this_month,
+      ] = await Promise.all([
+        prisma.products.count(),
+        prisma.products.count({ where: { is_active: 'Y' } }),
+        prisma.products.count({ where: { is_active: 'N' } }),
+        prisma.products.count({
+          where: {
+            createdate: {
+              gte: startOfMonth,
+              lte: endOfMonth,
+            },
+          },
+        }),
+      ]);
+
+      cachedProductStats = {
+        total_products,
+        active_products,
+        inactive_products,
+        new_products_this_month,
+      };
+      cachedProductStatsTime = Date.now();
+      return cachedProductStats;
+    } finally {
+      inFlightProductStatsPromise = null;
+    }
+  })();
+
+  return inFlightProductStatsPromise;
+}
+
 const generateProductsCode = async (name: string) => {
   const prefix = name.slice(0, 3).toUpperCase();
 
@@ -149,9 +245,7 @@ const normalizeToArray = (value: any) => {
   return Array.isArray(value) ? value : [value];
 };
 
-const arrayToNormalize = (value: any) => {
-
-}
+const arrayToNormalize = (value: any) => {};
 
 const serializeProduct = (product: any): ProductSerialized => ({
   id: product.id,
@@ -245,17 +339,17 @@ const serializeProduct = (product: any): ProductSerialized => ({
 
   product_unit_of_measurement: product.product_unit_of_measurement
     ? {
-      id: product.product_unit_of_measurement.id,
-      name: product.product_unit_of_measurement.name,
-      description: product.product_unit_of_measurement.description,
-      category: product.product_unit_of_measurement.category,
-      symbol: product.product_unit_of_measurement.symbol,
-      is_active: product.product_unit_of_measurement.is_active,
-      conversion_rate: product.product_unit_of_measurement.conversion_rate
-        ? Number(product.product_unit_of_measurement.conversion_rate)
-        : null,
-      sub_unit: product.product_unit_of_measurement.sub_unit,
-    }
+        id: product.product_unit_of_measurement.id,
+        name: product.product_unit_of_measurement.name,
+        description: product.product_unit_of_measurement.description,
+        category: product.product_unit_of_measurement.category,
+        symbol: product.product_unit_of_measurement.symbol,
+        is_active: product.product_unit_of_measurement.is_active,
+        conversion_rate: product.product_unit_of_measurement.conversion_rate
+          ? Number(product.product_unit_of_measurement.conversion_rate)
+          : null,
+        sub_unit: product.product_unit_of_measurement.sub_unit,
+      }
     : null,
 
   product_category: {
@@ -271,245 +365,86 @@ const serializeProduct = (product: any): ProductSerialized => ({
 
   product_subunit: product.products_subunits
     ? {
-      id: product.products_subunits.id,
-      name: product.products_subunits.name,
-      code: product.products_subunits.code,
-    }
+        id: product.products_subunits.id,
+        name: product.products_subunits.name,
+        code: product.products_subunits.code,
+      }
     : null,
 
   route_type: product.products_route_type
     ? {
-      id: product.products_route_type.id,
-      name: product.products_route_type.name,
-    }
+        id: product.products_route_type.id,
+        name: product.products_route_type.name,
+      }
     : null,
 
   outlet_group: product.products_outlet_group
     ? {
-      id: product.products_outlet_group.id,
-      name: product.products_outlet_group.name,
-      code: product.products_outlet_group.code,
-    }
+        id: product.products_outlet_group.id,
+        name: product.products_outlet_group.name,
+        code: product.products_outlet_group.code,
+      }
     : null,
 
   tax_master: product.product_tax_master
     ? {
-      id: product.product_tax_master.id,
-      name: product.product_tax_master.name,
-      code: product.product_tax_master.code,
-      tax_rate: Number(product.product_tax_master.tax_rate),
-    }
+        id: product.product_tax_master.id,
+        name: product.product_tax_master.name,
+        code: product.product_tax_master.code,
+        tax_rate: Number(product.product_tax_master.tax_rate),
+      }
     : null,
 
   product_type: product.product_types_products
     ? {
-      id: product.product_types_products.id,
-      name: product.product_types_products.name,
-      code: product.product_types_products.code,
-    }
+        id: product.product_types_products.id,
+        name: product.product_types_products.name,
+        code: product.product_types_products.code,
+      }
     : null,
 
   product_target_group: product.product_target_groups_products
     ? {
-      id: product.product_target_groups_products.id,
-      name: product.product_target_groups_products.name,
-      code: product.product_target_groups_products.code,
-    }
+        id: product.product_target_groups_products.id,
+        name: product.product_target_groups_products.name,
+        code: product.product_target_groups_products.code,
+      }
     : null,
 
   product_web_order: product.product_web_orders_products
     ? {
-      id: product.product_web_orders_products.id,
-      name: product.product_web_orders_products.name,
-      code: product.product_web_orders_products.code,
-    }
+        id: product.product_web_orders_products.id,
+        name: product.product_web_orders_products.name,
+        code: product.product_web_orders_products.code,
+      }
     : null,
 
   volume: product.product_volumes_products
     ? {
-      id: product.product_volumes_products.id,
-      name: product.product_volumes_products.name,
-      code: product.product_volumes_products.code,
-    }
+        id: product.product_volumes_products.id,
+        name: product.product_volumes_products.name,
+        code: product.product_volumes_products.code,
+      }
     : null,
 
   flavour: product.product_flavours_products
     ? {
-      id: product.product_flavours_products.id,
-      name: product.product_flavours_products.name,
-      code: product.product_flavours_products.code,
-    }
+        id: product.product_flavours_products.id,
+        name: product.product_flavours_products.name,
+        code: product.product_flavours_products.code,
+      }
     : null,
 
   shelf_life: product.product_shelf_life_products
     ? {
-      id: product.product_shelf_life_products.id,
-      name: product.product_shelf_life_products.name,
-      code: product.product_shelf_life_products.code,
-    }
+        id: product.product_shelf_life_products.id,
+        name: product.product_shelf_life_products.name,
+        code: product.product_shelf_life_products.code,
+      }
     : null,
 });
 
-// async function createDefaultInventoryStock(
-//   tx: any,
-//   productId: number,
-//   locationId: number | null,
-//   userId: number
-// ): Promise<void> {
-//   if (!locationId) {
-//     // Find a valid depot if no locationId is provided
-//     const firstDepot = await tx.depots.findFirst({
-//       where: { is_active: 'Y' },
-//       select: { id: true },
-//     });
-
-//     if (!firstDepot) {
-//       // If no active depot exists, skip inventory stock creation
-//       console.log('No active depot found, skipping inventory stock creation');
-//       return;
-//     }
-
-//     locationId = firstDepot.id;
-//   }
-
-//   await tx.inventory_stock.create({
-//     data: {
-//       product_id: productId,
-//       location_id: locationId,
-//       current_stock: 0,
-//       reserved_stock: 0,
-//       available_stock: 0,
-//       minimum_stock: 0,
-//       maximum_stock: 0,
-//       batch_id: null,
-//       is_active: 'Y',
-//       createdate: new Date(),
-//       createdby: userId,
-//       log_inst: 1,
-//     },
-//   });
-// }
-
 export const productsController = {
-  // async createProduct(req: Request, res: Response) {
-  //   try {
-  //     const data = req.body;
-  //     const userId = req.user?.id || 1;
-  //     const batchLots: BatchLotInput[] = data.batch_lots || [];
-
-  //     let productCode =
-  //       data.code && data.code.trim() !== '' ? data.code.trim() : null;
-
-  //     if (!productCode) {
-  //       productCode = await generateProductsCode(data.name);
-  //       let attempts = 0;
-  //       while (attempts < 10) {
-  //         const existing = await prisma.products.findUnique({
-  //           where: { code: productCode },
-  //         });
-  //         if (!existing) break;
-  //         productCode = await generateProductsCode(data.name);
-  //         attempts++;
-  //       }
-  //     } else {
-  //       const existingProduct = await prisma.products.findUnique({
-  //         where: { code: productCode },
-  //       });
-
-  //       if (existingProduct) {
-  //         return res
-  //           .status(400)
-  //           .json({ message: 'Product code already exists' });
-  //       }
-  //     }
-
-  //     if (batchLots.length > 0) {
-  //       const batchLotIds = batchLots.map(b => b.batch_lot_id);
-
-  //       const uniqueIds = new Set(batchLotIds);
-  //       if (uniqueIds.size !== batchLotIds.length) {
-  //         return res.status(400).json({
-  //           message: 'Duplicate batch_lot_id found in the request',
-  //         });
-  //       }
-
-  //       const existingBatchLots = await prisma.batch_lots.findMany({
-  //         where: { id: { in: batchLotIds } },
-  //         select: { id: true, batch_number: true, lot_number: true },
-  //       });
-
-  //       const foundIds = existingBatchLots.map(b => b.id);
-  //       const missingIds = batchLotIds.filter(id => !foundIds.includes(id));
-
-  //       if (missingIds.length > 0) {
-  //         return res.status(400).json({
-  //           message: `Batch lots with IDs ${missingIds.join(', ')} not found`,
-  //         });
-  //       }
-  //     }
-
-  //     const product = await prisma.products.create({
-  //       data: {
-  //         name: data.name,
-  //         code: productCode,
-  //         description: data.description || null,
-  //         category_id: data.category_id,
-  //         sub_category_id: data.sub_category_id,
-  //         brand_id: data.brand_id,
-  //         unit_of_measurement: data.unit_of_measurement,
-  //         base_price: data.base_price || null,
-  //         tax_rate: data.tax_rate || null,
-  //         tax_id: data.tax_id || null,
-  //         is_active: data.is_active || 'Y',
-  //         route_type_id: data.route_type_id || null,
-  //         outlet_group_id: data.outlet_group_id || null,
-  //         tracking_type: data.tracking_type || null,
-  //         product_type_id: data.product_type_id || null,
-  //         product_target_group_id: data.product_target_group_id || null,
-  //         product_web_order_id: data.product_web_order_id || null,
-  //         volume_id: data.volume_id || null,
-  //         flavour_id: data.flavour_id || null,
-  //         shelf_life_id: data.shelf_life_id || null,
-  //         vat_percentage: data.vat_percentage || null,
-  //         weight_in_grams: data.weight_in_grams || null,
-  //         volume_in_liters: data.volume_in_liters || null,
-  //         createdate: new Date(),
-  //         createdby: userId,
-  //         log_inst: data.log_inst || 1,
-  //       },
-  //     });
-
-  //     if (batchLots.length > 0) {
-  //       for (const batchLot of batchLots) {
-  //         await prisma.product_batches.create({
-  //           data: {
-  //             product_id: product.id,
-  //             batch_lot_id: batchLot.batch_lot_id,
-  //             quantity: batchLot.quantity,
-  //             is_active: 'Y',
-  //             createdate: new Date(),
-  //             createdby: userId,
-  //             log_inst: 1,
-  //           },
-  //         });
-  //       }
-  //     }
-
-  //     const completeProduct = await prisma.products.findUnique({
-  //       where: { id: product.id },
-  //       include: productInclude,
-  //     });
-
-  //     res.status(201).json({
-  //       message: 'Product created successfully',
-  //       data: serializeProduct(completeProduct),
-  //     });
-  //   } catch (error: any) {
-  //     console.error('Create Product Error:', error);
-  //     res.status(500).json({ message: error.message });
-  //   }
-  // },
-
   async createProduct(req: Request, res: Response) {
     try {
       const data = req.body;
@@ -550,7 +485,9 @@ export const productsController = {
       }
 
       let sapCode =
-        data.sap_code && data.sap_code.trim() !== '' ? data.sap_code.trim() : null;
+        data.sap_code && data.sap_code.trim() !== ''
+          ? data.sap_code.trim()
+          : null;
 
       if (sapCode) {
         const existingSapCode = await prisma.products.findFirst({
@@ -640,15 +577,6 @@ export const productsController = {
           }
         }
 
-        // if (product.tracking_type === 'none') {
-        //   await createDefaultInventoryStock(
-        //     tx,
-        //     product.id,
-        //     data.location_id || null,
-        //     userId
-        //   );
-        // }
-
         return product;
       });
 
@@ -656,6 +584,8 @@ export const productsController = {
         where: { id: result.id },
         include: productInclude,
       });
+
+      cachedProductStats = null;
 
       res.status(201).json({
         message: 'Product created successfully',
@@ -686,67 +616,24 @@ export const productsController = {
         ...(statusLower === 'inactive' && { is_active: 'N' }),
       };
 
-      const { data, pagination } = await paginate({
-        model: prisma.products,
-        filters,
-        page: pageNum,
-        limit: limitNum,
-        orderBy: { createdate: 'desc' },
-        include: {
-          product_product_batches: {
-            include: {
-              batch_lot_product_batches: true,
-            },
-          },
-          inventory_stock_products: true,
-          price_history_products: true,
-          order_items: true,
-          product_brands: true,
-          product_unit_of_measurement: true,
-          product_categories_products: true,
-          product_sub_categories_products: true,
-          products_subunits: true,
-          products_route_type: true,
-          products_outlet_group: true,
-          product_tax_master: true,
-          product_types_products: true,
-          product_target_groups_products: true,
-          product_web_orders_products: true,
-          product_volumes_products: true,
-          product_flavours_products: true,
-          product_shelf_life_products: true,
-        },
-      });
+      const [{ data, pagination }, stats] = await Promise.all([
+        paginate({
+          model: prisma.products,
+          filters,
+          page: pageNum,
+          limit: limitNum,
+          orderBy: { createdate: 'desc' },
+          include: productListInclude,
+        }),
+        getCachedProductStats(),
+      ]);
 
-      const totalProducts = await prisma.products.count();
-      const activeProducts = await prisma.products.count({
-        where: { is_active: 'Y' },
-      });
-      const inactiveProducts = await prisma.products.count({
-        where: { is_active: 'N' },
-      });
-      const now = new Date();
-      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-      const newProductsThisMonth = await prisma.products.count({
-        where: {
-          createdate: {
-            gte: startOfMonth,
-            lte: endOfMonth,
-          },
-        },
-      });
       res.success(
         'Products retrieved successfully',
         data.map((p: any) => serializeProduct(p)),
         200,
         pagination,
-        {
-          total_products: totalProducts,
-          active_products: activeProducts,
-          inactive_products: inactiveProducts,
-          new_products_this_month: newProductsThisMonth,
-        }
+        stats
       );
     } catch (error: any) {
       console.error('Get Products Error:', error);
@@ -986,6 +873,8 @@ export const productsController = {
         },
       });
 
+      cachedProductStats = null;
+
       res.json({
         message: 'Product updated successfully',
         data: serializeProduct(product),
@@ -1006,6 +895,8 @@ export const productsController = {
         return res.status(404).json({ message: 'Product not found' });
 
       await prisma.products.delete({ where: { id: Number(id) } });
+
+      cachedProductStats = null;
 
       res.json({ message: 'Product deleted successfully' });
     } catch (error: any) {
