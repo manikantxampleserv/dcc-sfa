@@ -351,7 +351,31 @@ const SystemSettings: React.FC = () => {
         </Typography>
       </Box>
 
-      <Box component="form" onSubmit={formik.handleSubmit}>
+      <Box component="form" onSubmit={formik.handleSubmit} autoComplete="off">
+        <div
+          style={{
+            position: 'absolute',
+            opacity: 0,
+            height: 0,
+            width: 0,
+            zIndex: -1,
+            overflow: 'hidden',
+          }}
+          aria-hidden="true"
+        >
+          <input
+            type="text"
+            name="prevent_autofill_username"
+            tabIndex={-1}
+            autoComplete="off"
+          />
+          <input
+            type="password"
+            name="prevent_autofill_password"
+            tabIndex={-1}
+            autoComplete="new-password"
+          />
+        </div>
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
           <Box className="flex items-center gap-2 p-3">
             <Business className="!w-5 !h-5 !text-primary-600" />
@@ -477,6 +501,7 @@ const SystemSettings: React.FC = () => {
                 label="Email"
                 placeholder="Enter email address"
                 type="email"
+                autoComplete="off"
                 fullWidth
               />
               <Input
@@ -513,12 +538,38 @@ const SystemSettings: React.FC = () => {
           </Box>
           <Divider />
 
+          <div
+            style={{
+              position: 'absolute',
+              opacity: 0,
+              height: 0,
+              width: 0,
+              zIndex: -1,
+              overflow: 'hidden',
+            }}
+            aria-hidden="true"
+          >
+            <input
+              type="text"
+              name="prevent_smtp_username"
+              tabIndex={-1}
+              autoComplete="off"
+            />
+            <input
+              type="password"
+              name="prevent_smtp_password"
+              tabIndex={-1}
+              autoComplete="new-password"
+            />
+          </div>
+
           <Box className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
             <Input
               name="smtp_mail_from_name"
               formik={formik}
               label="From Name"
               placeholder="Company Name"
+              autoComplete="off"
               fullWidth
             />
             <Input
@@ -527,6 +578,7 @@ const SystemSettings: React.FC = () => {
               label="From Email"
               placeholder="noreply@company.com"
               type="email"
+              autoComplete="off"
               fullWidth
             />
             <Input
@@ -534,6 +586,7 @@ const SystemSettings: React.FC = () => {
               formik={formik}
               label="SMTP Host"
               placeholder="smtp.example.com"
+              autoComplete="off"
               fullWidth
             />
             <Input
@@ -542,6 +595,7 @@ const SystemSettings: React.FC = () => {
               label="SMTP Port"
               placeholder="587"
               type="number"
+              autoComplete="off"
               fullWidth
             />
             <Input
@@ -549,6 +603,7 @@ const SystemSettings: React.FC = () => {
               formik={formik}
               label="SMTP Username"
               placeholder="Enter SMTP username"
+              autoComplete="off"
               fullWidth
             />
             <Input
@@ -615,12 +670,37 @@ const SystemSettings: React.FC = () => {
               >
                 API Authentication Credentials
               </Typography>
+              <div
+                style={{
+                  position: 'absolute',
+                  opacity: 0,
+                  height: 0,
+                  width: 0,
+                  zIndex: -1,
+                  overflow: 'hidden',
+                }}
+                aria-hidden="true"
+              >
+                <input
+                  type="text"
+                  name="prevent_excel_username"
+                  tabIndex={-1}
+                  autoComplete="off"
+                />
+                <input
+                  type="password"
+                  name="prevent_excel_password"
+                  tabIndex={-1}
+                  autoComplete="new-password"
+                />
+              </div>
               <Box className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Input
                   name="excel_api_username"
                   formik={formik}
                   label="Excel API Username (Basic Auth)"
                   placeholder="e.g. excel_sync"
+                  autoComplete="off"
                   fullWidth
                 />
                 <Input

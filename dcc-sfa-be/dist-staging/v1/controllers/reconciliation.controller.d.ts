@@ -1,9 +1,5 @@
 import { Request, Response } from 'express';
 export declare const reconciliationController: {
-    /**
-     * List all reconciliations — one row per salesman load.
-     * Returns reconciliation header data only (no item details).
-     */
     getAllReconciliations: (req: Request, res: Response) => Promise<void>;
     /**
      * Get loaded products (items) for a specific reconciliation by ID.

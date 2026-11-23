@@ -45,6 +45,7 @@ const Input: React.FC<InputProps> = ({
   maxDate,
   disablePast,
   disableFuture,
+  autoComplete,
   ...rest
 }) => {
   const [isVisible, setIsVisible] = React.useState<{ [key: string]: boolean }>({
@@ -218,6 +219,14 @@ const Input: React.FC<InputProps> = ({
           whiteSpace: 'nowrap !important',
         },
       }),
+      '& input:-webkit-autofill': {
+        WebkitBoxShadow: '0 0 0 1000px #ffffff inset !important',
+        boxShadow: '0 0 0 1000px #ffffff inset !important',
+        WebkitTextFillColor: '#111827 !important',
+        caretColor: '#111827 !important',
+        borderRadius: 'inherit !important',
+        transition: 'background-color 5000s ease-in-out 0s',
+      },
       ...propsSx,
     }),
     [compact, propsSx]
@@ -394,6 +403,7 @@ const Input: React.FC<InputProps> = ({
   return (
     <TextField
       fullWidth={fullWidth}
+      autoComplete={autoComplete}
       type={
         type !== 'password'
           ? type
@@ -407,6 +417,8 @@ const Input: React.FC<InputProps> = ({
       slotProps={{
         htmlInput: {
           required: false,
+          ...(autoComplete ? { autoComplete } : {}),
+          ...slotProps?.htmlInput,
         },
         input: {
           ...(type === 'search' && {

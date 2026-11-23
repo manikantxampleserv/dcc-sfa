@@ -7,7 +7,7 @@ import {
 import { Avatar, Box, Typography } from '@mui/material';
 import { Warehouse } from 'lucide-react';
 import React, { useCallback, useMemo, useState } from 'react';
-import SearchInput from 'shared/SearchInput';
+import Input from 'shared/Input';
 
 interface Depot {
   id: number;
@@ -98,7 +98,7 @@ const DepotAssignment: React.FC<DepotAssignmentProps> = ({
   );
 
   const DepotCard = ({ depot }: { depot: Depot }) => (
-    <div className="!flex !items-center !gap-3 !p-2 !pr-3 !bg-white !border !border-gray-200 !rounded-lg hover:!border-blue-300 hover:!shadow-md">
+    <div className="!flex !items-center !gap-3 !p-2 !pr-3 !bg-white !border-2 !border-gray-200 !rounded-lg hover:!border-blue-200 hover:!shadow-md">
       <Avatar className="!w-9 !h-9 !bg-blue-100 !text-blue-600">
         <Warehouse className="w-4 h-4" />
       </Avatar>
@@ -121,8 +121,8 @@ const DepotAssignment: React.FC<DepotAssignmentProps> = ({
   return (
     <Box className="select-none">
       <DragDropContext onDragEnd={handleDragEnd}>
-        <div className="!grid !grid-cols-2 !gap-4 !h-[320px]">
-          <Box className="!border !border-gray-200 !rounded-t-lg !flex !flex-col !overflow-hidden">
+        <div className="!grid !grid-cols-2 !gap-4 !h-[420px]">
+          <Box className="!border !border-gray-200 !rounded-lg !flex !flex-col !overflow-hidden">
             <Box className="!p-2 !border-b !border-gray-200 !bg-gray-50">
               <Typography
                 variant="subtitle1"
@@ -134,10 +134,11 @@ const DepotAssignment: React.FC<DepotAssignmentProps> = ({
                 Drag depots from here to assign
               </p>
               <Box className="!mt-2">
-                <SearchInput
+                <Input
                   placeholder="Search Depots..."
                   value={availableSearch}
-                  onChange={setAvailableSearch}
+                  compact
+                  setValue={setAvailableSearch}
                   className="!w-full"
                   size="small"
                 />
@@ -195,7 +196,7 @@ const DepotAssignment: React.FC<DepotAssignmentProps> = ({
             </Box>
           </Box>
 
-          <Box className="!border !border-gray-200 !rounded-t-lg !flex !flex-col !overflow-hidden">
+          <Box className="!border !border-gray-200 !rounded-lg !flex !flex-col !overflow-hidden">
             <Box className="!p-2 !border-b !border-gray-200 !bg-gray-50">
               <Typography
                 variant="subtitle1"

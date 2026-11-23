@@ -10,7 +10,18 @@ const depotStaff_util_1 = require("../../utils/depotStaff.util");
 const exceljs_1 = __importDefault(require("exceljs"));
 const cache = new Map();
 const CACHE_TTL = 5 * 60 * 1000;
-const CACHE_VERSION = 'v9';
+const CACHE_VERSION = 'v10';
+const inFlightDashboardRequests = new Map();
+function normalizeCacheKey(query) {
+    const sorted = {};
+    for (const k of Object.keys(query).sort()) {
+        const val = query[k];
+        if (val !== undefined && val !== null && val !== '') {
+            sorted[k] = String(val).trim();
+        }
+    }
+    return `${CACHE_VERSION}_${JSON.stringify(sorted)}`;
+}
 const invoiceSelect = {
     id: true,
     invoice_date: true,
@@ -180,68 +191,78 @@ function parseIdOrName(val) {
 }
 let cachedFilterOptions = null;
 let cachedFilterOptionsTime = 0;
-const FILTER_CACHE_TTL = 10 * 60 * 1000;
-/**
- * Retrieves cached filter dropdown lists (depots, salespersons, routes, brands, packs, channels).
- *
- * @returns {Promise<any>} Cached filter options
- */
+const FILTER_CACHE_TTL = 30 * 60 * 1000;
+let inFlightFilterOptionsPromise = null;
 async function getCachedFilterOptions() {
     const now = Date.now();
     if (cachedFilterOptions && now - cachedFilterOptionsTime < FILTER_CACHE_TTL) {
         return cachedFilterOptions;
     }
-    const [depotsList, salespersonsList, routesList, brandsList, packsList, channelsList,] = await Promise.all([
-        prisma_client_1.default.depots.findMany({
-            where: { is_active: 'Y' },
-            select: { id: true, name: true },
-            orderBy: { name: 'asc' },
-        }),
-        prisma_client_1.default.users.findMany({
-            where: {
-                is_active: 'Y',
-                OR: [{ invoices: { some: {} } }, { route_salespersons: { some: {} } }],
-            },
-            select: { id: true, name: true },
-            orderBy: { name: 'asc' },
-        }),
-        prisma_client_1.default.routes.findMany({
-            where: { is_active: 'Y' },
-            select: { id: true, name: true },
-            orderBy: { name: 'asc' },
-        }),
-        prisma_client_1.default.brands.findMany({
-            where: { is_active: 'Y' },
-            select: { id: true, name: true },
-            orderBy: { name: 'asc' },
-        }),
-        prisma_client_1.default.product_sub_categories.findMany({
-            where: { is_active: 'Y' },
-            select: { id: true, sub_category_name: true },
-            orderBy: { sub_category_name: 'asc' },
-        }),
-        prisma_client_1.default.customer_category.findMany({
-            where: { is_active: 'Y' },
-            select: { id: true, category_name: true },
-            orderBy: { category_name: 'asc' },
-        }),
-    ]);
-    cachedFilterOptions = {
-        depots: depotsList,
-        salespersons: salespersonsList,
-        routes: routesList,
-        brands: brandsList,
-        packs: packsList.map(p => ({
-            id: p.id,
-            name: p.sub_category_name,
-        })),
-        channels: channelsList.map((c) => ({
-            id: c.id,
-            name: c.category_name,
-        })),
-    };
-    cachedFilterOptionsTime = now;
-    return cachedFilterOptions;
+    if (inFlightFilterOptionsPromise) {
+        return inFlightFilterOptionsPromise;
+    }
+    inFlightFilterOptionsPromise = (async () => {
+        try {
+            const [depotsList, salespersonsList, routesList, brandsList, packsList, channelsList,] = await Promise.all([
+                prisma_client_1.default.depots.findMany({
+                    where: { is_active: 'Y' },
+                    select: { id: true, name: true },
+                    orderBy: { name: 'asc' },
+                }),
+                prisma_client_1.default.users.findMany({
+                    where: {
+                        is_active: 'Y',
+                        OR: [
+                            { invoices: { some: {} } },
+                            { route_salespersons: { some: {} } },
+                        ],
+                    },
+                    select: { id: true, name: true },
+                    orderBy: { name: 'asc' },
+                }),
+                prisma_client_1.default.routes.findMany({
+                    where: { is_active: 'Y' },
+                    select: { id: true, name: true },
+                    orderBy: { name: 'asc' },
+                }),
+                prisma_client_1.default.brands.findMany({
+                    where: { is_active: 'Y' },
+                    select: { id: true, name: true },
+                    orderBy: { name: 'asc' },
+                }),
+                prisma_client_1.default.product_sub_categories.findMany({
+                    where: { is_active: 'Y' },
+                    select: { id: true, sub_category_name: true },
+                    orderBy: { sub_category_name: 'asc' },
+                }),
+                prisma_client_1.default.customer_category.findMany({
+                    where: { is_active: 'Y' },
+                    select: { id: true, category_name: true },
+                    orderBy: { category_name: 'asc' },
+                }),
+            ]);
+            cachedFilterOptions = {
+                depots: depotsList,
+                salespersons: salespersonsList,
+                routes: routesList,
+                brands: brandsList,
+                packs: packsList.map(p => ({
+                    id: p.id,
+                    name: p.sub_category_name,
+                })),
+                channels: channelsList.map((c) => ({
+                    id: c.id,
+                    name: c.category_name,
+                })),
+            };
+            cachedFilterOptionsTime = Date.now();
+            return cachedFilterOptions;
+        }
+        finally {
+            inFlightFilterOptionsPromise = null;
+        }
+    })();
+    return inFlightFilterOptionsPromise;
 }
 /**
  * Creates empty aggregation structure.
@@ -536,71 +557,127 @@ exports.salesControlTowerController = {
      */
     async getDashboardData(req, res) {
         try {
-            const cacheKey = `${CACHE_VERSION}_${JSON.stringify(req.query)}`;
+            const cacheKey = normalizeCacheKey(req.query);
             const cached = cache.get(cacheKey);
             if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-                if (cache.size > 200) {
-                    const keys = Array.from(cache.keys());
-                    cache.delete(keys[0]);
-                }
                 return res.status(200).json(cached.data);
             }
-            const { startDate, endDate, depot_id, coordinator_id, supervisor_id, route_id, salesman_id, brand_id, pack, channel, cmpMode, } = req.query;
-            let prevStartDate;
-            let prevEndDate;
-            if (startDate && endDate) {
-                const s = new Date(startDate);
-                const e = new Date(endDate);
-                const ps = new Date(s);
-                const pe = new Date(e);
-                if (cmpMode === 'spm') {
-                    ps.setFullYear(ps.getFullYear() - 1);
-                    pe.setFullYear(pe.getFullYear() - 1);
-                }
-                else {
-                    const diffDays = Math.round((e.getTime() - s.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-                    ps.setDate(ps.getDate() - diffDays);
-                    pe.setDate(pe.getDate() - diffDays);
-                }
-                prevStartDate = ps.toISOString().split('T')[0];
-                prevEndDate = pe.toISOString().split('T')[0];
+            const existingPromise = inFlightDashboardRequests.get(cacheKey);
+            if (existingPromise) {
+                const data = await existingPromise;
+                return res.status(200).json(data);
             }
-            const staffLookup = await (0, depotStaff_util_1.getDepotStaffLookup)();
-            const depot = parseIdOrName(depot_id);
-            const coord = parseIdOrName(coordinator_id);
-            const sup = parseIdOrName(supervisor_id);
-            const route = parseIdOrName(route_id);
-            const salesman = parseIdOrName(salesman_id);
-            const brand = parseIdOrName(brand_id);
-            const packStr = pack ? String(pack).trim() : null;
-            const channelStr = channel ? String(channel).trim() : null;
-            /**
-             * Primary fast path: Execute SQL Server Stored Procedure for instant aggregations.
-             */
-            try {
-                const [currentSPResult, prevSPResult, filterOptions] = await Promise.all([
-                    runDashboardSP({
-                        startDate: startDate,
-                        endDate: endDate,
-                        depotId: depot.id,
-                        depotName: depot.name,
-                        routeId: route.id,
-                        routeName: route.name,
-                        salesmanId: salesman.id,
-                        salesmanName: salesman.name,
-                        coordinatorId: coord.id,
-                        coordinatorName: coord.name,
-                        supervisorId: sup.id,
-                        supervisorName: sup.name,
-                        brandId: brand.id,
-                        brandName: brand.name,
-                        pack: packStr,
-                        channel: channelStr,
-                    }),
-                    prevStartDate && prevEndDate
-                        ? runDashboardSP({
-                            startDate: prevStartDate,
-                            endDate: prevEndDate,
+            const executeDashboard = async () => {
+                const { startDate, endDate, depot_id, coordinator_id, supervisor_id, route_id, salesman_id, brand_id, pack, channel, cmpMode, } = req.query;
+                let prevStartDate;
+                let prevEndDate;
+                if (startDate && endDate) {
+                    const s = new Date(startDate);
+                    const e = new Date(endDate);
+                    const ps = new Date(s);
+                    const pe = new Date(e);
+                    if (cmpMode === 'spm') {
+                        ps.setFullYear(ps.getFullYear() - 1);
+                        pe.setFullYear(pe.getFullYear() - 1);
+                    }
+                    else {
+                        const diffDays = Math.round((e.getTime() - s.getTime()) / (1000 * 60 * 60 * 24)) +
+                            1;
+                        ps.setDate(ps.getDate() - diffDays);
+                        pe.setDate(pe.getDate() - diffDays);
+                    }
+                    prevStartDate = ps.toISOString().split('T')[0];
+                    prevEndDate = pe.toISOString().split('T')[0];
+                }
+                const depot = parseIdOrName(depot_id);
+                const coord = parseIdOrName(coordinator_id);
+                const sup = parseIdOrName(supervisor_id);
+                const route = parseIdOrName(route_id);
+                const salesman = parseIdOrName(salesman_id);
+                const brand = parseIdOrName(brand_id);
+                const packStr = pack ? String(pack).trim() : null;
+                const channelStr = channel ? String(channel).trim() : null;
+                const buildCustomerWhere = (sd, ed) => {
+                    const custWhere = { is_active: 'Y' };
+                    if (sd && ed) {
+                        const start = new Date(sd);
+                        const end = new Date(ed);
+                        end.setUTCHours(23, 59, 59, 999);
+                        custWhere.createdate = {
+                            gte: start,
+                            lte: end,
+                        };
+                    }
+                    if (depot.id) {
+                        custWhere.depot_id = depot.id;
+                    }
+                    else if (depot.name) {
+                        custWhere.customer_depot = { name: depot.name };
+                    }
+                    if (route.id) {
+                        custWhere.route_id = route.id;
+                    }
+                    else if (route.name) {
+                        custWhere.customer_routes = { name: route.name };
+                    }
+                    if (salesman.id) {
+                        custWhere.salesperson_id = salesman.id;
+                    }
+                    else if (salesman.name) {
+                        custWhere.customer_users = { name: salesman.name };
+                    }
+                    if (channelStr) {
+                        custWhere.customer_category_customer = {
+                            category_name: channelStr,
+                        };
+                    }
+                    if (coord.id || sup.id || coord.name || sup.name) {
+                        custWhere.customer_depot = custWhere.customer_depot || {};
+                        if (coord.id)
+                            custWhere.customer_depot.coordinator_id = coord.id;
+                        if (sup.id)
+                            custWhere.customer_depot.supervisor_id = sup.id;
+                        if (coord.name)
+                            custWhere.customer_depot.depots_coodrinator = {
+                                name: coord.name,
+                            };
+                        if (sup.name)
+                            custWhere.customer_depot.depots_supervisior = {
+                                name: sup.name,
+                            };
+                    }
+                    return custWhere;
+                };
+                const visitWhere = { is_active: 'Y' };
+                if (startDate && endDate) {
+                    const start = new Date(startDate);
+                    const end = new Date(endDate);
+                    end.setUTCHours(23, 59, 59, 999);
+                    visitWhere.visit_date = {
+                        gte: start,
+                        lte: end,
+                    };
+                }
+                if (salesman_id) {
+                    const sid = parseInt(salesman_id, 10);
+                    if (!isNaN(sid)) {
+                        visitWhere.OR = [{ sales_person_id: sid }, { createdby: sid }];
+                    }
+                    else {
+                        visitWhere.visits_salesperson = { name: salesman_id };
+                    }
+                }
+                let staffLookup = null;
+                let filterOptions = null;
+                let visits = 0;
+                let productiveVisits = 0;
+                let currentNewOutlets = 0;
+                let prevNewOutlets = 0;
+                try {
+                    const [currentSPResult, prevSPResult, resolvedFilters, resolvedStaff, resolvedVisits, resolvedProdVisits, resolvedNewOutlets, resolvedPrevNewOutlets,] = await Promise.all([
+                        runDashboardSP({
+                            startDate: startDate,
+                            endDate: endDate,
                             depotId: depot.id,
                             depotName: depot.name,
                             routeId: route.id,
@@ -615,90 +692,29 @@ exports.salesControlTowerController = {
                             brandName: brand.name,
                             pack: packStr,
                             channel: channelStr,
-                        })
-                        : Promise.resolve(null),
-                    getCachedFilterOptions(),
-                ]);
-                if (currentSPResult) {
-                    const mayAgg = formatAggFromSP(currentSPResult, staffLookup);
-                    const aprAgg = prevSPResult
-                        ? formatAggFromSP(prevSPResult, staffLookup)
-                        : createEmptyAgg();
-                    const mapData = safeParseJson(currentSPResult.mapCustomers) || [];
-                    /** Build customer query filter for newly registered outlets */
-                    const buildCustomerWhere = (sd, ed) => {
-                        const custWhere = { is_active: 'Y' };
-                        if (sd && ed) {
-                            const start = new Date(sd);
-                            const end = new Date(ed);
-                            end.setUTCHours(23, 59, 59, 999);
-                            custWhere.createdate = {
-                                gte: start,
-                                lte: end,
-                            };
-                        }
-                        if (depot.id) {
-                            custWhere.depot_id = depot.id;
-                        }
-                        else if (depot.name) {
-                            custWhere.customer_depot = { name: depot.name };
-                        }
-                        if (route.id) {
-                            custWhere.route_id = route.id;
-                        }
-                        else if (route.name) {
-                            custWhere.customer_routes = { name: route.name };
-                        }
-                        if (salesman.id) {
-                            custWhere.salesperson_id = salesman.id;
-                        }
-                        else if (salesman.name) {
-                            custWhere.customer_users = { name: salesman.name };
-                        }
-                        if (channelStr) {
-                            custWhere.customer_category_customer = {
-                                category_name: channelStr,
-                            };
-                        }
-                        if (coord.id || sup.id || coord.name || sup.name) {
-                            custWhere.customer_depot = custWhere.customer_depot || {};
-                            if (coord.id)
-                                custWhere.customer_depot.coordinator_id = coord.id;
-                            if (sup.id)
-                                custWhere.customer_depot.supervisor_id = sup.id;
-                            if (coord.name)
-                                custWhere.customer_depot.depots_coodrinator = {
-                                    name: coord.name,
-                                };
-                            if (sup.name)
-                                custWhere.customer_depot.depots_supervisior = {
-                                    name: sup.name,
-                                };
-                        }
-                        return custWhere;
-                    };
-                    /** Visit Strike Rate and New Outlets calculations */
-                    let strikeRate = 0;
-                    const visitWhere = { is_active: 'Y' };
-                    if (startDate && endDate) {
-                        const start = new Date(startDate);
-                        const end = new Date(endDate);
-                        end.setUTCHours(23, 59, 59, 999);
-                        visitWhere.visit_date = {
-                            gte: start,
-                            lte: end,
-                        };
-                    }
-                    if (salesman_id) {
-                        const sid = parseInt(salesman_id, 10);
-                        if (!isNaN(sid)) {
-                            visitWhere.OR = [{ sales_person_id: sid }, { createdby: sid }];
-                        }
-                        else {
-                            visitWhere.visits_salesperson = { name: salesman_id };
-                        }
-                    }
-                    const [visits, productiveVisits, currentNewOutlets, prevNewOutlets] = await Promise.all([
+                        }),
+                        prevStartDate && prevEndDate
+                            ? runDashboardSP({
+                                startDate: prevStartDate,
+                                endDate: prevEndDate,
+                                depotId: depot.id,
+                                depotName: depot.name,
+                                routeId: route.id,
+                                routeName: route.name,
+                                salesmanId: salesman.id,
+                                salesmanName: salesman.name,
+                                coordinatorId: coord.id,
+                                coordinatorName: coord.name,
+                                supervisorId: sup.id,
+                                supervisorName: sup.name,
+                                brandId: brand.id,
+                                brandName: brand.name,
+                                pack: packStr,
+                                channel: channelStr,
+                            })
+                            : Promise.resolve(null),
+                        getCachedFilterOptions(),
+                        (0, depotStaff_util_1.getDepotStaffLookup)(),
                         prisma_client_1.default.visits.count({ where: visitWhere }),
                         prisma_client_1.default.visits.count({
                             where: { ...visitWhere, status: 'productive' },
@@ -712,514 +728,444 @@ exports.salesControlTowerController = {
                             })
                             : Promise.resolve(0),
                     ]);
-                    if (visits > 0) {
-                        strikeRate = (productiveVisits / visits) * 100;
-                    }
-                    const formattedStrikeRate = Number(strikeRate.toFixed(1));
-                    mayAgg.avgStrike = formattedStrikeRate;
-                    mayAgg.newOutlets =
-                        Number(currentSPResult.newOutlets) || currentNewOutlets || 0;
-                    aprAgg.newOutlets =
-                        Number(prevSPResult?.newOutlets) || prevNewOutlets || 0;
-                    if (Array.isArray(mayAgg.rows) && visits > 0) {
-                        mayAgg.rows.forEach((r) => {
-                            r.StrikeRate = formattedStrikeRate;
-                        });
-                    }
-                    const responseData = {
-                        success: true,
-                        data: {
-                            mayAgg,
-                            aprAgg,
-                            mapData,
-                            filters: filterOptions,
-                        },
-                    };
-                    if (cache.size > 200) {
-                        const keys = Array.from(cache.keys());
-                        cache.delete(keys[0]);
-                    }
-                    cache.set(cacheKey, { timestamp: Date.now(), data: responseData });
-                    return res.status(200).json(responseData);
-                }
-            }
-            catch (spError) {
-                console.warn('Fast path Stored Procedure failed, falling back to query:', spError);
-            }
-            /**
-             * Secondary fallback path: Standard Prisma query execution
-             */
-            const buildInvoiceWhere = (sd, ed) => {
-                const where = { is_active: 'Y' };
-                if (sd && ed) {
-                    const start = new Date(sd);
-                    const end = new Date(ed);
-                    end.setUTCHours(23, 59, 59, 999);
-                    where.invoice_date = {
-                        gte: start,
-                        lte: end,
-                    };
-                }
-                if (salesman_id) {
-                    const sid = parseInt(salesman_id, 10);
-                    if (!isNaN(sid)) {
-                        where.OR = [{ salesperson_id: sid }, { createdby: sid }];
-                    }
-                    else {
-                        where.invoices_salesperson = { name: salesman_id };
-                    }
-                }
-                const custWhere = { is_active: 'Y' };
-                if (depot_id) {
-                    const did = parseInt(depot_id, 10);
-                    if (!isNaN(did))
-                        custWhere.depot_id = did;
-                    else
-                        custWhere.customer_depot = { name: depot_id };
-                }
-                if (route_id) {
-                    const rid = parseInt(route_id, 10);
-                    if (!isNaN(rid))
-                        custWhere.route_id = rid;
-                    else
-                        custWhere.customer_routes = { name: route_id };
-                }
-                if (coordinator_id || supervisor_id) {
-                    if (!custWhere.customer_depot)
-                        custWhere.customer_depot = {};
-                    if (!custWhere.customer_depot.AND)
-                        custWhere.customer_depot.AND = [];
-                    if (coordinator_id) {
-                        const cid = parseInt(coordinator_id, 10);
-                        if (!isNaN(cid)) {
-                            custWhere.customer_depot.coordinator_id = cid;
+                    staffLookup = resolvedStaff;
+                    filterOptions = resolvedFilters;
+                    visits = resolvedVisits;
+                    productiveVisits = resolvedProdVisits;
+                    currentNewOutlets = resolvedNewOutlets;
+                    prevNewOutlets = resolvedPrevNewOutlets;
+                    if (currentSPResult) {
+                        const mayAgg = formatAggFromSP(currentSPResult, staffLookup);
+                        const aprAgg = prevSPResult
+                            ? formatAggFromSP(prevSPResult, staffLookup)
+                            : createEmptyAgg();
+                        const mapData = safeParseJson(currentSPResult.mapCustomers) || [];
+                        let strikeRate = 0;
+                        if (visits > 0) {
+                            strikeRate = (productiveVisits / visits) * 100;
                         }
-                        else {
-                            custWhere.customer_depot.AND.push({
-                                OR: [
-                                    { depots_coodrinator: { name: coordinator_id } },
-                                    {
-                                        user_depots_depot_id: {
-                                            some: {
-                                                users_depots_users: {
-                                                    name: coordinator_id,
-                                                    user_role: { name: 'Sales coordinator' },
-                                                },
-                                            },
-                                        },
-                                    },
-                                ],
+                        const formattedStrikeRate = Number(strikeRate.toFixed(1));
+                        mayAgg.avgStrike = formattedStrikeRate;
+                        mayAgg.newOutlets =
+                            Number(currentSPResult.newOutlets) || currentNewOutlets || 0;
+                        aprAgg.newOutlets =
+                            Number(prevSPResult?.newOutlets) || prevNewOutlets || 0;
+                        if (Array.isArray(mayAgg.rows) && visits > 0) {
+                            mayAgg.rows.forEach((r) => {
+                                r.StrikeRate = formattedStrikeRate;
                             });
                         }
+                        const responseData = {
+                            success: true,
+                            data: {
+                                mayAgg,
+                                aprAgg,
+                                mapData,
+                                filters: filterOptions,
+                            },
+                        };
+                        if (cache.size > 200) {
+                            const firstKey = cache.keys().next().value;
+                            if (firstKey)
+                                cache.delete(firstKey);
+                        }
+                        cache.set(cacheKey, { timestamp: Date.now(), data: responseData });
+                        return responseData;
                     }
-                    if (supervisor_id) {
-                        const sid = parseInt(supervisor_id, 10);
+                }
+                catch (spError) {
+                    console.warn('Fast path Stored Procedure failed, falling back to query:', spError);
+                }
+                const buildInvoiceWhere = (sd, ed) => {
+                    const where = { is_active: 'Y' };
+                    if (sd && ed) {
+                        const start = new Date(sd);
+                        const end = new Date(ed);
+                        end.setUTCHours(23, 59, 59, 999);
+                        where.invoice_date = {
+                            gte: start,
+                            lte: end,
+                        };
+                    }
+                    if (salesman_id) {
+                        const sid = parseInt(salesman_id, 10);
                         if (!isNaN(sid)) {
-                            custWhere.customer_depot.supervisor_id = sid;
+                            where.OR = [{ salesperson_id: sid }, { createdby: sid }];
                         }
                         else {
-                            custWhere.customer_depot.AND.push({
-                                OR: [
-                                    { depots_supervisior: { name: supervisor_id } },
-                                    {
-                                        user_depots_depot_id: {
-                                            some: {
-                                                users_depots_users: {
-                                                    name: supervisor_id,
-                                                    user_role: { name: 'Area Sales Supervisor' },
-                                                },
-                                            },
-                                        },
-                                    },
-                                ],
-                            });
+                            where.invoices_salesperson = { name: salesman_id };
                         }
                     }
-                    if (custWhere.customer_depot.AND.length === 0) {
-                        delete custWhere.customer_depot.AND;
+                    const custWhere = { is_active: 'Y' };
+                    if (depot_id) {
+                        const did = parseInt(depot_id, 10);
+                        if (!isNaN(did))
+                            custWhere.depot_id = did;
+                        else
+                            custWhere.customer_depot = { name: depot_id };
                     }
-                }
-                if (channel)
-                    custWhere.customer_category_customer = {
-                        category_name: channel,
-                    };
-                if (Object.keys(custWhere).length > 1) {
-                    where.invoices_customers = custWhere;
-                }
-                return where;
-            };
-            const fetchInvoices = async (sd, ed) => {
-                return prisma_client_1.default.invoices.findMany({
-                    where: buildInvoiceWhere(sd, ed),
-                    select: invoiceSelect,
-                    orderBy: { invoice_date: 'asc' },
-                });
-            };
-            const buildAggMaps = (invoices) => {
-                const byDepot = {};
-                const byCoord = {};
-                const bySup = {};
-                const byRoute = {};
-                const bySal = {};
-                const byBrand = {};
-                const byPack = {};
-                const bySKU = {};
-                const byCh = {};
-                const byDate = {};
-                const acc = (map, key, uc, pc, val, isInvoice, extra) => {
-                    if (!key || key === 'Unknown')
-                        return;
-                    if (!map[key])
-                        map[key] = { UC: 0, PC: 0, TV: 0, count: 0, ...(extra || {}) };
-                    map[key].UC += uc;
-                    map[key].PC += pc;
-                    map[key].TV += val;
-                    if (isInvoice)
-                        map[key].count += 1;
-                };
-                let totalUC = 0;
-                let totalPC = 0;
-                let totalTV = 0;
-                const uniqueCustomerIds = new Set();
-                let processedInvoiceCount = 0;
-                const rows = [];
-                for (const inv of invoices) {
-                    if ((0, hiddenUsers_config_1.isHiddenUser)(inv.invoices_salesperson))
-                        continue;
-                    const brandFilter = brand_id ? brand_id : null;
-                    const packFilter = pack ? pack : null;
-                    const validItems = inv.invoice_items.filter((item) => {
-                        if (brandFilter) {
-                            const bid = parseInt(brandFilter, 10);
-                            if (!isNaN(bid)) {
-                                if (item.invoice_items_products.brand_id !== bid)
-                                    return false;
+                    if (route_id) {
+                        const rid = parseInt(route_id, 10);
+                        if (!isNaN(rid))
+                            custWhere.route_id = rid;
+                        else
+                            custWhere.customer_routes = { name: route_id };
+                    }
+                    if (coordinator_id || supervisor_id) {
+                        if (!custWhere.customer_depot)
+                            custWhere.customer_depot = {};
+                        if (!custWhere.customer_depot.AND)
+                            custWhere.customer_depot.AND = [];
+                        if (coordinator_id) {
+                            const cid = parseInt(coordinator_id, 10);
+                            if (!isNaN(cid)) {
+                                custWhere.customer_depot.coordinator_id = cid;
                             }
                             else {
-                                if (item.invoice_items_products.product_brands?.name !==
-                                    brandFilter)
-                                    return false;
+                                custWhere.customer_depot.AND.push({
+                                    OR: [
+                                        { depots_coodrinator: { name: coordinator_id } },
+                                        {
+                                            user_depots_depot_id: {
+                                                some: {
+                                                    users_depots_users: {
+                                                        name: coordinator_id,
+                                                        user_role: { name: 'Sales coordinator' },
+                                                    },
+                                                },
+                                            },
+                                        },
+                                    ],
+                                });
                             }
                         }
-                        if (packFilter &&
-                            item.invoice_items_products.product_sub_categories_products
-                                ?.sub_category_name !== packFilter)
-                            return false;
-                        return true;
-                    });
-                    if (validItems.length === 0 && (brand_id || pack))
-                        continue;
-                    processedInvoiceCount++;
-                    uniqueCustomerIds.add(inv.customer_id);
-                    const dKey = inv.invoice_date
-                        ? inv.invoice_date.toISOString().split('T')[0]
-                        : 'Unknown';
-                    const routeSalesman = inv.invoices_customers?.customer_routes?.salespersons?.[0]?.user;
-                    const sName = inv.invoices_salesperson?.name ||
-                        routeSalesman?.name ||
-                        'Unassigned';
-                    const rName = inv.invoices_customers?.customer_routes?.name ||
-                        inv.invoices_salesperson?.route_salespersons?.[0]?.route?.name ||
-                        'Unassigned';
-                    let dName = inv.invoices_customers?.customer_depot?.name ||
-                        inv.invoices_customers?.customer_routes?.route_depots?.name ||
-                        inv.invoices_salesperson?.user_depot?.name ||
-                        inv.invoices_salesperson?.route_salespersons?.[0]?.route
-                            ?.route_depots?.name ||
-                        'Unassigned';
-                    const chName = inv.invoices_customers?.customer_category_customer?.category_name ||
-                        'Unassigned';
-                    const depotData = inv.invoices_customers?.customer_depot ||
-                        inv.invoices_customers?.customer_routes?.route_depots ||
-                        inv.invoices_salesperson?.user_depot ||
-                        inv.invoices_salesperson?.route_salespersons?.[0]?.route
-                            ?.route_depots;
-                    const staff = staffLookup.resolveStaff({
-                        customerDepot: depotData,
-                        salesperson: inv.invoices_salesperson,
-                        depotName: dName !== 'Unassigned' ? dName : undefined,
-                    });
-                    let cName = staff.coordinatorName || depotData?.depots_coodrinator?.name || '';
-                    let supName = staff.supervisorName || depotData?.depots_supervisior?.name || '';
-                    if (dName === 'Unassigned' && staff.depotName) {
-                        dName = staff.depotName;
+                        if (supervisor_id) {
+                            const sid = parseInt(supervisor_id, 10);
+                            if (!isNaN(sid)) {
+                                custWhere.customer_depot.supervisor_id = sid;
+                            }
+                            else {
+                                custWhere.customer_depot.AND.push({
+                                    OR: [
+                                        { depots_supervisior: { name: supervisor_id } },
+                                        {
+                                            user_depots_depot_id: {
+                                                some: {
+                                                    users_depots_users: {
+                                                        name: supervisor_id,
+                                                        user_role: { name: 'Area Sales Supervisor' },
+                                                    },
+                                                },
+                                            },
+                                        },
+                                    ],
+                                });
+                            }
+                        }
+                        if (custWhere.customer_depot.AND.length === 0) {
+                            delete custWhere.customer_depot.AND;
+                        }
                     }
-                    if (depotData?.user_depots_depot_id && (!cName || !supName)) {
-                        const assignedUsers = depotData.user_depots_depot_id
-                            .map((ud) => ud.users_depots_users)
-                            .filter(Boolean);
-                        const coordUser = assignedUsers.find((u) => u.user_role?.name === 'Sales coordinator');
-                        if (coordUser)
-                            cName = coordUser.name;
-                        const superUser = assignedUsers.find((u) => u.user_role?.name === 'Area Sales Supervisor');
-                        if (superUser)
-                            supName = superUser.name;
+                    if (channel)
+                        custWhere.customer_category_customer = {
+                            category_name: channel,
+                        };
+                    if (Object.keys(custWhere).length > 1) {
+                        where.invoices_customers = custWhere;
                     }
-                    cName = cName || 'Unassigned';
-                    supName = supName || 'Unassigned';
-                    const outletCode = inv.invoices_customers?.code || 'N/A';
-                    const outletName = inv.invoices_customers?.name || 'N/A';
-                    let invUC = 0;
-                    let invPC = 0;
-                    let invValue = 0;
-                    for (const item of validItems) {
-                        const qty = Number(item.quantity) || 0;
-                        const baseQty = Number(item.base_quantity) || 0;
-                        const conv = Number(item.conversion_factor) || 1;
-                        const pc = qty + (conv > 0 ? baseQty / conv : 0);
-                        const uc = pc *
-                            Number(item.invoice_items_products?.unit_case_conversion_rate || 1);
-                        const tv = Number(item.total_amount) || Number(item.unit_price) * pc;
-                        invPC += pc;
-                        invUC += uc;
-                        invValue += tv;
-                        const bName = item.invoice_items_products.product_brands?.name || 'Unknown';
-                        const pName = item.invoice_items_products.product_sub_categories_products
-                            ?.sub_category_name || 'Unknown';
-                        const skuName = item.invoice_items_products.name || 'Unknown';
-                        acc(byBrand, bName, uc, pc, tv, false);
-                        acc(byPack, pName, uc, pc, tv, false);
-                        acc(bySKU, skuName, uc, pc, tv, false);
-                    }
-                    totalUC += invUC;
-                    totalPC += invPC;
-                    totalTV += invValue;
-                    acc(byDate, dKey, invUC, invPC, invValue, true);
-                    acc(bySal, sName, invUC, invPC, invValue, true);
-                    acc(byDepot, dName, invUC, invPC, invValue, true);
-                    acc(byCh, chName, invUC, invPC, invValue, true);
-                    acc(byRoute, rName, invUC, invPC, invValue, true, {
-                        Depot: dName,
-                        Coordinator: cName,
-                        Supervisor: supName,
-                    });
-                    acc(byCoord, cName, invUC, invPC, invValue, true);
-                    acc(bySup, supName, invUC, invPC, invValue, true);
-                    rows.push({
-                        id: inv.id,
-                        Date: dKey,
-                        Depot: dName,
-                        Coordinator: cName,
-                        Supervisor: supName,
-                        Route: rName,
-                        Salesman: sName,
-                        OutletCode: outletCode,
-                        OutletName: outletName,
-                        CustomerChannel: chName,
-                        Brand: validItems[0]?.invoice_items_products?.product_brands?.name ||
-                            'Mixed',
-                        Pack: validItems[0]?.invoice_items_products
-                            ?.product_sub_categories_products?.sub_category_name ||
-                            'Mixed',
-                        SKU: validItems[0]?.invoice_items_products?.name || 'Mixed',
-                        UC: invUC,
-                        PC: invPC,
-                        TV: invValue,
-                        StrikeRate: strikeRate ? Number(strikeRate.toFixed(1)) : 100,
-                        IsNew: Boolean(inv.invoices_customers?.createdate &&
-                            startDate &&
-                            new Date(inv.invoices_customers.createdate) >=
-                                new Date(startDate) &&
-                            (!endDate ||
-                                new Date(inv.invoices_customers.createdate) <=
-                                    new Date(`${endDate} 23:59:59.999`))),
-                    });
-                }
-                return {
-                    byDepot,
-                    byCoord,
-                    bySup,
-                    byRoute,
-                    bySal,
-                    byBrand,
-                    byPack,
-                    bySKU,
-                    byCh,
-                    byDate,
-                    totalUC,
-                    totalPC,
-                    totalTV,
-                    newOutlets: 0,
-                    avgStrike: 0,
-                    rows,
-                    _uniqueCustomerIds: uniqueCustomerIds,
-                    _processedInvoiceCount: processedInvoiceCount,
+                    return where;
                 };
-            };
-            const [currentInvoices, prevInvoices] = await Promise.all([
-                fetchInvoices(startDate, endDate),
-                prevStartDate && prevEndDate
-                    ? fetchInvoices(prevStartDate, prevEndDate)
-                    : Promise.resolve([]),
-            ]);
-            const mayAggRaw = buildAggMaps(currentInvoices);
-            const aprAggRaw = buildAggMaps(prevInvoices);
-            const uniqueCustomerIds = mayAggRaw._uniqueCustomerIds;
-            let strikeRate = 0;
-            const visitWhere = { is_active: 'Y' };
-            if (startDate && endDate) {
-                const start = new Date(startDate);
-                const end = new Date(endDate);
-                end.setUTCHours(23, 59, 59, 999);
-                visitWhere.visit_date = {
-                    gte: start,
-                    lte: end,
+                const fetchInvoices = async (sd, ed) => {
+                    return prisma_client_1.default.invoices.findMany({
+                        where: buildInvoiceWhere(sd, ed),
+                        select: invoiceSelect,
+                        orderBy: { invoice_date: 'asc' },
+                    });
                 };
-            }
-            if (salesman_id) {
-                const sid = parseInt(salesman_id, 10);
-                if (!isNaN(sid)) {
-                    visitWhere.OR = [{ sales_person_id: sid }, { createdby: sid }];
-                }
-                else {
-                    visitWhere.visits_salesperson = { name: salesman_id };
-                }
-            }
-            const buildCustomerWhereFallback = (sd, ed) => {
-                const custWhere = { is_active: 'Y' };
-                if (sd && ed) {
-                    const start = new Date(sd);
-                    const end = new Date(ed);
-                    end.setUTCHours(23, 59, 59, 999);
-                    custWhere.createdate = {
-                        gte: start,
-                        lte: end,
+                const buildAggMaps = (invoices) => {
+                    const byDepot = {};
+                    const byCoord = {};
+                    const bySup = {};
+                    const byRoute = {};
+                    const bySal = {};
+                    const byBrand = {};
+                    const byPack = {};
+                    const bySKU = {};
+                    const byCh = {};
+                    const byDate = {};
+                    const acc = (map, key, uc, pc, val, isInvoice, extra) => {
+                        if (!key || key === 'Unknown')
+                            return;
+                        if (!map[key])
+                            map[key] = { UC: 0, PC: 0, TV: 0, count: 0, ...(extra || {}) };
+                        map[key].UC += uc;
+                        map[key].PC += pc;
+                        map[key].TV += val;
+                        if (isInvoice)
+                            map[key].count += 1;
                     };
-                }
-                if (depot.id) {
-                    custWhere.depot_id = depot.id;
-                }
-                else if (depot.name) {
-                    custWhere.customer_depot = { name: depot.name };
-                }
-                if (route.id) {
-                    custWhere.route_id = route.id;
-                }
-                else if (route.name) {
-                    custWhere.customer_routes = { name: route.name };
-                }
-                if (salesman.id) {
-                    custWhere.salesperson_id = salesman.id;
-                }
-                else if (salesman.name) {
-                    custWhere.customer_users = { name: salesman.name };
-                }
-                if (channelStr) {
-                    custWhere.customer_category_customer = {
-                        category_name: channelStr,
+                    let totalUC = 0;
+                    let totalPC = 0;
+                    let totalTV = 0;
+                    const uniqueCustomerIds = new Set();
+                    let processedInvoiceCount = 0;
+                    const rows = [];
+                    for (const inv of invoices) {
+                        if ((0, hiddenUsers_config_1.isHiddenUser)(inv.invoices_salesperson))
+                            continue;
+                        const brandFilter = brand_id ? brand_id : null;
+                        const packFilter = pack ? pack : null;
+                        const validItems = inv.invoice_items.filter((item) => {
+                            if (brandFilter) {
+                                const bid = parseInt(brandFilter, 10);
+                                if (!isNaN(bid)) {
+                                    if (item.invoice_items_products.brand_id !== bid)
+                                        return false;
+                                }
+                                else {
+                                    if (item.invoice_items_products.product_brands?.name !==
+                                        brandFilter)
+                                        return false;
+                                }
+                            }
+                            if (packFilter &&
+                                item.invoice_items_products.product_sub_categories_products
+                                    ?.sub_category_name !== packFilter)
+                                return false;
+                            return true;
+                        });
+                        if (validItems.length === 0 && (brand_id || pack))
+                            continue;
+                        processedInvoiceCount++;
+                        uniqueCustomerIds.add(inv.customer_id);
+                        const dKey = inv.invoice_date
+                            ? inv.invoice_date.toISOString().split('T')[0]
+                            : 'Unknown';
+                        const routeSalesman = inv.invoices_customers?.customer_routes?.salespersons?.[0]?.user;
+                        const sName = inv.invoices_salesperson?.name ||
+                            routeSalesman?.name ||
+                            'Unassigned';
+                        const rName = inv.invoices_customers?.customer_routes?.name ||
+                            inv.invoices_salesperson?.route_salespersons?.[0]?.route?.name ||
+                            'Unassigned';
+                        let dName = inv.invoices_customers?.customer_depot?.name ||
+                            inv.invoices_customers?.customer_routes?.route_depots?.name ||
+                            inv.invoices_salesperson?.user_depot?.name ||
+                            inv.invoices_salesperson?.route_salespersons?.[0]?.route
+                                ?.route_depots?.name ||
+                            'Unassigned';
+                        const chName = inv.invoices_customers?.customer_category_customer
+                            ?.category_name || 'Unassigned';
+                        const depotData = inv.invoices_customers?.customer_depot ||
+                            inv.invoices_customers?.customer_routes?.route_depots ||
+                            inv.invoices_salesperson?.user_depot ||
+                            inv.invoices_salesperson?.route_salespersons?.[0]?.route
+                                ?.route_depots;
+                        const staff = staffLookup.resolveStaff({
+                            customerDepot: depotData,
+                            salesperson: inv.invoices_salesperson,
+                            depotName: dName !== 'Unassigned' ? dName : undefined,
+                        });
+                        let cName = staff.coordinatorName ||
+                            depotData?.depots_coodrinator?.name ||
+                            '';
+                        let supName = staff.supervisorName || depotData?.depots_supervisior?.name || '';
+                        if (dName === 'Unassigned' && staff.depotName) {
+                            dName = staff.depotName;
+                        }
+                        if (depotData?.user_depots_depot_id && (!cName || !supName)) {
+                            const assignedUsers = depotData.user_depots_depot_id
+                                .map((ud) => ud.users_depots_users)
+                                .filter(Boolean);
+                            const coordUser = assignedUsers.find((u) => u.user_role?.name === 'Sales coordinator');
+                            if (coordUser)
+                                cName = coordUser.name;
+                            const superUser = assignedUsers.find((u) => u.user_role?.name === 'Area Sales Supervisor');
+                            if (superUser)
+                                supName = superUser.name;
+                        }
+                        cName = cName || 'Unassigned';
+                        supName = supName || 'Unassigned';
+                        const outletCode = inv.invoices_customers?.code || 'N/A';
+                        const outletName = inv.invoices_customers?.name || 'N/A';
+                        let invUC = 0;
+                        let invPC = 0;
+                        let invValue = 0;
+                        for (const item of validItems) {
+                            const qty = Number(item.quantity) || 0;
+                            const baseQty = Number(item.base_quantity) || 0;
+                            const conv = Number(item.conversion_factor) || 1;
+                            const pc = qty + (conv > 0 ? baseQty / conv : 0);
+                            const uc = pc *
+                                Number(item.invoice_items_products?.unit_case_conversion_rate || 1);
+                            const tv = Number(item.total_amount) || Number(item.unit_price) * pc;
+                            invPC += pc;
+                            invUC += uc;
+                            invValue += tv;
+                            const bName = item.invoice_items_products.product_brands?.name || 'Unknown';
+                            const pName = item.invoice_items_products.product_sub_categories_products
+                                ?.sub_category_name || 'Unknown';
+                            const skuName = item.invoice_items_products.name || 'Unknown';
+                            acc(byBrand, bName, uc, pc, tv, false);
+                            acc(byPack, pName, uc, pc, tv, false);
+                            acc(bySKU, skuName, uc, pc, tv, false);
+                        }
+                        totalUC += invUC;
+                        totalPC += invPC;
+                        totalTV += invValue;
+                        acc(byDate, dKey, invUC, invPC, invValue, true);
+                        acc(bySal, sName, invUC, invPC, invValue, true);
+                        acc(byDepot, dName, invUC, invPC, invValue, true);
+                        acc(byCh, chName, invUC, invPC, invValue, true);
+                        acc(byRoute, rName, invUC, invPC, invValue, true, {
+                            Depot: dName,
+                            Coordinator: cName,
+                            Supervisor: supName,
+                        });
+                        acc(byCoord, cName, invUC, invPC, invValue, true);
+                        acc(bySup, supName, invUC, invPC, invValue, true);
+                        rows.push({
+                            id: inv.id,
+                            Date: dKey,
+                            Depot: dName,
+                            Coordinator: cName,
+                            Supervisor: supName,
+                            Route: rName,
+                            Salesman: sName,
+                            OutletCode: outletCode,
+                            OutletName: outletName,
+                            CustomerChannel: chName,
+                            Brand: validItems[0]?.invoice_items_products?.product_brands?.name ||
+                                'Mixed',
+                            Pack: validItems[0]?.invoice_items_products
+                                ?.product_sub_categories_products?.sub_category_name ||
+                                'Mixed',
+                            SKU: validItems[0]?.invoice_items_products?.name || 'Mixed',
+                            UC: invUC,
+                            PC: invPC,
+                            TV: invValue,
+                            StrikeRate: strikeRate ? Number(strikeRate.toFixed(1)) : 100,
+                            IsNew: Boolean(inv.invoices_customers?.createdate &&
+                                startDate &&
+                                new Date(inv.invoices_customers.createdate) >=
+                                    new Date(startDate) &&
+                                (!endDate ||
+                                    new Date(inv.invoices_customers.createdate) <=
+                                        new Date(`${endDate} 23:59:59.999`))),
+                        });
+                    }
+                    return {
+                        byDepot,
+                        byCoord,
+                        bySup,
+                        byRoute,
+                        bySal,
+                        byBrand,
+                        byPack,
+                        bySKU,
+                        byCh,
+                        byDate,
+                        totalUC,
+                        totalPC,
+                        totalTV,
+                        newOutlets: 0,
+                        avgStrike: 0,
+                        rows,
+                        _uniqueCustomerIds: uniqueCustomerIds,
+                        _processedInvoiceCount: processedInvoiceCount,
                     };
+                };
+                const [currentInvoices, prevInvoices] = await Promise.all([
+                    fetchInvoices(startDate, endDate),
+                    prevStartDate && prevEndDate
+                        ? fetchInvoices(prevStartDate, prevEndDate)
+                        : Promise.resolve([]),
+                ]);
+                const mayAggRaw = buildAggMaps(currentInvoices);
+                const aprAggRaw = buildAggMaps(prevInvoices);
+                const uniqueCustomerIds = mayAggRaw._uniqueCustomerIds;
+                let strikeRate = 0;
+                if (!staffLookup) {
+                    staffLookup = await (0, depotStaff_util_1.getDepotStaffLookup)();
                 }
-                return custWhere;
-            };
-            const [visits, productiveVisits, currentNewOutlets, prevNewOutlets] = await Promise.all([
-                prisma_client_1.default.visits.count({ where: visitWhere }),
-                prisma_client_1.default.visits.count({
-                    where: { ...visitWhere, status: 'productive' },
-                }),
-                prisma_client_1.default.customers.count({
-                    where: buildCustomerWhereFallback(startDate, endDate),
-                }),
-                prevStartDate && prevEndDate
-                    ? prisma_client_1.default.customers.count({
-                        where: buildCustomerWhereFallback(prevStartDate, prevEndDate),
-                    })
-                    : Promise.resolve(0),
-            ]);
-            if (visits > 0) {
-                strikeRate = (productiveVisits / visits) * 100;
-            }
-            const [depotsList, salespersonsList, routesList, brandsList, packsList, channelsList,] = await Promise.all([
-                prisma_client_1.default.depots.findMany({
-                    where: { is_active: 'Y' },
-                    select: { id: true, name: true },
-                    orderBy: { name: 'asc' },
-                }),
-                prisma_client_1.default.users.findMany({
+                if (!filterOptions) {
+                    filterOptions = await getCachedFilterOptions();
+                }
+                if (visits === 0 && currentNewOutlets === 0) {
+                    const [v, pv, cno, pno] = await Promise.all([
+                        prisma_client_1.default.visits.count({ where: visitWhere }),
+                        prisma_client_1.default.visits.count({
+                            where: { ...visitWhere, status: 'productive' },
+                        }),
+                        prisma_client_1.default.customers.count({
+                            where: buildCustomerWhere(startDate, endDate),
+                        }),
+                        prevStartDate && prevEndDate
+                            ? prisma_client_1.default.customers.count({
+                                where: buildCustomerWhere(prevStartDate, prevEndDate),
+                            })
+                            : Promise.resolve(0),
+                    ]);
+                    visits = v;
+                    productiveVisits = pv;
+                    currentNewOutlets = cno;
+                    prevNewOutlets = pno;
+                }
+                if (visits > 0) {
+                    strikeRate = (productiveVisits / visits) * 100;
+                }
+                const CHUNK_SIZE = 2000;
+                const customerIdArray = Array.from(uniqueCustomerIds).slice(0, 10000);
+                const chunks = [];
+                for (let i = 0; i < customerIdArray.length; i += CHUNK_SIZE) {
+                    chunks.push(customerIdArray.slice(i, i + CHUNK_SIZE));
+                }
+                const chunkResults = await Promise.all(chunks.map(chunk => prisma_client_1.default.customers.findMany({
                     where: {
-                        is_active: 'Y',
-                        OR: [
-                            { invoices: { some: {} } },
-                            { route_salespersons: { some: {} } },
-                        ],
+                        id: { in: chunk },
+                        latitude: { not: null },
+                        longitude: { not: null },
                     },
-                    select: { id: true, name: true },
-                    orderBy: { name: 'asc' },
-                }),
-                prisma_client_1.default.routes.findMany({
-                    where: { is_active: 'Y' },
-                    select: { id: true, name: true },
-                    orderBy: { name: 'asc' },
-                }),
-                prisma_client_1.default.brands.findMany({
-                    where: { is_active: 'Y' },
-                    select: { id: true, name: true },
-                    orderBy: { name: 'asc' },
-                }),
-                prisma_client_1.default.product_sub_categories.findMany({
-                    where: { is_active: 'Y' },
-                    select: { id: true, sub_category_name: true },
-                    orderBy: { sub_category_name: 'asc' },
-                }),
-                prisma_client_1.default.customer_category.findMany({
-                    where: { is_active: 'Y' },
-                    select: { id: true, category_name: true },
-                    orderBy: { category_name: 'asc' },
-                }),
-            ]);
-            const CHUNK_SIZE = 2000;
-            const customerIdArray = Array.from(uniqueCustomerIds).slice(0, 10000);
-            const chunks = [];
-            for (let i = 0; i < customerIdArray.length; i += CHUNK_SIZE) {
-                chunks.push(customerIdArray.slice(i, i + CHUNK_SIZE));
-            }
-            const chunkResults = await Promise.all(chunks.map(chunk => prisma_client_1.default.customers.findMany({
-                where: {
-                    id: { in: chunk },
-                    latitude: { not: null },
-                    longitude: { not: null },
-                },
-                select: {
-                    id: true,
-                    name: true,
-                    code: true,
-                    latitude: true,
-                    longitude: true,
-                },
-            })));
-            const mapCustomers = chunkResults.flat();
-            const { _uniqueCustomerIds: _m, _processedInvoiceCount: _mp, ...mayAgg } = mayAggRaw;
-            const { _uniqueCustomerIds: _a, _processedInvoiceCount: _ap, ...aprAgg } = aprAggRaw;
-            mayAgg.avgStrike = Number(strikeRate.toFixed(1));
-            mayAgg.newOutlets = currentNewOutlets;
-            aprAgg.newOutlets = prevNewOutlets;
-            const responseData = {
-                success: true,
-                data: {
-                    mayAgg,
-                    aprAgg,
-                    mapData: mapCustomers,
-                    filters: {
-                        depots: depotsList,
-                        salespersons: salespersonsList,
-                        routes: routesList,
-                        brands: brandsList,
-                        packs: packsList.map(p => ({
-                            id: p.id,
-                            name: p.sub_category_name,
-                        })),
-                        channels: channelsList.map((c) => ({
-                            id: c.id,
-                            name: c.category_name,
-                        })),
+                    select: {
+                        id: true,
+                        name: true,
+                        code: true,
+                        latitude: true,
+                        longitude: true,
                     },
-                },
+                })));
+                const mapCustomers = chunkResults.flat();
+                const { _uniqueCustomerIds: _m, _processedInvoiceCount: _mp, ...mayAgg } = mayAggRaw;
+                const { _uniqueCustomerIds: _a, _processedInvoiceCount: _ap, ...aprAgg } = aprAggRaw;
+                mayAgg.avgStrike = Number(strikeRate.toFixed(1));
+                mayAgg.newOutlets = currentNewOutlets;
+                aprAgg.newOutlets = prevNewOutlets;
+                const responseData = {
+                    success: true,
+                    data: {
+                        mayAgg,
+                        aprAgg,
+                        mapData: mapCustomers,
+                        filters: filterOptions,
+                    },
+                };
+                if (cache.size > 200) {
+                    const firstKey = cache.keys().next().value;
+                    if (firstKey)
+                        cache.delete(firstKey);
+                }
+                cache.set(cacheKey, { timestamp: Date.now(), data: responseData });
+                return responseData;
             };
-            if (cache.size > 200) {
-                const keys = Array.from(cache.keys());
-                cache.delete(keys[0]);
+            const requestPromise = executeDashboard();
+            inFlightDashboardRequests.set(cacheKey, requestPromise);
+            try {
+                const responseData = await requestPromise;
+                return res.status(200).json(responseData);
             }
-            cache.set(cacheKey, { timestamp: Date.now(), data: responseData });
-            return res.status(200).json(responseData);
+            finally {
+                inFlightDashboardRequests.delete(cacheKey);
+            }
         }
         catch (error) {
             console.error('Error fetching dashboard data:', error);

@@ -513,7 +513,36 @@ const ManageUsers: React.FC<ManageUsersProps> = ({
       title={isEdit ? `Edit User: ${selectedUser?.name}` : 'Create New User'}
       size="large"
     >
-      <Box component="form" onSubmit={handleSubmit} className="p-4">
+      <Box
+        component="form"
+        onSubmit={handleSubmit}
+        className="p-4"
+        autoComplete="off"
+      >
+        <div
+          style={{
+            position: 'absolute',
+            opacity: 0,
+            height: 0,
+            width: 0,
+            zIndex: -1,
+            overflow: 'hidden',
+          }}
+          aria-hidden="true"
+        >
+          <input
+            type="text"
+            name="prevent_autofill_username"
+            tabIndex={-1}
+            autoComplete="off"
+          />
+          <input
+            type="password"
+            name="prevent_autofill_password"
+            tabIndex={-1}
+            autoComplete="new-password"
+          />
+        </div>
         <div
           className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center mb-4 cursor-pointer flex flex-col items-center gap-2 hover:bg-gray-50"
           onClick={() => document.getElementById('file-upload')?.click()}
@@ -555,6 +584,7 @@ const ManageUsers: React.FC<ManageUsersProps> = ({
               label="Full Name"
               placeholder="Enter full name"
               required
+              autoComplete="off"
             />
             <Select
               name="role_id"
@@ -583,6 +613,7 @@ const ManageUsers: React.FC<ManageUsersProps> = ({
                 placeholder="Enter max routes (e.g. 3)"
                 type="number"
                 required
+                autoComplete="off"
               />
             )}
 
@@ -592,6 +623,7 @@ const ManageUsers: React.FC<ManageUsersProps> = ({
               label="User Code"
               placeholder="Enter user code"
               required
+              autoComplete="off"
             />
 
             <Input
@@ -599,6 +631,7 @@ const ManageUsers: React.FC<ManageUsersProps> = ({
               formik={formik}
               label="SAP Code"
               placeholder="Enter SAP code"
+              autoComplete="off"
             />
 
             <Input
@@ -606,6 +639,7 @@ const ManageUsers: React.FC<ManageUsersProps> = ({
               formik={formik}
               label="Phone Number"
               placeholder="Enter Phone Number"
+              autoComplete="off"
             />
             <Input
               name="email"
@@ -613,6 +647,7 @@ const ManageUsers: React.FC<ManageUsersProps> = ({
               label="Email"
               placeholder="Enter email address"
               type="email"
+              autoComplete="off"
             />
 
             {!isEdit && (
@@ -623,6 +658,7 @@ const ManageUsers: React.FC<ManageUsersProps> = ({
                 placeholder="Enter password"
                 type="password"
                 required
+                autoComplete="new-password"
               />
             )}
 
@@ -633,6 +669,7 @@ const ManageUsers: React.FC<ManageUsersProps> = ({
                 label="New Password (Optional)"
                 placeholder="Enter new password to change"
                 type="password"
+                autoComplete="new-password"
               />
             )}
             <UserSelect

@@ -157,6 +157,34 @@ const ThemeContext = ({ children }: { children: React.ReactNode }) => {
           },
         },
       },
+      MuiOutlinedInput: {
+        styleOverrides: {
+          input: {
+            '&:-webkit-autofill': {
+              WebkitBoxShadow: '0 0 0 1000px #ffffff inset !important',
+              boxShadow: '0 0 0 1000px #ffffff inset !important',
+              WebkitTextFillColor: '#111827 !important',
+              caretColor: '#111827 !important',
+              borderRadius: 'inherit !important',
+              transition: 'background-color 5000s ease-in-out 0s',
+            },
+          },
+        },
+      },
+      MuiInputBase: {
+        styleOverrides: {
+          input: {
+            '&:-webkit-autofill': {
+              WebkitBoxShadow: '0 0 0 1000px #ffffff inset !important',
+              boxShadow: '0 0 0 1000px #ffffff inset !important',
+              WebkitTextFillColor: '#111827 !important',
+              caretColor: '#111827 !important',
+              borderRadius: 'inherit !important',
+              transition: 'background-color 5000s ease-in-out 0s',
+            },
+          },
+        },
+      },
     },
     primaryColors: primaryColors,
   });

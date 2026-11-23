@@ -26,297 +26,6 @@ const resolveStatusFilter = (status) => {
     return undefined;
 };
 exports.reconciliationController = {
-    /**
-     * List all reconciliations — one row per salesman load.
-     * Returns reconciliation header data only (no item details).
-     */
-    getAllReconciliations: async (req, res) => {
-        try {
-            const page = Number(req.query.page) || 1;
-            const limit = Number(req.query.limit) || 10;
-            const search = req.query.search ? String(req.query.search).trim() : '';
-            const salesmanId = req.query.salesman_id
-                ? Number(req.query.salesman_id)
-                : null;
-            const depotId = req.query.depot_id ? Number(req.query.depot_id) : null;
-            const date = req.query.date ? String(req.query.date).trim() : '';
-            const timeFilter = req.query.time_filter
-                ? String(req.query.time_filter).trim()
-                : undefined;
-            const startDate = (req.query.start_date || req.query.from_date)
-                ? String(req.query.start_date || req.query.from_date).trim()
-                : undefined;
-            const endDate = (req.query.end_date || req.query.to_date)
-                ? String(req.query.end_date || req.query.to_date).trim()
-                : undefined;
-            const status = req.query.status ? String(req.query.status).trim() : '';
-            const recStatus = req.query.rec_status || req.query.approval_status
-                ? String(req.query.rec_status || req.query.approval_status).trim()
-                : '';
-            const user = req.user;
-            let isScopeRestricted = false;
-            let depotIds = [];
-            if (user && !(0, permissions_config_1.isAdminRole)(user.role)) {
-                isScopeRestricted = true;
-                const userDepots = await prisma_client_1.default.user_depots.findMany({
-                    where: { user_id: user.id },
-                    select: { depot_id: true },
-                });
-                depotIds = userDepots
-                    .map((ud) => ud.depot_id)
-                    .filter((id) => id !== null);
-            }
-            const reconcFilters = { is_active: 'Y' };
-            if (isScopeRestricted) {
-                if (depotIds.length > 0) {
-                    reconcFilters.depot_id = { in: depotIds };
-                }
-                else {
-                    reconcFilters.id = -1;
-                }
-            }
-            if (salesmanId)
-                reconcFilters.salesman_id = salesmanId;
-            if (depotId)
-                reconcFilters.depot_id = depotId;
-            if (startDate || endDate) {
-                const dateRange = {};
-                if (startDate) {
-                    const s = new Date(startDate.includes('T') ? startDate : `${startDate}T00:00:00.000Z`);
-                    if (!isNaN(s.getTime()))
-                        dateRange.gte = s;
-                }
-                if (endDate) {
-                    const e = new Date(endDate.includes('T') ? endDate : `${endDate}T23:59:59.999Z`);
-                    if (!isNaN(e.getTime()))
-                        dateRange.lte = e;
-                }
-                if (dateRange.gte || dateRange.lte) {
-                    reconcFilters.reconciliation_date = dateRange;
-                }
-            }
-            else if (timeFilter === 'today') {
-                const now = new Date();
-                const startToday = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0));
-                const endToday = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999));
-                reconcFilters.reconciliation_date = { gte: startToday, lte: endToday };
-            }
-            else if (timeFilter === 'yesterday') {
-                const now = new Date();
-                const yesterday = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate() - 1, 0, 0, 0, 0));
-                const endYesterday = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate() - 1, 23, 59, 59, 999));
-                reconcFilters.reconciliation_date = {
-                    gte: yesterday,
-                    lte: endYesterday,
-                };
-            }
-            else if (timeFilter && timeFilter !== 'all') {
-                const tf = (0, dateFilters_1.getTimeFilter)(timeFilter);
-                if (tf) {
-                    reconcFilters.reconciliation_date = tf;
-                }
-            }
-            else if (date) {
-                const d = new Date(date);
-                if (!isNaN(d.getTime()))
-                    reconcFilters.reconciliation_date = d;
-            }
-            if (search) {
-                reconcFilters.salesman = { name: { contains: search } };
-            }
-            if (recStatus && recStatus !== 'all') {
-                reconcFilters.status = recStatus;
-            }
-            if (status && status !== 'all') {
-                reconcFilters.reconciliation_items = {
-                    some: {
-                        resolution_action: resolveStatusFilter(status),
-                        is_active: 'Y',
-                    },
-                };
-            }
-            const latestOnly = req.query.latest_only === 'true';
-            const allMatching = await prisma_client_1.default.reconciliation.findMany({
-                where: reconcFilters,
-                select: { id: true, salesman_id: true, reconciliation_date: true },
-                orderBy: { id: 'asc' },
-            });
-            let finalIds = [];
-            if (latestOnly) {
-                const latestIdMap = new Map();
-                const nonGroupableIds = [];
-                for (const rec of allMatching) {
-                    if (!rec.salesman_id || !rec.reconciliation_date) {
-                        nonGroupableIds.push(rec.id);
-                        continue;
-                    }
-                    const dateStr = new Date(rec.reconciliation_date)
-                        .toISOString()
-                        .split('T')[0];
-                    const key = `${rec.salesman_id}_${dateStr}`;
-                    latestIdMap.set(key, rec.id);
-                }
-                finalIds = [...Array.from(latestIdMap.values()), ...nonGroupableIds];
-            }
-            else {
-                finalIds = allMatching.map((r) => r.id);
-            }
-            if (reconcFilters.id !== -1) {
-                reconcFilters.id = { in: finalIds };
-            }
-            const ids = finalIds;
-            const itemStatsFilter = {
-                reconciliation_id: { in: ids },
-                is_active: 'Y',
-            };
-            if (status && status !== 'all') {
-                itemStatsFilter.resolution_action = resolveStatusFilter(status);
-            }
-            const allStatsItems = await prisma_client_1.default.reconciliation_items.findMany({
-                where: itemStatsFilter,
-                select: {
-                    expected_qty: true,
-                    actual_qty: true,
-                    default_outlet_posting_qty: true,
-                    unload_adjustment_qty: true,
-                    resolution_action: true,
-                },
-            });
-            let totalExpected = 0, totalActual = 0, totalDefaultOutlet = 0, totalUnloadAdjustment = 0, totalPending = 0;
-            for (const item of allStatsItems) {
-                totalExpected += Number(item.expected_qty) || 0;
-                totalActual += Number(item.actual_qty) || 0;
-                totalDefaultOutlet += Number(item.default_outlet_posting_qty) || 0;
-                totalUnloadAdjustment += Number(item.unload_adjustment_qty) || 0;
-                if (item.resolution_action === 'Awaiting Verification' ||
-                    item.resolution_action === 'Awaiting Force-Push') {
-                    totalPending++;
-                }
-            }
-            const { data, pagination } = await (0, paginate_1.paginate)({
-                model: prisma_client_1.default.reconciliation,
-                filters: reconcFilters,
-                page,
-                limit,
-                include: {
-                    salesman: {
-                        select: {
-                            id: true,
-                            name: true,
-                            employee_id: true,
-                            email: true,
-                            sap_code: true,
-                            users: { select: { name: true } },
-                        },
-                    },
-                    depot: { select: { id: true, name: true, code: true } },
-                    reconciliation_items: {
-                        where: { is_active: 'Y' },
-                        select: { id: true, resolution_action: true, actual_qty: true },
-                    },
-                },
-                orderBy: { id: 'desc' },
-            });
-            const salesman_date_pairs = data
-                .filter((rec) => rec.salesman_id && rec.reconciliation_date)
-                .map((rec) => ({
-                salesman_id: rec.salesman_id,
-                rec_date: new Date(rec.reconciliation_date),
-            }));
-            const loadDateMap = new Map();
-            if (salesman_date_pairs.length > 0) {
-                const uniqueSalesmanIds = [
-                    ...new Set(salesman_date_pairs.map((p) => p.salesman_id)),
-                ];
-                const vanLoads = await prisma_client_1.default.van_inventory.findMany({
-                    where: {
-                        user_id: { in: uniqueSalesmanIds },
-                        loading_type: 'L',
-                        approval_status: 'A',
-                        is_cancelled: 'N',
-                    },
-                    select: { user_id: true, document_date: true },
-                    orderBy: { document_date: 'asc' },
-                });
-                for (const pair of salesman_date_pairs) {
-                    const recDateStr = pair.rec_date.toISOString().split('T')[0];
-                    const key = `${pair.salesman_id}_${recDateStr}`;
-                    if (loadDateMap.has(key))
-                        continue;
-                    const match = vanLoads
-                        .filter((v) => v.user_id === pair.salesman_id &&
-                        v.document_date &&
-                        v.document_date.toISOString().split('T')[0] <= recDateStr)
-                        .sort((a, b) => new Date(b.document_date).getTime() -
-                        new Date(a.document_date).getTime())[0];
-                    loadDateMap.set(key, match?.document_date ?? null);
-                }
-            }
-            const serializedData = data.map((rec) => {
-                const items = rec.reconciliation_items ?? [];
-                const totalItems = items.length;
-                const pendingItems = items.filter((i) => i.resolution_action !== 'CLEAN').length;
-                const matchedItems = items.filter((i) => i.resolution_action === 'CLEAN').length;
-                const varianceItems = totalItems - matchedItems;
-                let overallStatus = 'Pending';
-                if (totalItems > 0 && matchedItems === totalItems) {
-                    overallStatus = 'Matched';
-                }
-                else if (totalItems > 0 && pendingItems === 0) {
-                    overallStatus = 'Variance';
-                }
-                const recDateStr = rec.reconciliation_date
-                    ? new Date(rec.reconciliation_date).toISOString().split('T')[0]
-                    : null;
-                const loadDate = recDateStr
-                    ? (loadDateMap.get(`${rec.salesman_id}_${recDateStr}`) ?? null)
-                    : null;
-                return {
-                    id: rec.id,
-                    salesman_id: rec.salesman?.id,
-                    salesmanName: rec.salesman?.name || 'UNMAPPED',
-                    salesmanSapCode: rec.salesman?.sap_code || 'UNMAPPED',
-                    salesmanEmail: rec.salesman?.email || '',
-                    depot: rec.depot?.code || 'UNMAPPED',
-                    depot_id: rec.depot?.id || null,
-                    depotName: rec.depot?.name || 'UNMAPPED',
-                    reconciliation_date: rec.reconciliation_date,
-                    load_date: loadDate,
-                    status: rec.status || 'P',
-                    totalItems,
-                    pendingItems,
-                    matchedItems,
-                    varianceItems,
-                    overallStatus: rec.status,
-                    createdate: rec.createdate,
-                };
-            });
-            res.json({
-                success: true,
-                message: 'Reconciliations retrieved successfully',
-                data: serializedData,
-                meta: {
-                    requestDuration: Date.now(),
-                    timestamp: new Date().toISOString(),
-                    ...pagination,
-                },
-                stats: {
-                    expected: totalExpected,
-                    actual: totalActual,
-                    default_outlet: totalDefaultOutlet,
-                    unload_adjustment: totalUnloadAdjustment,
-                    pending: totalPending,
-                },
-            });
-        }
-        catch (error) {
-            logger_1.default.error('Get Reconciliations Error:', error);
-            res.status(500).json({
-                success: false,
-                message: error.message || 'Failed to retrieve reconciliations',
-            });
-        }
-    },
     // getAllReconciliations: async (req: Request, res: Response) => {
     //   try {
     //     const page = Number(req.query.page) || 1;
@@ -327,10 +36,20 @@ exports.reconciliationController = {
     //       : null;
     //     const depotId = req.query.depot_id ? Number(req.query.depot_id) : null;
     //     const date = req.query.date ? String(req.query.date).trim() : '';
+    //     const timeFilter = req.query.time_filter
+    //       ? String(req.query.time_filter).trim()
+    //       : undefined;
+    //     const startDate = (req.query.start_date || req.query.from_date)
+    //       ? String(req.query.start_date || req.query.from_date).trim()
+    //       : undefined;
+    //     const endDate = (req.query.end_date || req.query.to_date)
+    //       ? String(req.query.end_date || req.query.to_date).trim()
+    //       : undefined;
     //     const status = req.query.status ? String(req.query.status).trim() : '';
-    //     const recStatus = req.query.rec_status
-    //       ? String(req.query.rec_status).trim()
-    //       : '';
+    //     const recStatus =
+    //       req.query.rec_status || req.query.approval_status
+    //         ? String(req.query.rec_status || req.query.approval_status).trim()
+    //         : '';
     //     const user = (req as any).user;
     //     let isScopeRestricted = false;
     //     let depotIds: number[] = [];
@@ -354,14 +73,81 @@ exports.reconciliationController = {
     //     }
     //     if (salesmanId) reconcFilters.salesman_id = salesmanId;
     //     if (depotId) reconcFilters.depot_id = depotId;
-    //     if (date) {
+    //     if (startDate || endDate) {
+    //       const dateRange: any = {};
+    //       if (startDate) {
+    //         const s = new Date(
+    //           startDate.includes('T') ? startDate : `${startDate}T00:00:00.000Z`
+    //         );
+    //         if (!isNaN(s.getTime())) dateRange.gte = s;
+    //       }
+    //       if (endDate) {
+    //         const e = new Date(
+    //           endDate.includes('T') ? endDate : `${endDate}T23:59:59.999Z`
+    //         );
+    //         if (!isNaN(e.getTime())) dateRange.lte = e;
+    //       }
+    //       if (dateRange.gte || dateRange.lte) {
+    //         reconcFilters.reconciliation_date = dateRange;
+    //       }
+    //     } else if (timeFilter === 'today') {
+    //       const now = new Date();
+    //       const startToday = new Date(
+    //         Date.UTC(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0)
+    //       );
+    //       const endToday = new Date(
+    //         Date.UTC(
+    //           now.getFullYear(),
+    //           now.getMonth(),
+    //           now.getDate(),
+    //           23,
+    //           59,
+    //           59,
+    //           999
+    //         )
+    //       );
+    //       reconcFilters.reconciliation_date = { gte: startToday, lte: endToday };
+    //     } else if (timeFilter === 'yesterday') {
+    //       const now = new Date();
+    //       const yesterday = new Date(
+    //         Date.UTC(
+    //           now.getFullYear(),
+    //           now.getMonth(),
+    //           now.getDate() - 1,
+    //           0,
+    //           0,
+    //           0,
+    //           0
+    //         )
+    //       );
+    //       const endYesterday = new Date(
+    //         Date.UTC(
+    //           now.getFullYear(),
+    //           now.getMonth(),
+    //           now.getDate() - 1,
+    //           23,
+    //           59,
+    //           59,
+    //           999
+    //         )
+    //       );
+    //       reconcFilters.reconciliation_date = {
+    //         gte: yesterday,
+    //         lte: endYesterday,
+    //       };
+    //     } else if (timeFilter && timeFilter !== 'all') {
+    //       const tf = getTimeFilter(timeFilter);
+    //       if (tf) {
+    //         reconcFilters.reconciliation_date = tf;
+    //       }
+    //     } else if (date) {
     //       const d = new Date(date);
     //       if (!isNaN(d.getTime())) reconcFilters.reconciliation_date = d;
     //     }
     //     if (search) {
     //       reconcFilters.salesman = { name: { contains: search } };
     //     }
-    //     if (recStatus) {
+    //     if (recStatus && recStatus !== 'all') {
     //       reconcFilters.status = recStatus;
     //     }
     //     if (status && status !== 'all') {
@@ -459,6 +245,46 @@ exports.reconciliationController = {
     //       },
     //       orderBy: { id: 'desc' },
     //     });
+    //     const salesman_date_pairs = data
+    //       .filter((rec: any) => rec.salesman_id && rec.reconciliation_date)
+    //       .map((rec: any) => ({
+    //         salesman_id: rec.salesman_id as number,
+    //         rec_date: new Date(rec.reconciliation_date),
+    //       }));
+    //     const loadDateMap = new Map<string, Date | null>();
+    //     if (salesman_date_pairs.length > 0) {
+    //       const uniqueSalesmanIds = [
+    //         ...new Set(salesman_date_pairs.map((p: any) => p.salesman_id)),
+    //       ];
+    //       const vanLoads = await prisma.van_inventory.findMany({
+    //         where: {
+    //           user_id: { in: uniqueSalesmanIds as number[] },
+    //           loading_type: 'L',
+    //           approval_status: 'A',
+    //           is_cancelled: 'N',
+    //         },
+    //         select: { user_id: true, document_date: true },
+    //         orderBy: { document_date: 'asc' },
+    //       });
+    //       for (const pair of salesman_date_pairs) {
+    //         const recDateStr = pair.rec_date.toISOString().split('T')[0];
+    //         const key = `${pair.salesman_id}_${recDateStr}`;
+    //         if (loadDateMap.has(key)) continue;
+    //         const match = vanLoads
+    //           .filter(
+    //             (v: any) =>
+    //               v.user_id === pair.salesman_id &&
+    //               v.document_date &&
+    //               v.document_date.toISOString().split('T')[0] <= recDateStr
+    //           )
+    //           .sort(
+    //             (a: any, b: any) =>
+    //               new Date(b.document_date).getTime() -
+    //               new Date(a.document_date).getTime()
+    //           )[0];
+    //         loadDateMap.set(key, match?.document_date ?? null);
+    //       }
+    //     }
     //     const serializedData = data.map((rec: any) => {
     //       const items: any[] = rec.reconciliation_items ?? [];
     //       const totalItems = items.length;
@@ -475,6 +301,12 @@ exports.reconciliationController = {
     //       } else if (totalItems > 0 && pendingItems === 0) {
     //         overallStatus = 'Variance';
     //       }
+    //       const recDateStr = rec.reconciliation_date
+    //         ? new Date(rec.reconciliation_date).toISOString().split('T')[0]
+    //         : null;
+    //       const loadDate = recDateStr
+    //         ? (loadDateMap.get(`${rec.salesman_id}_${recDateStr}`) ?? null)
+    //         : null;
     //       return {
     //         id: rec.id,
     //         salesman_id: rec.salesman?.id,
@@ -485,6 +317,7 @@ exports.reconciliationController = {
     //         depot_id: rec.depot?.id || null,
     //         depotName: rec.depot?.name || 'UNMAPPED',
     //         reconciliation_date: rec.reconciliation_date,
+    //         load_date: loadDate,
     //         status: rec.status || 'P',
     //         totalItems,
     //         pendingItems,
@@ -519,6 +352,301 @@ exports.reconciliationController = {
     //     });
     //   }
     // },
+    getAllReconciliations: async (req, res) => {
+        const startTime = Date.now();
+        try {
+            const page = Number(req.query.page) || 1;
+            const limit = Number(req.query.limit) || 10;
+            const search = req.query.search ? String(req.query.search).trim() : '';
+            const salesmanId = req.query.salesman_id
+                ? Number(req.query.salesman_id)
+                : null;
+            const depotId = req.query.depot_id ? Number(req.query.depot_id) : null;
+            const date = req.query.date ? String(req.query.date).trim() : '';
+            const timeFilter = req.query.time_filter
+                ? String(req.query.time_filter).trim()
+                : undefined;
+            const startDate = req.query.start_date || req.query.from_date
+                ? String(req.query.start_date || req.query.from_date).trim()
+                : undefined;
+            const endDate = req.query.end_date || req.query.to_date
+                ? String(req.query.end_date || req.query.to_date).trim()
+                : undefined;
+            const status = req.query.status ? String(req.query.status).trim() : '';
+            const recStatus = req.query.rec_status || req.query.approval_status
+                ? String(req.query.rec_status || req.query.approval_status).trim()
+                : '';
+            const user = req.user;
+            let isScopeRestricted = false;
+            let depotIds = [];
+            if (user && !(0, permissions_config_1.isAdminRole)(user.role)) {
+                isScopeRestricted = true;
+                const userDepots = await prisma_client_1.default.user_depots.findMany({
+                    where: { user_id: user.id },
+                    select: { depot_id: true },
+                });
+                depotIds = userDepots
+                    .map((ud) => ud.depot_id)
+                    .filter((id) => id !== null);
+            }
+            const reconcFilters = { is_active: 'Y' };
+            if (isScopeRestricted) {
+                if (depotIds.length > 0) {
+                    reconcFilters.depot_id = { in: depotIds };
+                }
+                else {
+                    reconcFilters.id = -1;
+                }
+            }
+            if (salesmanId)
+                reconcFilters.salesman_id = salesmanId;
+            if (depotId)
+                reconcFilters.depot_id = depotId;
+            if (startDate || endDate) {
+                const dateRange = {};
+                if (startDate) {
+                    const s = new Date(startDate.includes('T') ? startDate : `${startDate}T00:00:00.000Z`);
+                    if (!isNaN(s.getTime()))
+                        dateRange.gte = s;
+                }
+                if (endDate) {
+                    const e = new Date(endDate.includes('T') ? endDate : `${endDate}T23:59:59.999Z`);
+                    if (!isNaN(e.getTime()))
+                        dateRange.lte = e;
+                }
+                if (dateRange.gte || dateRange.lte) {
+                    reconcFilters.reconciliation_date = dateRange;
+                }
+            }
+            else if (timeFilter === 'today') {
+                const now = new Date();
+                const startToday = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0));
+                const endToday = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999));
+                reconcFilters.reconciliation_date = { gte: startToday, lte: endToday };
+            }
+            else if (timeFilter === 'yesterday') {
+                const now = new Date();
+                const yesterday = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate() - 1, 0, 0, 0, 0));
+                const endYesterday = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate() - 1, 23, 59, 59, 999));
+                reconcFilters.reconciliation_date = {
+                    gte: yesterday,
+                    lte: endYesterday,
+                };
+            }
+            else if (timeFilter && timeFilter !== 'all') {
+                const tf = (0, dateFilters_1.getTimeFilter)(timeFilter);
+                if (tf) {
+                    reconcFilters.reconciliation_date = tf;
+                }
+            }
+            else if (date) {
+                const d = new Date(date);
+                if (!isNaN(d.getTime()))
+                    reconcFilters.reconciliation_date = d;
+            }
+            if (search) {
+                reconcFilters.salesman = { name: { contains: search } };
+            }
+            if (recStatus && recStatus !== 'all') {
+                reconcFilters.status = recStatus;
+            }
+            if (status && status !== 'all') {
+                reconcFilters.reconciliation_items = {
+                    some: {
+                        resolution_action: resolveStatusFilter(status),
+                        is_active: 'Y',
+                    },
+                };
+            }
+            const latestOnly = req.query.latest_only === 'true';
+            let itemReconcCondition = reconcFilters;
+            if (latestOnly) {
+                const allMatching = await prisma_client_1.default.reconciliation.findMany({
+                    where: reconcFilters,
+                    select: { id: true, salesman_id: true, reconciliation_date: true },
+                    orderBy: { id: 'asc' },
+                });
+                const latestIdMap = new Map();
+                const nonGroupableIds = [];
+                for (const rec of allMatching) {
+                    if (!rec.salesman_id || !rec.reconciliation_date) {
+                        nonGroupableIds.push(rec.id);
+                        continue;
+                    }
+                    const dateStr = new Date(rec.reconciliation_date)
+                        .toISOString()
+                        .split('T')[0];
+                    const key = `${rec.salesman_id}_${dateStr}`;
+                    latestIdMap.set(key, rec.id);
+                }
+                const finalIds = [
+                    ...Array.from(latestIdMap.values()),
+                    ...nonGroupableIds,
+                ];
+                if (reconcFilters.id !== -1) {
+                    reconcFilters.id = { in: finalIds };
+                }
+                itemReconcCondition = { id: { in: finalIds } };
+            }
+            const itemWhereBase = {
+                is_active: 'Y',
+                reconciliation: itemReconcCondition,
+            };
+            const itemStatsWhere = { ...itemWhereBase };
+            if (status && status !== 'all') {
+                itemStatsWhere.resolution_action = resolveStatusFilter(status);
+            }
+            const [statsAggregate, pendingCount, paginatedResult] = await Promise.all([
+                prisma_client_1.default.reconciliation_items.aggregate({
+                    where: itemStatsWhere,
+                    _sum: {
+                        expected_qty: true,
+                        actual_qty: true,
+                        default_outlet_posting_qty: true,
+                        unload_adjustment_qty: true,
+                    },
+                }),
+                prisma_client_1.default.reconciliation_items.count({
+                    where: {
+                        ...itemWhereBase,
+                        resolution_action: {
+                            in: ['Awaiting Verification', 'Awaiting Force-Push'],
+                        },
+                    },
+                }),
+                (0, paginate_1.paginate)({
+                    model: prisma_client_1.default.reconciliation,
+                    filters: reconcFilters,
+                    page,
+                    limit,
+                    include: {
+                        salesman: {
+                            select: {
+                                id: true,
+                                name: true,
+                                employee_id: true,
+                                email: true,
+                                sap_code: true,
+                                users: { select: { name: true } },
+                            },
+                        },
+                        depot: { select: { id: true, name: true, code: true } },
+                        reconciliation_items: {
+                            where: { is_active: 'Y' },
+                            select: { id: true, resolution_action: true, actual_qty: true },
+                        },
+                    },
+                    orderBy: { id: 'desc' },
+                }),
+            ]);
+            const { data, pagination } = paginatedResult;
+            const totalExpected = Number(statsAggregate._sum.expected_qty) || 0;
+            const totalActual = Number(statsAggregate._sum.actual_qty) || 0;
+            const totalDefaultOutlet = Number(statsAggregate._sum.default_outlet_posting_qty) || 0;
+            const totalUnloadAdjustment = Number(statsAggregate._sum.unload_adjustment_qty) || 0;
+            const totalPending = pendingCount || 0;
+            const salesman_date_pairs = data
+                .filter((rec) => rec.salesman_id && rec.reconciliation_date)
+                .map((rec) => ({
+                salesman_id: rec.salesman_id,
+                rec_date: new Date(rec.reconciliation_date),
+            }));
+            const loadDateMap = new Map();
+            if (salesman_date_pairs.length > 0) {
+                const uniqueSalesmanIds = [
+                    ...new Set(salesman_date_pairs.map((p) => p.salesman_id)),
+                ];
+                const maxPageDate = new Date(Math.max(...salesman_date_pairs.map((p) => p.rec_date.getTime())));
+                const vanLoads = await prisma_client_1.default.van_inventory.findMany({
+                    where: {
+                        user_id: { in: uniqueSalesmanIds },
+                        loading_type: 'L',
+                        approval_status: 'A',
+                        is_cancelled: 'N',
+                        document_date: { lte: maxPageDate },
+                    },
+                    select: { user_id: true, document_date: true },
+                    orderBy: { document_date: 'asc' },
+                });
+                for (const pair of salesman_date_pairs) {
+                    const recDateStr = pair.rec_date.toISOString().split('T')[0];
+                    const key = `${pair.salesman_id}_${recDateStr}`;
+                    if (loadDateMap.has(key))
+                        continue;
+                    const match = vanLoads
+                        .filter((v) => v.user_id === pair.salesman_id &&
+                        v.document_date &&
+                        v.document_date.toISOString().split('T')[0] <= recDateStr)
+                        .sort((a, b) => new Date(b.document_date).getTime() -
+                        new Date(a.document_date).getTime())[0];
+                    loadDateMap.set(key, match?.document_date ?? null);
+                }
+            }
+            const serializedData = data.map((rec) => {
+                const items = rec.reconciliation_items ?? [];
+                const totalItems = items.length;
+                const pendingItems = items.filter((i) => i.resolution_action !== 'CLEAN').length;
+                const matchedItems = items.filter((i) => i.resolution_action === 'CLEAN').length;
+                const varianceItems = totalItems - matchedItems;
+                let overallStatus = 'Pending';
+                if (totalItems > 0 && matchedItems === totalItems) {
+                    overallStatus = 'Matched';
+                }
+                else if (totalItems > 0 && pendingItems === 0) {
+                    overallStatus = 'Variance';
+                }
+                const recDateStr = rec.reconciliation_date
+                    ? new Date(rec.reconciliation_date).toISOString().split('T')[0]
+                    : null;
+                const loadDate = recDateStr
+                    ? (loadDateMap.get(`${rec.salesman_id}_${recDateStr}`) ?? null)
+                    : null;
+                return {
+                    id: rec.id,
+                    salesman_id: rec.salesman?.id,
+                    salesmanName: rec.salesman?.name || 'UNMAPPED',
+                    salesmanSapCode: rec.salesman?.sap_code || 'UNMAPPED',
+                    salesmanEmail: rec.salesman?.email || '',
+                    depot: rec.depot?.code || 'UNMAPPED',
+                    depot_id: rec.depot?.id || null,
+                    depotName: rec.depot?.name || 'UNMAPPED',
+                    reconciliation_date: rec.reconciliation_date,
+                    load_date: loadDate,
+                    status: rec.status || 'P',
+                    totalItems,
+                    pendingItems,
+                    matchedItems,
+                    varianceItems,
+                    overallStatus: rec.status,
+                    createdate: rec.createdate,
+                };
+            });
+            res.json({
+                success: true,
+                message: 'Reconciliations retrieved successfully',
+                data: serializedData,
+                meta: {
+                    requestDuration: Date.now() - startTime,
+                    timestamp: new Date().toISOString(),
+                    ...pagination,
+                },
+                stats: {
+                    expected: totalExpected,
+                    actual: totalActual,
+                    default_outlet: totalDefaultOutlet,
+                    unload_adjustment: totalUnloadAdjustment,
+                    pending: totalPending,
+                },
+            });
+        }
+        catch (error) {
+            logger_1.default.error('Get Reconciliations Error:', error);
+            res.status(500).json({
+                success: false,
+                message: error.message || 'Failed to retrieve reconciliations',
+            });
+        }
+    },
     /**
      * Get loaded products (items) for a specific reconciliation by ID.
      */
