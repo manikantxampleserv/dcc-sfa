@@ -20,15 +20,30 @@ export declare const excelSyncController: {
      */
     getSalesData(req: Request, res: Response, _next: NextFunction): Promise<Response<any, Record<string, any>>>;
     /**
-     * 2. Outlet Master Endpoint (CSV Only)
+     * 2. Outlet Master Endpoint (CSV or JSON when format=json)
      * Headers: Outlet Code, Outlet Name, Depot, Zone, Route, Outlet Type,
      * Outlet Channel, Outlet Category, Region, District, Contact Person, Phone Number, Latitude, Longitude, Created Date, Created By.
      *
      * @param {Request} req Express request
      * @param {Response} res Express response
+     * @param {NextFunction} next Express next middleware
+     */
+    getOutletMaster(req: Request, res: Response, next: NextFunction): Promise<Response<any, Record<string, any>>>;
+    /**
+     * 2b. Outlet Master JSON Endpoint
+     * Returns lightweight outlet master JSON records with OR-mode search across
+     * customer number, name, and contact details.
+     *
+     * Query parameters:
+     * - Search filters (OR mode): customer_no, name, contact_details, search/q.
+     * - Hierarchy filters: depot_id, zone_id, route_id, is_active.
+     * - Pagination filters: page, limit, take, page_size, raw/array.
+     *
+     * @param {Request} req Express request
+     * @param {Response} res Express response
      * @param {NextFunction} _next Express next middleware
      */
-    getOutletMaster(req: Request, res: Response, _next: NextFunction): Promise<Response<any, Record<string, any>>>;
+    getOutletMasterJson(req: Request, res: Response, _next: NextFunction): Promise<Response<any, Record<string, any>>>;
     /**
      * 3. Survey Data Endpoint (CSV Only)
      * Headers: Response ID, Date, Salesperson, Route code, Customer, Customer code,

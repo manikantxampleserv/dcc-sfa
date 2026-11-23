@@ -81,10 +81,19 @@ const SystemSettings: React.FC = () => {
   const excelEndpoints = [
     {
       id: 'outlet-master',
-      name: 'Outlet Master',
+      name: 'Outlet Master (CSV)',
       endpoint: `${excelBaseUrl}/outlet-master`,
       description:
         'All active outlets with route, depot, customer channel, and coordinate details.',
+      format: 'CSV',
+    },
+    {
+      id: 'outlet-master-json',
+      name: 'Outlet Master (JSON API)',
+      endpoint: `${excelBaseUrl}/outlet-master-json`,
+      description:
+        'Lightweight outlet master in JSON format. Supports OR-mode search on customer_no, name, and contact_details.',
+      format: 'JSON',
     },
     {
       id: 'sales-data',
@@ -92,6 +101,7 @@ const SystemSettings: React.FC = () => {
       endpoint: `${excelBaseUrl}/sales-data`,
       description:
         'Detailed item-level invoice sales records, category, SKU, turnover, and volume.',
+      format: 'CSV',
     },
     {
       id: 'survey-data',
@@ -99,6 +109,7 @@ const SystemSettings: React.FC = () => {
       endpoint: `${excelBaseUrl}/survey-data`,
       description:
         'Customer survey questionnaire responses with questions and answers.',
+      format: 'CSV',
     },
     {
       id: 'van-load-unload',
@@ -106,6 +117,7 @@ const SystemSettings: React.FC = () => {
       endpoint: `${excelBaseUrl}/van-load-unload`,
       description:
         'Van inventory movement history, daily stock loading and unloading transactions.',
+      format: 'CSV',
     },
   ];
 
@@ -803,6 +815,17 @@ const SystemSettings: React.FC = () => {
                         <span className="text-xs px-2 py-0.5 rounded font-mono font-medium bg-blue-100 text-blue-800">
                           GET
                         </span>
+                        {ep.format && (
+                          <span
+                            className={`text-xs px-2 py-0.5 rounded font-mono font-semibold ${
+                              ep.format === 'JSON'
+                                ? 'bg-amber-100 text-amber-800'
+                                : 'bg-emerald-100 text-emerald-800'
+                            }`}
+                          >
+                            {ep.format}
+                          </span>
+                        )}
                       </div>
                       <p className="text-xs text-gray-500">{ep.description}</p>
                       <code className="text-xs text-gray-700 font-mono bg-white px-2 py-1 rounded border border-gray-200 block break-all">
@@ -915,6 +938,112 @@ const SystemSettings: React.FC = () => {
                       spreadsheet.
                     </li>
                   </ol>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-lg bg-emerald-50/70 border border-emerald-200">
+              <div className="flex items-start gap-2">
+                <Info className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
+                <div className="text-xs text-gray-800 space-y-2.5 w-full">
+                  <div className="flex flex-wrap items-center justify-between gap-1">
+                    <p className="font-bold text-sm text-emerald-950">
+                      Outlet Master JSON API — Query Parameters &amp; Options:
+                    </p>
+                    <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold border border-emerald-200">
+                      OR-Mode Search Enabled
+                    </span>
+                  </div>
+
+                  <p className="text-gray-600">
+                    Use these query parameters with <code>/outlet-master-json</code> for search, filtering, and mobile or external system integration. When multiple search parameters are passed, they operate in <strong>OR mode</strong>.
+                  </p>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                    <div className="p-2.5 rounded bg-white border border-emerald-100 space-y-1">
+                      <p className="font-bold text-emerald-900 font-mono text-[11px]">
+                        ?customer_no=...
+                      </p>
+                      <p className="text-gray-600 text-[11px]">
+                        Matches customer code / number with few letters (e.g. <code>?customer_no=SGD040</code>). Alias: <code>?code=...</code>.
+                      </p>
+                    </div>
+
+                    <div className="p-2.5 rounded bg-white border border-emerald-100 space-y-1">
+                      <p className="font-bold text-emerald-900 font-mono text-[11px]">
+                        ?name=...
+                      </p>
+                      <p className="text-gray-600 text-[11px]">
+                        Matches outlet / customer name with few letters (e.g. <code>?name=abdul</code>). Alias: <code>?customer_name=...</code>.
+                      </p>
+                    </div>
+
+                    <div className="p-2.5 rounded bg-white border border-emerald-100 space-y-1">
+                      <p className="font-bold text-emerald-900 font-mono text-[11px]">
+                        ?contact_details=...
+                      </p>
+                      <p className="text-gray-600 text-[11px]">
+                        Matches owner phone number or contact person (e.g. <code>?contact_details=0628</code>). Alias: <code>?owner_number=...</code>.
+                      </p>
+                    </div>
+
+                    <div className="p-2.5 rounded bg-white border border-emerald-100 space-y-1">
+                      <p className="font-bold text-emerald-900 font-mono text-[11px]">
+                        ?search=...
+                      </p>
+                      <p className="text-gray-600 text-[11px]">
+                        Universal keyword search across code, name, phone, and contact person simultaneously. Alias: <code>?q=...</code>.
+                      </p>
+                    </div>
+
+                    <div className="p-2.5 rounded bg-white border border-emerald-100 space-y-1">
+                      <p className="font-bold text-emerald-900 font-mono text-[11px]">
+                        ?depot_id=... &amp; ?route_id=...
+                      </p>
+                      <p className="text-gray-600 text-[11px]">
+                        Filter by hierarchy IDs: <code>?depot_id=...</code>, <code>?zone_id=...</code>, <code>?route_id=...</code>.
+                      </p>
+                    </div>
+
+                    <div className="p-2.5 rounded bg-white border border-emerald-100 space-y-1">
+                      <p className="font-bold text-emerald-900 font-mono text-[11px]">
+                        ?limit=... &amp; ?raw=true
+                      </p>
+                      <p className="text-gray-600 text-[11px]">
+                        Default returns all records. Pass <code>?limit=50&amp;page=1</code> for pagination, or <code>?raw=true</code> for flat array.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="p-2 bg-white rounded border border-emerald-200 font-mono text-[11px] text-gray-800 break-all flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div>
+                      <span className="text-gray-500 font-sans font-bold mr-1">Example Search URL:</span>
+                      <code>
+                        {excelBaseUrl}/outlet-master-json?customer_no=SGD040&amp;name=abdul&amp;contact_details=0628
+                        {formik.values.excel_api_key
+                          ? `&amp;apiKey=${formik.values.excel_api_key}`
+                          : ''}
+                      </code>
+                    </div>
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      startIcon={<Copy className="w-3.5 h-3.5" />}
+                      onClick={() =>
+                        handleCopyText(
+                          `${excelBaseUrl}/outlet-master-json?customer_no=SGD040&name=abdul&contact_details=0628${
+                            formik.values.excel_api_key
+                              ? `&apiKey=${formik.values.excel_api_key}`
+                              : ''
+                          }`,
+                          'apikey'
+                        )
+                      }
+                      className="!whitespace-nowrap !text-xs !py-0.5 shrink-0"
+                    >
+                      Copy Example
+                    </Button>
+                  </div>
                 </div>
               </div>
             </div>

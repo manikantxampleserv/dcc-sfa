@@ -123,6 +123,117 @@ class ContractGenerationService {
     }
     async generateCoolerIssuanceContract(assetMovementId) {
         const { assetMovement, companyName, companyAddress, companyPhone } = await this.fetchAssetMovementDetails(assetMovementId);
+        let issuedByName = assetMovement.asset_movements_performed_by?.name || '';
+        if (!issuedByName && assetMovement.performed_by) {
+            const u = await prisma_client_1.default.users.findUnique({
+                where: { id: assetMovement.performed_by },
+                select: { name: true },
+            });
+            if (u?.name)
+                issuedByName = u.name;
+        }
+        let approverNames = [];
+        try {
+            const sfaRequest = await prisma_client_1.default.sfa_d_requests.findFirst({
+                where: {
+                    reference_id: assetMovementId,
+                    request_type: 'ASSET_MOVEMENT_APPROVAL',
+                },
+                include: {
+                    sfa_d_requests_approvals_request: {
+                        where: {
+                            status: { in: ['A', 'approved'] },
+                        },
+                        orderBy: { sequence: 'asc' },
+                        include: {
+                            sfa_d_requests_approvals_approver: {
+                                select: { name: true },
+                            },
+                        },
+                    },
+                },
+                orderBy: { id: 'desc' },
+            });
+            if (sfaRequest?.sfa_d_requests_approvals_request?.length) {
+                for (const step of sfaRequest.sfa_d_requests_approvals_request) {
+                    const name = step.sfa_d_requests_approvals_approver?.name?.trim();
+                    if (name && !approverNames.includes(name)) {
+                        approverNames.push(name);
+                    }
+                }
+            }
+        }
+        catch (e) {
+            console.error('Error fetching sfa_d_requests approvers:', e);
+        }
+        if (approverNames.length === 0) {
+            try {
+                const workflow = await prisma_client_1.default.approval_workflows.findFirst({
+                    where: {
+                        workflow_type: 'asset_movement',
+                        request_data: {
+                            contains: `"asset_movement_id":${assetMovementId}`,
+                        },
+                    },
+                    include: {
+                        workflow_steps: {
+                            where: { status: { in: ['approved', 'A'] } },
+                            orderBy: { step_number: 'asc' },
+                            include: {
+                                users_workflow_steps_processed_byTousers: {
+                                    select: { name: true },
+                                },
+                            },
+                        },
+                    },
+                    orderBy: { id: 'desc' },
+                });
+                if (workflow?.workflow_steps?.length) {
+                    for (const step of workflow.workflow_steps) {
+                        const name = step.users_workflow_steps_processed_byTousers?.name?.trim();
+                        if (name && !approverNames.includes(name)) {
+                            approverNames.push(name);
+                        }
+                    }
+                }
+            }
+            catch (e) {
+                console.error('Error fetching approval_workflows approvers:', e);
+            }
+        }
+        let directApprovedByName = assetMovement.approved_by_user?.name?.trim() || '';
+        if (!directApprovedByName && assetMovement.approved_by) {
+            const u = await prisma_client_1.default.users.findUnique({
+                where: { id: assetMovement.approved_by },
+                select: { name: true },
+            });
+            if (u?.name)
+                directApprovedByName = u.name.trim();
+        }
+        if (directApprovedByName && !approverNames.includes(directApprovedByName)) {
+            approverNames.push(directApprovedByName);
+        }
+        const approvedByName = approverNames.join(', ');
+        const toOutletCustomer = assetMovement.asset_movement_to_customer ||
+            assetMovement.asset_movement_from_customer ||
+            assetMovement.asset_movement_assets?.[0]
+                ?.asset_movement_assets_asset?.asset_master_outlet;
+        let businessOwner = assetMovement.asset_movement_to_customer?.contact_person ||
+            toOutletCustomer?.contact_person ||
+            '';
+        if (!businessOwner && assetMovement.to_customer_id) {
+            try {
+                const cust = await prisma_client_1.default.customers.findUnique({
+                    where: { id: assetMovement.to_customer_id },
+                    select: { contact_person: true },
+                });
+                if (cust?.contact_person)
+                    businessOwner = cust.contact_person;
+            }
+            catch (e) {
+                console.error('Error fetching to_customer contact_person:', e);
+            }
+        }
         const formatDate = this.formatDate.bind(this);
         return new Promise((resolve, reject) => {
             const doc = new pdfkit_1.default({
@@ -348,17 +459,48 @@ class ContractGenerationService {
                     .lineTo(colX[i], tableTopY + tableH)
                     .stroke();
             }
-            const p1SigY = tableTopY + tableH + 35;
+            const p1SigY = tableTopY + tableH + 30;
             doc.font('Helvetica-Bold').fontSize(8.5);
-            doc.text('Issued by :_________________________________________', startX + 8, p1SigY);
+            const issuedLabel = 'Issued by : ';
+            const issuedLabelW = doc.widthOfString(issuedLabel);
+            const issuedX = startX + 8;
+            const issuedValX = issuedX + issuedLabelW;
+            const issuedLineEndX = startX + 240;
+            doc.fillColor('#000000').text(issuedLabel, issuedX, p1SigY);
             doc
-                .font('Helvetica-Bold')
-                .fontSize(8.5)
-                .text('Store Keeper', startX + 115, p1SigY + 13);
+                .lineWidth(1)
+                .strokeColor('#6B7280')
+                .moveTo(issuedValX, p1SigY + 11)
+                .lineTo(issuedLineEndX, p1SigY + 11)
+                .stroke();
+            if (issuedByName) {
+                doc.fillColor('#000000').text(issuedByName, issuedValX + 4, p1SigY, {
+                    width: issuedLineEndX - issuedValX - 6,
+                    lineBreak: false,
+                    ellipsis: true,
+                });
+            }
+            const approvedLabel = 'Approved by : ';
+            const approvedLabelW = doc.widthOfString(approvedLabel);
+            const approvedX = startX + pageWidth - 245;
+            const approvedValX = approvedX + approvedLabelW;
+            const approvedLineEndX = startX + pageWidth - 5;
+            doc.fillColor('#000000').text(approvedLabel, approvedX, p1SigY);
             doc
-                .font('Helvetica-Bold')
-                .fontSize(8.5)
-                .text('Approved by :______________________________', startX + pageWidth - 235, p1SigY);
+                .lineWidth(1)
+                .strokeColor('#6B7280')
+                .moveTo(approvedValX, p1SigY + 11)
+                .lineTo(approvedLineEndX, p1SigY + 11)
+                .stroke();
+            if (approvedByName) {
+                doc
+                    .fillColor('#000000')
+                    .text(approvedByName, approvedValX + 4, p1SigY, {
+                    width: approvedLineEndX - approvedValX - 6,
+                    lineBreak: false,
+                    ellipsis: true,
+                });
+            }
             doc.addPage();
             const photoW = 85;
             const photoH = 80;
@@ -464,6 +606,7 @@ class ContractGenerationService {
             };
             renderFieldRow('Jina la Biashara / Business Name :', customerName);
             renderFieldRow('Aina ya Biashara / Business Type :', businessType);
+            renderFieldRow('Mwenye Biashara / Business Owner :', businessOwner);
             renderFieldRow('Mahali / Mtaa / Address:', customerAddress);
             renderFieldRow('Namba ya Simu / Mobile No:', customerPhone);
             p2Y += 3;
@@ -661,7 +804,6 @@ class ContractGenerationService {
                 align: 'right',
             });
             doc.text(movementDateStr, rightValX + 6, rRowDateY);
-            // Info borders
             doc.lineWidth(1).strokeColor('#000000');
             doc
                 .moveTo(leftCol1X, titleBottomY)
@@ -686,7 +828,6 @@ class ContractGenerationService {
                 .moveTo(startX, reasonBottomY)
                 .lineTo(startX + pageWidth, reasonBottomY)
                 .stroke();
-            // Subtitle
             const subH = 26;
             doc
                 .font('Helvetica-Bold')
@@ -749,7 +890,6 @@ class ContractGenerationService {
                     });
                 }
             });
-            // Table Borders & Signatures
             const bottomLimit = startY + pageHeight;
             const sigY2 = bottomLimit - 40;
             const sigY1 = sigY2 - 32;

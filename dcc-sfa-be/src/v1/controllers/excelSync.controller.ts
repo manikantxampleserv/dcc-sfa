@@ -420,15 +420,22 @@ export const excelSyncController = {
   },
 
   /**
-   * 2. Outlet Master Endpoint (CSV Only)
+   * 2. Outlet Master Endpoint (CSV or JSON when format=json)
    * Headers: Outlet Code, Outlet Name, Depot, Zone, Route, Outlet Type,
    * Outlet Channel, Outlet Category, Region, District, Contact Person, Phone Number, Latitude, Longitude, Created Date, Created By.
    *
    * @param {Request} req Express request
    * @param {Response} res Express response
-   * @param {NextFunction} _next Express next middleware
+   * @param {NextFunction} next Express next middleware
    */
-  async getOutletMaster(req: Request, res: Response, _next: NextFunction) {
+  async getOutletMaster(req: Request, res: Response, next: NextFunction) {
+    if (
+      req.query.format === 'json' ||
+      req.headers.accept?.includes('application/json')
+    ) {
+      return excelSyncController.getOutletMasterJson(req, res, next);
+    }
+
     try {
       const { depot_id, zone_id, route_id, search } = req.query;
 
@@ -568,6 +575,203 @@ export const excelSyncController = {
           .send(`Error: ${error.message || 'Failed to export outlet master'}`);
       }
       return res.end();
+    }
+  },
+
+  /**
+   * 2b. Outlet Master JSON Endpoint
+   * Returns lightweight outlet master JSON records with OR-mode search across
+   * customer number, name, and contact details.
+   *
+   * Query parameters:
+   * - Search filters (OR mode): customer_no, name, contact_details, search/q.
+   * - Hierarchy filters: depot_id, zone_id, route_id, is_active.
+   * - Pagination filters: page, limit, take, page_size, raw/array.
+   *
+   * @param {Request} req Express request
+   * @param {Response} res Express response
+   * @param {NextFunction} _next Express next middleware
+   */
+  async getOutletMasterJson(req: Request, res: Response, _next: NextFunction) {
+    try {
+      const {
+        depot_id,
+        zone_id,
+        route_id,
+        is_active,
+        search,
+        q,
+        customer_no,
+        customer_number,
+        code,
+        customerno,
+        name,
+        customer_name,
+        outlet_name,
+        contact_details,
+        contact,
+        phone_number,
+        owner_number,
+        phone,
+        page,
+        limit,
+        take,
+        page_size,
+        raw,
+        array,
+      } = req.query as Record<string, string | undefined>;
+
+      const where: any = {
+        is_active: is_active !== undefined ? String(is_active) : 'Y',
+      };
+
+      if (depot_id) where.depot_id = Number(depot_id);
+      if (zone_id) where.zones_id = Number(zone_id);
+      if (route_id) where.route_id = Number(route_id);
+
+      const orConditions: any[] = [];
+
+      const codeVal = (
+        customer_no ||
+        customer_number ||
+        code ||
+        customerno
+      )?.trim();
+      const nameVal = (name || customer_name || outlet_name)?.trim();
+      const contactVal = (
+        contact_details ||
+        contact ||
+        phone_number ||
+        owner_number ||
+        phone
+      )?.trim();
+      const searchVal = (search || q)?.trim();
+
+      if (codeVal) {
+        orConditions.push({ code: { contains: codeVal } });
+      }
+
+      if (nameVal) {
+        orConditions.push({ name: { contains: nameVal } });
+      }
+
+      if (contactVal) {
+        orConditions.push(
+          { phone_number: { contains: contactVal } },
+          { contact_person: { contains: contactVal } }
+        );
+      }
+
+      if (searchVal) {
+        orConditions.push(
+          { code: { contains: searchVal } },
+          { name: { contains: searchVal } },
+          { phone_number: { contains: searchVal } },
+          { contact_person: { contains: searchVal } }
+        );
+      }
+
+      if (orConditions.length > 0) {
+        where.OR = orConditions;
+      }
+
+      const limitVal = limit || take || page_size;
+      const parsedLimit =
+        limitVal && limitVal !== 'all' && limitVal !== '-1' && limitVal !== '0'
+          ? Math.max(1, Number(limitVal))
+          : undefined;
+
+      const pageNum = parsedLimit ? Math.max(1, Number(page) || 1) : 1;
+
+      const [totalCount, customers] = await Promise.all([
+        prisma.customers.count({ where }),
+        prisma.customers.findMany({
+          where,
+          orderBy: { name: 'asc' },
+          ...(parsedLimit
+            ? { skip: (pageNum - 1) * parsedLimit, take: parsedLimit }
+            : {}),
+          select: {
+            id: true,
+            code: true,
+            name: true,
+            contact_person: true,
+            phone_number: true,
+            address: true,
+            city: true,
+            latitude: true,
+            longitude: true,
+            customer_depot: {
+              select: { name: true },
+            },
+            customer_zones: {
+              select: { name: true },
+            },
+            customer_routes: {
+              select: { name: true, code: true },
+            },
+            customers_regions: {
+              select: { name: true },
+            },
+          },
+        }),
+      ]);
+
+      const data = customers.map(c => {
+        const locationName =
+          c.customer_depot?.name ||
+          c.customers_regions?.name ||
+          c.city ||
+          c.address ||
+          '';
+        const zoneName = c.customer_zones?.name || '';
+        const routeName =
+          c.customer_routes?.name || c.customer_routes?.code || '';
+
+        return {
+          name: c.name || '',
+          customer_name: c.name || '',
+          customer_number: c.code || '',
+          code: c.code || '',
+          owner_number: c.phone_number || '',
+          phone_number: c.phone_number || '',
+          contact_person: c.contact_person || '',
+          location: locationName,
+          depot: c.customer_depot?.name || '',
+          zone: zoneName,
+          route: routeName,
+          latitude: c.latitude !== null ? Number(c.latitude) : null,
+          longitude: c.longitude !== null ? Number(c.longitude) : null,
+        };
+      });
+
+      if (raw === 'true' || array === 'true') {
+        return res.status(200).json(data);
+      }
+
+      return res.status(200).json({
+        success: true,
+        count: data.length,
+        total_count: totalCount,
+        pagination: parsedLimit
+          ? {
+              current_page: pageNum,
+              total_pages: Math.ceil(totalCount / parsedLimit),
+              total_count: totalCount,
+              limit: parsedLimit,
+              has_next: pageNum * parsedLimit < totalCount,
+              has_previous: pageNum > 1,
+            }
+          : null,
+        data,
+      });
+    } catch (error: any) {
+      console.error('Excel Outlet Master JSON Error:', error);
+      return res.status(500).json({
+        success: false,
+        error: 'outlet_master_json_error',
+        message: error.message || 'Failed to fetch outlet master json data',
+      });
     }
   },
 

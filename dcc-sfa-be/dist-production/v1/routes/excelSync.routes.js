@@ -209,11 +209,23 @@ router.get('/excel/sale-data', allowExcelTokenAuth, excelSync_controller_1.excel
 router.get('/excel/sales-data', allowExcelTokenAuth, excelSync_controller_1.excelSyncController.getSalesData);
 /**
  * 2. Outlet Master Endpoint
- * Streams flat outlet master CSV data.
+ * Streams flat outlet master CSV data (or JSON when format=json).
  * Query filters:
  * - Hierarchy filters: depot_id, zone_id, route_id, search.
  */
 router.get('/excel/outlet-master', allowExcelTokenAuth, excelSync_controller_1.excelSyncController.getOutletMaster);
+/**
+ * 2b. Outlet Master JSON Endpoint
+ * Returns lightweight outlet master JSON records with OR-mode search across
+ * customer number, name, and contact details.
+ *
+ * Query filters:
+ * - Search filters (OR mode): customer_no, name, contact_details, search/q.
+ * - Hierarchy filters: depot_id, zone_id, route_id, is_active.
+ * - Pagination filters: page, limit, take, page_size, raw/array.
+ */
+router.get('/excel/outlet-master-json', allowExcelTokenAuth, excelSync_controller_1.excelSyncController.getOutletMasterJson);
+router.get('/excel/outlet-master/json', allowExcelTokenAuth, excelSync_controller_1.excelSyncController.getOutletMasterJson);
 /**
  * 3. Survey Data Endpoint
  * Streams questionnaire answer details CSV.
