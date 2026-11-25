@@ -24,7 +24,8 @@ import {
 import { useExportToExcel } from 'hooks/useImportExport';
 import { usePermission } from 'hooks/usePermission';
 import { ArrowRight, Calendar, FileText, MapPin, Package } from 'lucide-react';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { ActionButton, DeleteButton, EditButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
 import { CurrentApproverTooltip } from 'shared/CurrentApproverTooltip';
@@ -35,14 +36,20 @@ import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
 import { formatDate } from 'utils/dateUtils';
 import ImportAssetMovement from './ImportAssetMovement';
-import ManageAssetMovement from './ManageAssetMovement';
+import ManageAssetMovement, {
+  type PrefillAssetMovement,
+} from './ManageAssetMovement';
 
 const AssetMovementManagement: React.FC = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
   const [selectedMovement, setSelectedMovement] =
     useState<AssetMovement | null>(null);
+  const [prefillMovement, setPrefillMovement] =
+    useState<PrefillAssetMovement | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [page, setPage] = useState(1);
@@ -83,13 +90,27 @@ const AssetMovementManagement: React.FC = () => {
 
   const handleCreateMovement = useCallback(() => {
     setSelectedMovement(null);
+    setPrefillMovement(null);
     setDrawerOpen(true);
   }, []);
 
   const handleEditMovement = useCallback((movement: AssetMovement) => {
+    setPrefillMovement(null);
     setSelectedMovement(movement);
     setDrawerOpen(true);
   }, []);
+
+  useEffect(() => {
+    const incoming = (
+      location.state as { prefillMovement?: PrefillAssetMovement } | null
+    )?.prefillMovement;
+    if (incoming) {
+      setSelectedMovement(null);
+      setPrefillMovement(incoming);
+      setDrawerOpen(true);
+      navigate(location.pathname, { replace: true, state: null });
+    }
+  }, [location.state, location.pathname, navigate]);
 
   const handleDeleteMovement = useCallback(
     async (id: number) => {
@@ -546,6 +567,8 @@ const AssetMovementManagement: React.FC = () => {
         setSelectedMovement={setSelectedMovement}
         drawerOpen={drawerOpen}
         setDrawerOpen={setDrawerOpen}
+        prefillMovement={prefillMovement}
+        onClearPrefill={() => setPrefillMovement(null)}
       />
 
       <ImportAssetMovement

@@ -28,11 +28,27 @@ import Select from 'shared/Select';
 import UserSelect from 'shared/UserSelect';
 import { formatForDateInput } from 'utils/dateUtils';
 
+export interface PrefillAssetMovement {
+  movement_type: 'installation' | 'transfer' | 'return';
+  from_direction: 'depot' | 'outlet';
+  from_depot_id?: number;
+  from_customer_id?: number;
+  to_direction: 'depot' | 'outlet';
+  to_depot_id?: number;
+  to_customer_id?: number;
+  asset_ids?: number[];
+  asset?: Partial<AssetMaster> & { id: number; name: string; serial_number: string };
+  return_reason?: string;
+  notes?: string;
+}
+
 interface ManageAssetMovementProps {
   selectedMovement?: AssetMovement | null;
   setSelectedMovement: (movement: AssetMovement | null) => void;
   drawerOpen: boolean;
   setDrawerOpen: (drawerOpen: boolean) => void;
+  prefillMovement?: PrefillAssetMovement | null;
+  onClearPrefill?: () => void;
 }
 
 const EMPTY_ASSETS: AssetMaster[] = [];
@@ -43,6 +59,8 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
   setSelectedMovement,
   drawerOpen,
   setDrawerOpen,
+  prefillMovement,
+  onClearPrefill,
 }) => {
   const { user } = useAuth();
   const isEdit = !!selectedMovement;
@@ -61,6 +79,7 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
 
   const handleCancel = () => {
     setSelectedMovement(null);
+    onClearPrefill?.();
     setDrawerOpen(false);
     setSelectedAssetIds([]);
     setAvailableSearch('');
@@ -98,23 +117,56 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
     }
   };
 
+  const resolvedPrefillReturnReason =
+    prefillMovement?.return_reason ||
+    returnReasons.find((r: string) =>
+      /exchange|repairs|standby|swap|replace|workshop|other/i.test(r)
+    ) ||
+    returnReasons[0] ||
+    '';
+
   const formik = useFormik({
     initialValues: {
-      asset_ids: selectedMovement?.asset_ids,
-      from_direction: selectedMovement?.from_direction || '',
-      from_outlet: selectedMovement?.from_customer_id?.toString() || '',
-      from_depot: selectedMovement?.from_depot_id?.toString() || '',
-      to_direction: selectedMovement?.to_direction || '',
-      to_outlet: selectedMovement?.to_customer_id?.toString() || '',
-      to_depot: selectedMovement?.to_depot_id?.toString() || '',
-      movement_type: selectedMovement?.movement_type || '',
-      return_reason: selectedMovement?.return_reason || '',
-      movement_date: formatForDateInput(selectedMovement?.movement_date),
+      asset_ids:
+        selectedMovement?.asset_ids || prefillMovement?.asset_ids || undefined,
+      from_direction:
+        selectedMovement?.from_direction ||
+        prefillMovement?.from_direction ||
+        '',
+      from_outlet:
+        selectedMovement?.from_customer_id?.toString() ||
+        prefillMovement?.from_customer_id?.toString() ||
+        '',
+      from_depot:
+        selectedMovement?.from_depot_id?.toString() ||
+        prefillMovement?.from_depot_id?.toString() ||
+        '',
+      to_direction:
+        selectedMovement?.to_direction || prefillMovement?.to_direction || '',
+      to_outlet:
+        selectedMovement?.to_customer_id?.toString() ||
+        prefillMovement?.to_customer_id?.toString() ||
+        '',
+      to_depot:
+        selectedMovement?.to_depot_id?.toString() ||
+        prefillMovement?.to_depot_id?.toString() ||
+        '',
+      movement_type:
+        selectedMovement?.movement_type || prefillMovement?.movement_type || '',
+      return_reason:
+        selectedMovement?.return_reason ||
+        (prefillMovement?.movement_type === 'return'
+          ? resolvedPrefillReturnReason
+          : ''),
+      movement_date: formatForDateInput(
+        selectedMovement?.movement_date ||
+          (prefillMovement ? new Date().toISOString() : undefined)
+      ),
       performed_by:
         selectedMovement?.performed_by?.toString() ||
         user?.id?.toString() ||
         '',
-      notes: selectedMovement?.notes || '',
+      notes: selectedMovement?.notes || prefillMovement?.notes || '',
       is_active: selectedMovement?.is_active || 'Y',
       priority: 'medium',
     },
@@ -217,10 +269,12 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
   useEffect(() => {
     if (selectedMovement?.asset_ids) {
       setSelectedAssetIds(selectedMovement.asset_ids);
+    } else if (prefillMovement?.asset_ids?.length) {
+      setSelectedAssetIds(prefillMovement.asset_ids);
     } else if (selectedAssetIds.length > 0) {
       setSelectedAssetIds(EMPTY_IDS);
     }
-  }, [selectedMovement]);
+  }, [selectedMovement, prefillMovement]);
 
   useEffect(() => {
     setPage(1);
@@ -330,6 +384,12 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
     setKnownAssetsMap(prev => {
       const newMap = new Map(prev);
       displayedAssets.forEach(asset => newMap.set(asset.id, asset));
+      if (prefillMovement?.asset?.id) {
+        newMap.set(
+          prefillMovement.asset.id,
+          prefillMovement.asset as AssetMaster
+        );
+      }
       if (selectedMovement?.asset_movement_assets) {
         selectedMovement.asset_movement_assets.forEach((item: any) => {
           if (item.asset) {
@@ -341,7 +401,7 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
       }
       return newMap;
     });
-  }, [displayedAssets, selectedMovement]);
+  }, [displayedAssets, selectedMovement, prefillMovement]);
 
   const selectedAssets = useMemo(
     () =>

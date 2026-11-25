@@ -11,7 +11,6 @@ import {
 import classNames from 'classnames';
 import {
   useAssetMaintenances,
-  useDeleteAssetMaintenance,
   type AssetMaintenance,
 } from 'hooks/useAssetMaintenance';
 import { useCurrency } from 'hooks/useCurrency';
@@ -20,7 +19,7 @@ import { usePermission } from 'hooks/usePermission';
 import { Clock, MapPin, Package, Shield, Wrench } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { DeleteButton, EditButton } from 'shared/ActionButton';
+import { EditButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
 import { PopConfirm } from 'shared/DeleteConfirmation';
 import SearchInput from 'shared/SearchInput';
@@ -30,6 +29,12 @@ import Table, { type TableColumn } from 'shared/Table';
 import UserSelect from 'shared/UserSelect';
 import { formatDateTime } from 'utils/dateUtils';
 import ManageAssetMaintenance from './ManageAssetMaintenance';
+import {
+  formatStageLabel,
+  getStageChipColor,
+  normalizeTicketStatus,
+  resolveTicketLocations,
+} from './ManageAssetMaintenance/ticketHelpers';
 
 /**
  * Asset Maintenance Management Page Component.
@@ -74,7 +79,7 @@ const AssetMaintenanceManagement: React.FC = () => {
   const totalCount = assetMaintenanceResponse?.meta?.total || 0;
   const currentPage = (assetMaintenanceResponse?.meta?.page || 1) - 1;
 
-  const deleteAssetMaintenanceMutation = useDeleteAssetMaintenance();
+  // const deleteAssetMaintenanceMutation = useDeleteAssetMaintenance();
   const exportToExcelMutation = useExportToExcel();
 
   const stats = (assetMaintenanceResponse?.stats as any) || {};
@@ -99,16 +104,16 @@ const AssetMaintenanceManagement: React.FC = () => {
     [navigate]
   );
 
-  const handleDeleteMaintenance = useCallback(
-    async (id: number) => {
-      try {
-        await deleteAssetMaintenanceMutation.mutateAsync(id);
-      } catch (err) {
-        console.error('Error deleting asset maintenance:', err);
-      }
-    },
-    [deleteAssetMaintenanceMutation]
-  );
+  // const handleDeleteMaintenance = useCallback(
+  //   async (id: number) => {
+  //     try {
+  //       await deleteAssetMaintenanceMutation.mutateAsync(id);
+  //     } catch (err) {
+  //       console.error('Error deleting asset maintenance:', err);
+  //     }
+  //   },
+  //   [deleteAssetMaintenanceMutation]
+  // );
 
   const handleSearchChange = useCallback((value: string) => {
     setSearch(value);
@@ -161,11 +166,21 @@ const AssetMaintenanceManagement: React.FC = () => {
                   <Clock size={13} className="text-rose-600 inline shrink-0" />
                 </Tooltip>
               )}
-              {row.warranty_claim === 'Y' && (
-                <Tooltip title="Cooler under warranty" arrow>
-                  <Shield size={13} className="text-sky-600 inline shrink-0" />
-                </Tooltip>
-              )}
+              {(row.warranty_claim === true ||
+                row.warranty_claim === 'Y' ||
+                Boolean(
+                  row.asset_maintenance_master?.warranty_expiry &&
+                  new Date(row.asset_maintenance_master.warranty_expiry) >=
+                    new Date()
+                )) &&
+                row.status !== 'closed' && (
+                  <Tooltip title="Cooler under warranty" arrow>
+                    <Shield
+                      size={13}
+                      className="text-sky-600 inline shrink-0"
+                    />
+                  </Tooltip>
+                )}
             </Typography>
             <Typography
               variant="caption"
@@ -217,18 +232,16 @@ const AssetMaintenanceManagement: React.FC = () => {
       sortable: false,
       render: (_value, row) => {
         const master = row.asset_maintenance_master;
-        const customer =
-          row.customer ||
-          master?.asset_master_outlet ||
-          master?.cooler_asset_master?.[0]?.coolers_customers ||
-          master?.customer_assets?.[0]?.customer_customer_assets;
+        const { isAtDepot, originalOutlet, workshopDepot } =
+          resolveTicketLocations(row);
 
-        const locName =
-          customer?.name ||
-          master?.current_location ||
-          master?.asset_master_depot?.name ||
-          'Unassigned Location';
-        const locCode = customer?.code || 'No Code';
+        const locName = isAtDepot
+          ? workshopDepot?.name || master?.current_location || 'Depot'
+          : originalOutlet?.name ||
+            master?.current_location ||
+            workshopDepot?.name ||
+            'Unassigned Location';
+        const locCode = isAtDepot ? 'Depot' : originalOutlet?.code || 'No Code';
 
         return (
           <Box className="!flex !items-center !gap-2">
@@ -258,13 +271,13 @@ const AssetMaintenanceManagement: React.FC = () => {
       label: 'Location',
       sortable: true,
       render: (_value, row) => {
-        const repairLoc = (row.repair_location || 'onsite').toLowerCase();
+        const repairLoc = (row.repair_location || '').toLowerCase();
         const repairLabel =
           repairLoc === 'onsite'
             ? 'On Site'
             : repairLoc === 'workshop'
               ? 'Workshop'
-              : row.repair_location || 'On Site';
+              : row.repair_location || 'To be decided';
 
         return (
           <span
@@ -272,7 +285,9 @@ const AssetMaintenanceManagement: React.FC = () => {
               'inline-flex items-center px-2 py-0.5 rounded text-xs font-medium',
               repairLoc === 'workshop'
                 ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                : repairLoc === 'onsite'
+                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                  : 'bg-gray-100 text-gray-600 border border-gray-200'
             )}
           >
             {repairLabel}
@@ -325,20 +340,12 @@ const AssetMaintenanceManagement: React.FC = () => {
       label: 'Stage',
       sortable: true,
       render: (_value, row) => {
-        const stg = (row.status || 'open').toLowerCase();
+        const stg = normalizeTicketStatus(row);
         return (
           <Chip
-            label={stg.charAt(0).toUpperCase() + stg.slice(1)}
+            label={formatStageLabel(stg)}
             size="small"
-            color={
-              stg === 'closed'
-                ? 'success'
-                : stg === 'repaired'
-                  ? 'primary'
-                  : stg === 'assigned'
-                    ? 'info'
-                    : 'warning'
-            }
+            color={getStageChipColor(stg)}
             className="!font-semibold !text-[11px]"
           />
         );
@@ -357,20 +364,20 @@ const AssetMaintenanceManagement: React.FC = () => {
         </Typography>
       ),
     },
-    {
-      id: 'is_active',
-      label: 'Active Status',
-      sortable: true,
-      render: (_value, row) => (
-        <Chip
-          icon={row.is_active === 'Y' ? <CheckCircle /> : <Block />}
-          label={row.is_active === 'Y' ? 'Active' : 'Inactive'}
-          size="small"
-          variant="outlined"
-          color={row.is_active === 'Y' ? 'success' : 'error'}
-        />
-      ),
-    },
+    // {
+    //   id: 'is_active',
+    //   label: 'Active Status',
+    //   sortable: true,
+    //   render: (_value, row) => (
+    //     <Chip
+    //       icon={row.is_active === 'Y' ? <CheckCircle /> : <Block />}
+    //       label={row.is_active === 'Y' ? 'Active' : 'Inactive'}
+    //       size="small"
+    //       variant="outlined"
+    //       color={row.is_active === 'Y' ? 'success' : 'error'}
+    //     />
+    //   ),
+    // },
     ...(isUpdate || isDelete || isRead
       ? [
           {
@@ -386,14 +393,14 @@ const AssetMaintenanceManagement: React.FC = () => {
                     tooltip={`Manage Job #${row.job_number || row.id}`}
                   />
                 )}
-                {isDelete && (
+                {/* {isDelete && (
                   <DeleteButton
                     onClick={() => handleDeleteMaintenance(row.id)}
                     tooltip={`Delete Job #${row.job_number || row.id}`}
                     itemName={`Maintenance #${row.job_number || row.id}`}
                     confirmDelete={true}
                   />
-                )}
+                )} */}
               </div>
             ),
           },
@@ -477,8 +484,11 @@ const AssetMaintenanceManagement: React.FC = () => {
                   className="!w-36"
                 >
                   <MenuItem value="all">All Stages</MenuItem>
+                  <MenuItem value="reported">Reported</MenuItem>
                   <MenuItem value="open">Open</MenuItem>
                   <MenuItem value="assigned">Assigned</MenuItem>
+                  <MenuItem value="awaiting_return">Awaiting return</MenuItem>
+                  <MenuItem value="at_workshop">At workshop</MenuItem>
                   <MenuItem value="repaired">Repaired</MenuItem>
                   <MenuItem value="closed">Closed</MenuItem>
                 </Select>

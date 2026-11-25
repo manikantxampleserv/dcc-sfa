@@ -88,6 +88,42 @@ router.post(
 );
 
 /**
+ * Route: Execute workshop return asset movement (and optional standby cooler installation).
+ */
+router.put(
+  '/asset-maintenance/:id/workshop-return',
+  authenticateToken,
+  auditUpdate('asset_maintenance'),
+  requirePermission([{ module: 'maintenance', action: 'update' }]),
+  assetMaintenanceController.createWorkshopReturnMovement
+);
+router.post(
+  '/asset-maintenance/:id/workshop-return',
+  authenticateToken,
+  auditUpdate('asset_maintenance'),
+  requirePermission([{ module: 'maintenance', action: 'update' }]),
+  assetMaintenanceController.createWorkshopReturnMovement
+);
+
+/**
+ * Route: Install a standby cooler for an active workshop repair ticket.
+ */
+router.put(
+  '/asset-maintenance/:id/standby',
+  authenticateToken,
+  auditUpdate('asset_maintenance'),
+  requirePermission([{ module: 'maintenance', action: 'update' }]),
+  assetMaintenanceController.installStandbyCooler
+);
+router.post(
+  '/asset-maintenance/:id/standby',
+  authenticateToken,
+  auditUpdate('asset_maintenance'),
+  requirePermission([{ module: 'maintenance', action: 'update' }]),
+  assetMaintenanceController.installStandbyCooler
+);
+
+/**
  * Route: Close a maintenance job with verified spares and labour costs (supports both PUT and POST).
  */
 router.put(

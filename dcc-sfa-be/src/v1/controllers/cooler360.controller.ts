@@ -230,7 +230,13 @@ export const cooler360Controller = {
 
         let tone: 'good' | 'warn' | 'alert' | 'neu' = 'neu';
         if (a.status === 'working' || a.status === 'closed' || a.status === 'repaired') tone = 'good';
-        else if (a.status === 'assigned' || a.status === 'open') tone = 'warn';
+        else if (
+          a.status === 'assigned' ||
+          a.status === 'open' ||
+          a.status === 'awaiting_return' ||
+          a.status === 'at_workshop'
+        )
+          tone = 'warn';
         else if (a.status === 'not_working' || a.status === 'partially_working') tone = 'alert';
 
         const typeMap: Record<string, 'mov' | 'ver' | 'ins' | 'mnt'> = {
@@ -269,7 +275,9 @@ export const cooler360Controller = {
       const openTicket = await prisma.asset_maintenance.findFirst({
         where: {
           asset_id: asset.id,
-          status: { in: ['open', 'assigned', 'repaired'] },
+          status: {
+            in: ['open', 'assigned', 'awaiting_return', 'at_workshop', 'repaired'],
+          },
         },
         orderBy: { createdate: 'desc' },
         include: {
@@ -351,12 +359,16 @@ export const cooler360Controller = {
             : 'neu') as 'good' | 'alert' | 'neu',
       };
 
+      const openTicketStatusLabel = openTicket
+        ? String(openTicket.status).replace(/_/g, ' ')
+        : '';
+
       /** Open ticket KPI */
       const openTicketKpi = openTicket
         ? {
             value:
-              String(openTicket.status).charAt(0).toUpperCase() +
-              String(openTicket.status).slice(1),
+              openTicketStatusLabel.charAt(0).toUpperCase() +
+              openTicketStatusLabel.slice(1),
             sub: `${openTicket.job_number || `MT-${openTicket.id}`} · open ${openTicket.createdate ? daysBetween(new Date(), new Date(openTicket.createdate)) : 0}d`,
             status: 'warn' as 'warn',
             ticketId: openTicket.id,
@@ -367,15 +379,6 @@ export const cooler360Controller = {
             status: 'good' as 'good',
           };
 
-      /** Days deployed at current outlet */
-      const installDate = asset.installation_date || linkedCooler?.install_date;
-      const daysHere = installDate
-        ? daysBetween(new Date(), new Date(installDate))
-        : 0;
-      const daysHereLabel = installDate
-        ? `since ${formatDate(new Date(installDate))}`
-        : 'Not recorded';
-
       /** Current placement details */
       let outlet = asset.asset_master_outlet;
       if (!outlet) {
@@ -385,6 +388,7 @@ export const cooler360Controller = {
               { id: asset.id },
               ...(asset.serial_number ? [{ serial_number: asset.serial_number }] : []),
             ],
+            status: { in: ['Installed', 'Active', 'installed', 'active'] },
           },
           include: {
             customer_assets_customers: {
@@ -408,30 +412,185 @@ export const cooler360Controller = {
         }
       }
 
-      const currentRoute = outlet?.customer_routes;
+      /** Look up historical movement and previous placement if cooler is not deployed at outlet */
+      let prevOutlet: any = null;
+      let lastMovement: any = null;
+      let standbyCooler: any = null;
+
+      if (!outlet) {
+        const moveAsset = await prisma.asset_movement_assets.findFirst({
+          where: { asset_id: asset.id },
+          orderBy: { id: 'desc' },
+          include: {
+            asset_movement_assets_movement: {
+              include: {
+                asset_movement_from_customer: {
+                  include: {
+                    customer_channel_customer: true,
+                    customer_routes: {
+                      include: {
+                        salespersons: {
+                          include: { user: { select: { id: true, name: true } } },
+                        },
+                      },
+                    },
+                    customer_zones: true,
+                    customer_depot: true,
+                  },
+                },
+                asset_movement_from_depot: true,
+                asset_movement_to_depot: true,
+                asset_movement_to_customer: {
+                  include: {
+                    customer_channel_customer: true,
+                    customer_routes: {
+                      include: {
+                        salespersons: {
+                          include: { user: { select: { id: true, name: true } } },
+                        },
+                      },
+                    },
+                    customer_zones: true,
+                    customer_depot: true,
+                  },
+                },
+              },
+            },
+          },
+        });
+
+        if (moveAsset?.asset_movement_assets_movement) {
+          lastMovement = moveAsset.asset_movement_assets_movement;
+          prevOutlet =
+            lastMovement.asset_movement_from_customer ||
+            lastMovement.asset_movement_to_customer;
+        }
+
+        if (openTicket) {
+          const standbyMovement = await prisma.asset_movements.findFirst({
+            where: {
+              notes: {
+                contains: openTicket.job_number || `MT-${openTicket.id}`,
+              },
+              movement_type: 'installation',
+            },
+            include: {
+              asset_movement_assets: {
+                include: {
+                  asset_movement_assets_asset: true,
+                },
+              },
+            },
+            orderBy: { id: 'desc' },
+          });
+
+          if (standbyMovement?.asset_movement_assets?.[0]?.asset_movement_assets_asset) {
+            standbyCooler = standbyMovement.asset_movement_assets[0].asset_movement_assets_asset;
+          }
+        }
+      }
+
+      const depotObj =
+        asset.asset_master_depot ||
+        lastMovement?.asset_movement_to_depot ||
+        lastMovement?.asset_movement_from_depot;
+
+      const currentRoute = outlet?.customer_routes || prevOutlet?.customer_routes;
       const salesRep =
-        currentRoute?.salespersons?.[0]?.user?.name ||
-        asset.assigned_to ||
+        outlet?.customer_routes?.salespersons?.[0]?.user?.name ||
+        (outlet ? asset.assigned_to : null) ||
+        (prevOutlet?.customer_routes?.salespersons?.[0]?.user?.name
+          ? `Prev: ${prevOutlet.customer_routes.salespersons[0].user.name}`
+          : null) ||
+        (openTicket as any)?.asset_maintenance_technician?.name ||
         'N/A';
 
+      const isDeployed = Boolean(outlet);
+
+      const installDate = asset.installation_date || linkedCooler?.install_date;
+      let daysHere = 0;
+      let daysHereLabel = 'Not recorded';
+
+      if (isDeployed && installDate) {
+        daysHere = daysBetween(new Date(), new Date(installDate));
+        daysHereLabel = `since ${formatDate(new Date(installDate))}`;
+      } else if (!isDeployed && lastMovement?.movement_date) {
+        daysHere = daysBetween(new Date(), new Date(lastMovement.movement_date));
+        daysHereLabel = `at depot since ${formatDate(new Date(lastMovement.movement_date))}`;
+      }
+
       const placement = {
-        outletName:
-          outlet?.name || asset.current_location || 'Not Assigned',
-        outletCode: outlet?.code || 'N/A',
-        channel:
-          outlet?.customer_channel_customer?.channel_name ||
-          'N/A',
-        route: currentRoute?.name || 'N/A',
-        zone: outlet?.customer_zones?.name || 'N/A',
+        outletName: outlet
+          ? outlet.name
+          : depotObj
+          ? `${depotObj.name} Depot`
+          : (asset.current_location || 'Central Depot'),
+        outletCode: outlet
+          ? (outlet.code || 'N/A')
+          : depotObj?.code
+          ? `Depot: ${depotObj.code}`
+          : 'In Depot',
+        channel: outlet
+          ? (outlet.customer_channel_customer?.channel_name || 'N/A')
+          : prevOutlet
+          ? `Last: ${prevOutlet.customer_channel_customer?.channel_name || 'General trade'}`
+          : 'Central Warehouse',
+        route: outlet
+          ? (currentRoute?.name || 'N/A')
+          : prevOutlet
+          ? `Last: ${prevOutlet.customer_routes?.name || 'N/A'}`
+          : (openTicket ? 'Workshop repair' : 'Depot storage'),
+        zone: outlet
+          ? (outlet.customer_zones?.name || 'N/A')
+          : prevOutlet
+          ? `Last: ${prevOutlet.customer_zones?.name || depotObj?.city || 'Moshi'}`
+          : (depotObj?.city || depotObj?.name || 'Moshi'),
         depot:
+          depotObj?.name ||
           outlet?.customer_depot?.name ||
-          asset.asset_master_depot?.name ||
-          'N/A',
+          'Moshi',
         salesRep,
-        installedDate: installDate
-          ? `${formatDate(new Date(installDate))} · Installation`
-          : 'N/A',
-        isDeployed: Boolean(outlet || asset.current_location),
+        installedDate: outlet
+          ? (installDate ? `${formatDate(new Date(installDate))} · Installation` : 'N/A')
+          : lastMovement?.movement_date
+          ? `Returned: ${formatDate(new Date(lastMovement.movement_date))}${lastMovement.id ? ` · MV-${String(lastMovement.id).padStart(5, '0')}` : ''}`
+          : 'In Depot',
+        isDeployed,
+        previousOutlet: prevOutlet
+          ? {
+              id: prevOutlet.id,
+              name: prevOutlet.name,
+              code: prevOutlet.code || 'N/A',
+              channel: prevOutlet.customer_channel_customer?.channel_name || 'N/A',
+              route: prevOutlet.customer_routes?.name || 'N/A',
+              zone: prevOutlet.customer_zones?.name || 'N/A',
+            }
+          : null,
+        depotDetails: depotObj
+          ? {
+              id: depotObj.id,
+              name: depotObj.name,
+              code: depotObj.code,
+              city: depotObj.city,
+              address: depotObj.address,
+            }
+          : null,
+        standbyCooler: standbyCooler
+          ? {
+              id: standbyCooler.id,
+              code: standbyCooler.code || standbyCooler.serial_number,
+              name: standbyCooler.name,
+            }
+          : null,
+        returnMovement: lastMovement
+          ? {
+              id: lastMovement.id,
+              movementNumber: `MV-${String(lastMovement.id).padStart(5, '0')}`,
+              movementType: lastMovement.movement_type,
+              date: formatDate(new Date(lastMovement.movement_date)),
+              reason: lastMovement.return_reason || 'Workshop Repair',
+            }
+          : null,
       };
 
       /** Open ticket detail box (if present) */
@@ -552,7 +711,7 @@ export const cooler360Controller = {
           },
           lifetimeCost: {
             value: lifetimeCost.toLocaleString('en-US'),
-            sub: 'TZS parts + labour',
+            sub: 'TZS parts',
             status: 'neu' as 'neu',
           },
           daysHere: {

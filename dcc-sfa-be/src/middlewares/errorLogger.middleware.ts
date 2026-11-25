@@ -80,13 +80,21 @@ export const errorLogger = (
             errorMessage.includes('access_token_missing'));
 
         if (!isAccessTokenMissing) {
+          const rawMessage =
+            typeof errorMessage === 'string'
+              ? errorMessage
+              : JSON.stringify(errorMessage);
+          const truncatedMessage =
+            rawMessage.length > 950
+              ? `${rawMessage.substring(0, 947)}...`
+              : rawMessage;
+
           const errorLog = {
-            message:
-              typeof errorMessage === 'string'
-                ? errorMessage
-                : JSON.stringify(errorMessage),
-            stack: body?.stack || null,
-            path: req.originalUrl || req.path,
+            message: truncatedMessage,
+            stack:
+              body?.stack ||
+              (rawMessage.length > 950 ? rawMessage : null),
+            path: (req.originalUrl || req.path || '').substring(0, 500),
             method: req.method,
             body:
               req.body && Object.keys(req.body).length

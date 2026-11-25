@@ -47,7 +47,7 @@ export interface AssetMaintenance {
   repaired_date?: string | null;
   closed_date?: string | null;
   escalated_to?: string | null;
-  warranty_claim?: string | null;
+  warranty_claim?: boolean | string | null;
   repair_photos?: any;
   remarks?: string | null;
   is_active: string;
@@ -60,12 +60,37 @@ export interface AssetMaintenance {
   is_overdue?: boolean;
   replace_review_needed?: boolean;
   repairs_last_90_days?: number;
+  replace_review?: {
+    shouldReview: boolean;
+    repairCount: number;
+    message: string | null;
+  };
+  outlet_has_cooler?: boolean;
   activities?: MaintenanceActivityLog[];
+  workshop_return?: {
+    return_movement_id: number;
+    return_movement_code: string;
+    depot_id?: number | null;
+    depot_name?: string | null;
+    from_customer_id?: number | null;
+    from_customer_name?: string | null;
+    standby_asset_id?: number | null;
+    standby_serial?: string | null;
+    standby_movement_id?: number | null;
+    standby_movement_code?: string | null;
+    standby_returned?: boolean;
+    standby_returned_movement_code?: string | null;
+  } | null;
   customer?: {
     id: number;
     name: string;
     code?: string | null;
     address?: string | null;
+    depot_id?: number | null;
+    customer_depot?: {
+      id: number;
+      name: string;
+    } | null;
   } | null;
   asset_maintenance_master?: {
     id: number;
@@ -73,10 +98,23 @@ export interface AssetMaintenance {
     serial_number: string;
     barcode?: string | null;
     asset_code?: string | null;
+    brand?: string | null;
     current_location?: string | null;
+    current_status?: string | null;
+    warranty_expiry?: string | null;
     warranty_period_months?: number | null;
+    outlet_id?: number | null;
+    depot_id?: number | null;
     createdate?: string | null;
     asset_master_asset_types?: {
+      id: number;
+      name: string;
+    } | null;
+    asset_master_asset_sub_types?: {
+      id: number;
+      name: string;
+    } | null;
+    asset_master_brands?: {
       id: number;
       name: string;
     } | null;
@@ -85,17 +123,29 @@ export interface AssetMaintenance {
       name: string;
       code?: string | null;
       address?: string | null;
+      depot_id?: number | null;
+      customer_depot?: {
+        id: number;
+        name: string;
+      } | null;
     } | null;
     asset_master_depot?: {
       id: number;
       name: string;
     } | null;
     cooler_asset_master?: Array<{
+      id?: number;
+      status?: string | null;
       coolers_customers?: {
         id: number;
         name: string;
         code?: string | null;
         address?: string | null;
+        depot_id?: number | null;
+        customer_depot?: {
+          id: number;
+          name: string;
+        } | null;
       } | null;
     }>;
     customer_assets?: Array<{
@@ -106,6 +156,11 @@ export interface AssetMaintenance {
         name: string;
         code?: string | null;
         address?: string | null;
+        depot_id?: number | null;
+        customer_depot?: {
+          id: number;
+          name: string;
+        } | null;
       } | null;
     }>;
   } | null;
@@ -148,9 +203,18 @@ export interface UpdateAssetMaintenancePayload {
   due_date?: string;
   cost?: number;
   labour_cost?: number;
+  warranty_claim?: boolean;
   remarks?: string;
   is_active?: string;
   spares?: SparePartItem[];
+}
+
+export interface CreateWorkshopReturnPayload {
+  to_depot_id?: number;
+  movement_date?: string;
+  install_standby?: boolean;
+  standby_asset_id?: number;
+  notes?: string;
 }
 
 export interface AssignTechnicianPayload {
@@ -324,6 +388,64 @@ export const submitMobileRepair = async (
     throw new Error(
       error.response?.data?.message || 'Failed to submit mobile repair'
     );
+  }
+};
+
+/**
+ * Executes workshop return asset movement and optional standby installation.
+ *
+ * @param {number} id Job ID.
+ * @param {CreateWorkshopReturnPayload} data Workshop return details.
+ * @returns {Promise<AssetMaintenance>} Updated maintenance record.
+ */
+export const createWorkshopReturnMovement = async (
+  id: number,
+  data: CreateWorkshopReturnPayload
+): Promise<AssetMaintenance> => {
+  try {
+    const response = await axiosInstance.post(
+      `/asset-maintenance/${id}/workshop-return`,
+      data
+    );
+    return response.data.data;
+  } catch (error: unknown) {
+    console.error('Error creating workshop return movement:', error);
+    const errMessage = (
+      error as { response?: { data?: { message?: string } } }
+    )?.response?.data?.message;
+    throw new Error(
+      errMessage || 'Failed to create workshop return movement'
+    );
+  }
+};
+
+/**
+ * Installs a standby cooler for a workshop ticket whose original outlet has no cooler.
+ *
+ * @param {number} id Job ID.
+ * @param {object} data Optional depot, standby cooler ID, and movement date.
+ * @returns {Promise<AssetMaintenance>} Updated maintenance record.
+ */
+export const installStandbyCooler = async (
+  id: number,
+  data: {
+    depot_id?: number;
+    standby_asset_id?: number;
+    movement_date?: string;
+  }
+): Promise<AssetMaintenance> => {
+  try {
+    const response = await axiosInstance.post(
+      `/asset-maintenance/${id}/standby`,
+      data
+    );
+    return response.data.data;
+  } catch (error: unknown) {
+    console.error('Error installing standby cooler:', error);
+    const errMessage = (
+      error as { response?: { data?: { message?: string } } }
+    )?.response?.data?.message;
+    throw new Error(errMessage || 'Failed to install standby cooler');
   }
 };
 

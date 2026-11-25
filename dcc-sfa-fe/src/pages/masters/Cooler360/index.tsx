@@ -573,7 +573,7 @@ const Cooler360Page: React.FC = () => {
                 <span>{health?.lifetimeCost?.value || '0'}</span>
               </div>
               <span className="text-xs text-gray-500 truncate">
-                {health?.lifetimeCost?.sub || 'TZS, parts + labour'}
+                {health?.lifetimeCost?.sub || 'TZS parts'}
               </span>
             </div>
 
@@ -611,33 +611,68 @@ const Cooler360Page: React.FC = () => {
                 </div>
               </div>
 
-              {/** Outlet Banner Block */}
-              <div className="flex items-center gap-3 p-3 rounded bg-gray-100 mb-4">
+              {/** Outlet / Depot Banner Block */}
+              <div className="flex items-center gap-3 p-3 rounded bg-gray-100 mb-3">
                 <Avatar className="!w-10 !h-10 !rounded !bg-primary-100 !text-primary-700 !font-bold !text-sm !flex-none">
-                  {placement?.outletName?.charAt(0) || 'O'}
+                  {placement?.isDeployed ? (
+                    placement?.outletName?.charAt(0) || 'O'
+                  ) : (
+                    <Package size={20} />
+                  )}
                 </Avatar>
-                <div>
-                  <b className="text-sm font-semibold text-gray-900 block leading-tight">
-                    {placement?.outletName || 'Not Assigned'}
+                <div className="min-w-0 flex-1">
+                  <b className="text-sm font-semibold text-gray-900 block leading-tight truncate">
+                    {placement?.outletName || (placement?.isDeployed ? 'Not Assigned' : 'Depot')}
                   </b>
-                  <span className="font-mono text-xs text-gray-500 block">
+                  <span className="font-mono text-xs text-gray-500 block truncate">
                     {placement?.outletCode || 'N/A'}
                   </span>
                 </div>
                 <Chip
-                  label={placement?.isDeployed ? 'At outlet' : 'In depot'}
+                  label={
+                    placement?.isDeployed
+                      ? 'At outlet'
+                      : `In depot · ${asset?.status || 'Available'}`
+                  }
                   size="small"
                   variant="outlined"
-                  color="primary"
-                  className="!ml-auto !text-xs !font-medium"
+                  color={placement?.isDeployed ? 'success' : 'primary'}
+                  className="!ml-auto !text-xs !font-medium flex-none"
                 />
               </div>
+
+              {/** Context banner if cooler was returned from an outlet */}
+              {!placement?.isDeployed && placement?.previousOutlet && (
+                <div className="mb-3 p-2.5 rounded bg-amber-50 border border-amber-200 text-xs text-amber-900 flex items-start gap-2">
+                  <Truck size={16} className="text-amber-700 flex-none mt-0.5" />
+                  <div className="space-y-0.5">
+                    <div>
+                      Returned from <b>{placement.previousOutlet.name}</b>{' '}
+                      <span className="font-mono text-[11px] text-gray-600">
+                        ({placement.previousOutlet.code})
+                      </span>
+                      {placement.returnMovement
+                        ? ` on ${placement.returnMovement.date} via ${placement.returnMovement.movementNumber}`
+                        : ''}
+                      {placement.returnMovement?.reason
+                        ? ` · ${placement.returnMovement.reason}`
+                        : ''}
+                      .
+                    </div>
+                    {placement.standbyCooler && (
+                      <div className="text-[11px] text-teal-800 font-medium">
+                        Standby cooler <b>{placement.standbyCooler.code}</b> deployed at outlet.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/** 2-Column Placement Details Grid */}
               <div className="grid grid-cols-2 gap-x-5 gap-y-3.5 text-xs">
                 <div>
                   <span className="text-[10px] uppercase tracking-wider text-gray-400 font-semibold block">
-                    Channel
+                    {placement?.isDeployed ? 'Channel' : 'Channel / Source'}
                   </span>
                   <strong className="text-xs font-semibold text-gray-800 block mt-0.5">
                     {placement?.channel || 'N/A'}
@@ -645,7 +680,7 @@ const Cooler360Page: React.FC = () => {
                 </div>
                 <div>
                   <span className="text-[10px] uppercase tracking-wider text-gray-400 font-semibold block">
-                    Route
+                    {placement?.isDeployed ? 'Route' : 'Route / Purpose'}
                   </span>
                   <strong className="text-xs font-semibold text-gray-800 block mt-0.5">
                     {placement?.route || 'N/A'}
@@ -653,7 +688,7 @@ const Cooler360Page: React.FC = () => {
                 </div>
                 <div>
                   <span className="text-[10px] uppercase tracking-wider text-gray-400 font-semibold block">
-                    Zone
+                    Zone / Area
                   </span>
                   <strong className="text-xs font-semibold text-gray-800 block mt-0.5">
                     {placement?.zone || 'N/A'}
@@ -669,7 +704,7 @@ const Cooler360Page: React.FC = () => {
                 </div>
                 <div>
                   <span className="text-[10px] uppercase tracking-wider text-gray-400 font-semibold block">
-                    Sales rep
+                    {placement?.isDeployed ? 'Sales rep' : 'Sales rep / Handler'}
                   </span>
                   <strong className="text-xs font-semibold text-gray-800 block mt-0.5">
                     {placement?.salesRep || 'N/A'}
@@ -677,7 +712,7 @@ const Cooler360Page: React.FC = () => {
                 </div>
                 <div>
                   <span className="text-[10px] uppercase tracking-wider text-gray-400 font-semibold block">
-                    Installed
+                    {placement?.isDeployed ? 'Installed' : 'Movement Status'}
                   </span>
                   <strong className="text-xs font-semibold text-gray-800 tabular-nums block mt-0.5">
                     {placement?.installedDate || 'N/A'}
@@ -914,8 +949,7 @@ const Cooler360Page: React.FC = () => {
                             <Wrench size={17} />
                           </div>
                         )}
-                        {(item.type === 'mov' ||
-                          item.type === 'movement') && (
+                        {(item.type === 'mov' || item.type === 'movement') && (
                           <div className="w-10 h-10 rounded bg-sky-100 text-sky-600 flex items-center justify-center">
                             <Truck size={17} />
                           </div>
@@ -1007,7 +1041,7 @@ const Cooler360Page: React.FC = () => {
                                 </table>
 
                                 {item.subLifecycle && (
-                                  <p className="text-[11px] text-gray-500 pt-1 border-t border-gray-100">
+                                  <p className="text-[11px] text-gray-500 p-1 border-t border-gray-100">
                                     {item.subLifecycle}
                                   </p>
                                 )}

@@ -1,11 +1,16 @@
 import { Add } from '@mui/icons-material';
 import {
+  Alert,
+  Box,
+  Checkbox,
   Chip,
   CircularProgress,
+  FormControlLabel,
   MenuItem,
   Step,
   StepLabel,
   Stepper,
+  Typography,
 } from '@mui/material';
 import { useFormik } from 'formik';
 import {
@@ -17,8 +22,9 @@ import {
   type AssetMaintenance,
 } from 'hooks/useAssetMaintenance';
 import { useCurrency } from 'hooks/useCurrency';
-import { CheckCircle, Clock, Flag } from 'lucide-react';
+import { CheckCircle, Clock, Flag, Shield, Truck } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { assetMaintenanceValidationSchema } from 'schemas/assetMaintenance.schema';
 import { DeleteButton } from 'shared/ActionButton';
 import ActiveInactiveField from 'shared/ActiveInactiveField';
@@ -34,6 +40,20 @@ import {
   formatDateTime,
   formatForDateInput,
 } from 'utils/dateUtils';
+import {
+  type SpareRow,
+  formatCoolerTitle,
+  formatSparesPayload,
+  formatStageLabel,
+  getStageChipColor,
+  getTicketStages,
+  mapApiSparesToRows,
+  normalizeTicketStatus,
+  resolveTicketLocations,
+} from './ticketHelpers';
+import WorkshopReturnModal, {
+  type WorkshopModalMode,
+} from './WorkshopReturnModal';
 
 interface ManageAssetMaintenanceProps {
   selectedMaintenance?: AssetMaintenance | null;
@@ -42,17 +62,10 @@ interface ManageAssetMaintenanceProps {
   setDrawerOpen: (drawerOpen: boolean) => void;
 }
 
-interface SpareRow {
-  tempId: string;
-  name: string;
-  quantity: number;
-  unit_cost: number;
-}
-
 /**
  * ManageAssetMaintenance Component.
- * Implements the 4-stage workflow drawer (Open -> Assigned -> Repaired -> Closed)
- * using DCC-SFA shared components and clean layout architecture.
+ * Implements the repair job workflow drawer (On-site, Workshop, and Complaint flows)
+ * using DCC-SFA shared UI components, tables, and responsive cards.
  *
  * @param {ManageAssetMaintenanceProps} props Component props.
  * @returns {React.ReactElement} Drawer element.
@@ -66,8 +79,8 @@ const ManageAssetMaintenance: React.FC<ManageAssetMaintenanceProps> = ({
   const isEdit = !!selectedMaintenance;
   const maintenanceId = selectedMaintenance?.id || 0;
   const { formatCurrency } = useCurrency();
+  const navigate = useNavigate();
 
-  /** Fetch fresh ticket details and lifecycle logs when editing an existing job */
   const {
     data: freshData,
     isLoading: isDetailsLoading,
@@ -84,20 +97,20 @@ const ManageAssetMaintenance: React.FC<ManageAssetMaintenanceProps> = ({
   const assignTechnicianMutation = useAssignMaintenanceTechnician();
   const closeJobMutation = useCloseMaintenanceJob();
 
-  /** Assignment sub-form state */
+  const [returnModalState, setReturnModalState] = useState<{
+    open: boolean;
+    mode: WorkshopModalMode;
+  }>({ open: false, mode: 'return' });
+
   const [assignedTechId, setAssignedTechId] = useState<number | string>('');
   const [ticketPriority, setTicketPriority] = useState<string>('medium');
   const [ticketDueDate, setTicketDueDate] = useState<string>('');
 
-  /** Quick add spare part state */
   const [newPartName, setNewPartName] = useState<string>('');
   const [newPartQty, setNewPartQty] = useState<number>(1);
   const [newPartUnitCost, setNewPartUnitCost] = useState<number | string>('');
-
-  /** Spares list state for ticket editing */
   const [sparesList, setSparesList] = useState<SpareRow[]>([]);
 
-  /** Populate state when active ticket changes */
   useEffect(() => {
     if (activeTicket) {
       setAssignedTechId(activeTicket.technician_id || '');
@@ -105,21 +118,7 @@ const ManageAssetMaintenance: React.FC<ManageAssetMaintenanceProps> = ({
       setTicketDueDate(
         activeTicket.due_date ? formatForDateInput(activeTicket.due_date) : ''
       );
-
-      const mappedSpares: SpareRow[] = (activeTicket.spares || []).map(
-        (s: any, idx: number) => ({
-          tempId: s.id ? `sp_${s.id}` : `sp_row_${idx}`,
-          name: s.part_name || s.name || '',
-          quantity: s.quantity || 1,
-          unit_cost:
-            s.unit_cost !== undefined
-              ? Number(s.unit_cost)
-              : s.cost
-                ? Number(s.cost)
-                : 0,
-        })
-      );
-      setSparesList(mappedSpares);
+      setSparesList(mapApiSparesToRows(activeTicket.spares));
     } else {
       setAssignedTechId('');
       setTicketPriority('medium');
@@ -128,7 +127,6 @@ const ManageAssetMaintenance: React.FC<ManageAssetMaintenanceProps> = ({
     }
   }, [activeTicket]);
 
-  /** Formik form setup for creating brand new maintenance jobs */
   const initialValues = useMemo(
     () => ({
       asset_id: selectedMaintenance?.asset_id?.toString() || '',
@@ -154,17 +152,7 @@ const ManageAssetMaintenance: React.FC<ManageAssetMaintenanceProps> = ({
     enableReinitialize: true,
     onSubmit: async values => {
       try {
-        const formattedSpares = sparesList
-          .filter(s => s.name?.trim())
-          .map(s => ({
-            name: s.name.trim(),
-            quantity: Math.max(1, Number(s.quantity) || 1),
-            unit_cost: Math.max(0, Number(s.unit_cost) || 0),
-            cost: Math.max(
-              0,
-              (Number(s.quantity) || 1) * (Number(s.unit_cost) || 0)
-            ),
-          }));
+        const formattedSpares = formatSparesPayload(sparesList);
 
         const submitData = {
           asset_id: Number(values.asset_id),
@@ -200,6 +188,7 @@ const ManageAssetMaintenance: React.FC<ManageAssetMaintenanceProps> = ({
   const handleCancel = () => {
     setSelectedMaintenance(null);
     setDrawerOpen(false);
+    setReturnModalState({ open: false, mode: 'return' });
     formik.resetForm();
     setNewPartName('');
     setNewPartQty(1);
@@ -207,7 +196,6 @@ const ManageAssetMaintenance: React.FC<ManageAssetMaintenanceProps> = ({
     setSparesList([]);
   };
 
-  /** Auto-calculate SLA due date when priority changes */
   const handlePriorityChange = (newPrio: string) => {
     setTicketPriority(newPrio);
     const d = new Date();
@@ -221,7 +209,6 @@ const ManageAssetMaintenance: React.FC<ManageAssetMaintenanceProps> = ({
     setTicketDueDate(formatForDateInput(d.toISOString()));
   };
 
-  /** Handle updating assignment (technician, priority, SLA due date) */
   const handleUpdateAssignment = async () => {
     if (!activeTicket?.id || !assignedTechId) return;
     try {
@@ -241,7 +228,6 @@ const ManageAssetMaintenance: React.FC<ManageAssetMaintenanceProps> = ({
     }
   };
 
-  /** Quick add spare part */
   const handleAddSparePart = () => {
     if (!newPartName.trim()) return;
     const unitCost = Math.max(0, Number(newPartUnitCost) || 0);
@@ -258,24 +244,60 @@ const ManageAssetMaintenance: React.FC<ManageAssetMaintenanceProps> = ({
     setNewPartUnitCost('');
   };
 
-  /** Remove spare part */
   const handleRemoveSpare = (index: number) => {
     setSparesList(prev => prev.filter((_, i) => i !== index));
   };
 
-  /** Total spares cost calculation */
-  const sparesTotalCost = useMemo(() => {
-    return sparesList.reduce(
-      (sum, item) =>
-        sum + (Number(item.quantity) || 1) * (Number(item.unit_cost) || 0),
-      0
+  const handleSpareUnitCostChange = (index: number, rawValue: string) => {
+    const sanitized = rawValue.replace(/-/g, '');
+    const parsedCost = sanitized === '' ? 0 : Math.max(0, Number(sanitized) || 0);
+    setSparesList(prev =>
+      prev.map((item, idx) =>
+        idx === index ? { ...item, unit_cost: parsedCost } : item
+      )
     );
-  }, [sparesList]);
+  };
 
-  /** Total ticket cost from spares */
-  const totalTicketCost = useMemo(() => sparesTotalCost, [sparesTotalCost]);
+  const hasSpareChanges = useMemo(() => {
+    const saved = formatSparesPayload(mapApiSparesToRows(activeTicket?.spares));
+    const current = formatSparesPayload(sparesList);
 
-  /** Handle closing the job */
+    if (saved.length !== current.length) return true;
+    return current.some(
+      (item, idx) =>
+        item.name !== saved[idx].name ||
+        item.quantity !== saved[idx].quantity ||
+        item.unit_cost !== saved[idx].unit_cost
+    );
+  }, [activeTicket?.spares, sparesList]);
+
+  const handleUpdateSpares = async () => {
+    if (!activeTicket?.id) return;
+    try {
+      await updateAssetMaintenanceMutation.mutateAsync({
+        id: activeTicket.id,
+        data: {
+          spares: formatSparesPayload(sparesList),
+        },
+      });
+      await refetchDetails();
+    } catch (error) {
+      console.error('Failed to update spare parts:', error);
+    }
+  };
+
+  const sparesTotalCost = useMemo(
+    () =>
+      sparesList.reduce(
+        (sum, item) =>
+          sum + (Number(item.quantity) || 1) * (Number(item.unit_cost) || 0),
+        0
+      ),
+    [sparesList]
+  );
+
+  const totalTicketCost = sparesTotalCost;
+
   const handleCloseJob = async () => {
     if (!activeTicket?.id) return;
     try {
@@ -283,11 +305,7 @@ const ManageAssetMaintenance: React.FC<ManageAssetMaintenanceProps> = ({
         id: activeTicket.id,
         data: {
           labour_cost: 0,
-          spares: sparesList.map(s => ({
-            name: s.name,
-            quantity: s.quantity,
-            unit_cost: s.unit_cost,
-          })),
+          spares: formatSparesPayload(sparesList),
           remarks: activeTicket.remarks || undefined,
         },
       });
@@ -297,39 +315,65 @@ const ManageAssetMaintenance: React.FC<ManageAssetMaintenanceProps> = ({
     }
   };
 
-  /** Current stage index for stepper (0: open, 1: assigned, 2: repaired, 3: closed) */
-  const currentStatus = (activeTicket?.status || 'open').toLowerCase();
-  const stages = ['open', 'assigned', 'repaired', 'closed'];
+  const handleToggleWarrantyClaim = async (checked: boolean) => {
+    if (!activeTicket?.id) return;
+    try {
+      await updateAssetMaintenanceMutation.mutateAsync({
+        id: activeTicket.id,
+        data: { warranty_claim: checked },
+      });
+      await refetchDetails();
+    } catch (error) {
+      console.error('Failed to update warranty claim:', error);
+    }
+  };
+
+  const currentStatus = normalizeTicketStatus(activeTicket);
+  const stages = useMemo(() => getTicketStages(activeTicket), [activeTicket]);
   const stageIndex =
     stages.indexOf(currentStatus) >= 0 ? stages.indexOf(currentStatus) : 0;
 
-  /** Format outlet location display */
+  const {
+    isWorkshop,
+    workshopReturnInfo,
+    originalOutlet,
+    workshopDepot,
+    isAtDepot,
+  } = useMemo(
+    () => resolveTicketLocations(activeTicket, currentStatus),
+    [activeTicket, currentStatus]
+  );
+
+  const warrantyExpiry =
+    activeTicket?.asset_maintenance_master?.warranty_expiry;
+  const isUnderWarranty = Boolean(
+    warrantyExpiry && new Date(warrantyExpiry) >= new Date()
+  );
+  const hasWarrantyClaim =
+    activeTicket?.warranty_claim === true ||
+    activeTicket?.warranty_claim === 'Y';
+
   const outletInfo = useMemo(() => {
     const master = activeTicket?.asset_maintenance_master;
-    const customer =
-      activeTicket?.customer ||
-      master?.asset_master_outlet ||
-      master?.cooler_asset_master?.[0]?.coolers_customers ||
-      master?.customer_assets?.[0]?.customer_customer_assets;
-    if (customer?.name) {
-      return `${customer.name}${customer.code ? ` (${customer.code})` : ''}`;
+    if (isAtDepot && (workshopDepot?.name || master?.current_location)) {
+      return `${workshopDepot?.name || master?.current_location} (Depot)`;
+    }
+    if (originalOutlet?.name) {
+      return `${originalOutlet.name}${originalOutlet.code ? ` (${originalOutlet.code})` : ''}`;
     }
     if (master?.current_location) {
       return master.current_location;
     }
-    return master?.asset_master_depot?.name
-      ? `${master.asset_master_depot.name} Depot`
+    return workshopDepot?.name
+      ? `${workshopDepot.name} (Depot)`
       : 'Unassigned Location';
-  }, [activeTicket]);
+  }, [activeTicket, isAtDepot, originalOutlet, workshopDepot]);
 
-  const coolerTitle = useMemo(() => {
-    const master = activeTicket?.asset_maintenance_master;
-    const serial = master?.serial_number || '20968';
-    const subType = master?.asset_master_asset_types?.name || 'CPE0400';
-    return `SANDEN - ${serial} - ${subType}`;
-  }, [activeTicket]);
+  const coolerTitle = useMemo(
+    () => formatCoolerTitle(activeTicket?.asset_maintenance_master),
+    [activeTicket?.asset_maintenance_master]
+  );
 
-  /** Table columns configuration for spares */
   const spareColumns: TableColumn<SpareRow>[] = useMemo(
     () => [
       {
@@ -350,10 +394,21 @@ const ManageAssetMaintenance: React.FC<ManageAssetMaintenanceProps> = ({
       {
         id: 'unit_cost',
         label: 'Unit Cost',
-        width: 140,
-        render: (_value, row) => (
-          <span className="text-gray-600">{formatCurrency(row.unit_cost)}</span>
-        ),
+        width: 150,
+        render: (_value, row, rowIndex) =>
+          isEdit && currentStatus !== 'closed' ? (
+            <Input
+              type="number"
+              compact
+              size="small"
+              value={row.unit_cost}
+              onChange={e => handleSpareUnitCostChange(rowIndex, e.target.value)}
+            />
+          ) : (
+            <span className="text-gray-600">
+              {formatCurrency(row.unit_cost)}
+            </span>
+          ),
       },
       {
         id: 'total',
@@ -373,7 +428,7 @@ const ManageAssetMaintenance: React.FC<ManageAssetMaintenanceProps> = ({
               label: '',
               width: 60,
               sortable: false,
-              render: (_value: any, _row: any, rowIndex: number) => (
+              render: (_value: unknown, _row: SpareRow, rowIndex: number) => (
                 <div className="flex items-center justify-end">
                   <DeleteButton
                     onClick={() => handleRemoveSpare(rowIndex)}
@@ -385,321 +440,952 @@ const ManageAssetMaintenance: React.FC<ManageAssetMaintenanceProps> = ({
           ]
         : []),
     ],
-    [currentStatus, formatCurrency]
+    [currentStatus, formatCurrency, isEdit]
   );
 
+  const handleOpenCooler360 = () => {
+    if (!activeTicket?.asset_id) return;
+    handleCancel();
+    navigate(`/transactions/cooler-360/${activeTicket.asset_id}`);
+  };
+
   return (
-    <CustomDrawer
-      open={drawerOpen}
-      setOpen={handleCancel}
-      title={
-        isEdit
-          ? activeTicket?.job_number || `Job #${activeTicket?.id || ''}`
-          : 'Create Asset Maintenance'
-      }
-      size="large"
-    >
-      <div className="p-5 space-y-5">
-        {isEdit && activeTicket ? (
-          isDetailsLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <CircularProgress size={36} />
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {/** Status badges bar */}
-              <div className="flex items-center gap-2 flex-wrap">
-                <Chip
-                  label={`• ${activeTicket.status ? activeTicket.status.toUpperCase() : 'OPEN'}`}
-                  size="small"
-                  className={
-                    currentStatus === 'closed'
-                      ? '!bg-emerald-100 !text-emerald-800 !font-semibold'
-                      : currentStatus === 'repaired'
-                        ? '!bg-indigo-100 !text-indigo-800 !font-semibold'
-                        : currentStatus === 'assigned'
-                          ? '!bg-blue-100 !text-blue-800 !font-semibold'
-                          : '!bg-amber-100 !text-amber-800 !font-semibold'
-                  }
-                />
-                {activeTicket.is_overdue && currentStatus !== 'closed' && (
+    <>
+      <CustomDrawer
+        open={drawerOpen}
+        setOpen={handleCancel}
+        title={
+          isEdit
+            ? activeTicket?.job_number || `Job #${activeTicket?.id || ''}`
+            : 'Create Asset Maintenance'
+        }
+        size="large"
+      >
+        <Box className="!p-5 !space-y-5">
+          {isEdit && activeTicket ? (
+            isDetailsLoading ? (
+              <Box className="!flex !items-center !justify-center !py-12">
+                <CircularProgress size={36} />
+              </Box>
+            ) : (
+              <Box className="!space-y-4">
+                <Box className="!flex !items-center !gap-2 !flex-wrap">
                   <Chip
-                    label="• Overdue"
+                    label={formatStageLabel(currentStatus)}
                     size="small"
-                    className="!bg-rose-100 !text-rose-700 !font-semibold"
+                    color={getStageChipColor(currentStatus)}
+                    className="!font-semibold"
                   />
-                )}
-                {activeTicket.warranty_claim === 'Y' && (
-                  <Chip
-                    label="• Under warranty"
-                    size="small"
-                    className="!bg-sky-100 !text-sky-800 !font-semibold"
-                  />
-                )}
-              </div>
+                  {activeTicket.is_overdue && currentStatus !== 'closed' && (
+                    <Chip
+                      label="Overdue"
+                      size="small"
+                      color="error"
+                      className="!font-semibold"
+                    />
+                  )}
+                  {(isUnderWarranty || hasWarrantyClaim) && (
+                    <Chip
+                      label="Under warranty"
+                      size="small"
+                      color="info"
+                      variant="outlined"
+                      className="!font-semibold"
+                    />
+                  )}
+                </Box>
 
-              {/** 4-Stage MUI Stepper with Chips instead of numbers */}
-              <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-                <Stepper activeStep={stageIndex}>
-                  {stages.map((stg, idx) => {
-                    const isPassed = idx < stageIndex;
-                    const isCurrent = idx === stageIndex;
-                    return (
-                      <Step key={stg} completed={isPassed}>
-                        <StepLabel
-                          StepIconComponent={() => null}
-                          className="[&_.MuiStepLabel-iconContainer]:!hidden"
+                <Box className="!bg-white !border !border-gray-200 !rounded-lg !p-4 !shadow-sm">
+                  <Stepper activeStep={stageIndex}>
+                    {stages.map((stg, idx) => {
+                      const isPassed =
+                        idx < stageIndex || currentStatus === 'closed';
+                      const isCurrent =
+                        idx === stageIndex && currentStatus !== 'closed';
+                      return (
+                        <Step key={stg} completed={isPassed}>
+                          <StepLabel
+                            StepIconComponent={() => null}
+                            className="[&_.MuiStepLabel-iconContainer]:!hidden"
+                          >
+                            <Chip
+                              label={formatStageLabel(stg)}
+                              size="small"
+                              color={
+                                isCurrent
+                                  ? 'primary'
+                                  : isPassed
+                                    ? 'success'
+                                    : 'default'
+                              }
+                              variant={isCurrent ? 'filled' : 'outlined'}
+                              className="!font-semibold cursor-default"
+                            />
+                          </StepLabel>
+                        </Step>
+                      );
+                    })}
+                  </Stepper>
+                </Box>
+
+                {(isUnderWarranty || hasWarrantyClaim) && (
+                  <Alert
+                    severity="info"
+                    icon={<Shield size={18} className="text-teal-700 mt-0.5" />}
+                    className="!bg-teal-50/80 !text-teal-900 !border !border-teal-200 !rounded-lg"
+                  >
+                    <Typography
+                      variant="caption"
+                      className="!text-xs !text-teal-900 !block"
+                    >
+                      {isUnderWarranty && warrantyExpiry ? (
+                        <>
+                          <strong>
+                            Under warranty until {formatDate(warrantyExpiry)}.
+                          </strong>{' '}
+                          Parts can be claimed from the supplier.
+                        </>
+                      ) : (
+                        <strong>
+                          Warranty claim flagged for supplier parts.
+                        </strong>
+                      )}
+                    </Typography>
+                    {currentStatus !== 'closed' ? (
+                      <Box className="!mt-2 !bg-white !border !border-teal-200 !rounded-md !px-3 !py-0.5 !inline-block">
+                        <FormControlLabel
+                          control={
+                            <Checkbox
+                              size="small"
+                              checked={hasWarrantyClaim}
+                              disabled={
+                                updateAssetMaintenanceMutation.isPending
+                              }
+                              onChange={e =>
+                                handleToggleWarrantyClaim(e.target.checked)
+                              }
+                            />
+                          }
+                          label={
+                            <Typography
+                              variant="caption"
+                              className="!text-xs !font-medium !text-teal-950"
+                            >
+                              Raise warranty claim for parts
+                            </Typography>
+                          }
+                          className="!m-0"
+                        />
+                      </Box>
+                    ) : (
+                      hasWarrantyClaim && (
+                        <Typography
+                          variant="caption"
+                          className="!text-xs !font-semibold !text-teal-800 !block !mt-1"
                         >
-                          <Chip
-                            label={stg}
-                            size="small"
-                            color={
-                              isCurrent
-                                ? 'primary'
-                                : isPassed
-                                  ? 'success'
-                                  : 'default'
-                            }
-                            variant={isCurrent ? 'filled' : 'outlined'}
-                            className="!capitalize !font-semibold cursor-default"
-                          />
-                        </StepLabel>
-                      </Step>
-                    );
-                  })}
-                </Stepper>
-              </div>
+                          Claim raised for supplier parts.
+                        </Typography>
+                      )
+                    )}
+                  </Alert>
+                )}
 
-              {/** Alert Banners: Overdue and Replace-or-Repair Review */}
-              {activeTicket.is_overdue && currentStatus !== 'closed' && (
-                <div className="p-3.5 rounded-lg bg-amber-50 border border-amber-200 flex items-start gap-3">
-                  <Clock size={18} className="text-amber-600 mt-0.5 shrink-0" />
-                  <div>
-                    <p className="text-sm font-semibold text-amber-900">
+                {activeTicket.is_overdue && currentStatus !== 'closed' && (
+                  <Alert
+                    severity="warning"
+                    icon={<Clock size={18} className="mt-0.5" />}
+                    className="!border !border-amber-200 !rounded-lg"
+                  >
+                    <Typography
+                      variant="body2"
+                      className="!text-sm !font-semibold !text-amber-900"
+                    >
                       Overdue since{' '}
                       {activeTicket.due_date
                         ? formatDate(activeTicket.due_date)
                         : 'due date'}
-                    </p>
-                    <p className="text-xs text-amber-800">
+                    </Typography>
+                    <Typography
+                      variant="caption"
+                      className="!text-xs !text-amber-800 !block"
+                    >
                       Escalated to the Area Maintenance Manager. Reassign or set
                       a new due date.
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {activeTicket.replace_review_needed && (
-                <div className="p-3.5 rounded-lg bg-rose-50 border border-rose-200 flex items-start gap-3">
-                  <Flag size={18} className="text-rose-600 mt-0.5 shrink-0" />
-                  <div>
-                    <p className="text-sm font-semibold text-rose-900">
-                      Replace-or-repair review
-                    </p>
-                    <p className="text-xs text-rose-800">
-                      {activeTicket.repairs_last_90_days || 2} repair jobs in 90
-                      days. Consider replacing instead of repairing again.
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {/** Cooler & Location Details Grid */}
-              <div className="bg-slate-50 p-4 rounded-lg border border-gray-200 shadow grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 text-xs">
-                <div>
-                  <span className="text-gray-400 uppercase tracking-wider text-[10px] font-bold">
-                    Cooler
-                  </span>
-                  <p className="font-semibold text-gray-900 text-sm">
-                    {coolerTitle}
-                  </p>
-                </div>
-                <div>
-                  <span className="text-gray-400 uppercase tracking-wider text-[10px] font-bold">
-                    Current Location
-                  </span>
-                  <p className="font-semibold text-gray-900 text-sm">
-                    {outletInfo}
-                  </p>
-                </div>
-                <div>
-                  <span className="text-gray-400 uppercase tracking-wider text-[10px] font-bold">
-                    Issue Reported
-                  </span>
-                  <p className="text-gray-700 mt-0.5">
-                    {activeTicket.issue_reported ||
-                      'No issue description recorded'}
-                  </p>
-                </div>
-                <div>
-                  <span className="text-gray-400 uppercase tracking-wider text-[10px] font-bold">
-                    Repair At
-                  </span>
-                  <p className="text-gray-700 mt-0.5 capitalize">
-                    {activeTicket.repair_location || 'On site'}
-                  </p>
-                </div>
-                <div>
-                  <span className="text-gray-400 uppercase tracking-wider text-[10px] font-bold">
-                    Source
-                  </span>
-                  <p className="text-gray-700 mt-0.5">
-                    {activeTicket.source_type
-                      ? `${activeTicket.source_type.toUpperCase()} ${activeTicket.source_code || ''} · ${activeTicket.asset_maintenance_technician?.name || 'Technician'}`
-                      : `Inspection · ${activeTicket.asset_maintenance_technician?.name || 'Technician'}`}
-                  </p>
-                </div>
-                <div>
-                  <span className="text-gray-400 uppercase tracking-wider text-[10px] font-bold">
-                    Raised
-                  </span>
-                  <p className="text-gray-700 mt-0.5">
-                    {activeTicket.maintenance_date
-                      ? formatDateTime(activeTicket.maintenance_date)
-                      : 'Recently'}
-                  </p>
-                </div>
-                {activeTicket.secondary_source_code && (
-                  <div className="col-span-1 md:col-span-2">
-                    <span className="text-gray-400 uppercase tracking-wider text-[10px] font-bold">
-                      Also Reported By
-                    </span>
-                    <p className="text-gray-700 mt-0.5">
-                      {activeTicket.secondary_source_code}
-                    </p>
-                  </div>
+                    </Typography>
+                  </Alert>
                 )}
-              </div>
 
-              {/** Assignment Card */}
-              <div className="bg-white p-4 rounded-lg border border-gray-200 shadow space-y-3">
-                <h4 className="text-sm font-bold text-gray-900">Assignment</h4>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <UserSelect
-                    name="assigned_technician"
-                    label="Technician"
-                    value={assignedTechId ? Number(assignedTechId) : undefined}
-                    onChange={(_event: any, user: any) =>
-                      setAssignedTechId(user?.id || '')
+                {activeTicket.replace_review_needed && (
+                  <Alert
+                    severity="error"
+                    icon={<Flag size={18} className="mt-0.5" />}
+                    className="!border !border-rose-200 !rounded-lg"
+                  >
+                    <Typography
+                      variant="body2"
+                      className="!text-sm !font-semibold !text-rose-900"
+                    >
+                      Replace-or-repair review
+                    </Typography>
+                    <Typography
+                      variant="caption"
+                      className="!text-xs !text-rose-800 !block"
+                    >
+                      {activeTicket.replace_review?.message ||
+                        `${activeTicket.repairs_last_90_days || 2} repair jobs in 90 days. Consider replacing instead of repairing again.`}
+                    </Typography>
+                  </Alert>
+                )}
+
+                <Box className="!bg-slate-50 !p-4 !rounded-lg !border !border-gray-200 !shadow-sm !grid !grid-cols-1 md:!grid-cols-2 !gap-x-6 !gap-y-3">
+                  <Box>
+                    <span className="text-gray-400 uppercase tracking-wider text-[10px] font-bold block">
+                      Cooler
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleOpenCooler360}
+                      className="font-semibold text-primary-600 hover:underline text-sm text-left"
+                    >
+                      {coolerTitle}
+                    </button>
+                  </Box>
+                  <Box>
+                    <span className="text-gray-400 uppercase tracking-wider text-[10px] font-bold block">
+                      Current Location
+                    </span>
+                    <Typography
+                      variant="body2"
+                      className="!font-semibold !text-gray-900 !text-sm"
+                    >
+                      {outletInfo}
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <span className="text-gray-400 uppercase tracking-wider text-[10px] font-bold block">
+                      Issue Reported
+                    </span>
+                    <Typography
+                      variant="caption"
+                      className="!text-gray-700 !text-xs !block !mt-0.5"
+                    >
+                      {activeTicket.issue_reported ||
+                        'No issue description recorded'}
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <span className="text-gray-400 uppercase tracking-wider text-[10px] font-bold block">
+                      Repair At
+                    </span>
+                    <Typography
+                      variant="caption"
+                      className="!text-gray-700 !text-xs !block !mt-0.5 capitalize"
+                    >
+                      {activeTicket.repair_location ||
+                        'To be decided by technician'}
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <span className="text-gray-400 uppercase tracking-wider text-[10px] font-bold block">
+                      Source
+                    </span>
+                    <Typography
+                      variant="caption"
+                      className="!text-gray-700 !text-xs !block !mt-0.5"
+                    >
+                      {activeTicket.source_type
+                        ? `${activeTicket.source_type.toUpperCase()} ${activeTicket.source_code || ''} · ${activeTicket.asset_maintenance_technician?.name || 'System'}`
+                        : `Inspection · ${activeTicket.asset_maintenance_technician?.name || 'System'}`}
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <span className="text-gray-400 uppercase tracking-wider text-[10px] font-bold block">
+                      Raised
+                    </span>
+                    <Typography
+                      variant="caption"
+                      className="!text-gray-700 !text-xs !block !mt-0.5"
+                    >
+                      {activeTicket.maintenance_date
+                        ? formatDateTime(activeTicket.maintenance_date)
+                        : 'Recently'}
+                    </Typography>
+                  </Box>
+                  {activeTicket.secondary_source_code && (
+                    <Box className="col-span-1 md:col-span-2">
+                      <span className="text-gray-400 uppercase tracking-wider text-[10px] font-bold block">
+                        Also Reported By
+                      </span>
+                      <Typography
+                        variant="caption"
+                        className="!text-gray-700 !text-xs !block !mt-0.5"
+                      >
+                        {activeTicket.secondary_source_code}
+                      </Typography>
+                    </Box>
+                  )}
+                </Box>
+
+                {currentStatus !== 'closed' && (
+                  <Box className="!bg-white !p-4 !rounded-lg !border !border-gray-200 !shadow-sm !space-y-3">
+                    <Typography
+                      variant="subtitle2"
+                      className="!text-sm !font-bold !text-gray-900"
+                    >
+                      {activeTicket.technician_id
+                        ? 'Assignment'
+                        : 'Assign technician'}
+                    </Typography>
+                    <Box className="!grid !grid-cols-1 md:!grid-cols-3 !gap-3">
+                      <UserSelect
+                        name="assigned_technician"
+                        label="Technician"
+                        value={
+                          assignedTechId ? Number(assignedTechId) : undefined
+                        }
+                        onChange={(_event, user) =>
+                          setAssignedTechId(user?.id || '')
+                        }
+                        nameToSearch={
+                          activeTicket.asset_maintenance_technician?.name
+                        }
+                        required
+                      />
+
+                      <Select
+                        label="Priority"
+                        value={ticketPriority}
+                        disableClearable
+                        onChange={e =>
+                          handlePriorityChange(
+                            String(e.target.value || 'medium')
+                          )
+                        }
+                      >
+                        <MenuItem value="low">Low (10 days)</MenuItem>
+                        <MenuItem value="medium">Medium (5 days)</MenuItem>
+                        <MenuItem value="high">High (2 days)</MenuItem>
+                      </Select>
+
+                      <Input
+                        label="Due Date"
+                        type="date"
+                        value={ticketDueDate}
+                        onChange={e => setTicketDueDate(e.target.value)}
+                        slotProps={{ inputLabel: { shrink: true } }}
+                      />
+                    </Box>
+
+                    <Typography
+                      variant="caption"
+                      className="!text-gray-400 !block !text-[11px]"
+                    >
+                      Due date fills from priority: High 2 days, Medium 5, Low
+                      10. Past due jobs are escalated automatically.
+                    </Typography>
+
+                    <Box className="!flex !items-center !gap-3 !pt-1">
+                      <Button
+                        type="button"
+                        variant={
+                          activeTicket.technician_id ? 'outlined' : 'contained'
+                        }
+                        size="small"
+                        onClick={handleUpdateAssignment}
+                        disabled={
+                          assignTechnicianMutation.isPending || !assignedTechId
+                        }
+                      >
+                        {assignTechnicianMutation.isPending
+                          ? 'Updating...'
+                          : activeTicket.technician_id
+                            ? 'Update assignment'
+                            : 'Assign'}
+                      </Button>
+                      {activeTicket.asset_maintenance_technician?.name && (
+                        <Typography
+                          variant="caption"
+                          className="!text-xs !text-gray-500"
+                        >
+                          Assigned to{' '}
+                          {activeTicket.asset_maintenance_technician.name}
+                        </Typography>
+                      )}
+                    </Box>
+                  </Box>
+                )}
+
+                {isWorkshop &&
+                  (currentStatus === 'awaiting_return' ? (
+                    <Box className="!p-4 !rounded-lg !bg-amber-50/80 !border !border-amber-200 !space-y-2.5">
+                      <Box>
+                        <Typography
+                          variant="subtitle2"
+                          className="!text-sm !font-bold !text-gray-900"
+                        >
+                          Cooler is still at {originalOutlet?.name || 'Outlet'}
+                        </Typography>
+                        <Typography
+                          variant="caption"
+                          className="!text-xs !text-gray-600 !block !mt-1"
+                        >
+                          Logistics: create the Return movement. The cooler then
+                          counts as at {workshopDepot?.name || 'Depot'} and
+                          becomes Under repair.
+                        </Typography>
+                      </Box>
+                      <Button
+                        type="button"
+                        variant="contained"
+                        size="small"
+                        startIcon={<Truck size={15} />}
+                        onClick={() =>
+                          setReturnModalState({ open: true, mode: 'return' })
+                        }
+                      >
+                        Create return movement
+                      </Button>
+                    </Box>
+                  ) : (
+                    <Box className="!p-4 !rounded-lg !bg-purple-50/80 !border !border-purple-200 !space-y-2 !text-xs">
+                      <Box className="!flex !items-center !gap-2 !font-semibold !text-purple-900">
+                        <Truck size={15} className="shrink-0" />
+                        <span>
+                          Returned to{' '}
+                          {workshopReturnInfo?.depot_name ||
+                            workshopDepot?.name ||
+                            'Depot'}
+                          {workshopReturnInfo?.return_movement_code
+                            ? ` by ${workshopReturnInfo.return_movement_code}`
+                            : ''}
+                          . Asset status:{' '}
+                          {activeTicket.asset_maintenance_master
+                            ?.current_status || 'Under repair'}
+                          .
+                        </span>
+                      </Box>
+                      {workshopReturnInfo?.standby_serial ? (
+                        <Typography
+                          variant="caption"
+                          className="!text-purple-800 !block !pl-6"
+                        >
+                          Standby cooler {workshopReturnInfo.standby_serial}{' '}
+                          installed at{' '}
+                          {workshopReturnInfo.from_customer_name ||
+                            originalOutlet?.name ||
+                            'Outlet'}
+                          {workshopReturnInfo.standby_movement_code
+                            ? ` (${workshopReturnInfo.standby_movement_code})`
+                            : ''}
+                          .
+                        </Typography>
+                      ) : (
+                        currentStatus !== 'closed' &&
+                        Boolean(originalOutlet?.id) &&
+                        activeTicket.outlet_has_cooler === false && (
+                          <Box className="!pl-6 !space-y-2">
+                            <Typography
+                              variant="caption"
+                              className="!text-purple-900 !block !font-semibold"
+                            >
+                              {originalOutlet?.name} currently has no active
+                              cooler.
+                            </Typography>
+                            <Button
+                              type="button"
+                              variant="outlined"
+                              size="small"
+                              startIcon={<Add fontSize="small" />}
+                              onClick={() =>
+                                setReturnModalState({
+                                  open: true,
+                                  mode: 'standby',
+                                })
+                              }
+                            >
+                              Install standby cooler
+                            </Button>
+                          </Box>
+                        )
+                      )}
+                    </Box>
+                  ))}
+
+                {(currentStatus === 'repaired' ||
+                  currentStatus === 'closed' ||
+                  activeTicket.action_taken) && (
+                  <Box className="!bg-white !p-4 !rounded-lg !border !border-gray-200 !shadow-sm !space-y-3">
+                    <Typography
+                      variant="subtitle2"
+                      className="!text-sm !font-bold !text-gray-900"
+                    >
+                      Repair result (from mobile)
+                    </Typography>
+                    <Box className="!grid !grid-cols-2 !gap-3 !text-xs">
+                      <Box>
+                        <span className="text-gray-400 uppercase tracking-wider text-[10px] font-bold block">
+                          Action Taken
+                        </span>
+                        <Typography
+                          variant="caption"
+                          className="!font-semibold !text-gray-800 !block !mt-0.5"
+                        >
+                          {activeTicket.action_taken || 'Replaced parts'}
+                        </Typography>
+                      </Box>
+                      <Box>
+                        <span className="text-gray-400 uppercase tracking-wider text-[10px] font-bold block">
+                          Status After Repair
+                        </span>
+                        <Typography
+                          variant="caption"
+                          className="!font-semibold !text-emerald-700 !block !mt-0.5 capitalize"
+                        >
+                          {activeTicket.status_after_repair || 'Working'}
+                        </Typography>
+                      </Box>
+                      <Box>
+                        <span className="text-gray-400 uppercase tracking-wider text-[10px] font-bold block">
+                          Done By
+                        </span>
+                        <Typography
+                          variant="caption"
+                          className="!text-gray-700 !block !mt-0.5"
+                        >
+                          {activeTicket.asset_maintenance_technician?.name ||
+                            'Technician'}
+                        </Typography>
+                      </Box>
+                      <Box>
+                        <span className="text-gray-400 uppercase tracking-wider text-[10px] font-bold block">
+                          Photos
+                        </span>
+                        <Typography
+                          variant="caption"
+                          className="!text-gray-700 !block !mt-0.5"
+                        >
+                          {Array.isArray(activeTicket.repair_photos)
+                            ? activeTicket.repair_photos.length
+                            : 0}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  </Box>
+                )}
+
+                <Box className="!bg-white !rounded-lg !border !border-gray-200 !shadow-sm !space-y-3">
+                  <Table
+                    data={sparesList}
+                    compact
+                    actions={
+                      <div className="flex justify-between items-center w-full">
+                        <Typography
+                          variant="subtitle2"
+                          className="!text-sm !font-bold !text-gray-900"
+                        >
+                          Spares and cost
+                        </Typography>
+                        {sparesList.length > 0 && (
+                          <span className="text-xs text-gray-500">
+                            {sparesList.length}{' '}
+                            {sparesList.length === 1 ? 'part' : 'parts'}
+                          </span>
+                        )}
+                      </div>
                     }
-                    nameToSearch={
-                      activeTicket.asset_maintenance_technician?.name
+                    filterColunm={false}
+                    sortable={false}
+                    columns={spareColumns}
+                    getRowId={(item, idx) => item.tempId || `sp_${idx}`}
+                    pagination={false}
+                    emptyMessage="No spare parts added"
+                    footer={
+                      <Box className="!border-t !border-gray-200 !bg-slate-50 !px-4 !py-2.5 !space-y-1.5">
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs font-semibold text-gray-800">
+                            Total:
+                          </span>
+                          <span className="text-sm font-bold text-primary-600">
+                            {formatCurrency(totalTicketCost)}
+                          </span>
+                        </div>
+                        {hasWarrantyClaim && sparesTotalCost > 0 && (
+                          <Typography
+                            variant="caption"
+                            className="!text-[11px] !text-teal-700 !block"
+                          >
+                            Parts {formatCurrency(sparesTotalCost)} claimed under warranty from supplier
+                          </Typography>
+                        )}
+                      </Box>
                     }
-                    required
                   />
 
-                  <Select
-                    label="Priority"
-                    value={ticketPriority}
-                    onChange={(e: any) => handlePriorityChange(e.target.value)}
+                  {currentStatus !== 'closed' && (
+                    <Box className="!space-y-3 !px-3">
+                      <Box className="!grid !grid-cols-1 md:!grid-cols-4 !gap-2 !items-center">
+                        <Box className="md:col-span-2">
+                          <Input
+                            placeholder="Part (typed for now) e.g. Fan motor 12V"
+                            size="small"
+                            value={newPartName}
+                            onChange={e => setNewPartName(e.target.value)}
+                          />
+                        </Box>
+                        <Input
+                          placeholder="Qty"
+                          type="number"
+                          size="small"
+                          value={newPartQty}
+                          onChange={e =>
+                            setNewPartQty(Math.max(1, Number(e.target.value)))
+                          }
+                        />
+                        <Input
+                          placeholder="Unit cost (TZS)"
+                          type="number"
+                          size="small"
+                          value={newPartUnitCost}
+                          onChange={e =>
+                            setNewPartUnitCost(e.target.value.replace(/-/g, ''))
+                          }
+                        />
+                      </Box>
+
+                      <Box className="!flex !items-center !gap-3 !flex-wrap">
+                        <Button
+                          type="button"
+                          variant="outlined"
+                          size="small"
+                          onClick={handleAddSparePart}
+                          startIcon={<Add fontSize="small" />}
+                        >
+                          Add part
+                        </Button>
+                        <Button
+                          type="button"
+                          variant={hasSpareChanges ? 'contained' : 'outlined'}
+                          size="small"
+                          onClick={handleUpdateSpares}
+                          disabled={
+                            updateAssetMaintenanceMutation.isPending ||
+                            !hasSpareChanges
+                          }
+                        >
+                          {updateAssetMaintenanceMutation.isPending
+                            ? 'Updating...'
+                            : 'Update parts'}
+                        </Button>
+                        {hasSpareChanges && (
+                          <Typography
+                            variant="caption"
+                            className="!text-xs !text-amber-600 !font-medium"
+                          >
+                            Unsaved spare part changes
+                          </Typography>
+                        )}
+                      </Box>
+
+
+                    </Box>
+                  )}
+
+                  {currentStatus === 'closed' ? (
+                    <Box className="!px-3 !pb-3">
+                      <Alert severity="success" className="!text-xs">
+                        <Box className="!space-y-1.5">
+                          <div>
+                            Closed. {formatCurrency(totalTicketCost)} saved to
+                            Asset Maintenance cost.
+                            {isWorkshop && isAtDepot
+                              ? activeTicket.asset_maintenance_master?.current_status?.toLowerCase() ===
+                                  'damaged' ||
+                                activeTicket.status_after_repair?.toLowerCase() ===
+                                  'damaged'
+                                ? ` Cooler is marked Damaged at ${workshopDepot?.name || 'Depot'}.`
+                                : ` Cooler is Available at ${workshopDepot?.name || 'Depot'}; redeploy it from Asset Movement.`
+                              : ''}
+                          </div>
+
+                          {isWorkshop &&
+                            isAtDepot &&
+                            workshopReturnInfo?.standby_serial &&
+                            (workshopReturnInfo.standby_returned ? (
+                              <Typography
+                                variant="caption"
+                                className="!block !text-emerald-800"
+                              >
+                                Standby cooler {workshopReturnInfo.standby_serial}{' '}
+                                returned to depot (
+                                {workshopReturnInfo.standby_returned_movement_code}
+                                ).
+                              </Typography>
+                            ) : (
+                              <Typography
+                                variant="caption"
+                                className="!block !text-amber-800"
+                              >
+                                Standby cooler {workshopReturnInfo.standby_serial}{' '}
+                                is currently installed at{' '}
+                                {originalOutlet?.name || 'Outlet'}. Deploy this
+                                cooler to another outlet, or return the standby
+                                first before reinstalling at{' '}
+                                {originalOutlet?.name || 'Outlet'}.
+                              </Typography>
+                            ))}
+
+                          {isWorkshop &&
+                            isAtDepot &&
+                            activeTicket.asset_maintenance_master?.current_status?.toLowerCase() !==
+                              'damaged' &&
+                            activeTicket.status_after_repair?.toLowerCase() !==
+                              'damaged' && (
+                              <Box className="!flex !items-center !gap-2 !pt-1 !flex-wrap">
+                                <Button
+                                  type="button"
+                                  variant="contained"
+                                  size="small"
+                                  startIcon={<Truck size={14} />}
+                                  onClick={() => {
+                                    setReturnModalState({
+                                      open: true,
+                                      mode: 'redeploy',
+                                    });
+                                  }}
+                                >
+                                  Redeploy Cooler
+                                </Button>
+
+                                {workshopReturnInfo?.standby_asset_id &&
+                                  !workshopReturnInfo?.standby_returned &&
+                                  Boolean(
+                                    workshopReturnInfo.from_customer_id ||
+                                      originalOutlet?.id
+                                  ) && (
+                                    <Button
+                                      type="button"
+                                      variant="outlined"
+                                      size="small"
+                                      onClick={() => {
+                                        setReturnModalState({
+                                          open: true,
+                                          mode: 'return_standby',
+                                        });
+                                      }}
+                                    >
+                                      Return Standby (
+                                      {workshopReturnInfo.standby_serial ||
+                                        'Cooler'}
+                                      )
+                                    </Button>
+                                  )}
+                              </Box>
+                            )}
+                        </Box>
+                      </Alert>
+                    </Box>
+                  ) : (
+                    <Box className="!flex !justify-end !flex-col !items-end !px-3 !gap-1 !pb-3">
+                      <Button
+                        type="button"
+                        variant="contained"
+                        color="success"
+                        size="small"
+                        onClick={handleCloseJob}
+                        disabled={
+                          closeJobMutation.isPending ||
+                          currentStatus !== 'repaired'
+                        }
+                        startIcon={<CheckCircle size={16} />}
+                        className="!w-full md:!w-auto !bg-emerald-600 hover:!bg-emerald-700"
+                      >
+                        {closeJobMutation.isPending
+                          ? 'Closing...'
+                          : 'Close Ticket'}
+                      </Button>
+                      {currentStatus !== 'repaired' && (
+                        <Typography
+                          variant="caption"
+                          className="!text-gray-400 !block !text-[11px]"
+                        >
+                          You can close once the technician marks the job done
+                          on mobile.
+                        </Typography>
+                      )}
+                    </Box>
+                  )}
+                </Box>
+
+                <Box className="!bg-white !p-4 !rounded-lg !border !border-gray-200 !shadow-sm !space-y-2">
+                  <Typography
+                    variant="subtitle2"
+                    className="!text-sm !font-bold !text-gray-900"
                   >
-                    <MenuItem value="low">Low (10 days)</MenuItem>
-                    <MenuItem value="medium">Medium (5 days)</MenuItem>
-                    <MenuItem value="high">High (2 days)</MenuItem>
-                  </Select>
+                    Status history
+                  </Typography>
+                  <Box className="!space-y-2 !text-xs">
+                    {(activeTicket.activities || []).length > 0 ? (
+                      activeTicket.activities?.map(act => (
+                        <Box
+                          key={act.id}
+                          className="!flex !items-start !justify-between !py-1 !border-b !border-gray-100 last:!border-0"
+                        >
+                          <Box>
+                            <span className="font-semibold text-gray-900 capitalize">
+                              {act.title || act.status}
+                            </span>
+                            <span className="text-gray-500">
+                              {' '}
+                              · {act.asset_activities_user?.name || 'System'}
+                            </span>
+                            {act.description && (
+                              <Typography
+                                variant="caption"
+                                className="!text-gray-500 !text-[11px] !block !mt-0.5"
+                              >
+                                {act.description}
+                              </Typography>
+                            )}
+                          </Box>
+                          <span className="text-gray-400 text-[11px] shrink-0 ml-2">
+                            {formatDate(act.created_at)}
+                          </span>
+                        </Box>
+                      ))
+                    ) : (
+                      <Box className="!space-y-1.5 !text-gray-600">
+                        <div>
+                          {formatDate(activeTicket.maintenance_date)} · Open ·
+                          System
+                        </div>
+                        {activeTicket.technician_id && (
+                          <div>
+                            Assigned ·{' '}
+                            {activeTicket.asset_maintenance_technician?.name ||
+                              'Technician'}
+                          </div>
+                        )}
+                        {currentStatus === 'repaired' && (
+                          <div>
+                            Repaired ·{' '}
+                            {activeTicket.asset_maintenance_technician?.name ||
+                              'Technician'}
+                          </div>
+                        )}
+                        {currentStatus === 'closed' && (
+                          <div>Closed · Supervisor</div>
+                        )}
+                      </Box>
+                    )}
+                  </Box>
+                </Box>
+              </Box>
+            )
+          ) : (
+            <form onSubmit={formik.handleSubmit} className="space-y-4">
+              <Box className="!grid !grid-cols-1 md:!grid-cols-2 !gap-4">
+                <AssetSelect
+                  name="asset_id"
+                  label="Asset / Cooler"
+                  formik={formik}
+                  required
+                />
 
-                  <Input
-                    label="Due Date"
-                    type="date"
-                    value={ticketDueDate}
-                    onChange={e => setTicketDueDate(e.target.value)}
-                    slotProps={{ inputLabel: { shrink: true } }}
-                  />
-                </div>
+                <UserSelect
+                  name="technician_id"
+                  label="Technician"
+                  formik={formik}
+                />
 
-                <p className="text-gray-400 block text-[11px]">
-                  Due date fills from priority: High 2 days, Medium 5, Low 10.
-                  Past due jobs are escalated automatically.
-                </p>
+                <Input
+                  name="maintenance_date"
+                  label="Maintenance Date"
+                  type="date"
+                  formik={formik}
+                  required
+                  slotProps={{ inputLabel: { shrink: true } }}
+                />
 
-                <div className="flex items-center gap-3 pt-1">
-                  <Button
-                    variant="outlined"
-                    size="small"
-                    onClick={handleUpdateAssignment}
-                    disabled={
-                      assignTechnicianMutation.isPending || !assignedTechId
-                    }
+                <Select
+                  name="priority"
+                  label="Priority"
+                  value={formik.values.priority}
+                  disableClearable
+                  onChange={e =>
+                    formik.setFieldValue('priority', String(e.target.value))
+                  }
+                >
+                  <MenuItem value="low">Low (10 days)</MenuItem>
+                  <MenuItem value="medium">Medium (5 days)</MenuItem>
+                  <MenuItem value="high">High (2 days)</MenuItem>
+                </Select>
+
+                <Select
+                  name="repair_location"
+                  label="Repair Location"
+                  value={formik.values.repair_location}
+                  disableClearable
+                  onChange={e =>
+                    formik.setFieldValue(
+                      'repair_location',
+                      String(e.target.value)
+                    )
+                  }
+                >
+                  <MenuItem value="onsite">On Site</MenuItem>
+                  <MenuItem value="workshop">Workshop</MenuItem>
+                </Select>
+
+                <Input
+                  name="cost"
+                  label="Estimated Cost (TZS)"
+                  type="number"
+                  placeholder="Enter estimated cost"
+                  formik={formik}
+                  onChange={e => {
+                    const sanitized = e.target.value.replace(/-/g, '');
+                    formik.setFieldValue('cost', sanitized);
+                  }}
+                />
+              </Box>
+
+              <Input
+                name="issue_reported"
+                label="Issue Reported"
+                placeholder="Describe the issue that was reported"
+                formik={formik}
+                multiline
+                rows={3}
+                required
+              />
+
+              <Input
+                name="remarks"
+                label="Remarks"
+                placeholder="Enter additional remarks"
+                formik={formik}
+                multiline
+                rows={2}
+              />
+
+              <Box className="!space-y-3 !pt-1">
+                <Box className="!flex !justify-between !items-center">
+                  <Typography
+                    variant="subtitle2"
+                    className="!text-sm !font-semibold !text-gray-900"
                   >
-                    {assignTechnicianMutation.isPending
-                      ? 'Updating...'
-                      : 'Update assignment'}
-                  </Button>
-                  {activeTicket.asset_maintenance_technician?.name && (
+                    Spare Parts (Optional)
+                  </Typography>
+                  {sparesList.length > 0 && (
                     <span className="text-xs text-gray-500">
-                      Assigned to{' '}
-                      {activeTicket.asset_maintenance_technician.name}
+                      Total: {formatCurrency(sparesTotalCost)}
                     </span>
                   )}
-                </div>
-              </div>
+                </Box>
 
-              {/** Repair Result (from Mobile) */}
-              {(currentStatus === 'repaired' ||
-                currentStatus === 'closed' ||
-                activeTicket.action_taken) && (
-                <div className="bg-white p-4 rounded-lg border border-gray-200 shadow space-y-3">
-                  <h4 className="text-sm font-bold text-gray-900">
-                    Repair result (from mobile)
-                  </h4>
-                  <div className="grid grid-cols-2 gap-3 text-xs">
-                    <div>
-                      <span className="text-gray-400 uppercase tracking-wider text-[10px] font-bold">
-                        Action Taken
-                      </span>
-                      <p className="font-semibold text-gray-800 mt-0.5">
-                        {activeTicket.action_taken || 'Replaced parts'}
-                      </p>
-                    </div>
-                    <div>
-                      <span className="text-gray-400 uppercase tracking-wider text-[10px] font-bold">
-                        Status After Repair
-                      </span>
-                      <p className="font-semibold text-emerald-700 mt-0.5 capitalize">
-                        {activeTicket.status_after_repair || 'Working'}
-                      </p>
-                    </div>
-                    <div>
-                      <span className="text-gray-400 uppercase tracking-wider text-[10px] font-bold">
-                        Done By
-                      </span>
-                      <p className="text-gray-700 mt-0.5">
-                        {activeTicket.asset_maintenance_technician?.name ||
-                          'Technician'}
-                      </p>
-                    </div>
-                    <div>
-                      <span className="text-gray-400 uppercase tracking-wider text-[10px] font-bold">
-                        Photos
-                      </span>
-                      <p className="text-gray-700 mt-0.5">
-                        {Array.isArray(activeTicket.repair_photos)
-                          ? activeTicket.repair_photos.length
-                          : 0}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/** Spares and Cost Card */}
-              <div className="rounded-lg border border-gray-200 shadow space-y-3">
                 <Table
                   data={sparesList}
                   compact
-                  actions={
-                    <div className="flex justify-between items-center w-full">
-                      <h4 className="text-sm font-bold text-gray-900">
-                        Spares and cost
-                      </h4>
-                      {sparesList.length > 0 && (
-                        <span className="text-xs text-gray-500">
-                          {sparesList.length}{' '}
-                          {sparesList.length === 1 ? 'part' : 'parts'}
-                        </span>
-                      )}
-                    </div>
-                  }
                   filterColunm={false}
                   sortable={false}
                   columns={spareColumns}
@@ -707,355 +1393,96 @@ const ManageAssetMaintenance: React.FC<ManageAssetMaintenanceProps> = ({
                   pagination={false}
                   emptyMessage="No spare parts added"
                   footer={
-                    <div className="flex justify-between items-center px-4 py-2.5 border-t border-gray-200 bg-slate-50">
-                      <span className="text-xs font-semibold text-gray-800">
-                        Total:
-                      </span>
-                      <span className="text-sm font-bold text-primary-600">
-                        {formatCurrency(totalTicketCost)}
-                      </span>
-                    </div>
+                    sparesList.length > 0 ? (
+                      <div className="flex justify-between items-center px-4 py-2.5 border-t border-gray-200 bg-slate-50">
+                        <span className="text-xs font-semibold text-gray-800">
+                          Total Spares Cost:
+                        </span>
+                        <span className="text-sm font-bold text-primary-600">
+                          {formatCurrency(sparesTotalCost)}
+                        </span>
+                      </div>
+                    ) : undefined
                   }
                 />
 
-                {/** Quick Add Part Form (editable while not closed) */}
-                {currentStatus !== 'closed' && (
-                  <div className="space-y-3 px-3">
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-2 items-center">
-                      <div className="md:col-span-2">
-                        <Input
-                          placeholder="Part (typed for now) e.g. Fan motor 12V"
-                          size="small"
-                          value={newPartName}
-                          onChange={e => setNewPartName(e.target.value)}
-                        />
-                      </div>
+                <Box className="!space-y-3 !pt-2">
+                  <Box className="!grid !grid-cols-1 md:!grid-cols-4 !gap-2 !items-center">
+                    <Box className="md:col-span-2">
                       <Input
-                        placeholder="Qty"
-                        type="number"
+                        placeholder="Part name e.g. Fan motor 12V"
                         size="small"
-                        value={newPartQty}
-                        onChange={e =>
-                          setNewPartQty(Math.max(1, Number(e.target.value)))
-                        }
+                        value={newPartName}
+                        onChange={e => setNewPartName(e.target.value)}
                       />
-                      <Input
-                        placeholder="Unit cost (TZS)"
-                        type="number"
-                        size="small"
-                        value={newPartUnitCost}
-                        onChange={e =>
-                          setNewPartUnitCost(e.target.value.replace(/-/g, ''))
-                        }
-                      />
-                    </div>
-                    <Button
-                      type="button"
-                      variant="outlined"
-                      size="small"
-                      onClick={handleAddSparePart}
-                      startIcon={<Add fontSize="small" />}
-                    >
-                      Add part
-                    </Button>
-                  </div>
-                )}
-
-                {/** Close Job Action or Banner */}
-                {currentStatus === 'closed' ? (
-                  <div className="p-3 m-2 bg-emerald-50 border border-emerald-200 rounded-lg flex items-center gap-2 text-emerald-800 text-xs font-medium">
-                    <CheckCircle
-                      size={16}
-                      className="text-emerald-600 shrink-0"
-                    />
-                    <span>
-                      Closed. {formatCurrency(totalTicketCost)} saved to Asset
-                      Maintenance cost.
-                    </span>
-                  </div>
-                ) : (
-                  <div className="space-y-1.5 flex justify-end flex-col items-end px-3 gap-1 pb-2">
-                    <Button
-                      type="button"
-                      variant="contained"
-                      color="success"
-                      size="small"
-                      onClick={handleCloseJob}
-                      disabled={
-                        closeJobMutation.isPending ||
-                        currentStatus !== 'repaired'
-                      }
-                      startIcon={<CheckCircle size={16} />}
-                      className="!w-full md:!w-auto !bg-emerald-600 hover:!bg-emerald-700"
-                    >
-                      {closeJobMutation.isPending
-                        ? 'Closing...'
-                        : 'Close Ticket'}
-                    </Button>
-                    {currentStatus !== 'repaired' && (
-                      <p className="text-gray-400 block text-[11px]">
-                        You can close once the technician marks the job done on
-                        mobile.
-                      </p>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/** Status History Audit Trail */}
-              <div className="bg-white p-4 rounded-lg border border-gray-200 shadow space-y-2">
-                <h4 className="text-sm font-bold text-gray-900">
-                  Status history
-                </h4>
-                <div className="space-y-2 text-xs">
-                  {(activeTicket.activities || []).length > 0 ? (
-                    activeTicket.activities?.map(act => (
-                      <div
-                        key={act.id}
-                        className="flex items-start justify-between py-1 border-b border-gray-50 last:border-0"
-                      >
-                        <div>
-                          <span className="font-semibold text-gray-900 capitalize">
-                            {act.title || act.status}
-                          </span>
-                          <span className="text-gray-500">
-                            {' '}
-                            · {act.asset_activities_user?.name || 'System'}
-                          </span>
-                          {act.description && (
-                            <p className="text-gray-500 text-[11px] mt-0.5">
-                              {act.description}
-                            </p>
-                          )}
-                        </div>
-                        <span className="text-gray-400 text-[11px] shrink-0 ml-2">
-                          {formatDate(act.created_at)}
-                        </span>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="space-y-1.5 text-gray-600">
-                      <div className="flex justify-between">
-                        <span>
-                          {formatDate(activeTicket.maintenance_date)} · Open ·
-                          System
-                        </span>
-                      </div>
-                      {activeTicket.technician_id && (
-                        <div className="flex justify-between">
-                          <span>
-                            Assigned ·{' '}
-                            {activeTicket.asset_maintenance_technician?.name ||
-                              'Technician'}
-                          </span>
-                        </div>
-                      )}
-                      {currentStatus === 'repaired' && (
-                        <div className="flex justify-between">
-                          <span>
-                            Repaired ·{' '}
-                            {activeTicket.asset_maintenance_technician?.name ||
-                              'Technician'}
-                          </span>
-                        </div>
-                      )}
-                      {currentStatus === 'closed' && (
-                        <div className="flex justify-between">
-                          <span>Closed · Supervisor</span>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          )
-        ) : (
-          /** Brand New Maintenance Creation Form */
-          <form onSubmit={formik.handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <AssetSelect
-                name="asset_id"
-                label="Asset / Cooler"
-                formik={formik}
-                required
-              />
-
-              <UserSelect
-                name="technician_id"
-                label="Technician"
-                formik={formik}
-              />
-
-              <Input
-                name="maintenance_date"
-                label="Maintenance Date"
-                type="date"
-                formik={formik}
-                required
-                slotProps={{ inputLabel: { shrink: true } }}
-              />
-
-              <Select
-                name="priority"
-                label="Priority"
-                value={formik.values.priority}
-                onChange={(e: any) =>
-                  formik.setFieldValue('priority', e.target.value)
-                }
-              >
-                <MenuItem value="low">Low (10 days)</MenuItem>
-                <MenuItem value="medium">Medium (5 days)</MenuItem>
-                <MenuItem value="high">High (2 days)</MenuItem>
-              </Select>
-
-              <Select
-                name="repair_location"
-                label="Repair Location"
-                value={formik.values.repair_location}
-                onChange={(e: any) =>
-                  formik.setFieldValue('repair_location', e.target.value)
-                }
-              >
-                <MenuItem value="onsite">On Site</MenuItem>
-                <MenuItem value="workshop">Workshop</MenuItem>
-              </Select>
-
-              <Input
-                name="cost"
-                label="Estimated Cost (TZS)"
-                type="number"
-                placeholder="Enter estimated cost"
-                formik={formik}
-                onChange={e => {
-                  const sanitized = e.target.value.replace(/-/g, '');
-                  formik.setFieldValue('cost', sanitized);
-                }}
-              />
-            </div>
-
-            <Input
-              name="issue_reported"
-              label="Issue Reported"
-              placeholder="Describe the issue that was reported"
-              formik={formik}
-              multiline
-              rows={3}
-              required
-            />
-            <div className="h-1"></div>
-            <Input
-              name="remarks"
-              label="Remarks"
-              placeholder="Enter additional remarks"
-              formik={formik}
-              multiline
-              rows={2}
-            />
-            <div className="h-1"></div>
-
-            {/** Spares Section in Create Form */}
-            <div className="space-y-3 pt-1">
-              <div className="flex justify-between items-center">
-                <h4 className="text-sm font-semibold text-gray-900">
-                  Spare Parts (Optional)
-                </h4>
-                {sparesList.length > 0 && (
-                  <span className="text-xs text-gray-500">
-                    Total: {formatCurrency(totalTicketCost)}
-                  </span>
-                )}
-              </div>
-
-              <Table
-                data={sparesList}
-                compact
-                filterColunm={false}
-                sortable={false}
-                columns={spareColumns}
-                getRowId={(item, idx) => item.tempId || `sp_${idx}`}
-                pagination={false}
-                emptyMessage="No spare parts added"
-                footer={
-                  sparesList.length > 0 ? (
-                    <div className="flex justify-between items-center px-4 py-2.5 border-t border-gray-200 bg-slate-50">
-                      <span className="text-xs font-semibold text-gray-800">
-                        Total Spares Cost:
-                      </span>
-                      <span className="text-sm font-bold text-primary-600">
-                        {formatCurrency(totalTicketCost)}
-                      </span>
-                    </div>
-                  ) : undefined
-                }
-              />
-
-              <div className="space-y-3 pt-2">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-2 items-center">
-                  <div className="md:col-span-2">
+                    </Box>
                     <Input
-                      placeholder="Part name e.g. Fan motor 12V"
+                      placeholder="Qty"
+                      type="number"
                       size="small"
-                      value={newPartName}
-                      onChange={e => setNewPartName(e.target.value)}
+                      value={newPartQty}
+                      onChange={e =>
+                        setNewPartQty(Math.max(1, Number(e.target.value)))
+                      }
                     />
-                  </div>
-                  <Input
-                    placeholder="Qty"
-                    type="number"
+                    <Input
+                      placeholder="Unit cost (TZS)"
+                      type="number"
+                      size="small"
+                      value={newPartUnitCost}
+                      onChange={e =>
+                        setNewPartUnitCost(e.target.value.replace(/-/g, ''))
+                      }
+                    />
+                  </Box>
+                  <Button
+                    type="button"
+                    variant="outlined"
                     size="small"
-                    value={newPartQty}
-                    onChange={e =>
-                      setNewPartQty(Math.max(1, Number(e.target.value)))
-                    }
-                  />
-                  <Input
-                    placeholder="Unit cost (TZS)"
-                    type="number"
-                    size="small"
-                    value={newPartUnitCost}
-                    onChange={e =>
-                      setNewPartUnitCost(e.target.value.replace(/-/g, ''))
-                    }
-                  />
-                </div>
+                    onClick={handleAddSparePart}
+                    startIcon={<Add fontSize="small" />}
+                  >
+                    Add part
+                  </Button>
+                </Box>
+              </Box>
+
+              <ActiveInactiveField name="is_active" formik={formik} required />
+
+              <Box className="!flex !justify-end !gap-3 !pt-2">
                 <Button
                   type="button"
                   variant="outlined"
-                  size="small"
-                  onClick={handleAddSparePart}
-                  startIcon={<Add fontSize="small" />}
+                  onClick={handleCancel}
+                  disabled={createAssetMaintenanceMutation.isPending}
                 >
-                  Add part
+                  Cancel
                 </Button>
-              </div>
-            </div>
+                <Button
+                  type="submit"
+                  variant="contained"
+                  disabled={createAssetMaintenanceMutation.isPending}
+                >
+                  {createAssetMaintenanceMutation.isPending
+                    ? 'Creating...'
+                    : 'Create'}
+                </Button>
+              </Box>
+            </form>
+          )}
+        </Box>
+      </CustomDrawer>
 
-            <ActiveInactiveField name="is_active" formik={formik} required />
-
-            <div className="flex justify-end gap-3 pt-2">
-              <Button
-                type="button"
-                variant="outlined"
-                onClick={handleCancel}
-                disabled={createAssetMaintenanceMutation.isPending}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                variant="contained"
-                disabled={createAssetMaintenanceMutation.isPending}
-              >
-                {createAssetMaintenanceMutation.isPending
-                  ? 'Creating...'
-                  : 'Create'}
-              </Button>
-            </div>
-          </form>
-        )}
-      </div>
-    </CustomDrawer>
+      {isEdit && activeTicket && (
+        <WorkshopReturnModal
+          open={returnModalState.open}
+          mode={returnModalState.mode}
+          onClose={() => setReturnModalState({ open: false, mode: 'return' })}
+          ticket={activeTicket}
+          onSuccess={refetchDetails}
+        />
+      )}
+    </>
   );
 };
 

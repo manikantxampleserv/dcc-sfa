@@ -38,19 +38,27 @@ interface AssetMaintenanceSerialized {
   updatedate?: Date | null;
   updatedby?: number | null;
   log_inst?: number | null;
-  customer?: {
-    id: number;
-    name: string;
-    code: string;
-  } | null;
   asset_maintenance_master?: {
     id: number;
     name: string;
     code: string;
     serial_number: string;
     barcode?: string | null;
+    brand?: string | null;
     current_location?: string | null;
+    current_status?: string | null;
+    warranty_expiry?: Date | null;
+    outlet_id?: number | null;
+    depot_id?: number | null;
     asset_master_asset_types?: {
+      id: number;
+      name: string;
+    } | null;
+    asset_master_asset_sub_types?: {
+      id: number;
+      name: string;
+    } | null;
+    asset_master_brands?: {
       id: number;
       name: string;
     } | null;
@@ -58,19 +66,70 @@ interface AssetMaintenanceSerialized {
       id: number;
       name: string;
       code: string;
+      depot_id?: number | null;
+      customer_depot?: {
+        id: number;
+        name: string;
+      } | null;
     } | null;
     asset_master_depot?: {
       id: number;
       name: string;
     } | null;
     cooler_asset_master?: Array<{
+      id?: number;
+      status?: string | null;
       coolers_customers?: {
         id: number;
         name: string;
         code: string;
+        depot_id?: number | null;
+        customer_depot?: {
+          id: number;
+          name: string;
+        } | null;
       } | null;
     }>;
   } | null;
+  customer?: {
+    id: number;
+    name: string;
+    code: string;
+    depot_id?: number | null;
+    customer_depot?: {
+      id: number;
+      name: string;
+    } | null;
+  } | null;
+  activities?: Array<{
+    id: number;
+    event_type: string;
+    title: string;
+    description?: string | null;
+    status?: string | null;
+    metadata?: any;
+    created_at: Date;
+    asset_activities_user?: {
+      id: number;
+      name: string;
+      email?: string | null;
+    } | null;
+  }>;
+  workshop_return?: {
+    return_movement_id: number;
+    return_movement_code: string;
+    depot_id?: number | null;
+    depot_name?: string | null;
+    from_customer_id?: number | null;
+    from_customer_name?: string | null;
+    standby_asset_id?: number | null;
+    standby_serial?: string | null;
+    standby_movement_id?: number | null;
+    standby_movement_code?: string | null;
+  } | null;
+  replace_review_needed?: boolean;
+  repairs_last_90_days?: number;
+  outlet_has_cooler?: boolean;
   asset_maintenance_technician?: {
     id: number;
     name: string;
@@ -154,27 +213,310 @@ async function checkReplaceReview(assetId: number) {
 }
 
 /**
+ * Synchronizes asset_master and active coolers status when a repair finishes.
+ * Workshop units remaining at a depot stay 'Under repair' until job closure.
+ *
+ * @param {object} ticket - Updated maintenance ticket with asset_maintenance_master.
+ * @param {string} statusAfterRepair - Post-repair working state.
+ */
+async function syncAssetStatusOnRepair(
+  ticket: {
+    asset_id: number;
+    repair_location?: string | null;
+    asset_maintenance_master?: { outlet_id?: number | null } | null;
+  },
+  statusAfterRepair: string
+) {
+  if (statusAfterRepair !== 'working') return;
+  const isWorkshopAtDepot =
+    (ticket.repair_location || '').toLowerCase() === 'workshop' &&
+    !ticket.asset_maintenance_master?.outlet_id;
+  if (isWorkshopAtDepot) return;
+
+  const targetStatus = ticket.asset_maintenance_master?.outlet_id
+    ? 'Installed'
+    : 'Available';
+
+  await prisma.asset_master.update({
+    where: { id: ticket.asset_id },
+    data: { current_status: targetStatus },
+  });
+
+  await prisma.coolers.updateMany({
+    where: {
+      asset_master_id: ticket.asset_id,
+      OR: [{ status: null }, { status: { not: 'Removed' } }],
+    },
+    data: { status: targetStatus },
+  });
+}
+
+/**
+ * Installs a standby cooler from a depot at a customer outlet inside a transaction.
+ *
+ * @param {any} tx - Prisma transaction client.
+ * @param {object} params - Standby movement configuration.
+ * @returns {Promise<any>} Created asset movement record.
+ */
+async function deployStandbyCoolerTx(
+  tx: any,
+  params: {
+    standbyAsset: {
+      id: number;
+      code?: string | null;
+      serial_number: string;
+    };
+    fromCustomerId: number;
+    fromCustomerName: string;
+    depotId: number;
+    moveDate: Date;
+    userId: number;
+    jobNumber: string;
+  }
+): Promise<any> {
+  const {
+    standbyAsset,
+    fromCustomerId,
+    fromCustomerName,
+    depotId,
+    moveDate,
+    userId,
+    jobNumber,
+  } = params;
+
+  const standbyMovement = await tx.asset_movements.create({
+    data: {
+      from_direction: 'depot',
+      from_depot_id: depotId,
+      to_direction: 'outlet',
+      to_customer_id: fromCustomerId,
+      movement_type: 'installation',
+      movement_date: moveDate,
+      performed_by: userId,
+      notes: `Standby cooler installation for job ${jobNumber} at ${fromCustomerName}`,
+      status: 'A',
+      approval_status: 'A',
+      approved_by: userId,
+      approved_at: new Date(),
+      is_active: 'Y',
+      createdby: userId,
+      createdate: new Date(),
+      log_inst: 1,
+      asset_movement_assets: {
+        create: [
+          {
+            asset_id: standbyAsset.id,
+            createdby: userId,
+            createdate: new Date(),
+            log_inst: 1,
+          },
+        ],
+      },
+    },
+  });
+
+  await tx.asset_master.update({
+    where: { id: standbyAsset.id },
+    data: {
+      outlet_id: fromCustomerId,
+      depot_id: null,
+      current_location: fromCustomerName,
+      current_status: 'Installed',
+      installation_date: moveDate,
+      updatedate: new Date(),
+      updatedby: userId,
+    },
+  });
+
+  const existingStandbyCooler = await tx.coolers.findFirst({
+    where: { asset_master_id: standbyAsset.id },
+  });
+
+  if (existingStandbyCooler) {
+    await tx.coolers.update({
+      where: { id: existingStandbyCooler.id },
+      data: {
+        customer_id: fromCustomerId,
+        asset_movement_id: standbyMovement.id,
+        status: 'Installed',
+        approval_status: 'A',
+        install_date: moveDate,
+        is_active: 'Y',
+        updatedate: new Date(),
+        updatedby: userId,
+      },
+    });
+  } else {
+    await tx.coolers.create({
+      data: {
+        customer_id: fromCustomerId,
+        code:
+          standbyAsset.code || `COOL-${standbyAsset.id}-${standbyMovement.id}`,
+        asset_master_id: standbyAsset.id,
+        asset_movement_id: standbyMovement.id,
+        serial_number: standbyAsset.serial_number,
+        install_date: moveDate,
+        status: 'Installed',
+        approval_status: 'A',
+        is_active: 'Y',
+        createdby: userId,
+        createdate: new Date(),
+        log_inst: 1,
+      },
+    });
+  }
+
+  return standbyMovement;
+}
+
+const ASSET_MAINTENANCE_MASTER_INCLUDE = {
+  include: {
+    asset_master_asset_types: {
+      select: { id: true, name: true },
+    },
+    asset_master_asset_sub_types: {
+      select: { id: true, name: true },
+    },
+    asset_master_brands: {
+      select: { id: true, name: true },
+    },
+    asset_master_outlet: {
+      select: {
+        id: true,
+        name: true,
+        code: true,
+        depot_id: true,
+        customer_depot: {
+          select: { id: true, name: true },
+        },
+      },
+    },
+    asset_master_depot: {
+      select: { id: true, name: true },
+    },
+    cooler_asset_master: {
+      select: {
+        id: true,
+        status: true,
+        coolers_customers: {
+          select: {
+            id: true,
+            name: true,
+            code: true,
+            depot_id: true,
+            customer_depot: {
+              select: { id: true, name: true },
+            },
+          },
+        },
+      },
+    },
+  },
+};
+
+/**
  * Serializes raw Prisma asset maintenance model into standard client payload.
  *
  * @param {any} m - Raw database record.
  * @param {any} replaceReview - Optional replace review object.
+ * @param {any} resolvedCustomer - Fallback customer from customer_assets.
+ * @param {any[]} activities - Ticket lifecycle activity logs.
  * @returns {AssetMaintenanceSerialized} Serialized maintenance ticket.
  */
 const serializeAssetMaintenance = (
   m: any,
   replaceReview?: any,
-  resolvedCustomer?: any
+  resolvedCustomer?: any,
+  activities?: any[],
+  outletHasCooler?: boolean
 ): AssetMaintenanceSerialized => {
   const isOverdue =
     m.status !== 'closed' &&
     Boolean(m.due_date && new Date() > new Date(m.due_date));
 
-  const customerObj =
-    resolvedCustomer ||
-    m.customer ||
-    m.asset_maintenance_master?.asset_master_outlet ||
-    m.asset_maintenance_master?.cooler_asset_master?.[0]?.coolers_customers ||
-    null;
+  const statusLower = (m.status || 'open').toLowerCase();
+  const repairLocationLower = (m.repair_location || 'onsite').toLowerCase();
+
+  const workshopActivity = Array.isArray(activities)
+    ? [...activities]
+        .reverse()
+        .find((a: any) => a.metadata && a.metadata.return_movement_code)
+    : null;
+
+  const standbyActivity = Array.isArray(activities)
+    ? [...activities]
+        .reverse()
+        .find((a: any) => a.metadata && a.metadata.standby_movement_code)
+    : null;
+
+  const standbyReturnedActivity = Array.isArray(activities)
+    ? [...activities]
+        .reverse()
+        .find(
+          (a: any) => a.metadata && a.metadata.standby_returned_movement_code
+        )
+    : null;
+
+  const workshopReturnMeta = workshopActivity?.metadata
+    ? {
+        ...workshopActivity.metadata,
+        ...(standbyActivity?.metadata
+          ? {
+              standby_asset_id: standbyActivity.metadata.standby_asset_id,
+              standby_serial: standbyActivity.metadata.standby_serial,
+              standby_movement_id: standbyActivity.metadata.standby_movement_id,
+              standby_movement_code:
+                standbyActivity.metadata.standby_movement_code,
+            }
+          : {}),
+        ...(standbyReturnedActivity?.metadata
+          ? {
+              standby_returned: true,
+              standby_returned_movement_id:
+                standbyReturnedActivity.metadata.standby_returned_movement_id,
+              standby_returned_movement_code:
+                standbyReturnedActivity.metadata.standby_returned_movement_code,
+            }
+          : {}),
+      }
+    : null;
+
+  const assetUnderRepairAtDepot = Boolean(
+    m.asset_maintenance_master &&
+    m.asset_maintenance_master.outlet_id === null &&
+    m.asset_maintenance_master.depot_id !== null &&
+    m.asset_maintenance_master.current_status?.toLowerCase() === 'under repair'
+  );
+
+  const effectiveStatus =
+    repairLocationLower === 'workshop' &&
+    (statusLower === 'open' || statusLower === 'assigned')
+      ? workshopActivity || assetUnderRepairAtDepot
+        ? 'at_workshop'
+        : 'awaiting_return'
+      : statusLower;
+
+  const assetIsAtDepot =
+    m.asset_maintenance_master &&
+    m.asset_maintenance_master.outlet_id === null &&
+    m.asset_maintenance_master.depot_id !== null &&
+    (effectiveStatus === 'at_workshop' ||
+      effectiveStatus === 'closed' ||
+      m.asset_maintenance_master.current_status?.toLowerCase() ===
+        'under repair');
+
+  const activeCoolerCustomer =
+    m.asset_maintenance_master?.cooler_asset_master?.find(
+      (c: any) => c.status !== 'Removed' && c.coolers_customers
+    )?.coolers_customers || null;
+
+  const customerObj = assetIsAtDepot
+    ? null
+    : resolvedCustomer ||
+      m.customer ||
+      m.asset_maintenance_master?.asset_master_outlet ||
+      activeCoolerCustomer ||
+      null;
 
   return {
     id: m.id,
@@ -182,10 +524,10 @@ const serializeAssetMaintenance = (
     asset_id: m.asset_id,
     technician_id: m.technician_id ? Number(m.technician_id) : null,
     maintenance_date: m.maintenance_date,
-    status: (m.status || 'open').toLowerCase(),
+    status: effectiveStatus,
     priority: (m.priority || 'medium').toLowerCase(),
     due_date: m.due_date,
-    repair_location: m.repair_location || 'onsite',
+    repair_location: repairLocationLower,
     issue_reported: m.issue_reported,
     action_taken: m.action_taken,
     cost: m.cost ? Number(m.cost) : 0,
@@ -212,6 +554,13 @@ const serializeAssetMaintenance = (
           id: customerObj.id,
           name: customerObj.name,
           code: customerObj.code,
+          depot_id: customerObj.depot_id ?? null,
+          customer_depot: customerObj.customer_depot
+            ? {
+                id: customerObj.customer_depot.id,
+                name: customerObj.customer_depot.name,
+              }
+            : null,
         }
       : null,
     spares: Array.isArray(m.spares)
@@ -230,7 +579,12 @@ const serializeAssetMaintenance = (
           code: m.asset_maintenance_master.code,
           serial_number: m.asset_maintenance_master.serial_number,
           barcode: m.asset_maintenance_master.barcode,
+          brand: m.asset_maintenance_master.brand || null,
           current_location: m.asset_maintenance_master.current_location,
+          current_status: m.asset_maintenance_master.current_status || null,
+          warranty_expiry: m.asset_maintenance_master.warranty_expiry || null,
+          outlet_id: m.asset_maintenance_master.outlet_id ?? null,
+          depot_id: m.asset_maintenance_master.depot_id ?? null,
           asset_master_asset_types: m.asset_maintenance_master
             .asset_master_asset_types
             ? {
@@ -238,11 +592,32 @@ const serializeAssetMaintenance = (
                 name: m.asset_maintenance_master.asset_master_asset_types.name,
               }
             : null,
+          asset_master_asset_sub_types: m.asset_maintenance_master
+            .asset_master_asset_sub_types
+            ? {
+                id: m.asset_maintenance_master.asset_master_asset_sub_types.id,
+                name: m.asset_maintenance_master.asset_master_asset_sub_types
+                  .name,
+              }
+            : null,
+          asset_master_brands: m.asset_maintenance_master.asset_master_brands
+            ? {
+                id: m.asset_maintenance_master.asset_master_brands.id,
+                name: m.asset_maintenance_master.asset_master_brands.name,
+              }
+            : null,
           asset_master_outlet: customerObj
             ? {
                 id: customerObj.id,
                 name: customerObj.name,
                 code: customerObj.code,
+                depot_id: customerObj.depot_id ?? null,
+                customer_depot: customerObj.customer_depot
+                  ? {
+                      id: customerObj.customer_depot.id,
+                      name: customerObj.customer_depot.name,
+                    }
+                  : null,
               }
             : null,
           asset_master_depot: m.asset_maintenance_master.asset_master_depot
@@ -263,9 +638,63 @@ const serializeAssetMaintenance = (
           profile_image: m.asset_maintenance_technician.profile_image,
         }
       : null,
+    activities: activities || undefined,
+    workshop_return: workshopReturnMeta,
+    outlet_has_cooler: outletHasCooler,
     replace_review: replaceReview || undefined,
+    replace_review_needed: replaceReview?.shouldReview || false,
+    repairs_last_90_days: replaceReview?.repairCount || 0,
   };
 };
+
+/**
+ * Fetches timeline activity entries linked directly to a maintenance ticket.
+ *
+ * @param {number} maintenanceId - Maintenance ticket ID.
+ * @returns {Promise<any[]>} Serialized ticket activities ordered chronologically.
+ */
+async function fetchTicketActivities(maintenanceId: number) {
+  const rows = await prisma.asset_activities.findMany({
+    where: {
+      source_table: 'asset_maintenance',
+      source_id: maintenanceId,
+      is_active: 'Y',
+    },
+    orderBy: { event_date: 'asc' },
+    include: {
+      activity_user: {
+        select: { id: true, name: true, email: true },
+      },
+    },
+  });
+
+  return rows.map((a: any) => {
+    let metadata: any = null;
+    if (a.meta_json) {
+      try {
+        metadata = JSON.parse(a.meta_json);
+      } catch (_err) {
+        metadata = null;
+      }
+    }
+    return {
+      id: a.id,
+      event_type: a.event_type,
+      title: a.title,
+      description: a.description,
+      status: a.status,
+      metadata,
+      created_at: a.event_date || a.createdate,
+      asset_activities_user: a.activity_user
+        ? {
+            id: a.activity_user.id,
+            name: a.activity_user.name,
+            email: a.activity_user.email,
+          }
+        : null,
+    };
+  });
+}
 
 export const assetMaintenanceController = {
   /**
@@ -330,22 +759,47 @@ export const assetMaintenanceController = {
       );
       const totalCost = partsTotal + parsedLabour;
 
+      const repairLocation = (
+        maintenanceData.repair_location || 'onsite'
+      ).toLowerCase();
+      const requestedStatus = maintenanceData.status
+        ? String(maintenanceData.status).toLowerCase()
+        : '';
+      const validWorkshopStatuses = [
+        'awaiting_return',
+        'at_workshop',
+        'repaired',
+        'closed',
+      ];
+      const rawTechId = maintenanceData.technician_id;
+      const parsedTechId =
+        rawTechId !== undefined &&
+        rawTechId !== null &&
+        rawTechId !== '' &&
+        rawTechId !== 'null' &&
+        rawTechId !== 'undefined' &&
+        !isNaN(Number(rawTechId)) &&
+        Number(rawTechId) > 0
+          ? Number(rawTechId)
+          : null;
+
       const initialStatus =
-        maintenanceData.status ||
-        (maintenanceData.technician_id ? 'assigned' : 'open');
+        repairLocation === 'workshop'
+          ? validWorkshopStatuses.includes(requestedStatus)
+            ? requestedStatus
+            : 'awaiting_return'
+          : requestedStatus || (parsedTechId ? 'assigned' : 'open');
 
       const record = await prisma.asset_maintenance.create({
         data: {
           asset_id: Number(maintenanceData.asset_id),
-          technician_id: maintenanceData.technician_id
-            ? Number(maintenanceData.technician_id)
-            : null,
+          technician_id: parsedTechId,
           maintenance_date: new Date(maintenanceData.maintenance_date),
           job_number: jobNumber,
           status: initialStatus,
           priority,
           due_date: dueDate,
-          repair_location: maintenanceData.repair_location || 'onsite',
+          repair_location: repairLocation,
           issue_reported: maintenanceData.issue_reported || null,
           action_taken: maintenanceData.action_taken || null,
           source_type: maintenanceData.source_type || 'manual',
@@ -358,7 +812,7 @@ export const assetMaintenanceController = {
           cost: totalCost,
           remarks: maintenanceData.remarks || null,
           warranty_claim: Boolean(maintenanceData.warranty_claim),
-          createdby: req.user?.id || 1,
+          createdby: maintenanceData.created_by || req.user?.id || 1,
           createdate: new Date(),
           log_inst: maintenanceData.log_inst || 1,
           ...(sparesToCreate.length > 0
@@ -370,19 +824,7 @@ export const assetMaintenanceController = {
             : {}),
         },
         include: {
-          asset_maintenance_master: {
-            include: {
-              asset_master_asset_types: {
-                select: { id: true, name: true },
-              },
-              asset_master_outlet: {
-                select: { id: true, name: true, code: true },
-              },
-              asset_master_depot: {
-                select: { id: true, name: true },
-              },
-            },
-          },
+          asset_maintenance_master: ASSET_MAINTENANCE_MASTER_INCLUDE,
           asset_maintenance_technician: true,
           spares: true,
         },
@@ -441,13 +883,56 @@ export const assetMaintenanceController = {
       const searchLower = search ? (search as string).toLowerCase() : '';
       const statusLower = status ? (status as string).toLowerCase() : '';
 
+      const technicianIdParam = technician_id
+        ? String(technician_id).trim()
+        : '';
+      const hasTechFilter = Boolean(
+        technicianIdParam && technicianIdParam !== 'all'
+      );
+      const isUnassigned =
+        hasTechFilter &&
+        (technicianIdParam === 'unassigned' ||
+          technicianIdParam === 'null' ||
+          technicianIdParam === '0');
+      const techIdNum =
+        hasTechFilter && !isUnassigned && !isNaN(Number(technicianIdParam))
+          ? Number(technicianIdParam)
+          : undefined;
+
+      const techFilterClause: any = hasTechFilter
+        ? isUnassigned
+          ? { technician_id: null }
+          : techIdNum !== undefined
+            ? { technician_id: techIdNum }
+            : {}
+        : {};
+
+      const statusFilterClause =
+        statusLower && statusLower !== 'all'
+          ? statusLower === 'awaiting_return'
+            ? {
+                OR: [
+                  { status: 'awaiting_return' },
+                  {
+                    repair_location: 'workshop',
+                    status: { in: ['open', 'assigned'] },
+                  },
+                ],
+              }
+            : statusLower === 'open'
+              ? {
+                  status: 'open',
+                  repair_location: { not: 'workshop' },
+                }
+              : { status: statusLower }
+          : {};
+
       const filters: any = {
         is_active: 'Y',
         ...(asset_id && { asset_id: Number(asset_id) }),
-        ...(technician_id &&
-          technician_id !== 'all' && { technician_id: Number(technician_id) }),
+        ...techFilterClause,
         ...(priority && { priority: (priority as string).toLowerCase() }),
-        ...(statusLower && statusLower !== 'all' && { status: statusLower }),
+        ...statusFilterClause,
         ...(overdue === 'true' && {
           status: { not: 'closed' },
           due_date: { lt: new Date() },
@@ -484,26 +969,7 @@ export const assetMaintenanceController = {
         limit: limitNum,
         orderBy: { createdate: 'desc' },
         include: {
-          asset_maintenance_master: {
-            include: {
-              asset_master_asset_types: {
-                select: { id: true, name: true },
-              },
-              asset_master_outlet: {
-                select: { id: true, name: true, code: true },
-              },
-              asset_master_depot: {
-                select: { id: true, name: true },
-              },
-              cooler_asset_master: {
-                select: {
-                  coolers_customers: {
-                    select: { id: true, name: true, code: true },
-                  },
-                },
-              },
-            },
-          },
+          asset_maintenance_master: ASSET_MAINTENANCE_MASTER_INCLUDE,
           asset_maintenance_technician: true,
           spares: true,
         },
@@ -513,10 +979,13 @@ export const assetMaintenanceController = {
       const missingOutletSerials = data
         .filter((m: any) => {
           const master = m.asset_maintenance_master;
+          const activeCooler = master?.cooler_asset_master?.find(
+            (c: any) => c.status !== 'Removed' && c.coolers_customers
+          );
           return (
             master &&
             !master.asset_master_outlet &&
-            !master.cooler_asset_master?.[0]?.coolers_customers &&
+            !activeCooler &&
             master.serial_number
           );
         })
@@ -530,7 +999,13 @@ export const assetMaintenanceController = {
           },
           include: {
             customer_assets_customers: {
-              select: { id: true, name: true, code: true },
+              select: {
+                id: true,
+                name: true,
+                code: true,
+                depot_id: true,
+                customer_depot: { select: { id: true, name: true } },
+              },
             },
           },
         });
@@ -546,22 +1021,32 @@ export const assetMaintenanceController = {
 
       const now = new Date();
 
-      /** Compute summary counts for the top dashboard cards */
+      /** Compute summary counts for the top dashboard cards filtered by technician if provided */
+      const baseStatsWhere: any = {
+        is_active: 'Y',
+        ...techFilterClause,
+      };
+
       const [totalRecords, openJobs, overdueJobs, closedJobs, newComplaints] =
         await Promise.all([
-          prisma.asset_maintenance.count({ where: { is_active: 'Y' } }),
+          prisma.asset_maintenance.count({ where: baseStatsWhere }),
           prisma.asset_maintenance.count({
-            where: { is_active: 'Y', status: { in: ['open', 'assigned'] } },
+            where: {
+              ...baseStatsWhere,
+              status: {
+                not: 'closed',
+              },
+            },
           }),
           prisma.asset_maintenance.count({
             where: {
-              is_active: 'Y',
+              ...baseStatsWhere,
               status: { not: 'closed' },
               due_date: { lt: now },
             },
           }),
           prisma.asset_maintenance.count({
-            where: { is_active: 'Y', status: 'closed' },
+            where: { ...baseStatsWhere, status: 'closed' },
           }),
           prisma.customer_complaints.count({
             where: { status: 'P' },
@@ -604,26 +1089,7 @@ export const assetMaintenanceController = {
       const record = await prisma.asset_maintenance.findUnique({
         where: { id: Number(id) },
         include: {
-          asset_maintenance_master: {
-            include: {
-              asset_master_asset_types: {
-                select: { id: true, name: true },
-              },
-              asset_master_outlet: {
-                select: { id: true, name: true, code: true },
-              },
-              asset_master_depot: {
-                select: { id: true, name: true },
-              },
-              cooler_asset_master: {
-                select: {
-                  coolers_customers: {
-                    select: { id: true, name: true, code: true },
-                  },
-                },
-              },
-            },
-          },
+          asset_maintenance_master: ASSET_MAINTENANCE_MASTER_INCLUDE,
           asset_maintenance_technician: true,
           spares: true,
         },
@@ -635,17 +1101,26 @@ export const assetMaintenanceController = {
 
       let fallbackCustomer: any = null;
       const master = record.asset_maintenance_master;
+      const activeCoolerCustomer = master?.cooler_asset_master?.find(
+        (c: any) => c.status !== 'Removed' && c.coolers_customers
+      );
       if (
         master &&
         !master.asset_master_outlet &&
-        !master.cooler_asset_master?.[0]?.coolers_customers &&
+        !activeCoolerCustomer &&
         master.serial_number
       ) {
         const found = await prisma.customer_assets.findFirst({
           where: { serial_number: master.serial_number },
           include: {
             customer_assets_customers: {
-              select: { id: true, name: true, code: true },
+              select: {
+                id: true,
+                name: true,
+                code: true,
+                depot_id: true,
+                customer_depot: { select: { id: true, name: true } },
+              },
             },
           },
         });
@@ -654,14 +1129,33 @@ export const assetMaintenanceController = {
         }
       }
 
-      const replaceReview = await checkReplaceReview(record.asset_id);
+      const [replaceReview, activities] = await Promise.all([
+        checkReplaceReview(record.asset_id),
+        fetchTicketActivities(record.id),
+      ]);
+
+      const returnAct = [...activities]
+        .reverse()
+        .find((a: any) => a.metadata && a.metadata.return_movement_code);
+      const fromCustomerId =
+        returnAct?.metadata?.from_customer_id ||
+        fallbackCustomer?.id ||
+        master?.outlet_id ||
+        null;
+      const outletHasCooler = fromCustomerId
+        ? (await prisma.asset_master.count({
+            where: { outlet_id: Number(fromCustomerId), is_active: 'Y' },
+          })) > 0
+        : undefined;
 
       res.json({
         message: 'Asset maintenance fetched successfully',
         data: serializeAssetMaintenance(
           record,
           replaceReview,
-          fallbackCustomer
+          fallbackCustomer,
+          activities,
+          outletHasCooler
         ),
       });
     } catch (error: any) {
@@ -742,76 +1236,181 @@ export const assetMaintenanceController = {
 
         const newTotalCost = partsTotal + effectiveLabour;
 
+        const updatePayload: any = {
+          cost: newTotalCost,
+          labour_cost: effectiveLabour,
+          updatedby: req.user?.id || 1,
+          updatedate: new Date(),
+        };
+
+        if (updateData.maintenance_date) {
+          updatePayload.maintenance_date = new Date(updateData.maintenance_date);
+        }
+        if (updateData.issue_reported !== undefined) {
+          updatePayload.issue_reported = updateData.issue_reported || null;
+        }
+        if (updateData.action_taken !== undefined) {
+          updatePayload.action_taken = updateData.action_taken || null;
+        }
+        if (updateData.remarks !== undefined) {
+          updatePayload.remarks = updateData.remarks || null;
+        }
+        if (updateData.repair_location !== undefined) {
+          updatePayload.repair_location = String(updateData.repair_location).toLowerCase();
+        }
+        if (updateData.source_type !== undefined) {
+          updatePayload.source_type = updateData.source_type || null;
+        }
+        if (updateData.source_id !== undefined) {
+          updatePayload.source_id =
+            updateData.source_id && Number(updateData.source_id) > 0
+              ? Number(updateData.source_id)
+              : null;
+        }
+        if (updateData.source_code !== undefined) {
+          updatePayload.source_code = updateData.source_code || null;
+        }
+        if (updateData.secondary_source_code !== undefined) {
+          updatePayload.secondary_source_code = updateData.secondary_source_code || null;
+        }
+        if (updateData.priority) {
+          const prio = String(updateData.priority).toLowerCase();
+          updatePayload.priority = prio;
+          if (!updateData.due_date) {
+            updatePayload.due_date = calculateDueDate(prio);
+          }
+        }
+        if (updateData.due_date) {
+          updatePayload.due_date = new Date(updateData.due_date);
+        }
+        if (updateData.status) {
+          const statusLower = String(updateData.status).toLowerCase();
+          updatePayload.status = statusLower;
+          if (statusLower === 'repaired') {
+            updatePayload.repaired_date = updateData.repaired_date
+              ? new Date(updateData.repaired_date)
+              : new Date();
+            updatePayload.status_after_repair =
+              updateData.status_after_repair ||
+              existing.status_after_repair ||
+              'working';
+          } else if (statusLower === 'closed') {
+            updatePayload.closed_date = updateData.closed_date
+              ? new Date(updateData.closed_date)
+              : new Date();
+          }
+        }
+        if (updateData.status_after_repair !== undefined) {
+          updatePayload.status_after_repair = updateData.status_after_repair || null;
+        }
+        if (updateData.escalated_to !== undefined) {
+          updatePayload.escalated_to = updateData.escalated_to || null;
+        }
+        if (updateData.warranty_claim !== undefined) {
+          updatePayload.warranty_claim = Boolean(updateData.warranty_claim);
+        }
+        if (updateData.repair_photos !== undefined) {
+          updatePayload.repair_photos =
+            typeof updateData.repair_photos === 'string'
+              ? updateData.repair_photos
+              : JSON.stringify(updateData.repair_photos);
+        }
+        if (updateData.is_active !== undefined) {
+          updatePayload.is_active = updateData.is_active;
+        }
+        if (updateData.log_inst !== undefined) {
+          updatePayload.log_inst = Number(updateData.log_inst) || 1;
+        }
+
+        if (updateData.technician_id !== undefined) {
+          const rawTechId = updateData.technician_id;
+          const validTechId =
+            rawTechId !== null &&
+            rawTechId !== '' &&
+            rawTechId !== 'null' &&
+            rawTechId !== 'undefined' &&
+            !isNaN(Number(rawTechId)) &&
+            Number(rawTechId) > 0
+              ? Number(rawTechId)
+              : null;
+
+          if (validTechId) {
+            updatePayload.asset_maintenance_technician = {
+              connect: { id: validTechId },
+            };
+          } else {
+            updatePayload.asset_maintenance_technician = {
+              disconnect: true,
+            };
+          }
+        }
+
+        if (
+          updateData.asset_id &&
+          Number(updateData.asset_id) > 0 &&
+          Number(updateData.asset_id) !== existing.asset_id
+        ) {
+          updatePayload.asset_maintenance_master = {
+            connect: { id: Number(updateData.asset_id) },
+          };
+        }
+
         return tx.asset_maintenance.update({
           where: { id: maintenanceId },
-          data: {
-            ...updateData,
-            ...(updateData.technician_id !== undefined
-              ? {
-                  technician_id: updateData.technician_id
-                    ? Number(updateData.technician_id)
-                    : null,
-                }
-              : {}),
-            labour_cost: effectiveLabour,
-            cost: newTotalCost,
-            ...(updateData.priority && !updateData.due_date
-              ? { due_date: calculateDueDate(updateData.priority) }
-              : {}),
-            ...(updateData.due_date
-              ? { due_date: new Date(updateData.due_date) }
-              : {}),
-            ...(updateData.maintenance_date
-              ? { maintenance_date: new Date(updateData.maintenance_date) }
-              : {}),
-            ...((updateData.status && String(updateData.status).toLowerCase() === 'repaired')
-              ? {
-                  status: 'repaired',
-                  repaired_date: updateData.repaired_date
-                    ? new Date(updateData.repaired_date)
-                    : new Date(),
-                  status_after_repair:
-                    updateData.status_after_repair ||
-                    existing.status_after_repair ||
-                    'working',
-                }
-              : {}),
-            ...((updateData.status && String(updateData.status).toLowerCase() === 'closed')
-              ? {
-                  status: 'closed',
-                  closed_date: updateData.closed_date
-                    ? new Date(updateData.closed_date)
-                    : new Date(),
-                }
-              : {}),
-            ...(updateData.repair_photos && typeof updateData.repair_photos !== 'string'
-              ? { repair_photos: JSON.stringify(updateData.repair_photos) }
-              : {}),
-            updatedby: req.user?.id || 1,
-            updatedate: new Date(),
-          },
+          data: updatePayload,
           include: {
-            asset_maintenance_master: {
-              include: {
-                asset_master_asset_types: {
-                  select: { id: true, name: true },
-                },
-                asset_master_outlet: {
-                  select: { id: true, name: true, code: true },
-                },
-                asset_master_depot: {
-                  select: { id: true, name: true },
-                },
-                cooler_asset_master: {
-                  select: { id: true },
-                },
-              },
-            },
+            asset_maintenance_master: ASSET_MAINTENANCE_MASTER_INCLUDE,
             asset_maintenance_technician: true,
             spares: true,
           },
         });
       });
+
+      if (
+        updateData.warranty_claim !== undefined &&
+        Boolean(updateData.warranty_claim) !== Boolean(existing.warranty_claim)
+      ) {
+        const raised = Boolean(updateData.warranty_claim);
+        const ticketCode = updated.job_number || `MT-${updated.id}`;
+        if (raised) {
+          const existingClaim = await prisma.asset_warranty_claims.findFirst({
+            where: {
+              asset_id: updated.asset_id,
+              notes: { contains: ticketCode },
+            },
+          });
+          if (!existingClaim) {
+            await prisma.asset_warranty_claims.create({
+              data: {
+                asset_id: updated.asset_id,
+                claim_date: new Date(),
+                issue_description:
+                  updated.issue_reported || 'Parts warranty claim from repair',
+                claim_status: 'P',
+                notes: `Raised from maintenance ticket ${ticketCode}`,
+                is_active: 'Y',
+                createdby: req.user?.id || 1,
+                createdate: new Date(),
+                log_inst: 1,
+              },
+            });
+          }
+        }
+        await logAssetActivity({
+          assetId: updated.asset_id,
+          eventType: 'maintenance',
+          title: raised
+            ? `Warranty claim raised for ${ticketCode}`
+            : `Warranty claim cleared for ${ticketCode}`,
+          description: raised
+            ? 'Supplier parts warranty claim flagged'
+            : 'Warranty claim flag removed',
+          status: updated.status,
+          performedBy: req.user?.id || 1,
+          sourceTable: 'asset_maintenance',
+          sourceId: updated.id,
+        });
+      }
 
       /** Detect status transition and log corresponding timeline activity */
       const prevStatus = (existing.status || 'open').toLowerCase();
@@ -824,18 +1423,7 @@ export const assetMaintenanceController = {
           updateData.status_after_repair ||
           'working';
 
-        /** When repaired and in working condition, synchronize asset and cooler status */
-        if (statusAfterRepair === 'working') {
-          await prisma.asset_master.update({
-            where: { id: updated.asset_id },
-            data: { current_status: 'working' },
-          });
-
-          await prisma.coolers.updateMany({
-            where: { asset_master_id: updated.asset_id },
-            data: { status: 'working' },
-          });
-        }
+        await syncAssetStatusOnRepair(updated, statusAfterRepair);
 
         const actionTaken =
           updated.action_taken ||
@@ -871,7 +1459,7 @@ export const assetMaintenanceController = {
               qty: s.quantity,
               cost: Number(s.cost),
             })),
-            log: `Status updated from ${prevStatus} to repaired`,
+            log: `Status updated from ${prevStatus.replaceAll('_', '')} to repaired`,
           },
         });
       } else if (newStatus === 'closed' && statusChanged) {
@@ -923,7 +1511,7 @@ export const assetMaintenanceController = {
               ?.id || null,
           eventType: 'maintenance',
           title: `Ticket ${updated.job_number || `MT-${updated.id}`} updated`,
-          description: `Status changed from ${prevStatus} to ${newStatus}`,
+          description: `Status changed from ${prevStatus.replaceAll('_', ' ')} to ${newStatus.replaceAll('_', ' ')}`,
           status: newStatus,
           locationName:
             updated.asset_maintenance_master?.asset_master_outlet?.name ||
@@ -937,11 +1525,19 @@ export const assetMaintenanceController = {
         });
       }
 
-      const replaceReview = await checkReplaceReview(updated.asset_id);
+      const [replaceReview, activities] = await Promise.all([
+        checkReplaceReview(updated.asset_id),
+        fetchTicketActivities(updated.id),
+      ]);
 
       res.json({
         message: 'Asset maintenance updated successfully',
-        data: serializeAssetMaintenance(updated, replaceReview),
+        data: serializeAssetMaintenance(
+          updated,
+          replaceReview,
+          undefined,
+          activities
+        ),
       });
     } catch (error: any) {
       console.error('Update Asset Maintenance Error:', error);
@@ -992,18 +1588,20 @@ export const assetMaintenanceController = {
           technician_id: Number(technician_id),
           priority: selectedPriority,
           due_date: calculatedDueDate,
-          status: ticket.status === 'open' ? 'assigned' : ticket.status,
+          status:
+            (ticket.repair_location || '').toLowerCase() === 'workshop' &&
+            (!ticket.status ||
+              ticket.status === 'open' ||
+              ticket.status === 'assigned')
+              ? 'awaiting_return'
+              : ticket.status === 'open'
+                ? 'assigned'
+                : ticket.status,
           updatedate: new Date(),
           updatedby: req.user?.id || 1,
         },
         include: {
-          asset_maintenance_master: {
-            include: {
-              asset_master_asset_types: true,
-              asset_master_outlet: true,
-              asset_master_depot: true,
-            },
-          },
+          asset_maintenance_master: ASSET_MAINTENANCE_MASTER_INCLUDE,
           asset_maintenance_technician: true,
           spares: true,
         },
@@ -1021,9 +1619,16 @@ export const assetMaintenanceController = {
         sourceId: updated.id,
       });
 
+      const activities = await fetchTicketActivities(updated.id);
+
       res.json({
         message: 'Technician assigned successfully',
-        data: serializeAssetMaintenance(updated),
+        data: serializeAssetMaintenance(
+          updated,
+          undefined,
+          undefined,
+          activities
+        ),
       });
     } catch (error: any) {
       console.error('Assign Technician Error:', error);
@@ -1068,17 +1673,16 @@ export const assetMaintenanceController = {
           updatedby: req.user?.id || 1,
         },
         include: {
-          asset_maintenance_master: {
-            include: {
-              asset_master_asset_types: true,
-              asset_master_outlet: true,
-              asset_master_depot: true,
-            },
-          },
+          asset_maintenance_master: ASSET_MAINTENANCE_MASTER_INCLUDE,
           asset_maintenance_technician: true,
           spares: true,
         },
       });
+
+      await syncAssetStatusOnRepair(
+        updated,
+        updated.status_after_repair || 'working'
+      );
 
       /** Log repair completion in Cooler 360 timeline */
       await logAssetActivity({
@@ -1092,9 +1696,16 @@ export const assetMaintenanceController = {
         sourceId: updated.id,
       });
 
+      const activities = await fetchTicketActivities(updated.id);
+
       res.json({
         message: 'Repair result recorded successfully',
-        data: serializeAssetMaintenance(updated),
+        data: serializeAssetMaintenance(
+          updated,
+          undefined,
+          undefined,
+          activities
+        ),
       });
     } catch (error: any) {
       console.error('Submit Mobile Repair Error:', error);
@@ -1185,18 +1796,41 @@ export const assetMaintenanceController = {
             updatedby: req.user?.id || 1,
           },
           include: {
-            asset_maintenance_master: {
-              include: {
-                asset_master_asset_types: true,
-                asset_master_outlet: true,
-                asset_master_depot: true,
-              },
-            },
+            asset_maintenance_master: ASSET_MAINTENANCE_MASTER_INCLUDE,
             asset_maintenance_technician: true,
             spares: true,
           },
         });
       });
+
+      if (
+        updated.repair_location?.toLowerCase() === 'workshop' &&
+        !updated.asset_maintenance_master?.outlet_id
+      ) {
+        await prisma.asset_master.update({
+          where: { id: updated.asset_id },
+          data: {
+            current_status:
+              updated.status_after_repair === 'damaged'
+                ? 'Damaged'
+                : 'Available',
+            updatedate: new Date(),
+            updatedby: req.user?.id || 1,
+          },
+        });
+      } else if (updated.asset_maintenance_master?.outlet_id) {
+        await prisma.asset_master.update({
+          where: { id: updated.asset_id },
+          data: {
+            current_status:
+              updated.status_after_repair === 'damaged'
+                ? 'Damaged'
+                : 'Installed',
+            updatedate: new Date(),
+            updatedby: req.user?.id || 1,
+          },
+        });
+      }
 
       /** Log closure in Cooler 360 timeline */
       await logAssetActivity({
@@ -1219,9 +1853,16 @@ export const assetMaintenanceController = {
         },
       });
 
+      const activities = await fetchTicketActivities(updated.id);
+
       res.json({
         message: 'Maintenance job closed successfully',
-        data: serializeAssetMaintenance(updated),
+        data: serializeAssetMaintenance(
+          updated,
+          undefined,
+          undefined,
+          activities
+        ),
       });
     } catch (error: any) {
       console.error('Close Maintenance Job Error:', error);
@@ -1230,19 +1871,535 @@ export const assetMaintenanceController = {
   },
 
   /**
-   * Retrieves quick summary stats for top KPI cards.
+   * Executes the workshop return movement (and optional standby cooler install)
+   * directly from a maintenance job, moving the job to `at_workshop`.
    */
-  async getMaintenanceDashboardStats(_req: Request, res: Response) {
+  async createWorkshopReturnMovement(req: any, res: Response) {
     try {
+      const ticketId = Number(req.params.id);
+      const {
+        to_depot_id,
+        movement_date,
+        install_standby,
+        standby_asset_id,
+        notes,
+      } = req.body;
+
+      const ticket = await prisma.asset_maintenance.findUnique({
+        where: { id: ticketId },
+        include: {
+          asset_maintenance_master: ASSET_MAINTENANCE_MASTER_INCLUDE,
+          asset_maintenance_technician: true,
+          spares: true,
+        },
+      });
+
+      if (!ticket) {
+        return res
+          .status(404)
+          .json({ message: 'Maintenance ticket not found' });
+      }
+
+      const currentStatus = (ticket.status || '').toLowerCase();
+      if (currentStatus === 'closed') {
+        return res.status(400).json({
+          message: 'Cannot create return movement for a closed ticket',
+        });
+      }
+      if (currentStatus === 'at_workshop' || currentStatus === 'repaired') {
+        return res.status(400).json({
+          message: 'Cooler has already been returned to workshop',
+        });
+      }
+
+      const master = ticket.asset_maintenance_master;
+      if (!master) {
+        return res.status(404).json({ message: 'Linked asset not found' });
+      }
+
+      const activeCoolerCustomer =
+        master.cooler_asset_master?.find(
+          (c: any) => c.status !== 'Removed' && c.coolers_customers
+        )?.coolers_customers || null;
+
+      let fromCustomer: any =
+        master.asset_master_outlet || activeCoolerCustomer || null;
+
+      if (!fromCustomer && master.serial_number) {
+        const custAsset = await prisma.customer_assets.findFirst({
+          where: { serial_number: master.serial_number },
+          include: {
+            customer_assets_customers: {
+              select: {
+                id: true,
+                name: true,
+                code: true,
+                depot_id: true,
+                customer_depot: { select: { id: true, name: true } },
+              },
+            },
+          },
+        });
+        if (custAsset?.customer_assets_customers) {
+          fromCustomer = custAsset.customer_assets_customers;
+        }
+      }
+
+      const resolvedDepotId = Number(
+        to_depot_id || fromCustomer?.depot_id || master.depot_id
+      );
+      if (!resolvedDepotId) {
+        return res.status(400).json({
+          message: 'Destination workshop depot is required',
+        });
+      }
+
+      const toDepot = await prisma.depots.findUnique({
+        where: { id: resolvedDepotId },
+        select: { id: true, name: true },
+      });
+      if (!toDepot) {
+        return res.status(404).json({ message: 'Destination depot not found' });
+      }
+
+      let standbyAsset: any = null;
+      if (install_standby && standby_asset_id) {
+        standbyAsset = await prisma.asset_master.findUnique({
+          where: { id: Number(standby_asset_id) },
+          select: {
+            id: true,
+            name: true,
+            code: true,
+            serial_number: true,
+          },
+        });
+        if (!standbyAsset) {
+          return res
+            .status(404)
+            .json({ message: 'Selected standby cooler not found' });
+        }
+        if (standbyAsset.id === ticket.asset_id) {
+          return res.status(400).json({
+            message: 'Standby cooler cannot be the same as the broken cooler',
+          });
+        }
+      }
+
+      const userId = req.user?.id || ticket.technician_id || 1;
+      const moveDate = movement_date ? new Date(movement_date) : new Date();
+      const jobNumber =
+        ticket.job_number || `MT-${String(ticket.id).padStart(5, '0')}`;
+
+      const txResult = await prisma.$transaction(async tx => {
+        const returnMovement = await tx.asset_movements.create({
+          data: {
+            from_direction: fromCustomer ? 'outlet' : 'depot',
+            from_customer_id: fromCustomer?.id || null,
+            from_depot_id: fromCustomer ? null : master.depot_id || null,
+            to_direction: 'depot',
+            to_depot_id: toDepot.id,
+            movement_type: 'return',
+            return_reason: 'Workshop Repair',
+            movement_date: moveDate,
+            performed_by: userId,
+            notes:
+              notes ||
+              `Workshop return for maintenance job ${jobNumber}${fromCustomer ? ` from ${fromCustomer.name}` : ''}`,
+            status: 'A',
+            approval_status: 'A',
+            approved_by: userId,
+            approved_at: new Date(),
+            is_active: 'Y',
+            createdby: userId,
+            createdate: new Date(),
+            log_inst: 1,
+            asset_movement_assets: {
+              create: [
+                {
+                  asset_id: ticket.asset_id,
+                  createdby: userId,
+                  createdate: new Date(),
+                  log_inst: 1,
+                },
+              ],
+            },
+          },
+        });
+
+        await tx.asset_master.update({
+          where: { id: ticket.asset_id },
+          data: {
+            depot_id: toDepot.id,
+            outlet_id: null,
+            current_location: toDepot.name,
+            current_status: 'Under repair',
+            updatedate: new Date(),
+            updatedby: userId,
+          },
+        });
+
+        await tx.coolers.updateMany({
+          where: { asset_master_id: ticket.asset_id },
+          data: {
+            status: 'Removed',
+            asset_movement_id: returnMovement.id,
+            updatedate: new Date(),
+            updatedby: userId,
+          },
+        });
+
+        let standbyMovement: any = null;
+        if (standbyAsset && fromCustomer?.id) {
+          standbyMovement = await deployStandbyCoolerTx(tx, {
+            standbyAsset,
+            fromCustomerId: fromCustomer.id,
+            fromCustomerName: fromCustomer.name,
+            depotId: toDepot.id,
+            moveDate,
+            userId,
+            jobNumber,
+          });
+        }
+
+        const updatedTicket = await tx.asset_maintenance.update({
+          where: { id: ticketId },
+          data: {
+            status: 'at_workshop',
+            updatedby: userId,
+            updatedate: new Date(),
+          },
+          include: {
+            asset_maintenance_master: ASSET_MAINTENANCE_MASTER_INCLUDE,
+            asset_maintenance_technician: true,
+            spares: true,
+          },
+        });
+
+        return { returnMovement, standbyMovement, updatedTicket };
+      });
+
+      const returnMovementCode = `MV-${String(txResult.returnMovement.id).padStart(5, '0')}`;
+      const standbyMovementCode = txResult.standbyMovement
+        ? `MV-${String(txResult.standbyMovement.id).padStart(5, '0')}`
+        : null;
+
+      await logAssetActivity({
+        assetId: ticket.asset_id,
+        eventType: 'maintenance',
+        title: `Returned to ${toDepot.name} by ${returnMovementCode}`,
+        description:
+          standbyAsset && standbyMovementCode && fromCustomer
+            ? `Asset status: Under repair · Standby cooler ${standbyAsset.serial_number} installed at ${fromCustomer.name} (${standbyMovementCode})`
+            : 'Asset status: Under repair',
+        status: 'at_workshop',
+        locationName: toDepot.name,
+        customerId: fromCustomer?.id || null,
+        depotId: toDepot.id,
+        performedBy: userId,
+        sourceTable: 'asset_maintenance',
+        sourceId: ticket.id,
+        meta: {
+          return_movement_id: txResult.returnMovement.id,
+          return_movement_code: returnMovementCode,
+          depot_id: toDepot.id,
+          depot_name: toDepot.name,
+          from_customer_id: fromCustomer?.id || null,
+          from_customer_name: fromCustomer?.name || null,
+          standby_asset_id: standbyAsset?.id || null,
+          standby_serial: standbyAsset?.serial_number || null,
+          standby_movement_id: txResult.standbyMovement?.id || null,
+          standby_movement_code: standbyMovementCode,
+        },
+      });
+
+      await logAssetActivity({
+        assetId: ticket.asset_id,
+        eventType: 'movement',
+        title: `Return ${returnMovementCode} to ${toDepot.name}`,
+        description: `Returned for workshop job ${jobNumber}`,
+        status: 'Under repair',
+        locationName: toDepot.name,
+        customerId: fromCustomer?.id || null,
+        depotId: toDepot.id,
+        performedBy: userId,
+        sourceTable: 'asset_movements',
+        sourceId: txResult.returnMovement.id,
+      });
+
+      if (standbyAsset && txResult.standbyMovement && fromCustomer) {
+        await logAssetActivity({
+          assetId: standbyAsset.id,
+          eventType: 'movement',
+          title: `Standby installed at ${fromCustomer.name} (${standbyMovementCode})`,
+          description: `Replacement during workshop repair of ${master.serial_number} (${jobNumber})`,
+          status: 'Installed',
+          locationName: fromCustomer.name,
+          customerId: fromCustomer.id,
+          depotId: toDepot.id,
+          performedBy: userId,
+          sourceTable: 'asset_movements',
+          sourceId: txResult.standbyMovement.id,
+        });
+      }
+
+      const [replaceReview, activities] = await Promise.all([
+        checkReplaceReview(ticket.asset_id),
+        fetchTicketActivities(ticket.id),
+      ]);
+
+      return res.json({
+        message: 'Workshop return movement created successfully',
+        data: serializeAssetMaintenance(
+          txResult.updatedTicket,
+          replaceReview,
+          undefined,
+          activities
+        ),
+      });
+    } catch (error: any) {
+      console.error('Create Workshop Return Movement Error:', error);
+      return res.status(500).json({ message: error.message });
+    }
+  },
+
+  /**
+   * Installs a standby cooler at the origin outlet for an already-returned
+   * workshop maintenance ticket.
+   */
+  async installStandbyCooler(req: any, res: Response) {
+    try {
+      const ticketId = Number(req.params.id);
+      const { depot_id, standby_asset_id, movement_date } = req.body || {};
+
+      const ticket = await prisma.asset_maintenance.findUnique({
+        where: { id: ticketId },
+        include: {
+          asset_maintenance_master: ASSET_MAINTENANCE_MASTER_INCLUDE,
+          asset_maintenance_technician: true,
+          spares: true,
+        },
+      });
+
+      if (!ticket) {
+        return res
+          .status(404)
+          .json({ message: 'Maintenance ticket not found' });
+      }
+
+      const currentStatus = (ticket.status || '').toLowerCase();
+      if (currentStatus === 'closed') {
+        return res.status(400).json({
+          message: 'Cannot install standby cooler for a closed ticket',
+        });
+      }
+
+      const existingActivities = await fetchTicketActivities(ticket.id);
+      const alreadyHasStandby = existingActivities.some(
+        (a: any) => a.metadata && a.metadata.standby_movement_code
+      );
+      if (alreadyHasStandby) {
+        return res.status(400).json({
+          message: 'A standby cooler is already installed for this ticket',
+        });
+      }
+
+      const returnAct = [...existingActivities]
+        .reverse()
+        .find((a: any) => a.metadata && a.metadata.return_movement_code);
+      const master = ticket.asset_maintenance_master;
+      let fromCustomerId: number | null =
+        returnAct?.metadata?.from_customer_id || master?.outlet_id || null;
+      let fromCustomerName: string =
+        returnAct?.metadata?.from_customer_name ||
+        master?.asset_master_outlet?.name ||
+        'Outlet';
+      let fallbackDepotId: number | null =
+        returnAct?.metadata?.depot_id ||
+        master?.depot_id ||
+        master?.asset_master_outlet?.depot_id ||
+        null;
+
+      if (!fromCustomerId && master?.serial_number) {
+        const custAsset = await prisma.customer_assets.findFirst({
+          where: { serial_number: master.serial_number },
+          include: {
+            customer_assets_customers: {
+              select: { id: true, name: true, depot_id: true },
+            },
+          },
+        });
+        if (custAsset?.customer_assets_customers) {
+          fromCustomerId = custAsset.customer_assets_customers.id;
+          fromCustomerName = custAsset.customer_assets_customers.name;
+          fallbackDepotId =
+            fallbackDepotId || custAsset.customer_assets_customers.depot_id;
+        }
+      }
+
+      if (!fromCustomerId) {
+        return res.status(400).json({
+          message:
+            'Original outlet could not be determined for standby install',
+        });
+      }
+
+      const resolvedDepotId = Number(depot_id || fallbackDepotId);
+      if (!resolvedDepotId) {
+        return res
+          .status(400)
+          .json({ message: 'Source depot is required for standby cooler' });
+      }
+
+      const standbyAsset = standby_asset_id
+        ? await prisma.asset_master.findUnique({
+            where: { id: Number(standby_asset_id) },
+            select: { id: true, name: true, code: true, serial_number: true },
+          })
+        : await prisma.asset_master.findFirst({
+            where: {
+              depot_id: resolvedDepotId,
+              outlet_id: null,
+              current_status: 'Available',
+              is_active: 'Y',
+              id: { not: ticket.asset_id },
+            },
+            select: { id: true, name: true, code: true, serial_number: true },
+          });
+
+      if (!standbyAsset) {
+        return res.status(404).json({
+          message: 'No available standby cooler found at selected depot',
+        });
+      }
+      if (standbyAsset.id === ticket.asset_id) {
+        return res.status(400).json({
+          message: 'Standby cooler cannot be the same as the broken cooler',
+        });
+      }
+
+      const userId = req.user?.id || ticket.technician_id || 1;
+      const moveDate = movement_date ? new Date(movement_date) : new Date();
+      const jobNumber =
+        ticket.job_number || `MT-${String(ticket.id).padStart(5, '0')}`;
+
+      const standbyMovement = await prisma.$transaction(tx =>
+        deployStandbyCoolerTx(tx, {
+          standbyAsset,
+          fromCustomerId,
+          fromCustomerName,
+          depotId: resolvedDepotId,
+          moveDate,
+          userId,
+          jobNumber,
+        })
+      );
+
+      const standbyMovementCode = `MV-${String(standbyMovement.id).padStart(5, '0')}`;
+
+      await logAssetActivity({
+        assetId: ticket.asset_id,
+        eventType: 'maintenance',
+        title: `Standby cooler ${standbyAsset.serial_number} installed`,
+        description: `Installed at ${fromCustomerName} (${standbyMovementCode})`,
+        status: ticket.status,
+        locationName: fromCustomerName,
+        customerId: fromCustomerId,
+        depotId: resolvedDepotId,
+        performedBy: userId,
+        sourceTable: 'asset_maintenance',
+        sourceId: ticket.id,
+        meta: {
+          standby_asset_id: standbyAsset.id,
+          standby_serial: standbyAsset.serial_number,
+          standby_movement_id: standbyMovement.id,
+          standby_movement_code: standbyMovementCode,
+        },
+      });
+
+      await logAssetActivity({
+        assetId: standbyAsset.id,
+        eventType: 'movement',
+        title: `Standby installed at ${fromCustomerName} (${standbyMovementCode})`,
+        description: `Replacement during workshop repair of ${master?.serial_number || ticket.asset_id} (${jobNumber})`,
+        status: 'Installed',
+        locationName: fromCustomerName,
+        customerId: fromCustomerId,
+        depotId: resolvedDepotId,
+        performedBy: userId,
+        sourceTable: 'asset_movements',
+        sourceId: standbyMovement.id,
+      });
+
+      const [replaceReview, activities] = await Promise.all([
+        checkReplaceReview(ticket.asset_id),
+        fetchTicketActivities(ticket.id),
+      ]);
+
+      return res.json({
+        message: 'Standby cooler installed successfully',
+        data: serializeAssetMaintenance(
+          ticket,
+          replaceReview,
+          undefined,
+          activities,
+          true
+        ),
+      });
+    } catch (error: any) {
+      console.error('Install Standby Cooler Error:', error);
+      return res.status(500).json({ message: error.message });
+    }
+  },
+
+  /**
+   * Retrieves quick summary stats for top KPI cards, optionally filtered by technician.
+   */
+  async getMaintenanceDashboardStats(req: Request, res: Response) {
+    try {
+      const { technician_id } = req.query as any;
+      const technicianIdParam = technician_id
+        ? String(technician_id).trim()
+        : '';
+      const hasTechFilter = Boolean(
+        technicianIdParam && technicianIdParam !== 'all'
+      );
+      const isUnassigned =
+        hasTechFilter &&
+        (technicianIdParam === 'unassigned' ||
+          technicianIdParam === 'null' ||
+          technicianIdParam === '0');
+      const techIdNum =
+        hasTechFilter && !isUnassigned && !isNaN(Number(technicianIdParam))
+          ? Number(technicianIdParam)
+          : undefined;
+
+      const techFilterClause: any = hasTechFilter
+        ? isUnassigned
+          ? { technician_id: null }
+          : techIdNum !== undefined
+            ? { technician_id: techIdNum }
+            : {}
+        : {};
+
       const now = new Date();
+      const baseStatsWhere: any = {
+        is_active: 'Y',
+        ...techFilterClause,
+      };
+
       const [openJobs, overdueJobs, newComplaints, closedJobs] =
         await Promise.all([
           prisma.asset_maintenance.count({
-            where: { is_active: 'Y', status: { in: ['open', 'assigned'] } },
+            where: {
+              ...baseStatsWhere,
+              status: {
+                not: 'closed',
+              },
+            },
           }),
           prisma.asset_maintenance.count({
             where: {
-              is_active: 'Y',
+              ...baseStatsWhere,
               status: { not: 'closed' },
               due_date: { lt: now },
             },
@@ -1251,7 +2408,7 @@ export const assetMaintenanceController = {
             where: { status: 'P' },
           }),
           prisma.asset_maintenance.count({
-            where: { is_active: 'Y', status: 'closed' },
+            where: { ...baseStatsWhere, status: 'closed' },
           }),
         ]);
 

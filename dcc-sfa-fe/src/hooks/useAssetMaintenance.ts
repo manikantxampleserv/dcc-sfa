@@ -10,6 +10,7 @@ export type {
   AssignTechnicianPayload,
   SubmitMobileRepairPayload,
   CloseMaintenancePayload,
+  CreateWorkshopReturnPayload,
   AssetMaintenanceQueryParams,
   AssetMaintenanceStats,
   SparePartItem,
@@ -114,7 +115,7 @@ export const useUpdateAssetMaintenance = () => {
       id: number;
       data: assetMaintenanceService.UpdateAssetMaintenancePayload;
     }) => assetMaintenanceService.updateAssetMaintenance(id, data),
-    invalidateQueries: ['asset-maintenance'],
+    invalidateQueries: ['asset-maintenance', 'asset-master', 'cooler-360'],
     loadingMessage: 'Updating asset maintenance...',
   });
 };
@@ -133,7 +134,7 @@ export const useAssignMaintenanceTechnician = () => {
       id: number;
       data: assetMaintenanceService.AssignTechnicianPayload;
     }) => assetMaintenanceService.assignMaintenanceTechnician(id, data),
-    invalidateQueries: ['asset-maintenance'],
+    invalidateQueries: ['asset-maintenance', 'asset-master', 'cooler-360'],
     loadingMessage: 'Assigning technician...',
   });
 };
@@ -152,8 +153,60 @@ export const useSubmitMobileRepair = () => {
       id: number;
       data: assetMaintenanceService.SubmitMobileRepairPayload;
     }) => assetMaintenanceService.submitMobileRepair(id, data),
-    invalidateQueries: ['asset-maintenance'],
+    invalidateQueries: ['asset-maintenance', 'asset-master', 'cooler-360'],
     loadingMessage: 'Submitting repair result...',
+  });
+};
+
+/**
+ * Hook to create workshop return movement and optional standby cooler install.
+ *
+ * @returns Mutation object for creating workshop return movement
+ */
+export const useCreateWorkshopReturn = () => {
+  return useApiMutation({
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: number;
+      data: assetMaintenanceService.CreateWorkshopReturnPayload;
+    }) => assetMaintenanceService.createWorkshopReturnMovement(id, data),
+    invalidateQueries: [
+      'asset-maintenance',
+      'asset-movement',
+      'asset-master',
+      'cooler-360',
+    ],
+    loadingMessage: 'Creating workshop return movement...',
+  });
+};
+
+/**
+ * Hook to install a standby cooler for an active workshop job.
+ *
+ * @returns Mutation object for standby cooler installation
+ */
+export const useInstallStandbyCooler = () => {
+  return useApiMutation({
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: number;
+      data: {
+        depot_id?: number;
+        standby_asset_id?: number;
+        movement_date?: string;
+      };
+    }) => assetMaintenanceService.installStandbyCooler(id, data),
+    invalidateQueries: [
+      'asset-maintenance',
+      'asset-movement',
+      'asset-master',
+      'cooler-360',
+    ],
+    loadingMessage: 'Installing standby cooler...',
   });
 };
 
@@ -171,7 +224,7 @@ export const useCloseMaintenanceJob = () => {
       id: number;
       data: assetMaintenanceService.CloseMaintenancePayload;
     }) => assetMaintenanceService.closeMaintenanceJob(id, data),
-    invalidateQueries: ['asset-maintenance'],
+    invalidateQueries: ['asset-maintenance', 'asset-master', 'cooler-360'],
     loadingMessage: 'Closing maintenance job...',
   });
 };

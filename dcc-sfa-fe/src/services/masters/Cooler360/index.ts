@@ -56,6 +56,33 @@ export interface Cooler360Placement {
   salesRep: string;
   installedDate: string;
   isDeployed: boolean;
+  previousOutlet?: {
+    id?: number;
+    name: string;
+    code: string;
+    channel?: string;
+    route?: string;
+    zone?: string;
+  } | null;
+  depotDetails?: {
+    id?: number;
+    name: string;
+    code?: string;
+    city?: string | null;
+    address?: string | null;
+  } | null;
+  standbyCooler?: {
+    id?: number;
+    code: string;
+    name?: string;
+  } | null;
+  returnMovement?: {
+    id?: number;
+    movementNumber: string;
+    movementType?: string | null;
+    date: string;
+    reason?: string | null;
+  } | null;
 }
 
 export interface Cooler360OpenTicket {
