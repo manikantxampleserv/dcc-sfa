@@ -7,6 +7,7 @@ import { paginate } from '../../utils/paginate';
 import { requestTypes } from '../../mock/requestTypes';
 import prisma from '../../configs/prisma.client';
 import { generateContractOnApproval } from '../../helpers/approvalWorkflow.helper';
+import { syncApprovedMovementWithMaintenance } from '../../utils/maintenanceMovementSync.util';
 import { deleteFile } from '../../utils/blackbaze';
 
 interface RequestSerialized {
@@ -1182,6 +1183,12 @@ export const createRequest = async (data: {
               contractError
             );
           }
+
+          await syncApprovedMovementWithMaintenance(
+            prisma,
+            assetMovement,
+            data.createdby
+          );
         }
       }
 
@@ -3010,6 +3017,12 @@ export const requestsController = {
                     );
                   }
                 }
+
+                await syncApprovedMovementWithMaintenance(
+                  tx,
+                  assetMovement,
+                  userId
+                );
               }
             }
 

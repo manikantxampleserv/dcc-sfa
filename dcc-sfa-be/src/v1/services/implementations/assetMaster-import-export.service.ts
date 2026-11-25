@@ -383,7 +383,11 @@ export class AssetMasterImportExportService extends ImportExportService<any> {
         asset_master_asset_sub_types: true,
         asset_master_brands: true,
         asset_master_depot: true,
-        asset_master_outlet: true,
+        asset_master_outlet: {
+          include: {
+            customer_depot: true,
+          },
+        },
         asset_master_last_read: {
           select: {
             id: true,
@@ -658,9 +662,17 @@ export class AssetMasterImportExportService extends ImportExportService<any> {
         serial_number: asset.serial_number,
         barcode: asset.barcode || '',
         nfc_tag: asset.nfc_tag || '',
-        depot_code: asset.asset_master_depot?.code || '',
-        depot_name: asset.asset_master_depot?.name || '',
-        outlet_code: asset.asset_master_outlet?.code || '',
+        depot_code:
+          asset.asset_master_depot?.code ||
+          asset.asset_master_outlet?.customer_depot?.code ||
+          (asset.depot_id ? String(asset.depot_id) : ''),
+        depot_name:
+          asset.asset_master_depot?.name ||
+          asset.asset_master_outlet?.customer_depot?.name ||
+          '',
+        outlet_code:
+          asset.asset_master_outlet?.code ||
+          (asset.outlet_id ? String(asset.outlet_id) : ''),
         outlet_name: asset.asset_master_outlet?.name || '',
         name: asset.name || '',
         code: asset.code || '',

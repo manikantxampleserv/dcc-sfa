@@ -46,6 +46,7 @@ const paginate_1 = require("../../utils/paginate");
 const requestTypes_1 = require("../../mock/requestTypes");
 const prisma_client_1 = __importDefault(require("../../configs/prisma.client"));
 const approvalWorkflow_helper_1 = require("../../helpers/approvalWorkflow.helper");
+const maintenanceMovementSync_util_1 = require("../../utils/maintenanceMovementSync.util");
 const blackbaze_1 = require("../../utils/blackbaze");
 const extractRequestImages = (request) => {
     if (request.status !== 'P')
@@ -978,6 +979,7 @@ const createRequest = async (data) => {
                     catch (contractError) {
                         console.error('Error generating contract after auto-approval:', contractError);
                     }
+                    await (0, maintenanceMovementSync_util_1.syncApprovedMovementWithMaintenance)(prisma_client_1.default, assetMovement, data.createdby);
                 }
             }
             // 2. ORDER_APPROVAL
@@ -2437,6 +2439,7 @@ exports.requestsController = {
                                     console.error('Error creating maintenance records on approval:', maintenanceError);
                                 }
                             }
+                            await (0, maintenanceMovementSync_util_1.syncApprovedMovementWithMaintenance)(tx, assetMovement, userId);
                         }
                     }
                     if (request.request_type === 'VAN_INVENTORY' &&

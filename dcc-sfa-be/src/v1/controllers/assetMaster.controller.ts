@@ -607,38 +607,49 @@ export const assetMasterController = {
         },
       });
 
-      const statsAndConditions = andConditions.filter((c: any) => !c.is_active);
-      const statsFilter: any =
-        statsAndConditions.length > 0 ? { AND: statsAndConditions } : {};
+      let totalAssets = pagination?.total_count || 0;
+      let activeAssets = 0;
+      let inactiveAssets = 0;
+      let assetsThisMonth = 0;
 
-      const totalAssets = await prisma.asset_master.count({
-        where: statsFilter,
-      });
-      const activeAssets = await prisma.asset_master.count({
-        where: {
-          ...statsFilter,
-          is_active: 'Y',
-        },
-      });
-      const inactiveAssets = await prisma.asset_master.count({
-        where: {
-          ...statsFilter,
-          is_active: 'N',
-        },
-      });
+      try {
+        const statsAndConditions = andConditions.filter(
+          (c: any) => !c.is_active
+        );
+        const statsFilter: any =
+          statsAndConditions.length > 0 ? { AND: statsAndConditions } : {};
 
-      const now = new Date();
-      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-      const assetsThisMonth = await prisma.asset_master.count({
-        where: {
-          ...statsFilter,
-          createdate: {
-            gte: startOfMonth,
-            lte: endOfMonth,
+        totalAssets = await prisma.asset_master.count({
+          where: statsFilter,
+        });
+        activeAssets = await prisma.asset_master.count({
+          where: {
+            ...statsFilter,
+            is_active: 'Y',
           },
-        },
-      });
+        });
+        inactiveAssets = await prisma.asset_master.count({
+          where: {
+            ...statsFilter,
+            is_active: 'N',
+          },
+        });
+
+        const now = new Date();
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        assetsThisMonth = await prisma.asset_master.count({
+          where: {
+            ...statsFilter,
+            createdate: {
+              gte: startOfMonth,
+              lte: endOfMonth,
+            },
+          },
+        });
+      } catch (statsError) {
+        console.warn('Asset stats buffer pool warning:', statsError);
+      }
 
       res.success(
         'Assets retrieved successfully',

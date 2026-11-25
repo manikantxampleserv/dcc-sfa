@@ -78,7 +78,12 @@ export const useAssetMovementById = (
 export const useCreateAssetMovement = () => {
   return useApiMutation({
     mutationFn: assetMovementService.createAssetMovement,
-    invalidateQueries: ['asset-movement'],
+    invalidateQueries: [
+      'asset-movement',
+      'asset-maintenance',
+      'asset-master',
+      'cooler-360',
+    ],
     loadingMessage: 'Creating asset movement...',
   });
 };
@@ -96,7 +101,12 @@ export const useUpdateAssetMovement = () => {
       id: number;
       data: assetMovementService.UpdateAssetMovementPayload;
     }) => assetMovementService.updateAssetMovement(id, data),
-    invalidateQueries: ['asset-movement'],
+    invalidateQueries: [
+      'asset-movement',
+      'asset-maintenance',
+      'asset-master',
+      'cooler-360',
+    ],
     loadingMessage: 'Updating asset movement...',
   });
 };

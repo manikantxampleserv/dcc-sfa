@@ -25,6 +25,7 @@ import CompaniesManagement from 'pages/masters/Companies';
 import CompetitorActivityManagement from 'pages/masters/CompetitorActivity';
 import CoolerSubTypesManagement from 'pages/masters/CoolerSubTypes';
 import CoolerTypesManagement from 'pages/masters/CoolerTypes';
+import Cooler360Page from 'pages/masters/Cooler360';
 import CurrenciesManagement from 'pages/masters/Currencies';
 import CustomerCategoryPage from 'pages/masters/CustomerCategory';
 import CustomerChannelPage from 'pages/masters/CustomerChannel';
@@ -476,6 +477,38 @@ const router = createBrowserRouter(
           element: (
             <PermissionGuard module="asset-master" action="read">
               <AssetDetailsPage />
+            </PermissionGuard>
+          ),
+        },
+        {
+          path: '/masters/cooler-360',
+          element: (
+            <PermissionGuard module="asset-master" action="read">
+              <Cooler360Page />
+            </PermissionGuard>
+          ),
+        },
+        {
+          path: '/masters/cooler-360/:identifier',
+          element: (
+            <PermissionGuard module="asset-master" action="read">
+              <Cooler360Page />
+            </PermissionGuard>
+          ),
+        },
+        {
+          path: '/transactions/cooler-360',
+          element: (
+            <PermissionGuard module="asset-master" action="read">
+              <Cooler360Page />
+            </PermissionGuard>
+          ),
+        },
+        {
+          path: '/transactions/cooler-360/:identifier',
+          element: (
+            <PermissionGuard module="asset-master" action="read">
+              <Cooler360Page />
             </PermissionGuard>
           ),
         },

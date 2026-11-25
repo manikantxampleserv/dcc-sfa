@@ -140,8 +140,29 @@ const createCoolerInstallationsForMovement = async (movement, assetIds, approval
                     asset_master_id: assetId,
                     approval_status: { in: [...COOLER_PENDING_VALUES, 'A', 'approved'] },
                 },
+                orderBy: { id: 'desc' },
             });
             if (existingCooler) {
+                if (existingCooler.status === 'Removed') {
+                    await prisma_client_1.default.coolers.update({
+                        where: { id: existingCooler.id },
+                        data: {
+                            customer_id: movement.to_customer_id,
+                            asset_movement_id: movement.id,
+                            status: coolerStatus,
+                            approval_status: coolerApprovalStatus,
+                            install_date: !needsApproval
+                                ? new Date(movement.movement_date)
+                                : existingCooler.install_date,
+                            is_active: 'Y',
+                            updatedby: performedByUserId,
+                            updatedate: new Date(),
+                        },
+                    });
+                    console.log(`[createCoolerInstallations] Reactivated cooler id=${existingCooler.id} ` +
+                        `for asset ${assetId} with status="${coolerStatus}" approval_status="${coolerApprovalStatus}"`);
+                    continue;
+                }
                 console.log(`[createCoolerInstallations] Cooler already exists for asset ${assetId} ` +
                     `(id=${existingCooler.id} approval_status="${existingCooler.approval_status}") – skipping`);
                 continue;

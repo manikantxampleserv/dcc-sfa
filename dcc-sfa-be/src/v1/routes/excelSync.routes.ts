@@ -1,6 +1,8 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
 import prisma from '../../configs/prisma.client';
+import { jwtConfig } from '../../configs/jwt.config';
 import { authenticateToken } from '../../middlewares/auth.middleware';
 import { excelSyncController } from '../controllers/excelSync.controller';
 
@@ -59,7 +61,7 @@ const allowExcelTokenAuth = async (
           excel_api_username: true,
           excel_api_password: true,
           excel_api_key: true,
-        },
+        } as any,
       })) as any;
     } catch (_e) {
       /** Columns might not exist yet before migration */
@@ -177,10 +179,20 @@ const allowExcelTokenAuth = async (
     }
 
     /**
-     * Map Query Param or x-api-key or raw token to Bearer Authorization header.
+    /**
+     * Map Query Param, x-api-key, or raw token to Bearer Authorization header.
      * Sanitizes tokens where trailing query parameters were accidentally concatenated.
      */
-    let cleanToken = queryToken;
+    let token = queryToken || apiKeyHeader;
+    if (!token && rawAuth) {
+      if (rawAuth.startsWith('Bearer ')) {
+        token = rawAuth.substring(7).trim();
+      } else if (!rawAuth.startsWith('Basic ')) {
+        token = rawAuth.trim();
+      }
+    }
+
+    let cleanToken = token;
     if (cleanToken && cleanToken.includes('.')) {
       const parts = cleanToken.split('.');
       if (parts.length >= 3 && parts[2].length > 43) {
@@ -200,16 +212,68 @@ const allowExcelTokenAuth = async (
       }
     }
 
-    if (!rawAuth && cleanToken) {
+    if (cleanToken) {
       req.headers['authorization'] = `Bearer ${cleanToken}`;
-    } else if (!rawAuth && apiKeyHeader) {
-      req.headers['authorization'] = `Bearer ${apiKeyHeader}`;
-    } else if (
-      rawAuth &&
-      !rawAuth.startsWith('Bearer ') &&
-      !rawAuth.startsWith('Basic ')
-    ) {
-      req.headers['authorization'] = `Bearer ${rawAuth}`;
+      let decoded: any = null;
+      try {
+        decoded = jwt.verify(cleanToken, jwtConfig.secret) as { id: number };
+      } catch (err: any) {
+        if (err.name === 'TokenExpiredError') {
+          /**
+           * For Excel Live Sync, allow token decode with ignoreExpiration
+           * so Excel scheduled refresh doesn't break daily at 11:30 PM,
+           * provided the user is still active in the database.
+           */
+          try {
+            decoded = jwt.verify(cleanToken, jwtConfig.secret, {
+              ignoreExpiration: true,
+            }) as { id: number };
+          } catch (_ignoreErr) {
+            decoded = null;
+          }
+        }
+      }
+
+      if (decoded && decoded.id) {
+        const user = await prisma.users.findFirst({
+          where: {
+            id: Number(decoded.id),
+            is_active: 'Y',
+          },
+          include: {
+            user_role: {
+              include: {
+                roles_permission: {
+                  include: {
+                    permission: true,
+                  },
+                },
+              },
+            },
+          },
+        });
+
+        if (user) {
+          (req as any).user = {
+            id: user.id,
+            email: user.email,
+            employee_id: user.employee_id,
+            name: user.name,
+            role: user.user_role?.name || 'Admin',
+            version: user.version ?? null,
+            permissions:
+              user.user_role?.roles_permission
+                ?.filter(
+                  rp => rp.is_active === 'Y' && rp.permission?.is_active === 'Y'
+                )
+                ?.map(rp => rp.permission!.name) || [],
+            parent_id: user.parent_id,
+            depot_id: user.depot_id,
+            zone_id: user.zone_id,
+          };
+          return next();
+        }
+      }
     }
 
     if (!req.headers['authorization']) {

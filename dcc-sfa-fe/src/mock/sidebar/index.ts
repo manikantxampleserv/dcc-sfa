@@ -368,8 +368,13 @@ const menuItems: MenuItem[] = [
           },
           {
             id: 'cooler-inspections',
-            label: 'Cooler Inspections',
             href: '/transactions/inspections',
+            label: 'Cooler Inspections',
+          },
+          {
+            id: 'cooler-360',
+            label: 'Cooler 360',
+            href: '/transactions/cooler-360',
           },
         ],
       },

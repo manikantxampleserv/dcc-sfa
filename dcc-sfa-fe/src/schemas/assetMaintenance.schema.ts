@@ -14,8 +14,12 @@ export const assetMaintenanceValidationSchema = Yup.object({
     .max(1000, 'Action taken must be less than 1000 characters')
     .optional(),
   technician_id: Yup.number()
-    .required('Technician is required')
-    .positive('Technician ID must be positive'),
+    .transform((value, originalValue) =>
+      originalValue === '' || originalValue === null ? undefined : value
+    )
+    .positive('Technician ID must be positive')
+    .nullable()
+    .optional(),
   cost: Yup.number()
     .transform((value, originalValue) =>
       originalValue === '' || originalValue === null ? undefined : value

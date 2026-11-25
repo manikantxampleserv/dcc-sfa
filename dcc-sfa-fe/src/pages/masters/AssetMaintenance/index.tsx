@@ -1,4 +1,4 @@
-import { Add, Block, CheckCircle, Download, Upload } from '@mui/icons-material';
+import { Block, CheckCircle, Download, Settings } from '@mui/icons-material';
 import {
   Alert,
   Avatar,
@@ -8,39 +8,54 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material';
+import classNames from 'classnames';
 import {
   useAssetMaintenances,
-  useDeleteAssetMaintenance,
   type AssetMaintenance,
 } from 'hooks/useAssetMaintenance';
+import { useCurrency } from 'hooks/useCurrency';
 import { useExportToExcel } from 'hooks/useImportExport';
 import { usePermission } from 'hooks/usePermission';
-import { useCurrency } from 'hooks/useCurrency';
-import { Calendar, FileText, Package, Wrench } from 'lucide-react';
+import { Clock, FileText, MapPin, Package, Shield, Wrench } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
-import { DeleteButton, EditButton } from 'shared/ActionButton';
+import { useNavigate } from 'react-router-dom';
+import { EditButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
 import { PopConfirm } from 'shared/DeleteConfirmation';
 import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
-import { formatDate } from 'utils/dateUtils';
-import ImportAssetMaintenance from './ImportAssetMaintenance';
+import UserSelect from 'shared/UserSelect';
+import { formatDateTime } from 'utils/dateUtils';
 import ManageAssetMaintenance from './ManageAssetMaintenance';
+import {
+  formatStageLabel,
+  getStageChipColor,
+  normalizeTicketStatus,
+  resolveTicketLocations,
+} from './ManageAssetMaintenance/ticketHelpers';
 
+/**
+ * Asset Maintenance Management Page Component.
+ * Displays maintenance jobs, KPI health cards, technician filtering,
+ * and links to the 4-stage Drawer workflow matching DCC-SFA master lists.
+ *
+ * @returns {React.ReactElement} Asset maintenance management view.
+ */
 const AssetMaintenanceManagement: React.FC = () => {
+  const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [technicianFilter, setTechnicianFilter] = useState('all');
   const [selectedMaintenance, setSelectedMaintenance] =
     useState<AssetMaintenance | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [importModalOpen, setImportModalOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
   const { formatCurrency } = useCurrency();
 
-  const { isCreate, isUpdate, isDelete, isRead } = usePermission('maintenance');
+  const { isUpdate, isDelete, isRead } = usePermission('maintenance');
 
   const {
     data: assetMaintenanceResponse,
@@ -52,6 +67,8 @@ const AssetMaintenanceManagement: React.FC = () => {
       page,
       limit,
       status: statusFilter === 'all' ? undefined : statusFilter,
+      technician_id:
+        technicianFilter === 'all' ? undefined : Number(technicianFilter),
     },
     {
       enabled: isRead,
@@ -62,36 +79,41 @@ const AssetMaintenanceManagement: React.FC = () => {
   const totalCount = assetMaintenanceResponse?.meta?.total || 0;
   const currentPage = (assetMaintenanceResponse?.meta?.page || 1) - 1;
 
-  const deleteAssetMaintenanceMutation = useDeleteAssetMaintenance();
+  // const deleteAssetMaintenanceMutation = useDeleteAssetMaintenance();
   const exportToExcelMutation = useExportToExcel();
 
   const stats = (assetMaintenanceResponse?.stats as any) || {};
-  const totalMaintenances = stats.total_records ?? 0;
-  const activeMaintenances = stats.active_records ?? 0;
-  const inactiveMaintenances = stats.inactive_records ?? 0;
-  const maintenancesThisMonth =
-    stats.this_month_records ?? stats.records_this_month ?? 0;
-
-  const handleCreateMaintenance = useCallback(() => {
-    setSelectedMaintenance(null);
-    setDrawerOpen(true);
-  }, []);
+  const totalMaintenances = stats.total_records ?? totalCount;
+  const openJobs = stats.open_jobs ?? 0;
+  const overdueJobs = stats.overdue_jobs ?? 0;
+  const closedJobs = stats.closed_jobs ?? stats.this_month_records ?? 0;
 
   const handleEditMaintenance = useCallback((maintenance: AssetMaintenance) => {
     setSelectedMaintenance(maintenance);
     setDrawerOpen(true);
   }, []);
 
-  const handleDeleteMaintenance = useCallback(
-    async (id: number) => {
-      try {
-        await deleteAssetMaintenanceMutation.mutateAsync(id);
-      } catch (error) {
-        console.error('Error deleting asset maintenance:', error);
+  /** Navigate to Cooler 360 view for the selected asset using its ID */
+  const handleOpenCooler360 = useCallback(
+    (row: AssetMaintenance) => {
+      const assetId = row.asset_id || row.asset_maintenance_master?.id;
+      if (assetId) {
+        navigate(`/transactions/cooler-360/${assetId}`);
       }
     },
-    [deleteAssetMaintenanceMutation]
+    [navigate]
   );
+
+  // const handleDeleteMaintenance = useCallback(
+  //   async (id: number) => {
+  //     try {
+  //       await deleteAssetMaintenanceMutation.mutateAsync(id);
+  //     } catch (err) {
+  //       console.error('Error deleting asset maintenance:', err);
+  //     }
+  //   },
+  //   [deleteAssetMaintenanceMutation]
+  // );
 
   const handleSearchChange = useCallback((value: string) => {
     setSearch(value);
@@ -107,67 +129,190 @@ const AssetMaintenanceManagement: React.FC = () => {
       const filters = {
         search,
         status: statusFilter === 'all' ? undefined : statusFilter,
+        technician_id:
+          technicianFilter === 'all' ? undefined : Number(technicianFilter),
       };
 
       await exportToExcelMutation.mutateAsync({
         tableName: 'asset_maintenance',
         filters,
       });
-    } catch (error) {
-      console.error('Error exporting asset maintenances:', error);
+    } catch (err) {
+      console.error('Error exporting asset maintenances:', err);
     }
-  }, [exportToExcelMutation, search, statusFilter]);
+  }, [exportToExcelMutation, search, statusFilter, technicianFilter]);
 
   const assetMaintenanceColumns: TableColumn<AssetMaintenance>[] = [
     {
-      id: 'asset_info',
-      label: 'Asset Info',
-      sortable: false,
+      id: 'job_number',
+      label: 'Job Info',
+      sortable: true,
       render: (_value, row) => (
-        <Box className="!flex !items-center !gap-2">
-          <Avatar
-            alt={row.asset_maintenance_master?.serial_number || 'Asset'}
-            className="!rounded !bg-primary-100 !text-primary-500"
-          >
-            <Package className="h-5 w-5" />
+        <Box
+          className="!flex !items-center !gap-2 cursor-pointer"
+          onClick={() => handleEditMaintenance(row)}
+        >
+          <Avatar className="!rounded !bg-sky-100 !text-sky-700">
+            <Wrench className="h-5 w-5" />
           </Avatar>
-          <Box>
+          <Box className="min-w-0">
             <Typography
               variant="body1"
-              className="!leading-tight !text-gray-900"
+              className="!leading-tight !text-gray-900 !text-sm !font-semibold hover:!text-primary-600 !flex !items-center !gap-1.5"
             >
-              {row.asset_maintenance_master?.asset_master_asset_types?.name ||
-                'Unknown Asset'}
+              {row.job_number || `MT-${String(row.id).padStart(5, '0')}`}
+              {row.is_overdue && row.status !== 'closed' && (
+                <Tooltip title="Past due date, escalated" arrow>
+                  <Clock size={13} className="text-rose-600 inline shrink-0" />
+                </Tooltip>
+              )}
+              {(row.warranty_claim === true ||
+                row.warranty_claim === 'Y' ||
+                Boolean(
+                  row.asset_maintenance_master?.warranty_expiry &&
+                  new Date(row.asset_maintenance_master.warranty_expiry) >=
+                    new Date()
+                )) &&
+                row.status !== 'closed' && (
+                  <Tooltip title="Cooler under warranty" arrow>
+                    <Shield
+                      size={13}
+                      className="text-sky-600 inline shrink-0"
+                    />
+                  </Tooltip>
+                )}
             </Typography>
             <Typography
               variant="caption"
-              className="!mt-0.5 !block !text-xs !text-gray-500"
+              className="!mt-0.5 !block !text-xs !text-gray-500 truncate"
             >
-              {row.asset_maintenance_master?.serial_number ||
-                `Asset #${row.asset_id}`}
+              {formatDateTime(row.maintenance_date)}
             </Typography>
           </Box>
         </Box>
       ),
     },
     {
+      id: 'asset_info',
+      label: 'Asset / Cooler',
+      sortable: false,
+      render: (_value, row) => {
+        const master = row.asset_maintenance_master;
+        return (
+          <Box
+            className="!flex !items-center !gap-2 cursor-pointer group"
+            onClick={() => handleOpenCooler360(row)}
+          >
+            <Avatar className="!rounded !bg-sky-100 !text-sky-700 transition-colors">
+              <Package className="h-5 w-5" />
+            </Avatar>
+            <Box className="min-w-0">
+              <Tooltip title="View Cooler 360" arrow placement="top">
+                <Typography
+                  variant="body1"
+                  className="!leading-tight !text-gray-900 !text-sm !font-semibold group-hover:!text-primary-600 transition-colors truncate"
+                >
+                  {master?.name}
+                </Typography>
+              </Tooltip>
+              <Typography
+                variant="caption"
+                className="!mt-0.5 !block !text-xs !text-gray-500 truncate"
+              >
+                {master?.serial_number}
+              </Typography>
+            </Box>
+          </Box>
+        );
+      },
+    },
+    {
+      id: 'location',
+      label: 'Outlet/Depot',
+      sortable: false,
+      render: (_value, row) => {
+        const master = row.asset_maintenance_master;
+        const { isAtDepot, originalOutlet, workshopDepot } =
+          resolveTicketLocations(row);
+
+        const locName = isAtDepot
+          ? workshopDepot?.name || master?.current_location || 'Depot'
+          : originalOutlet?.name ||
+            master?.current_location ||
+            workshopDepot?.name ||
+            'Unassigned Location';
+        const locCode = isAtDepot ? 'Depot' : originalOutlet?.code || 'No Code';
+
+        return (
+          <Box className="!flex !items-center !gap-2">
+            <Avatar className="!rounded !bg-sky-100 !text-sky-700">
+              <MapPin className="h-5 w-5" />
+            </Avatar>
+            <Box className="min-w-0">
+              <Typography
+                variant="body1"
+                className="!leading-tight !text-gray-900 !text-sm !font-semibold"
+              >
+                {locName}
+              </Typography>
+              <Typography
+                variant="caption"
+                className="!mt-0.5 !block !text-xs !text-gray-500 truncate"
+              >
+                {locCode}
+              </Typography>
+            </Box>
+          </Box>
+        );
+      },
+    },
+    {
+      id: 'repair_location',
+      label: 'Location',
+      sortable: true,
+      render: (_value, row) => {
+        const repairLoc = (row.repair_location || '').toLowerCase();
+        const repairLabel =
+          repairLoc === 'onsite'
+            ? 'On Site'
+            : repairLoc === 'workshop'
+              ? 'Workshop'
+              : row.repair_location || 'To be decided';
+
+        return (
+          <span
+            className={classNames(
+              'inline-flex items-center px-2 py-0.5 rounded text-xs font-medium',
+              repairLoc === 'workshop'
+                ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                : repairLoc === 'onsite'
+                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                  : 'bg-gray-100 text-gray-600 border border-gray-200'
+            )}
+          >
+            {repairLabel}
+          </span>
+        );
+      },
+    },
+    {
       id: 'maintenance_details',
-      label: 'Maintenance Details',
+      label: 'Issue / Action',
       sortable: false,
       render: (_value, row) => (
         <Box className="flex flex-col gap-1">
           <Box className="flex items-center gap-1">
-            <Wrench className="h-3 w-3 text-gray-400" />
-            <Tooltip title={row.issue_reported} placement="top" arrow>
-              <span className="text-xs italic truncate max-w-72 pr-5">
+            <Wrench className="h-3 w-3 text-gray-400 shrink-0" />
+            <Tooltip title={row.issue_reported || 'No issue reported'} placement="top" arrow>
+              <span className="text-xs italic truncate max-w-48 text-gray-700">
                 {row.issue_reported || 'No issue reported'}
               </span>
             </Tooltip>
           </Box>
           <Box className="flex items-center gap-1">
-            <FileText className="h-3 w-3 text-gray-400" />
-            <Tooltip title={row.action_taken} placement="top" arrow>
-              <span className="text-xs italic truncate max-w-72 pr-5">
+            <FileText className="h-3 w-3 text-gray-400 shrink-0" />
+            <Tooltip title={row.action_taken || 'No action taken'} placement="top" arrow>
+              <span className="text-xs italic truncate max-w-48 text-gray-500">
                 {row.action_taken || 'No action taken'}
               </span>
             </Tooltip>
@@ -176,89 +321,88 @@ const AssetMaintenanceManagement: React.FC = () => {
       ),
     },
     {
-      id: 'technician',
+      id: 'technician_id',
       label: 'Technician',
-      sortable: false,
-      render: (_value, row) => (
-        <Box className="flex items-center gap-1">
-          <Avatar
-            alt={row.asset_maintenance_technician?.name.trim()}
-            src={row.asset_maintenance_technician?.profile_image || 'mkx'}
-            className="!rounded !bg-primary-100 !text-primary-500"
-          />
-          <Box>
-            <Typography
-              variant="body1"
-              className="!leading-tight !text-gray-900"
+      sortable: true,
+      render: (_value, row) => {
+        const tech = row.asset_maintenance_technician;
+        const sapCode = tech?.sap_code || tech?.employee_id;
+        const subText =
+          sapCode ||
+          (row.technician_id
+            ? `Tech ID: #${row.technician_id}`
+            : 'No SAP Code');
+
+        return (
+          <Box className="!flex !items-center !gap-2">
+            <Avatar
+              alt={tech?.name || 'Technician'}
+              src={tech?.profile_image}
+              className="!rounded !bg-sky-100 !text-sky-700"
             >
-              {row.asset_maintenance_technician?.name || 'Unknown Technician'}
-            </Typography>
-            <Typography
-              variant="caption"
-              className="!mt-0.5 !block !text-xs !text-gray-500"
-            >
-              {row.asset_maintenance_technician?.email || 'Unknown Email'}
-            </Typography>
+              {(tech?.name || 'U').charAt(0).toUpperCase()}
+            </Avatar>
+            <Box className="min-w-0">
+              <Typography
+                variant="body1"
+                className="!leading-tight !text-gray-900 !text-sm !font-semibold"
+              >
+                {tech?.name || 'Unassigned'}
+              </Typography>
+              <Typography
+                variant="caption"
+                className="!mt-0.5 !block !text-xs !text-gray-500 truncate"
+              >
+                {subText}
+              </Typography>
+            </Box>
           </Box>
-        </Box>
-      ),
+        );
+      },
     },
     {
-      id: 'maintenance_date',
-      label: 'Date',
+      id: 'status',
+      label: 'Stage',
       sortable: true,
-      render: (_value, row) => (
-        <Box className="flex items-center gap-1">
-          <Calendar className="h-3 w-3 text-gray-400" />
-          <span className="text-xs">{formatDate(row.maintenance_date)}</span>
-        </Box>
-      ),
+      render: (_value, row) => {
+        const stg = normalizeTicketStatus(row);
+        return (
+          <Chip
+            label={formatStageLabel(stg)}
+            size="small"
+            color={getStageChipColor(stg)}
+            className="!font-semibold !text-[11px]"
+          />
+        );
+      },
     },
     {
       id: 'cost',
       label: 'Cost',
       sortable: true,
       render: (_value, row) => (
-        <Box className="flex items-center gap-1">
-          <span className="text-xs">
-            {row.cost ? (
-              formatCurrency(Number(row.cost))
-            ) : (
-              <span className="italic">No Cost</span>
-            )}
-          </span>
-        </Box>
+        <Typography
+          variant="body2"
+          className="!text-sm !font-semibold !text-gray-900"
+        >
+          {row.cost ? formatCurrency(Number(row.cost)) : 'TZS 0'}
+        </Typography>
       ),
     },
-    {
-      id: 'remarks',
-      label: 'Remarks',
-      sortable: true,
-      render: (_value, row) => (
-        <Box className="flex items-center gap-1">
-          <FileText className="h-3 w-3 text-gray-400" />
-          <Tooltip title={row.remarks || 'No remarks'} placement="top" arrow>
-            <span className="max-w-32 truncate italic text-xs">
-              {row.remarks || 'No remarks'}
-            </span>
-          </Tooltip>
-        </Box>
-      ),
-    },
-    {
-      id: 'is_active',
-      label: 'Active Status',
-      sortable: true,
-      render: (_value, row) => (
-        <Chip
-          icon={row.is_active === 'Y' ? <CheckCircle /> : <Block />}
-          label={row.is_active === 'Y' ? 'Active' : 'Inactive'}
-          size="small"
-          variant="outlined"
-          color={row.is_active === 'Y' ? 'success' : 'error'}
-        />
-      ),
-    },
+    // {
+    //   id: 'is_active',
+    //   label: 'Active Status',
+    //   sortable: true,
+    //   render: (_value, row) => (
+    //     <Chip
+    //       icon={row.is_active === 'Y' ? <CheckCircle /> : <Block />}
+    //       label={row.is_active === 'Y' ? 'Active' : 'Inactive'}
+    //       size="small"
+    //       variant="outlined"
+    //       color={row.is_active === 'Y' ? 'success' : 'error'}
+    //     />
+    //   ),
+    // },
     ...(isUpdate || isDelete || isRead
       ? [
           {
@@ -269,18 +413,19 @@ const AssetMaintenanceManagement: React.FC = () => {
               <div className="!flex !items-center !gap-2">
                 {isUpdate && (
                   <EditButton
+                    icon={<Settings fontSize="small" />}
                     onClick={() => handleEditMaintenance(row)}
-                    tooltip={`Edit Maintenance #${row.id}`}
+                    tooltip={`Manage Job #${row.job_number || row.id}`}
                   />
                 )}
-                {isDelete && (
+                {/* {isDelete && (
                   <DeleteButton
                     onClick={() => handleDeleteMaintenance(row.id)}
-                    tooltip={`Delete Maintenance #${row.id}`}
-                    itemName={`Maintenance #${row.id}`}
+                    tooltip={`Delete Job #${row.job_number || row.id}`}
+                    itemName={`Maintenance #${row.job_number || row.id}`}
                     confirmDelete={true}
                   />
-                )}
+                )} */}
               </div>
             ),
           },
@@ -290,15 +435,18 @@ const AssetMaintenanceManagement: React.FC = () => {
 
   return (
     <>
-      <Box className="!mb-3 !flex !items-center !justify-between">
+      <Box className="!mb-3 !flex !justify-between !items-center">
         <Box>
-          <p className="text-xl !font-bold !text-gray-900">Asset Maintenance</p>
-          <p className="text-sm !text-gray-500">
+          <p className="!font-bold text-xl !text-gray-900">
+            Asset Maintenance Management
+          </p>
+          <p className="!text-gray-500 text-sm">
             Track and manage asset maintenance records
           </p>
         </Box>
       </Box>
 
+      {/** Top KPI Cards matching other master lists */}
       <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatsCard
           title="Total Maintenance"
@@ -308,24 +456,24 @@ const AssetMaintenanceManagement: React.FC = () => {
           isLoading={isFetching}
         />
         <StatsCard
-          title="Active Maintenance"
-          value={activeMaintenances}
-          icon={<CheckCircle className="h-6 w-6" />}
-          color="green"
+          title="Open Maintenance"
+          value={openJobs}
+          icon={<Clock className="h-6 w-6" />}
+          color="purple"
           isLoading={isFetching}
         />
         <StatsCard
-          title="Inactive Maintenance"
-          value={inactiveMaintenances}
+          title="Overdue Maintenance"
+          value={overdueJobs}
           icon={<Block className="h-6 w-6" />}
           color="red"
           isLoading={isFetching}
         />
         <StatsCard
-          title="This Month"
-          value={maintenancesThisMonth}
-          icon={<Calendar className="h-6 w-6" />}
-          color="purple"
+          title="Closed Maintenance"
+          value={closedJobs}
+          icon={<CheckCircle className="h-6 w-6" />}
+          color="green"
           isLoading={isFetching}
         />
       </div>
@@ -340,72 +488,70 @@ const AssetMaintenanceManagement: React.FC = () => {
         data={assetMaintenances}
         columns={assetMaintenanceColumns}
         actions={
-          isRead || isCreate ? (
+          isRead ? (
             <div className="flex w-full flex-wrap items-center justify-between gap-2">
-              {isRead && (
-                <div className="flex flex-wrap items-center gap-2">
-                  <SearchInput
-                    placeholder="Search Maintenance Records..."
-                    value={search}
-                    onChange={handleSearchChange}
-                    debounceMs={400}
-                    showClear={true}
-                    className="!w-80"
-                  />
-                  <Select
-                    value={statusFilter}
-                    onChange={e => setStatusFilter(e.target.value)}
-                    disableClearable
-                  >
-                    <MenuItem value="all">All Status</MenuItem>
-                    <MenuItem value="active">Active</MenuItem>
-                    <MenuItem value="inactive">Inactive</MenuItem>
-                  </Select>
-                </div>
-              )}
+              <div className="flex flex-wrap items-center gap-2">
+                <SearchInput
+                  placeholder="Search Job, Coolers..."
+                  value={search}
+                  onChange={handleSearchChange}
+                  debounceMs={400}
+                  showClear={true}
+                  className="!w-72"
+                />
+                <Select
+                  value={statusFilter}
+                  onChange={e => {
+                    setStatusFilter(e.target.value);
+                    setPage(1);
+                  }}
+                  disableClearable
+                  className="!w-36"
+                >
+                  <MenuItem value="all">All Stages</MenuItem>
+                  <MenuItem value="reported">Reported</MenuItem>
+                  <MenuItem value="open">Open</MenuItem>
+                  <MenuItem value="assigned">Assigned</MenuItem>
+                  <MenuItem value="awaiting_return">Awaiting return</MenuItem>
+                  <MenuItem value="at_workshop">At workshop</MenuItem>
+                  <MenuItem value="repaired">Repaired</MenuItem>
+                  <MenuItem value="closed">Closed</MenuItem>
+                </Select>
+                <UserSelect
+                  label=""
+                  placeholder="All Technicians"
+                  value={
+                    technicianFilter === 'all'
+                      ? undefined
+                      : Number(technicianFilter)
+                  }
+                  onChange={(_event: any, user: any) => {
+                    setTechnicianFilter(user?.id ? String(user.id) : 'all');
+                    setPage(1);
+                  }}
+                  className="!w-72"
+                />
+              </div>
               <div className="flex items-center gap-2">
-                {isRead && (
-                  <PopConfirm
-                    title="Export Asset Maintenance"
-                    description="Are you sure you want to export the current asset maintenance data to Excel? This will include all filtered results."
-                    onConfirm={handleExportToExcel}
-                    confirmText="Export"
-                    cancelText="Cancel"
-                    placement="top"
-                  >
-                    <Button
-                      variant="outlined"
-                      className="!capitalize"
-                      startIcon={<Download />}
-                      disabled={exportToExcelMutation.isPending}
-                    >
-                      {exportToExcelMutation.isPending
-                        ? 'Exporting...'
-                        : 'Export'}
-                    </Button>
-                  </PopConfirm>
-                )}
-                {isCreate && (
+                <PopConfirm
+                  title="Export Asset Maintenance"
+                  description="Are you sure you want to export the current asset maintenance data to Excel? This will include all filtered results."
+                  onConfirm={handleExportToExcel}
+                  confirmText="Export"
+                  cancelText="Cancel"
+                  placement="top"
+                >
                   <Button
                     variant="outlined"
                     className="!capitalize"
-                    startIcon={<Upload />}
-                    onClick={() => setImportModalOpen(true)}
+                    startIcon={<Download />}
+                    disabled={exportToExcelMutation.isPending}
                   >
-                    Import
+                    {exportToExcelMutation.isPending
+                      ? 'Exporting...'
+                      : 'Export'}
                   </Button>
-                )}
-                {isCreate && (
-                  <Button
-                    variant="contained"
-                    className="!capitalize"
-                    disableElevation
-                    startIcon={<Add />}
-                    onClick={handleCreateMaintenance}
-                  >
-                    Create
-                  </Button>
-                )}
+                </PopConfirm>
               </div>
             </div>
           ) : (
@@ -432,11 +578,6 @@ const AssetMaintenanceManagement: React.FC = () => {
         setSelectedMaintenance={setSelectedMaintenance}
         drawerOpen={drawerOpen}
         setDrawerOpen={setDrawerOpen}
-      />
-
-      <ImportAssetMaintenance
-        drawerOpen={importModalOpen}
-        setDrawerOpen={setImportModalOpen}
       />
     </>
   );

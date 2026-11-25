@@ -60,6 +60,7 @@ export interface CreateAssetMovementPayload {
   to_customer_id?: number | null;
   to_depot_id?: number | null;
   movement_type?: string;
+  return_reason?: string | null;
   movement_date: string;
   performed_by: number;
   notes?: string | null;
@@ -76,6 +77,7 @@ export interface UpdateAssetMovementPayload {
   to_customer_id?: number | null;
   to_depot_id?: number | null;
   movement_type?: string;
+  return_reason?: string | null;
   movement_date?: string;
   performed_by?: number;
   notes?: string | null;

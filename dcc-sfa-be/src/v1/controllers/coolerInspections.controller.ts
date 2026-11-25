@@ -184,6 +184,7 @@ export const coolerInspectionsController = {
               model: true,
               serial_number: true,
               capacity: true,
+              asset_master_id: true,
               cooler_asset_master: {
                 select: {
                   id: true,
@@ -223,6 +224,38 @@ export const coolerInspectionsController = {
           },
         },
       });
+
+      /** Keep cooler and asset_master last_scanned_date updated */
+      const inspDate = data.inspection_date
+        ? new Date(data.inspection_date)
+        : new Date();
+      const actingUserId =
+        req.user?.id || (data.createdby ? parseInt(data.createdby) : 1);
+
+      await prisma.coolers.update({
+        where: { id: parseInt(data.cooler_id) },
+        data: {
+          last_scanned_date: inspDate,
+          updatedate: new Date(),
+          updatedby: actingUserId,
+        },
+      });
+
+      const linkedAssetMasterId =
+        inspection.coolers?.cooler_asset_master?.id ||
+        (inspection.coolers as any)?.asset_master_id;
+
+      if (linkedAssetMasterId) {
+        await prisma.asset_master.update({
+          where: { id: linkedAssetMasterId },
+          data: {
+            last_scanned_date: inspDate,
+            last_read_by: actingUserId,
+            updatedate: new Date(),
+            updatedby: actingUserId,
+          },
+        });
+      }
 
       res.status(201).json({
         message: 'Cooler inspection created successfully',
@@ -373,6 +406,7 @@ export const coolerInspectionsController = {
               model: true,
               serial_number: true,
               capacity: true,
+              asset_master_id: true,
               cooler_asset_master: {
                 select: {
                   id: true,
@@ -447,6 +481,7 @@ export const coolerInspectionsController = {
               model: true,
               serial_number: true,
               capacity: true,
+              asset_master_id: true,
               cooler_asset_master: {
                 select: {
                   id: true,
@@ -587,6 +622,7 @@ export const coolerInspectionsController = {
               model: true,
               serial_number: true,
               capacity: true,
+              asset_master_id: true,
               cooler_asset_master: {
                 select: {
                   id: true,
@@ -717,6 +753,7 @@ export const coolerInspectionsController = {
               model: true,
               serial_number: true,
               capacity: true,
+              asset_master_id: true,
               cooler_asset_master: {
                 select: {
                   id: true,

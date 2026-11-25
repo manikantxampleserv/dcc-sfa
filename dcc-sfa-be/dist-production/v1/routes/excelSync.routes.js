@@ -5,7 +5,9 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const bcrypt_1 = __importDefault(require("bcrypt"));
+const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const prisma_client_1 = __importDefault(require("../../configs/prisma.client"));
+const jwt_config_1 = require("../../configs/jwt.config");
 const auth_middleware_1 = require("../../middlewares/auth.middleware");
 const excelSync_controller_1 = require("../controllers/excelSync.controller");
 const router = (0, express_1.Router)();
@@ -148,10 +150,20 @@ const allowExcelTokenAuth = async (req, res, next) => {
             }
         }
         /**
-         * Map Query Param or x-api-key or raw token to Bearer Authorization header.
+        /**
+         * Map Query Param, x-api-key, or raw token to Bearer Authorization header.
          * Sanitizes tokens where trailing query parameters were accidentally concatenated.
          */
-        let cleanToken = queryToken;
+        let token = queryToken || apiKeyHeader;
+        if (!token && rawAuth) {
+            if (rawAuth.startsWith('Bearer ')) {
+                token = rawAuth.substring(7).trim();
+            }
+            else if (!rawAuth.startsWith('Basic ')) {
+                token = rawAuth.trim();
+            }
+        }
+        let cleanToken = token;
         if (cleanToken && cleanToken.includes('.')) {
             const parts = cleanToken.split('.');
             if (parts.length >= 3 && parts[2].length > 43) {
@@ -170,16 +182,65 @@ const allowExcelTokenAuth = async (req, res, next) => {
                 }
             }
         }
-        if (!rawAuth && cleanToken) {
+        if (cleanToken) {
             req.headers['authorization'] = `Bearer ${cleanToken}`;
-        }
-        else if (!rawAuth && apiKeyHeader) {
-            req.headers['authorization'] = `Bearer ${apiKeyHeader}`;
-        }
-        else if (rawAuth &&
-            !rawAuth.startsWith('Bearer ') &&
-            !rawAuth.startsWith('Basic ')) {
-            req.headers['authorization'] = `Bearer ${rawAuth}`;
+            let decoded = null;
+            try {
+                decoded = jsonwebtoken_1.default.verify(cleanToken, jwt_config_1.jwtConfig.secret);
+            }
+            catch (err) {
+                if (err.name === 'TokenExpiredError') {
+                    /**
+                     * For Excel Live Sync, allow token decode with ignoreExpiration
+                     * so Excel scheduled refresh doesn't break daily at 11:30 PM,
+                     * provided the user is still active in the database.
+                     */
+                    try {
+                        decoded = jsonwebtoken_1.default.verify(cleanToken, jwt_config_1.jwtConfig.secret, {
+                            ignoreExpiration: true,
+                        });
+                    }
+                    catch (_ignoreErr) {
+                        decoded = null;
+                    }
+                }
+            }
+            if (decoded && decoded.id) {
+                const user = await prisma_client_1.default.users.findFirst({
+                    where: {
+                        id: Number(decoded.id),
+                        is_active: 'Y',
+                    },
+                    include: {
+                        user_role: {
+                            include: {
+                                roles_permission: {
+                                    include: {
+                                        permission: true,
+                                    },
+                                },
+                            },
+                        },
+                    },
+                });
+                if (user) {
+                    req.user = {
+                        id: user.id,
+                        email: user.email,
+                        employee_id: user.employee_id,
+                        name: user.name,
+                        role: user.user_role?.name || 'Admin',
+                        version: user.version ?? null,
+                        permissions: user.user_role?.roles_permission
+                            ?.filter(rp => rp.is_active === 'Y' && rp.permission?.is_active === 'Y')
+                            ?.map(rp => rp.permission.name) || [],
+                        parent_id: user.parent_id,
+                        depot_id: user.depot_id,
+                        zone_id: user.zone_id,
+                    };
+                    return next();
+                }
+            }
         }
         if (!req.headers['authorization']) {
             res.setHeader('WWW-Authenticate', 'Basic realm="Excel Live Sync"');
