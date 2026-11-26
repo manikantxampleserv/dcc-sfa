@@ -159,7 +159,7 @@ const Cooler360Page: React.FC = () => {
   const photos = asset?.photos || coolerData?.photos || [];
 
   return (
-    <div className="max-w-[1240px] mx-auto flex flex-col gap-4 p-1">
+    <div className="max-w-[1240px] mx-auto flex flex-col gap-4">
       {/** Top Bar: Header with Subtitle & Info + Shared AssetSelect */}
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
@@ -622,7 +622,8 @@ const Cooler360Page: React.FC = () => {
                 </Avatar>
                 <div className="min-w-0 flex-1">
                   <b className="text-sm font-semibold text-gray-900 block leading-tight truncate">
-                    {placement?.outletName || (placement?.isDeployed ? 'Not Assigned' : 'Depot')}
+                    {placement?.outletName ||
+                      (placement?.isDeployed ? 'Not Assigned' : 'Depot')}
                   </b>
                   <span className="font-mono text-xs text-gray-500 block truncate">
                     {placement?.outletCode || 'N/A'}
@@ -644,7 +645,10 @@ const Cooler360Page: React.FC = () => {
               {/** Context banner if cooler was returned from an outlet */}
               {!placement?.isDeployed && placement?.previousOutlet && (
                 <div className="mb-3 p-2.5 rounded bg-amber-50 border border-amber-200 text-xs text-amber-900 flex items-start gap-2">
-                  <Truck size={16} className="text-amber-700 flex-none mt-0.5" />
+                  <Truck
+                    size={16}
+                    className="text-amber-700 flex-none mt-0.5"
+                  />
                   <div className="space-y-0.5">
                     <div>
                       Returned from <b>{placement.previousOutlet.name}</b>{' '}
@@ -661,7 +665,8 @@ const Cooler360Page: React.FC = () => {
                     </div>
                     {placement.standbyCooler && (
                       <div className="text-[11px] text-teal-800 font-medium">
-                        Standby cooler <b>{placement.standbyCooler.code}</b> deployed at outlet.
+                        Standby cooler <b>{placement.standbyCooler.code}</b>{' '}
+                        deployed at outlet.
                       </div>
                     )}
                   </div>
@@ -704,7 +709,9 @@ const Cooler360Page: React.FC = () => {
                 </div>
                 <div>
                   <span className="text-[10px] uppercase tracking-wider text-gray-400 font-semibold block">
-                    {placement?.isDeployed ? 'Sales rep' : 'Sales rep / Handler'}
+                    {placement?.isDeployed
+                      ? 'Sales rep'
+                      : 'Sales rep / Handler'}
                   </span>
                   <strong className="text-xs font-semibold text-gray-800 block mt-0.5">
                     {placement?.salesRep || 'N/A'}

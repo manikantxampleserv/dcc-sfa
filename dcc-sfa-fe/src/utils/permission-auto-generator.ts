@@ -141,6 +141,7 @@ const MANUAL_PERMISSION_OVERRIDES: Record<string, BackendModule> = {
   'asset-maintenance': 'maintenance',
   'cooler-installations': 'installation',
   'cooler-inspections': 'inspection',
+  'cooler-360': 'asset-master',
   'van-stock': 'van-stock',
   'stock-movements': 'stock-movement',
   'competitor-activity': 'competitor',
