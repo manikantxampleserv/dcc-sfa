@@ -70,6 +70,10 @@ interface Payment {
   reference_number?: string;
   total_amount: number;
   notes?: string;
+  slip_number?: string;
+  customer_name?: string;
+  is_auto?: boolean;
+  is_synced?: boolean;
   is_active: string;
   createdate?: string;
   createdby: number;
@@ -81,11 +85,19 @@ interface Payment {
     id: number;
     name: string;
     code: string;
+    phone_number?: string;
+    email?: string;
+    address?: string;
+    city?: string;
+    type?: string;
+    contact_person?: string;
   };
   collected_by_user?: {
     id: number;
     name: string;
     email: string;
+    phone_number?: string;
+    employee_id?: string;
   };
   currency?: {
     id: number;

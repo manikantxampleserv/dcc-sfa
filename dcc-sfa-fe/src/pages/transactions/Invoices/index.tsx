@@ -27,7 +27,7 @@ import InvoicePaymentTracking from './InvoicePaymentTracking';
 import ManageInvoice from './ManageInvoice';
 
 const InvoicesManagement: React.FC = () => {
-  const { formatCurrency } = useCurrency();
+  const { formatCurrency, formatCompactCurrency } = useCurrency();
   const [search, setSearch] = useState('');
   const [salespersonFilter, setSalespersonFilter] = useState('');
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
@@ -356,7 +356,8 @@ const InvoicesManagement: React.FC = () => {
         />
         <StatsCard
           title="Total Amount"
-          value={formatCurrency(totalAmount)}
+          value={formatCompactCurrency(totalAmount)}
+          tooltip={formatCurrency(totalAmount)}
           icon={<DollarSign className="w-6 h-6" />}
           color="green"
           isLoading={isFetching}

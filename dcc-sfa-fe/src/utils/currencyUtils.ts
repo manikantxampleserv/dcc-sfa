@@ -83,6 +83,44 @@ export const formatCurrency = (
 };
 
 /**
+ * Format currency in compact notation (K, M, B) for high amounts.
+ * Formats values into readable abbreviations (e.g., TZS 27.3B, TZS 54.8M, TZS 52K).
+ *
+ * @param {number | null | undefined} amount Numeric amount to format.
+ * @param {Currency[]} [currencies] Currencies list.
+ * @param {number} [defaultCurrencyId] Default currency ID.
+ * @returns {string} Formatted compact currency string.
+ */
+export const formatCompactCurrency = (
+  amount: number | null | undefined,
+  currencies: Currency[] = [],
+  defaultCurrencyId: number = 1
+): string => {
+  const currencyCode = getCurrencyCode(currencies, defaultCurrencyId);
+  const currencySymbol = getCurrencySymbol(currencyCode);
+
+  const num = Number(amount) || 0;
+  const abs = Math.abs(num);
+  const sign = num < 0 ? '-' : '';
+
+  let formatted = '';
+  if (abs >= 1e9) {
+    formatted = (abs / 1e9).toFixed(2).replace(/\.?0+$/, '') + 'B';
+  } else if (abs >= 1e6) {
+    formatted = (abs / 1e6).toFixed(2).replace(/\.?0+$/, '') + 'M';
+  } else if (abs >= 1e3) {
+    formatted = (abs / 1e3).toFixed(2).replace(/\.?0+$/, '') + 'K';
+  } else {
+    formatted = abs.toLocaleString(undefined, {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    });
+  }
+
+  return `${currencySymbol} ${sign}${formatted}`;
+};
+
+/**
  * Format currency with decimal places
  */
 export const formatCurrencyWithDecimals = (

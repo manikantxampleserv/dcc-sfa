@@ -11,16 +11,20 @@ const serializePayment = (payment) => ({
     id: payment.id,
     payment_number: payment.payment_number,
     customer_id: payment.customer_id,
-    payment_date: payment.payment_date?.toISOString() || '',
+    payment_date: payment.payment_date?.toISOString?.() || (payment.payment_date ? String(payment.payment_date) : ''),
     collected_by: payment.collected_by,
     method: payment.method,
     reference_number: payment.reference_number,
     total_amount: Number(payment.total_amount),
     notes: payment.notes,
+    slip_number: payment.slip_number,
+    customer_name: payment.customer_name,
+    is_auto: payment.is_auto,
+    is_synced: payment.is_synced,
     is_active: payment.is_active,
-    createdate: payment.createdate?.toISOString(),
+    createdate: payment.createdate?.toISOString?.() || (payment.createdate ? String(payment.createdate) : undefined),
     createdby: payment.createdby,
-    updatedate: payment.updatedate?.toISOString(),
+    updatedate: payment.updatedate?.toISOString?.() || (payment.updatedate ? String(payment.updatedate) : undefined),
     updatedby: payment.updatedby,
     log_inst: payment.log_inst,
     currency_id: payment.currency_id,
@@ -29,6 +33,12 @@ const serializePayment = (payment) => ({
             id: payment.payments_customers.id,
             name: payment.payments_customers.name,
             code: payment.payments_customers.code,
+            phone_number: payment.payments_customers.phone_number,
+            email: payment.payments_customers.email,
+            address: payment.payments_customers.address,
+            city: payment.payments_customers.city,
+            type: payment.payments_customers.type,
+            contact_person: payment.payments_customers.contact_person,
         }
         : undefined,
     collected_by_user: payment.users_payments_collected_byTousers
@@ -36,6 +46,8 @@ const serializePayment = (payment) => ({
             id: payment.users_payments_collected_byTousers.id,
             name: payment.users_payments_collected_byTousers.name,
             email: payment.users_payments_collected_byTousers.email,
+            phone_number: payment.users_payments_collected_byTousers.phone_number,
+            employee_id: payment.users_payments_collected_byTousers.employee_id,
         }
         : undefined,
     currency: payment.currencies
@@ -44,6 +56,59 @@ const serializePayment = (payment) => ({
             name: payment.currencies.name,
             code: payment.currencies.code,
         }
+        : undefined,
+    payment_lines: Array.isArray(payment.payment_lines)
+        ? payment.payment_lines.map((line) => ({
+            id: line.id,
+            parent_id: line.parent_id,
+            invoice_id: line.invoice_id,
+            invoice_number: line.invoice_number || line.invoices?.invoice_number,
+            invoice_date: line.invoice_date?.toISOString?.() || line.invoices?.invoice_date?.toISOString?.() || (line.invoice_date ? String(line.invoice_date) : undefined),
+            amount_applied: Number(line.amount_applied),
+            notes: line.notes,
+            invoices: line.invoices
+                ? {
+                    id: line.invoices.id,
+                    invoice_number: line.invoices.invoice_number,
+                    invoice_date: line.invoices.invoice_date?.toISOString?.() || (line.invoices.invoice_date ? String(line.invoices.invoice_date) : undefined),
+                    total_amount: Number(line.invoices.total_amount),
+                    balance_due: Number(line.invoices.balance_due),
+                    status: line.invoices.status,
+                }
+                : undefined,
+        }))
+        : undefined,
+    payment_refunds: Array.isArray(payment.payment_refunds)
+        ? payment.payment_refunds.map((refund) => ({
+            id: refund.id,
+            parent_id: refund.parent_id,
+            refund_date: refund.refund_date?.toISOString?.() || (refund.refund_date ? String(refund.refund_date) : undefined),
+            amount: Number(refund.amount),
+            reason: refund.reason,
+            reference_number: refund.reference_number,
+            method: refund.method,
+            status: refund.status,
+            notes: refund.notes,
+            is_active: refund.is_active,
+            createdate: refund.createdate?.toISOString?.() || (refund.createdate ? String(refund.createdate) : undefined),
+            refund_lines: Array.isArray(refund.refund_lines)
+                ? refund.refund_lines.map((rl) => ({
+                    id: rl.id,
+                    parent_id: rl.parent_id,
+                    invoice_id: rl.invoice_id,
+                    amount_refunded: Number(rl.amount_refunded),
+                    notes: rl.notes,
+                    invoices: rl.invoices
+                        ? {
+                            id: rl.invoices.id,
+                            invoice_number: rl.invoices.invoice_number,
+                            total_amount: Number(rl.invoices.total_amount),
+                            balance_due: Number(rl.invoices.balance_due),
+                        }
+                        : undefined,
+                }))
+                : undefined,
+        }))
         : undefined,
 });
 exports.paymentsController = {

@@ -26,6 +26,7 @@ interface StatsCardProps {
     | 'slate'
     | 'gray';
   isLoading?: boolean;
+  tooltip?: string;
 }
 
 type StatsCardColor = NonNullable<StatsCardProps['color']>;
@@ -60,6 +61,7 @@ const StatsCard: React.FC<StatsCardProps> = ({
   icon,
   color = 'blue',
   isLoading = false,
+  tooltip,
 }) => {
   const colors = COLOR_CLASSES[color];
 
@@ -76,7 +78,10 @@ const StatsCard: React.FC<StatsCardProps> = ({
               sx={{ bgcolor: 'rgba(229, 231, 235, 1)' }}
             />
           ) : (
-            <p className={classNames('text-xl font-bold', colors.iconText)}>
+            <p
+              className={classNames('text-xl font-bold', colors.iconText)}
+              title={tooltip || (typeof value === 'string' ? value : undefined)}
+            >
               {value}
             </p>
           )}

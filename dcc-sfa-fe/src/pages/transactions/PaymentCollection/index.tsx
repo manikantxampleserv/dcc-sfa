@@ -17,6 +17,7 @@ import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
+import { useCurrency } from '../../../hooks/useCurrency';
 import { useExportToExcel } from '../../../hooks/useImportExport';
 import {
   useDeletePayment,
@@ -30,6 +31,7 @@ import ManagePayment from './ManagePayment';
 
 const PaymentCollection: React.FC = () => {
   const navigate = useNavigate();
+  const { formatCurrency, formatCompactCurrency } = useCurrency();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
@@ -346,7 +348,8 @@ const PaymentCollection: React.FC = () => {
         />
         <StatsCard
           title="Total Amount"
-          value={stats.total_amount.toFixed(2)}
+          value={formatCompactCurrency(stats.total_amount)}
+          tooltip={formatCurrency(stats.total_amount)}
           icon={<DollarSign className="w-6 h-6" />}
           color="emerald"
           isLoading={isFetching}

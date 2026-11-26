@@ -7,6 +7,7 @@ import {
 } from 'hooks/useCreditNotes';
 import { useExportToExcel } from 'hooks/useImportExport';
 import { usePermission } from 'hooks/usePermission';
+import { useCurrency } from 'hooks/useCurrency';
 import {
   AlertTriangle,
   Calendar,
@@ -30,6 +31,7 @@ import ManageCreditNote from './ManageCreditNote';
 import CreditNoteDetail from './CreditNoteDetail';
 
 const CreditNotesManagement: React.FC = () => {
+  const { formatCurrency, formatCompactCurrency } = useCurrency();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedCreditNote, setSelectedCreditNote] =
@@ -125,14 +127,6 @@ const CreditNotesManagement: React.FC = () => {
       console.error('Error exporting credit notes:', error);
     }
   }, [exportToExcelMutation, search, statusFilter]);
-
-  const formatCurrency = (amount: number | null | undefined) => {
-    if (amount === null || amount === undefined) return 'N/A';
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(amount);
-  };
 
   const getStatusColor = (
     status: string
@@ -372,14 +366,16 @@ const CreditNotesManagement: React.FC = () => {
         />
         <StatsCard
           title="Total Value"
-          value={formatCurrency(totalValue)}
+          value={formatCompactCurrency(totalValue)}
+          tooltip={formatCurrency(totalValue)}
           icon={<DollarSign className="w-6 h-6" />}
           color="green"
           isLoading={isFetching}
         />
         <StatsCard
           title="Avg Credit Note Value"
-          value={formatCurrency(avgCreditNoteValue)}
+          value={formatCompactCurrency(avgCreditNoteValue)}
+          tooltip={formatCurrency(avgCreditNoteValue)}
           icon={<DollarSign className="w-6 h-6" />}
           color="purple"
           isLoading={isFetching}
