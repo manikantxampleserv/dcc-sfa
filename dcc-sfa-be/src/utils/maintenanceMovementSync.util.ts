@@ -96,41 +96,47 @@ export async function syncApprovedMovementWithMaintenance(
           },
         });
 
-        await logAssetActivity({
-          assetId,
-          eventType: 'maintenance',
-          title: `Returned to ${depotName} by ${movementCode}`,
-          description: 'Asset status: Under repair',
-          status: 'at_workshop',
-          locationName: depotName,
-          customerId: assetMovement.from_customer_id || null,
-          depotId: assetMovement.to_depot_id || null,
-          performedBy: userId,
-          sourceTable: 'asset_maintenance',
-          sourceId: pendingWorkshopTicket.id,
-          meta: {
-            return_movement_id: assetMovement.id,
-            return_movement_code: movementCode,
-            depot_id: assetMovement.to_depot_id || null,
-            depot_name: depotName,
-            from_customer_id: assetMovement.from_customer_id || null,
-            from_customer_name: fromCustomer?.name || null,
+        await logAssetActivity(
+          {
+            assetId,
+            eventType: 'maintenance',
+            title: `Returned to ${depotName} by ${movementCode}`,
+            description: 'Asset status: Under repair',
+            status: 'at_workshop',
+            locationName: depotName,
+            customerId: assetMovement.from_customer_id || null,
+            depotId: assetMovement.to_depot_id || null,
+            performedBy: userId,
+            sourceTable: 'asset_maintenance',
+            sourceId: pendingWorkshopTicket.id,
+            meta: {
+              return_movement_id: assetMovement.id,
+              return_movement_code: movementCode,
+              depot_id: assetMovement.to_depot_id || null,
+              depot_name: depotName,
+              from_customer_id: assetMovement.from_customer_id || null,
+              from_customer_name: fromCustomer?.name || null,
+            },
           },
-        });
+          dbClient
+        );
 
-        await logAssetActivity({
-          assetId,
-          eventType: 'movement',
-          title: `Return ${movementCode} to ${depotName}`,
-          description: `Returned for workshop job ${jobNumber}`,
-          status: 'Under repair',
-          locationName: depotName,
-          customerId: assetMovement.from_customer_id || null,
-          depotId: assetMovement.to_depot_id || null,
-          performedBy: userId,
-          sourceTable: 'asset_movements',
-          sourceId: assetMovement.id,
-        });
+        await logAssetActivity(
+          {
+            assetId,
+            eventType: 'movement',
+            title: `Return ${movementCode} to ${depotName}`,
+            description: `Returned for workshop job ${jobNumber}`,
+            status: 'Under repair',
+            locationName: depotName,
+            customerId: assetMovement.from_customer_id || null,
+            depotId: assetMovement.to_depot_id || null,
+            performedBy: userId,
+            sourceTable: 'asset_movements',
+            sourceId: assetMovement.id,
+          },
+          dbClient
+        );
         continue;
       }
 
@@ -155,38 +161,44 @@ export async function syncApprovedMovementWithMaintenance(
           const depotName = toDepot?.name || 'Depot';
           const fromLabel = fromCustomer?.name || 'Outlet';
 
-          await logAssetActivity({
-            assetId: linkedTicket.asset_id,
-            eventType: 'maintenance',
-            title: `Standby cooler returned to ${depotName} (${movementCode})`,
-            description: `Returned from ${fromLabel}`,
-            status: linkedTicket.status || 'closed',
-            locationName: depotName,
-            customerId: assetMovement.from_customer_id || null,
-            depotId: assetMovement.to_depot_id || null,
-            performedBy: userId,
-            sourceTable: 'asset_maintenance',
-            sourceId: linkedTicket.id,
-            meta: {
-              standby_returned: true,
-              standby_returned_movement_id: assetMovement.id,
-              standby_returned_movement_code: movementCode,
+          await logAssetActivity(
+            {
+              assetId: linkedTicket.asset_id,
+              eventType: 'maintenance',
+              title: `Standby cooler returned to ${depotName} (${movementCode})`,
+              description: `Returned from ${fromLabel}`,
+              status: linkedTicket.status || 'closed',
+              locationName: depotName,
+              customerId: assetMovement.from_customer_id || null,
+              depotId: assetMovement.to_depot_id || null,
+              performedBy: userId,
+              sourceTable: 'asset_maintenance',
+              sourceId: linkedTicket.id,
+              meta: {
+                standby_returned: true,
+                standby_returned_movement_id: assetMovement.id,
+                standby_returned_movement_code: movementCode,
+              },
             },
-          });
+            dbClient
+          );
 
-          await logAssetActivity({
-            assetId,
-            eventType: 'movement',
-            title: `Standby return ${movementCode} to ${depotName}`,
-            description: `Returned from ${fromLabel} (job ${linkedTicket.job_number || linkedTicket.id})`,
-            status: 'Available',
-            locationName: depotName,
-            customerId: assetMovement.from_customer_id || null,
-            depotId: assetMovement.to_depot_id || null,
-            performedBy: userId,
-            sourceTable: 'asset_movements',
-            sourceId: assetMovement.id,
-          });
+          await logAssetActivity(
+            {
+              assetId,
+              eventType: 'movement',
+              title: `Standby return ${movementCode} to ${depotName}`,
+              description: `Returned from ${fromLabel} (job ${linkedTicket.job_number || linkedTicket.id})`,
+              status: 'Available',
+              locationName: depotName,
+              customerId: assetMovement.from_customer_id || null,
+              depotId: assetMovement.to_depot_id || null,
+              performedBy: userId,
+              sourceTable: 'asset_movements',
+              sourceId: assetMovement.id,
+            },
+            dbClient
+          );
         }
       }
     }
@@ -207,19 +219,22 @@ export async function syncApprovedMovementWithMaintenance(
     });
 
     for (const assetId of assetIds) {
-      await logAssetActivity({
-        assetId,
-        eventType: 'movement',
-        title: `Installation ${movementCode}`,
-        description: `${srcName} -> ${destName}`,
-        status: 'Installed',
-        locationName: destName,
-        customerId: assetMovement.to_customer_id || null,
-        depotId: assetMovement.from_depot_id || null,
-        performedBy: userId,
-        sourceTable: 'asset_movements',
-        sourceId: assetMovement.id,
-      });
+      await logAssetActivity(
+        {
+          assetId,
+          eventType: 'movement',
+          title: `Installation ${movementCode}`,
+          description: `${srcName} -> ${destName}`,
+          status: 'Installed',
+          locationName: destName,
+          customerId: assetMovement.to_customer_id || null,
+          depotId: assetMovement.from_depot_id || null,
+          performedBy: userId,
+          sourceTable: 'asset_movements',
+          sourceId: assetMovement.id,
+        },
+        dbClient
+      );
     }
   }
 }

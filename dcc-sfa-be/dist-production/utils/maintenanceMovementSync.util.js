@@ -96,7 +96,7 @@ async function syncApprovedMovementWithMaintenance(dbClient, assetMovement, user
                         from_customer_id: assetMovement.from_customer_id || null,
                         from_customer_name: fromCustomer?.name || null,
                     },
-                });
+                }, dbClient);
                 await (0, assetActivity_util_1.logAssetActivity)({
                     assetId,
                     eventType: 'movement',
@@ -109,7 +109,7 @@ async function syncApprovedMovementWithMaintenance(dbClient, assetMovement, user
                     performedBy: userId,
                     sourceTable: 'asset_movements',
                     sourceId: assetMovement.id,
-                });
+                }, dbClient);
                 continue;
             }
             const standbyActivities = await dbClient.asset_activities.findMany({
@@ -147,7 +147,7 @@ async function syncApprovedMovementWithMaintenance(dbClient, assetMovement, user
                             standby_returned_movement_id: assetMovement.id,
                             standby_returned_movement_code: movementCode,
                         },
-                    });
+                    }, dbClient);
                     await (0, assetActivity_util_1.logAssetActivity)({
                         assetId,
                         eventType: 'movement',
@@ -160,7 +160,7 @@ async function syncApprovedMovementWithMaintenance(dbClient, assetMovement, user
                         performedBy: userId,
                         sourceTable: 'asset_movements',
                         sourceId: assetMovement.id,
-                    });
+                    }, dbClient);
                 }
             }
         }
@@ -190,7 +190,7 @@ async function syncApprovedMovementWithMaintenance(dbClient, assetMovement, user
                 performedBy: userId,
                 sourceTable: 'asset_movements',
                 sourceId: assetMovement.id,
-            });
+            }, dbClient);
         }
     }
 }

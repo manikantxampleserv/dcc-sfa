@@ -2439,7 +2439,16 @@ exports.requestsController = {
                                     console.error('Error creating maintenance records on approval:', maintenanceError);
                                 }
                             }
-                            await (0, maintenanceMovementSync_util_1.syncApprovedMovementWithMaintenance)(tx, assetMovement, userId);
+                            const movementRecordForSync = assetMovement;
+                            const userIdForSync = userId;
+                            setImmediate(async () => {
+                                try {
+                                    await (0, maintenanceMovementSync_util_1.syncApprovedMovementWithMaintenance)(prisma_client_1.default, movementRecordForSync, userIdForSync);
+                                }
+                                catch (syncErr) {
+                                    console.error('Error syncing approved movement with maintenance in background:', syncErr);
+                                }
+                            });
                         }
                     }
                     if (request.request_type === 'VAN_INVENTORY' &&

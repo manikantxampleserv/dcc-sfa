@@ -27,13 +27,17 @@ export interface LogAssetActivityPayload {
  * Logs an activity entry in the asset_activities table to power the Cooler 360 timeline.
  *
  * @param {LogAssetActivityPayload} payload - The activity payload to log.
+ * @param {any} [dbClient=prisma] - Optional database client or transaction client.
  * @returns {Promise<any>} The created asset activity record.
  */
-export async function logAssetActivity(payload: LogAssetActivityPayload) {
+export async function logAssetActivity(
+  payload: LogAssetActivityPayload,
+  dbClient: any = prisma
+) {
   try {
     let userName = payload.performedByName;
     if (!userName && payload.performedBy) {
-      const u = await prisma.users.findUnique({
+      const u = await dbClient.users.findUnique({
         where: { id: payload.performedBy },
         select: { name: true, user_role: { select: { name: true } } },
       });
@@ -44,7 +48,7 @@ export async function logAssetActivity(payload: LogAssetActivityPayload) {
       }
     }
 
-    const activity = await prisma.asset_activities.create({
+    const activity = await dbClient.asset_activities.create({
       data: {
         asset_id: payload.assetId,
         cooler_id: payload.coolerId || null,

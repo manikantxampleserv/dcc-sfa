@@ -3018,11 +3018,22 @@ export const requestsController = {
                   }
                 }
 
-                await syncApprovedMovementWithMaintenance(
-                  tx,
-                  assetMovement,
-                  userId
-                );
+                const movementRecordForSync = assetMovement;
+                const userIdForSync = userId;
+                setImmediate(async () => {
+                  try {
+                    await syncApprovedMovementWithMaintenance(
+                      prisma,
+                      movementRecordForSync,
+                      userIdForSync
+                    );
+                  } catch (syncErr) {
+                    console.error(
+                      'Error syncing approved movement with maintenance in background:',
+                      syncErr
+                    );
+                  }
+                });
               }
             }
 
