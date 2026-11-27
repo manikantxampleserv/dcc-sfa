@@ -800,8 +800,7 @@ export const createRequest = async (data: {
                 where: { id: movement.from_customer_id },
                 select: { depot_id: true },
               });
-              movementDepotId =
-                cust?.depot_id || movement.to_depot_id || null;
+              movementDepotId = cust?.depot_id || movement.to_depot_id || null;
             } else {
               movementDepotId =
                 (movement.from_direction === 'depot'
@@ -946,9 +945,8 @@ export const createRequest = async (data: {
 
         setImmediate(async () => {
           try {
-            const { vanInventoryController } = await import(
-              './vanInventory.controller'
-            );
+            const { vanInventoryController } =
+              await import('./vanInventory.controller');
 
             let vanInventoryIdToProcess: number | null = null;
             let reqData: any = null;
@@ -1308,9 +1306,8 @@ export const createRequest = async (data: {
 
         setImmediate(async () => {
           try {
-            const { vanInventoryController } = await import(
-              './vanInventory.controller'
-            );
+            const { vanInventoryController } =
+              await import('./vanInventory.controller');
             await vanInventoryController.processApprovedVanInventoryStock(
               Number(data.reference_id),
               data.createdby,
@@ -3338,9 +3335,8 @@ export const requestsController = {
             `Approved VAN_INVENTORY request detected: requestId=${result.request.id}, referenceId=${result.request.reference_id}`
           );
           try {
-            const { vanInventoryController } = await import(
-              './vanInventory.controller'
-            );
+            const { vanInventoryController } =
+              await import('./vanInventory.controller');
             await vanInventoryController.processApprovedVanInventoryStock(
               result.request.reference_id,
               userId,
@@ -3358,9 +3354,8 @@ export const requestsController = {
             );
             await new Promise(resolve => setTimeout(resolve, 1000));
             try {
-              const { vanInventoryController } = await import(
-                './vanInventory.controller'
-              );
+              const { vanInventoryController } =
+                await import('./vanInventory.controller');
               await vanInventoryController.processApprovedVanInventoryStock(
                 result.request.reference_id,
                 userId,
@@ -3379,44 +3374,14 @@ export const requestsController = {
             }
           }
         }
-        // if (
-        //   result.request.request_type === 'RECONCILIATION_APPROVAL' &&
-        //   result.request.request_data
-        // ) {
-        //   try {
-        //     const reqData = JSON.parse(result.request.request_data);
-        //     if (reqData && reqData.van_inventory_id) {
-        //       console.log(
-        //         `Approved RECONCILIATION_APPROVAL request with van_inventory_id detected: requestId=${result.request.id}, vanInventoryId=${reqData.van_inventory_id}`
-        //       );
-        //       const { vanInventoryController } = await import(
-        //         '../controllers/vanInventory.controller'
-        //       );
-        //       await vanInventoryController.processApprovedVanInventoryStock(
-        //         Number(reqData.van_inventory_id),
-        //         userId,
-        //         reqData
-        //       );
-        //       console.log(
-        //         `Completed stock processing for approved RECONCILIATION_APPROVAL request ${reqData.van_inventory_id}`
-        //       );
-        //     }
-        //   } catch (err) {
-        //     console.error(
-        //       'Error processing approved van inventory stock from reconciliation approval:',
-        //       err
-        //     );
-        //   }
-        // }
 
         if (
           result.request.request_type === 'RECONCILIATION_APPROVAL' &&
           result.request.reference_id
         ) {
           try {
-            const { vanInventoryController } = await import(
-              '../controllers/vanInventory.controller'
-            );
+            const { vanInventoryController } =
+              await import('../controllers/vanInventory.controller');
 
             const vanInventoryId =
               await vanInventoryController.createVanInventoryFromReconciliation(
@@ -3878,7 +3843,9 @@ export const requestsController = {
         if (!unapprovedSequencesMap.has(approval.request_id)) {
           unapprovedSequencesMap.set(approval.request_id, []);
         }
-        unapprovedSequencesMap.get(approval.request_id)!.push(approval.sequence);
+        unapprovedSequencesMap
+          .get(approval.request_id)!
+          .push(approval.sequence);
       });
 
       const filteredApprovals = validApprovals.filter(approval => {

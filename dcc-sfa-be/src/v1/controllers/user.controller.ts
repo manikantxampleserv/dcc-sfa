@@ -57,12 +57,12 @@ const serializeUser = (
         code: user.user_depot.code,
       }
     : user.users_depots_users?.[0]?.user_depots_depot_id
-    ? {
-        id: user.users_depots_users[0].user_depots_depot_id.id,
-        name: user.users_depots_users[0].user_depots_depot_id.name,
-        code: user.users_depots_users[0].user_depots_depot_id.code,
-      }
-    : null,
+      ? {
+          id: user.users_depots_users[0].user_depots_depot_id.id,
+          name: user.users_depots_users[0].user_depots_depot_id.name,
+          code: user.users_depots_users[0].user_depots_depot_id.code,
+        }
+      : null,
   company: user.companies
     ? {
         id: user.companies.id,
@@ -135,7 +135,6 @@ const serializeUser = (
             }))
         : [],
 });
-console.log('searlizer');
 
 export const userController = {
   async createUser(req: any, res: any): Promise<void> {
