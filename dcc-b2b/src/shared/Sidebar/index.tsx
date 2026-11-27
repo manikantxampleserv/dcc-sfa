@@ -18,11 +18,35 @@ const Sidebar: React.FC = () => {
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
 
+  /** Collect all unique menu item hrefs to determine specific route matching */
+  const allMenuHrefs = useMemo(() => {
+    const hrefs: string[] = [];
+    menuItems.forEach(group => {
+      group.children?.forEach(child => {
+        if (child.href) hrefs.push(child.href);
+        child.children?.forEach(gc => {
+          if (gc.href) hrefs.push(gc.href);
+        });
+      });
+    });
+    return hrefs;
+  }, []);
+
   const isActive = (href?: string) => {
     if (!href) return false;
-    return (
-      location.pathname === href || location.pathname.startsWith(href + '/')
-    );
+    if (location.pathname === href) return true;
+    if (location.pathname.startsWith(href + '/')) {
+      /** Check if any other menu item matches location.pathname with a longer more specific path */
+      const hasMoreSpecificMatch = allMenuHrefs.some(
+        otherHref =>
+          otherHref !== href &&
+          otherHref.length > href.length &&
+          (location.pathname === otherHref ||
+            location.pathname.startsWith(otherHref + '/'))
+      );
+      return !hasMoreSpecificMatch;
+    }
+    return false;
   };
 
   const matchesSearch = (text: string, query: string): boolean => {
@@ -129,11 +153,12 @@ const Sidebar: React.FC = () => {
       </div>
 
       {/* Search */}
-      <div className="flex items-center gap-1 px-2.5 py-2 border-b border-gray-200">
+      <div className="flex items-center gap-1 px-2.5 py-1.5 border-b border-gray-200">
         <Input
           type="text"
           placeholder="Search menu..."
           value={searchQuery}
+          compact
           className="w-full"
           onChange={e => setSearchQuery(e.target.value)}
         />

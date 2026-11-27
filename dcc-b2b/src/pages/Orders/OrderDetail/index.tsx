@@ -18,7 +18,7 @@ import {
   X,
   XCircle,
 } from 'lucide-react';
-import { mockOrders } from 'mock/data/orders';
+import { useMockDb } from 'context/MockDataContext';
 import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
@@ -29,12 +29,15 @@ const OrderDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const {
+    getOrderById,
+    updateOrderStatus,
+    updateOrderItems,
+    approveOrder,
+    rejectOrder,
+  } = useMockDb();
 
-  // Create a deep copy of the order so we can edit it locally
-  const [order, setOrder] = useState(() => {
-    const found = mockOrders.find(o => o.id === Number(id));
-    return found ? JSON.parse(JSON.stringify(found)) : null;
-  });
+  const order = getOrderById(Number(id)) || null;
 
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
@@ -118,7 +121,9 @@ const OrderDetail: React.FC = () => {
         return (
           <div className="flex items-center gap-2">
             <span className="text-sm font-semibold">{val}</span>
-            {user?.role === 'sales_officer' && order.status === 'submitted' && (
+            {user?.role === 'sales_officer' &&
+              (order.status === 'pending_approval' ||
+                order.status === 'draft') && (
               <button
                 onClick={() => {
                   setEditingItem(row.product_id);
@@ -155,6 +160,7 @@ const OrderDetail: React.FC = () => {
   ];
 
   const saveQtyEdit = (row: any) => {
+    if (!order) return;
     if (editQty > row.quantity) {
       toast.error(
         'Sales Officers can only reduce quantities, not increase them.'
@@ -171,35 +177,34 @@ const OrderDetail: React.FC = () => {
       }
       return item;
     });
-    const newTotal = updatedItems.reduce(
-      (sum: number, item: any) => sum + item.total_price,
-      0
-    );
-    setOrder({ ...order, items: updatedItems, total_amount: newTotal });
+    updateOrderItems(order.id, updatedItems);
     setEditingItem(null);
     toast.success('Quantity reduced successfully');
   };
 
   const handleAction = (action: string) => {
+    if (!order) return;
     if (action === 'reject') {
       setRejectModalOpen(true);
       return;
     }
 
-    let newStatus = order.status;
-    if (action === 'approve') newStatus = 'approved';
-    if (action === 'cancel') newStatus = 'cancelled';
-
-    setOrder({ ...order, status: newStatus });
-    toast.success(`Order ${action}d successfully`);
+    if (action === 'approve') {
+      approveOrder(order.id, user?.name);
+      toast.success('Order approved successfully');
+    } else if (action === 'cancel') {
+      updateOrderStatus(order.id, 'cancelled');
+      toast.success('Order cancelled successfully');
+    }
   };
 
   const submitReject = () => {
+    if (!order) return;
     if (!rejectReason.trim()) {
       toast.error('Rejection reason is required');
       return;
     }
-    setOrder({ ...order, status: 'rejected', rejection_reason: rejectReason });
+    rejectOrder(order.id, rejectReason);
     setRejectModalOpen(false);
     toast.success('Order rejected');
   };
@@ -235,7 +240,9 @@ const OrderDetail: React.FC = () => {
 
         {/* Action Buttons */}
         <div className="flex items-center gap-3">
-          {user?.role === 'customer' && order.status === 'submitted' && (
+          {user?.role === 'customer' &&
+            (order.status === 'pending_approval' ||
+              order.status === 'draft') && (
             <Button
               variant="outlined"
               color="error"
@@ -254,8 +261,8 @@ const OrderDetail: React.FC = () => {
             </Button>
           )}
           {user?.role === 'sales_officer' &&
-            (order.status === 'submitted' ||
-              order.status === 'under_review') && (
+            (order.status === 'pending_approval' ||
+              order.status === 'draft') && (
               <>
                 <Button
                   variant="outlined"

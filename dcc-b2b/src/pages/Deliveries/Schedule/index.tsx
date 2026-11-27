@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Chip } from '@mui/material';
 import dayjs from 'dayjs';
-import { mockDeliveries } from 'mock/data/deliveries';
+import { useMockDb } from 'context/MockDataContext';
 import type { Delivery } from 'mock/data/deliveries';
 import Table from 'shared/Table';
 import type { TableColumn } from 'shared/Table';
@@ -30,10 +30,20 @@ const statusLabels: Record<string, string> = {
 
 const DeliverySchedule: React.FC = () => {
   const navigate = useNavigate();
-  // Active deliveries (not delivered/failed)
-  const activeDeliveries = mockDeliveries.filter(d =>
-    ['scheduled', 'out_for_delivery', 'rescheduled'].includes(d.status)
-  );
+  const { deliveries } = useMockDb();
+
+  /** Active deliveries (not delivered/failed), latest on top */
+  const activeDeliveries = useMemo(() => {
+    return deliveries
+      .filter(d =>
+        ['scheduled', 'out_for_delivery', 'rescheduled'].includes(d.status)
+      )
+      .sort((a, b) => {
+        const timeB = new Date(b.scheduled_date || 0).getTime();
+        const timeA = new Date(a.scheduled_date || 0).getTime();
+        return timeB - timeA || b.id - a.id;
+      });
+  }, [deliveries]);
 
   const columns: TableColumn<Delivery>[] = [
     {

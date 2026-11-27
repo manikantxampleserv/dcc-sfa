@@ -3,8 +3,10 @@ import { toast } from 'react-toastify';
 import { Star, MessageSquare } from 'lucide-react';
 import { TextField } from '@mui/material';
 import Button from 'shared/Button';
+import { useMockDb } from 'context/MockDataContext';
 
 const Feedback: React.FC = () => {
+  const { createFeedback } = useMockDb();
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
   const [comments, setComments] = useState('');
@@ -18,8 +20,11 @@ const Feedback: React.FC = () => {
     }
 
     setIsSubmitting(true);
-    await new Promise(r => setTimeout(r, 800));
-    toast.success('Thank you for your feedback!');
+    createFeedback({
+      rating,
+      comment: comments,
+    });
+    toast.success('Thank you for your feedback! It has been recorded.');
     setIsSubmitting(false);
     setRating(0);
     setComments('');

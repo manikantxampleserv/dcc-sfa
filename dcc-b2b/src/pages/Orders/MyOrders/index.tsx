@@ -2,7 +2,7 @@ import { Chip } from '@mui/material';
 import dayjs from 'dayjs';
 import { CheckCircle, Clock, Package, TrendingUp } from 'lucide-react';
 import type { Order, OrderStatus } from 'mock/data/orders';
-import { mockOrders } from 'mock/data/orders';
+import { useMockDb } from 'context/MockDataContext';
 import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ViewButton } from 'shared/ActionButton';
@@ -38,28 +38,35 @@ const statusLabels: Record<OrderStatus, string> = {
 /** My Orders list page with search and status filter. */
 const MyOrders: React.FC = () => {
   const navigate = useNavigate();
+  const { orders } = useMockDb();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
-  const totalOrders = mockOrders.length;
-  const pendingApproval = mockOrders.filter(
+  const totalOrders = orders.length;
+  const pendingApproval = orders.filter(
     o => o.status === 'pending_approval'
   ).length;
-  const deliveredOrders = mockOrders.filter(
+  const deliveredOrders = orders.filter(
     o => o.status === 'delivered'
   ).length;
-  const totalValue = mockOrders.reduce((s, o) => s + o.total_amount, 0);
+  const totalValue = orders.reduce((s, o) => s + o.total_amount, 0);
 
   const filtered = useMemo(() => {
-    return mockOrders.filter(o => {
-      const matchSearch =
-        !search.trim() ||
-        o.order_number.toLowerCase().includes(search.toLowerCase()) ||
-        o.customer_name.toLowerCase().includes(search.toLowerCase());
-      const matchStatus = statusFilter === 'all' || o.status === statusFilter;
-      return matchSearch && matchStatus;
-    });
-  }, [search, statusFilter]);
+    return orders
+      .filter(o => {
+        const matchSearch =
+          !search.trim() ||
+          o.order_number.toLowerCase().includes(search.toLowerCase()) ||
+          o.customer_name.toLowerCase().includes(search.toLowerCase());
+        const matchStatus = statusFilter === 'all' || o.status === statusFilter;
+        return matchSearch && matchStatus;
+      })
+      .sort((a, b) => {
+        const timeB = new Date(b.created_at || b.updated_at || 0).getTime();
+        const timeA = new Date(a.created_at || a.updated_at || 0).getTime();
+        return timeB - timeA || b.id - a.id;
+      });
+  }, [orders, search, statusFilter]);
 
   const columns: TableColumn<Order>[] = [
     {

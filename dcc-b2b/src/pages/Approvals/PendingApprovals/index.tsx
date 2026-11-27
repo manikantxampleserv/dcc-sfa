@@ -1,7 +1,7 @@
 import dayjs from 'dayjs';
 import { Calendar, Check, Clock, TrendingUp, Users, X } from 'lucide-react';
 import type { Order } from 'mock/data/orders';
-import { mockOrders } from 'mock/data/orders';
+import { useMockDb } from 'context/MockDataContext';
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
@@ -12,16 +12,27 @@ import Table from 'shared/Table';
 
 const PendingApprovals: React.FC = () => {
   const navigate = useNavigate();
+  const { orders, approveOrder, rejectOrder } = useMockDb();
 
-  // Filter for pending orders only
-  const pendingOrders = mockOrders.filter(o => o.status === 'pending_approval');
+  /** Filter for pending orders only, latest on top */
+  const pendingOrders = React.useMemo(() => {
+    return orders
+      .filter(o => o.status === 'pending_approval')
+      .sort((a, b) => {
+        const timeB = new Date(b.created_at || b.updated_at || 0).getTime();
+        const timeA = new Date(a.created_at || a.updated_at || 0).getTime();
+        return timeB - timeA || b.id - a.id;
+      });
+  }, [orders]);
 
   const handleApprove = (orderId: number) => {
-    toast.success(`Order ${orderId} approved successfully.`);
+    approveOrder(orderId);
+    toast.success(`Order approved successfully.`);
   };
 
   const handleReject = (orderId: number) => {
-    toast.error(`Order ${orderId} rejected.`);
+    rejectOrder(orderId, 'Rejected during review');
+    toast.error(`Order rejected.`);
   };
 
   const columns: TableColumn<Order>[] = [

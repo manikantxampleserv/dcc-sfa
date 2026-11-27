@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
 import { Chip } from '@mui/material';
-import { mockOrders } from 'mock/data/orders';
+import { useMockDb } from 'context/MockDataContext';
 import type { Order } from 'mock/data/orders';
 import Table from 'shared/Table';
 import type { TableColumn } from 'shared/Table';
@@ -10,11 +10,18 @@ import { ViewButton } from 'shared/ActionButton';
 
 const ApprovalHistory: React.FC = () => {
   const navigate = useNavigate();
+  const { orders } = useMockDb();
 
-  // Filter for approved/rejected orders
-  const historyOrders = mockOrders.filter(
-    o => o.status === 'approved' || o.status === 'rejected'
-  );
+  /** Filter for approved or rejected orders, sorted with latest decision on top */
+  const historyOrders = useMemo(() => {
+    return orders
+      .filter(o => o.status === 'approved' || o.status === 'rejected')
+      .sort((a, b) => {
+        const timeB = new Date(b.approved_at || b.updated_at || b.created_at || 0).getTime();
+        const timeA = new Date(a.approved_at || a.updated_at || a.created_at || 0).getTime();
+        return timeB - timeA || b.id - a.id;
+      });
+  }, [orders]);
 
   const columns: TableColumn<Order>[] = [
     {

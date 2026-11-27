@@ -2,7 +2,7 @@ import { Chip } from '@mui/material';
 import dayjs from 'dayjs';
 import { AlertTriangle } from 'lucide-react';
 import type { ReturnReason, ReturnRequest } from 'mock/data/deliveries';
-import { mockReturns } from 'mock/data/deliveries';
+import { useMockDb } from 'context/MockDataContext';
 import React from 'react';
 import type { TableColumn } from 'shared/Table';
 import Table from 'shared/Table';
@@ -26,6 +26,7 @@ const statusColors: Record<
 };
 
 const Returns: React.FC = () => {
+  const { returns } = useMockDb();
   const columns: TableColumn<ReturnRequest>[] = [
     {
       id: 'order_number',
@@ -100,7 +101,7 @@ const Returns: React.FC = () => {
 
       <Table
         columns={columns}
-        rows={mockReturns}
+        rows={returns}
         emptyMessage="No returns requested."
       />
     </div>

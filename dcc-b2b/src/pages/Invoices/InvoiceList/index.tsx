@@ -8,7 +8,7 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import type { Invoice } from 'mock/data/invoices';
-import { mockInvoices } from 'mock/data/invoices';
+import { useMockDb } from 'context/MockDataContext';
 import React from 'react';
 import StatsCard from 'shared/StatsCard';
 import type { TableColumn } from 'shared/Table';
@@ -26,6 +26,7 @@ const statusColors: Record<
 };
 
 const InvoiceList: React.FC = () => {
+  const { invoices } = useMockDb();
   const columns: TableColumn<Invoice>[] = [
     {
       id: 'invoice_number',
@@ -104,11 +105,11 @@ const InvoiceList: React.FC = () => {
     },
   ];
 
-  const totalOutstanding = mockInvoices.reduce(
+  const totalOutstanding = invoices.reduce(
     (sum, inv) => sum + inv.balance_due,
     0
   );
-  const overdueCount = mockInvoices.filter(i => i.status === 'overdue').length;
+  const overdueCount = invoices.filter(i => i.status === 'overdue').length;
 
   return (
     <div className="flex flex-col gap-4">
@@ -124,13 +125,13 @@ const InvoiceList: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatsCard
           title="Total Invoices"
-          value={mockInvoices.length}
+          value={invoices.length}
           icon={<FileText className="w-5 h-5" />}
           color="blue"
         />
         <StatsCard
           title="Paid Invoices"
-          value={mockInvoices.filter(i => i.status === 'paid').length}
+          value={invoices.filter(i => i.status === 'paid').length}
           icon={<CheckCircle className="w-5 h-5" />}
           color="green"
         />
@@ -150,7 +151,7 @@ const InvoiceList: React.FC = () => {
 
       <Table
         columns={columns}
-        rows={mockInvoices}
+        rows={invoices}
         emptyMessage="No invoices found."
       />
     </div>

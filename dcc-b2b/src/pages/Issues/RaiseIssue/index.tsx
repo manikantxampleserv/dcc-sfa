@@ -5,6 +5,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import Button from 'shared/Button';
+import { useMockDb } from 'context/MockDataContext';
 import * as Yup from 'yup';
 
 const issueSchema = Yup.object({
@@ -18,6 +19,7 @@ const issueSchema = Yup.object({
 
 const RaiseIssue: React.FC = () => {
   const navigate = useNavigate();
+  const { orders, createIssue } = useMockDb();
 
   const formik = useFormik({
     initialValues: {
@@ -27,10 +29,15 @@ const RaiseIssue: React.FC = () => {
       description: '',
     },
     validationSchema: issueSchema,
-    onSubmit: async (_values, { setSubmitting }) => {
-      await new Promise(r => setTimeout(r, 800));
+    onSubmit: async (values, { setSubmitting }) => {
+      const newIssue = createIssue({
+        orderNumber: values.orderNumber,
+        type: values.type as any,
+        subject: values.subject,
+        description: values.description,
+      });
       toast.success(
-        'Issue submitted successfully. Our team will review it shortly.'
+        `Issue ${newIssue.issue_number} submitted successfully.`
       );
       setSubmitting(false);
       navigate('/issues');
@@ -62,18 +69,14 @@ const RaiseIssue: React.FC = () => {
                 formik.touched.orderNumber && formik.errors.orderNumber
               }
             >
-              <MuiMenuItem value="B2B-2026-0001">
-                B2B-2026-0001 (Delivered)
-              </MuiMenuItem>
-              <MuiMenuItem value="B2B-2026-0002">
-                B2B-2026-0002 (In Transit)
-              </MuiMenuItem>
-              <MuiMenuItem value="B2B-2026-0005">
-                B2B-2026-0005 (Scheduled)
-              </MuiMenuItem>
               <MuiMenuItem value="General">
                 General / No specific order
               </MuiMenuItem>
+              {orders.map(order => (
+                <MuiMenuItem key={order.id} value={order.order_number}>
+                  {order.order_number} ({order.status.replace('_', ' ')})
+                </MuiMenuItem>
+              ))}
             </TextField>
 
             <TextField

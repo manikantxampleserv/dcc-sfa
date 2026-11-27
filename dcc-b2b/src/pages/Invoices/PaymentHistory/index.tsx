@@ -2,7 +2,7 @@ import React from 'react';
 import { Chip } from '@mui/material';
 import dayjs from 'dayjs';
 import { CreditCard, Landmark, Banknote, Smartphone } from 'lucide-react';
-import { mockPayments } from 'mock/data/invoices';
+import { useMockDb } from 'context/MockDataContext';
 import type { Payment, PaymentMethod } from 'mock/data/invoices';
 import Table from 'shared/Table';
 import type { TableColumn } from 'shared/Table';
@@ -22,6 +22,7 @@ const methodIcons: Record<PaymentMethod, React.ReactNode> = {
 };
 
 const PaymentHistory: React.FC = () => {
+  const { payments } = useMockDb();
   const columns: TableColumn<Payment>[] = [
     {
       id: 'payment_number',
@@ -103,7 +104,7 @@ const PaymentHistory: React.FC = () => {
 
       <Table
         columns={columns}
-        rows={mockPayments}
+        rows={payments}
         emptyMessage="No payment history found."
       />
     </div>

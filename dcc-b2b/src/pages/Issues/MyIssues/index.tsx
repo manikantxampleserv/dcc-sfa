@@ -3,7 +3,7 @@ import { Chip } from '@mui/material';
 import dayjs from 'dayjs';
 import { AlertCircle, CheckCircle, Clock, FileText } from 'lucide-react';
 import type { Issue } from 'mock/data/issues';
-import { mockIssues } from 'mock/data/issues';
+import { useMockDb } from 'context/MockDataContext';
 import React from 'react';
 import { ActionButton } from 'shared/ActionButton';
 import StatsCard from 'shared/StatsCard';
@@ -28,6 +28,7 @@ const statusColors: Record<
 };
 
 const MyIssues: React.FC = () => {
+  const { issues } = useMockDb();
   const columns: TableColumn<Issue>[] = [
     {
       id: 'issue_number',
@@ -122,25 +123,25 @@ const MyIssues: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatsCard
           title="Total Issues"
-          value={mockIssues.length}
+          value={issues.length}
           icon={<FileText className="w-5 h-5" />}
           color="blue"
         />
         <StatsCard
           title="Open Issues"
-          value={mockIssues.filter(i => i.status === 'open').length}
+          value={issues.filter(i => i.status === 'open').length}
           icon={<AlertCircle className="w-5 h-5" />}
           color="red"
         />
         <StatsCard
           title="In Progress"
-          value={mockIssues.filter(i => i.status === 'in_progress').length}
+          value={issues.filter(i => i.status === 'in_progress').length}
           icon={<Clock className="w-5 h-5" />}
           color="orange"
         />
         <StatsCard
           title="Resolved"
-          value={mockIssues.filter(i => i.status === 'resolved').length}
+          value={issues.filter(i => i.status === 'resolved').length}
           icon={<CheckCircle className="w-5 h-5" />}
           color="green"
         />
@@ -148,7 +149,7 @@ const MyIssues: React.FC = () => {
 
       <Table
         columns={columns}
-        rows={mockIssues}
+        rows={issues}
         emptyMessage="No issues reported."
       />
     </div>

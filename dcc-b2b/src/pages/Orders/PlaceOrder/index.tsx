@@ -1,6 +1,7 @@
 import { ShoppingCart } from 'lucide-react';
+import type { OrderItem } from 'mock/data/orders';
 import type { Product } from 'mock/data/products';
-import { mockProducts, productCategories } from 'mock/data/products';
+import { productCategories } from 'mock/data/products';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
@@ -8,6 +9,7 @@ import Button from 'shared/Button';
 import Input from 'shared/Input';
 import Select from 'shared/Select';
 import { useAuth } from 'context/AuthContext';
+import { useMockDb } from 'context/MockDataContext';
 
 interface CartItem extends Product {
   cartQty: number;
@@ -16,12 +18,14 @@ interface CartItem extends Product {
 const PlaceOrder: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { products, createOrder } = useMockDb();
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('All');
   const [selectedCustomer, setSelectedCustomer] = useState('');
   const [cart, setCart] = useState<Record<number, CartItem>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const filteredProducts = mockProducts.filter(p => {
+  const filteredProducts = products.filter(p => {
     const matchesSearch =
       p.name.toLowerCase().includes(search.toLowerCase()) ||
       p.code.toLowerCase().includes(search.toLowerCase());
@@ -53,21 +57,58 @@ const PlaceOrder: React.FC = () => {
   );
 
   const handleSubmit = () => {
-    if (totalItems === 0) {
-      toast.error('Your cart is empty');
+    if (totalItems === 0 || isSubmitting) {
+      if (totalItems === 0) toast.error('Your cart is empty');
       return;
     }
     if (user?.role === 'sales_officer' && !selectedCustomer) {
       toast.error('Please select a customer to order for');
       return;
     }
-    // Mock submit
-    toast.success('Order submitted successfully for review!');
+    setIsSubmitting(true);
+
+    const customerMap: Record<string, { name: string; code: string }> = {
+      '1000234': { name: 'Kilimanjaro Distributors', code: 'SAP-1000234' },
+      '1000543': { name: 'Moshi Wholesalers', code: 'SAP-1000543' },
+      '1000888': { name: 'Arusha Mega Store', code: 'SAP-1000888' },
+    };
+
+    const customerInfo =
+      user?.role === 'sales_officer' &&
+      selectedCustomer &&
+      customerMap[selectedCustomer]
+        ? customerMap[selectedCustomer]
+        : {
+            name: user?.name || 'Al-Rashid Distributors Ltd',
+            code: 'SAP-001234',
+          };
+
+    const orderItems: OrderItem[] = Object.values(cart).map((item, index) => ({
+      id: index + 1,
+      product_id: item.id,
+      product_name: item.name,
+      product_code: item.code,
+      category: item.category,
+      quantity: item.cartQty,
+      unit_price: item.unit_price,
+      total_price: item.unit_price * item.cartQty,
+    }));
+
+    const newOrder = createOrder({
+      customer_name: customerInfo.name,
+      customer_sap_code: customerInfo.code,
+      items: orderItems,
+      notes: `Order placed by ${user?.name || 'Customer'}`,
+    });
+
+    toast.success(
+      `Order ${newOrder.order_number} submitted successfully for review!`
+    );
     navigate('/orders');
   };
 
   return (
-    <div className="flex flex-col md:flex-row gap-6">
+    <div className="flex flex-col md:flex-row gap-4">
       {/* Product Catalog */}
       <div className="flex-1 flex flex-col gap-4">
         <div>
@@ -80,14 +121,18 @@ const PlaceOrder: React.FC = () => {
         {/* Customer Selection for Sales Officers */}
         {user?.role === 'sales_officer' && (
           <div className="bg-white p-4 rounded-lg border border-blue-200 shadow-sm bg-blue-50/50">
-            <label className="block text-sm font-semibold text-gray-800 mb-2">Order On Behalf Of (Select Customer)</label>
+            <label className="block text-sm font-semibold text-gray-800 mb-2">
+              Order On Behalf Of (Select Customer)
+            </label>
             <Select
               value={selectedCustomer}
               onChange={e => setSelectedCustomer(e.target.value)}
               className="w-full max-w-md"
             >
               <option value="">-- Select Customer --</option>
-              <option value="1000234">Kilimanjaro Distributors (1000234)</option>
+              <option value="1000234">
+                Kilimanjaro Distributors (1000234)
+              </option>
               <option value="1000543">Moshi Wholesalers (1000543)</option>
               <option value="1000888">Arusha Mega Store (1000888)</option>
             </Select>
@@ -268,10 +313,10 @@ const PlaceOrder: React.FC = () => {
             </div>
             <Button
               onClick={handleSubmit}
-              disabled={totalItems === 0}
+              disabled={totalItems === 0 || isSubmitting}
               className="w-full mt-2 justify-center"
             >
-              Submit Order
+              {isSubmitting ? 'Submitting Order...' : 'Submit Order'}
             </Button>
           </div>
         </div>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Chip, Dialog, DialogContent, IconButton } from '@mui/material';
 import dayjs from 'dayjs';
 import {
@@ -10,7 +10,7 @@ import {
   AlertCircle,
   Clock,
 } from 'lucide-react';
-import { mockDeliveries } from 'mock/data/deliveries';
+import { useMockDb } from 'context/MockDataContext';
 import type { Delivery } from 'mock/data/deliveries';
 import StatsCard from 'shared/StatsCard';
 import Table from 'shared/Table';
@@ -18,12 +18,19 @@ import type { TableColumn } from 'shared/Table';
 import { ActionButton } from 'shared/ActionButton';
 
 const ProofOfDelivery: React.FC = () => {
+  const { deliveries } = useMockDb();
   const [selectedPod, setSelectedPod] = useState<Delivery | null>(null);
 
-  // Completed/Failed deliveries have PODs
-  const pastDeliveries = mockDeliveries.filter(d =>
-    ['delivered', 'failed'].includes(d.status)
-  );
+  /** Completed or failed deliveries have PODs, latest on top */
+  const pastDeliveries = useMemo(() => {
+    return deliveries
+      .filter(d => ['delivered', 'failed'].includes(d.status))
+      .sort((a, b) => {
+        const timeB = new Date(b.delivered_at || b.scheduled_date || 0).getTime();
+        const timeA = new Date(a.delivered_at || a.scheduled_date || 0).getTime();
+        return timeB - timeA || b.id - a.id;
+      });
+  }, [deliveries]);
 
   const columns: TableColumn<Delivery>[] = [
     {
@@ -98,27 +105,27 @@ const ProofOfDelivery: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatsCard
           title="Total Deliveries"
-          value={mockDeliveries.length}
+          value={deliveries.length}
           icon={<Truck className="w-5 h-5" />}
           color="blue"
         />
         <StatsCard
           title="Delivered"
-          value={mockDeliveries.filter(d => d.status === 'delivered').length}
+          value={deliveries.filter(d => d.status === 'delivered').length}
           icon={<CheckCircle className="w-5 h-5" />}
           color="green"
         />
         <StatsCard
           title="Out for Delivery"
           value={
-            mockDeliveries.filter(d => d.status === 'out_for_delivery').length
+            deliveries.filter(d => d.status === 'out_for_delivery').length
           }
           icon={<Clock className="w-5 h-5" />}
           color="orange"
         />
         <StatsCard
           title="Failed Deliveries"
-          value={mockDeliveries.filter(d => d.status === 'failed').length}
+          value={deliveries.filter(d => d.status === 'failed').length}
           icon={<AlertCircle className="w-5 h-5" />}
           color="red"
         />
