@@ -8,8 +8,9 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import type { Invoice } from 'mock/data/invoices';
+import { useAuth } from 'context/AuthContext';
 import { useMockDb } from 'context/MockDataContext';
-import React from 'react';
+import React, { useMemo } from 'react';
 import StatsCard from 'shared/StatsCard';
 import type { TableColumn } from 'shared/Table';
 import Table from 'shared/Table';
@@ -26,7 +27,34 @@ const statusColors: Record<
 };
 
 const InvoiceList: React.FC = () => {
-  const { invoices } = useMockDb();
+  const { user } = useAuth();
+  const { invoices: allInvoices, orders } = useMockDb();
+  const isCustomer = user?.role === 'customer';
+
+  /** Customer order numbers for role isolation */
+  const customerOrderNumbers = useMemo(() => {
+    return new Set(
+      orders
+        .filter(
+          o =>
+            !isCustomer ||
+            o.customer_sap_code === user?.sapCode ||
+            o.customer_name === user?.company ||
+            o.customer_name === user?.name
+        )
+        .map(o => o.order_number)
+    );
+  }, [orders, isCustomer, user]);
+
+  const invoices = useMemo(() => {
+    if (!isCustomer) return allInvoices;
+    return allInvoices.filter(
+      inv =>
+        customerOrderNumbers.has(inv.order_number) ||
+        inv.customer_name === user?.company ||
+        inv.customer_name === user?.name
+    );
+  }, [allInvoices, isCustomer, customerOrderNumbers, user]);
   const columns: TableColumn<Invoice>[] = [
     {
       id: 'invoice_number',

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 /** Custom event name for intra-tab sessionStorage synchronization */
 export const SESSION_STORAGE_EVENT = 'b2b-session-storage-updated';
@@ -40,11 +40,14 @@ export function useSessionStorage<T>(
   key: string,
   initialValue: T | (() => T)
 ): [T, (val: T | ((prev: T) => T)) => void, () => void] {
+  const initialValueRef = useRef(initialValue);
+  initialValueRef.current = initialValue;
+
   const readValue = useCallback((): T => {
     if (typeof window === 'undefined') {
-      return typeof initialValue === 'function'
-        ? (initialValue as () => T)()
-        : initialValue;
+      return typeof initialValueRef.current === 'function'
+        ? (initialValueRef.current as () => T)()
+        : initialValueRef.current;
     }
 
     try {
@@ -57,32 +60,45 @@ export function useSessionStorage<T>(
     }
 
     const fallback =
-      typeof initialValue === 'function'
-        ? (initialValue as () => T)()
-        : initialValue;
+      typeof initialValueRef.current === 'function'
+        ? (initialValueRef.current as () => T)()
+        : initialValueRef.current;
     try {
       window.sessionStorage.setItem(key, JSON.stringify(fallback));
     } catch {
       /** Ignore write errors on initialization */
     }
     return fallback;
-  }, [key, initialValue]);
+  }, [key]);
 
   const [storedValue, setStoredValue] = useState<T>(readValue);
 
   const setValue = useCallback(
     (value: T | ((prev: T) => T)) => {
       try {
-        let currentValue: T = storedValue;
+        let currentValue: T;
         if (typeof window !== 'undefined') {
           const raw = window.sessionStorage.getItem(key);
           if (raw !== null) {
             try {
               currentValue = JSON.parse(raw) as T;
             } catch {
-              /** Use storedValue fallback */
+              currentValue =
+                typeof initialValueRef.current === 'function'
+                  ? (initialValueRef.current as () => T)()
+                  : initialValueRef.current;
             }
+          } else {
+            currentValue =
+              typeof initialValueRef.current === 'function'
+                ? (initialValueRef.current as () => T)()
+                : initialValueRef.current;
           }
+        } else {
+          currentValue =
+            typeof initialValueRef.current === 'function'
+              ? (initialValueRef.current as () => T)()
+              : initialValueRef.current;
         }
 
         const nextValue =
@@ -99,7 +115,7 @@ export function useSessionStorage<T>(
         /** Ignore storage write errors */
       }
     },
-    [key, storedValue]
+    [key]
   );
 
   const removeValue = useCallback(() => {
@@ -107,16 +123,16 @@ export function useSessionStorage<T>(
       if (typeof window !== 'undefined') {
         window.sessionStorage.removeItem(key);
         const fallback =
-          typeof initialValue === 'function'
-            ? (initialValue as () => T)()
-            : initialValue;
+          typeof initialValueRef.current === 'function'
+            ? (initialValueRef.current as () => T)()
+            : initialValueRef.current;
         setStoredValue(fallback);
         dispatchSessionStorageEvent(key, fallback);
       }
     } catch {
       /** Ignore storage removal errors */
     }
-  }, [key, initialValue]);
+  }, [key]);
 
   useEffect(() => {
     setStoredValue(readValue());
@@ -128,7 +144,12 @@ export function useSessionStorage<T>(
         SessionStorageCustomEventDetail<T>
       >;
       if (customEvent.detail && customEvent.detail.key === key) {
-        setStoredValue(customEvent.detail.value);
+        setStoredValue(prev => {
+          if (JSON.stringify(prev) === JSON.stringify(customEvent.detail.value)) {
+            return prev;
+          }
+          return customEvent.detail.value;
+        });
       }
     };
 
@@ -136,13 +157,19 @@ export function useSessionStorage<T>(
       if (event.storageArea === window.sessionStorage && event.key === key) {
         if (event.newValue === null) {
           const fallback =
-            typeof initialValue === 'function'
-              ? (initialValue as () => T)()
-              : initialValue;
+            typeof initialValueRef.current === 'function'
+              ? (initialValueRef.current as () => T)()
+              : initialValueRef.current;
           setStoredValue(fallback);
         } else {
           try {
-            setStoredValue(JSON.parse(event.newValue) as T);
+            const parsed = JSON.parse(event.newValue) as T;
+            setStoredValue(prev => {
+              if (JSON.stringify(prev) === JSON.stringify(parsed)) {
+                return prev;
+              }
+              return parsed;
+            });
           } catch {
             /** Ignore parse errors */
           }
@@ -157,7 +184,7 @@ export function useSessionStorage<T>(
       window.removeEventListener(SESSION_STORAGE_EVENT, handleCustomEvent);
       window.removeEventListener('storage', handleStorageEvent);
     };
-  }, [key, initialValue]);
+  }, [key]);
 
   return [storedValue, setValue, removeValue];
 }

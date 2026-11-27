@@ -51,9 +51,9 @@ const AppRoutes: React.FC = () => {
         <Route path="/approvals/pending" element={<ProtectedRoute roles={['sales_officer']}><PendingApprovals /></ProtectedRoute>} />
         <Route path="/approvals/history" element={<ProtectedRoute roles={['sales_officer']}><ApprovalHistory /></ProtectedRoute>} />
 
-        {/* Deliveries */}
+        {/** Deliveries */}
         <Route path="/deliveries/schedule" element={<DeliverySchedule />} />
-        <Route path="/deliveries/execute/:id" element={<DriverExecution />} />
+        <Route path="/deliveries/execute/:id" element={<ProtectedRoute roles={['sales_officer']}><DriverExecution /></ProtectedRoute>} />
         <Route path="/deliveries/pod" element={<ProofOfDelivery />} />
         <Route path="/deliveries/returns" element={<Returns />} />
 

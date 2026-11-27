@@ -37,13 +37,18 @@ const DriverExecution: React.FC = () => {
     isAlreadyDelivered
   );
 
+  const initialPhotos = useMemo(
+    () => ({
+      stock: delivery?.pod_image || null,
+      signature: delivery?.pod_image || null,
+    }),
+    [delivery?.pod_image]
+  );
+
   const [photos, setPhotos] = useSessionStorage<{
     stock: string | null;
     signature: string | null;
-  }>(`b2b_exec_photos_${storageKey}`, {
-    stock: delivery?.pod_image || null,
-    signature: delivery?.pod_image || null,
-  });
+  }>(`b2b_exec_photos_${storageKey}`, initialPhotos);
 
   const defaultItems = useMemo(() => {
     return order
@@ -175,14 +180,6 @@ const DriverExecution: React.FC = () => {
           <p className="text-sm text-gray-500 mt-0.5">
             Customer: {order.customer_name} ({order.customer_sap_code})
           </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <Button
-            variant="outlined"
-            onClick={() => navigate('/deliveries/schedule')}
-          >
-            Back to Schedule
-          </Button>
         </div>
       </div>
 

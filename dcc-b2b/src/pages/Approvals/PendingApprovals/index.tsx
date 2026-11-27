@@ -1,11 +1,12 @@
 import dayjs from 'dayjs';
-import { Calendar, Check, Clock, TrendingUp, Users, X } from 'lucide-react';
+import { Calendar, Check, Clock, TrendingUp, Truck, Users, X } from 'lucide-react';
 import type { Order } from 'mock/data/orders';
 import { useMockDb } from 'context/MockDataContext';
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { ActionButton, ViewButton } from 'shared/ActionButton';
+import ScheduleDeliveryModal from 'shared/ScheduleDeliveryModal';
 import StatsCard from 'shared/StatsCard';
 import type { TableColumn } from 'shared/Table';
 import Table from 'shared/Table';
@@ -13,6 +14,8 @@ import Table from 'shared/Table';
 const PendingApprovals: React.FC = () => {
   const navigate = useNavigate();
   const { orders, approveOrder, rejectOrder } = useMockDb();
+  const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
+  const [selectedOrderNum, setSelectedOrderNum] = useState<string | undefined>(undefined);
 
   /** Filter for pending orders only, latest on top */
   const pendingOrders = React.useMemo(() => {
@@ -28,6 +31,13 @@ const PendingApprovals: React.FC = () => {
   const handleApprove = (orderId: number) => {
     approveOrder(orderId);
     toast.success(`Order approved successfully.`);
+  };
+
+  const handleApproveAndSchedule = (orderId: number, orderNum: string) => {
+    approveOrder(orderId);
+    setSelectedOrderNum(orderNum);
+    setScheduleModalOpen(true);
+    toast.success(`Order approved. Please set delivery schedule.`);
   };
 
   const handleReject = (orderId: number) => {
@@ -94,6 +104,13 @@ const PendingApprovals: React.FC = () => {
             size="small"
           />
           <ActionButton
+            onClick={() => handleApproveAndSchedule(row.id, row.order_number)}
+            icon={<Truck className="w-4 h-4" />}
+            color="primary"
+            tooltip="Approve & Schedule Delivery"
+            size="small"
+          />
+          <ActionButton
             onClick={() => handleReject(row.id)}
             icon={<X className="w-4 h-4" />}
             color="error"
@@ -155,6 +172,15 @@ const PendingApprovals: React.FC = () => {
         columns={columns}
         rows={pendingOrders}
         emptyMessage="No orders pending approval."
+      />
+
+      <ScheduleDeliveryModal
+        open={scheduleModalOpen}
+        onClose={() => {
+          setScheduleModalOpen(false);
+          setSelectedOrderNum(undefined);
+        }}
+        orderNumber={selectedOrderNum}
       />
     </div>
   );

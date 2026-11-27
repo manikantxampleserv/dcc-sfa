@@ -83,6 +83,17 @@ export interface MockDataContextType {
     id: number,
     patch: Partial<Delivery>
   ) => Delivery | undefined;
+  scheduleDelivery: (data: {
+    orderNumber: string;
+    scheduled_date: string;
+    scheduled_time_slot?: string;
+    driver_name: string;
+    driver_phone: string;
+    vehicle_plate: string;
+    delivery_address?: string;
+    priority?: 'low' | 'medium' | 'high' | 'urgent';
+    notes?: string;
+  }) => Delivery | undefined;
   executeDelivery: (
     orderId: number,
     podData?: {
@@ -177,8 +188,12 @@ export const MockDataProvider: React.FC<{ children: React.ReactNode }> = ({
     delivery_date?: string;
     status?: OrderStatus;
   }): Order => {
-    const maxOrderId = orders.reduce((max, o) => Math.max(max, o.id), 0);
-    const newId = maxOrderId + 1;
+    const maxNumFromOrderNumber = orders.reduce((max, o) => {
+      const match = o.order_number?.match(/(\d+)$/);
+      const parsedNum = match ? parseInt(match[1], 10) : 0;
+      return Math.max(max, o.id, parsedNum);
+    }, 0);
+    const newId = maxNumFromOrderNumber + 1;
     const orderNumber = `B2B-2026-${String(newId).padStart(4, '0')}`;
     const totalAmount = orderInput.items.reduce(
       (sum, item) => sum + item.total_price,
@@ -202,14 +217,24 @@ export const MockDataProvider: React.FC<{ children: React.ReactNode }> = ({
       notes: orderInput.notes,
     };
 
-    /** Prepend newly created order and remove any duplicate order numbers */
+    /** Prepend newly created order and deduplicate list */
     setOrders(prev => {
-      const filtered = prev.filter(o => o.order_number !== orderNumber);
+      const seen = new Set<string>();
+      seen.add(orderNumber);
+      const filtered = prev.filter(o => {
+        if (!o || !o.order_number || seen.has(o.order_number)) return false;
+        seen.add(o.order_number);
+        return true;
+      });
       return [newOrder, ...filtered];
     });
 
     /** Generate matching invoice for newly created order */
-    const maxInvId = invoices.reduce((max, inv) => Math.max(max, inv.id), 0);
+    const maxInvId = invoices.reduce((max, inv) => {
+      const match = inv.invoice_number?.match(/(\d+)$/);
+      const parsedNum = match ? parseInt(match[1], 10) : 0;
+      return Math.max(max, inv.id, parsedNum);
+    }, 0);
     const newInvId = maxInvId + 1;
     const newInvoice: Invoice = {
       id: newInvId,
@@ -225,33 +250,14 @@ export const MockDataProvider: React.FC<{ children: React.ReactNode }> = ({
       sap_reference: `SAP-INV-${99250 + newInvId}`,
     };
     setInvoices(prev => {
-      const filtered = prev.filter(inv => inv.order_number !== orderNumber);
+      const seen = new Set<string>();
+      seen.add(orderNumber);
+      const filtered = prev.filter(inv => {
+        if (!inv || !inv.order_number || seen.has(inv.order_number)) return false;
+        seen.add(inv.order_number);
+        return true;
+      });
       return [newInvoice, ...filtered];
-    });
-
-    /** Generate delivery record */
-    const maxDelId = deliveries.reduce((max, del) => Math.max(max, del.id), 0);
-    const newDelId = maxDelId + 1;
-    const totalQuantity = orderInput.items.reduce(
-      (sum, it) => sum + it.quantity,
-      0
-    );
-    const newDelivery: Delivery = {
-      id: newDelId,
-      order_number: orderNumber,
-      driver_name: 'Pending Assignment',
-      driver_phone: '+255 700 000 000',
-      vehicle_plate: 'PENDING',
-      status: 'scheduled',
-      scheduled_date:
-        orderInput.delivery_date || dayjs().add(2, 'day').format('YYYY-MM-DD'),
-      delivery_address: '45 Kariakoo Market Street, Dar es Salaam',
-      items_count: totalQuantity,
-      total_amount: totalAmount,
-    };
-    setDeliveries(prev => {
-      const filtered = prev.filter(del => del.order_number !== orderNumber);
-      return [newDelivery, ...filtered];
     });
 
     return newOrder;
@@ -441,6 +447,90 @@ export const MockDataProvider: React.FC<{ children: React.ReactNode }> = ({
       })
     );
     return updated;
+  };
+
+  /**
+   * Schedule or update delivery assignment for an approved order
+   */
+  const scheduleDelivery = (data: {
+    orderNumber: string;
+    scheduled_date: string;
+    scheduled_time_slot?: string;
+    driver_name: string;
+    driver_phone: string;
+    vehicle_plate: string;
+    delivery_address?: string;
+    priority?: 'low' | 'medium' | 'high' | 'urgent';
+    notes?: string;
+  }): Delivery | undefined => {
+    const order = orders.find(o => o.order_number === data.orderNumber);
+    let targetDelivery: Delivery | undefined;
+
+    setDeliveries(prev => {
+      const existingIndex = prev.findIndex(
+        d => d.order_number === data.orderNumber
+      );
+      if (existingIndex !== -1) {
+        targetDelivery = {
+          ...prev[existingIndex],
+          status: 'scheduled',
+          scheduled_date: data.scheduled_date,
+          scheduled_time_slot:
+            data.scheduled_time_slot || '08:00 AM - 12:00 PM',
+          driver_name: data.driver_name,
+          driver_phone: data.driver_phone,
+          vehicle_plate: data.vehicle_plate,
+          delivery_address:
+            data.delivery_address || prev[existingIndex].delivery_address,
+          priority: data.priority || 'medium',
+          notes: data.notes || prev[existingIndex].notes,
+        };
+        const updated = [...prev];
+        updated[existingIndex] = targetDelivery;
+        return updated;
+      }
+
+      const maxId = prev.reduce((m, d) => Math.max(m, d.id), 0);
+      targetDelivery = {
+        id: maxId + 1,
+        order_number: data.orderNumber,
+        customer_name: order?.customer_name,
+        driver_name: data.driver_name,
+        driver_phone: data.driver_phone,
+        vehicle_plate: data.vehicle_plate,
+        status: 'scheduled',
+        scheduled_date: data.scheduled_date,
+        scheduled_time_slot:
+          data.scheduled_time_slot || '08:00 AM - 12:00 PM',
+        delivery_address:
+          data.delivery_address ||
+          '45 Kariakoo Market Street, Dar es Salaam',
+        priority: data.priority || 'medium',
+        notes: data.notes,
+        items_count: order
+          ? order.items.reduce((s, i) => s + i.quantity, 0)
+          : 0,
+        total_amount: order ? order.total_amount : 0,
+      };
+      return [targetDelivery, ...prev];
+    });
+
+    /** Keep order delivery_date and status synced */
+    if (order) {
+      setOrders(prev =>
+        prev.map(o => {
+          if (o.order_number !== data.orderNumber) return o;
+          return {
+            ...o,
+            delivery_date: data.scheduled_date,
+            notes: data.notes || o.notes,
+            updated_at: new Date().toISOString(),
+          };
+        })
+      );
+    }
+
+    return targetDelivery;
   };
 
   const executeDelivery = (
@@ -657,25 +747,6 @@ export const MockDataProvider: React.FC<{ children: React.ReactNode }> = ({
     });
   }, [deliveries]);
 
-  /** Automatically prune duplicate entries from persistent storage */
-  React.useEffect(() => {
-    if (orders.length !== sortedOrders.length) {
-      setOrders(sortedOrders);
-    }
-  }, [orders.length, sortedOrders, setOrders]);
-
-  React.useEffect(() => {
-    if (invoices.length !== sortedInvoices.length) {
-      setInvoices(sortedInvoices);
-    }
-  }, [invoices.length, sortedInvoices, setInvoices]);
-
-  React.useEffect(() => {
-    if (deliveries.length !== sortedDeliveries.length) {
-      setDeliveries(sortedDeliveries);
-    }
-  }, [deliveries.length, sortedDeliveries, setDeliveries]);
-
   const sortedReturns = React.useMemo(() => {
     return [...returns].sort((a, b) => {
       const timeB = new Date(b.created_at || 0).getTime();
@@ -718,6 +789,7 @@ export const MockDataProvider: React.FC<{ children: React.ReactNode }> = ({
     rejectOrder,
     recordPayment,
     updateDelivery,
+    scheduleDelivery,
     executeDelivery,
     createReturn,
     updateReturnStatus,

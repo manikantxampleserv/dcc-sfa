@@ -2,8 +2,9 @@ import { Chip } from '@mui/material';
 import dayjs from 'dayjs';
 import { AlertTriangle } from 'lucide-react';
 import type { ReturnReason, ReturnRequest } from 'mock/data/deliveries';
+import { useAuth } from 'context/AuthContext';
 import { useMockDb } from 'context/MockDataContext';
-import React from 'react';
+import React, { useMemo } from 'react';
 import type { TableColumn } from 'shared/Table';
 import Table from 'shared/Table';
 
@@ -26,7 +27,29 @@ const statusColors: Record<
 };
 
 const Returns: React.FC = () => {
-  const { returns } = useMockDb();
+  const { user } = useAuth();
+  const { returns, orders } = useMockDb();
+  const isCustomer = user?.role === 'customer';
+
+  /** Customer order numbers for role isolation */
+  const customerOrderNumbers = useMemo(() => {
+    return new Set(
+      orders
+        .filter(
+          o =>
+            !isCustomer ||
+            o.customer_sap_code === user?.sapCode ||
+            o.customer_name === user?.company ||
+            o.customer_name === user?.name
+        )
+        .map(o => o.order_number)
+    );
+  }, [orders, isCustomer, user]);
+
+  const filteredReturns = useMemo(() => {
+    if (!isCustomer) return returns;
+    return returns.filter(r => customerOrderNumbers.has(r.order_number));
+  }, [returns, isCustomer, customerOrderNumbers]);
   const columns: TableColumn<ReturnRequest>[] = [
     {
       id: 'order_number',
@@ -101,7 +124,7 @@ const Returns: React.FC = () => {
 
       <Table
         columns={columns}
-        rows={returns}
+        rows={filteredReturns}
         emptyMessage="No returns requested."
       />
     </div>

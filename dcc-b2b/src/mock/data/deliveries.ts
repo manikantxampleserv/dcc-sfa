@@ -7,11 +7,14 @@ export type ReturnReason = 'damaged' | 'shortage' | 'wrong_product' | 'quality_i
 export interface Delivery {
   id: number;
   order_number: string;
+  customer_name?: string;
   driver_name: string;
   driver_phone: string;
   vehicle_plate: string;
   status: DeliveryStatus;
   scheduled_date: string;
+  scheduled_time_slot?: string;
+  priority?: 'low' | 'medium' | 'high' | 'urgent';
   delivered_at?: string;
   delivery_address: string;
   pod_image?: string;

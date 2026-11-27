@@ -1,16 +1,20 @@
-import React, { useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
-import dayjs from 'dayjs';
 import { Chip } from '@mui/material';
-import { useMockDb } from 'context/MockDataContext';
+import dayjs from 'dayjs';
+import { Truck } from 'lucide-react';
 import type { Order } from 'mock/data/orders';
-import Table from 'shared/Table';
+import { useMockDb } from 'context/MockDataContext';
+import React, { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { ActionButton, ViewButton } from 'shared/ActionButton';
+import ScheduleDeliveryModal from 'shared/ScheduleDeliveryModal';
 import type { TableColumn } from 'shared/Table';
-import { ViewButton } from 'shared/ActionButton';
+import Table from 'shared/Table';
 
 const ApprovalHistory: React.FC = () => {
   const navigate = useNavigate();
   const { orders } = useMockDb();
+  const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
+  const [selectedOrderNum, setSelectedOrderNum] = useState<string | undefined>(undefined);
 
   /** Filter for approved or rejected orders, sorted with latest decision on top */
   const historyOrders = useMemo(() => {
@@ -82,13 +86,28 @@ const ApprovalHistory: React.FC = () => {
     },
     {
       id: 'actions',
-      label: '',
+      label: 'Actions',
+      width: 120,
       render: (_, row) => (
-        <ViewButton
-          onClick={() => navigate(`/orders/${row.id}`)}
-          size="small"
-          tooltip="View Order"
-        />
+        <div className="flex items-center gap-1.5">
+          <ViewButton
+            onClick={() => navigate(`/orders/${row.id}`)}
+            size="small"
+            tooltip="View Order"
+          />
+          {row.status === 'approved' && (
+            <ActionButton
+              icon={<Truck className="w-4 h-4" />}
+              tooltip="Schedule Delivery"
+              size="small"
+              color="primary"
+              onClick={() => {
+                setSelectedOrderNum(row.order_number);
+                setScheduleModalOpen(true);
+              }}
+            />
+          )}
+        </div>
       ),
     },
   ];
@@ -99,7 +118,7 @@ const ApprovalHistory: React.FC = () => {
         <div>
           <h1 className="text-xl font-bold text-gray-900">Approval History</h1>
           <p className="text-sm text-gray-500">
-            Record of past order decisions
+            Record of past order decisions and scheduled dispatches
           </p>
         </div>
       </div>
@@ -108,6 +127,15 @@ const ApprovalHistory: React.FC = () => {
         columns={columns}
         rows={historyOrders}
         emptyMessage="No approval history found."
+      />
+
+      <ScheduleDeliveryModal
+        open={scheduleModalOpen}
+        onClose={() => {
+          setScheduleModalOpen(false);
+          setSelectedOrderNum(undefined);
+        }}
+        orderNumber={selectedOrderNum}
       />
     </div>
   );

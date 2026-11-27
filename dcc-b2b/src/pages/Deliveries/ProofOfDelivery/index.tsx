@@ -10,6 +10,7 @@ import {
   AlertCircle,
   Clock,
 } from 'lucide-react';
+import { useAuth } from 'context/AuthContext';
 import { useMockDb } from 'context/MockDataContext';
 import type { Delivery } from 'mock/data/deliveries';
 import StatsCard from 'shared/StatsCard';
@@ -18,19 +19,46 @@ import type { TableColumn } from 'shared/Table';
 import { ActionButton } from 'shared/ActionButton';
 
 const ProofOfDelivery: React.FC = () => {
-  const { deliveries } = useMockDb();
+  const { user } = useAuth();
+  const { deliveries, orders } = useMockDb();
+  const isCustomer = user?.role === 'customer';
   const [selectedPod, setSelectedPod] = useState<Delivery | null>(null);
+
+  /** Customer order numbers for role isolation */
+  const customerOrderNumbers = useMemo(() => {
+    return new Set(
+      orders
+        .filter(
+          o =>
+            !isCustomer ||
+            o.customer_sap_code === user?.sapCode ||
+            o.customer_name === user?.company ||
+            o.customer_name === user?.name
+        )
+        .map(o => o.order_number)
+    );
+  }, [orders, isCustomer, user]);
 
   /** Completed or failed deliveries have PODs, latest on top */
   const pastDeliveries = useMemo(() => {
     return deliveries
-      .filter(d => ['delivered', 'failed'].includes(d.status))
+      .filter(d => {
+        if (
+          isCustomer &&
+          !customerOrderNumbers.has(d.order_number) &&
+          d.customer_name !== user?.company &&
+          d.customer_name !== user?.name
+        ) {
+          return false;
+        }
+        return ['delivered', 'failed'].includes(d.status);
+      })
       .sort((a, b) => {
         const timeB = new Date(b.delivered_at || b.scheduled_date || 0).getTime();
         const timeA = new Date(a.delivered_at || a.scheduled_date || 0).getTime();
         return timeB - timeA || b.id - a.id;
       });
-  }, [deliveries]);
+  }, [deliveries, isCustomer, customerOrderNumbers, user]);
 
   const columns: TableColumn<Delivery>[] = [
     {

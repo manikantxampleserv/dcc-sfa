@@ -8,21 +8,25 @@ import {
   TextField,
 } from '@mui/material';
 import { useAuth } from 'context/AuthContext';
+import { useMockDb } from 'context/MockDataContext';
 import dayjs from 'dayjs';
 import {
+  Calendar,
   Check,
   Edit2,
   FileText,
+  MapPin,
   Package,
+  Truck,
   User,
   X,
   XCircle,
 } from 'lucide-react';
-import { useMockDb } from 'context/MockDataContext';
 import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import Button from 'shared/Button';
+import ScheduleDeliveryModal from 'shared/ScheduleDeliveryModal';
 import Table from 'shared/Table';
 
 const OrderDetail: React.FC = () => {
@@ -35,6 +39,7 @@ const OrderDetail: React.FC = () => {
     updateOrderItems,
     approveOrder,
     rejectOrder,
+    deliveries,
   } = useMockDb();
 
   const order = getOrderById(Number(id)) || null;
@@ -43,6 +48,12 @@ const OrderDetail: React.FC = () => {
   const [rejectReason, setRejectReason] = useState('');
   const [editingItem, setEditingItem] = useState<number | null>(null);
   const [editQty, setEditQty] = useState<number>(0);
+  const [scheduleModalOpen, setScheduleModalOpen] = useState<boolean>(false);
+
+  /** Delivery matching this order if available */
+  const matchingDelivery = order
+    ? deliveries.find(d => d.order_number === order.order_number)
+    : undefined;
 
   if (!order) {
     return (
@@ -99,7 +110,7 @@ const OrderDetail: React.FC = () => {
                   )
                 }
                 className="w-16 p-1 border rounded text-sm"
-                max={row.quantity} // Cannot increase
+                max={row.quantity}
               />
               <IconButton
                 size="small"
@@ -124,17 +135,17 @@ const OrderDetail: React.FC = () => {
             {user?.role === 'sales_officer' &&
               (order.status === 'pending_approval' ||
                 order.status === 'draft') && (
-              <button
-                onClick={() => {
-                  setEditingItem(row.product_id);
-                  setEditQty(val);
-                }}
-                className="text-gray-400 hover:text-blue-600 transition-colors"
-                title="Reduce Quantity"
-              >
-                <Edit2 className="w-3.5 h-3.5" />
-              </button>
-            )}
+                <button
+                  onClick={() => {
+                    setEditingItem(row.product_id);
+                    setEditQty(val);
+                  }}
+                  className="text-gray-400 hover:text-blue-600 transition-colors"
+                  title="Reduce Quantity"
+                >
+                  <Edit2 className="w-3.5 h-3.5" />
+                </button>
+              )}
           </div>
         );
       },
@@ -192,6 +203,7 @@ const OrderDetail: React.FC = () => {
     if (action === 'approve') {
       approveOrder(order.id, user?.name);
       toast.success('Order approved successfully');
+      setScheduleModalOpen(true);
     } else if (action === 'cancel') {
       updateOrderStatus(order.id, 'cancelled');
       toast.success('Order cancelled successfully');
@@ -243,14 +255,14 @@ const OrderDetail: React.FC = () => {
           {user?.role === 'customer' &&
             (order.status === 'pending_approval' ||
               order.status === 'draft') && (
-            <Button
-              variant="outlined"
-              color="error"
-              onClick={() => handleAction('cancel')}
-            >
-              Cancel Order
-            </Button>
-          )}
+              <Button
+                variant="outlined"
+                color="error"
+                onClick={() => handleAction('cancel')}
+              >
+                Cancel Order
+              </Button>
+            )}
           {user?.role === 'customer' && order.status === 'rejected' && (
             <Button
               variant="contained"
@@ -279,6 +291,20 @@ const OrderDetail: React.FC = () => {
                   Approve
                 </Button>
               </>
+            )}
+          {user?.role === 'sales_officer' &&
+            (order.status === 'approved' || order.status === 'in_transit') && (
+              <Button
+                variant="contained"
+                color="primary"
+                startIcon={<Truck className="w-4 h-4" />}
+                onClick={() => setScheduleModalOpen(true)}
+              >
+                {matchingDelivery &&
+                matchingDelivery.driver_name !== 'Pending Assignment'
+                  ? 'Reschedule Delivery'
+                  : 'Schedule Delivery'}
+              </Button>
             )}
         </div>
       </div>
@@ -393,6 +419,128 @@ const OrderDetail: React.FC = () => {
             </div>
           </div>
 
+          {/* Delivery Logistics Details */}
+          {(order.status === 'approved' ||
+            order.status === 'in_transit' ||
+            order.status === 'delivered' ||
+            matchingDelivery) && (
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 flex flex-col gap-3">
+              <div className="flex items-center justify-between border-b border-gray-100 pb-2">
+                <h2 className="font-semibold text-gray-800 flex items-center gap-2">
+                  <Truck className="w-4 h-4 text-blue-600" /> Delivery Logistics
+                </h2>
+                {matchingDelivery && (
+                  <Chip
+                    size="small"
+                    label={matchingDelivery.status
+                      .replace('_', ' ')
+                      .toUpperCase()}
+                    color={
+                      matchingDelivery.status === 'delivered'
+                        ? 'success'
+                        : matchingDelivery.status === 'out_for_delivery'
+                          ? 'warning'
+                          : 'primary'
+                    }
+                  />
+                )}
+              </div>
+
+              {matchingDelivery ? (
+                <div className="flex flex-col gap-2.5 text-xs">
+                  <div className="flex items-start gap-2">
+                    <Calendar className="w-3.5 h-3.5 text-gray-400 mt-0.5 shrink-0" />
+                    <div>
+                      <span className="text-gray-400 block">
+                        Scheduled Date & Slot:
+                      </span>
+                      <span className="font-medium text-gray-800">
+                        {dayjs(matchingDelivery.scheduled_date).format(
+                          'ddd, DD MMM YYYY'
+                        )}
+                        {matchingDelivery.scheduled_time_slot
+                          ? ` (${matchingDelivery.scheduled_time_slot})`
+                          : ''}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-2">
+                    <User className="w-3.5 h-3.5 text-gray-400 mt-0.5 shrink-0" />
+                    <div>
+                      <span className="text-gray-400 block">Driver:</span>
+                      <span className="font-medium text-gray-800">
+                        {matchingDelivery.driver_name}
+                      </span>
+                      {matchingDelivery.driver_phone && (
+                        <span className="text-gray-500 block">
+                          {matchingDelivery.driver_phone}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-2">
+                    <Truck className="w-3.5 h-3.5 text-gray-400 mt-0.5 shrink-0" />
+                    <div>
+                      <span className="text-gray-400 block">
+                        Fleet Vehicle:
+                      </span>
+                      <span className="font-mono font-medium text-gray-800">
+                        {matchingDelivery.vehicle_plate}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-2">
+                    <MapPin className="w-3.5 h-3.5 text-gray-400 mt-0.5 shrink-0" />
+                    <div>
+                      <span className="text-gray-400 block">Destination:</span>
+                      <span className="text-gray-700">
+                        {matchingDelivery.delivery_address}
+                      </span>
+                    </div>
+                  </div>
+
+                  {user?.role === 'sales_officer' &&
+                    matchingDelivery.status !== 'delivered' && (
+                      <Button
+                        variant="outlined"
+                        color="primary"
+                        size="small"
+                        startIcon={<Calendar className="w-3.5 h-3.5" />}
+                        onClick={() => setScheduleModalOpen(true)}
+                        className="!mt-2 !w-full"
+                      >
+                        {matchingDelivery.driver_name === 'Pending Assignment'
+                          ? 'Assign Driver & Vehicle'
+                          : 'Edit / Reschedule'}
+                      </Button>
+                    )}
+                </div>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  <p className="text-xs text-amber-700 bg-amber-50 p-2.5 rounded-lg border border-amber-200">
+                    {user?.role === 'sales_officer'
+                      ? 'Order is approved. Please schedule delivery and assign a driver for dispatch.'
+                      : 'Order is approved. Awaiting delivery scheduling from Bonite Bottlers dispatch.'}
+                  </p>
+                  {user?.role === 'sales_officer' && (
+                    <Button
+                      variant="contained"
+                      color="primary"
+                      size="small"
+                      startIcon={<Truck className="w-3.5 h-3.5" />}
+                      onClick={() => setScheduleModalOpen(true)}
+                    >
+                      Schedule Delivery Now
+                    </Button>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
           {order.notes && (
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 flex flex-col gap-3">
               <h2 className="font-semibold text-gray-800 flex items-center gap-2">
@@ -436,6 +584,15 @@ const OrderDetail: React.FC = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/** Schedule Delivery Modal - Sales Officer only */}
+      {user?.role === 'sales_officer' && (
+        <ScheduleDeliveryModal
+          open={scheduleModalOpen}
+          onClose={() => setScheduleModalOpen(false)}
+          orderNumber={order.order_number}
+        />
+      )}
     </div>
   );
 };

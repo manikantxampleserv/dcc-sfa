@@ -69,7 +69,58 @@ const statusLabels: Record<string, string> = {
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { orders, deliveries, issues, invoices } = useMockDb();
+  const {
+    orders: allOrders,
+    deliveries: allDeliveries,
+    issues: allIssues,
+    invoices: allInvoices,
+  } = useMockDb();
+
+  const isCustomer = user?.role === 'customer';
+
+  /** Role-based data isolation */
+  const orders = useMemo(() => {
+    if (!isCustomer) return allOrders;
+    return allOrders.filter(
+      o =>
+        o.customer_sap_code === user?.sapCode ||
+        o.customer_name === user?.company ||
+        o.customer_name === user?.name
+    );
+  }, [allOrders, isCustomer, user]);
+
+  const customerOrderNumbers = useMemo(() => {
+    return new Set(orders.map(o => o.order_number));
+  }, [orders]);
+
+  const deliveries = useMemo(() => {
+    if (!isCustomer) return allDeliveries;
+    return allDeliveries.filter(
+      d =>
+        customerOrderNumbers.has(d.order_number) ||
+        d.customer_name === user?.company ||
+        d.customer_name === user?.name
+    );
+  }, [allDeliveries, isCustomer, customerOrderNumbers, user]);
+
+  const invoices = useMemo(() => {
+    if (!isCustomer) return allInvoices;
+    return allInvoices.filter(
+      inv =>
+        customerOrderNumbers.has(inv.order_number) ||
+        inv.customer_name === user?.company ||
+        inv.customer_name === user?.name
+    );
+  }, [allInvoices, isCustomer, customerOrderNumbers, user]);
+
+  const issues = useMemo(() => {
+    if (!isCustomer) return allIssues;
+    return allIssues.filter(
+      iss =>
+        !iss.order_number ||
+        customerOrderNumbers.has(iss.order_number)
+    );
+  }, [allIssues, isCustomer, customerOrderNumbers]);
 
   const [trendMetric, setTrendMetric] = useState<'revenue' | 'orders'>(
     'revenue'
@@ -86,6 +137,10 @@ const Dashboard: React.FC = () => {
   const inTransit = useMemo(
     () => deliveries.filter(d => d.status === 'out_for_delivery').length,
     [deliveries]
+  );
+  const deliveredOrders = useMemo(
+    () => orders.filter(o => o.status === 'delivered').length,
+    [orders]
   );
   const openIssues = useMemo(
     () =>
@@ -126,8 +181,12 @@ const Dashboard: React.FC = () => {
   /** Realistic enterprise trend combining historical trajectory with live orders */
   const orderTrendData = useMemo(() => {
     const cur = dayjs();
-    const baseTrajectories = [8500000, 11200000, 14600000, 12800000, 16400000];
-    const baseOrdersCount = [3, 4, 5, 4, 6];
+    const baseTrajectories = isCustomer
+      ? [2400000, 3100000, 4850000, 3900000, 4200000]
+      : [8500000, 11200000, 14600000, 12800000, 16400000];
+    const baseOrdersCount = isCustomer
+      ? [1, 2, 2, 2, 3]
+      : [3, 4, 5, 4, 6];
 
     const result = [];
     for (let i = 5; i >= 1; i--) {
@@ -145,16 +204,16 @@ const Dashboard: React.FC = () => {
       (sum, o) => sum + (o.total_amount || 0),
       0
     );
-    const liveMonthOrders = Math.max(orders.length, 6);
+    const liveMonthOrders = orders.length;
 
     result.push({
       month: currentMonthName,
       orders: liveMonthOrders,
-      value: liveMonthValue > 0 ? liveMonthValue : 18900000,
+      value: liveMonthValue > 0 ? liveMonthValue : (isCustomer ? 4850000 : 18900000),
     });
 
     return result;
-  }, [orders]);
+  }, [orders, isCustomer]);
 
   /** Status breakdown for Donut Chart */
   const statusChartData = useMemo(() => {
@@ -266,81 +325,91 @@ const Dashboard: React.FC = () => {
     return list.slice(0, 6);
   }, [orders, orderFilter]);
 
-  const recentOrderColumns: TableColumn<Order>[] = [
-    {
-      id: 'order_number',
-      label: 'Order #',
-      render: (_, row) => (
-        <span className="font-mono text-xs font-semibold text-blue-600">
-          {row.order_number}
-        </span>
-      ),
-    },
-    {
-      id: 'customer_name',
-      label: 'Customer',
-      render: (_, row) => (
-        <div className="flex items-center gap-2">
-          <Avatar className="!w-7 !h-7 !text-xs !bg-blue-100 !text-blue-700">
-            {row.customer_name?.[0] || 'C'}
-          </Avatar>
-          <span className="text-gray-700 text-xs font-medium">
-            {row.customer_name}
+  const recentOrderColumns: TableColumn<Order>[] = useMemo(() => {
+    const cols: TableColumn<Order>[] = [
+      {
+        id: 'order_number',
+        label: 'Order #',
+        render: (_, row) => (
+          <span className="font-mono text-xs font-semibold text-blue-600">
+            {row.order_number}
           </span>
-        </div>
-      ),
-    },
-    {
-      id: 'created_at',
-      label: 'Date',
-      render: (_, row) => (
-        <span className="text-gray-500 text-xs">
-          {dayjs(row.created_at).format('DD MMM YYYY')}
-        </span>
-      ),
-    },
-    {
-      id: 'items',
-      label: 'Items',
-      render: (_, row) => (
-        <span className="text-gray-600 text-xs font-medium">
-          {row.items?.length || 0} SKUs
-        </span>
-      ),
-    },
-    {
-      id: 'total_amount',
-      label: 'Amount',
-      render: (_, row) => (
-        <span className="font-semibold text-gray-800 text-xs">
-          TZS {row.total_amount.toLocaleString()}
-        </span>
-      ),
-    },
-    {
-      id: 'status',
-      label: 'Status',
-      render: (_, row) => (
-        <Chip
-          label={statusLabels[row.status] ?? row.status}
-          size="small"
-          color={statusColors[row.status] ?? 'default'}
-          variant="outlined"
-        />
-      ),
-    },
-    {
-      id: 'actions',
-      label: '',
-      render: (_, row) => (
-        <ViewButton
-          onClick={() => navigate(`/orders/${row.id}`)}
-          size="small"
-          tooltip="View Order"
-        />
-      ),
-    },
-  ];
+        ),
+      },
+    ];
+
+    if (!isCustomer) {
+      cols.push({
+        id: 'customer_name',
+        label: 'Customer',
+        render: (_, row) => (
+          <div className="flex items-center gap-2">
+            <Avatar className="!w-7 !h-7 !text-xs !bg-blue-100 !text-blue-700">
+              {row.customer_name?.[0] || 'C'}
+            </Avatar>
+            <span className="text-gray-700 text-xs font-medium">
+              {row.customer_name}
+            </span>
+          </div>
+        ),
+      });
+    }
+
+    cols.push(
+      {
+        id: 'created_at',
+        label: 'Date',
+        render: (_, row) => (
+          <span className="text-gray-500 text-xs">
+            {dayjs(row.created_at).format('DD MMM YYYY')}
+          </span>
+        ),
+      },
+      {
+        id: 'items',
+        label: 'Items',
+        render: (_, row) => (
+          <span className="text-gray-600 text-xs font-medium">
+            {row.items?.length || 0} SKUs
+          </span>
+        ),
+      },
+      {
+        id: 'total_amount',
+        label: 'Amount',
+        render: (_, row) => (
+          <span className="font-semibold text-gray-800 text-xs">
+            TZS {row.total_amount.toLocaleString()}
+          </span>
+        ),
+      },
+      {
+        id: 'status',
+        label: 'Status',
+        render: (_, row) => (
+          <Chip
+            label={statusLabels[row.status] ?? row.status}
+            size="small"
+            color={statusColors[row.status] ?? 'default'}
+            variant="outlined"
+          />
+        ),
+      },
+      {
+        id: 'actions',
+        label: '',
+        render: (_, row) => (
+          <ViewButton
+            onClick={() => navigate(`/orders/${row.id}`)}
+            size="small"
+            tooltip="View Order"
+          />
+        ),
+      }
+    );
+
+    return cols;
+  }, [isCustomer, navigate]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -463,7 +532,7 @@ const Dashboard: React.FC = () => {
             </div>
           </div>
 
-          <ResponsiveContainer width="100%" height={210}>
+          <ResponsiveContainer width="100%" height={210} minWidth={0}>
             <AreaChart data={orderTrendData}>
               <defs>
                 <linearGradient id="colorVal" x1="0" y1="0" x2="0" y2="1">
@@ -544,7 +613,7 @@ const Dashboard: React.FC = () => {
           </div>
 
           <div className="h-44 w-full flex items-center justify-center my-1">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minWidth={0}>
               <PieChart>
                 <Pie
                   data={statusChartData}
@@ -622,7 +691,7 @@ const Dashboard: React.FC = () => {
             </div>
           </div>
 
-          <ResponsiveContainer width="100%" height={210}>
+          <ResponsiveContainer width="100%" height={210} minWidth={0}>
             <BarChart
               data={collectionsTrendData}
               margin={{ top: 10, right: 10, left: -10, bottom: 0 }}
@@ -691,7 +760,7 @@ const Dashboard: React.FC = () => {
             </span>
           </div>
 
-          <ResponsiveContainer width="100%" height={210}>
+          <ResponsiveContainer width="100%" height={210} minWidth={0}>
             <BarChart
               data={topProductsData}
               layout="vertical"
@@ -1012,7 +1081,7 @@ const Dashboard: React.FC = () => {
                     : 'text-gray-500 hover:bg-gray-100'
                 }`}
               >
-                Delivered
+                Delivered ({deliveredOrders})
               </button>
             </div>
           </div>

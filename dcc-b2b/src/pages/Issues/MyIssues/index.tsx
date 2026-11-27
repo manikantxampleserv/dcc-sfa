@@ -3,8 +3,9 @@ import { Chip } from '@mui/material';
 import dayjs from 'dayjs';
 import { AlertCircle, CheckCircle, Clock, FileText } from 'lucide-react';
 import type { Issue } from 'mock/data/issues';
+import { useAuth } from 'context/AuthContext';
 import { useMockDb } from 'context/MockDataContext';
-import React from 'react';
+import React, { useMemo } from 'react';
 import { ActionButton } from 'shared/ActionButton';
 import StatsCard from 'shared/StatsCard';
 import type { TableColumn } from 'shared/Table';
@@ -28,7 +29,33 @@ const statusColors: Record<
 };
 
 const MyIssues: React.FC = () => {
-  const { issues } = useMockDb();
+  const { user } = useAuth();
+  const { issues: allIssues, orders } = useMockDb();
+  const isCustomer = user?.role === 'customer';
+
+  /** Customer order numbers for role isolation */
+  const customerOrderNumbers = useMemo(() => {
+    return new Set(
+      orders
+        .filter(
+          o =>
+            !isCustomer ||
+            o.customer_sap_code === user?.sapCode ||
+            o.customer_name === user?.company ||
+            o.customer_name === user?.name
+        )
+        .map(o => o.order_number)
+    );
+  }, [orders, isCustomer, user]);
+
+  const issues = useMemo(() => {
+    if (!isCustomer) return allIssues;
+    return allIssues.filter(
+      iss =>
+        !iss.order_number ||
+        customerOrderNumbers.has(iss.order_number)
+    );
+  }, [allIssues, isCustomer, customerOrderNumbers]);
   const columns: TableColumn<Issue>[] = [
     {
       id: 'issue_number',
@@ -119,7 +146,7 @@ const MyIssues: React.FC = () => {
         </div>
       </div>
 
-      {/* Stats Cards */}
+      {/** Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatsCard
           title="Total Issues"

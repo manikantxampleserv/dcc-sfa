@@ -79,8 +79,8 @@ const PlaceOrder: React.FC = () => {
       customerMap[selectedCustomer]
         ? customerMap[selectedCustomer]
         : {
-            name: user?.name || 'Al-Rashid Distributors Ltd',
-            code: 'SAP-001234',
+            name: user?.company || user?.name || 'Al-Rashid Distributors Ltd',
+            code: user?.sapCode || 'SAP-001234',
           };
 
     const orderItems: OrderItem[] = Object.values(cart).map((item, index) => ({

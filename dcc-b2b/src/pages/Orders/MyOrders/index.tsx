@@ -1,12 +1,14 @@
 import { Chip } from '@mui/material';
 import dayjs from 'dayjs';
-import { CheckCircle, Clock, Package, TrendingUp } from 'lucide-react';
+import { CheckCircle, Clock, Package, TrendingUp, Truck } from 'lucide-react';
 import type { Order, OrderStatus } from 'mock/data/orders';
+import { useAuth } from 'context/AuthContext';
 import { useMockDb } from 'context/MockDataContext';
 import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ViewButton } from 'shared/ActionButton';
+import { ActionButton, ViewButton } from 'shared/ActionButton';
 import Input from 'shared/Input';
+import ScheduleDeliveryModal from 'shared/ScheduleDeliveryModal';
 import Select from 'shared/Select';
 import StatsCard from 'shared/StatsCard';
 import type { TableColumn } from 'shared/Table';
@@ -38,9 +40,25 @@ const statusLabels: Record<OrderStatus, string> = {
 /** My Orders list page with search and status filter. */
 const MyOrders: React.FC = () => {
   const navigate = useNavigate();
-  const { orders } = useMockDb();
+  const { user } = useAuth();
+  const { orders: allOrders } = useMockDb();
+  const isCustomer = user?.role === 'customer';
+
+  /** Filter orders based on user role */
+  const orders = useMemo(() => {
+    if (!isCustomer) return allOrders;
+    return allOrders.filter(
+      o =>
+        o.customer_sap_code === user?.sapCode ||
+        o.customer_name === user?.company ||
+        o.customer_name === user?.name
+    );
+  }, [allOrders, isCustomer, user]);
+
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [scheduleModalOpen, setScheduleModalOpen] = useState<boolean>(false);
+  const [selectedOrderNum, setSelectedOrderNum] = useState<string | undefined>(undefined);
 
   const totalOrders = orders.length;
   const pendingApproval = orders.filter(
@@ -129,13 +147,28 @@ const MyOrders: React.FC = () => {
     },
     {
       id: 'actions',
-      label: '',
+      label: 'Actions',
+      width: isCustomer ? 80 : 120,
       render: (_, row) => (
-        <ViewButton
-          onClick={() => navigate(`/orders/${row.id}`)}
-          size="small"
-          tooltip="View Order"
-        />
+        <div className="flex items-center gap-1.5">
+          <ViewButton
+            onClick={() => navigate(`/orders/${row.id}`)}
+            size="small"
+            tooltip="View Order"
+          />
+          {user?.role === 'sales_officer' && row.status === 'approved' && (
+            <ActionButton
+              icon={<Truck className="w-4 h-4" />}
+              tooltip="Schedule Delivery"
+              size="small"
+              color="primary"
+              onClick={() => {
+                setSelectedOrderNum(row.order_number);
+                setScheduleModalOpen(true);
+              }}
+            />
+          )}
+        </div>
       ),
     },
   ];
@@ -144,14 +177,18 @@ const MyOrders: React.FC = () => {
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-xl font-bold text-gray-900">My Orders</p>
+          <p className="text-xl font-bold text-gray-900">
+            {isCustomer ? 'My Orders' : 'All Orders'}
+          </p>
           <p className="text-sm text-gray-500">
-            Here you have place, view and manage your orders
+            {isCustomer
+              ? 'Here you can place, view and manage your orders'
+              : 'Complete customer order directory across all sales territories'}
           </p>
         </div>
       </div>
 
-      {/* Stats Cards */}
+      {/** Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatsCard
           title="Total Orders"
@@ -179,7 +216,7 @@ const MyOrders: React.FC = () => {
         />
       </div>
 
-      {/* Filters & Table */}
+      {/** Filters & Table */}
 
       <Table
         actions={
@@ -209,6 +246,17 @@ const MyOrders: React.FC = () => {
         rows={filtered}
         emptyMessage="No orders found matching your filters."
       />
+
+      {user?.role === 'sales_officer' && (
+        <ScheduleDeliveryModal
+          open={scheduleModalOpen}
+          onClose={() => {
+            setScheduleModalOpen(false);
+            setSelectedOrderNum(undefined);
+          }}
+          orderNumber={selectedOrderNum}
+        />
+      )}
     </div>
   );
 };
